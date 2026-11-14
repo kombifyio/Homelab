@@ -1,8 +1,29 @@
 {
   "schemaVersion": "stackkits.release-notes/v1",
-  "version": "v0.57.12",
+  "version": "v0.57.13",
   "changelogUrl": "https://stackkit.cc/changelog",
   "releases": [
+    {
+      "version": "v0.57.13",
+      "date": "2026-11-14",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "catalog",
+          "text": "export application pins and verified upstream release sources"
+        },
+        {
+          "kind": "added",
+          "scope": "home-graph",
+          "text": "carry confirmed HA adoption onto current main"
+        },
+        {
+          "kind": "fixed",
+          "scope": "guard-release",
+          "text": "scheduled refresh without signed binaries exits 0 with a notice"
+        }
+      ]
+    },
     {
       "version": "v0.57.12",
       "date": "2026-11-13",
@@ -1440,17 +1461,6 @@
           "kind": "fixed",
           "scope": "public-tls",
           "text": "an install zone serves the delivered origin certificate (platform-hl4cb)"
-        }
-      ]
-    },
-    {
-      "version": "v0.54.15",
-      "date": "2026-10-31",
-      "entries": [
-        {
-          "kind": "fixed",
-          "scope": "restore",
-          "text": "reuse the lock-fenced Apply authority in Coolify restore custody checks (platform-rwacb.4)"
         }
       ]
     }
