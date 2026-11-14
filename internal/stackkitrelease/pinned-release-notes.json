@@ -1,8 +1,13 @@
 {
   "schemaVersion": "stackkits.release-notes/v1",
-  "version": "v0.57.13",
+  "version": "v0.57.14",
   "changelogUrl": "https://stackkit.cc/changelog",
   "releases": [
+    {
+      "version": "v0.57.14",
+      "date": "2026-11-14",
+      "entries": []
+    },
     {
       "version": "v0.57.13",
       "date": "2026-11-14",
@@ -1430,37 +1435,6 @@
           "kind": "added",
           "scope": "identity",
           "text": "Basement runs the published Pocket ID CAS derivative (platform-r2920)"
-        }
-      ]
-    },
-    {
-      "version": "v0.54.16",
-      "date": "2026-10-31",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "full-local",
-          "text": "qualify the native offline J3 journey in governed windows"
-        },
-        {
-          "kind": "added",
-          "scope": "j3",
-          "text": "support admitted depot test host"
-        },
-        {
-          "kind": "fixed",
-          "scope": "j3",
-          "text": "retain and qualify native host capacity"
-        },
-        {
-          "kind": "fixed",
-          "scope": "pocketid",
-          "text": "read su-exec through apk-tools 3 so the CAS image publishes (platform-r2920)"
-        },
-        {
-          "kind": "fixed",
-          "scope": "public-tls",
-          "text": "an install zone serves the delivered origin certificate (platform-hl4cb)"
         }
       ]
     }
