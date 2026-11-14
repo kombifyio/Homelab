@@ -290,10 +290,14 @@ func (h workerRouteHandlers) listFromStore(e *httpx.Event, ownerID string) error
 	}
 	workers, err := h.wst.ListWorkersByTenant(e.Request.Context(), tenantID)
 	if err != nil {
+		// The 500 hides why the read failed; record the cause and its class so
+		// the report tells an outage, a database restart and a data fault apart.
+		httpx.RecordDependencyFailure(e, "workers.list.store", err)
 		return httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to fetch workers", nil)
 	}
 	tenantManagedRuntimeRecords, err := listTenantManagedRuntimeLeasesChecked(e.Request.Context(), h.managedRuntimeLeases, tenantID)
 	if err != nil {
+		httpx.RecordDependencyFailure(e, "workers.list.managed_runtime", err)
 		return httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to fetch managed runtime inventory", nil)
 	}
 	managedRuntimeRecords := visibleManagedRuntimeLeases(tenantManagedRuntimeRecords, tenantID, ownerID)
