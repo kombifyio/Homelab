@@ -12,6 +12,7 @@
 package guardexec
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -43,14 +44,18 @@ const (
 	OpRuntimeDescribe = "stackkit.runtime.describe"
 	// OpRuntimePreflight authenticates fixed runtime evidence before a body fetch.
 	OpRuntimePreflight = "stackkit.runtime.preflight"
-	// OpRuntimeInstall installs a downloaded StackKits runtime bundle.
-	OpRuntimeInstall = "stackkit.runtime.install"
+	// OpRuntimeInstall installs a downloaded StackKits runtime bundle. A signed
+	// candidate admission names the same operation (guardbinding.RuntimeInstallOperation).
+	OpRuntimeInstall = guardbinding.RuntimeInstallOperation
 	// OpProbeDocker runs one of the fixed read-only container probes.
 	OpProbeDocker = "probe.docker"
 	// OpProbeDrive runs a fixed read-only SMART/NVMe observation.
 	OpProbeDrive = "probe.drive"
 	// OpProbeFile reads one allowlisted host manifest.
 	OpProbeFile = "probe.file"
+	// OpUpdatePreflight applies the release policy to a signed manifest before
+	// the daemon downloads the Guard artifact it names.
+	OpUpdatePreflight = "update.preflight"
 	// OpUpdateStage verifies and stages a signed Guard release.
 	OpUpdateStage = "update.stage"
 	// OpUpdateCommit switches to the staged release and starts its trial.
@@ -67,7 +72,28 @@ const (
 	// household identities of the node workspace, with a fixed argument vector.
 	// It is the reconciliation oracle of household identity mutations.
 	OpHouseholdList = "household.list"
+	// OpBindingPinsRotate replaces the pinned binding keys with a key set the
+	// control plane signed with a currently pinned key (same-subject tenant
+	// rebind). The executor verifies it against its own pins.
+	OpBindingPinsRotate = guardbinding.PinRotationOperation
+	// OpPowerApplicationsStop gracefully stops the admitted StackKits services
+	// of the owner's UPS policy. The executor builds the typed service commands.
+	OpPowerApplicationsStop = "power.applications.stop"
+	// OpPowerStorageQuiesce flushes and unmounts the owner's systemd mount
+	// units after the applications have stopped.
+	OpPowerStorageQuiesce = "power.storage.quiesce"
+	// OpPowerOff asks the host to power off after the journaled sequence.
+	OpPowerOff = "power.off"
+	// PowerCapability is advertised when this executor admits the UPS power
+	// sequence. The daemon starts the controller only when it sees it.
+	PowerCapability = "guard.power.v1"
 )
+
+// BindingPinsRotateParams carries one signed pin rotation.
+type BindingPinsRotateParams struct {
+	Rotation guardbinding.Binding     `json:"rotation"`
+	Keys     []guardbinding.PinnedKey `json:"keys"`
+}
 
 // Frame types of a response stream.
 const (
@@ -138,6 +164,35 @@ type ExecuteParams struct {
 	// LocalGrant is the signed local repair grant of a binding of the local
 	// repair contract (Guard G07); it is the only authority of such a request.
 	LocalGrant *guardbinding.LocalRepairGrant `json:"local_grant,omitempty"`
+}
+
+// PowerApplicationsParams names the admitted StackKits services the power
+// sequence stops first. The executor validates every key again.
+type PowerApplicationsParams struct {
+	Services []string `json:"services"`
+}
+
+// PowerStorageParams names the systemd mount units flushed and unmounted after
+// the applications.
+type PowerStorageParams struct {
+	Units []string `json:"units"`
+}
+
+// PowerStepResult is the bounded outcome of one governed power step.
+type PowerStepResult struct {
+	Step    string   `json:"step"`
+	Outcome string   `json:"outcome"`
+	Detail  string   `json:"detail,omitempty"`
+	Items   []string `json:"items,omitempty"`
+}
+
+// PowerBackend is the privileged side of the ordered shutdown. The daemon
+// drives the order and keeps the durable journal; the executor applies one
+// typed step at a time and holds no sequence state.
+type PowerBackend interface {
+	PowerApplicationsStop(ctx context.Context, services []string) (PowerStepResult, error)
+	PowerStorageQuiesce(ctx context.Context, units []string) (PowerStepResult, error)
+	PowerOff(ctx context.Context) error
 }
 
 // RuntimeDescription is the installed StackKits runtime.
@@ -230,6 +285,15 @@ type ProbeDriveParams struct {
 // ProbeFileParams names one host manifest to read.
 type ProbeFileParams struct {
 	Path string `json:"path"`
+}
+
+// UpdatePreflightParams names the signed manifest in the handoff directory and
+// the artifact digest the control plane serves for this host. All three are
+// empty when the control plane publishes no signed release.
+type UpdatePreflightParams struct {
+	ManifestFile       string `json:"manifest_file"`
+	ManifestBundleFile string `json:"manifest_bundle_file"`
+	SHA256             string `json:"sha256"`
 }
 
 // StageParams names the release evidence in the handoff directory.

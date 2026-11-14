@@ -30,6 +30,8 @@
     selfDisclosure = null,
     onSelfDisclosureSettled,
     preferredServerId = "",
+    draftScope,
+    focusGoal = "",
   }: {
     /** The use cases to place; without them the Goals step asks. */
     initialConfig?: StackConfig;
@@ -37,6 +39,9 @@
     onSelfDisclosureSettled?: () => void;
     /** The server the owner started from, chosen first when it can be used. */
     preferredServerId?: string;
+    draftScope?: string;
+    /** The one use case the person came for: server first, then it alone. */
+    focusGoal?: string;
   } = $props();
 
   const embedded = useCreationEntry() !== null;
@@ -107,5 +112,7 @@
     {onSelfDisclosureSettled}
     chooseServer
     {preferredServerId}
+    {draftScope}
+    {focusGoal}
   />
 {/if}

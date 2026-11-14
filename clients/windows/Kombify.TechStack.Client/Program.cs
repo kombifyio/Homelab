@@ -101,7 +101,7 @@ internal sealed record ClientConfig
         {
 #if !CLOUD_DESKTOP
             if (args[i] is "--cloud-ui-url" or "--connect-enroll")
-                throw new InvalidOperationException("The Local installer does not contain kombify Cloud or Connect enrollment.");
+                throw new InvalidOperationException("The Standalone installer does not contain kombify Cloud or Connect enrollment.");
 #endif
             if (args[i] == "--url" && i + 1 < args.Length)
             {
@@ -161,9 +161,9 @@ internal sealed record ClientConfig
         }
 
         if (DesktopEdition.IsLocal && config.Mode.Equals("cloud", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("The Local installer cannot connect to kombify Cloud.");
+            throw new InvalidOperationException("The Standalone installer cannot connect to kombify Cloud.");
         if (!DesktopEdition.IsLocal && !config.Mode.Equals("cloud", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("The Cloud installer cannot select a self-hosted product authority.");
+            throw new InvalidOperationException("The Connected installer cannot select a self-hosted product authority.");
         if (config.Mode is not ("local" or "server" or "cloud"))
             throw new InvalidOperationException("The requested desktop connection mode is unsupported.");
         if (!config.UpdateChannel.Equals(DesktopEdition.Channel, StringComparison.OrdinalIgnoreCase))
@@ -197,9 +197,9 @@ internal sealed record ClientConfig
     public static void ValidateProfileAuthority(ClientConnectionProfile profile)
     {
         if (DesktopEdition.IsLocal && profile.DeploymentMode == "cloud")
-            throw new ClientProfileException("The Local installer cannot bind to a Cloud data authority.");
+            throw new ClientProfileException("The Standalone installer cannot bind to a Cloud data authority.");
         if (!DesktopEdition.IsLocal && profile.DeploymentMode != "cloud")
-            throw new ClientProfileException("The Cloud installer cannot bind to a self-hosted data authority.");
+            throw new ClientProfileException("The Connected installer cannot bind to a self-hosted data authority.");
     }
 
     public Uri? LocalUiUri()

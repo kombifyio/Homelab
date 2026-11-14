@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/kombifyio/techstack/pkg/config"
 	"github.com/kombifyio/techstack/pkg/db"
 )
 
@@ -20,7 +21,7 @@ import (
 func runContractMigrations(ctx context.Context) error {
 	live, err := strconv.Atoi(os.Getenv("TECHSTACK_CONTRACT_LIVE_EMBEDDED_MIN"))
 	if err != nil || live < 0 ||
-		os.Getenv(db.EnvAllowDBGenesis) != "false" || db.ReleaseChannel() != "stable" ||
+		os.Getenv(db.EnvAllowDBGenesis) != "false" || config.RejectRetiredReleaseChannel() != nil ||
 		os.Getenv("DELIVERY_OPERATION") != "smoke" || os.Getenv("DELIVERY_ARTIFACT") != "database-schema" ||
 		os.Getenv("SOURCE_REPOSITORY") != "kombify-StackKits" || os.Getenv("SOURCE_SHA") != buildRevision ||
 		!regexp.MustCompile(`^[a-f0-9]{40}$`).MatchString(buildRevision) ||

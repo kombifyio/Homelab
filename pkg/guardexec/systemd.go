@@ -38,6 +38,21 @@ func (s ExecSystemd) Restart(ctx context.Context, unit string) error {
 	return err
 }
 
+// StopNoBlock queues a stop of the Guard service without waiting for it.
+func (s ExecSystemd) StopNoBlock(ctx context.Context, unit string) error {
+	if unit != AgentUnit {
+		return fmt.Errorf("the executor stops only %s", AgentUnit)
+	}
+	_, err := s.run(ctx, "systemctl", "stop", "--no-block", unit)
+	return err
+}
+
+// DaemonReload makes systemd read changed unit files and drop-ins.
+func (s ExecSystemd) DaemonReload(ctx context.Context) error {
+	_, err := s.run(ctx, "systemctl", "daemon-reload")
+	return err
+}
+
 // Show returns unit properties.
 func (s ExecSystemd) Show(ctx context.Context, unit string, properties ...string) (map[string]string, error) {
 	args := []string{"show", unit}
@@ -58,7 +73,8 @@ func (s ExecSystemd) Show(ctx context.Context, unit string, properties ...string
 }
 
 // RunTransient starts argv in its own transient unit so it survives the restart
-// it supervises. Only the update trial supervisor may be started this way.
+// it supervises. Only the update trial supervisor may be started this way. The
+// unit is Type=exec, so a supervisor that cannot be executed fails the unit.
 func (s ExecSystemd) RunTransient(ctx context.Context, unit string, argv []string) error {
 	if !trialUnitPattern.MatchString(unit) {
 		return errors.New("only the update trial supervisor may run as a transient unit")
@@ -66,7 +82,7 @@ func (s ExecSystemd) RunTransient(ctx context.Context, unit string, argv []strin
 	if len(argv) < 4 || argv[1] != "guard-executor" || (argv[2] != "trial" && argv[2] != "layout-trial") {
 		return errors.New("the transient unit must run an update trial supervisor")
 	}
-	args := append([]string{"--unit=" + unit, "--collect", "--quiet", "--no-block", "--description=kombify Guard update trial", "--property=EnvironmentFile=-/etc/techstack/executor.env", "--"}, argv...)
+	args := append([]string{"--unit=" + unit, "--collect", "--quiet", "--no-block", "--property=Type=exec", "--description=kombify Guard update trial", "--property=EnvironmentFile=-/etc/techstack/executor.env", "--"}, argv...)
 	_, err := s.run(ctx, "systemd-run", args...)
 	return err
 }

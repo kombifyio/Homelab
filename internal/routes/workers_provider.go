@@ -6,12 +6,13 @@ import (
 	"net/http"
 	"strings"
 
-	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 	"github.com/kombifyio/techstack/pkg/httpx"
+	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 )
 
 type workerProviderControl interface {
-	PollWorkerExecution(context.Context, string, string) (*providerexecutor.WorkerExecution, error)
+	// NextWorkerExecution waits, until its context ends, for a command.
+	NextWorkerExecution(context.Context, string, string) (*providerexecutor.WorkerExecution, error)
 	SubmitWorkerExecutionResult(context.Context, string, string, providerexecutor.WorkerExecutionResult) error
 }
 
@@ -57,7 +58,11 @@ func (h workerRouteHandlers) providerCommand(e *httpx.Event, result bool) error 
 		}
 		return httpx.Success(e, http.StatusAccepted, map[string]any{"accepted": true})
 	}
-	command, err := control.PollWorkerExecution(e.Request.Context(), auth.TenantID, auth.RuntimeAgentID)
+	// Held open like commands/next: an idle substrate Guard asks again only
+	// after the wait, not every second.
+	pollCtx, cancel := context.WithTimeout(e.Request.Context(), guardCommandPollTimeout)
+	defer cancel()
+	command, err := control.NextWorkerExecution(pollCtx, auth.TenantID, auth.RuntimeAgentID)
 	if err != nil {
 		return httpx.Error(e, http.StatusConflict, "CONFLICT", "Substrate lease or execution claim is not current", nil)
 	}

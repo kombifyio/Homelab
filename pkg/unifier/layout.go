@@ -31,7 +31,11 @@ type LayoutInput struct {
 	// Existing are the deployment's workloads that stay where they are.
 	Existing []layout.Component
 	// Planned are nodes the run adds with a known size.
-	Planned        []layout.Node
+	Planned []layout.Node
+	// Pins are the owner's own server choices: use case id to server id. A
+	// pinned use case is placed there or reported as not fitting; it never
+	// moves an add-on away from a use case that already runs.
+	Pins           map[string]string
 	InFlight       []string
 	Goals          []string
 	ComputeProfile string
@@ -82,6 +86,8 @@ func ComputeLayout(ctx context.Context, catalog stackkitrelease.UseCaseCatalog, 
 		case node != "":
 			// An add-on joins its use case on the node that already runs it.
 			pins = append(pins, layout.Pin{Workload: demand.Workload, NodeID: node, Reason: "with_use_case"})
+		case strings.TrimSpace(input.Pins[demand.Goal]) != "":
+			pins = append(pins, layout.Pin{Workload: demand.Workload, NodeID: strings.TrimSpace(input.Pins[demand.Goal]), Reason: layout.PinOwnerChoice})
 		case demand.Provenance != "measured" && primary != "":
 			pins = append(pins, layout.Pin{Workload: demand.Workload, NodeID: primary, Reason: "profile_not_measured"})
 		}

@@ -10,6 +10,7 @@ import type { FeatureFlag, FeaturesErrorKind } from "#lib/stores/features.js";
 import type { SelfDisclosureExperience } from "#lib/api/operatorProfile.js";
 import type { WizardDeploymentLane } from "#lib/wizard/types.js";
 import type { SignedInOwnerAccount } from "#lib/wizard/session-owner.js";
+import type { HomelabAccessFacts } from "./use-case-access";
 
 export interface CreationContext {
   auth: {
@@ -36,6 +37,8 @@ export interface CreationContext {
   inventory: {
     listWorkers(): Promise<Worker[]>;
   };
+  /** The homelab's access default, saved decisions and household people. */
+  homelabAccess(): Promise<HomelabAccessFacts>;
   /** The deployment this frame works on, when there is one. */
   readonly deploymentId: string | undefined;
 }

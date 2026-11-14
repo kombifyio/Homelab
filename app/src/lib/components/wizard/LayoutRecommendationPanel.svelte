@@ -9,6 +9,15 @@
   `variant="full"` is the panel on the Goals step; `variant="summary"` is the
   compact reminder on the last active step. Advice that could not be verified
   is shown honestly and is never offered for acceptance.
+
+  The planner looks at every server of the homelab, so the advice can go to
+  another deployment than the one asked from, or to a free server as a new
+  deployment; that target is the first thing the panel says.
+
+  "Choose another server" (full variant, add-use-case): each app can be moved
+  to another server of the owner's deployments. The choice is a pin the
+  planner re-solves and StackKits re-verifies; only that new answer can be
+  accepted, and "Use the recommendation" drops every choice.
 -->
 <script lang="ts">
   import { CircleCheck, Info } from "@lucide/svelte";
@@ -26,15 +35,35 @@
     layoutNodeGroups,
     memoryHint,
   } from "#lib/wizard/layout-view.js";
+  import type {
+    LayoutAssignmentView,
+    LayoutServerChoice,
+  } from "#lib/api/layout.js";
 
   interface Props {
     state: LayoutPreviewState;
     variant?: "full" | "summary";
     /** Asks the same question again after the preview was unavailable. */
     onretry?: () => void;
+    /** The owner's server per use case. */
+    pins?: Record<string, string>;
+    /** Pins a use case to a server; without it the panel offers no choice. */
+    onpin?: (goal: string, serverId: string | null) => void;
+    /** Restores the choices before a refused one. */
+    onundopin?: () => void;
+    /** Drops every choice and asks for the plain recommendation again. */
+    onclearpins?: () => void;
   }
 
-  let { state, variant = "full", onretry }: Props = $props();
+  let {
+    state,
+    variant = "full",
+    onretry,
+    pins = {},
+    onpin,
+    onundopin,
+    onclearpins,
+  }: Props = $props();
 
   const uid = $props.id();
   const view = $derived(layoutPreviewView(state));
@@ -50,6 +79,19 @@
     verified
       ? verificationReasons.filter((reason) => !reason.code.startsWith("stackkits:"))
       : [],
+  );
+  // Where the selection goes, when that is not the deployment asked from.
+  const TARGET_NOTES = new Set([
+    "extends_other_deployment",
+    "joins_bare_server",
+    "goes_to_chosen_deployment",
+    "found_on_bare_server",
+  ]);
+  const targetNote = $derived(
+    view?.notes?.find((note) => TARGET_NOTES.has(note.code)),
+  );
+  const notes = $derived(
+    view?.notes?.filter((note) => !TARGET_NOTES.has(note.code)) ?? [],
   );
   const nodeName = $derived(
     new Map((view?.nodes ?? []).map((node) => [node.id, node.name])),
@@ -70,13 +112,63 @@
     return formatNumber(value, { maximumFractionDigits: 1 });
   }
 
+  // Servers an app can be moved to, grouped by deployment.
+  const choices = $derived(view?.servers ?? []);
+  // Only an extension of a deployment takes a choice: a free server is not
+  // choosable, and an add-on stays with the use case it adds to.
+  const canChoose = $derived(
+    Boolean(onpin) && choices.length > 1 && view?.target?.action === "extend",
+  );
+  function choosable(assignment: LayoutAssignmentView): boolean {
+    return (
+      canChoose &&
+      Boolean(assignment.goal) &&
+      assignment.reasons[0]?.code !== "with_use_case" &&
+      choices.some((server) => server.id === assignment.node_id)
+    );
+  }
+  const choiceGroups = $derived.by(() => {
+    const groups: { id: string; name: string; servers: LayoutServerChoice[] }[] = [];
+    for (const server of choices) {
+      let group = groups.find((candidate) => candidate.id === server.stack_id);
+      if (!group) {
+        group = { id: server.stack_id, name: server.stack_name, servers: [] };
+        groups.push(group);
+      }
+      group.servers.push(server);
+    }
+    return groups;
+  });
+  const hasPins = $derived(Object.keys(pins).length > 0);
+
+  function choose(assignment: LayoutAssignmentView, serverId: string) {
+    if (serverId === (pins[assignment.goal] ?? assignment.node_id)) return;
+    onpin?.(assignment.goal, serverId);
+  }
+
   const verificationKey = $derived(`layout.verification.${view?.verification.status ?? "unavailable"}`);
 </script>
+
+{#snippet serverOption(server: LayoutServerChoice)}
+  <option value={server.id} disabled={!server.connected}>
+    {server.connected
+      ? server.name
+      : tr("layout.pin.notConnected", { server: server.name })}
+  </option>
+{/snippet}
 
 {#if state.phase === "loading" && !view}
   <LoadingNote
     label={tr("layout.panel.loading")}
     testid="layout-recommendation-loading"
+  />
+{:else if state.phase === "failed" && state.reason === "pinRefused"}
+  <ErrorCallout
+    tone="info"
+    message={tr("layout.state.pinRefused")}
+    onRetry={onundopin ?? onclearpins ?? null}
+    retryLabel={tr(onundopin ? "layout.pin.undo" : "layout.pin.reset")}
+    testId="layout-pin-refused"
   />
 {:else if state.phase === "failed"}
   <ErrorCallout
@@ -102,6 +194,15 @@
         </span>
       {/if}
     </h3>
+    {#if targetNote}
+      <p
+        class="mt-2 text-sm font-medium text-foreground"
+        data-testid="layout-target"
+        data-layout-target={view.target?.action}
+      >
+        {layoutReasonText(targetNote)}
+      </p>
+    {/if}
     {#if groups.some((group) => group.assignments.length > 0)}
       <ul class="mt-2 space-y-1 text-sm text-foreground">
         {#each groups.filter((group) => group.assignments.length > 0) as group (group.node.id)}
@@ -167,6 +268,33 @@
     {#if acceptable}
       <p class="mt-1 text-sm text-muted-foreground">
         {tr("layout.panel.intro")}
+      </p>
+    {/if}
+    {#if hasPins && variant === "full"}
+      <div
+        class="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm"
+        data-testid="layout-pins"
+      >
+        <p class="text-foreground">{tr("layout.pin.chosen")}</p>
+        {#if onclearpins}
+          <button
+            type="button"
+            class="rounded-md text-sm font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            onclick={onclearpins}
+            data-testid="layout-pins-reset"
+          >
+            {tr("layout.pin.reset")}
+          </button>
+        {/if}
+      </div>
+    {/if}
+    {#if targetNote}
+      <p
+        class="mt-3 text-sm font-medium text-foreground"
+        data-testid="layout-target"
+        data-layout-target={view.target?.action}
+      >
+        {layoutReasonText(targetNote)}
       </p>
     {/if}
 
@@ -240,6 +368,38 @@
                         {layoutReasonText(first)}
                       </p>
                     {/if}
+                    {#if choosable(assignment)}
+                      <label
+                        class="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
+                      >
+                        <span>{tr("layout.pin.choose")}</span>
+                        <select
+                          class="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
+                          value={pins[assignment.goal] ?? assignment.node_id}
+                          disabled={loading}
+                          aria-label={tr("layout.pin.label", {
+                            app: assignment.title || appLabel(assignment.workload),
+                          })}
+                          onchange={(event) =>
+                            choose(assignment, event.currentTarget.value)}
+                          data-testid="layout-pin-select"
+                        >
+                          {#if choiceGroups.length > 1}
+                            {#each choiceGroups as group (group.id)}
+                              <optgroup label={group.name}>
+                                {#each group.servers as server (server.id)}
+                                  {@render serverOption(server)}
+                                {/each}
+                              </optgroup>
+                            {/each}
+                          {:else}
+                            {#each choices as server (server.id)}
+                              {@render serverOption(server)}
+                            {/each}
+                          {/if}
+                        </select>
+                      </label>
+                    {/if}
                     {#if rest.length > 0}
                       <details class="mt-1 text-sm">
                         <summary
@@ -302,13 +462,13 @@
       </div>
     {/if}
 
-    {#if view.notes && view.notes.length > 0}
+    {#if notes.length > 0}
       <div class="mt-4" data-testid="layout-notes">
         <h4 class="text-sm font-medium text-foreground">
           {tr("layout.panel.notesTitle")}
         </h4>
         <ul class="mt-1 list-disc space-y-1 ps-5 text-sm text-muted-foreground">
-          {#each view.notes as note, index (index)}
+          {#each notes as note, index (index)}
             <li>{layoutReasonText(note)}</li>
           {/each}
         </ul>

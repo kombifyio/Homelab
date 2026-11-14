@@ -201,7 +201,7 @@ func (h stackLifecycleRouteHandlers) managedRuntimeAuthorityPreflight(e *httpx.E
 	}
 	providerID, err := providercatalog.CanonicalProviderID(strings.TrimSpace(e.Request.URL.Query().Get("provider_id")))
 	if err != nil {
-		return httpx.BadRequest(e, "provider_id must be exactly centron or ionos", nil)
+		return httpx.BadRequest(e, "provider_id must be exactly one of "+strings.Join(providercatalog.ManagedProviderIDs(), ", "), nil)
 	}
 
 	effective := managedRuntimeEffectiveIntent{

@@ -14,7 +14,9 @@ import (
 // SendWorkerExecution transports an already admitted invocation. The existing
 // operation, current lease revision and live execution claim are revalidated
 // transactionally. Cancellation never deletes dispatch custody: retry recovers
-// the same invocation rather than allocating another guest.
+// the same invocation rather than allocating another guest. The reserved-guest
+// observe of a failed substrate provision has no claim; its own read-only
+// fence revalidates it instead (worker_reserved_guest.go).
 func (h *Hub) SendWorkerExecution(ctx context.Context, command providerexecutor.WorkerExecution) (providerexecutor.WorkerExecutionResult, error) {
 	if h == nil || h.db == nil {
 		return providerexecutor.WorkerExecutionResult{}, errors.New("provider worker transport requires durable database")
@@ -31,7 +33,7 @@ func (h *Hub) SendWorkerExecution(ctx context.Context, command providerexecutor.
 		return providerexecutor.WorkerExecutionResult{}, err
 	}
 	defer tx.Rollback()
-	if err := validateWorkerFence(ctx, tx, command); err != nil {
+	if err := admitWorkerExecution(ctx, tx, command); err != nil {
 		return providerexecutor.WorkerExecutionResult{}, err
 	}
 	_, err = tx.ExecContext(ctx, `INSERT INTO typed_agent_commands(command_id,tenant_id,agent_id,command_family,command_json,expires_at)
@@ -50,6 +52,11 @@ AND typed_agent_commands.command_json - 'expires_at' = EXCLUDED.command_json - '
 	if err := tx.Commit(); err != nil {
 		return providerexecutor.WorkerExecutionResult{}, err
 	}
+	// A substrate Guard waiting in NextWorkerExecution on this process takes
+	// the command at once.
+	h.mu.Lock()
+	h.signalLocked(providerWakeKey(command.Command.TenantID, command.WorkerID))
+	h.mu.Unlock()
 	ticker := time.NewTicker(200 * time.Millisecond)
 	defer ticker.Stop()
 	for {
@@ -61,6 +68,48 @@ AND typed_agent_commands.command_json - 'expires_at' = EXCLUDED.command_json - '
 		case <-ctx.Done():
 			return providerexecutor.WorkerExecutionResult{}, ctx.Err()
 		case <-ticker.C:
+		}
+	}
+}
+
+// workerExecutionRecheck is how often a waiting provider poll reads the
+// database again for a command another replica queued; a command queued on
+// this process wakes it at once.
+const workerExecutionRecheck = 5 * time.Second
+
+func providerWakeKey(tenantID, workerID string) string {
+	return "provider\x00" + tenantID + "\x00" + workerID
+}
+
+// NextWorkerExecution waits until ctx ends for a provider command (a long
+// poll), so an idle substrate Guard costs one request and a few short
+// transactions per wait instead of one transaction every second. It returns
+// nil, nil when none arrived in time.
+func (h *Hub) NextWorkerExecution(ctx context.Context, tenantID, workerID string) (*providerexecutor.WorkerExecution, error) {
+	if h == nil || h.db == nil {
+		return nil, errors.New("provider worker transport unavailable")
+	}
+	key := providerWakeKey(tenantID, workerID)
+	for {
+		h.mu.Lock()
+		wake := h.notifyChannelLocked(key)
+		h.mu.Unlock()
+		command, err := h.PollWorkerExecution(ctx, tenantID, workerID)
+		if ctx.Err() != nil && command == nil {
+			// The wait ended while reading: nothing was claimed.
+			return nil, nil
+		}
+		if err != nil || command != nil {
+			return command, err
+		}
+		recheck := time.NewTimer(workerExecutionRecheck)
+		select {
+		case <-ctx.Done():
+			recheck.Stop()
+			return nil, nil
+		case <-wake:
+			recheck.Stop()
+		case <-recheck.C:
 		}
 	}
 }
@@ -88,8 +137,8 @@ ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1`, tenantID, workerID).Scan(&p
 	if err != nil {
 		return nil, err
 	}
-	var command providerexecutor.WorkerExecution
-	if err := json.Unmarshal(payload, &command); err != nil {
+	command, err := decodeRetainedWorkerExecution(payload)
+	if err != nil {
 		return nil, err
 	}
 	if command.WorkerID != workerID || command.Command.TenantID != tenantID {
@@ -98,7 +147,7 @@ ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1`, tenantID, workerID).Scan(&p
 	if err := command.Validate(time.Now()); err != nil {
 		return nil, err
 	}
-	if err := validateWorkerFence(ctx, tx, command); err != nil {
+	if err := admitWorkerExecution(ctx, tx, command); err != nil {
 		return nil, err
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE typed_agent_commands SET state='dispatched',dispatched_at=clock_timestamp() WHERE tenant_id=$1 AND command_id=$2`, tenantID, command.InvocationID); err != nil {
@@ -213,6 +262,30 @@ AND op.command_json #>> '{command,connection_ref}'=$10
 		}
 	}
 	return nil
+}
+
+// decodeRetainedWorkerExecution reads an invocation back from command_json.
+// That column is jsonb, which reorders object keys and reformats whitespace, so
+// the retained payload no longer has the bytes its desired spec hash covers and
+// Validate refused every delivery of a command that carries one. The producer
+// sends the desired spec in Go's canonical encoding (substrateruntime spec), so
+// re-encoding restores exactly those bytes; Validate still refuses any payload
+// that is not the admitted spec.
+func decodeRetainedWorkerExecution(raw []byte) (providerexecutor.WorkerExecution, error) {
+	var execution providerexecutor.WorkerExecution
+	if err := json.Unmarshal(raw, &execution); err != nil || len(execution.Payload) == 0 {
+		return execution, err
+	}
+	var payload any
+	if err := json.Unmarshal(execution.Payload, &payload); err != nil {
+		return execution, err
+	}
+	canonical, err := json.Marshal(payload)
+	if err != nil {
+		return execution, err
+	}
+	execution.Payload = canonical
+	return execution, nil
 }
 
 // ReadWorkerExecutionResult recovers the retained result of an exact stage.

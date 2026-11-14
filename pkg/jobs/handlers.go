@@ -81,6 +81,7 @@ const (
 	// control plane still needs to retire its own stack projection.
 	DestroyWorkspaceStateResultField = "destroy_workspace_state"
 	DestroyWorkspaceStateAbsent      = "absent"
+	DestroyWorkspaceStateRemoved     = "removed"
 	// DestroyProjectionReconciledResultField is durable evidence that the
 	// configured projection reconciler retired the exact requested stack.
 	DestroyProjectionReconciledResultField = "destroy_projection_reconciled"
@@ -124,6 +125,9 @@ type ProvisionConfig struct {
 	// PortInventory is the provider-neutral host-listener authority. It resolves
 	// the current RuntimeServer generation internally; jobs never supply one.
 	PortInventory portinventory.LifecycleAuthority
+	// RequestHostInventory wakes the Guard's observation loop while port
+	// admission waits for a verified baseline.
+	RequestHostInventory func(context.Context, string, string, string, time.Time) error
 	// ManagedRuntimeTargetWaitTimeout bounds the cumulative enrollment wait.
 	// Each observation has a smaller bounded attempt timeout; a pending target
 	// yields the worker and resumes through the queue instead of polling inside
@@ -156,7 +160,7 @@ type ProvisionConfig struct {
 	// fails closed; provider allocation or an approved Worker is never enough.
 	AutoDeployAdmission AutoDeployAdmission
 	// NoWorkspaceDestroyReconciler retires the exact control-plane stack
-	// projection after an explicitly requested destroy finds no local workspace.
+	// projection after an explicitly requested destroy proves teardown complete.
 	// It is intentionally a narrow callback: the jobs package never selects a
 	// provider, deletes a provider resource, or touches legacy projections.
 	NoWorkspaceDestroyReconciler NoWorkspaceDestroyReconciler
@@ -211,7 +215,7 @@ type AutoDeployAdmission func(context.Context, AutoDeployAdmissionRequest) error
 type BackupDecommissioner func(ctx context.Context, tenantID, stackID string) error
 
 // NoWorkspaceDestroyReconcileRequest is the immutable ownership envelope for
-// retiring a no-workspace destroy projection. The handler derives every field
+// retiring a completed destroy projection. The handler derives every field
 // from the durable job; callers cannot substitute a different stack.
 type NoWorkspaceDestroyReconcileRequest struct {
 	StackID  string
@@ -220,7 +224,7 @@ type NoWorkspaceDestroyReconcileRequest struct {
 }
 
 // NoWorkspaceDestroyReconciler reconciles the control-plane projection of an
-// already requested, no-workspace destroy. It must be idempotent and may return
+// already requested, completed destroy. It must be idempotent and may return
 // JobWaitError when its own durable authority is temporarily unavailable.
 type NoWorkspaceDestroyReconciler func(context.Context, NoWorkspaceDestroyReconcileRequest) error
 
@@ -809,24 +813,8 @@ func DestroyHandler(cfg *ProvisionConfig) JobHandler {
 			job.mutateResult(func(result map[string]interface{}) {
 				result[DestroyWorkspaceStateResultField] = workspaceState
 			})
-			if cfg.NoWorkspaceDestroyReconciler != nil {
-				snapshot := job.Snapshot()
-				err := cfg.NoWorkspaceDestroyReconciler(ctx, NoWorkspaceDestroyReconcileRequest{
-					StackID:  snapshot.TargetID,
-					TenantID: payloadString(snapshot.Payload, tenantIDField),
-					OwnerID:  payloadString(snapshot.Payload, "owner_id"),
-				})
-				if err != nil {
-					if isJobWaitError(err) {
-						return err
-					}
-					return wrapProvisionCause(StepFinalize,
-						fmt.Errorf("no-workspace stack projection reconciliation failed: %w", err),
-						"Could not retire this stack entry after its no-workspace destroy. No provider resource or legacy record was changed.")
-				}
-				job.mutateResult(func(result map[string]interface{}) {
-					result[DestroyProjectionReconciledResultField] = true
-				})
+			if err := reconcileDestroyedStack(ctx, cfg, job); err != nil {
+				return err
 			}
 			doneMessage := "No workspace found, stack already destroyed"
 			if offlineRemoval {
@@ -865,10 +853,40 @@ func DestroyHandler(cfg *ProvisionConfig) JobHandler {
 			q.UpdateProgress(job.ID, 95, "Warning: Could not mark workspace as destroyed")
 		}
 
+		job.mutateResult(func(result map[string]interface{}) {
+			result[DestroyWorkspaceStateResultField] = DestroyWorkspaceStateRemoved
+		})
+		if err := reconcileDestroyedStack(ctx, cfg, job); err != nil {
+			return err
+		}
 		q.UpdateProgress(job.ID, 100, "Destroy complete")
 
 		return nil
 	}
+}
+
+// reconcileDestroyedStack runs only after workload and provider teardown. A
+// durable release failure must remain a failed/waiting destroy, never success.
+func reconcileDestroyedStack(ctx context.Context, cfg *ProvisionConfig, job *Job) error {
+	if cfg.NoWorkspaceDestroyReconciler == nil {
+		return nil
+	}
+	snapshot := job.Snapshot()
+	if err := cfg.NoWorkspaceDestroyReconciler(ctx, NoWorkspaceDestroyReconcileRequest{
+		StackID:  snapshot.TargetID,
+		TenantID: payloadString(snapshot.Payload, tenantIDField),
+		OwnerID:  payloadString(snapshot.Payload, "owner_id"),
+	}); err != nil {
+		if isJobWaitError(err) {
+			return err
+		}
+		return wrapProvisionCause(StepFinalize, fmt.Errorf("destroy stack projection reconciliation failed: %w", err),
+			"Workloads were removed, but the stack binding could not be released; retry removal.")
+	}
+	job.mutateResult(func(result map[string]interface{}) {
+		result[DestroyProjectionReconciledResultField] = true
+	})
+	return nil
 }
 
 // deregisterStackManagedAddresses removes every managed kombify.me address of

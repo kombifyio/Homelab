@@ -18,6 +18,7 @@ func (s *MemoryStore) upsertWorkerHeartbeatLocked(worker Worker) *Worker {
 	key := workerKey(worker.TenantID, worker.ID)
 	if existing, ok := s.worker[key]; ok {
 		worker.CreatedAt = existing.CreatedAt
+		worker.InstanceID, worker.StackID = existing.InstanceID, existing.StackID
 		if existing.Approved {
 			worker.Approved = true
 			worker.ApprovedAt = cloneTime(existing.ApprovedAt)
@@ -31,6 +32,12 @@ func (s *MemoryStore) upsertWorkerHeartbeatLocked(worker Worker) *Worker {
 		worker.Resources = preserveWorkerCredentialResources(existing.Resources, worker.Resources)
 	} else {
 		worker.CreatedAt = now
+	}
+	for _, server := range s.servers {
+		if server.TenantID == worker.TenantID && server.WorkerID == worker.ID {
+			worker.InstanceID, worker.StackID = server.InstanceID, server.StackID
+			break
+		}
 	}
 	if worker.LastSeenAt == nil {
 		worker.LastSeenAt = &now

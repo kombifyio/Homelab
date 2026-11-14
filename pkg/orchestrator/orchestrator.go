@@ -106,6 +106,7 @@ type Orchestrator struct {
 	leaseLister              ManagedRuntimeLeaseLister
 	routingStore             stackrouting.Store
 	stackKitCommander        jobs.StackKitCommandSender
+	stackKitLifecycleConfig  jobs.StackKitLifecycleConfig
 	offlineServers           OfflineServerAuthority
 	offlineDisconnect        func(agentID string) error
 	applicationAuthorize     func(context.Context, string, string, string) error
@@ -169,6 +170,11 @@ func (t *stackLockTable) lock(key string) func() {
 
 // Config holds orchestrator configuration.
 type Config struct {
+	// BaseContext carries process-wide values into the orchestrator's own
+	// lifetime and every queued job, such as the hosted system database route
+	// (tenantcontext.WithSystemDatabase). Cancelling it does not stop the
+	// orchestrator; Stop does. Nil is context.Background().
+	BaseContext    context.Context
 	Workers        int
 	WorkDir        string
 	RuntimeActions jobs.RuntimeActions
@@ -326,10 +332,14 @@ func New(cfg *Config, log *logger.Logger) *Orchestrator {
 		log = logger.Default()
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	base := context.Background()
+	if cfg.BaseContext != nil {
+		base = context.WithoutCancel(cfg.BaseContext)
+	}
+	ctx, cancel := context.WithCancel(base)
 
 	o := &Orchestrator{
-		queue:                    jobs.NewQueue(cfg.Workers, log),
+		queue:                    jobs.NewQueueContext(base, cfg.Workers, log),
 		log:                      log.WithComponent("orchestrator"),
 		cfg:                      *cfg,
 		stackStore:               cfg.StackStore,
@@ -378,6 +388,7 @@ func (o *Orchestrator) provisionConfig(actions jobs.RuntimeActions) *jobs.Provis
 		StackKitNodeAgents:           o.resolveStackKitNodeAgent,
 		FederationFabric:             o.cfg.FederationFabric,
 		PortInventory:                o.cfg.PortInventory,
+		RequestHostInventory:         o.requestHostInventory,
 		RoutingStore:                 o.routingStore,
 		SpecFiles:                    o.cfg.SpecFiles,
 		AutoDeployAdmission:          o.admitProvisionAutoDeploy,
@@ -959,7 +970,7 @@ func (o *Orchestrator) ProvisionStackWithOptions(stackID string, spec map[string
 	if id := identity.FromContext(ctx); id != nil {
 		job.Payload["actor"] = jobs.ActorPayloadFromIdentity(id)
 	}
-	jobs.CopyEdgeFlagsFromContext(ctx, job.Payload)
+	jobs.CopyEdgeFlagsFromContext(ctx, job)
 	jobs.CaptureRequestAuthority(ctx, job, stack.tenantID, stack.ownerID)
 
 	// If we have a stored raw user config (imported YAML), pass it through so
@@ -1035,7 +1046,7 @@ func (o *Orchestrator) deployStackWithOptionsLocked(ctx context.Context, stackID
 		}
 		o.updateStackStatusForJob(ctx, stack, persistentStateProvisioning)
 		job := buildDeployQueueJob(stackID, stack, payload, dispatchResult, jobID)
-		jobs.CopyEdgeFlagsFromContext(ctx, job.Payload)
+		jobs.CopyEdgeFlagsFromContext(ctx, job)
 		jobs.CaptureRequestAuthority(ctx, job, stack.tenantID, stack.ownerID)
 		if enqueueErr := o.enqueueWithSync(job, stack.tenantID); enqueueErr != nil {
 			return "", enqueueErr
@@ -1064,7 +1075,7 @@ func (o *Orchestrator) deployStackWithOptionsLocked(ctx context.Context, stackID
 	o.updateStackStatusForJob(ctx, stack, persistentStateProvisioning)
 
 	job := buildDeployQueueJob(stackID, stack, payload, dispatchResult, jobID)
-	jobs.CopyEdgeFlagsFromContext(ctx, job.Payload)
+	jobs.CopyEdgeFlagsFromContext(ctx, job)
 	jobs.CaptureRequestAuthority(ctx, job, stack.tenantID, stack.ownerID)
 
 	if enqueueErr := o.enqueueWithSync(job, stack.tenantID); enqueueErr != nil {
@@ -2033,7 +2044,7 @@ func (o *Orchestrator) DestroyStackWithOptions(stackID string, opts ProvisionSta
 	if len(destroyResult) > 0 {
 		job.Result = destroyResult
 	}
-	jobs.CopyEdgeFlagsFromContext(ctx, job.Payload)
+	jobs.CopyEdgeFlagsFromContext(ctx, job)
 
 	if err := o.enqueueWithSync(job, stack.tenantID); err != nil {
 		return "", err

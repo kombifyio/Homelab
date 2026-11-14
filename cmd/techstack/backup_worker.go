@@ -47,8 +47,8 @@ func openBackupWorker(ctx context.Context, inExecution bool) (*backupWorkerRunti
 	if inExecution && mode != "execution" || !inExecution && mode != "standalone" {
 		return nil, errors.New("backup worker requires its explicit private process profile")
 	}
-	if config.ReleaseChannel() != "stable" {
-		return nil, errors.New("backup work runs on Stable only")
+	if err := config.RejectRetiredReleaseChannel(); err != nil {
+		return nil, err
 	}
 	dsn := strings.TrimSpace(os.Getenv(db.EnvBackupWorkerDatabaseURL))
 	parsed, err := pgx.ParseConfig(dsn)

@@ -6,7 +6,11 @@
   import { getKitDeployment, type KitDeployment } from "#lib/api/stacks.js";
   import type { RegistryKitDeployment } from "#lib/api/registry.js";
   import { parseApiError } from "#lib/api/errors.js";
-  import type { LayoutRecommendationAcceptance } from "#lib/api/layout.js";
+  import type {
+    LayoutRecommendationAcceptance,
+    LayoutRecommendationView,
+  } from "#lib/api/layout.js";
+  import { layoutRefusal, type LayoutRefusal } from "#lib/creation/layout-refusal.js";
   import { isWizardIdempotencyConflict } from "#lib/wizard/wizard-conflict-recovery.js";
   import { CREATION_PROCESSES } from "#lib/creation/core/index.js";
   import {
@@ -97,6 +101,10 @@
   let preparing = $state(false);
   let error = $state<string | null>(null);
   let submitError = $state<string | null>(null);
+  // A refused distribution: the notice, and the updated one shown in its place.
+  let layoutNotice = $state<LayoutRefusal["notice"] | null>(null);
+  let layoutReplacement = $state<LayoutRecommendationView | undefined>();
+  let layoutRefresh = $state(0);
   let requiresProviderReselection = $state(false);
   let offeringReadbackFailed = $state(false);
   let stackDefaultsApplied = false;
@@ -212,6 +220,7 @@
     }
     preparing = true;
     submitError = null;
+    layoutNotice = null;
     try {
       if (wizardConfig.serverProvisioning.mode === "kombify-cloud") {
         if (offeringReadbackFailed) {
@@ -252,6 +261,16 @@
             "ui.stacksCreatingCreationFailure.earlierRegistrationAttemptAlreadyCompleted",
           );
         }
+        return;
+      }
+      const refusal = layoutRefusal(err, "add-server");
+      if (refusal) {
+        // The add-server attempt key names only the deployment, so the
+        // confirmation of another distribution must not replay the refused one.
+        if (refusal.newAttempt) forgetCreationAttempt(process, target);
+        layoutReplacement = refusal.replacement;
+        if (refusal.refresh) layoutRefresh += 1;
+        layoutNotice = refusal.notice;
         return;
       }
       const parsed = parseApiError(err);
@@ -296,9 +315,12 @@
       initialConfig={config}
       oncreate={prepareRegistration}
       isDeploying={preparing}
+      draftKey={`add-server-${stackId}`}
       submitLabel={tr("ui.managedCreationFlow.addNode")}
       submittingLabel={tr("ui.managedCreationFlow.preparingNode")}
       layoutStackId={stackId}
+      {layoutReplacement}
+      {layoutRefresh}
       nodeAlternative={additionMode === "substrate"
         ? substrateContent
         : undefined}
@@ -308,7 +330,14 @@
       }}
     >
       {#snippet footerNotice()}
-        {#if submitError}
+        {#if layoutNotice}
+          <ErrorCallout
+            tone={layoutNotice.tone}
+            title={layoutNotice.title}
+            message={layoutNotice.body}
+            testId="add-server-layout-notice"
+          />
+        {:else if submitError}
           <ErrorCallout message={submitError} testId="add-server-notice" />
         {/if}
       {/snippet}

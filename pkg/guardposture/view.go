@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/techstack/pkg/guardpower"
 	"github.com/kombifyio/techstack/pkg/guardrelease"
 )
 
@@ -85,9 +86,10 @@ type Updates struct {
 
 // View is everything the server read model carries about posture.
 type View struct {
-	Security Security `json:"security"`
-	Recovery Recovery `json:"recovery"`
-	Updates  Updates  `json:"updates"`
+	Security Security         `json:"security"`
+	Recovery Recovery         `json:"recovery"`
+	Updates  Updates          `json:"updates"`
+	Power    *guardpower.View `json:"power,omitempty"`
 }
 
 // Recovery states.
@@ -144,8 +146,20 @@ func (p Policy) Project(posture *Posture, now time.Time) View {
 		Security: p.projectSecurity(posture, now),
 		Recovery: p.projectRecovery(posture, now),
 		Updates:  p.projectUpdates(posture, now),
+		Power:    p.projectPower(posture, now),
 	}
 	return view
+}
+
+// projectPower shows the UPS protection snapshot. A report older than the
+// power freshness bound is unknown, never protected; an absent report is
+// unknown, never line.
+func (p Policy) projectPower(posture *Posture, now time.Time) *guardpower.View {
+	if posture == nil || posture.Power == nil {
+		return nil
+	}
+	view := guardpower.Project(posture.Power, posture.PowerReportedAt, now)
+	return &view
 }
 
 func (p Policy) projectSecurity(posture *Posture, now time.Time) Security {

@@ -21,7 +21,9 @@ func isGuardExecutorMode(args []string) bool { return len(args) > 1 && args[1] =
 // runGuardExecutor runs one of the privileged executor's subcommands:
 //
 //	serve    handle one connection from the socket unit (stdin is the socket)
-//	trial    supervise the first run of an updated Guard
+//	trial    supervise the first run of an updated Guard (--resume: take over a
+//	         trial whose supervisor is gone)
+//	trial-recover  the Guard service's recovery hook while an update trial is open
 //	layout-trial  supervise the first run of the split layout
 //	recover  clear the recovery flag after an operator restored a verified Guard
 //	status   print the executor's status as JSON
@@ -32,7 +34,7 @@ func runGuardExecutor(ctx context.Context, args []string) error {
 		return errors.New("the privileged executor is only available on Linux")
 	}
 	if len(args) == 0 {
-		return errors.New("usage: techstack guard-executor serve|trial|recover|status|admission-check")
+		return errors.New("usage: techstack guard-executor serve|trial|trial-recover|recover|status|admission-check")
 	}
 	flags := flag.NewFlagSet("techstack guard-executor "+args[0], flag.ContinueOnError)
 	opts := guardexec.Options{Version: version}
@@ -43,6 +45,7 @@ func runGuardExecutor(ctx context.Context, args []string) error {
 	flags.BoolVar(&opts.GuardOnly, "guard-only", false, "trial: this host updates only the Guard executable (a Proxmox substrate Guard)")
 	flags.StringVar(&opts.GuardUser, "guard-user", envDefault("TECHSTACK_GUARD_USER", ""), "the daemon's system user")
 	trialID := flags.String("id", "", "update trial ID")
+	resume := flags.Bool("resume", false, "trial: take over a trial whose supervisor is gone, without restarting the Guard")
 	manifestPath := flags.String("manifest", "", "admission-check: signed release manifest (release-manifest.json)")
 	bundlePath := flags.String("bundle", "", "admission-check: its Sigstore bundle (release-manifest.sigstore.json)")
 	socket := flags.String("socket", envDefault("TECHSTACK_GUARD_EXECUTOR_SOCKET", guardexec.DefaultSocket), "executor socket for status")
@@ -52,6 +55,15 @@ func runGuardExecutor(ctx context.Context, args []string) error {
 	opts.Log = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo})).With("service", "techstack-guard-executor", "version", version)
 	switch args[0] {
 	case "ril-keys-refresh":
+		// A host that never applied the hosted profile has nothing to refresh:
+		// it dials nothing and the unit ends clean. Every other admission
+		// failure still fails the unit.
+		if err := nodeproof.RequireHostedProfile(); errors.Is(err, nodeproof.ErrHostedProfileNotApplied) {
+			opts.Log.Info("ril_keys_refresh_not_applicable", "reason", "no hosted profile is applied on this host")
+			return nil
+		} else if err != nil {
+			return err
+		}
 		if _, err := os.Stat("/etc/techstack/ril-hosted-enrollment"); errors.Is(err, os.ErrNotExist) {
 			if err := bootstrapExistingHostedRIL(ctx); err != nil {
 				return err
@@ -70,7 +82,9 @@ func runGuardExecutor(ctx context.Context, args []string) error {
 		if *trialID == "" {
 			return errors.New("--id is required")
 		}
-		return guardexec.RunTrial(ctx, opts, *trialID)
+		return guardexec.RunTrial(ctx, opts, *trialID, *resume)
+	case "trial-recover":
+		return guardexec.RecoverTrial(ctx, opts)
 	case "layout-trial":
 		if *trialID == "" {
 			return errors.New("--id is required")

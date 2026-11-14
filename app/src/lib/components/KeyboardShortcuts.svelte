@@ -128,9 +128,10 @@
     if ($pendingKey === "g") {
       shortcutsStore.clearPendingKey();
 
-      if (key in NAVIGATION_ROUTES) {
+      const route = NAVIGATION_ROUTES[key];
+      if (route) {
         e.preventDefault();
-        goto(NAVIGATION_ROUTES[key]);
+        goto(route);
       }
       // Unknown second key - ignore
       return;

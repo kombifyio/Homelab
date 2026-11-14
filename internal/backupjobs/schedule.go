@@ -128,7 +128,7 @@ func (s *Store) DispatchDue(ctx context.Context, due Due, now time.Time, admissi
 	if reserve == nil || admission == nil {
 		return fmt.Errorf("atomic backup dispatch requires admission and durable job reservation")
 	}
-	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	tx, err := tenantcontext.Database(ctx, s.db).BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return err
 	}
@@ -275,7 +275,7 @@ func (s *Store) MarkRan(ctx context.Context, tenantID, stackID string, now time.
 }
 
 func (s *Store) withTenant(ctx context.Context, tenantID string, fn func(*sql.Tx) error) error {
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := tenantcontext.Database(ctx, s.db).BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -285,7 +285,7 @@ func (s *Store) withTenant(ctx context.Context, tenantID string, fn func(*sql.Tx
 			_ = tx.Rollback()
 		}
 	}()
-	if _, err := tx.ExecContext(ctx, "SELECT set_config($1, $2, true)", tenantGUC, tenantID); err != nil {
+	if err := tenantcontext.ApplyTenant(ctx, tx, tenantID); err != nil {
 		return fmt.Errorf("set tenant context: %w", err)
 	}
 	if err := fn(tx); err != nil {

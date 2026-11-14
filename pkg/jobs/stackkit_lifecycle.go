@@ -13,6 +13,7 @@ import (
 	"github.com/kombifyio/techstack/internal/stackkitrelease"
 	"github.com/kombifyio/techstack/pkg/agentcontrol"
 	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/techstack/pkg/auth/stackkitdecision"
 	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/grpcserver"
 	"github.com/kombifyio/techstack/pkg/originca"
@@ -104,6 +105,9 @@ const (
 	stackKitStepRelocateReceive = "relocate_receive"
 	stackKitStepRelocateStatus  = "relocate_status"
 	stackKitStepRelocateAbort   = "relocate_abort"
+	// stackKitStepApplicationTransfer runs one closed step of a native
+	// application move (STACKKIT_OPERATION_APPLICATION_TRANSFER).
+	stackKitStepApplicationTransfer = "application_transfer"
 
 	defaultStackKitNodeWorkspace = "/opt/stackkit"
 	stackKitReadCommandTimeout   = 5 * time.Minute
@@ -207,7 +211,7 @@ func managedStackKitOperationTimeout(operation string) time.Duration {
 		return stackKitReadCommandTimeout
 	case stackKitStepRelocateDrain, stackKitStepRelocateUndrain:
 		return stackKitRelocationDrainTimeout
-	case stackKitStepRelocateSend, stackKitStepRelocateReceive:
+	case stackKitStepRelocateSend, stackKitStepRelocateReceive, stackKitStepApplicationTransfer:
 		return stackKitRelocationTransferTimeout
 	default:
 		return 0
@@ -217,8 +221,10 @@ func managedStackKitOperationTimeout(operation string) time.Duration {
 // StackKitLifecycleRequest is the closed operator-facing lifecycle input.
 // It deliberately has no argv, environment, binary path, or shell command.
 type StackKitLifecycleRequest struct {
-	Connector          *ApplicationConnectorBinding
-	Application        *ApplicationLifecycleBinding
+	Connector   *ApplicationConnectorBinding
+	Application *ApplicationLifecycleBinding
+	// OwnApplication is one own-application lifecycle step (own_application).
+	OwnApplication     *OwnApplicationRequest
 	BackupRenewal      *wire.BackupRenewal
 	StackID            string
 	StackKitInstanceID string
@@ -346,6 +352,31 @@ type StackKitLifecycleRequest struct {
 	RelocationPlanJSON      []byte
 	RelocationSourceAddress string
 	RelocationSetDomains    []string
+	// ApplicationTransferJSON is one closed native transfer step request and
+	// ApplicationTransferCapability the receive or retire capability it
+	// carries. Set by the native relocation job at dispatch, never persisted.
+	ApplicationTransferJSON       []byte
+	ApplicationTransferCapability []byte
+	// UseCase, ApplicationVersion, ApplicationDigest and AcceptUntested carry
+	// one application_update: the catalog use case whose one application
+	// moves, the exact release tag and manifest digest, and the owner's
+	// acknowledgement that the release is untested.
+	UseCase            string
+	ApplicationVersion string
+	ApplicationDigest  string
+	AcceptUntested     bool
+	// applicationReleaseCapability is the application-release.update
+	// capability issued for this one update at dispatch; never persisted.
+	applicationReleaseCapability []byte
+	// DecisionPrincipal is set only by the operator route, with the feature
+	// flag stackkit_decision_receipt on and only for a first-slice operation
+	// (restore activation, Advanced change set): the acting principal
+	// (<person|agent_instance>:<id>) the platform's decision is filed for.
+	// It puts the request on the decision receipt path; persisted.
+	DecisionPrincipal string
+	// decisionReceipt is the checked compact receipt for the one command
+	// that carries it. Set at dispatch, never persisted.
+	decisionReceipt string
 }
 
 // AdvancedIssuer is the installation's Advanced capability issuer as seen by
@@ -484,7 +515,10 @@ type tenantStackKitCommandSender interface {
 }
 
 type StackKitLifecycleConfig struct {
-	ConnectorAuthorize      func(context.Context, StackKitLifecycleRequest) error
+	ConnectorAuthorize func(context.Context, StackKitLifecycleRequest) error
+	// HomeGraph holds the latest home graph per owner; the home graph sync run
+	// reads it and stores the node's answer.
+	HomeGraph               controlplane.HomeGraphStore
 	ApplicationAuthorize    func(context.Context, string, string, string) error
 	ServiceRuntimeAuthorize func(context.Context, StackKitLifecycleRequest, string) error
 	Services                interface {
@@ -502,6 +536,9 @@ type StackKitLifecycleConfig struct {
 	// WalletHostDelivery seals a kombify Wallet item to a node for
 	// ai_provider. Nil fails that operation closed.
 	WalletHostDelivery WalletHostDelivery
+	// IdentityJoinWallet stores a joined server's sign-in client secret in the
+	// homelab's Wallet for host delivery. Nil fails the join closed.
+	IdentityJoinWallet HomelabIdentityJoinWallet
 	// RelocationTestDomainSuffixes are the domains a workload relocation may
 	// switch restored resources to; empty keeps the reserved test and lab
 	// suffixes. Production domains wait for real-host acceptance.
@@ -509,7 +546,15 @@ type StackKitLifecycleConfig struct {
 	// StackKitsTargets records the node's StackKits target after an
 	// owner-approved governed upgrade.
 	StackKitsTargets controlplane.WorkerStackKitsTargetRecorder
-	releaseResolver  func() (*stackkitrelease.Release, error)
+	// DecisionLedger and DecisionServers serve the decision receipt path
+	// (stackkit_decision_receipt). Nil refuses that path; nothing else reads
+	// them.
+	DecisionLedger  StackKitDecisionLedger
+	DecisionServers StackKitDecisionServers
+	// decisionTrack shows a decision's state on the running job; set by the
+	// job runner, never configured.
+	decisionTrack   decisionTracker
+	releaseResolver func() (*stackkitrelease.Release, error)
 }
 
 func NormalizeStackKitLifecycleRequest(req StackKitLifecycleRequest) (StackKitLifecycleRequest, error) {
@@ -563,6 +608,9 @@ func normalizeStackKitLifecycleFields(req StackKitLifecycleRequest) StackKitLife
 	req.HandoffRef2 = strings.TrimSpace(req.HandoffRef2)
 	req.AIProviderBaseURL = strings.TrimSpace(req.AIProviderBaseURL)
 	req.WalletItemID = strings.TrimSpace(req.WalletItemID)
+	req.UseCase = strings.TrimSpace(req.UseCase)
+	req.ApplicationVersion = strings.TrimSpace(req.ApplicationVersion)
+	req.ApplicationDigest = strings.TrimSpace(req.ApplicationDigest)
 	return req
 }
 
@@ -577,6 +625,12 @@ func validateStackKitLifecycleOperation(req *StackKitLifecycleRequest) error {
 	if req.Connector != nil {
 		return fmt.Errorf("connector binding requires a connector operation")
 	}
+	if req.Operation == StackKitLifecycleOwnApplication {
+		return validateOwnApplicationRequest(req)
+	}
+	if req.OwnApplication != nil {
+		return fmt.Errorf("own application inputs require own_application")
+	}
 	if IsApplicationLifecycleOperation(req.Operation) {
 		return validateApplicationLifecycleRequest(req)
 	}
@@ -587,8 +641,20 @@ func validateStackKitLifecycleOperation(req *StackKitLifecycleRequest) error {
 	if isRelocationStep(req.Operation) {
 		return validateRelocationStepRequest(req)
 	}
+	if req.Operation == stackKitStepApplicationTransfer {
+		return validateApplicationTransferStepRequest(req)
+	}
+	if len(req.ApplicationTransferJSON) != 0 || len(req.ApplicationTransferCapability) != 0 {
+		return fmt.Errorf("application transfer inputs require an application transfer step")
+	}
 	if len(req.RelocationProjects) != 0 || len(req.RelocationResourceUUIDs) != 0 || req.RelocationTransferID != "" || len(req.RelocationPlanJSON) != 0 || req.RelocationSourceAddress != "" || len(req.RelocationSetDomains) != 0 {
 		return fmt.Errorf("relocation inputs require a relocation step")
+	}
+	if req.Operation == StackKitLifecycleApplicationUpdate {
+		return validateApplicationUpdateRequest(req)
+	}
+	if applicationUpdateFieldsPresent(*req) {
+		return fmt.Errorf("application update inputs require application_update")
 	}
 	switch req.Operation {
 	case StackKitLifecycleGenerate, StackKitLifecyclePlan, StackKitLifecycleVerify, StackKitLifecycleDriftDetect:
@@ -735,7 +801,7 @@ func validateDurableStackKitServiceAction(req StackKitLifecycleRequest) error {
 }
 
 func StackKitLifecyclePayload(req StackKitLifecycleRequest) map[string]interface{} {
-	return map[string]interface{}{
+	payload := map[string]interface{}{
 		"ril_operation_binding":          req.RILOperation,
 		"wizard_extend_binding":          req.WizardExtend,
 		"connector_binding":              req.Connector,
@@ -779,11 +845,26 @@ func StackKitLifecyclePayload(req StackKitLifecycleRequest) map[string]interface
 		"wallet_item_rotate":             req.WalletItemRotate,
 		"ai_provider_disable":            req.AIProviderDisable,
 		"origin_hosts":                   append([]string(nil), req.OriginHosts...),
+		"use_case":                       req.UseCase,
+		"application_version":            req.ApplicationVersion,
+		"application_digest":             req.ApplicationDigest,
+		"accept_untested":                req.AcceptUntested,
 		// Only the SSH CA trust operations take these from a caller; the
 		// SSH delivery carries public material only (stackkit_ssh_trust.go).
 		"recipient_challenge": sshTrustPayload(req, req.RecipientChallenge),
 		"sealed_delivery":     sshTrustPayload(req, string(req.SealedDelivery)),
 	}
+	if req.OwnApplication != nil {
+		// Only an own-application step carries it, so every other payload
+		// is exactly as before.
+		payload["own_application"] = req.OwnApplication
+	}
+	if req.DecisionPrincipal != "" {
+		// Only a request on the decision receipt path carries it, so a
+		// payload with the flag off is exactly as before.
+		payload["decision_principal"] = req.DecisionPrincipal
+	}
+	return payload
 }
 
 func sshTrustPayload(req StackKitLifecycleRequest, value string) string {
@@ -953,8 +1034,20 @@ func StackKitLifecycleHandler(cfg StackKitLifecycleConfig) JobHandler {
 		if req.WizardExtend != nil && (req.WizardExtend.ReleaseVersion != release.Receipt().Version || req.WizardExtend.ArchiveSHA256 != release.Receipt().ArchiveSHA256) {
 			return NewConfigError(fmt.Errorf("wizard extension belongs to a different pinned StackKits release"))
 		}
+		if req.Operation == StackKitLifecycleApplicationHomeGraphAdopt {
+			return runApplicationHomeGraphAdoptionJob(ctx, cfg, job, q, req, *release)
+		}
+		if req.Operation == StackKitLifecycleApplicationHomeGraphSync {
+			return runApplicationHomeGraphJob(ctx, cfg, job, q, req, *release)
+		}
+		if req.Operation == StackKitLifecycleApplicationHomeGraphLoxoneImport {
+			return runApplicationHomeGraphLoxoneImportJob(ctx, cfg, job, q, req, *release)
+		}
 		if IsApplicationConnectorLifecycleOperation(req.Operation) {
 			return runApplicationConnectorJob(ctx, cfg, job, q, req, *release)
+		}
+		if req.Operation == StackKitLifecycleOwnApplication {
+			return runOwnApplicationJob(ctx, cfg, job, q, req, *release)
 		}
 		if IsApplicationLifecycleOperation(req.Operation) {
 			return runApplicationLifecycleJob(ctx, cfg, job, q, req, *release)
@@ -968,6 +1061,27 @@ func StackKitLifecycleHandler(cfg StackKitLifecycleConfig) JobHandler {
 			if req.TargetRelease, err = approvedStackKitsUpgradeTarget(req.TargetRelease, *release); err != nil {
 				return NewPermanentError(err)
 			}
+		}
+		if req.Operation == StackKitLifecycleApplicationUpdate {
+			if err := requireApplicationUpdateRelease(*release); err != nil {
+				job.replaceResult(map[string]interface{}{
+					"schema_version": "techstack.stackkit-lifecycle-result/v1", "techstack_id": req.StackID, "operation": req.Operation,
+					"agent_id": req.AgentID, "success": false, "service_action_receipt": StackKitServiceActionReceipt(req),
+					ApplicationUpdateResultField: map[string]interface{}{"result": ApplicationUpdateRefused, "reason_code": "stackkits_release_too_old"},
+				})
+				return NewPermanentError(err)
+			}
+			capability, err := issueApplicationUpdateCapability(ctx, cfg.AdvancedIssuer, req)
+			if err != nil {
+				job.replaceResult(map[string]interface{}{
+					"schema_version": "techstack.stackkit-lifecycle-result/v1", "techstack_id": req.StackID, "operation": req.Operation,
+					"agent_id": req.AgentID, "success": false, "service_action_receipt": StackKitServiceActionReceipt(req),
+					ApplicationUpdateResultField: map[string]interface{}{"result": ApplicationUpdateRefused, "reason_code": "application_update_capability_unavailable"},
+				})
+				return NewConfigError(fmt.Errorf("issue the application-release.update capability: %w", err))
+			}
+			req.applicationReleaseCapability = capability.Raw
+			job.mutateResult(func(result map[string]interface{}) { result["capability_id"] = capability.ID })
 		}
 		job.setStep("stackkit_dispatch")
 		q.UpdateProgress(job.ID, 10, "Dispatching typed StackKits "+req.Operation+" operation")
@@ -1026,9 +1140,23 @@ func StackKitLifecycleHandler(cfg StackKitLifecycleConfig) JobHandler {
 			// node-local generation; plan it first and bind the command to it.
 			job.setStep("stackkit_plan_admission")
 			q.UpdateProgress(job.ID, 10, "Planning the exact StackKits generation before "+req.Operation)
-			expectedPlanHash, err = planStackKitLifecycleApply(ctx, cfg.Sender, job.ID, req, *release)
+			var revision string
+			expectedPlanHash, revision, err = planStackKitLifecycleWithRevision(ctx, cfg.Sender, job.ID, req, *release)
 			if err != nil {
 				return NewPermanentError(err)
+			}
+			if req.Operation == StackKitLifecycleBackupRestoreActivate && decisionReceiptRequired(req) {
+				// Nothing reaches the activation before a checked allowed
+				// receipt for exactly this result, plan, revision, node and
+				// principal is in hand.
+				job.setStep("stackkit_decision_receipt")
+				admitted, decisionErr := requireDecisionReceipt(ctx, cfg, jobDecisionTracker(job, q), req, *release, func(serverID string, principal stackkitdecision.Principal) (stackkitdecision.Facts, error) {
+					return restoreActivationDecisionFacts(serverID, req, expectedPlanHash, revision, principal)
+				})
+				if decisionErr != nil {
+					return NewPermanentError(decisionErr)
+				}
+				req.decisionReceipt = admitted.Compact
 			}
 			job.setStep("stackkit_dispatch")
 			q.UpdateProgress(job.ID, 30, "Dispatching "+req.Operation+" against the admitted StackKits plan")
@@ -1059,6 +1187,7 @@ func StackKitLifecycleHandler(cfg StackKitLifecycleConfig) JobHandler {
 			// persisted an automatic rollback despite returning nonzero. Resolve
 			// only this original node journal, never infer outcome from stderr.
 			recoverReq := req
+			recoverReq.decisionReceipt = ""
 			recoverReq.Operation = StackKitLifecycleBackupRestoreRecover
 			recoverReq.RestorePlanHash = expectedPlanHash
 			recoverCommand, recovered, recoverErr := sendStackKitLifecycleCommand(ctx, cfg.Sender, job.ID+"-recover", recoverReq, *release, expectedPlanHash)
@@ -1084,6 +1213,12 @@ func StackKitLifecycleHandler(cfg StackKitLifecycleConfig) JobHandler {
 			return NewPermanentError(err)
 		}
 		if err != nil {
+			if req.Operation == StackKitLifecycleApplicationUpdate {
+				// The node may have started, finished or rolled back the
+				// update: never retried, never inferred, the owner is told.
+				job.replaceResult(applicationUpdateUnresolvedResult(req))
+				return NewPermanentError(fmt.Errorf("the application update outcome on the node is unknown: %w", err))
+			}
 			return err
 		}
 		if resumeActivation {
@@ -1107,6 +1242,19 @@ func StackKitLifecycleHandler(cfg StackKitLifecycleConfig) JobHandler {
 		if inventoryRefresh != nil {
 			normalized[managedInventoryRefreshResultField] = inventoryRefresh
 		}
+		if req.Operation == StackKitLifecycleApplicationUpdate {
+			// Only the CLI's own outcome document says what happened; a
+			// success without "updated" is not an update.
+			if outcome, _ := normalized[ApplicationUpdateResultField].(map[string]interface{}); outcome == nil ||
+				(result.Success && outcome["result"] != ApplicationUpdateUpdated) {
+				if outcome == nil {
+					normalized[ApplicationUpdateResultField] = applicationUpdateUnresolvedResult(req)[ApplicationUpdateResultField]
+				}
+				normalized["success"] = false
+				job.replaceResult(normalized)
+				return NewPermanentError(fmt.Errorf("the application update returned no verified outcome"))
+			}
+		}
 		if req.Operation == StackKitLifecycleUpgrade && req.OwnerApproved && !req.DryRun {
 			record, recordErr := recordStackKitsTarget(ctx, cfg.StackKitsTargets, job.ID, req, result)
 			normalized[StackKitsTargetResultField] = record
@@ -1119,6 +1267,9 @@ func StackKitLifecycleHandler(cfg StackKitLifecycleConfig) JobHandler {
 			job.replaceResult(normalized)
 			if failure := typedStackKitFailureFromResult(result); failure.ReasonCode != "" {
 				return NewPermanentError(&StackKitLifecycleFailedError{Operation: string(req.Operation), Failure: failure})
+			}
+			if cause := backupFailureCause(result); req.Operation == StackKitLifecycleBackupRun && cause != "" {
+				return NewPermanentError(fmt.Errorf("StackKits %s failed with exit code %d: %s", req.Operation, result.ExitCode, cause))
 			}
 			return NewPermanentError(fmt.Errorf("StackKits %s failed with exit code %d", req.Operation, result.ExitCode))
 		}
@@ -1276,6 +1427,11 @@ func sendStackKitLifecycleCommand(ctx context.Context, sender StackKitCommandSen
 			return nil, nil, NewPermanentError(err)
 		}
 		command.ExpectedPlanHash = expectedPlanHash
+		if req.decisionReceipt != "" && command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_BACKUP_RESTORE_ACTIVATE {
+			// The checked receipt replaces the self-asserted approval of this
+			// one activation; a recovery or any other command never carries it.
+			command.DecisionReceipt, command.DecisionPrincipal = req.decisionReceipt, req.DecisionPrincipal
+		}
 		if len(original) > 0 && original[0] != nil {
 			command.OriginalRecoveryRelease = proto.Clone(original[0]).(*agentpb.StackKitReleasePin)
 		}
@@ -1293,24 +1449,34 @@ func sendStackKitLifecycleCommand(ctx context.Context, sender StackKitCommandSen
 }
 
 func planStackKitLifecycleApply(ctx context.Context, sender StackKitCommandSender, jobID string, req StackKitLifecycleRequest, release stackkitrelease.Release) (string, error) {
+	planHash, _, err := planStackKitLifecycleWithRevision(ctx, sender, jobID, req, release)
+	return planHash, err
+}
+
+// planStackKitLifecycleWithRevision plans like planStackKitLifecycleApply and
+// also returns the Agent's digest of the workspace StackSpec the plan ran
+// against: the revision a decision receipt for the following operation binds.
+func planStackKitLifecycleWithRevision(ctx context.Context, sender StackKitCommandSender, jobID string, req StackKitLifecycleRequest, release stackkitrelease.Release) (string, string, error) {
 	planRequest := req
 	planRequest.Operation = StackKitLifecyclePlan
 	planRequest.OwnerApproved = false
 	_, result, err := sendStackKitLifecycleCommand(ctx, sender, jobID+"-plan", planRequest, release, "")
 	if err != nil {
-		return "", fmt.Errorf("typed StackKits plan admission dispatch failed: %w", err)
+		return "", "", fmt.Errorf("typed StackKits plan admission dispatch failed: %w", err)
 	}
 	if result == nil || !result.Success {
-		if typedStackKitFailureFromResult(result).ReasonCode == "stored_plan_upgrade_required" {
-			return "", fmt.Errorf("StackKits upgrade required: the node's saved plan was compiled by another StackKits release than it runs; approve the node's StackKits update (operation upgrade) before %s", req.Operation)
+		if failure := typedStackKitFailureFromResult(result); storedPlanNeedsRollout(failure.ReasonCode) {
+			// Typed, so the job records the reason, its rollout guidance and
+			// that nothing changed.
+			return "", "", &StackKitLifecycleFailedError{Operation: req.Operation, Failure: failure}
 		}
-		return "", fmt.Errorf("typed StackKits plan admission failed")
+		return "", "", fmt.Errorf("typed StackKits plan admission failed")
 	}
 	planHash, err := typedStackKitPlanHash(result)
 	if err != nil {
-		return "", fmt.Errorf("admit typed StackKits plan: %w", err)
+		return "", "", fmt.Errorf("admit typed StackKits plan: %w", err)
 	}
-	return planHash, nil
+	return planHash, strings.TrimSpace(result.WorkspaceRevision), nil
 }
 
 func isStackKitServiceMutation(operation string) bool {
@@ -1364,9 +1530,14 @@ func stackKitLifecycleRequestFromJob(job *Job) (StackKitLifecycleRequest, error)
 		WalletItemID:                stringFromInterface(job.Payload["wallet_item_id"]),
 		WalletItemRotate:            boolFromInterface(job.Payload["wallet_item_rotate"]),
 		AIProviderDisable:           boolFromInterface(job.Payload["ai_provider_disable"]),
+		DecisionPrincipal:           stringFromInterface(job.Payload["decision_principal"]),
 		OriginHosts:                 stringListFromInterface(job.Payload["origin_hosts"]),
 		RecipientChallenge:          stringFromInterface(job.Payload["recipient_challenge"]),
 		SealedDelivery:              []byte(stringFromInterface(job.Payload["sealed_delivery"])),
+		UseCase:                     stringFromInterface(job.Payload["use_case"]),
+		ApplicationVersion:          stringFromInterface(job.Payload["application_version"]),
+		ApplicationDigest:           stringFromInterface(job.Payload["application_digest"]),
+		AcceptUntested:              boolFromInterface(job.Payload["accept_untested"]),
 		StackKit: firstNonEmpty(
 			stringFromInterface(job.Payload["stackkit"]),
 			stringFromInterface(job.Payload["stackkit_catalog_ref"]),
@@ -1382,6 +1553,12 @@ func stackKitLifecycleRequestFromJob(job *Job) (StackKitLifecycleRequest, error)
 	if raw := job.Payload["application_binding"]; raw != nil {
 		data, _ := json.Marshal(raw)
 		if err := json.Unmarshal(data, &req.Application); err != nil {
+			return req, err
+		}
+	}
+	if raw := job.Payload["own_application"]; raw != nil {
+		data, _ := json.Marshal(raw)
+		if err := json.Unmarshal(data, &req.OwnApplication); err != nil {
 			return req, err
 		}
 	}
@@ -1511,6 +1688,14 @@ func stackKitLifecycleCommand(commandID string, req StackKitLifecycleRequest, re
 		}
 		return command, nil
 	}
+	if operation == agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_TRANSFER {
+		// Signed public documents and the step's capability only; the archive
+		// travels node to node and no secret crosses Core.
+		command.ApplicationTransferJson = append([]byte(nil), req.ApplicationTransferJSON...)
+		command.AdvancedCapability = append([]byte(nil), req.ApplicationTransferCapability...)
+		command.TimeoutSeconds = int32(stackKitRelocationTransferTimeout / time.Second)
+		return command, nil
+	}
 	if stackkitcommand.IsBackupTargetDeliveryOperation(operation) {
 		// The node issues its own binding: no Inventory, only the sealed
 		// ciphertext (import, rebind) or the public challenge (recipient).
@@ -1544,6 +1729,17 @@ func stackKitLifecycleCommand(commandID string, req StackKitLifecycleRequest, re
 		command.HandoffRef = req.HandoffRef
 		command.HandoffRef2 = req.HandoffRef2
 		command.HandoffDocument = append([]byte(nil), req.HandoffDocument...)
+		if req.HandoffStep == stackkitcommand.HandoffIdentityJoinApprove || req.HandoffStep == stackkitcommand.HandoffIdentityClientRegister {
+			// The CLI waits up to five minutes for the Owner's passkey step-up
+			// in the Authority's Hub.
+			command.TimeoutSeconds = int32(identityJoinStepUpTimeout / time.Second)
+		}
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_UPGRADE:
+		// The node reads its own applied plan; no Inventory, no service key.
+		command.ServiceKey = ""
+		command.UseCase, command.ApplicationVersion, command.ApplicationDigest = req.UseCase, req.ApplicationVersion, req.ApplicationDigest
+		command.AcceptUntested = req.AcceptUntested
+		command.AdvancedCapability = append([]byte(nil), req.applicationReleaseCapability...)
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_TRUST_IMPORT:
 		// Trust import reads only the bundle; it needs no Inventory.
 		if len(req.AdvancedTrustBundle) == 0 {
@@ -1566,6 +1762,15 @@ func stackKitLifecycleAgentOperation(operation string) (agentpb.StackKitOperatio
 	if operation == StackKitLifecycleApplicationConnectorVerify {
 		return agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_CONNECTOR_VERIFY, nil
 	}
+	if operation == StackKitLifecycleApplicationHomeGraphAdopt {
+		return agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_ADOPT, nil
+	}
+	if operation == StackKitLifecycleApplicationHomeGraphSync {
+		return agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_SYNC, nil
+	}
+	if operation == StackKitLifecycleApplicationHomeGraphLoxoneImport {
+		return agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_LOXONE_IMPORT, nil
+	}
 	if op, ok := applicationAgentOperation(operation); ok {
 		return op, nil
 	}
@@ -1584,6 +1789,10 @@ func stackKitLifecycleAgentOperation(operation string) (agentpb.StackKitOperatio
 		return agentpb.StackKitOperation_STACKKIT_OPERATION_VERIFY, nil
 	case StackKitLifecycleUpgrade:
 		return agentpb.StackKitOperation_STACKKIT_OPERATION_UPGRADE, nil
+	case StackKitLifecycleApplicationUpdate:
+		return agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_UPGRADE, nil
+	case StackKitLifecycleOwnApplication:
+		return agentpb.StackKitOperation_STACKKIT_OPERATION_OWN_APPLICATION, nil
 	case StackKitLifecycleDriftDetect:
 		return agentpb.StackKitOperation_STACKKIT_OPERATION_DRIFT_DETECT, nil
 	case stackKitStepChangeSetCreate:
@@ -1662,6 +1871,8 @@ func stackKitLifecycleAgentOperation(operation string) (agentpb.StackKitOperatio
 		return agentpb.StackKitOperation_STACKKIT_OPERATION_RELOCATE_STATUS, nil
 	case stackKitStepRelocateAbort:
 		return agentpb.StackKitOperation_STACKKIT_OPERATION_RELOCATE_ABORT, nil
+	case stackKitStepApplicationTransfer:
+		return agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_TRANSFER, nil
 	default:
 		return agentpb.StackKitOperation_STACKKIT_OPERATION_UNSPECIFIED, fmt.Errorf("unsupported StackKits lifecycle operation %q", operation)
 	}
@@ -1672,6 +1883,9 @@ func stackKitLifecycleTimeout(operation agentpb.StackKitOperation) int32 {
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_APPLY,
 		agentpb.StackKitOperation_STACKKIT_OPERATION_PREPARE_SOURCE_GENERATION,
 		agentpb.StackKitOperation_STACKKIT_OPERATION_NETWORK_REBIND,
+		agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_ADOPT,
+		agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_SYNC,
+		agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_LOXONE_IMPORT,
 		agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_CHANGE_SET_CREATE,
 		agentpb.StackKitOperation_STACKKIT_OPERATION_REMOVE:
 		return int32(stackKitWriteCommandTimeout / time.Second)
@@ -1691,6 +1905,8 @@ func stackKitLifecycleTimeout(operation agentpb.StackKitOperation) int32 {
 		agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_CHANGE_SET_APPLY,
 		agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_DRIFT_RECONCILE:
 		return int32(stackKitAdvancedMutationCommandTimeout / time.Second)
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_UPGRADE:
+		return int32(applicationUpdateCommandTimeout / time.Second)
 	default:
 		return int32(stackKitReadCommandTimeout / time.Second)
 	}
@@ -1766,6 +1982,16 @@ func normalizeStackKitLifecycleResult(req StackKitLifecycleRequest, result *agen
 	if receipt := RestoreActivationRequestReceipt(req); receipt != nil {
 		normalized[controlplane.RestoreActivationRequestResultKey] = receipt
 	}
+	if req.Operation == StackKitLifecycleUpgrade && !req.DryRun {
+		if outcome := upgradeOutcome(commandResult, result.Success); outcome != nil {
+			normalized[UpgradeOutcomeResultField] = outcome
+		}
+	}
+	if req.Operation == StackKitLifecycleApplicationUpdate {
+		if outcome := applicationUpdateOutcome(commandResult); outcome != nil {
+			normalized[ApplicationUpdateResultField] = outcome
+		}
+	}
 	if req.Operation == StackKitLifecycleDriftDetect && result.Success {
 		report, err := stackkitcommand.ParseDriftReport(&agentpb.StackKitCommand{Operation: agentpb.StackKitOperation_STACKKIT_OPERATION_DRIFT_DETECT}, result)
 		if err != nil {
@@ -1800,6 +2026,18 @@ func normalizeStackKitLifecycleResult(req StackKitLifecycleRequest, result *agen
 		normalized["removal_evidence"] = persisted
 	}
 	return normalized, nil
+}
+
+// IsStackKitObservationOperation reports the lifecycle operations that only
+// read the deployment. Their failure never changes the stack status.
+func IsStackKitObservationOperation(operation string) bool {
+	switch strings.ToLower(strings.TrimSpace(operation)) {
+	case StackKitLifecyclePlan, StackKitLifecycleVerify, StackKitLifecycleDriftDetect,
+		StackKitLifecycleServiceLogs, StackKitLifecycleNetworkStatus, StackKitLifecycleBackupStatus:
+		return true
+	default:
+		return false
+	}
 }
 
 // IsStackKitBackupOperation reports the native backup operations.

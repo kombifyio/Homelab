@@ -259,10 +259,15 @@ type InventoryTransitionEvent struct {
 	ReasonCode string
 }
 
-// BackupRunFact is the end of one backup job of a stack.
+// BackupRunFact is the end of one backup job of a stack. JobID, Step and
+// Error name the job and, for a failed run, the step it stopped in and the
+// error the job recorded, so an owner can be told why a backup fails.
 type BackupRunFact struct {
 	At    time.Time
 	State string // "completed" | "failed"
+	JobID string
+	Step  string
+	Error string
 }
 
 // BackupDay is the outcome of the newest backup run of one UTC day.

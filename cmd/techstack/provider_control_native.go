@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 	"github.com/kombifyio/techstack/internal/providercontrol"
 	"github.com/kombifyio/techstack/internal/providercontroljobs"
 	"github.com/kombifyio/techstack/internal/providerevidence"
@@ -18,6 +17,7 @@ import (
 	"github.com/kombifyio/techstack/pkg/config"
 	"github.com/kombifyio/techstack/pkg/jobs"
 	"github.com/kombifyio/techstack/pkg/logger"
+	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 )
 
 // managedProviderAdapter is the contract every executable managed provider
@@ -51,26 +51,43 @@ func enforceProviderCreateSafety(
 	}
 }
 
+// nativeProviderControl is one composed provider-control runtime. The serving
+// process uses runtime and actions; the managed-runtime retenant command uses
+// admission without starting any worker.
+type nativeProviderControl struct {
+	runtime   *providercontrol.Runtime
+	actions   jobs.RuntimeActions
+	admission *providercontrol.NativeAdmission
+}
+
 // composeNativeProviderControl is shared by private and public selfhost builds.
 // Commercial adapters and observers are injected only by the private wrapper.
 func composeNativeProviderControl(database *sql.DB, edition config.Edition, log *logger.Logger,
 	registrations []managedProviderRegistration, onParkedOperation func(providercontrol.OperationRef),
 	observer func(*providercontrol.AsyncRequestStore) func(providerexecutor.Command, providerexecutor.Receipt, providerexecutor.Receipt),
 ) (*providercontrol.Runtime, jobs.RuntimeActions, error) {
+	composed, err := composeNativeProviderControlParts(database, edition, log, registrations, onParkedOperation, observer)
+	return composed.runtime, composed.actions, err
+}
+
+func composeNativeProviderControlParts(database *sql.DB, edition config.Edition, log *logger.Logger,
+	registrations []managedProviderRegistration, onParkedOperation func(providercontrol.OperationRef),
+	observer func(*providercontrol.AsyncRequestStore) func(providerexecutor.Command, providerexecutor.Receipt, providerexecutor.Receipt),
+) (nativeProviderControl, error) {
 	if database == nil {
-		return nil, jobs.RuntimeActions{}, fmt.Errorf("compose provider control: database is required")
+		return nativeProviderControl{}, fmt.Errorf("compose provider control: database is required")
 	}
 	capacityPolicy, err := newProviderControlCapacityPolicy(edition)
 	if err != nil {
-		return nil, jobs.RuntimeActions{}, err
+		return nativeProviderControl{}, err
 	}
 	registry := providercontrol.NewRegistry()
 	substrateAdapter, err := substrateruntime.NewAdapter(database, agentcontrol.NewHub(database))
 	if err != nil {
-		return nil, jobs.RuntimeActions{}, err
+		return nativeProviderControl{}, err
 	}
 	if err := registry.Register(substrate.AdapterID, substrateAdapter); err != nil {
-		return nil, jobs.RuntimeActions{}, err
+		return nativeProviderControl{}, err
 	}
 	var gate providercontrol.MutationActivationGate = providercontrol.CertifiedMutationGate{Registry: registry}
 	createPolicy := providercontrol.StaticProviderCreatePolicy{}
@@ -94,12 +111,12 @@ func composeNativeProviderControl(database *sql.DB, edition config.Edition, log 
 			continue
 		}
 		if registerErr := registry.RegisterAtMostOnceProvision(provider.adapterID, adapter); registerErr != nil {
-			return nil, jobs.RuntimeActions{}, fmt.Errorf(
+			return nativeProviderControl{}, fmt.Errorf(
 				"register %s provider adapter: %w", provider.providerID, registerErr)
 		}
 		capabilities := adapter.ProviderSafetyCapabilities()
 		if capabilityErr := capabilities.Validate(provider.providerID, provider.adapterID); capabilityErr != nil {
-			return nil, jobs.RuntimeActions{}, fmt.Errorf(
+			return nativeProviderControl{}, fmt.Errorf(
 				"validate %s provider adapter safety capabilities: %w", provider.providerID, capabilityErr)
 		}
 		if !capabilities.ProvisionCandidateDiscovery {
@@ -111,7 +128,7 @@ func composeNativeProviderControl(database *sql.DB, edition config.Edition, log 
 		coverage, coverageErr := providercontrol.ManagedCatalogCoverageRequirements(
 			provider.providerID, provider.adapterID, provider.adapterManifestHash)
 		if coverageErr != nil {
-			return nil, jobs.RuntimeActions{}, fmt.Errorf("resolve %s provider catalog coverage: %w", provider.providerID, coverageErr)
+			return nativeProviderControl{}, fmt.Errorf("resolve %s provider catalog coverage: %w", provider.providerID, coverageErr)
 		}
 		coverageCtx, cancelCoverage := context.WithTimeout(context.Background(), 5*time.Second)
 		coverageErr = providercontrol.ValidateActiveCatalogCoverage(
@@ -121,7 +138,7 @@ func composeNativeProviderControl(database *sql.DB, edition config.Edition, log 
 		)
 		cancelCoverage()
 		if coverageErr != nil {
-			return nil, jobs.RuntimeActions{}, fmt.Errorf(
+			return nativeProviderControl{}, fmt.Errorf(
 				"validate %s provider catalog coverage: %w", provider.providerID, coverageErr)
 		}
 		if log != nil {
@@ -141,7 +158,7 @@ func composeNativeProviderControl(database *sql.DB, edition config.Edition, log 
 	}
 	profiles, err := providercontrol.NewPostgresCatalogExecutionProfileResolver(database)
 	if err != nil {
-		return nil, jobs.RuntimeActions{}, fmt.Errorf("compose provider catalog resolver: %w", err)
+		return nativeProviderControl{}, fmt.Errorf("compose provider catalog resolver: %w", err)
 	}
 	// FailClosedEvidenceVerifier stood here and rejected every envelope, so no
 	// decommission could ever seal an absence receipt and no managed-runtime
@@ -150,11 +167,11 @@ func composeNativeProviderControl(database *sql.DB, edition config.Edition, log 
 	// is a real check rather than a blanket refusal.
 	absenceVerifier, err := providerevidence.NewVerifier(database)
 	if err != nil {
-		return nil, jobs.RuntimeActions{}, fmt.Errorf("compose provider absence verifier: %w", err)
+		return nativeProviderControl{}, fmt.Errorf("compose provider absence verifier: %w", err)
 	}
 	asyncRequests, err := providercontrol.NewAsyncRequestStore(database)
 	if err != nil {
-		return nil, jobs.RuntimeActions{}, fmt.Errorf("compose provider async request store: %w", err)
+		return nativeProviderControl{}, fmt.Errorf("compose provider async request store: %w", err)
 	}
 	const provisionResolutionSubject = "system:provider-control-worker"
 	var terminalObserver func(providerexecutor.Command, providerexecutor.Receipt, providerexecutor.Receipt)
@@ -188,7 +205,7 @@ func composeNativeProviderControl(database *sql.DB, edition config.Edition, log 
 		},
 	})
 	if err != nil {
-		return nil, jobs.RuntimeActions{}, fmt.Errorf("compose provider control runtime: %w", err)
+		return nativeProviderControl{}, fmt.Errorf("compose provider control runtime: %w", err)
 	}
 	admission, err := providercontrol.NewNativeAdmission(providercontrol.NativeAdmissionConfig{
 		Database: database, Coordinator: runtime.Coordinator(), ActivationGate: gate,
@@ -196,20 +213,21 @@ func composeNativeProviderControl(database *sql.DB, edition config.Edition, log 
 		CapacityPolicy:  capacityPolicy, ManagedCredentialAuthorities: managedCredentialAuthorities,
 	})
 	if err != nil {
-		return nil, jobs.RuntimeActions{}, fmt.Errorf("compose native provider admission: %w", err)
+		return nativeProviderControl{}, fmt.Errorf("compose native provider admission: %w", err)
 	}
 	decommissioner, err := providercontroljobs.NewNativeDecommissioner(providercontroljobs.NativeDecommissionConfig{
 		Database: database, Application: runtime.Application(), Ledger: runtime.Ledger(),
 		ProvisionResolution: runtime, ResolutionSubject: provisionResolutionSubject,
+		ReservedGuestAbsence: substrateAdapter,
 	})
 	if err != nil {
-		return nil, jobs.RuntimeActions{}, fmt.Errorf("compose native provider decommission: %w", err)
+		return nativeProviderControl{}, fmt.Errorf("compose native provider decommission: %w", err)
 	}
 	power, err := providercontroljobs.NewNativePowerController(providercontroljobs.NativePowerConfig{
 		Database: database, Application: runtime.Application(),
 	})
 	if err != nil {
-		return nil, jobs.RuntimeActions{}, fmt.Errorf("compose native provider power control: %w", err)
+		return nativeProviderControl{}, fmt.Errorf("compose native provider power control: %w", err)
 	}
 	managedDay2.setPower(power)
 	manager, err := providercontroljobs.NewManager(providercontroljobs.ManagerConfig{
@@ -217,7 +235,7 @@ func composeNativeProviderControl(database *sql.DB, edition config.Edition, log 
 		AsyncRequests: asyncRequests,
 	})
 	if err != nil {
-		return nil, jobs.RuntimeActions{}, fmt.Errorf("compose provider-control job manager: %w", err)
+		return nativeProviderControl{}, fmt.Errorf("compose provider-control job manager: %w", err)
 	}
 	staleCapacityRecovery, err := providercontroljobs.NewStaleCapacityRecovery(
 		providercontroljobs.StaleCapacityRecoveryConfig{
@@ -230,10 +248,10 @@ func composeNativeProviderControl(database *sql.DB, edition config.Edition, log 
 		},
 	)
 	if err != nil {
-		return nil, jobs.RuntimeActions{}, fmt.Errorf("compose stale managed capacity recovery: %w", err)
+		return nativeProviderControl{}, fmt.Errorf("compose stale managed capacity recovery: %w", err)
 	}
 	if err := runtime.RegisterAuxiliaryWorker(staleCapacityRecovery.Run); err != nil {
-		return nil, jobs.RuntimeActions{}, fmt.Errorf("register stale managed capacity recovery: %w", err)
+		return nativeProviderControl{}, fmt.Errorf("register stale managed capacity recovery: %w", err)
 	}
 	if !neverEnrolledRecoveryDisabled() {
 		neverEnrolledRecovery, neverEnrolledErr := providercontroljobs.NewNeverEnrolledRecovery(
@@ -259,14 +277,16 @@ func composeNativeProviderControl(database *sql.DB, edition config.Edition, log 
 			},
 		)
 		if neverEnrolledErr != nil {
-			return nil, jobs.RuntimeActions{}, fmt.Errorf("compose never-enrolled managed runtime recovery: %w", neverEnrolledErr)
+			return nativeProviderControl{}, fmt.Errorf("compose never-enrolled managed runtime recovery: %w", neverEnrolledErr)
 		}
 		if err := runtime.RegisterAuxiliaryWorker(neverEnrolledRecovery.Run); err != nil {
-			return nil, jobs.RuntimeActions{}, fmt.Errorf("register never-enrolled managed runtime recovery: %w", err)
+			return nativeProviderControl{}, fmt.Errorf("register never-enrolled managed runtime recovery: %w", err)
 		}
 	}
-	return runtime, jobs.RuntimeActions{
-		LeaseManager: manager, LeaseDecommissioner: manager,
+	return nativeProviderControl{
+		runtime:   runtime,
+		actions:   jobs.RuntimeActions{LeaseManager: manager, LeaseDecommissioner: manager},
+		admission: admission,
 	}, nil
 }
 

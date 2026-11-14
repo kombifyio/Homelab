@@ -3,7 +3,7 @@
  * names what it cannot change and which run it ends in. A frame mounts a
  * process; it never decides which steps exist.
  */
-import type { CreationStepKey } from "./steps";
+import { CREATION_STEP_KEYS, type CreationStepKey } from "./steps";
 
 export type CreationRunKind = "found" | "join" | "extend" | "none";
 
@@ -18,6 +18,7 @@ export interface CreationProcess {
     | "place-on-server"
     | "add-server"
     | "add-server-found"
+    | "join-on-server"
     | "add-use-case"
     | "homelab-settings";
   /** Steps stay visible but cannot be opened; the value is the reason's message key. */
@@ -36,6 +37,14 @@ export interface CreationProcess {
   asksServerRole: boolean;
   /** Asks for the recommended distribution when a deployment is known. */
   layoutFlow?: CreationLayoutFlow;
+  /** The steps in another order than the five steps' own. */
+  order?: readonly CreationStepKey[];
+  /**
+   * The use case the person opened the creation from: the Goals step shows
+   * only it, and the steps this process cannot change are left out instead
+   * of shown as inactive.
+   */
+  focusGoal?: string;
 }
 
 const INHERITED = "wizard.step.inherited";
@@ -106,6 +115,24 @@ export const CREATION_PROCESSES: Record<
     asksServerRole: true,
     layoutFlow: "add-server",
   },
+  /**
+   * A server that is already enrolled and connected joins an existing
+   * deployment as a new node; the deployment then rolls the selection out.
+   */
+  "join-on-server": {
+    ...base,
+    key: "join-on-server",
+    run: "join",
+    operation: "add-use-case",
+    inactive: {
+      access: INHERITED,
+      users: INHERITED,
+      login: EXISTING_OWNER,
+    },
+    inheritsAccess: true,
+    reusesOwner: true,
+    appliesLaneDefaults: false,
+  },
   /** More use cases on the servers of an existing deployment. */
   "add-use-case": {
     ...base,
@@ -148,4 +175,41 @@ export function withServerChoice(process: CreationProcess): CreationProcess {
   if (!process.inactive.server) return process;
   const { server: _server, ...inactive } = process.inactive;
   return { ...process, inactive };
+}
+
+const SERVER_FIRST: readonly CreationStepKey[] = [
+  "server",
+  "goals",
+  "access",
+  "users",
+  "login",
+];
+
+/**
+ * The same process for one use case opened from elsewhere (a use case on the
+ * dashboard): where it runs comes first, then that use case alone. On a server
+ * of the homelab it is a change of the homelab, so nothing else is asked.
+ */
+export function focusedOnUseCase(
+  process: CreationProcess,
+  goal: string,
+): CreationProcess {
+  return { ...process, order: SERVER_FIRST, focusGoal: goal };
+}
+
+/** The steps of a process in its order, inactive ones included. */
+export function creationStepOrder(
+  process: Pick<CreationProcess, "order">,
+): readonly CreationStepKey[] {
+  return process.order ?? CREATION_STEP_KEYS;
+}
+
+/** The steps the stepper shows and numbers. */
+export function creationShownSteps(
+  process: Pick<CreationProcess, "order" | "inactive" | "focusGoal">,
+): readonly CreationStepKey[] {
+  const order = creationStepOrder(process);
+  return process.focusGoal
+    ? order.filter((key) => !process.inactive[key])
+    : order;
 }

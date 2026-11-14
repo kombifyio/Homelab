@@ -363,7 +363,13 @@ paths:
         otherwise `state` is `unknown` with a reason code. `services` counts
         the services whose version was compared with a published release and
         lists those with a newer one; a service that was not compared is
-        counted in `not_compared`, never as up to date.
+        counted in `not_compared`, never as up to date. StackKits-managed
+        applications add the verified application release feed facts
+        (D-2026-11-12-06): `update_mode` `application_update` or `bundled`,
+        the node's `update_setting`, `tested`, `advisories` and
+        `security_fix`; `not_verified` counts applications whose facts are
+        not verified and `vulnerable` lists affected services without an
+        offered update. Techstack is the only editor of the update setting.
       responses:
         "200":
           description: Owner-scoped update facts
@@ -535,6 +541,204 @@ paths:
           $ref: "#/components/responses/RuntimeLeaseDenied"
         "503":
           $ref: "#/components/responses/RuntimeLeaseDenied"
+  /api/v1/internal/household/home-graph:
+    post:
+      operationId: putInternalHouseholdHomeGraph
+      tags: [Household]
+      summary: Store the owner's home graph and start its sync to Home Assistant
+      description: >-
+        Scope `household:home_graph`, called on behalf of the owner (`owner_subject`
+        equals `on_behalf_of.sub`). Stores the latest `kombify.home_graph.v1` document
+        per owner and space (at most 512 KiB). A lower revision than the stored one is
+        ignored (200 with the stored revision); the same revision again stores nothing,
+        enqueues nothing unless restore items were added, and answers 202 with the
+        stored revision. `restore` is cumulative and sticky: its items merge into the
+        stored pending set (dedupe by kind, id and field, 256 newest kept), an empty or
+        absent list never clears it, and only the items a successful sync run carried
+        are removed. A higher revision replaces the graph and enqueues the lifecycle job
+        `application_home_graph_sync` on the owner's node with an active Home
+        Assistant connector, only when the pinned StackKits release lists catalog
+        operation `application.home-graph.sync`. `{"status":"none"}` means the owner has
+        no such connector; the graph is stored and a later connector picks it up.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [owner_subject, space_id, graph]
+              properties:
+                owner_subject: { type: string }
+                space_id: { type: string, pattern: "^spc_[a-f0-9]{24}$" }
+                graph: { type: object, description: "kombify.home_graph.v1" }
+                restore:
+                  type: array
+                  maxItems: 256
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [kind, kombifyId, field]
+                    properties:
+                      kind: { type: string, enum: [floor, area, device] }
+                      kombifyId: { type: string }
+                      field: { type: string, enum: [name, level, floor, area] }
+      responses:
+        "200":
+          description: Ignored (older revision) or no active connector
+        "202":
+          description: Accepted; the sync runs on the node
+        "400":
+          $ref: "#/components/responses/RuntimeLeaseDenied"
+        "403":
+          $ref: "#/components/responses/RuntimeLeaseDenied"
+        "503":
+          $ref: "#/components/responses/RuntimeLeaseDenied"
+    get:
+      operationId: getInternalHouseholdHomeGraphSync
+      tags: [Household]
+      summary: Read the sync status of the owner's home graph
+      description: >-
+        Scope `household:home_graph`. Answers `kombify.home_graph.sync_status.v1`:
+        `status` is none (no stored graph or no Home Assistant connector), pending
+        (graph_revision is above synced_revision or a restore waits), synced or failed
+        (error_code set; the reconcile loop retries). `graph_revision` is the stored
+        revision whenever a graph is stored, also for status none, and null only
+        without a stored graph. Drift and inventory are the validated answer of the
+        node; the device list never leaves the node.
+      parameters:
+        - { name: owner_subject, in: query, required: true, schema: { type: string } }
+        - { name: space_id, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Sync status
+        "400":
+          $ref: "#/components/responses/RuntimeLeaseDenied"
+        "403":
+          $ref: "#/components/responses/RuntimeLeaseDenied"
+        "503":
+          $ref: "#/components/responses/RuntimeLeaseDenied"
+  /api/v1/internal/household/home-graph/loxone-import:
+    post:
+      operationId: startInternalHouseholdHomeGraphLoxoneImport
+      tags: [Household]
+      summary: Run the read-only Loxone import on the owner's node
+      description: >-
+        Scope `household:home_graph`, called on behalf of the owner (`owner_subject`
+        equals `on_behalf_of.sub`). Enqueues the lifecycle job
+        `application_home_graph_loxone_import` on the node of the home graph sync (the
+        owner's smart-home service with an active Home Assistant connector), only when
+        the pinned StackKits release lists catalog operation
+        `application.home-graph.loxone-import`. The node reads the Miniserver structure
+        file read-only with the credential in its own workspace
+        (`.stackkit/loxone-credential.json`, never sent) and merges its rooms and
+        controls into the stored home graph of the space. `{"status":"none"}` means the
+        owner has no such node.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [owner_subject, space_id]
+              properties:
+                owner_subject: { type: string }
+                space_id: { type: string, pattern: "^spc_[a-f0-9]{24}$" }
+      responses:
+        "200":
+          description: No node with an active Home Assistant connector
+        "202":
+          description: Accepted; `job_id` names the run
+        "400":
+          $ref: "#/components/responses/RuntimeLeaseDenied"
+        "403":
+          $ref: "#/components/responses/RuntimeLeaseDenied"
+        "404":
+          $ref: "#/components/responses/RuntimeLeaseDenied"
+        "409":
+          $ref: "#/components/responses/RuntimeLeaseDenied"
+        "503":
+          $ref: "#/components/responses/RuntimeLeaseDenied"
+    get:
+      operationId: getInternalHouseholdHomeGraphLoxoneImport
+      tags: [Household]
+      summary: Read one Loxone import run and its merged home graph proposal
+      description: >-
+        Scope `household:home_graph`. Answers `kombify.home_graph.loxone_import.v1`:
+        `status` is pending, running, completed or failed (`error_code` set, for
+        example loxone_miniserver_unavailable or loxone_import_request_invalid). A
+        completed run carries `graph`, the stored `kombify.home_graph.v1` of
+        `graph_revision` merged with the Loxone rooms and controls, and the counts
+        `rooms_added` and `devices_added`. The graph is a proposal: Cloud stores it in
+        the household home graph with its own new revision; Techstack does not.
+      parameters:
+        - { name: owner_subject, in: query, required: true, schema: { type: string } }
+        - { name: space_id, in: query, required: true, schema: { type: string } }
+        - { name: job_id, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Import run state
+        "400":
+          $ref: "#/components/responses/RuntimeLeaseDenied"
+        "403":
+          $ref: "#/components/responses/RuntimeLeaseDenied"
+        "404":
+          $ref: "#/components/responses/RuntimeLeaseDenied"
+        "503":
+          $ref: "#/components/responses/RuntimeLeaseDenied"
+  /api/v1/internal/household/home-graph/adoption:
+    post:
+      operationId: startInternalHouseholdHomeGraphAdoption
+      tags: [Household]
+      summary: Inventory or apply a confirmed Home Assistant adoption or leader change
+      description: >-
+        Scope household:home_graph, on behalf of owner_subject. The request is a
+        stackkit.home-graph-adoption-request/v1 document at the stored graph revision.
+        Only leading_system may differ from the stored graph. Inventory reads HA;
+        apply rechecks the plan digest and backs up registries before writing.
+        service_id optionally selects another active smart-home connector owned by
+        this owner. A completed result is a proposal; only Cloud commits it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [owner_subject, space_id, request]
+              properties:
+                owner_subject: {type: string}
+                space_id: {type: string, pattern: "^spc_[a-f0-9]{24}$"}
+                service_id: {type: string, maxLength: 256}
+                request: {type: object, description: stackkit.home-graph-adoption-request/v1}
+      responses:
+        "202": {description: Accepted with status accepted and job_id}
+        "400": {$ref: "#/components/responses/RuntimeLeaseDenied"}
+        "403": {$ref: "#/components/responses/RuntimeLeaseDenied"}
+        "404": {$ref: "#/components/responses/RuntimeLeaseDenied"}
+        "409": {$ref: "#/components/responses/RuntimeLeaseDenied"}
+        "503": {$ref: "#/components/responses/RuntimeLeaseDenied"}
+    get:
+      operationId: getInternalHouseholdHomeGraphAdoption
+      tags: [Household]
+      summary: Read the owner-bound adoption run, conflicts and merged graph
+      description: >-
+        Scope household:home_graph. Returns kombify.home_graph.adoption.v1 with
+        job_id, service_id (the pinned connector), status (pending, running, completed, failed), error_code and nullable
+        result (stackkit.home-graph-adoption-result/v1). Pending and failed jobs are
+        bound to both owner and space, as well as completed jobs.
+      parameters:
+        - {name: owner_subject, in: query, required: true, schema: {type: string}}
+        - {name: space_id, in: query, required: true, schema: {type: string}}
+        - {name: job_id, in: query, required: true, schema: {type: string}}
+      responses:
+        "200": {description: Adoption run state}
+        "400": {$ref: "#/components/responses/RuntimeLeaseDenied"}
+        "403": {$ref: "#/components/responses/RuntimeLeaseDenied"}
+        "404": {$ref: "#/components/responses/RuntimeLeaseDenied"}
+        "503": {$ref: "#/components/responses/RuntimeLeaseDenied"}
+
 components:
   securitySchemes:
     servicecallAuth:
@@ -771,6 +975,7 @@ components:
                     properties:
                       compared: { type: integer, minimum: 0 }
                       not_compared: { type: integer, minimum: 0 }
+                      not_verified: { type: integer, minimum: 0 }
                       available:
                         type: array
                         items:
@@ -781,6 +986,46 @@ components:
                             name: { type: string }
                             current: { type: string }
                             latest: { type: string }
+                            source: { type: string, enum: [image_tag, image_label, stackkit, image_digest] }
+                            update_mode: { type: string, enum: [stackkit_upgrade, adopt_required, unavailable, application_update, bundled] }
+                            update_setting: { type: string, enum: [ask, automatic, with_stackkits_releases] }
+                            tested: { type: boolean }
+                            advisories:
+                              type: array
+                              items: { $ref: "#/components/schemas/ApplicationAdvisory" }
+                            security_fix:
+                              type: object
+                              required: [version, tested, advisories]
+                              properties:
+                                version: { type: string }
+                                digest: { type: string }
+                                tested: { type: boolean }
+                                release_notes_url: { type: string }
+                                published_at: { type: string }
+                                advisories: { type: array, items: { type: string } }
+                      vulnerable:
+                        type: array
+                        items:
+                          type: object
+                          required: [service_id, name, advisories]
+                          properties:
+                            service_id: { type: string }
+                            name: { type: string }
+                            current: { type: string }
+                            advisories:
+                              type: array
+                              items: { $ref: "#/components/schemas/ApplicationAdvisory" }
+    ApplicationAdvisory:
+      type: object
+      required: [id, severity, url, affects, high]
+      properties:
+        id: { type: string }
+        severity: { type: string, enum: [critical, high, medium, low, unknown] }
+        cvss: { type: number }
+        fixed_version: { type: string }
+        url: { type: string }
+        affects: { type: string, enum: [installed, unknown] }
+        high: { type: boolean }
     UsageBudgets:
       type: object
       required: [budgets]

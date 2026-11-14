@@ -16,7 +16,7 @@ let activeRefreshForcesPortalVerify = false;
 export interface EmbeddedSessionRefreshOptions {
   /**
    * Re-run portal-verify even when the parent returns its still-valid cached
-   * SSO token. A session_reprojection_required response means the browser's
+   * SSO token. A session renewal for reason session_reprojection means the browser's
    * V2 cookie is the part that must be minted again, not the portal token.
    */
   forcePortalVerify?: boolean;

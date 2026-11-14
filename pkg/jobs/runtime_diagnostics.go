@@ -195,6 +195,13 @@ type runtimeDiagnosticsCommandSpec struct {
 	command string
 }
 
+// The managed execution-channel user has noninteractive sudo, but does not
+// belong to systemd-journal. Read the Guard journal with the same host authority
+// the bootstrap uses; an unprivileged read silently omits the convergence error.
+const runtimeDiagnosticsAgentCommand = `if [ "$(id -u)" != 0 ]; then SUDO="sudo -n"; else SUDO=""; fi
+$SUDO systemctl show techstack-agent.service --no-pager --property=LoadState,ActiveState,SubState,Result,ExecMainCode,ExecMainStatus 2>&1 || true
+$SUDO journalctl -u techstack-agent.service --no-pager -n 4 -o cat --grep='runtime_convergence_failed|guard_update_denied' 2>&1 || true`
+
 func runtimeDiagnosticsCommands(action string) []runtimeDiagnosticsCommandSpec {
 	switch strings.TrimSpace(action) {
 	case "target_bootstrap", "managed_runtime_enrollment":
@@ -204,10 +211,11 @@ func runtimeDiagnosticsCommands(action string) []runtimeDiagnosticsCommandSpec {
 			{name: "cloud_final_journal", command: "journalctl -u cloud-final.service --no-pager -n 120 -o short-iso 2>&1 || true"},
 			{name: "bootstrap_log", command: "tail -n 160 /var/log/kombify-techstack-bootstrap.log 2>&1 || true"},
 			{name: "host_security", command: "printf 'ufw='; ufw status 2>&1 | head -n 20 || true; printf 'sshd_config='; if sshd -t >/dev/null 2>&1; then echo valid; else echo invalid; fi; systemctl is-active ssh sshd 2>&1 || true"},
-			{name: "techstack_agent", command: "systemctl show techstack-agent.service --no-pager --property=LoadState,ActiveState,SubState,Result,ExecMainCode,ExecMainStatus 2>&1 || true; journalctl -u techstack-agent.service --no-pager -n 120 -o short-iso 2>&1 || true"},
+			{name: "techstack_agent", command: runtimeDiagnosticsAgentCommand},
 		}
 	}
 	return []runtimeDiagnosticsCommandSpec{
+		{name: "techstack_agent", command: runtimeDiagnosticsAgentCommand},
 		{name: "system", command: "set -o pipefail 2>/dev/null; uname -a; uptime; cat /etc/os-release 2>/dev/null | head -n 8"},
 		{name: "docker_status", command: "systemctl is-active docker 2>&1 || service docker status 2>&1 || true"},
 		{name: "docker_ps", command: "docker ps -a --format '{{.ID}}\t{{.Names}}\t{{.State}}\t{{.Status}}\t{{.Ports}}' 2>&1 | head -n 120"},

@@ -2,11 +2,11 @@
   "configured": true,
   "deliverability_known": true,
   "release": {
-    "tag": "v0.55.11",
-    "version": "0.55.11",
-    "sourceSha": "362e3785b96c64cc9e7abaf2a7c440284ef16948",
-    "publicSourceSha": "e3bb34771d2dc613e53e102360c353af2a04c096",
-    "releaseUrl": "https://github.com/kombifyio/StackKits/releases/tag/v0.55.11"
+    "tag": "v0.57.12",
+    "version": "0.57.12",
+    "sourceSha": "55bc4d27120795a72f53104665c117aac12e2c76",
+    "publicSourceSha": "04ce859c2d59ea013beb713c2a89679b63612699",
+    "releaseUrl": "https://github.com/kombifyio/StackKits/releases/tag/v0.57.12"
   },
   "use_cases": [
     {
@@ -1851,7 +1851,7 @@
       "components": [
         {
           "id": "workpaths",
-          "name": "kombify Workpaths",
+          "name": "kombify Autopilot",
           "role": "primary",
           "kind": "application",
           "maturity": "beta"
@@ -1889,7 +1889,7 @@
       "default_alternative": "workpaths",
       "deliverable": true,
       "delivery_status": "beta",
-      "description": "Scheduled and event-driven automations on your own node through kombify Workpaths, a headless engine with a private owner-token API. Runs without a kombify plan.",
+      "description": "Scheduled and event-driven automations on your own node through kombify Autopilot, a headless engine with a private owner-token API. Runs without a kombify plan.",
       "docs": "/guides/stackkits/use-cases/automation",
       "id": "automation",
       "maturity": "beta",
@@ -1904,7 +1904,7 @@
           "options": [
             {
               "id": "workpaths",
-              "name": "kombify Workpaths",
+              "name": "kombify Autopilot",
               "realization": "install"
             }
           ],
@@ -1939,6 +1939,56 @@
       "title": "Automation"
     },
     {
+      "add_ons": [
+        {
+          "id": "dev-workbench",
+          "defaultAlternative": "workbench-host",
+          "alternatives": [
+            {
+              "configuration": {
+                "settings": [],
+                "secretRefs": [
+                  "release-token"
+                ]
+              },
+              "id": "workbench-host",
+              "modules": [
+                {
+                  "id": "stackkits-workbench-host-runtime",
+                  "computeProfiles": [
+                    "standard"
+                  ],
+                  "computeProfileFacts": {
+                    "standard": {
+                      "maturity": "experimental",
+                      "executable": true,
+                      "realization": "apply-ready",
+                      "hostFloor": {
+                        "minCpuCores": 2,
+                        "minRamGB": 4,
+                        "minStorageGB": 20
+                      },
+                      "reservation": {
+                        "ramGB": 0.5
+                      },
+                      "provenance": {
+                        "hostFloor": {
+                          "source": "policy",
+                          "ref": "Kombify host floor support policy"
+                        },
+                        "reservation": {
+                          "source": "policy",
+                          "ref": "Kombify reservation policy; declared, not a sum of component limits"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
       "agentSurface": {
         "ref": "dev",
         "equipPolicy": "on-generate",
@@ -1952,6 +2002,12 @@
         },
         "productMcps": [],
         "apis": [
+          {
+            "id": "workbench-host-jobs",
+            "protocol": "rest",
+            "purpose": "Optional host execution through Connect's existing workbench_host_task/workbench_host_result tools; explicit plain-profile assignment is required.",
+            "auth": "Gateway-signed run-bound capability lease"
+          },
           {
             "id": "git-hosting",
             "protocol": "rest",
@@ -2131,6 +2187,12 @@
           "role": "primary",
           "kind": "application",
           "maturity": "beta"
+        },
+        {
+          "id": "workbench-host",
+          "name": "Workbench host",
+          "role": "supporting",
+          "kind": "application"
         }
       ],
       "compute_tiers": {
@@ -2165,6 +2227,17 @@
       "id": "dev",
       "maturity": "beta",
       "settings": [
+        {
+          "id": "workbench-host",
+          "name": "Workbench host",
+          "kind": "toggle",
+          "group": "features",
+          "depth": "summary",
+          "help": "Run agent work through Connect with the Desktop switched off.",
+          "default": false,
+          "realization": "install",
+          "workloadRef": "dev-workbench"
+        },
         {
           "id": "ci-runners",
           "name": "CI runners",
@@ -6642,13 +6715,7 @@
         },
         {
           "configuration": {
-            "settings": [
-              {
-                "key": "release",
-                "type": "string",
-                "label": "Release"
-              }
-            ],
+            "settings": [],
             "secretRefs": [
               "admin-token"
             ]

@@ -22,6 +22,11 @@ type GuardInventorySatelliteProjection struct {
 	InventoryRevision int64
 	Worker            Worker
 	RILServer         RILServer
+	// Identity is the reporting server's own identity fact: its applied
+	// StackKit runs the managed Pocket ID for this origin. The caller sets it
+	// only for a host-key-bound Guard; the store records the server as its
+	// homelab's identity Authority (ADR-036) in the same fenced transaction.
+	Identity *HomelabIdentityObservation
 }
 
 type GuardInventorySatelliteResult struct {

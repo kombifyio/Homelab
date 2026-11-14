@@ -34,8 +34,13 @@ type StackKitIdentityCommandRequest struct {
 	HouseholdProjectionAction   string
 	// Required for managed household projections. These values come from the
 	// durable owner/member binding, never from an arbitrary client selector.
+	// An agent link names ExpectedAgentID only: the Guard worker its Connect
+	// registration (and so its Gateway key) belongs to.
 	ExpectedAgentID            string
 	ExpectedStackKitInstanceID string
+	// AGENT_LINK_INSTALL only: the exact stackkit.home-agent-link-request/v1
+	// bytes the node pins.
+	AgentLinkRequest []byte
 }
 
 type StackKitIdentityTarget struct {
@@ -98,7 +103,13 @@ func (o *Orchestrator) RunStackKitIdentityCommand(ctx context.Context, request S
 	// A caller that names the runtime (the household worker's legacy list and
 	// remove included) is held to it exactly like a projection.
 	expected := request.ExpectedAgentID != "" || request.ExpectedStackKitInstanceID != ""
-	if (request.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_HOUSEHOLD_PROJECT || expected) &&
+	agentLink := stackkitcommand.IsAgentLinkOperation(request.Operation)
+	if agentLink && (request.ExpectedAgentID == "" || request.ExpectedAgentID != binding.AgentID) {
+		// A Gateway key is issued per Connect node, that is per Guard: it is
+		// pinned only on that Guard's own identity runtime.
+		return nil, fmt.Errorf("%w: the agent link belongs to another Guard than the identity runtime", ErrStackKitLifecycleUnavailable)
+	}
+	if !agentLink && (request.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_HOUSEHOLD_PROJECT || expected) &&
 		(request.ExpectedAgentID == "" || request.ExpectedStackKitInstanceID == "" ||
 			request.ExpectedAgentID != binding.AgentID || request.ExpectedStackKitInstanceID != stack.stackKitInstanceID) {
 		// Retain the original target even if its current inventory changed.
@@ -126,6 +137,7 @@ func (o *Orchestrator) RunStackKitIdentityCommand(ctx context.Context, request S
 		HouseholdProjectionKey:      request.HouseholdProjectionKey,
 		HouseholdProjectionRevision: request.HouseholdProjectionRevision,
 		HouseholdProjectionAction:   request.HouseholdProjectionAction,
+		AgentLinkRequest:            append([]byte(nil), request.AgentLinkRequest...),
 	}
 	if err := stackkitcommand.ValidateCommand(command); err != nil {
 		return nil, err

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
 	"strconv"
 	"strings"
 	"time"
@@ -62,7 +63,7 @@ func (s *PostgresStore) AdmitNativeLeaseTx(
 	if ownerSubjectID == "" || serverID == "" {
 		return NativeAdmissionResult{}, fmt.Errorf("vmleases: native admission owner and server required")
 	}
-	if _, err := tx.ExecContext(ctx, `SELECT set_config('app.tenant_id', $1, true)`, tenantID); err != nil {
+	if err := tenantcontext.ApplyTenant(ctx, tx, tenantID); err != nil {
 		return NativeAdmissionResult{}, fmt.Errorf("vmleases: set native admission tenant context: %w", err)
 	}
 	var databaseTime time.Time

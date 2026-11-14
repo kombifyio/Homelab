@@ -1,4 +1,11 @@
 export const ar: Record<string, string> = {
+  "ui.homelab.firstServerHint": "اربط خادمًا تملكه أو أعدّ خادمًا جديدًا. ستظهر خوادمك هنا.",
+  "ui.homelab.installedUseCases": "حالات الاستخدام المثبّتة",
+  "ui.homelab.transferHint": "استورد إعدادات حزمة أو صدّر الحزمة المحددة.",
+  "ui.homelab.export": "تصدير",
+  "ui.homelab.importSpec": "مواصفات StackKit",
+  "ui.apps.useCaseConfigure": "تهيئة",
+  "ui.apps.useCaseRemove": "إزالة",
   "ui.clientLocal.bootstrapPassword": "كلمة مرور التهيئة",
   "ui.clientLocal.bootstrapGuidance":
     "شغّل {command} في طرفية على مضيف هذا التثبيت للحصول على كلمة مرور التهيئة. إذا استُخدمت كلمة مرور سابقة أو انتهت صلاحيتها، يستبدلها الأمر وتتوقف كلمة المرور القديمة عن العمل.",
@@ -7,8 +14,8 @@ export const ar: Record<string, string> = {
   "setupReplay.body":
     "راجع طريقة اتصال هذا الجهاز ثم أعد مشاهدة المقدمة. تبقى مسودة إعداداتك هنا.",
   "setupReplay.edition": "إصدار المثبّت",
-  "setupReplay.localEdition": "Techstack Local",
-  "setupReplay.cloudEdition": "Techstack Cloud",
+  "setupReplay.localEdition": "Techstack Standalone",
+  "setupReplay.cloudEdition": "Techstack Connected",
   "setupReplay.connection": "الاتصال",
   "setupReplay.address": "العنوان",
   "setupReplay.browser": "متصفح الويب",
@@ -17,6 +24,31 @@ export const ar: Record<string, string> = {
   "setupReplay.skip": "تخطي الإعداد",
   "setupReplay.keep": "الاحتفاظ بالاتصال",
   "ui.services.stackIt": "Stack it",
+  "ui.services.unmanaged": "غير مُدار",
+  "ui.services.stackItFirst": "طبّق Stack it أولاً ثم انقل",
+  "ui.services.stackItHere": "طبّق Stack it على {name} هنا",
+  "ui.services.stackItPlanning": "جارٍ التخطيط…",
+  "ui.services.stackItRecreated": "يُعاد إنشاؤه كحاوية جديدة. تتوقف الحاوية الأصلية وتُحفظ لمدة 7 أيام.",
+  "ui.services.stackItName": "الاسم",
+  "ui.services.stackItData": "البيانات",
+  "ui.services.stackItDowntime": "مدة التوقف",
+  "ui.services.stackItSeconds": "نحو {seconds} ث",
+  "ui.services.stackItDisk": "{size} · {free} متاح",
+  "ui.services.stackItPorts": "المنافذ",
+  "ui.services.stackItSecrets": "إعدادات مخفية",
+  "ui.services.stackItRow.kept": "مُبقى",
+  "ui.services.stackItRow.changed": "مُغيَّر",
+  "ui.services.stackItRow.refused": "مرفوض",
+  "ui.services.stackItRefused": "لا يمكن تكديس هذه الحاوية بعد.",
+  "ui.services.stackItDone": "تم التكديس.",
+  "ui.services.originalKept": "الأصل محفوظ",
+  "ui.services.originalKeptUntil": "الأصل محفوظ حتى {date}",
+  "ui.services.restoreOriginal": "استعادة الأصل",
+  "ui.services.removeOriginal": "إزالة الأصل",
+  "ui.services.restoreOriginalBody": "يزيل التطبيق المكدّس (تبقى بياناته) ويشغّل الأصل من جديد.",
+  "ui.services.removeOriginalBody": "يزيل الحاوية الأصلية المتوقفة. تبقى بياناتها.",
+  "ui.services.originalRestored": "تمت استعادة الأصل.",
+  "ui.services.originalRemoved": "تمت إزالة الأصل.",
   "ui.services.approveStackIt": "الموافقة على هذا التبنّي",
   "ui.services.releaseBinding": "إلغاء إدارة دورة الحياة",
   "ui.services.adoptionScope": "راجع حاوية Home Assistant الحالية لإدارة دورة حياتها في مكانها. لا يدعم هذا الملف تطبيقات أخرى أو النقل إلى خادم آخر.",
@@ -335,7 +367,6 @@ export const ar: Record<string, string> = {
   "ui.dashboard.healthy": "سليم",
   "ui.dashboard.alerts": "التنبيهات",
   "ui.common.importExport": "استيراد / تصدير",
-  "ui.dashboard.sections": "أقسام Homelab",
   "ui.dashboard.failureDetails": "التفاصيل",
   "ui.dashboard.hideFailureDetails": "إخفاء التفاصيل",
   "ui.dashboard.inventoryUnavailable": "تعذّرت قراءة الحالة الحالية لخوادمك وخدماتك. القياس عن بُعد المحفوظ أدناه للتشخيص فقط ولا يعني أن Homelab فارغ.",
@@ -391,9 +422,6 @@ export const ar: Record<string, string> = {
     "التنظيف لا يزال جاريًا. لا تُتاح إعادة الإنشاء إلا بعد أن تصل جميع العناصر إلى حالتها النهائية: العقد والخادم المعتمد وعملية المزوّد ودليل الغياب وتحرير السعة.",
   "ui.common.close": "إغلاق",
   "ui.metric.noSamples": "لا توجد عينات في هذه الفترة",
-  "ui.relogin.localPath":
-    "تابع في مسار إعداد Techstack المحلي. لا تجمع هذه الشاشة كلمة مرور.",
-  "ui.relogin.continueLocal": "متابعة الإعداد المحلي",
   "ui.rotation.schedule": "جدول التدوير",
   "ui.rotation.rotateNow": "تدوير الآن",
   "ui.serverAccess.authorizeKey": "تفويض مفتاح SSH الخاص بي",
@@ -458,7 +486,7 @@ export const ar: Record<string, string> = {
   "wizard.preview.reset": "إعادة تعيين",
   "wizard.preview.language": "لغة المعاينة",
   "wizard.preview.sandboxNotice":
-    "معاينة تصميم تفاعلية. قارن بين A و B بالاختيار نفسه. تبقى الخيارات في هذا العرض؛ ولا يُثبَّت شيء. يعرض البريد والألعاب التجربة التجريبية المخططة.",
+    "معاينة تصميم تفاعلية. قارن بين العرض الدائري والعرض المضغوط بالاختيار نفسه. تبقى الخيارات في هذا العرض؛ ولا يُثبَّت شيء. يعرض البريد والألعاب التجربة التجريبية المخططة.",
   "wizard.preview.files.title": "المستندات والملفات",
   "wizard.preview.files.description": "ملفاتك اليومية، في مكان خاص بك.",
   "wizard.preview.files.help":
@@ -512,9 +540,6 @@ export const ar: Record<string, string> = {
     "حزمة بريد متكاملة اختيارية مع بريد ويب SOGo وبرمجيات العمل الجماعي. اختر حزمة أو خادمًا منفصلًا؛ لا يلزم كلاهما لصناديق البريد نفسها.",
   "wizard.preview.service.pterodactyl":
     "المنصة المحددة للألعاب. يدير التكامل المخطط ملفات Minecraft Java وBedrock المنفصلة وموارد كل منها وعوالمها الدائمة.",
-  "wizard.preview.compare": "قارن بين التصميمين",
-  "wizard.preview.discover": "اكتشف",
-  "wizard.preview.focus": "تركيز",
   "wizard.preview.eyebrow": "منزلك الرقمي",
   "wizard.preview.title": "افسح مكانًا لما يهم.",
   "wizard.preview.subtitle":
@@ -529,8 +554,6 @@ export const ar: Record<string, string> = {
   "wizard.preview.aboutUseCase": "نظرة أقرب",
   "wizard.preview.inside": "الأدوات في حالة الاستخدام هذه",
   "wizard.preview.explore": "استكشاف وتخصيص",
-  "wizard.preview.selectUseCase": "تحديد",
-  "wizard.preview.collapse": "تفاصيل أقل",
   "wizard.preview.selected": "محدد",
   "wizard.preview.optional": "اختياري",
   "wizard.preview.selectionCount": "محدد",
@@ -1115,6 +1138,10 @@ export const ar: Record<string, string> = {
   "wizard.server.command.join.review": "تأكيد هذا الخادم",
   "wizard.server.command.join.reviewBody":
     "اختر كيف يتصل هذا الجهاز. يبقى وصول Homelab والأشخاص وتسجيل الدخول كما هي.",
+  "wizard.focus.title": "إعداد {useCase}",
+  "wizard.focus.subtitle":
+    "اختر التطبيق وطريقة إعداده. التفاصيل موجودة عندما تحتاج إليها.",
+  "wizard.step.useCase": "حالة الاستخدام",
   "wizard.step.inherited": "مضبوط مسبقًا لـ Homelab الخاص بك",
   "wizard.step.existingOwner": "يبقى مالك Homelab كما هو",
   "wizard.settings.title": "إعدادات Homelab",
@@ -1299,16 +1326,6 @@ export const ar: Record<string, string> = {
   "auth.email": "البريد الإلكتروني",
   "auth.password": "كلمة المرور",
   "auth.username": "اسم المستخدم",
-  "auth.session.renewal.title": "تحديث الجلسة مطلوب",
-  "auth.session.renewal.body":
-    "تعذّر تجديد وصولك الآمن إلى kombify Cloud تلقائيًا. عملك بأمان — سجّل الدخول مرة أخرى لتتابع من حيث توقفت.",
-  "auth.session.renewal.signIn": "تسجيل الدخول مرة أخرى",
-  "auth.session.renewal.retry": "إعادة المحاولة",
-  "auth.session.renewal.retrying": "جارٍ إعادة المحاولة…",
-  "auth.session.gatewayUnavailable":
-    "تعذّر التحقق من الوصول الآمن إلى kombify Cloud. سجّل الدخول مرة أخرى للمتابعة.",
-  "auth.session.tenantContextRequired":
-    "لا تحمل جلستك أي مؤسسة في kombify، لذلك لا يمكن عرض بيانات المستأجر. افتح Techstack من بوابة kombify Cloud أو سجّل الدخول مرة أخرى.",
   "wizard.run.banner.inProgressTitle": "جارٍ إعداد Homelab الخاص بك",
   "wizard.run.banner.inProgressBody":
     "الإعداد لا يزال قيد التشغيل. يمكنك متابعة التقدم أو العودة لاحقًا.",
@@ -1324,22 +1341,6 @@ export const ar: Record<string, string> = {
   "wizard.run.banner.cancelFailed": "تعذّر إلغاء الطرح",
   "wizard.run.banner.dismiss": "إغلاق",
   "wizard.run.banner.dismissFailed": "تعذّر إغلاق الإشعار",
-  "auth.session.expired.default":
-    "انتهت صلاحية جلستك. يُرجى تسجيل الدخول مرة أخرى.",
-  "auth.session.expired.title": "انتهت الجلسة",
-  "auth.session.expired.subtitle": "يُرجى تسجيل الدخول مرة أخرى",
-  "auth.session.expired.saasBody":
-    "انتهت صلاحية جلسة Techstack الخاصة بك. تابع مع Auth0 للعودة إلى سير العمل هذا بعد تسجيل الدخول.",
-  "auth.session.expired.continueAuth0": "المتابعة مع Auth0",
-  "auth.session.expired.reconnecting": "جارٍ إعادة الاتصال...",
-  "auth.session.expired.signOut": "تسجيل الخروج",
-  "auth.session.expired.reopenPortal": "إعادة فتح kombify Cloud",
-  "auth.session.expired.embeddedHint":
-    "افتح kombify Cloud في تبويب جديد وسجّل الدخول هناك، ثم أعد محاولة تحديث الجلسة هنا.",
-  "auth.session.expired.embeddedRefreshFailed":
-    "تعذّر تحديث جلسة kombify Cloud المضمّنة. أعد فتح kombify Cloud لتسجيل الدخول مجددًا، ثم أعد المحاولة.",
-  "auth.session.expired.dataPreserved":
-    "بياناتك محفوظة. بعد تسجيل الدخول يمكنك المتابعة من حيث توقفت.",
   "nav.notifications": "الإشعارات",
   "companion.frameTitle": "kombify Companion",
   "companion.open": "فتح Companion",
@@ -1424,8 +1425,6 @@ export const ar: Record<string, string> = {
     "ستُغلق هذه النافذة تلقائيًا.",
   "ui.authCloud-link-complete.youCanCloseThisTab":
     "يمكنك إغلاق علامة التبويب هذه والعودة إلى المعالج.",
-  "ui.authHandler.yourSessionHasExpiredPlease":
-    "انتهت جلستك. يرجى تسجيل الدخول مرة أخرى.",
   "ui.authSso.noSsoTokenProvided": "لم يتم توفير رمز SSO",
   "ui.authSso.ssoAuthenticationFailed": "فشلت مصادقة SSO",
   "ui.authSso.ssoAuthenticationKombifyTechstack":
@@ -1435,13 +1434,10 @@ export const ar: Record<string, string> = {
     "تعذّرت استعادة جلسة kombify Cloud الخاصة بك. يرجى المحاولة مرة أخرى.",
   "ui.client.csrfTokenResponseMissingToken":
     "استجابة رمز CSRF لا تحتوي على الرمز",
-  "ui.client.gatewayAuthenticationUnavailableSignIn":
-    "مصادقة Gateway غير متاحة. سجّل الدخول مرة أخرى للتحقق من استحقاقات وقت التشغيل المُدار.",
   "ui.client.networkError":
     "خطأ في الشبكة: تعذّر الاتصال بواجهة API. هل يمكن الوصول إلى الخادم الخلفي؟",
   "ui.client.networkErrorAt":
     "خطأ في الشبكة: تعذّر الاتصال بواجهة API على {base}. هل يمكن الوصول إلى الخادم الخلفي؟",
-  "ui.client.parentGatewayTokenFailed": "فشل رمز البوابة الأصلية",
   "ui.client.requestTimedOutAfterS": "انتهت مهلة الطلب بعد {v1} ثانية: {url}",
   "ui.client.serverReturnedHTMLInsteadOf":
     "{basePrefix}أرجع الخادم HTML بدلًا من JSON ({status}). هل يمكن الوصول إلى الخادم الخلفي وهل أنت مصادَق؟",
@@ -1736,7 +1732,6 @@ export const ar: Record<string, string> = {
     "هل تريد حل سجل الحفظ القديم؟",
   "ui.homelabDashboardPage.retry": "إعادة المحاولة",
   "ui.homelabDashboardPage.retryExactCleanup": "إعادة محاولة التنظيف المحدد",
-  "ui.homelabDashboardPage.review": "مراجعة",
   "ui.homelabDashboardPage.reviewStart": "مراجعة وإنشاء",
   "ui.homelabDashboardPage.rolloutReadinessIsUnavailableRefresh":
     "حالة جاهزية الطرح غير متاحة. حدّث بيانات العمليات قبل البدء.",
@@ -1937,6 +1932,7 @@ export const ar: Record<string, string> = {
   "ui.monitoring.acrossEpisodes.other": "عبر {count} من الحلقات",
   "ui.monitoring.availabilityHistoryIsUnavailableOn": "سجل التوفر غير متاح في هذا التثبيت.",
   "ui.monitoring.availabilityWindow": "التوفر · {window}",
+  "ui.monitoring.availabilityWindowLabel": "فترة التوفر",
   "ui.monitoring.dailyState": "الحالة اليومية",
   "ui.monitoring.dailyStateLabel": "{name}: حالة الاتصال اليومية",
   "ui.monitoring.downFor": "متوقف لمدة {duration}",
@@ -2065,12 +2061,30 @@ export const ar: Record<string, string> = {
     "يجب أن تتكون عبارة مرور الاسترداد من {MIN_RECOVERY_PASSPHRASE_LENGTH} حرفًا على الأقل",
   "ui.ownerState.recoveryPassphrasesDoNotMatch":
     "عبارتا مرور الاسترداد غير متطابقتين",
+  "ui.ownerState.theCloudLinkCouldNotBeRemoved":
+    "تعذّر إزالة ربط kombify Cloud. حاول مرة أخرى.",
+  "ui.ownerState.theCloudLinkCouldNotBeSaved":
+    "تعذّر حفظ ربط kombify Cloud. حاول مرة أخرى.",
+  "ui.ownerState.theCloudLinkCouldNotBeStarted":
+    "تعذّر بدء ربط kombify Cloud. حاول مرة أخرى.",
+  "ui.ownerState.theCloudLinkIsTemporarilyUnavailable":
+    "ربط kombify Cloud غير متاح مؤقتًا. حاول بعد قليل.",
+  "ui.ownerState.theCloudLinkStatusCouldNotBeRead":
+    "تعذّرت قراءة حالة ربط kombify Cloud. حاول بعد قليل.",
+  "ui.ownerState.theCloudProfileCouldNotBeRead":
+    "تعذّرت قراءة ملف kombify Cloud الشخصي. ابدأ الاتصال مرة أخرى.",
+  "ui.ownerState.theCloudTokenExchangeFailed":
+    "فشل تبادل رموز kombify Cloud. ابدأ الاتصال مرة أخرى.",
+  "ui.ownerState.theKombifyCloudAccountIsAlready":
+    "حساب kombify Cloud الخاص بك متصل بالفعل. ربط Cloud متاح فقط على التثبيتات المستضافة ذاتيًا.",
   "ui.ownerState.theKombifyCloudEmailIs":
     "البريد الإلكتروني في kombify Cloud غير موثّق. وثّقه في حساب Cloud الخاص بك ثم اربط مرة أخرى.",
   "ui.ownerState.theKombifyCloudProfileHas":
     "ملف kombify Cloud الشخصي لا يحتوي على عنوان بريد إلكتروني.",
   "ui.ownerState.theLinkRequestExpiredStart":
     "انتهت صلاحية طلب الربط. ابدأ الاتصال مرة أخرى.",
+  "ui.ownerState.theLinkRequestIsMissingStart":
+    "طلب الربط يفتقد الرمز أو الحالة. ابدأ الاتصال مرة أخرى.",
   "ui.ownerState.theSelectedOwnerSourceIs":
     "مصدر المالك المحدد لم يعد مدعومًا. اختر مالكًا محليًا أو اربط ملف kombify Cloud الشخصي.",
   "ui.ownerState.thisInstanceHasNoKombify":
@@ -2565,8 +2579,6 @@ export const ar: Record<string, string> = {
   "ui.serviceSheet.notPlaced": "غير موضوع",
   "ui.serviceSheet.ownership": "الملكية: {value}",
   "ui.serviceSheet.stackkit": "StackKit {version}",
-  "ui.services.aboutToMove":
-    "أنت على وشك نقل هذا التطبيق من {slot} إلى {slot}.",
   "ui.services.action.freeze": "تجميد",
   "ui.services.action.logs": "السجلات",
   "ui.services.action.restart": "إعادة التشغيل",
@@ -2587,15 +2599,10 @@ export const ar: Record<string, string> = {
   "ui.services.anyRuntimeInventoryShownAbove":
     "يبقى أي مخزون لوقت التشغيل معروض أعلاه للقراءة فقط. تظل إجراءات الكتالوج والاستيراد والتحقق والترحيل معطّلة إلى أن يتعافى سجل الخدمات.",
   "ui.services.application": "التطبيق",
-  "ui.services.applicationIsAlreadyMovingOr":
-    "التطبيق قيد النقل بالفعل أو ينتظر التحقق.",
   "ui.services.applicationManagementIsTemporarilyUnavailable":
     "إدارة التطبيقات غير متاحة مؤقتًا",
   "ui.services.applicationManagementIsUnavailableUntil":
     "إدارة التطبيقات غير متاحة إلى أن يتعافى سجل الخدمات.",
-  "ui.services.applicationMove": "نقل التطبيق",
-  "ui.services.applicationNeedsAStableRunning":
-    "يحتاج التطبيق إلى حالة تشغيل أو إيقاف مستقرة قبل أن يمكن نقله.",
   "ui.services.applicationPlacementIsTemporarilyUnavailable":
     "وضع التطبيقات غير متاح مؤقتًا",
   "ui.services.applications": "التطبيقات",
@@ -2629,12 +2636,8 @@ export const ar: Record<string, string> = {
   "ui.services.discoveredOn":
     "تم اكتشافه على {name} — غير مُدار بواسطة kombify",
   "ui.services.displayName": "الاسم المعروض",
-  "ui.services.dragAndDropStaysDisabled": "السحب والإفلات غير متاح بعد. يتطلب نقل تطبيق بأمان أتمتة التثبيت وفحص الصحة والتحويل وتنظيف النسخة القديمة.",
-  "ui.services.dropManagedApplicationsHere": "أفلت التطبيقات المُدارة هنا",
   "ui.services.error": "خطأ",
   "ui.services.failedToDeleteArchivedService": "فشل حذف الخدمة المؤرشفة.",
-  "ui.services.failedToInitiateMigration": "فشل بدء الترحيل.",
-  "ui.services.failedToVerifyService": "فشل التحقق من الخدمة.",
   "ui.services.fetchLogs": "جلب السجلات",
   "ui.services.freshnessValue": "الحداثة: {value}",
   "ui.services.health": "الصحة",
@@ -2645,17 +2648,14 @@ export const ar: Record<string, string> = {
     "جارٍ تحميل مخزون الخدمات المرجعي",
   "ui.services.localNode": "خادم محلي",
   "ui.services.managedProviderTarget": "هدف مزوّد مُدار",
-  "ui.services.migrationJobIsActive": "مهمة الترحيل نشطة.",
+  "ui.services.moreActions": "إجراءات إضافية للخدمات",
   "ui.services.moveApplication": "نقل التطبيق",
   "ui.services.moveHere": "انقل {name} إلى هنا",
-  "ui.services.moveSteps": "خطوات النقل:",
-  "ui.services.moveToAnotherNode": "النقل إلى خادم آخر…",
   "ui.services.mutationsRequireOwnerApprovalA":
     "تتطلب التعديلات موافقة المالك؛ ويُجرى تمرير تحقق StackKits قبل أن تتغير الحالة المقيسة.",
   "ui.services.noApplicationsDeployed": "لا توجد تطبيقات منشورة",
   "ui.services.noApplicationsMatching": "لا توجد تطبيقات بالحالة {status}",
   "ui.services.noApplicationsReported": "لم يتم الإبلاغ عن أي تطبيقات",
-  "ui.services.noAvailableTargetNodeFor": "لا يوجد خادم هدف متاح لهذا التطبيق.",
   "ui.services.noCanonicalRuntimeObservationYet":
     "لا توجد ملاحظة مرجعية لوقت التشغيل بعد — يُعرض إسقاط السجل.",
   "ui.services.noGovernedActionHasRun":
@@ -2669,12 +2669,10 @@ export const ar: Record<string, string> = {
   "ui.services.nodeCapabilities": "إمكانات الخادم",
   "ui.services.nodeColumn": "عمود الخادم {name}",
   "ui.services.observed": "مُلاحَظ",
-  "ui.services.stacked": "Stacked",
-  "ui.services.unstacked": "Unstacked",
+  "ui.services.stacked": "مكدّس",
+  "ui.services.unstacked": "غير مكدّس",
   "ui.services.observedTechnicalComponentsWithoutApplication":
     "مكوّنات تقنية مُلاحَظة بدون عناصر تحكم على مستوى التطبيق",
-  "ui.services.observedUnmanagedApplicationsMustBe":
-    "يجب ضمّ التطبيقات غير المُدارة المُلاحَظة إلى الإدارة قبل نقلها.",
   "ui.services.open": "فتح",
   "ui.services.operationValue": "العملية: {value}",
   "ui.services.ownershipUnknown": "الملكية غير معروفة",
@@ -2690,14 +2688,10 @@ export const ar: Record<string, string> = {
   "ui.services.port": "المنفذ",
   "ui.services.ramUsedOf": "{used} GB / {total} GB",
   "ui.services.refreshLogs": "تحديث السجلات",
-  "ui.services.relocatingOnBackend": "جارٍ النقل على الخادم الخلفي...",
   "ui.services.removeOldCopy": "إزالة النسخة القديمة…",
   "ui.services.retryManagementData": "إعادة محاولة بيانات الإدارة",
   "ui.services.running": "قيد التشغيل",
   "ui.services.runtimeInventoryCouldNotBe": "تعذّر تحميل مخزون وقت التشغيل.",
-  "ui.services.runtimeMigrationIsNotEnabled": "ترحيل وقت التشغيل غير مفعّل بعد",
-  "ui.services.runtimeMigrationUnavailable": "ترحيل وقت التشغيل غير متاح",
-  "ui.services.runtimeServiceMigrationIsNot": "نقل التطبيقات بين الخوادم غير مفعّل في هذا التثبيت.",
   "ui.services.runtimeTarget": "هدف وقت التشغيل",
   "ui.services.selectANodeAndCatalog": "اختر خادمًا وخدمة من الكتالوج.",
   "ui.services.selectANodeThenEnter": "اختر خادمًا ثم أدخل اسم الخدمة.",
@@ -2715,18 +2709,12 @@ export const ar: Record<string, string> = {
   "ui.services.showingLastVerifiedCapacityTelemetry":
     "يُعرض آخر قياس سعة عن بُعد تم التحقق منه",
   "ui.services.stackkitsApplicationModel": "نموذج تطبيقات StackKits",
-  "ui.services.startMove": "بدء النقل",
-  "ui.services.startsControlledMove": "يبدأ هذا نقلًا مضبوطًا لـ {slot}.",
   "ui.services.statusValue": "الحالة: {value}",
   "ui.services.storage": "التخزين",
   "ui.services.storageFreeOf": "{free} GB متاح / {total} GB",
   "ui.services.systemServices": "خدمات النظام",
-  "ui.services.targetIsReadyForVerification": "الهدف جاهز للتحقق.",
-  "ui.services.targetNode": "الخادم المستهدف",
   "ui.services.targetValue": "الهدف: {value}",
   "ui.services.telemetryPending": "القياسات عن بُعد قيد الانتظار",
-  "ui.services.temporaryInstance": "سيتم نشر نسخة مؤقتة على {slot}.",
-  "ui.services.theApplicationConfigWillBe": "سيتم نسخ إعدادات التطبيق إلى الخادم المستهدف.",
   "ui.services.theLastLogPageWas": "كانت آخر صفحة سجلات فارغة.",
   "ui.services.theLastSuccessfulSnapshotRemains": "تبقى آخر لقطة ناجحة ظاهرة إلى أن يُبلغ Homelab هذا عن بديل أو دليل واضح على توقف التطبيق.",
   "ui.services.thisHomelab": "Homelab هذا",
@@ -2735,14 +2723,8 @@ export const ar: Record<string, string> = {
   "ui.services.type2": "النوع",
   "ui.services.unclassifiedRuntimeComponentsAppearHere":
     "تظهر هنا مكوّنات وقت التشغيل غير المصنّفة.",
-  "ui.services.uponYourManualVerificationThe":
-    "بعد التحقق اليدوي منك، تُعطَّل النسخة القديمة ويمكن إزالتها نهائيًا.",
   "ui.services.url": "URL",
-  "ui.services.verifyFinish": "تحقق وأنهِ",
   "ui.services.verifying": "· جارٍ التحقق",
-  "ui.services.waitingForRuntimeDeployment": "بانتظار التثبيت...",
-  "ui.services.youCanTestTheNew":
-    "يمكنك اختبار النسخة الجديدة بينما تبقى القديمة نشطة.",
   "ui.servicesApplicationId.addressClass": "فئة العنوان",
   "ui.servicesApplicationId.applicationDetails": "تفاصيل التطبيق",
   "ui.servicesApplicationId.applicationDetailsCouldNotBe":
@@ -2996,7 +2978,7 @@ export const ar: Record<string, string> = {
     "تتطلب إعادة محاولة الطرح المهمة الفاشلة المحددة وعقد إيجار VM المُدارة.",
   "ui.stacksCreatingCreation-controller.serviceVerification":
     "التحقق من الخدمات",
-  "ui.stacksCreatingCreation-controller.sessionExpired": "انتهت الجلسة",
+  "ui.stacksCreatingCreation-controller.sessionExpired": "بانتظار تأكيدك",
   "ui.stacksCreatingCreation-controller.simulationGate": "بوابة المحاكاة",
   "ui.stacksCreatingCreation-controller.stackkitRollout": "طرح StackKit",
   "ui.stacksCreatingCreation-controller.stackkitRuntimeVerificationMissing":
@@ -3022,7 +3004,7 @@ export const ar: Record<string, string> = {
   "ui.stacksCreatingCreation-controller.yourRemoteNodeConfigurationIs":
     "إعداد الخادم البعيد الخاص بك جاهز للطرح",
   "ui.stacksCreatingCreation-controller.yourSessionIsNoLonger":
-    "لم تعد جلستك صالحة، لذا لا يمكن فحص تقدم الإنشاء. سجّل الدخول مرة أخرى وأعد فتح عملية الإنشاء هذه لمتابعة مراقبتها.",
+    "يستمر الإنشاء في العمل على الخادم. تحقّق مجددًا وأكِّد جلستك لمتابعة تقدّمه هنا.",
   "ui.stacksCreatingCreation-results.backendError":
     "{cleanDetails}\n\nخطأ الواجهة الخلفية:\n{cleanError}",
   "ui.stacksCreatingCreation-results.incidentContext": "سياق الحادث:",
@@ -3321,6 +3303,7 @@ export const ar: Record<string, string> = {
   "ui.stacksId.monitoringEvidence": "أدلة المراقبة",
   "ui.stacksId.monthlyRuntime": "بيئة تشغيل شهرية",
   "ui.stacksId.monthlyRuntimeActionFailed": "فشل إجراء بيئة التشغيل الشهرية",
+  "ui.stacksId.moreActions": "إجراءات أخرى لـ {name}",
   "ui.stacksId.noCredentialsConfiguredForThis": "لم يتم إعداد أي بيانات اعتماد لـ Homelab هذا.",
   "ui.stacksId.noLeaseAttached": "لا يوجد عقد إيجار مرتبط",
   "ui.stacksId.noStackkitDeploymentIdProvided": "لم يتم توفير معرّف Homelab",
@@ -3390,6 +3373,7 @@ export const ar: Record<string, string> = {
     "سياق عقد إيجار بيئة التشغيل المُدارة.",
   "ui.stacksIdServersServerId.memory": "الذاكرة",
   "ui.stacksIdServersServerId.metadata": "البيانات الوصفية",
+  "ui.stacksIdServersServerId.moreActions": "إجراءات أخرى لـ {name}",
   "ui.stacksIdServersServerId.noCompilerDeclaredReservationOr":
     "لم يوجد في أحدث لقطة كاملة من Guard أي حجز أعلنه المترجم أو مستمع ملزَم في بيئة التشغيل.",
   "ui.stacksIdServersServerId.noDesiredListenerIsReserved":

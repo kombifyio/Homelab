@@ -49,11 +49,10 @@ func (h workerRouteHandlers) confirmTenantHandoff(e *httpx.Event) error {
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Guard handoff is unavailable", nil)
 	}
 	now := time.Now().UTC()
-	if !entitlementGateOrHosted(h.entitlements).FreshMultiFactor(e.Request.Context(), now, tenantHandoffStepUpMaxAge) {
-		return httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden, "A fresh multi-factor sign-in is required to release a server's command evidence", map[string]any{
-			"reason": "tenant_handoff_step_up_required", "retryable": true,
-			"guidance": "Sign in again with a second factor and repeat the request within five minutes.",
-		})
+	agentID, admitted := freshPersonOrActingAgent(e.Request.Context(), h.entitlements, now, tenantHandoffStepUpMaxAge)
+	if !admitted {
+		message, details := stepUpRefusal(e.Request.Context(), "A fresh multi-factor sign-in is required to release a server's command evidence", "tenant_handoff_step_up_required")
+		return httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden, message, details)
 	}
 	raw, readErr := io.ReadAll(io.LimitReader(e.Request.Body, 1025))
 	var request tenantHandoffConfirmRequest
@@ -102,7 +101,7 @@ func (h workerRouteHandlers) confirmTenantHandoff(e *httpx.Event) error {
 		return httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to record the handoff confirmation", nil)
 	}
 	slog.Warn("guard_tenant_handoff_confirmed", "tenant_id", tenantID, "worker_id", workerID, "handoff_id", confirmation.HandoffID,
-		"disposition", confirmation.Disposition, "confirmed_by", ownerID)
+		"disposition", confirmation.Disposition, "confirmed_by", ownerID, "agent_id", agentID)
 	e.Response.Header().Set("Cache-Control", "no-store")
 	return httpx.Success(e, http.StatusCreated, tenantHandoffConfirmResponse{
 		HandoffID: confirmation.HandoffID, WorkerID: workerID, Disposition: confirmation.Disposition,

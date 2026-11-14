@@ -38,7 +38,9 @@ export interface GuardReinstallDeps {
 function atLeastSignerMove(version: string): boolean {
   const parts = version.replace(/^v/, "").split(".").map(Number);
   for (let i = 0; i < 3; i += 1) {
-    if (parts[i] !== SIGNER_MOVE[i]) return parts[i] > SIGNER_MOVE[i];
+    const actual = parts[i] ?? 0;
+    const floor = SIGNER_MOVE[i] ?? 0;
+    if (actual !== floor) return actual > floor;
   }
   return true;
 }
@@ -96,6 +98,7 @@ export async function runGuardReinstallJourney(
   const reinstalled = /result=reinstalled from=(\S+) to=(\S+) sha256=([0-9a-f]{64}) enrollment=unchanged identity_key=unchanged/.exec(receiptLine);
   expect(reinstalled, `the reinstall receipt: ${receiptLine}`).not.toBeNull();
   const [, from, to, sha256] = reinstalled!;
+  if (to === undefined) throw new Error(`the reinstall receipt names no target version: ${receiptLine}`);
   expect(from).toBe(OLD_GUARD_VERSION);
   expect(atLeastSignerMove(to), `${to} is at or past the signer move`).toBe(true);
   expect(await deps.root(`sha256sum ${CUSTODY}`), "enrollment and identity key are byte for byte unchanged").toBe(custodyBefore);

@@ -39,9 +39,9 @@ func (s *PostgresStore) ApplyGuardInventorySatellites(ctx context.Context, comma
 
 	var result GuardInventorySatelliteResult
 	err = s.withTenant(ctx, prepared.TenantID, func(tx *sql.Tx) error {
-		var marker int
+		var instanceID, stackID string
 		err := tx.QueryRowContext(ctx, `
-			SELECT 1
+			SELECT COALESCE(instance_id, ''), COALESCE(stack_id, '')
 			FROM servers
 			WHERE tenant_id = $1 AND id = $2 AND generation = $3
 				AND source_authority = 'guard' AND source_id = $4 AND source_epoch = $5
@@ -49,7 +49,7 @@ func (s *PostgresStore) ApplyGuardInventorySatellites(ctx context.Context, comma
 				AND lifecycle_state NOT IN ('decommissioning', 'decommissioned')
 			FOR SHARE
 		`, prepared.TenantID, prepared.ServerID, prepared.Generation, prepared.SourceID,
-			prepared.SourceEpoch, prepared.SourceSequence, prepared.InventoryRevision, prepared.SourceObservedAt).Scan(&marker)
+			prepared.SourceEpoch, prepared.SourceSequence, prepared.InventoryRevision, prepared.SourceObservedAt).Scan(&instanceID, &stackID)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil
 		}
@@ -58,6 +58,7 @@ func (s *PostgresStore) ApplyGuardInventorySatellites(ctx context.Context, comma
 		}
 
 		worker := prepared.Worker
+		worker.InstanceID, worker.StackID = instanceID, stackID
 		lastSeen := nullableTime(worker.LastSeenAt)
 		if worker.LastSeenAt == nil {
 			lastSeen = time.Now().UTC()
@@ -97,6 +98,7 @@ func (s *PostgresStore) ApplyGuardInventorySatellites(ctx context.Context, comma
 					- 'stackkits_target'
 					- 'stackkits_update_behavior'
 					- 'stackkits_update_attempt'
+					- 'guard_tenant_rebind'
 				) || jsonb_strip_nulls(jsonb_build_object(
 					'agent_token_sha256', workers.resources_json->'agent_token_sha256',
 					'enrollment_idempotency_sha256', workers.resources_json->'enrollment_idempotency_sha256',
@@ -104,7 +106,8 @@ func (s *PostgresStore) ApplyGuardInventorySatellites(ctx context.Context, comma
 					'credential_generation', workers.resources_json->'credential_generation',
 					'stackkits_target', workers.resources_json->'stackkits_target',
 					'stackkits_update_behavior', workers.resources_json->'stackkits_update_behavior',
-					'stackkits_update_attempt', workers.resources_json->'stackkits_update_attempt'
+					'stackkits_update_attempt', workers.resources_json->'stackkits_update_attempt',
+					'guard_tenant_rebind', workers.resources_json->'guard_tenant_rebind'
 				)),
 				updated_at = now()
 		`, worker.ID, prepared.TenantID, worker.InstanceID, worker.StackID, worker.Hostname, worker.IP,
@@ -116,6 +119,7 @@ func (s *PostgresStore) ApplyGuardInventorySatellites(ctx context.Context, comma
 		}
 
 		ril := prepared.RILServer
+		ril.InstanceID, ril.StackID = instanceID, stackID
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO ril_servers (
 				id, tenant_id, instance_id, stack_id, node_id, name, status,
@@ -128,6 +132,11 @@ func (s *PostgresStore) ApplyGuardInventorySatellites(ctx context.Context, comma
 		`, ril.ID, prepared.TenantID, ril.InstanceID, ril.StackID, ril.NodeID, ril.Name,
 			firstNonEmpty(ril.Status, "unknown"), healthJSON, inventoryJSON, nullableTime(ril.LastSeenAt)); err != nil {
 			return err
+		}
+		if prepared.Identity != nil {
+			if err := projectHomelabIdentityAuthority(ctx, tx, prepared.TenantID, prepared.ServerID, *prepared.Identity, prepared.SourceObservedAt); err != nil {
+				return err
+			}
 		}
 
 		saved, err := scanWorker(tx.QueryRowContext(ctx, `

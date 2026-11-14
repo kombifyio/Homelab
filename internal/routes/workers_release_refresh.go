@@ -131,12 +131,12 @@ type guardReleaseRefresher struct {
 func StartGuardReleaseRefresher(ctx context.Context) {
 	dir := guardReleaseDir()
 	log := logger.Get().WithComponent("guard-release-refresh")
-	// Authenticate both the immutable catalog seed and the image's current
-	// policy synchronously before any artifact request can be admitted. A bad
+	// Authenticate the image policy and, for hosted delivery, its catalog seed
+	// synchronously before any artifact request can be admitted. A bad
 	// image remains available for unrelated routes, while artifact admission
 	// continues to fail closed on its own request path.
 	if dir != "" {
-		if _, _, err := loadArtifactDeliveryIndex(); err != nil {
+		if err := guardReleaseCatalogAvailable(); err != nil {
 			log.Error("guard_release_boot_policy_unavailable", "error", err.Error())
 		} else if current, _, err := currentGuardManifest(dir); err != nil {
 			log.Error("guard_release_boot_policy_unavailable", "error", err.Error())
@@ -240,15 +240,8 @@ func (r *guardReleaseRefresher) refreshOnce(ctx context.Context) (bool, error) {
 	if dropped := droppedPolicy(current.manifest, candidate); dropped != "" {
 		return false, fmt.Errorf("the published manifest would weaken the served policy: %s", dropped)
 	}
-	index, _, err := loadArtifactDeliveryIndex()
-	if err != nil {
-		return false, fmt.Errorf("read the immutable delivery catalog: %w", err)
-	}
-	for _, artifact := range candidate.Artifacts {
-		served, indexed := index.artifact("guard_binary", artifact.OS, artifact.Arch)
-		if !indexed || served.SHA256 != artifact.SHA256 || served.Size != artifact.Size {
-			return false, fmt.Errorf("the published manifest names another %s/%s binary than this control plane serves", artifact.OS, artifact.Arch)
-		}
+	if err := guardManifestMatchesDelivery(candidate); err != nil {
+		return false, err
 	}
 	r.warnOnBundleDrift(candidate)
 	if err := guardrelease.ObserveVerifiedPolicy(raw, sig, r.verifier); err != nil {
@@ -258,6 +251,45 @@ func (r *guardReleaseRefresher) refreshOnce(ctx context.Context) (bool, error) {
 	refreshedGuardManifest.value = &guardManifestVersion{raw: raw, sig: sig, manifest: candidate}
 	refreshedGuardManifest.Unlock()
 	return true, nil
+}
+
+// Self-hosted release files are the immutable delivery authority there. Hosted
+// deployments must still authenticate the R2 catalog; a missing/bad index is
+// never a reason to select local delivery.
+func guardReleaseCatalogAvailable() error {
+	if servesOwnGuardBinary() {
+		return nil
+	}
+	_, _, err := loadArtifactDeliveryIndex()
+	return err
+}
+
+func guardManifestMatchesDelivery(candidate *guardrelease.Manifest) error {
+	var index *artifactDeliveryIndex
+	if !servesOwnGuardBinary() {
+		var err error
+		index, _, err = loadArtifactDeliveryIndex()
+		if err != nil {
+			return fmt.Errorf("read the immutable delivery catalog: %w", err)
+		}
+	}
+	for _, artifact := range candidate.Artifacts {
+		var digest string
+		var size int64
+		if index == nil {
+			served, err := selfHostedAgentBinaryArtifact(artifact.OS, artifact.Arch)
+			if err != nil {
+				return fmt.Errorf("read the served %s/%s binary: %w", artifact.OS, artifact.Arch, err)
+			}
+			digest, size = served.sha256, served.size
+		} else if served, found := index.artifact("guard_binary", artifact.OS, artifact.Arch); found {
+			digest, size = served.SHA256, served.Size
+		}
+		if digest != artifact.SHA256 || size != artifact.Size {
+			return fmt.Errorf("the published manifest names another %s/%s binary than this control plane serves", artifact.OS, artifact.Arch)
+		}
+	}
+	return nil
 }
 
 // droppedPolicy reports a revocation or minimum version the served manifest has
@@ -285,9 +317,13 @@ func droppedPolicy(current, candidate *guardrelease.Manifest) string {
 // a revocation must not wait for an image rebuild; Guards refuse the runtime
 // install (binding_mismatch) until the image is redeployed.
 func (r *guardReleaseRefresher) warnOnBundleDrift(candidate *guardrelease.Manifest) {
-	// Read only the immutable signed seed; payloads live in R2. Policy updates
-	// still take effect on drift, while runtime admission refuses a stale catalog.
-	raw, err := readBoundedFile(filepath.Join(r.dir, guardReleaseSeedManifestFile), guardrelease.MaxManifestBytes)
+	// The image pair stays immutable when the in-memory policy is refreshed.
+	// Public self-hosted images carry that pair without a separate R2 seed.
+	seedFile := guardReleaseSeedManifestFile
+	if servesOwnGuardBinary() {
+		seedFile = guardReleaseManifestFile
+	}
+	raw, err := readBoundedFile(filepath.Join(r.dir, seedFile), guardrelease.MaxManifestBytes)
 	if err != nil {
 		r.log.Warn("guard_release_seed_unreadable", "error", err.Error())
 		return
@@ -300,7 +336,7 @@ func (r *guardReleaseRefresher) warnOnBundleDrift(candidate *guardrelease.Manife
 	anchor, _ := json.Marshal(seed.StackKits)
 	current, _ := json.Marshal(candidate.StackKits)
 	if string(anchor) != string(current) {
-		r.log.Error("guard_release_bundle_drift", "message", "the signed runtime differs from the immutable delivery catalog; runtime admission is unavailable until catalog migration")
+		r.log.Error("guard_release_bundle_drift", "message", "the signed runtime differs from the image release; runtime admission is unavailable until the image is redeployed")
 	}
 }
 

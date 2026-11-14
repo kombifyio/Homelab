@@ -28,6 +28,12 @@
     deployingLabel?: string;
     /** Why the forward button is blocked right now; shown while it is. */
     blockedReason?: string;
+    /** A stage of the current step lies behind it, so Back shows even on
+     * the first step (step 1 configuration returns to its choice). */
+    innerBack?: boolean;
+    /** A stage of the current step lies ahead, so forward is Next even on
+     * the last step (step 1 choice opens its configuration first). */
+    innerForward?: boolean;
     onprev?: () => void;
     onnext?: () => void;
     ondeploy?: () => void;
@@ -37,6 +43,8 @@
     stepSummaries?: Record<number, string>;
     onselect?: (stepId: number) => void;
     navigationOnly?: boolean;
+    /** A frame that must fit one screen: less room around the bar. */
+    dense?: boolean;
   }
 
   let {
@@ -51,12 +59,15 @@
     deployLabel,
     deployingLabel,
     blockedReason = "",
+    innerBack = false,
+    innerForward = false,
     onprev,
     onnext,
     ondeploy,
     reachableSteps = [],
     onselect,
     navigationOnly = false,
+    dense = false,
   }: Props = $props();
 
   const activeSteps = $derived(
@@ -78,8 +89,9 @@
   const controlTestIdPrefix = $derived(
     navigationOnly ? "wizard-footer" : "wizard",
   );
+  const offersDeploy = $derived(isLastStep && !innerForward);
   const forwardBlocked = $derived(
-    isLastStep ? !canDeploy : !canGoNext,
+    offersDeploy ? !canDeploy : !canGoNext,
   );
   const reasonId = $derived(`${controlTestIdPrefix}-blocked-reason`);
   const forwardClasses =
@@ -89,12 +101,14 @@
 <div
   class="flex w-full min-w-0 gap-3 border-border sm:items-center sm:justify-between sm:gap-4 {navigationOnly
     ? 'mt-10 border-t pt-6 flex-row'
-    : 'mb-6 flex-col border-b pb-4 sm:mb-8 sm:flex-row sm:pb-6'}"
+    : dense
+      ? 'mb-3 shrink-0 flex-col border-b pb-3 sm:flex-row'
+      : 'mb-6 flex-col border-b pb-4 sm:mb-8 sm:flex-row sm:pb-6'}"
   data-testid={navigationOnly ? "wizard-footer" : "wizard-stepper"}
 >
   <!-- Back Button -->
   <div class="flex min-h-8 w-full items-center sm:w-auto sm:min-w-24 sm:shrink-0">
-    {#if !isFirstStep}
+    {#if !isFirstStep || innerBack}
       <button
         type="button"
         onclick={onprev}
@@ -216,7 +230,7 @@
   <div
     class="flex min-h-8 w-full flex-col items-end gap-1 sm:w-auto sm:min-w-40 sm:shrink-0"
   >
-    {#if !isLastStep}
+    {#if !offersDeploy}
       <button
         type="button"
         onclick={onnext}

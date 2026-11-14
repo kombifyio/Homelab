@@ -2,21 +2,34 @@
   HomelabServerChoice: the first sub-step of the Server step for a person who
   already has servers. Their homelab is everything they run; here they pick the
   one server that takes the new use cases, or a new server, which the rest of
-  the step then sets up.
+  the step then sets up. A connected server without a StackKit can also join
+  one of their running deployments as another server of it.
 -->
 <script lang="ts">
-  import { Check, Plus, Server } from "@lucide/svelte";
+  import { Check, Layers, Plus, Server } from "@lucide/svelte";
   import type { HomelabServerSelection } from "#lib/creation/homelab-servers.js";
   import LoadingNote from "#lib/components/ui/LoadingNote.svelte";
   import { tr } from "#lib/i18n.svelte.js";
 
   let { homelab }: { homelab: HomelabServerSelection } = $props();
 
+  const NOTE_DEFAULT = "wizard.server.homelab.disconnected";
   const NOTE: Record<string, string> = {
     disconnected: "wizard.server.homelab.disconnected",
     leased: "wizard.server.homelab.leased",
     restricted: "wizard.server.homelab.restricted",
   };
+
+  const chosen = $derived(
+    homelab.servers.find((server) => server.id === homelab.selected),
+  );
+  // Only a connected server without a StackKit can join a deployment.
+  const joinOffered = $derived(
+    Boolean(chosen) &&
+      chosen?.state === "ready" &&
+      !chosen?.deploymentId &&
+      homelab.joinTargets.length > 0,
+  );
 </script>
 
 <section
@@ -78,7 +91,7 @@
                     ? tr("wizard.server.homelab.runs", { stackkit: server.stackkit })
                     : tr("wizard.server.homelab.runsStackkit")
                   : tr("wizard.server.homelab.firstStackkit")
-                : tr(NOTE[server.state])}</small
+                : tr(NOTE[server.state] ?? NOTE_DEFAULT)}</small
             >
           </span>
           <span class="server-mark" aria-hidden="true"
@@ -109,6 +122,64 @@
         >
       </label>
     </div>
+    {#if joinOffered && chosen}
+      <div
+        class="use-region"
+        role="radiogroup"
+        aria-labelledby="homelab-server-use-heading"
+        data-testid="homelab-server-use"
+      >
+        <h4 id="homelab-server-use-heading">
+          {tr("wizard.server.homelab.useTitle", { server: chosen.name })}
+        </h4>
+        <div class="server-grid">
+          <label class="server-card" class:selected={!homelab.joinTarget} data-testid="homelab-server-use-new">
+            <input
+              type="radio"
+              name="homelab-server-use"
+              class="sr-only"
+              value=""
+              checked={!homelab.joinTarget}
+              onchange={() => homelab.selectJoin("")}
+            />
+            <span class="server-icon"><Plus size={20} strokeWidth={1.6} aria-hidden="true" /></span>
+            <span class="server-copy">
+              <strong>{tr("wizard.server.homelab.useNew")}</strong>
+              <small>{tr("wizard.server.homelab.firstStackkit")}</small>
+            </span>
+            <span class="server-mark" aria-hidden="true"
+              >{#if !homelab.joinTarget}<Check size={16} />{/if}</span
+            >
+          </label>
+          {#each homelab.joinTargets as deployment (deployment.id)}
+            {@const selected = homelab.joinTarget === deployment.id}
+            <label
+              class="server-card"
+              class:selected
+              data-testid="homelab-server-use-join"
+              data-deployment-id={deployment.id}
+            >
+              <input
+                type="radio"
+                name="homelab-server-use"
+                class="sr-only"
+                value={deployment.id}
+                checked={selected}
+                onchange={() => homelab.selectJoin(deployment.id)}
+              />
+              <span class="server-icon"><Layers size={20} strokeWidth={1.6} aria-hidden="true" /></span>
+              <span class="server-copy">
+                <strong>{tr("wizard.server.homelab.useJoin", { deployment: deployment.name })}</strong>
+                <small>{tr("wizard.server.homelab.useJoinBody", { deployment: deployment.name })}</small>
+              </span>
+              <span class="server-mark" aria-hidden="true"
+                >{#if selected}<Check size={16} />{/if}</span
+              >
+            </label>
+          {/each}
+        </div>
+      </div>
+    {/if}
   {/if}
 </section>
 
@@ -204,6 +275,15 @@
   }
   .server-mark {
     color: var(--primary);
+  }
+  .use-region {
+    margin-top: 22px;
+  }
+  .use-region h4 {
+    margin-bottom: 12px;
+    font-size: 15px;
+    font-weight: 550;
+    letter-spacing: -0.01em;
   }
   .read-failed {
     margin-bottom: 14px;

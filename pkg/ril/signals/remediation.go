@@ -32,11 +32,14 @@ type RemediationPolicy map[string]RemediationTemplate
 
 // DefaultRemediationPolicy is intentionally empty. A rule may enter it only
 // when its template's StackKits primitive is "executor-bound" in the catalog
-// (foundation/architecture_v2_catalog.cue _architectureV2RILActionPrimitives)
-// and Techstack's dispatcher executes it (internal/rilactionexecution). Today
-// the only executor-bound primitive is the read-only verify-stackkit-state;
-// restart-service, rotate-certificate, check-backup, apply-stackkit-change and
-// rollback-stackkit-change are contract-only, and no primitive remediates CPU,
-// memory or disk pressure. No current alert rule therefore has an implemented
-// remediation, and every monitoring signal stays notification-only.
+// (foundation/architecture_v2_catalog.cue _architectureV2RILActionPrimitives;
+// Techstack's copy is pkg/ril/primitives) and Techstack's dispatcher executes
+// it (internal/rilactionexecution). The executor-bound primitives are
+// check-backup, run-backup, start-service, stop-service, restart-service,
+// update-service, verify-stackkit-state and the six host primitives
+// (start|stop|restart-host-container, start|stop|restart-host-unit);
+// rotate-certificate, apply-stackkit-change, rollback-stackkit-change and
+// plan-drift-repair are contract-only, and no primitive remediates CPU, memory
+// or disk pressure. No current alert rule is mapped to a remediation yet, and
+// every monitoring signal stays notification-only.
 func DefaultRemediationPolicy() RemediationPolicy { return RemediationPolicy{} }

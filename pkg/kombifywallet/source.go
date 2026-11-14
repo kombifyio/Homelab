@@ -30,7 +30,7 @@ type Source string
 
 const (
 	// SourceLegacy is the built-in wallet (wallet_items). It is the default and
-	// the only source of Windows Local and self-hosted installations.
+	// the only source of Windows Standalone and self-hosted installations.
 	SourceLegacy Source = "legacy"
 	// SourceKombify is the central kombify Wallet. It is valid only in SaaS.
 	SourceKombify Source = "kombify"
@@ -97,7 +97,7 @@ func Boot(mode config.DeploymentMode, getenv func(string) string) (*Client, Sour
 		return nil, SourceLegacy, nil
 	}
 	if !mode.IsSaaS() {
-		return nil, "", fmt.Errorf("%s=%s is valid only in SaaS deployments; self-hosted and Windows Local installations keep the legacy wallet", EnvSource, SourceKombify)
+		return nil, "", fmt.Errorf("%s=%s is valid only in SaaS deployments; self-hosted and Windows Standalone installations keep the legacy wallet", EnvSource, SourceKombify)
 	}
 	secret := strings.TrimSpace(getenv(EnvServiceSecret))
 	switch {

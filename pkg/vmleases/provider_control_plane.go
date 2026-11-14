@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/kombifyio/techstack/internal/providercatalog"
 )
 
 var providerCatalogIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,127}$`)
@@ -38,7 +40,7 @@ ORDER BY profile.provider_id`)
 		}
 		providerID = strings.TrimSpace(providerID)
 		if !providerCatalogIDPattern.MatchString(providerID) ||
-			providerID == "centron-managed" || providerID == "ionos-managed" {
+			providercatalog.IsCompositeProviderAlias(providerID) {
 			return nil, fmt.Errorf("invalid canonical provider catalog id %q", providerID)
 		}
 		out[providerID] = true

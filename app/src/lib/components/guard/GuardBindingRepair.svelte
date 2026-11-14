@@ -3,7 +3,7 @@
   import Button from "#lib/components/ui/Button.svelte";
   import { fetchApi } from "#lib/api/client.js";
   import { getGuardBinaryPins } from "#lib/api/workers.js";
-  import { generateInstallCommand } from "#lib/wizard/requirements.js";
+  import { generateGuardRepairInstallCommand } from "#lib/wizard/requirements.js";
 
   interface Props {
     serverId: string;
@@ -33,7 +33,7 @@
         ),
         getGuardBinaryPins(),
       ]);
-      const next = generateInstallCommand(
+      const next = generateGuardRepairInstallCommand(
         window.location.origin,
         minted.data?.token ?? "",
         "",

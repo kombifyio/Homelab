@@ -50,7 +50,7 @@
       const current = await Promise.allSettled(ids.map((id) => getJob(id)));
       if (disposed) return;
       let missing = false;
-      for (let index = 0; index < ids.length; index++) {
+      for (const [index, id] of ids.entries()) {
         const result = current[index];
         if (
           result?.status !== "fulfilled" ||
@@ -59,7 +59,7 @@
           missing = true;
           continue;
         }
-        jobs[ids[index]] = result.value;
+        jobs[id] = result.value;
       }
       unavailable = missing;
       if (!finished || missing) timer = setTimeout(refresh, 5_000);

@@ -47,7 +47,7 @@
   const workload = $derived(
     useCase?.workloads.find((entry) => entry.workload_ref === workloadRef),
   );
-  const backHref = $derived(`/stacks/${encodeURIComponent(stackId)}`);
+  const backHref = "/apps";
   const request = $derived.by((): ConfigureInstalledWorkloadRequest | null => {
     if (!view?.expected_spec_hash || !workload) return null;
     const changed: ConfigureInstalledWorkloadRequest = {
@@ -150,6 +150,17 @@
     try {
       const next = await getUseCaseConfiguration(stackId, attempt.signal);
       if (attempt.signal.aborted) return;
+      if (
+        preferredWorkload &&
+        !workloadRef &&
+        !next.use_cases.some((entry) =>
+          entry.workloads.some(
+            (member) => member.workload_ref === preferredWorkload,
+          ),
+        )
+      ) {
+        throw new Error("Selected workload is no longer installed");
+      }
       const preferred = next.use_cases.find((entry) =>
         entry.workloads.some(
           (member) =>

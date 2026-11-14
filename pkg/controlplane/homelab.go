@@ -52,6 +52,10 @@ type Homelab struct {
 	// Identity is the rest of the owner's Stack Identity; Name above is its
 	// name. One homelab carries exactly one Stack Identity (migration 126).
 	Identity HomelabStackIdentity
+	// IdentityAuthority is the authority pointer (ADR-036, migration 185):
+	// the server that runs the homelab's Pocket ID and the identity origin.
+	// Nil until an Authority server's Guard reported it.
+	IdentityAuthority *HomelabIdentityAuthority
 }
 
 // StackIdentityPresentation is how the Stack Identity looks. The ids are

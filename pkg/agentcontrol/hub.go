@@ -690,7 +690,7 @@ func (h *Hub) withdrawQueued(ctx context.Context, tenantID, commandID, message s
 }
 
 func (h *Hub) tenantTx(ctx context.Context, tenantID string) (*sql.Tx, error) {
-	tx, err := h.db.BeginTx(ctx, nil)
+	tx, err := tenantcontext.Database(ctx, h.db).BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}

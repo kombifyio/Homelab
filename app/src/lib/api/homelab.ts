@@ -15,6 +15,26 @@ export interface HomelabSummary {
   intent: Record<string, unknown>;
   created: string;
   updated: string;
+  /**
+   * The authority pointer (ADR-036): the server that runs the homelab's
+   * Pocket ID and the identity origin. Null until the Authority reported it.
+   */
+  identity_authority?: HomelabIdentityAuthority | null;
+}
+
+export interface HomelabIdentityAuthority {
+  /** departed once the Authority server left the homelab. */
+  state: "current" | "departed";
+  server_id: string;
+  kit_deployment_id: string;
+  identity_origin: {
+    name: string;
+    /** The Pocket ID host, id.<name>: the passkey relying party. */
+    host: string;
+    source: "kombify-me" | "own-domain" | "local-only" | "reserved-name";
+    certificates: "publicly-trusted" | "homelab-root";
+  };
+  observed_at: string;
 }
 
 export interface HomelabView {

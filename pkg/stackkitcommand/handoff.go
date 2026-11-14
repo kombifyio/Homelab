@@ -121,6 +121,14 @@ func validateHandoffCommand(command *agentpb.StackKitCommand) error {
 	case step.NeedsDocument && !json.Valid(command.HandoffDocument):
 		return fmt.Errorf("StackKit federation hand-off document is not JSON")
 	}
+	if IsIdentityJoinStep(step.Name) {
+		if command.Release == nil || !ReleaseAtLeast(command.Release.Version, MinIdentityJoinRelease) {
+			return fmt.Errorf("StackKit identity join needs StackKits %s or newer", MinIdentityJoinRelease)
+		}
+		if err := validateIdentityJoinDocument(step.Name, command.HandoffDocument); err != nil {
+			return err
+		}
+	}
 	if command.InventoryJson != nil && len(command.InventoryJson) != 0 {
 		return fmt.Errorf("StackKit federation hand-off takes no Inventory")
 	}

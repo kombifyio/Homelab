@@ -10,6 +10,13 @@
 import { resolveGatewayBearer } from "#lib/api/client.js";
 import { isGatewayLoginRedirecting } from "#lib/auth/session-recovery.js";
 import {
+  fetchWithSessionRenewal,
+  isSessionRenewalPending,
+  SESSION_RENEWAL_PENDING_CODE,
+  sessionRenewal,
+  sessionRenewalSignalOfSendError,
+} from "#lib/auth/session-renewal.svelte.js";
+import {
   clockOffsetFrom,
   createRevealRecipient,
   decryptReveal,
@@ -139,12 +146,26 @@ function guidanceOf(body: Record<string, unknown>): string | null {
   return null;
 }
 
+/**
+ * The person's API token for the Wallet. A token that cannot be obtained is a
+ * session that needs renewal (AUTHENTICATION.md §6): the shared layer renews
+ * it, and only a person who dismissed that confirmation gets a pending
+ * refusal, worded neutrally.
+ */
 async function bearer(url: string, method: string): Promise<string> {
   try {
     return await resolveGatewayBearer(url, method);
   } catch (error) {
     if (isGatewayLoginRedirecting(error)) throw error;
-    throw new WalletApiError(401, "auth_required", false, null);
+    const signal = sessionRenewalSignalOfSendError(error);
+    if (signal && (await sessionRenewal.renew(signal))) {
+      try {
+        return await resolveGatewayBearer(url, method);
+      } catch {
+        // Falls through to the pending refusal.
+      }
+    }
+    throw new WalletApiError(401, SESSION_RENEWAL_PENDING_CODE, true, null);
   }
 }
 
@@ -154,29 +175,45 @@ async function request(
 ): Promise<Record<string, unknown>> {
   const method = init.method ?? "GET";
   const url = `${WALLET_API_BASE}/${path}`;
-  const token = await bearer(url, method);
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  // One send, rebuilt in full for the single replay after a renewal.
+  const send = async (): Promise<Response> => {
+    const token = await bearer(url, method);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      return await fetch(url, {
+        method,
+        body: init.body,
+        cache: "no-store",
+        credentials: "omit",
+        signal: controller.signal,
+        headers: {
+          accept: "application/json",
+          authorization: `Bearer ${token}`,
+          ...(init.body !== undefined
+            ? { "content-type": "application/json" }
+            : {}),
+        },
+      });
+    } catch {
+      throw new WalletApiError(0, "network_unavailable", true, null);
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await fetchWithSessionRenewal(send, {
+      viaGateway: true,
+      url,
       method,
-      body: init.body,
-      cache: "no-store",
-      credentials: "omit",
-      signal: controller.signal,
-      headers: {
-        accept: "application/json",
-        authorization: `Bearer ${token}`,
-        ...(init.body !== undefined
-          ? { "content-type": "application/json" }
-          : {}),
-      },
+      pendingMessage: SESSION_RENEWAL_PENDING_CODE,
     });
-  } catch {
-    throw new WalletApiError(0, "network_unavailable", true, null);
-  } finally {
-    clearTimeout(timeout);
+  } catch (error) {
+    if (isSessionRenewalPending(error)) {
+      throw new WalletApiError(401, SESSION_RENEWAL_PENDING_CODE, true, null);
+    }
+    throw error;
   }
   if (response.headers.has("date"))
     serverClockOffset = clockOffsetFrom(response);

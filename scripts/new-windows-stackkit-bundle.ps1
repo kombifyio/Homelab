@@ -8,12 +8,12 @@ param(
     [switch]$ControllerOnly,
     [string]$ExpectedReleaseTag = "",
     [string]$ExpectedLinuxArchiveSHA256 = "",
-    [string]$ReleaseTag = "v0.55.11",
-    [string]$ReleaseVersion = "0.55.11",
-    [string]$LinuxArchiveSHA256 = "cf83b95689a1871889a0a7c90c442bf0097ebbaa491816e68eb16f02a1a5e149",
-    [string]$WindowsArchiveSHA256 = "9d5be95294d4f2e340f935ca71dbd27cca2937d2880ef7506197168c1ccc5042",
-    [string]$ReleaseIndexSHA256 = "0a6d7faf1520f326789d3366f71a22a24afaafd4eec897aa8890156e0709e543",
-    [string]$CompatibilityManifestSHA256 = "cf22ba572794faf699299ed677b9189ec290f083e7be25f8b10926bc6e30a1f4",
+    [string]$ReleaseTag = "v0.57.12",
+    [string]$ReleaseVersion = "0.57.12",
+    [string]$LinuxArchiveSHA256 = "fd95e416a84a9536e111b1576729fc2c54f8852bc81e8a8b3cd176dca3801dfd",
+    [string]$WindowsArchiveSHA256 = "d299fba78a58388eaf158b06410ccab6998b21540c1793fdbad54c47c208a31f",
+    [string]$ReleaseIndexSHA256 = "3ca1be88604fd56be2822a233508111824c53a524f25825ec19d766055760c4b",
+    [string]$CompatibilityManifestSHA256 = "001f1c0aa50b12e8148fbbba9edda7f664155adb20460e1499ea301edc12c075",
     # Directory holding <kit>/stack-spec.yaml produced by the SAME pinned
     # StackKits release on Linux. Supplied in CI; when empty the script falls
     # back to generating them with the Windows CLI, which is what a developer
@@ -218,15 +218,24 @@ try {
         } else {
         Push-Location $templateWork
         try {
-            # Keep native catalog defaults aligned with the Docker template stage.
+            # Keep native catalog defaults and the template domain rule aligned
+            # with the Docker template stage: init refuses a reserved --domain,
+            # Basement keeps its kit default (lab.home), and Cloud and Modern
+            # require the kombify-owned placeholder the projection never lets a
+            # deployment inherit.
             $authoringArgs = switch ($kit) {
-                { $_ -in @("basement-kit", "cloud-kit") } { @("--api-version", "stackkit/v2alpha2", "--catalog-defaults") }
-                "modern-homelab" { @("--api-version", "stackkit/v2alpha1", "--compute-tier", "standard") }
+                "basement-kit" { @("--api-version", "stackkit/v2alpha2", "--catalog-defaults") }
+                "cloud-kit" { @("--api-version", "stackkit/v2alpha2", "--catalog-defaults", "--domain", "template.smoke.stackkit.cc") }
+                "modern-homelab" { @("--api-version", "stackkit/v2alpha1", "--compute-tier", "standard", "--domain", "template.smoke.stackkit.cc") }
                 default { throw "Unsupported StackKits template kit: $kit" }
             }
-            & $windowsBinary --no-log init $kit --non-interactive --name techstack-spec-template --owner-source=local --owner-email owner@smoke.stackkit.cc --owner-username owner @authoringArgs --domain template.invalid
+            # A template is not a host install: keep Basement's placement
+            # admission off this runner's public address.
+            $env:STACKKIT_NETWORK_ENV = "home"
+            & $windowsBinary --no-log init $kit --non-interactive --name techstack-spec-template --owner-source=local --owner-email owner@smoke.stackkit.cc --owner-username owner @authoringArgs
             if ($LASTEXITCODE -ne 0) { throw "StackKits template initialization failed for $kit." }
         } finally {
+            Remove-Item Env:STACKKIT_NETWORK_ENV -ErrorAction SilentlyContinue
             Pop-Location
         }
         }

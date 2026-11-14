@@ -16,7 +16,7 @@ const EnvDatabaseMigrationMode = "TECHSTACK_DATABASE_MIGRATION_MODE"
 // SchemaFloor is the highest migration number this binary's serving code needs.
 // Bump it in the same pull request that adds a migration the code depends on;
 // an expand migration the code does not read yet may stay above it.
-const SchemaFloor = 183
+const SchemaFloor = 194
 
 // PlatformProjectionSchemaFloor is what the private platform projection process
 // of the same binary needs: the role, grants and policies of migration 173. The
@@ -25,9 +25,9 @@ const SchemaFloor = 183
 const PlatformProjectionSchemaFloor = 173
 
 // HouseholdWorkerSchemaFloor is what the private household worker needs: its
-// read of the service inventory from migration 177. The serving process never
-// reads it.
-const HouseholdWorkerSchemaFloor = 177
+// read of the service inventory from migration 177, and the homelab authority
+// pointer columns of migration 185 that every homelab read selects.
+const HouseholdWorkerSchemaFloor = 185
 
 // ErrSchemaFloorUnmet means a migration at or below SchemaFloor is not applied.
 var ErrSchemaFloorUnmet = errors.New("schema floor unmet")

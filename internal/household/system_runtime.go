@@ -68,8 +68,8 @@ func OpenSystemWorkerFromEnv(ctx context.Context, inExecution bool) (*SystemRunt
 	if (inExecution && mode != "execution") || (!inExecution && mode != "standalone") {
 		return nil, errors.New("household worker requires its explicit private process profile")
 	}
-	if config.ReleaseChannel() != "stable" {
-		return nil, errors.New("household work runs only on Stable")
+	if err := config.RejectRetiredReleaseChannel(); err != nil {
+		return nil, err
 	}
 	if os.Getenv(db.EnvDatabaseMigrationMode) != "verify" || os.Getenv(db.EnvAllowDBGenesis) != "false" || os.Getenv(db.EnvMigrationDatabaseURL) != "" || "" != "" {
 		return nil, errors.New("household worker requires finite verify-only custody")

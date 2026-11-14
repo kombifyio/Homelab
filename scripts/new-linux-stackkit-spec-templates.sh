@@ -38,17 +38,25 @@ for kit in basement-kit cloud-kit modern-homelab; do
       authoring_args=(--api-version "$api_version" --compute-tier "$compute_tier") ;;
     *) echo "Unsupported recorded StackKits template API: $api_version" >&2; exit 1 ;;
   esac
+  # init refuses a reserved --domain as the identity origin. Basement keeps its
+  # kit default (lab.home); Cloud and Modern require a domain and get the
+  # kombify-owned placeholder the projection never lets a deployment inherit.
+  # STACKKIT_NETWORK_ENV=home: a template is not a host install, so Basement's
+  # placement admission must not depend on this runner's public address.
+  case "$kit" in
+    basement-kit) ;;
+    *) authoring_args+=(--domain template.smoke.stackkit.cc) ;;
+  esac
   template_dir="$work_root/tpl/$kit"
   custody_dir="$work_root/custody/$kit"
   mkdir -p "$template_dir" "$custody_dir"
-  ( cd "$template_dir" && STACKKIT_CUSTODY_DIR="$custody_dir" "$release_dir/stackkit" --no-log init "$kit" \
+  ( cd "$template_dir" && STACKKIT_NETWORK_ENV=home STACKKIT_CUSTODY_DIR="$custody_dir" "$release_dir/stackkit" --no-log init "$kit" \
       --non-interactive \
       --name techstack-spec-template \
       --owner-source=local \
       --owner-email owner@smoke.stackkit.cc \
       --owner-username owner \
-      "${authoring_args[@]}" \
-      --domain template.invalid )
+      "${authoring_args[@]}" )
   spec="$template_dir/stack-spec.yaml"
   test -s "$spec"
   jq -e --arg kit "$kit" --arg api "$api_version" \

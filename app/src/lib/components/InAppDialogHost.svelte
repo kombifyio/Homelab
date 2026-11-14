@@ -19,6 +19,23 @@
   );
 </script>
 
+<!-- Only a prompt has a body; a confirmation is its title and description. -->
+{#snippet promptBody()}
+  <label class="block space-y-2 text-sm">
+    <span class="font-medium text-foreground">
+      {$inAppDialog?.inputLabel}
+    </span>
+    <input
+      class="flex h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+      type={$inAppDialog?.inputType ?? "text"}
+      bind:value={inputValue}
+      autocomplete={$inAppDialog?.inputType === "password"
+        ? "current-password"
+        : "off"}
+    />
+  </label>
+{/snippet}
+
 {#if $inAppDialog}
   <Modal
     title={$inAppDialog.title}
@@ -27,23 +44,8 @@
     maxWidth="sm"
     role={dialogRole}
     tone={$inAppDialog.tone === "danger" ? "danger" : "default"}
+    children={$inAppDialog.kind === "prompt" ? promptBody : undefined}
   >
-    {#if $inAppDialog.kind === "prompt"}
-      <label class="block space-y-2 text-sm">
-        <span class="font-medium text-foreground">
-          {$inAppDialog.inputLabel}
-        </span>
-        <input
-          class="flex h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-          type={$inAppDialog.inputType ?? "text"}
-          bind:value={inputValue}
-          autocomplete={$inAppDialog.inputType === "password"
-            ? "current-password"
-            : "off"}
-        />
-      </label>
-    {/if}
-
     {#snippet footer()}
       {#if $inAppDialog.kind !== "notice"}
         <Button variant="secondary" onclick={cancelInAppDialog}>

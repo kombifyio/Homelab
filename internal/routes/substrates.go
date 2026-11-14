@@ -3,6 +3,7 @@ package routes
 import (
 	"database/sql"
 	"encoding/json"
+	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
 	"net/http"
 
 	"github.com/kombifyio/techstack/internal/substrate"
@@ -35,11 +36,11 @@ func (h substrateRoutes) scope(e *httpx.Event) (*sql.Tx, string, string, error) 
 	if h.db == nil {
 		return nil, "", "", httpx.NewInternalServerError("Substrate storage unavailable", nil)
 	}
-	tx, err := h.db.BeginTx(e.Request.Context(), nil)
+	tx, err := tenantcontext.Database(e.Request.Context(), h.db).BeginTx(e.Request.Context(), nil)
 	if err != nil {
 		return nil, "", "", err
 	}
-	if _, err = tx.ExecContext(e.Request.Context(), `SELECT set_config('app.tenant_id',$1,true)`, tenant); err != nil {
+	if err = tenantcontext.ApplyTenant(e.Request.Context(), tx, tenant); err != nil {
 		tx.Rollback()
 		return nil, "", "", err
 	}

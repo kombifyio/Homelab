@@ -26,7 +26,7 @@ if ($hasRuntimeInputs.Count -ne 0 -and $hasRuntimeInputs.Count -ne 2) {
     throw "Prebuilt Windows and Linux runtimes must be supplied together."
 }
 if ($DesktopEdition -eq "Cloud" -and $hasRuntimeInputs.Count -ne 0) {
-    throw "The Cloud installer cannot contain a local product runtime."
+    throw "The Connected installer cannot contain a local product runtime."
 }
 $root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $sourceRevision = (& git -C $root rev-parse HEAD).Trim()
@@ -129,7 +129,7 @@ if ($LASTEXITCODE -ne 0) { throw "StackKits Linux bundle build failed with exit 
 if ($signedGuardDirectory -ne "") {
     $seedDestination = Join-Path $stageDir "guard-release"
     New-Item -ItemType Directory -Force -Path $seedDestination | Out-Null
-    foreach ($asset in @("release-manifest.json", "release-manifest.sigstore.json", "techstack-linux-amd64", "techstack-linux-amd64.sigstore.json", "techstack-linux-arm64", "techstack-linux-arm64.sigstore.json", "stackkit-runtime-linux-amd64.tar.gz", "stackkit-runtime-linux-arm64.tar.gz")) {
+    foreach ($asset in @("release-manifest.json", "release-manifest.sigstore.json", "release-manifest-seed.json", "release-manifest-seed.sigstore.json", "techstack-linux-amd64", "techstack-linux-amd64.sigstore.json", "techstack-linux-arm64", "techstack-linux-arm64.sigstore.json", "stackkit-runtime-linux-amd64.tar.gz", "stackkit-runtime-linux-arm64.tar.gz")) {
         Copy-Item -Force -LiteralPath (Join-Path $signedGuardDirectory $asset) -Destination (Join-Path $seedDestination $asset)
     }
     # The consumer serves the producer's exact archive, never a Windows repack.
@@ -178,6 +178,9 @@ $installerBuilder = Join-Path $PSScriptRoot "..\installer\wix\build-windows-inst
 & $installerBuilder -StageDir $stageDir -Version $Version -OutputDir $OutputDir -DesktopEdition $DesktopEdition
 if ($LASTEXITCODE -ne 0) { throw "WiX Windows installer build failed with exit code $LASTEXITCODE" }
 $suffix = if ($DesktopEdition -eq "Cloud") { "-Cloud" } else { "" }
+# Customer-visible edition name (D-2026-11-11-05). $DesktopEdition stays the engineering identifier
+# (feed, file names, install folder, upgrade codes, registry key); only display text uses this value.
+$desktopEditionName = if ($DesktopEdition -eq "Cloud") { "Connected" } else { "Standalone" }
 $msiPath = Join-Path $zipDir "kombify-Techstack$suffix-x64.msi"
 $setupPath = Join-Path $zipDir "kombify-Techstack$suffix-Setup.exe"
 foreach ($installerArtifact in @($msiPath, $setupPath)) {
@@ -195,7 +198,7 @@ $checksumPath = Join-Path $zipDir "SHA256SUMS.txt"
 $checksumLines | Set-Content -Encoding ASCII -Path $checksumPath
 $unsignedMarker = Join-Path $zipDir "UNSIGNED-WINDOWS-RELEASE.txt"
 @"
-kombify Techstack $DesktopEdition Windows release $Version
+kombify Techstack $desktopEditionName Windows release $Version
 
 The Windows MSI and Burn setup.exe in this release are intentionally
 unsigned on every release channel, including stable. No Authenticode

@@ -3,6 +3,8 @@ package guardexec
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -30,6 +32,9 @@ type Backend interface {
 	RuntimeInstall(ctx context.Context, params RuntimeInstallParams) (RuntimeEvidence, error)
 	ProbeDocker(ctx context.Context, kind string) ([]byte, error)
 	ProbeFile(ctx context.Context, path string) ([]byte, error)
+	// UpdatePreflight refuses, from the signed manifest alone, a release this
+	// host would refuse at UpdateStage, so its artifact is never downloaded.
+	UpdatePreflight(ctx context.Context, params UpdatePreflightParams) error
 	UpdateStage(ctx context.Context, params StageParams) (StageResult, error)
 	UpdateCommit(ctx context.Context, params CommitParams) (CommitResult, error)
 	// HostSecurityVerify, BackupStatus and HouseholdList are fixed, read-only
@@ -63,7 +68,10 @@ type Server struct {
 	// so a daemon that was taken over cannot mint its own authority. With no
 	// pinned key, observations stay admissible and a mutation is refused
 	// until the host is paired again. Nil skips the check.
-	Pins        func() ([]guardbinding.PinnedKey, error)
+	Pins func() ([]guardbinding.PinnedKey, error)
+	// RotatePins replaces the pin set after VerifyPinRotation admitted it. Nil
+	// refuses every rotation.
+	RotatePins  func([]guardbinding.PinnedKey) error
 	RILIdentity func() (nodeproof.Identity, error)
 	Now         func() time.Time
 	Log         *slog.Logger
@@ -246,6 +254,53 @@ func (s *Server) dispatch(ctx context.Context, request Request, out *frameWriter
 		}
 		observation, err := s.Backend.HouseholdList(ctx)
 		return resultOrFailure(out, observation, err)
+	case OpPowerApplicationsStop:
+		var params PowerApplicationsParams
+		if err := decodeStrict(request.Params, &params); err != nil {
+			return deny(CodeInvalidRequest, "%v", err)
+		}
+		backend, ok := s.Backend.(PowerBackend)
+		if !ok {
+			return deny(CodeUnavailable, "power protection is not enabled on this executor")
+		}
+		result, err := backend.PowerApplicationsStop(ctx, params.Services)
+		return resultOrFailure(out, result, err)
+	case OpPowerStorageQuiesce:
+		var params PowerStorageParams
+		if err := decodeStrict(request.Params, &params); err != nil {
+			return deny(CodeInvalidRequest, "%v", err)
+		}
+		backend, ok := s.Backend.(PowerBackend)
+		if !ok {
+			return deny(CodeUnavailable, "power protection is not enabled on this executor")
+		}
+		result, err := backend.PowerStorageQuiesce(ctx, params.Units)
+		return resultOrFailure(out, result, err)
+	case OpPowerOff:
+		if len(request.Params) > 0 {
+			return deny(CodeInvalidRequest, "power.off takes no parameters")
+		}
+		backend, ok := s.Backend.(PowerBackend)
+		if !ok {
+			return deny(CodeUnavailable, "power protection is not enabled on this executor")
+		}
+		if err := backend.PowerOff(ctx); err != nil {
+			return deny(CodeFailed, "%v", err)
+		}
+		return out.result(map[string]string{"outcome": "requested"})
+	case OpUpdatePreflight:
+		var params UpdatePreflightParams
+		if denial := s.mutationParams(request.Params, &params); denial != nil {
+			return denial
+		}
+		// Without a signed release the preflight names nothing: it asks only
+		// whether this executor admits unsigned builds at all.
+		unsigned := params.ManifestFile == "" && params.ManifestBundleFile == "" && params.SHA256 == ""
+		if decoded, err := hex.DecodeString(params.SHA256); !unsigned && (err != nil || len(decoded) != sha256.Size ||
+			params.ManifestFile == "" || params.ManifestBundleFile == "") {
+			return deny(CodeInvalidRequest, "update preflight needs the signed manifest and the served artifact digest")
+		}
+		return resultOrFailure(out, struct{}{}, s.Backend.UpdatePreflight(ctx, params))
 	case OpUpdateStage:
 		var params StageParams
 		if denial := s.mutationParams(request.Params, &params); denial != nil {
@@ -260,6 +315,8 @@ func (s *Server) dispatch(ctx context.Context, request Request, out *frameWriter
 		}
 		committed, err := s.Backend.UpdateCommit(ctx, params)
 		return resultOrFailure(out, committed, err)
+	case OpBindingPinsRotate:
+		return s.rotatePins(request.Params, out)
 	case OpStatus:
 		var params StatusParams
 		if len(request.Params) > 0 {
@@ -472,4 +529,28 @@ func (f *frameWriter) deny(d *Denial) error {
 		return fmt.Errorf("deliver the %s denial: %w", d.Code, err)
 	}
 	return nil
+}
+
+// rotatePins admits a signed pin rotation against this executor's own pins and
+// replaces them. The daemon only carries the statement; it cannot choose keys.
+func (s *Server) rotatePins(raw json.RawMessage, out *frameWriter) *Denial {
+	var params BindingPinsRotateParams
+	if err := decodeStrict(raw, &params); err != nil {
+		return deny(CodeInvalidRequest, "%v", err)
+	}
+	if s.Pins == nil || s.RotatePins == nil {
+		return deny(CodeNotAllowed, "this executor does not rotate binding keys")
+	}
+	current, err := s.Pins()
+	if err != nil {
+		return deny(CodeUnavailable, "pinned binding keys cannot be read")
+	}
+	if denial := guardbinding.VerifyPinRotation(current, params.Rotation, params.Keys); denial != nil {
+		return deny(CodeBindingMismatch, "%s", denial.Message)
+	}
+	if err := s.RotatePins(params.Keys); err != nil {
+		return deny(CodeFailed, "replace the pinned binding keys: %v", err)
+	}
+	s.log().Info("guard_binding_pins_rotated", "worker_id", params.Rotation.WorkerID, "keys", len(params.Keys))
+	return out.result(struct{}{})
 }

@@ -13,7 +13,10 @@ import type {
   ViewContextFactKey,
 } from "#lib/view-context.js";
 
-export type CreationVariant = "discover" | "focus";
+/** Step 1's two stages: choose use cases, then configure the chosen ones. */
+export type CreationStage = "pick" | "configure";
+/** The small size of the choice: the round orb or the compact row. */
+export type CreationPresentation = "orb" | "compact";
 
 /** Intent presentation only. Never use this to decide deployment eligibility.
  * Runtime facts come from the released catalog; the preview has its own snapshot.

@@ -123,6 +123,9 @@ type WizardIntent struct {
 	// They are non-executable intent; release-admitted settings/capabilities
 	// remain the only input to goal authoring.
 	UseCaseSetupAnswers map[string]map[string][]string `json:"use_case_setup_answers,omitempty"`
+	// UseCaseAccess preserves desired private reach and audience per selected goal.
+	// It never grants permissions without a release-supported node projection.
+	UseCaseAccess map[string]UseCaseAccessIntent `json:"use_case_access,omitempty"`
 	// Backup records the owner's explicit backup choices for a new deployment.
 	Backup BackupIntent `json:"backup,omitempty"`
 	// LayoutRecommendation accepts the recommended distribution the owner
@@ -182,8 +185,9 @@ type PlannedPersonIntent struct {
 // ServerIntent describes the server being onboarded by this run.
 type ServerIntent struct {
 	// ExistingServerID selects an already enrolled, unassigned canonical Guard
-	// server for the first installation. It is Techstack orchestration intent,
-	// never a field in the StackKits specification.
+	// server: the first installation of a found run, or the new node of a join
+	// run. It is Techstack orchestration intent, never a field in the StackKits
+	// specification.
 	ExistingServerID string `json:"existing_server_id,omitempty"`
 	// Roles uses Architecture v2 vocabulary; empty defaults to the seed's
 	// own first node on "found" and to a worker on "join".
@@ -257,8 +261,8 @@ func (intent WizardIntent) Validate() error {
 		}
 	}
 	if strings.TrimSpace(intent.Server.ExistingServerID) != "" {
-		if intent.KitAssignment.Mode != KitAssignmentFound {
-			return fmt.Errorf("specv2: existing_server_id requires a found installation")
+		if intent.KitAssignment.Mode != KitAssignmentFound && intent.KitAssignment.Mode != KitAssignmentJoin {
+			return fmt.Errorf("specv2: existing_server_id requires a found or join run")
 		}
 		if transport := strings.TrimSpace(intent.Server.Transport); transport != "" && transport != TransportInstallCommand {
 			return fmt.Errorf("specv2: existing_server_id cannot request provisioning or reconnection")
@@ -310,6 +314,9 @@ func (intent WizardIntent) Validate() error {
 	}
 	if !slices.Contains([]string{"", environmentClassLocal, environmentClassCloud}, strings.ToLower(strings.TrimSpace(intent.Server.EnvironmentClass))) {
 		return fmt.Errorf("specv2: server environment_class must be %q or %q", environmentClassLocal, environmentClassCloud)
+	}
+	if err := intent.validateUseCaseAccess(); err != nil {
+		return err
 	}
 	if err := intent.Access.validate(); err != nil {
 		return err

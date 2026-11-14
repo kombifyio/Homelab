@@ -3,7 +3,7 @@
  *
  * One endpoint executes a wizard run end to end: found a new kit deployment
  * or join an existing one under the homelab umbrella. Requests are gated by
- * the native_v2_wizard beta flag server-side (403 with required_features)
+ * the independent runtime admission checks server-side
  * and fail closed without the Postgres control plane (503).
  */
 import { fetchApi, ApiRequestError } from "./client";
@@ -39,6 +39,15 @@ export interface WizardIntent {
   use_case_capabilities?: Record<string, Record<string, string>>;
   /** Desired setup answers, including pending/off; never executable authority. */
   use_case_setup_answers?: Record<string, Record<string, string[]>>;
+  /** Desired decisions; the backend saves and blocks until node enforcement is supported. */
+  use_case_access?: Record<
+    string,
+    | { mode: "inherit"; audience?: never; person_refs?: never }
+    | ({ mode: "local" | "remote-private" } & (
+        | { audience: "owner" | "household"; person_refs?: [] }
+        | { audience: "selected"; person_refs: [string, ...string[]] }
+      ))
+  >;
   access?: {
     mode: "local" | "remote-private";
     publications?: { service_id: string; exposure: "public" }[];
@@ -253,8 +262,7 @@ export async function createWizardRun(
 
 /**
  * The caller's latest wizard run with a live provision-job snapshot, or null
- * when none exists (also null while the native_v2_wizard flag is off — the
- * server hides ledger reads behind the same gate).
+ * when none exists. Ledger reads require the authenticated owner's scope.
  */
 export async function getActiveWizardRun(): Promise<ActiveWizardRun | null> {
   try {

@@ -347,7 +347,7 @@ class WireReader {
     return value;
   }
   u32(): number {
-    const [a, b, c, d] = this.take(4);
+    const [a = 0, b = 0, c = 0, d = 0] = this.take(4);
     return a * 0x1000000 + (b << 16) + (c << 8) + d;
   }
   string(): Uint8Array {
@@ -381,7 +381,7 @@ export function normalizeCaPrivateKey(
   if (!trimmed) return { error: "required" };
   const pem = CA_PEM.exec(trimmed);
   if (!pem) return { error: "invalid" };
-  const body = pem[1].replace(/\s+/g, "");
+  const body = (pem[1] ?? "").replace(/\s+/g, "");
   const bytes = decodeBase64(body);
   if (!bytes) return { error: "invalid" };
   try {
@@ -451,7 +451,7 @@ export function inspectPublicKey(
   const match = PUBLIC_LINE.exec(trimmed);
   if (!match) return { error: "invalid" };
   const type = match[1] as SubjectKeyType;
-  const blob = decodeBase64(match[2]);
+  const blob = decodeBase64(match[2] ?? "");
   if (!blob) return { error: "invalid" };
   let fields: Uint8Array;
   try {
@@ -505,9 +505,11 @@ export function defaultSignDuration(
 
 /** The only principal a policy names, when it is one exact name. */
 export function defaultPrincipals(policy: SignPolicy): string {
+  const [principal] = policy.principals;
   return policy.principals.length === 1 &&
-    !policy.principals[0].startsWith("*.")
-    ? policy.principals[0]
+    principal !== undefined &&
+    !principal.startsWith("*.")
+    ? principal
     : "";
 }
 
@@ -531,7 +533,7 @@ function sourceAddresses(text: string): string | null {
     entries.length > MAX_SOURCES ||
     new Set(entries).size !== entries.length ||
     !entries.every((entry) => {
-      const [address, prefix, ...rest] = entry.split("/");
+      const [address = "", prefix, ...rest] = entry.split("/");
       return (
         rest.length === 0 &&
         /^[0-9A-Fa-f:.]+$/.test(address) &&

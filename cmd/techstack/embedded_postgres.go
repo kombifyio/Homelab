@@ -74,14 +74,21 @@ func superviseNativePostgres(ctx context.Context) (handled bool, result error) {
 	if err != nil {
 		return true, fmt.Errorf("prepare native application: %w", err)
 	}
+	execution, err := prepareNativeExecutionCustody(ctx, pg, dsn)
+	if err != nil {
+		return true, fmt.Errorf("prepare native execution custody: %w", err)
+	}
 	removeConnection, err := localdb.PublishApplicationConnection(cfg.Server.DataDir, dsn, pg.PhysicalIdentity())
 	if err != nil {
 		return true, err
 	}
 	defer removeConnection()
-	return true, runNativeServingChild(ctx, dsn, pg.PhysicalIdentity())
+	return true, runNativeServingChild(ctx, dsn, pg.PhysicalIdentity(), execution)
 }
-func runNativeServingChild(ctx context.Context, dsn, identity string) error {
+
+// runNativeServingChild hands the child the bounded application connection
+// and, when the supervisor prepared them, its execution connections.
+func runNativeServingChild(ctx context.Context, dsn, identity string, execution map[string]string) error {
 	executable, err := os.Executable()
 	if err != nil {
 		return err
@@ -92,6 +99,9 @@ func runNativeServingChild(ctx context.Context, dsn, identity string) error {
 	for _, name := range nativeOperatorCustodyNames {
 		exclude[name] = true
 	}
+	for name := range execution {
+		exclude[name] = true
+	}
 	for _, entry := range os.Environ() {
 		name, _, _ := strings.Cut(entry, "=")
 		if !exclude[strings.ToUpper(name)] {
@@ -99,6 +109,9 @@ func runNativeServingChild(ctx context.Context, dsn, identity string) error {
 		}
 	}
 	command.Env = append(command.Env, db.EnvDatabaseURL+"="+dsn, db.EnvStoreBackend+"=postgres", db.EnvDatabaseMigrationMode+"=verify", db.EnvAllowDBGenesis+"=false", db.EnvExpectedDatabaseIdentity+"="+identity, parentPipeShutdownEnv+"=1")
+	for name, value := range execution {
+		command.Env = append(command.Env, name+"="+value)
+	}
 	pipe, err := command.StdinPipe()
 	if err != nil {
 		return err

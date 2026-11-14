@@ -30,9 +30,9 @@ func init() {
 		orch *orchestrator.Orchestrator,
 		workflowEngine *workflow.Engine,
 	) (providerRuntimeState, error) {
-		// Early Access runs production configuration with no background work
-		// and depends on no other host (D-2026-10-30-04): it opens no Execution
-		// connection and sweeps no wait projection. Stable keeps both.
+		// A deployment beside this one would open no Execution connection and
+		// sweep no wait projection. The product has one channel, so this is the
+		// production boot with both.
 		if config.SecondaryChannel() {
 			log.Info("provider_control_inactive", "reason", "early_access_runs_no_background_work")
 			return providerRuntimeState{}, nil
@@ -46,7 +46,14 @@ func init() {
 			return providerRuntimeState{}, err
 		}
 		if stageDatabase {
-			return providerRuntimeState{}, db.ErrStagingRuntimeBinding
+			// Only a positively verified Stage database under its exact restricted
+			// application role reaches here (an unverifiable identity or role
+			// already returned an error). Stage has no owner mechanism and no
+			// provider custody, so provider control stays off: no Execution
+			// connection, no provider pool, no provider side effect. The rest of
+			// the control plane serves the development loop on that real database.
+			log.Warn("provider_control_disabled", "reason", "stage_database_has_no_provider_custody")
+			return providerRuntimeState{}, nil
 		}
 
 		if mode == advancedIssuerCustodyRemote {

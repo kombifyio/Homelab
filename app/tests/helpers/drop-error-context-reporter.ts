@@ -13,7 +13,7 @@ export default class DropErrorContextReporter implements Reporter {
   onTestEnd(_test: TestCase, result: TestResult): void {
     for (let i = result.attachments.length - 1; i >= 0; i--) {
       const attachment = result.attachments[i];
-      if (attachment.name !== "error-context") continue;
+      if (!attachment || attachment.name !== "error-context") continue;
       result.attachments.splice(i, 1);
       if (attachment.path) rmSync(attachment.path, { force: true });
     }

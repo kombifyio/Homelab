@@ -36,6 +36,9 @@ type CleanupReadbackFacts struct {
 	ProviderOperationTerminal bool
 	AbsenceEvidenceRef        string
 	CapacityReleased          bool
+	// FailureReasonCode is the provider-execution reason code of a
+	// terminally failed operation, e.g. provider.conflict. Empty otherwise.
+	FailureReasonCode string
 }
 
 // CleanupReadback is the owner-visible, redacted cleanup projection. It
@@ -62,6 +65,9 @@ type CleanupReadback struct {
 		Terminal           bool   `json:"terminal"`
 		AbsenceEvidenceRef string `json:"absence_evidence_ref,omitempty"`
 		CapacityReleased   bool   `json:"capacity_released"`
+		// FailureReasonCode names why a terminal operation failed without
+		// proving absence, so a stuck cleanup is never just terminal=true.
+		FailureReasonCode string `json:"failure_reason_code,omitempty"`
 	} `json:"provider_operation"`
 }
 

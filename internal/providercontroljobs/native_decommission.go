@@ -14,6 +14,7 @@ import (
 	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 
 	"github.com/kombifyio/techstack/internal/providercontrol"
+	"github.com/kombifyio/techstack/internal/substrateruntime"
 	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/jobs"
 	"github.com/kombifyio/techstack/pkg/releasechannel"
@@ -27,6 +28,15 @@ const (
 	nativeDecommissionWaitReason  = "waiting_provider_decommission"
 	nativeDecommissionResumeDelay = 5 * time.Second
 	maxNativeDecommissionBatch    = 100
+
+	// nativeDecommissionReservedGuestWaitReason marks a failed customer-
+	// substrate provision whose reserved guest is present or not readable;
+	// a present guest needs an operator cleanup decision.
+	nativeDecommissionReservedGuestWaitReason = "waiting_substrate_guest_absence"
+	// A present guest changes only through an operator; an unknown answer is
+	// read again sooner.
+	nativeDecommissionReservedGuestPresentDelay = 15 * time.Minute
+	nativeDecommissionReservedGuestUnknownDelay = time.Minute
 
 	// maxNativeDecommissionAttempts bounds how many decommission operations one
 	// resource generation may open within nativeDecommissionAttemptWindow.
@@ -63,6 +73,39 @@ var (
 	ErrNativeDecommissionAttemptsExhausted = errors.New("provider-control decommission attempts are exhausted")
 )
 
+// NativeDecommissionExhaustedError is the typed form of
+// ErrNativeDecommissionAttemptsExhausted. It names the provider reason of the
+// last failed attempt and, when known, the time the attempt budget re-arms,
+// so the owner gets the repair instead of an opaque gateway error.
+type NativeDecommissionExhaustedError struct {
+	LeaseID        string
+	Attempts       int
+	LastReasonCode string
+	BudgetRearmsAt time.Time
+	LastFailure    string
+}
+
+func (e *NativeDecommissionExhaustedError) Error() string {
+	if e == nil {
+		return ErrNativeDecommissionAttemptsExhausted.Error()
+	}
+	message := fmt.Sprintf(
+		"%v: lease %s exhausted %d decommission attempts within %s without proving provider absence",
+		ErrNativeDecommissionAttemptsExhausted, e.LeaseID, e.Attempts, nativeDecommissionAttemptWindow,
+	)
+	if e.LastReasonCode != "" {
+		message += "; last reason: " + e.LastReasonCode
+	}
+	if e.LastFailure != "" {
+		message += "; last failure: " + e.LastFailure
+	}
+	return message
+}
+
+func (e *NativeDecommissionExhaustedError) Is(target error) bool {
+	return target == ErrNativeDecommissionAttemptsExhausted
+}
+
 // NativeDecommissionPendingError is returned only after the exact
 // generation-bound provider operation is durable and can be resumed by the
 // provider-control reconciler. Preparation deadlocks and retry-attempt
@@ -96,13 +139,25 @@ type NativeDecommissionConfig struct {
 	Ledger              *providercontrol.PostgresLedger
 	ProvisionResolution providercontrol.ProvisionResolutionApplication
 	ResolutionSubject   string
+	// ReservedGuestAbsence reads the reserved guest of a failed customer-
+	// substrate provision and records its definitive absence
+	// (internal/substrateruntime).
+	ReservedGuestAbsence ReservedGuestAbsenceObserver
+}
+
+// ReservedGuestAbsenceObserver records the observation migration 190
+// terminalizes a failed, resource-free Proxmox provision on. Any error leaves
+// the head waiting; a present guest is never deleted on this path.
+type ReservedGuestAbsenceObserver interface {
+	ObserveReservedGuestAbsence(context.Context, providercontrol.OperationRecord) error
 }
 
 // NativeDecommissioner turns a stack/lease destroy request into an exact
 // provider-control decommission operation. It never treats desired state,
 // local cancellation, a missing workspace, or a provider delete acceptance as
 // success. Only a terminal provider receipt projected into the RuntimeServer
-// tombstone and capacity-release ledger produces a proof.
+// tombstone and, for commercial capacity, the capacity-release ledger produces
+// a proof; a customer substrate guest proves through its exact guest custody.
 type NativeDecommissioner struct {
 	database    *sql.DB
 	application providercontrol.OperationApplication
@@ -110,17 +165,19 @@ type NativeDecommissioner struct {
 	resolution  providercontrol.ProvisionResolutionApplication
 	subject     string
 	servers     *controlplane.PostgresStore
+	guests      ReservedGuestAbsenceObserver
 }
 
 func NewNativeDecommissioner(cfg NativeDecommissionConfig) (*NativeDecommissioner, error) {
 	cfg.ResolutionSubject = strings.TrimSpace(cfg.ResolutionSubject)
-	if cfg.Database == nil || cfg.Application == nil || cfg.Ledger == nil || cfg.ProvisionResolution == nil || cfg.ResolutionSubject == "" {
-		return nil, fmt.Errorf("providercontroljobs: native decommission database, application, ledger, provision resolution, and subject are required")
+	if cfg.Database == nil || cfg.Application == nil || cfg.Ledger == nil || cfg.ProvisionResolution == nil || cfg.ResolutionSubject == "" || cfg.ReservedGuestAbsence == nil {
+		return nil, fmt.Errorf("providercontroljobs: native decommission database, application, ledger, provision resolution, subject, and reserved guest observer are required")
 	}
 	return &NativeDecommissioner{
 		database: cfg.Database, application: cfg.Application, ledger: cfg.Ledger, resolution: cfg.ProvisionResolution,
 		subject: cfg.ResolutionSubject,
 		servers: controlplane.NewPostgresStore(cfg.Database),
+		guests:  cfg.ReservedGuestAbsence,
 	}, nil
 }
 
@@ -149,6 +206,9 @@ type nativeDecommissionCandidate struct {
 	// RecentFailedAttempts counts only the failures inside
 	// nativeDecommissionAttemptWindow; it alone is charged against the budget.
 	RecentFailedAttempts int
+	// RearmBasisAfterNextFailure dates the charged failure whose expiry
+	// re-arms the budget if this attempt fails and spends it.
+	RearmBasisAfterNextFailure time.Time
 }
 
 func (candidate nativeDecommissionCandidate) alreadyDecommissioned() bool {
@@ -516,20 +576,32 @@ func loadNativeDecommissionCustody(
 	tenantID string,
 	candidate nativeDecommissionCandidate,
 ) (nativeDecommissionCandidate, error) {
-	attempts, recentAttempts, err := loadNativeDecommissionFailedAttemptsTx(
+	budget, err := loadNativeDecommissionFailedAttemptsTx(
 		ctx, tx, tenantID, candidate.LeaseID, candidate.ResourceGeneration,
 	)
 	if err != nil {
 		return candidate, err
 	}
-	if recentAttempts >= maxNativeDecommissionAttempts {
-		return candidate, fmt.Errorf(
-			"%w: lease %s exhausted %d decommission attempts within %s without proving provider absence",
-			ErrNativeDecommissionAttemptsExhausted, candidate.LeaseID, recentAttempts, nativeDecommissionAttemptWindow,
-		)
+	if budget.Recent >= maxNativeDecommissionAttempts {
+		return candidate, &NativeDecommissionExhaustedError{
+			LeaseID: candidate.LeaseID, Attempts: budget.Recent,
+			LastReasonCode: budget.LastReasonCode, BudgetRearmsAt: budget.RearmsAt,
+		}
 	}
-	candidate.FailedAttempts = attempts
-	candidate.RecentFailedAttempts = recentAttempts
+	if budget.LastCharged && budget.LastReasonCode == providerexecutor.ReasonCodeProviderConflict {
+		// A conflict is foreign provider state next to the server, which no
+		// attempt seconds later can clear. It spends the budget for the
+		// window at once; when the window passes, recovery reads the
+		// provider once more and converges if the conflict was resolved.
+		return candidate, &NativeDecommissionExhaustedError{
+			LeaseID: candidate.LeaseID, Attempts: budget.Recent,
+			LastReasonCode: budget.LastReasonCode,
+			BudgetRearmsAt: budget.LastFailedAt.Add(nativeDecommissionAttemptWindow).UTC(),
+		}
+	}
+	candidate.FailedAttempts = budget.Total
+	candidate.RecentFailedAttempts = budget.Recent
+	candidate.RearmBasisAfterNextFailure = budget.RearmBasisAfterNextFailure
 
 	provisionOperation, targets, err := loadNativeGenerationTargetsTx(ctx, tx, tenantID, candidate)
 	if err != nil {
@@ -631,7 +703,9 @@ func (d *NativeDecommissioner) convergeCandidate(
 ) (jobs.ManagedLeaseDecommissionProof, bool, bool, error) {
 	if candidate.alreadyDecommissioned() {
 		// A tombstoned server used to end here unconditionally. loadTerminalProof
-		// only READS managed_runtime_capacity_release_facts, so a lease whose
+		// only READS terminal facts (managed_runtime_capacity_release_facts, or a
+		// substrate guest's absent decommission receipt or resource-free
+		// terminalization), so a lease whose
 		// server was already decommissioned without a release fact returned
 		// not-terminal on every cycle, forever - it waited for a receipt that
 		// only this job could have produced, and Start() was never reached.
@@ -674,7 +748,7 @@ func (d *NativeDecommissioner) convergeCandidate(
 		// absence and seal the existing capacity-release receipt.
 		if resourceFreeProvisionCanFinalize(source) {
 			terminal, handled, err := convergeResourceFreeProvision(
-				ctx, source, d.ledger, d.resolution, d.subject,
+				ctx, source, d.ledger, d.resolution, d.subject, d.guests,
 			)
 			if err != nil {
 				return jobs.ManagedLeaseDecommissionProof{}, false, false, err
@@ -792,10 +866,36 @@ func convergeResourceFreeProvision(
 	finalizer providercontrol.ResourceFreeTeardownFinalizer,
 	resolution providercontrol.ProvisionResolutionApplication,
 	subject string,
+	guests ReservedGuestAbsenceObserver,
 ) (providercontrol.OperationRecord, bool, error) {
 	terminal, handled, err := finalizer.FinalizeResourceFreeTeardown(ctx, source.Command, source.Head)
 	if err != nil || handled {
 		return terminal, handled, err
+	}
+	if source.Head.Status == providerexecutor.StatusFailed && source.Command.ProviderID == "proxmox" {
+		// A failed customer-substrate provision has no Operator Reconcile
+		// (provider_correlation dispatch). It closes only once its reserved
+		// guest is definitively observed absent (migration 190): the Guard
+		// reads it through the claimless reserved-guest observe fence and the
+		// absence is recorded, then the teardown is admitted. A present guest
+		// or an unknown answer records nothing and the decommission waits
+		// with that reason instead of failing on a manual reconcile.
+		if err := guests.ObserveReservedGuestAbsence(ctx, source); err != nil {
+			resumeAfter := nativeDecommissionReservedGuestUnknownDelay
+			if errors.Is(err, substrateruntime.ErrReservedGuestPresent) {
+				resumeAfter = nativeDecommissionReservedGuestPresentDelay
+			}
+			return providercontrol.OperationRecord{}, false, &jobs.JobWaitError{
+				Reason: nativeDecommissionReservedGuestWaitReason,
+				Message: fmt.Sprintf(
+					"Managed server %s waits for proof that the reserved guest of its failed provision is absent: %v",
+					source.Command.RuntimeServerID, err,
+				),
+				ResumeAfter: resumeAfter,
+				Cause:       err,
+			}
+		}
+		return finalizer.FinalizeResourceFreeTeardown(ctx, source.Command, source.Head)
 	}
 	if _, err := resolution.ResolveProvisionOperation(ctx, providercontrol.ProvisionResolutionWorkflowRequest{
 		TenantID: source.Command.TenantID, OperationID: source.Command.OperationID,
@@ -818,6 +918,17 @@ func nativeDecommissionFailure(
 		candidate.ServerID,
 	)
 	completedAttempts := candidate.RecentFailedAttempts + 1
+	conflict := record.Head.Reason != nil && record.Head.Reason.Code == providerexecutor.ReasonCodeProviderConflict
+	if conflict {
+		// No new attempt can clear foreign provider state, so the refusal
+		// reaches the caller now and the next attempt waits for the window
+		// (see loadNativeDecommissionCustody).
+		return &NativeDecommissionExhaustedError{
+			LeaseID: candidate.LeaseID, Attempts: completedAttempts, LastFailure: cause.Error(),
+			LastReasonCode: record.Head.Reason.Code,
+			BudgetRearmsAt: time.Now().UTC().Add(nativeDecommissionAttemptWindow),
+		}
+	}
 	if completedAttempts < maxNativeDecommissionAttempts {
 		return &jobs.JobWaitError{
 			Reason: nativeDecommissionWaitReason,
@@ -830,13 +941,16 @@ func nativeDecommissionFailure(
 			Cause:       cause,
 		}
 	}
-	return fmt.Errorf(
-		"%w: lease %s exhausted %d decommission attempts; last failure: %v",
-		ErrNativeDecommissionAttemptsExhausted,
-		candidate.LeaseID,
-		completedAttempts,
-		cause,
-	)
+	exhausted := &NativeDecommissionExhaustedError{
+		LeaseID: candidate.LeaseID, Attempts: completedAttempts, LastFailure: cause.Error(),
+	}
+	if record.Head.Reason != nil {
+		exhausted.LastReasonCode = record.Head.Reason.Code
+	}
+	if !candidate.RearmBasisAfterNextFailure.IsZero() {
+		exhausted.BudgetRearmsAt = candidate.RearmBasisAfterNextFailure.Add(nativeDecommissionAttemptWindow).UTC()
+	}
+	return exhausted
 }
 
 // nativeDecommissionBaseIdempotencyKey is the first attempt's key and the
@@ -875,28 +989,78 @@ func nativeDecommissionIdempotencyKey(candidate nativeDecommissionCandidate) str
 // Only failed operations count. A pending or succeeded operation must still
 // replay onto its own key, so it must not shift the attempt number out from
 // under an operation that is mid-flight.
+//
+// It also reads what an owner needs once the budget is spent: the provider
+// reason of the newest failure, the time the budget re-arms (the
+// maxNativeDecommissionAttempts-th newest charged failure leaving the window)
+// and the time it would re-arm if the next attempt failed too.
 func loadNativeDecommissionFailedAttemptsTx(
 	ctx context.Context,
 	tx *sql.Tx,
 	tenantID string,
 	leaseID string,
 	resourceGeneration string,
-) (int, int, error) {
+) (nativeDecommissionAttemptBudget, error) {
 	base := nativeDecommissionBaseIdempotencyKey(leaseID, resourceGeneration)
-	var attempts, recentAttempts int
+	var budget nativeDecommissionAttemptBudget
+	var rearmBasis, rearmBasisAfterNext, lastFailedAt sql.NullTime
+	var lastCharged sql.NullBool
 	if err := tx.QueryRowContext(ctx, `
+		WITH failed AS (
+		    SELECT operation.updated_at,
+		           COALESCE(receipt.receipt_json #>> '{reason,code}', '') AS reason_code,
+		           operation.updated_at > now() - make_interval(secs => $4) AS charged
+		    FROM provider_operations AS operation
+		    LEFT JOIN provider_operation_receipts AS receipt
+		      ON receipt.tenant_id = operation.tenant_id
+		     AND receipt.operation_id = operation.operation_id
+		     AND receipt.sequence = operation.head_sequence
+		    WHERE operation.tenant_id = $1
+		      AND operation.lease_id = $2
+		      AND operation.operation = 'decommission'
+		      AND operation.status = 'failed'
+		      AND (operation.idempotency_key = $3 OR operation.idempotency_key LIKE $3 || ':retry-%')
+		)
 		SELECT count(*),
-		       count(*) FILTER (WHERE updated_at > now() - make_interval(secs => $4))
-		FROM provider_operations
-		WHERE tenant_id = $1
-		  AND lease_id = $2
-		  AND operation = 'decommission'
-		  AND status = 'failed'
-		  AND (idempotency_key = $3 OR idempotency_key LIKE $3 || ':retry-%')
-	`, tenantID, leaseID, base, nativeDecommissionAttemptWindow.Seconds()).Scan(&attempts, &recentAttempts); err != nil {
-		return 0, 0, fmt.Errorf("providercontroljobs: count native decommission attempts: %w", err)
+		       count(*) FILTER (WHERE charged),
+		       COALESCE((SELECT reason_code FROM failed ORDER BY updated_at DESC LIMIT 1), ''),
+		       (SELECT updated_at FROM failed ORDER BY updated_at DESC LIMIT 1),
+		       (SELECT charged FROM failed ORDER BY updated_at DESC LIMIT 1),
+		       (SELECT updated_at FROM failed WHERE charged ORDER BY updated_at DESC OFFSET GREATEST($5::int - 1, 0) LIMIT 1),
+		       (SELECT updated_at FROM failed WHERE charged ORDER BY updated_at DESC OFFSET GREATEST($5::int - 2, 0) LIMIT 1)
+		FROM failed
+	`, tenantID, leaseID, base, nativeDecommissionAttemptWindow.Seconds(), maxNativeDecommissionAttempts).Scan(
+		&budget.Total, &budget.Recent, &budget.LastReasonCode, &lastFailedAt, &lastCharged,
+		&rearmBasis, &rearmBasisAfterNext,
+	); err != nil {
+		return nativeDecommissionAttemptBudget{}, fmt.Errorf("providercontroljobs: count native decommission attempts: %w", err)
 	}
-	return attempts, recentAttempts, nil
+	if lastFailedAt.Valid {
+		budget.LastFailedAt = lastFailedAt.Time.UTC()
+	}
+	budget.LastCharged = lastCharged.Valid && lastCharged.Bool
+	if rearmBasis.Valid {
+		budget.RearmsAt = rearmBasis.Time.Add(nativeDecommissionAttemptWindow).UTC()
+	}
+	if rearmBasisAfterNext.Valid {
+		budget.RearmBasisAfterNextFailure = rearmBasisAfterNext.Time.UTC()
+	}
+	return budget, nil
+}
+
+// nativeDecommissionAttemptBudget is one generation's failed decommission
+// history as loadNativeDecommissionFailedAttemptsTx reads it.
+type nativeDecommissionAttemptBudget struct {
+	Total, Recent  int
+	LastReasonCode string
+	// LastFailedAt and LastCharged describe the newest failure.
+	LastFailedAt time.Time
+	LastCharged  bool
+	// RearmsAt is set once Recent reaches the budget.
+	RearmsAt time.Time
+	// RearmBasisAfterNextFailure is the charged failure whose expiry re-arms
+	// the budget if the attempt about to start fails as well.
+	RearmBasisAfterNextFailure time.Time
 }
 
 // nativeDecommissionTerminal reports the one outcome that proves provider
@@ -941,29 +1105,114 @@ func (d *NativeDecommissioner) loadTerminalProof(
 	if _, err := tx.ExecContext(ctx, `SELECT set_config('app.tenant_id', $1, true)`, tenantID); err != nil {
 		return jobs.ManagedLeaseDecommissionProof{}, false, err
 	}
-	var operationID, receiptDigest, lifecycle, releaseAuthority string
+	substrate, err := loadNativeTerminalCustodyTx(ctx, tx, tenantID, candidate)
+	if err != nil {
+		return jobs.ManagedLeaseDecommissionProof{}, false, err
+	}
+	var operationID, receiptDigest, releaseAuthority string
 	var receiptSequence uint64
 	var releasedAt time.Time
-	err = tx.QueryRowContext(ctx, `
-		SELECT release.release_operation_id,
-		       release.receipt_sequence,
-		       release.receipt_digest,
-		       release.released_at,
-		       release.release_authority,
-		       server.lifecycle_state
-		FROM managed_runtime_capacity_release_facts AS release
-		JOIN servers AS server
-		  ON server.tenant_id = release.tenant_id
-		 AND server.id = release.server_id
-		WHERE release.tenant_id = $1
-		  AND release.lease_id = $2
-		  AND release.resource_generation_id = $3::uuid
-		  AND server.id = $4
-		  AND server.lifecycle_state = 'decommissioned'
-		  AND server.decommissioned_at IS NOT NULL
-	`, tenantID, candidate.LeaseID, candidate.ResourceGeneration, candidate.ServerID).Scan(
-		&operationID, &receiptSequence, &receiptDigest, &releasedAt, &releaseAuthority, &lifecycle,
-	)
+	resourceFreeSubstrate := substrate && candidate.ResourceFree
+	if resourceFreeSubstrate {
+		// A substrate provision that ended without any bound resource is closed
+		// by resource-free teardown. Migration 189 commits its terminalization
+		// with the RuntimeServer tombstone and the exact guest custody of this
+		// provision instead of a capacity release; the proof reads that same set
+		// back. Without one, a succeeded absent decommission below still proves.
+		err = tx.QueryRowContext(ctx, `
+			SELECT terminalization.operation_id,
+			       terminalization.head_sequence,
+			       terminalization.head_receipt_digest,
+			       terminalization.terminalized_at
+			FROM provider_operation_resource_free_terminalizations AS terminalization
+			JOIN substrate_guest_leases AS guest
+			  ON guest.tenant_id = terminalization.tenant_id
+			 AND guest.lease_id = terminalization.lease_id
+			 AND guest.server_id = terminalization.server_id
+			 AND guest.resource_generation_id = terminalization.resource_generation_id
+			 AND guest.operation_id = terminalization.operation_id
+			JOIN servers AS server
+			  ON server.tenant_id = terminalization.tenant_id
+			 AND server.id = terminalization.server_id
+			 AND server.lease_id = terminalization.lease_id
+			 AND server.generation = terminalization.server_generation
+			WHERE terminalization.tenant_id = $1
+			  AND terminalization.lease_id = $2
+			  AND terminalization.resource_generation_id = $3::uuid
+			  AND terminalization.server_id = $4
+			  AND server.desired_state = 'absent'
+			  AND server.lifecycle_state = 'decommissioned'
+			  AND server.decommissioned_at IS NOT NULL
+		`, tenantID, candidate.LeaseID, candidate.ResourceGeneration, candidate.ServerID).Scan(
+			&operationID, &receiptSequence, &receiptDigest, &releasedAt,
+		)
+	}
+	if substrate && (!resourceFreeSubstrate || errors.Is(err, sql.ErrNoRows)) {
+		// Customer-owned hypervisor guests hold no managed-runtime capacity, so
+		// nothing is released. The proof is the succeeded absent receipt of a
+		// decommission on this lease and generation, the RuntimeServer
+		// tombstone it projected, and the exact guest custody row.
+		err = tx.QueryRowContext(ctx, `
+			SELECT operation.operation_id,
+			       receipt.sequence,
+			       receipt.receipt_digest,
+			       receipt.issued_at
+			FROM provider_operations AS operation
+			JOIN provider_operation_receipts AS receipt
+			  ON receipt.tenant_id = operation.tenant_id
+			 AND receipt.operation_id = operation.operation_id
+			 AND receipt.sequence = operation.head_sequence
+			 AND receipt.receipt_digest = operation.head_receipt_digest
+			JOIN substrate_guest_leases AS guest
+			  ON guest.tenant_id = operation.tenant_id
+			 AND guest.lease_id = operation.lease_id
+			JOIN servers AS server
+			  ON server.tenant_id = guest.tenant_id
+			 AND server.id = guest.server_id
+			 AND server.lease_id = guest.lease_id
+			WHERE operation.tenant_id = $1
+			  AND operation.lease_id = $2
+			  AND operation.operation = 'decommission'
+			  AND operation.status = 'succeeded'
+			  AND operation.phase = 'absent'
+			  AND receipt.status = 'succeeded'
+			  AND receipt.phase = 'absent'
+			  AND operation.command_json->>'schema_version' = 'techstack.provider-control-operation/v1'
+			  AND operation.command_json->>'execution_authority' = 'techstack_provider_control'
+			  AND operation.command_json #>> '{execution_profile,credential_mode}' = 'worker_held'
+			  AND operation.command_json #>> '{command,provider_id}' = 'proxmox'
+			  AND operation.command_json #>> '{command,resource_generation_id}' = $3
+			  AND operation.command_json #>> '{command,runtime_server_id}' = $4
+			  AND guest.resource_generation_id::text = $3
+			  AND guest.server_id = $4
+			  AND server.lifecycle_state = 'decommissioned'
+			  AND server.decommissioned_at IS NOT NULL
+			ORDER BY receipt.issued_at, operation.operation_id
+			LIMIT 1
+		`, tenantID, candidate.LeaseID, candidate.ResourceGeneration, candidate.ServerID).Scan(
+			&operationID, &receiptSequence, &receiptDigest, &releasedAt,
+		)
+	} else if !substrate {
+		err = tx.QueryRowContext(ctx, `
+			SELECT release.release_operation_id,
+			       release.receipt_sequence,
+			       release.receipt_digest,
+			       release.released_at,
+			       release.release_authority
+			FROM managed_runtime_capacity_release_facts AS release
+			JOIN servers AS server
+			  ON server.tenant_id = release.tenant_id
+			 AND server.id = release.server_id
+			WHERE release.tenant_id = $1
+			  AND release.lease_id = $2
+			  AND release.resource_generation_id = $3::uuid
+			  AND server.id = $4
+			  AND server.lifecycle_state = 'decommissioned'
+			  AND server.decommissioned_at IS NOT NULL
+		`, tenantID, candidate.LeaseID, candidate.ResourceGeneration, candidate.ServerID).Scan(
+			&operationID, &receiptSequence, &receiptDigest, &releasedAt, &releaseAuthority,
+		)
+	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return jobs.ManagedLeaseDecommissionProof{}, false, nil
 	}
@@ -976,7 +1225,7 @@ func (d *NativeDecommissioner) loadTerminalProof(
 	receiptProofDigest := strings.TrimPrefix(strings.TrimSpace(receiptDigest), "sha256:")
 	if len(receiptProofDigest) != 64 {
 		return jobs.ManagedLeaseDecommissionProof{}, false, fmt.Errorf(
-			"%w: terminal capacity release has an invalid receipt digest",
+			"%w: terminal decommission proof has an invalid receipt digest",
 			errNativeDecommissionCustody,
 		)
 	}
@@ -1001,6 +1250,60 @@ func (d *NativeDecommissioner) loadTerminalProof(
 		ReceiptDigest: receiptProofDigest,
 		VerifiedAt:    releasedAt.UTC(),
 	}, true, nil
+}
+
+// loadNativeTerminalCustodyTx reports whether the candidate is a customer
+// substrate guest (true) or a commercial managed-runtime lease (false). It
+// mirrors the release authority the absent-receipt projection chose: a
+// commercial lease holds a capacity reservation and no substrate custody; a
+// substrate guest holds its exact substrate_guest_leases row and no
+// reservation. Any other combination fails closed.
+func loadNativeTerminalCustodyTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	tenantID string,
+	candidate nativeDecommissionCandidate,
+) (bool, error) {
+	var custodyClass string
+	var reserved, guest bool
+	err := tx.QueryRowContext(ctx, `
+		SELECT COALESCE(lease.lease_json->>'custody_class', ''),
+		       EXISTS (
+		           SELECT 1 FROM managed_runtime_capacity_reservations AS reservation
+		           WHERE reservation.tenant_id = lease.tenant_id
+		             AND reservation.lease_id = lease.id
+		             AND reservation.resource_generation_id = $3::uuid
+		       ),
+		       EXISTS (
+		           SELECT 1 FROM substrate_guest_leases AS guest
+		           WHERE guest.tenant_id = lease.tenant_id
+		             AND guest.lease_id = lease.id
+		             AND guest.server_id = $4
+		             AND guest.resource_generation_id = $3::uuid
+		       )
+		FROM techstack_vm_leases AS lease
+		WHERE lease.tenant_id = $1 AND lease.id = $2
+	`, tenantID, candidate.LeaseID, candidate.ResourceGeneration, candidate.ServerID).Scan(
+		&custodyClass, &reserved, &guest,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, fmt.Errorf("%w: lease %s no longer exists", errNativeDecommissionCustody, candidate.LeaseID)
+	}
+	if err != nil {
+		return false, fmt.Errorf("providercontroljobs: load native decommission release custody: %w", err)
+	}
+	substrateClass := custodyClass == string(vmlease.CustodyCustomerSubstrate)
+	switch {
+	case reserved && !substrateClass && !guest:
+		return false, nil
+	case !reserved && substrateClass && guest && candidate.ProviderID == "proxmox":
+		return true, nil
+	default:
+		return false, fmt.Errorf(
+			"%w: lease %s has ambiguous release custody (capacity reservation %t, custody class %q, substrate guest %t)",
+			errNativeDecommissionCustody, candidate.LeaseID, reserved, custodyClass, guest,
+		)
+	}
 }
 
 var _ jobs.ManagedLeaseDecommissioner = (*NativeDecommissioner)(nil)

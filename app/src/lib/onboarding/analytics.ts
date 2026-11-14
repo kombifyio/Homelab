@@ -14,7 +14,7 @@ import {
   toTechstackAnalyticsUser,
 } from "#lib/analytics/posthog.js";
 import { getClientBootstrap } from "#lib/client/bootstrap.js";
-import { appVersion } from "#lib/config.js";
+import { analyticsRelease } from "#lib/config.js";
 import { authStore } from "#lib/stores/auth.svelte.js";
 
 const EVENT_STEP_COMPLETED = "activation:onboarding_step_completed";
@@ -35,7 +35,7 @@ function client() {
     edition:
       bootstrap.kombifyEdition ||
       (authStore.deploymentMode === "saas" ? "saas-embedded" : "selfhost-oss"),
-    appVersion,
+    appVersion: analyticsRelease,
     location: typeof window === "undefined" ? undefined : window.location,
   });
 }

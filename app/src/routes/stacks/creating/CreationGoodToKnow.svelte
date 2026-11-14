@@ -128,6 +128,7 @@
   </div>
 
   {#key index}
+    {#if tip}
     <div
       class="tip mt-4"
       role="group"
@@ -151,6 +152,7 @@
         </p>
       </div>
     </div>
+    {/if}
   {/key}
 
   <div class="mt-4 flex items-center gap-1.5">

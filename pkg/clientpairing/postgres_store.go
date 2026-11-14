@@ -114,7 +114,7 @@ func (s *PostgresStore) withTenant(ctx context.Context, tenantID string, fn func
 	if tenantID == "" {
 		return fmt.Errorf("%w: tenant id required", ErrInvalidRequest)
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := tenantcontext.Database(ctx, s.db).BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}

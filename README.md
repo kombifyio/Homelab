@@ -1,27 +1,40 @@
-# kombify Techstack Open Core
+# Techstack
 
-Techstack Open Core is the self-hostable orchestration UI and control plane for
-[StackKits](https://github.com/kombifyio/StackKits). It runs with
-`KOMBIFY_EDITION=selfhost-oss` (the default) and keeps runtime data, identity,
-credentials, and infrastructure authority under the operator's control. It
-needs no kombify account and no hosted kombify service.
+**One command puts your homelab under Techstack.**
 
-The hosted kombify SaaS service is built and deployed from a separate private
-development repository. Hosted provider credentials, company operations,
-internal planning material, and private platform integrations are not part of
-this source distribution.
+Techstack is the orchestration UI and control plane for
+[StackKits](https://github.com/kombifyio/StackKits). It keeps the servers and
+applications of a homelab in one inventory, plans each change across servers as a
+Terramate change set, reconciles drift, and executes the operations you approve
+through the pinned StackKits release. Run it from this repository on your own
+hardware, or use the hosted service at <https://techstack.kombify.io>.
 
-## Windows local client
+## Connect a homelab
 
-Download `kombify-Techstack-Setup.exe` from the
-[latest release](https://github.com/kombifyio/TechStack/releases/latest) and
-compare its SHA-256 with `SHA256SUMS.txt` from the same release. The
-installer contains the server, the operator UI, and the database runtime; no
-kombify account is required. Windows releases are intentionally unsigned and
-include `UNSIGNED-WINDOWS-RELEASE.txt`; Windows SmartScreen may ask for
-confirmation. A code-signing certificate is not a release prerequisite.
+Open the Techstack setup for your server at
+<https://app.kombify.io/dashboard/tools/stack/connect>. On the server that
+already runs the StackKits public package, run the command the setup shows, as
+root:
 
-## Run with Docker Compose
+<!-- public-path:begin connect -->
+```sh
+sudo stackkit connect --server https://techstack.kombify.io
+```
+<!-- public-path:end connect -->
+
+Paste the one-time pairing at the hidden prompt. The command prints the result:
+the server is bound to your account, and its state shows in kombify Cloud. A free
+account is enough; changes beyond that stay with the paid plans.
+
+For a Techstack you run yourself, copy the complete command and its `--server`
+origin from that installation's own-server setup.
+
+## Run Techstack yourself
+
+Techstack is open source and keeps runtime data, identity, credentials and
+infrastructure authority with the operator. The self-hosted edition runs with
+`KOMBIFY_EDITION=selfhost-oss` (the default) and needs no kombify account and no
+hosted kombify service.
 
 ```bash
 cd deploy/selfhosted
@@ -68,6 +81,16 @@ If owner creation succeeds but a compatibility profile or setup marker fails,
 retry the same chosen email and password. The canonical owner must authenticate
 before setup can finish; another email/password cannot replace it. The Windows
 local client continues using its automatic OS-custodied device session.
+
+## Windows local client
+
+Download `kombify-Techstack-Setup.exe` from the
+[latest release](https://github.com/kombifyio/TechStack/releases/latest) and
+compare its SHA-256 with `SHA256SUMS.txt` from the same release. The
+installer contains the server, the operator UI, and the database runtime; no
+kombify account is required. Windows releases are intentionally unsigned and
+include `UNSIGNED-WINDOWS-RELEASE.txt`; Windows SmartScreen may ask for
+confirmation. A code-signing certificate is not a release prerequisite.
 
 ## Build from source
 

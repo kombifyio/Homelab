@@ -2,10 +2,17 @@ package db
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -173,8 +180,6 @@ func TestStagePersonalSettingsRejectRuntimeChosenGUC(t *testing.T) {
 		t.Fatal("the Stage login is not the bounded hosted application role")
 	}
 	for _, table := range []struct{ name, subject, insert string }{
-		{"feature_preferences", "subject_id", `INSERT INTO feature_preferences
-			(id,tenant_id,subject_id,feature_key,enabled) VALUES ($3,$1,$2,'stage_context_denial',false)`},
 		{"feature_consents", "subject_id", `INSERT INTO feature_consents
 			(id,tenant_id,subject_id,feature_key) VALUES ($3,$1,$2,'stage_context_denial')`},
 		{"operator_self_disclosures", "owner_subject_id", `INSERT INTO operator_self_disclosures
@@ -486,5 +491,183 @@ func TestStageHouseholdInventoryReadDelegation(t *testing.T) {
 	})
 	if err == nil || err.Error() != "rollback boundary probe" {
 		t.Fatal(err)
+	}
+}
+
+// Refusal step for platform-3r69a on a managed scratch database (Cloud
+// scripts/managed-pg-test-database.mjs; never a shared Stage or production
+// database). It applies 165, 178, 191 and contract 191 verbatim as the scratch
+// creator, then probes as the real hosted application login and as a separate
+// non-application login standing in for techstack_runtime_system:
+//
+//	TECHSTACK_TEST_INVENTORY_CONTRACT=1
+//	TECHSTACK_TEST_APPLICATION_LOGIN_URL  Stage techstack_application DSN
+//	TECHSTACK_TEST_SYSTEM_LOGIN_URL       another Stage runtime login DSN
+//
+// Only user and password are taken from the two login DSNs; host, database and
+// TLS come from the scratch DSN. The context key is random per run.
+func TestManagedInventoryContractRefusesTokenlessContext(t *testing.T) {
+	if os.Getenv("TECHSTACK_TEST_INVENTORY_CONTRACT") != "1" {
+		t.Skip("managed inventory contract probe not selected")
+	}
+	scratch := os.Getenv("MANAGED_PG_TEST_DATABASE_URL_LOOPBACK")
+	if scratch == "" {
+		scratch = os.Getenv("MANAGED_PG_TEST_DATABASE_URL")
+	}
+	if scratch == "" || os.Getenv("MANAGED_PG_TEST_DATABASE") == "" {
+		t.Fatal("a managed scratch database is required")
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
+	defer cancel()
+	open := func(dsn string) *sql.DB {
+		pool, err := sql.Open(PostgresDriverName, dsn)
+		if err != nil {
+			t.Fatal("scratch connection refused")
+		}
+		t.Cleanup(func() { _ = pool.Close() })
+		return pool
+	}
+	login := func(name string) (*sql.DB, string) {
+		source, err := url.Parse(os.Getenv(name))
+		target, targetErr := url.Parse(scratch)
+		if err != nil || targetErr != nil || source.User == nil {
+			t.Fatalf("%s is required", name)
+		}
+		target.User = source.User
+		return open(target.String()), source.User.Username()
+	}
+	creator := open(scratch)
+	app, appRole := login("TECHSTACK_TEST_APPLICATION_LOGIN_URL")
+	system, systemRole := login("TECHSTACK_TEST_SYSTEM_LOGIN_URL")
+	if appRole != HostedApplicationRole || systemRole == appRole {
+		t.Fatal("the hosted application login and a distinct runtime login are required")
+	}
+	exec := func(body string) {
+		if _, err := creator.ExecContext(ctx, regexp.MustCompile(`(?m)^SET LOCAL .*$`).ReplaceAllString(body, "")); err != nil {
+			t.Fatalf("scratch setup: %v", err)
+		}
+	}
+	migration := func(name string) string {
+		body, err := migrationsFS.ReadFile("migrations/" + name)
+		if err != nil {
+			body, err = contractMigrationsFS.ReadFile("migrations/contract/" + name)
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(body)
+	}
+	exec(migration("165_verified_tenant_context.sql"))
+	exec(fmt.Sprintf(`
+CREATE TABLE stacks(id text, tenant_id text NOT NULL, owner_subject_id text NOT NULL, name text, PRIMARY KEY(tenant_id,id));
+CREATE TABLE servers(id text, tenant_id text NOT NULL, owner_subject_id text NOT NULL, stack_id text, name text, PRIMARY KEY(tenant_id,id));
+CREATE TABLE services(id text, tenant_id text NOT NULL, stack_id text, server_id text, name text, PRIMARY KEY(tenant_id,id));
+DO $$ DECLARE t text; BEGIN FOREACH t IN ARRAY ARRAY['stacks','servers','services'] LOOP
+  EXECUTE format('ALTER TABLE %%I ENABLE ROW LEVEL SECURITY', t);
+  EXECUTE format('ALTER TABLE %%I FORCE ROW LEVEL SECURITY', t);
+  EXECUTE format('CREATE POLICY tenant_isolation ON %%I USING (tenant_id = current_setting(''app.tenant_id'', true)) WITH CHECK (tenant_id = current_setting(''app.tenant_id'', true))', t);
+END LOOP; END $$;
+GRANT USAGE ON SCHEMA public, kombify_ctx TO %[1]s, %[2]s;
+GRANT SELECT,INSERT,UPDATE,DELETE ON stacks,servers,services TO %[1]s, %[2]s;
+GRANT EXECUTE ON FUNCTION kombify_ctx.verified_context(),kombify_ctx.subject(),kombify_ctx.org_id() TO %[1]s, %[2]s;`, appRole, systemRole))
+	exec(migration("178_household_inventory_read_context.sql"))
+	exec(migration("191_runtime_system_role.sql"))
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := creator.ExecContext(ctx, `INSERT INTO kombify_ctx.keys(key_id,secret) VALUES('t3r69a',$1)`, key); err != nil {
+		t.Fatal(err)
+	}
+	const tenantA, tenantB = "usr:auth0|a", "usr:auth0|b"
+	for _, tenant := range []string{tenantA, tenantB} {
+		owner := tenant[len("usr:"):]
+		exec(fmt.Sprintf(`BEGIN; SELECT set_config('app.tenant_id','%[1]s',true);
+INSERT INTO stacks VALUES ('stack','%[1]s','%[2]s','s'); INSERT INTO servers VALUES ('server','%[1]s','%[2]s','stack','v');
+INSERT INTO services VALUES ('service','%[1]s','stack','server','x'); COMMIT;`, tenant, owner))
+	}
+	token := func(sub, org string, audience []string, issued, expires time.Time, secret []byte) string {
+		payload, _ := json.Marshal(map[string]any{"sub": sub, "org": org, "aud": audience, "iat": issued.Unix(), "exp": expires.Unix()})
+		signed := "v1.t3r69a." + base64.RawURLEncoding.EncodeToString(payload)
+		mac := hmac.New(sha256.New, secret)
+		mac.Write([]byte(signed))
+		return signed + "." + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+	}
+	now, audience := time.Now(), []string{HostedApplicationRole}
+	type outcome struct {
+		servers, stacks, services, updated, deleted int64
+		insert                                      string
+	}
+	probe := func(pool *sql.DB, tenantScope, ctxToken, readTenant string) outcome {
+		tx, err := pool.BeginTx(ctx, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer tx.Rollback()
+		if _, err := tx.ExecContext(ctx, `SELECT set_config('app.tenant_id',$1,true),set_config('kombify.ctx_token',$2,true)`, tenantScope, ctxToken); err != nil {
+			t.Fatal(err)
+		}
+		var result outcome
+		if err := tx.QueryRowContext(ctx, `SELECT (SELECT count(*) FROM servers WHERE tenant_id=$1),(SELECT count(*) FROM stacks WHERE tenant_id=$1),(SELECT count(*) FROM services WHERE tenant_id=$1)`, readTenant).Scan(&result.servers, &result.stacks, &result.services); err != nil {
+			t.Fatal(err)
+		}
+		for _, table := range []string{"servers", "stacks", "services"} {
+			changed, err := tx.ExecContext(ctx, `UPDATE `+table+` SET name=name WHERE tenant_id=$1`, readTenant)
+			if err != nil {
+				t.Fatal(err)
+			}
+			rows, _ := changed.RowsAffected()
+			result.updated += rows
+		}
+		deleted, err := tx.ExecContext(ctx, `DELETE FROM services WHERE tenant_id=$1`, readTenant)
+		if err != nil {
+			t.Fatal(err)
+		}
+		result.deleted, _ = deleted.RowsAffected()
+		if _, err := tx.ExecContext(ctx, "SAVEPOINT insert_probe"); err != nil {
+			t.Fatal(err)
+		}
+		result.insert = "admitted"
+		if _, err := tx.ExecContext(ctx, `INSERT INTO servers VALUES ('injected',$1,'auth0|a','stack','i')`, readTenant); err != nil {
+			var denied *pgconn.PgError
+			if !errors.As(err, &denied) {
+				t.Fatal(err)
+			}
+			result.insert = denied.Code
+		}
+		if _, err := tx.ExecContext(ctx, "ROLLBACK TO SAVEPOINT insert_probe"); err != nil {
+			t.Fatal(err)
+		}
+		return result
+	}
+	visible := outcome{1, 1, 1, 3, 1, "admitted"}
+	refused := outcome{0, 0, 0, 0, 0, "42501"}
+	if got := probe(app, tenantA, "", tenantA); got != visible {
+		t.Fatalf("before the contract a token-less application session must still reach tenant A (the hole): %+v", got)
+	}
+	exec(migration("191_inventory_verified_context.sql"))
+	tokenA := token("auth0|a", tenantA, audience, now.Add(-5*time.Second), now.Add(5*time.Minute), key)
+	tokenB := token("auth0|b", tenantB, audience, now.Add(-5*time.Second), now.Add(5*time.Minute), key)
+	for _, scenario := range []struct {
+		name                       string
+		pool                       *sql.DB
+		scope, ctxToken, readScope string
+		want                       outcome
+	}{
+		{"verified owner A", app, tenantA, tokenA, tenantA, visible},
+		{"verified owner B", app, tenantB, tokenB, tenantB, visible},
+		{"user B with GUC A", app, tenantA, tokenB, tenantA, refused},
+		{"missing context", app, tenantA, "", tenantA, refused},
+		{"forged signature", app, tenantA, token("auth0|a", tenantA, audience, now.Add(-5*time.Second), now.Add(5*time.Minute), make([]byte, 32)), tenantA, refused},
+		{"expired token", app, tenantA, token("auth0|a", tenantA, audience, now.Add(-20*time.Minute), now.Add(-10*time.Minute), key), tenantA, refused},
+		{"foreign audience", app, tenantA, token("auth0|a", tenantA, []string{RuntimeSystemRole}, now.Add(-5*time.Second), now.Add(5*time.Minute), key), tenantA, refused},
+		{"system login by transaction tenant", system, tenantA, "", tenantA, visible},
+	} {
+		if got := probe(scenario.pool, scenario.scope, scenario.ctxToken, scenario.readScope); got != scenario.want {
+			t.Errorf("%s: got %+v, want %+v", scenario.name, got, scenario.want)
+		}
+	}
+	if got := probe(system, tenantB, "", tenantA); got.servers+got.stacks+got.services != 0 || got.updated != 0 {
+		t.Errorf("system login scoped to B reached tenant A: %+v", got)
 	}
 }

@@ -1,4 +1,5 @@
-export type WizardJoinAdditionMode = "join" | "found";
+/** `existing:<server>`: an enrolled server joins as the new node. */
+export type WizardJoinAdditionMode = "join" | "found" | `existing:${string}`;
 
 const JOIN_WIZARD_IDEMPOTENCY_STORAGE_PREFIX = "wizardJoinIdempotencyKey:";
 
@@ -98,10 +99,13 @@ export function clearStackLifecycleRetryIdempotencyKey(
 
 export function clearJoinWizardIdempotencyKeys(stackId: string): void {
   if (!stackId) return;
-  sessionStorage.removeItem(legacyJoinWizardIdempotencyStorageKey(stackId));
-  for (const mode of ["join", "found"] as const) {
-    sessionStorage.removeItem(joinWizardIdempotencyStorageKey(stackId, mode));
+  const legacy = legacyJoinWizardIdempotencyStorageKey(stackId);
+  const keysToRemove = [legacy];
+  for (let index = 0; index < sessionStorage.length; index += 1) {
+    const key = sessionStorage.key(index);
+    if (key?.startsWith(`${legacy}:`)) keysToRemove.push(key);
   }
+  for (const key of keysToRemove) sessionStorage.removeItem(key);
 }
 
 export function clearAllWizardIdempotencyKeys(): void {

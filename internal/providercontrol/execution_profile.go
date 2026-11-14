@@ -5,15 +5,11 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/kombifyio/techstack/internal/providercatalog"
 	"github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 )
 
 var executionProfileDigestPattern = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
-
-var disallowedCompositeProviderIDs = map[string]struct{}{
-	"centron-managed": {},
-	"ionos-managed":   {},
-}
 
 func normalizeExecutionProfile(profile ExecutionProfile) (ExecutionProfile, ExecutionProfileSnapshot, error) {
 	profile.ProviderID = strings.ToLower(strings.TrimSpace(profile.ProviderID))
@@ -36,7 +32,7 @@ func normalizeExecutionProfile(profile ExecutionProfile) (ExecutionProfile, Exec
 		)
 	}
 
-	if _, disallowed := disallowedCompositeProviderIDs[profile.ProviderID]; disallowed {
+	if providercatalog.IsCompositeProviderAlias(profile.ProviderID) {
 		return ExecutionProfile{}, ExecutionProfileSnapshot{}, fmt.Errorf(
 			"%w: provider_id %q is not a canonical vendor identifier",
 			ErrInvalidRequest, profile.ProviderID,

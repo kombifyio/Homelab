@@ -271,7 +271,7 @@ export const guardMessagesEs: Record<keyof typeof guardMessages.en, string> = {
   "guard.reach.publish.disable": "Dejar de publicar",
   "guard.reach.publish.current": "Publicado: {service} en el puerto {port}.",
   "guard.reach.publish.stepUp":
-    "Publicar requiere un inicio de sesión reciente con segundo factor, en los últimos cinco minutos. Inicia sesión de nuevo y repite este paso.",
+    "Publicar requiere una confirmación con tu segundo factor de los últimos cinco minutos. Confírmala y repite este paso.",
   "guard.upgrade.title": "Aprobar la clave de este servidor",
   "guard.upgrade.pending":
     "Una clave con la huella {fingerprint} espera tu aprobación. Apruébala solo si Guard registra la misma huella en este servidor.",
@@ -280,7 +280,7 @@ export const guardMessagesEs: Record<keyof typeof guardMessages.en, string> = {
   "guard.upgrade.approve": "Aprobar clave",
   "guard.upgrade.reject": "Rechazar clave",
   "guard.upgrade.stepUp":
-    "Aprobar requiere un inicio de sesión reciente con segundo factor, en los últimos cinco minutos. Inicia sesión de nuevo y repite este paso.",
+    "Aprobar requiere una confirmación con tu segundo factor de los últimos cinco minutos. Confírmala y repite este paso.",
   "guard.upgrade.done": "La clave del servidor fue aprobada.",
 
   "guard.reach.reason.guard_key_not_bound":
@@ -417,8 +417,8 @@ export const guardMessagesEs: Record<keyof typeof guardMessages.en, string> = {
   "guard.outcomes.releasing": "Liberando…",
   "guard.outcomes.back": "Atrás",
   "guard.outcomes.stepUp":
-    "Liberar un resultado requiere un inicio de sesión reciente con segundo factor, de hace menos de cinco minutos. Inicia sesión de nuevo y repite este paso. Tu nota no se conserva.",
-  "guard.outcomes.stepUpAction": "Iniciar sesión de nuevo",
+    "Liberar un resultado requiere una confirmación con tu segundo factor de hace menos de cinco minutos. Confírmala y repite este paso. Tu nota no se conserva.",
+  "guard.outcomes.stepUpAction": "Confirmar",
   "guard.outcomes.stale":
     "Esta operación cambió mientras la revisabas. La lista está actualizada; revísala de nuevo.",
   "guard.outcomes.loadFailed":
@@ -467,14 +467,14 @@ export const guardMessagesEs: Record<keyof typeof guardMessages.en, string> = {
     "Esperando a que el comando de emparejamiento se ejecute en el servidor.",
   "guard.ladder.bound.awaitingNext":
     "Ejecuta el comando en el servidor. Si caducó, genera uno nuevo.",
-  "guard.updates.title": "Actualizaciones de StackKits",
+  "guard.updates.title": "Actualizaciones",
   "guard.updates.runs": "Ejecuta {version}",
   "guard.updates.behavior.label": "Comportamiento de actualización",
-  "guard.updates.behavior.hint":
-    "Los parches de seguridad para las apps de este servidor se instalan de inmediato, elijas lo que elijas aquí.",
-  "guard.updates.behavior.approve": "Preguntarme (aprobar cada actualización)",
-  "guard.updates.behavior.automatic":
-    "Instalar actualizaciones automáticamente",
+  "guard.updates.behavior.hint": "Las correcciones de seguridad siempre se ofrecen de inmediato.",
+  "guard.updates.behavior.ask": "Preguntarme",
+  "guard.updates.behavior.automatic": "Automático",
+  "guard.updates.behavior.with_stackkits_releases": "Con las versiones de StackKits",
+  "guard.updates.behavior.automaticPending": "Las apps aún no se actualizan automáticamente.",
   "guard.updates.available": "StackKits {version} está disponible",
   "guard.updates.forUseCase": "Para tu {name}",
   "guard.updates.other": "También en esta actualización",
@@ -511,4 +511,29 @@ export const guardMessagesEs: Record<keyof typeof guardMessages.en, string> = {
   "guard.updates.kind.fixed": "Corregido",
   "guard.updates.kind.changed": "Cambiado",
   "guard.updates.kind.reverted": "Revertido",
+  "guard.power.title": "Protección de SAI",
+  "guard.power.state.line": "Con corriente de red",
+  "guard.power.state.on_battery": "Funcionando con batería",
+  "guard.power.state.shutdown": "Apagado ordenado solicitado",
+  "guard.power.state.canceled": "Apagado cancelado",
+  "guard.power.state.unknown": "Estado de energía sin evidencia",
+  "guard.power.observed": "Observado {when}",
+  "guard.power.charge": "Batería {percent} %",
+  "guard.power.runtime": "quedan unos {minutes} min",
+  "guard.power.steps": "Apagado ordenado",
+  "guard.power.step.applications": "Aplicaciones",
+  "guard.power.step.storage": "Almacenamiento",
+  "guard.power.step.host": "Host",
+  "guard.power.outcome.pending": "pendiente",
+  "guard.power.outcome.running": "en curso",
+  "guard.power.outcome.succeeded": "correcto",
+  "guard.power.outcome.failed": "fallido",
+  "guard.power.outcome.skipped": "omitido",
+  "guard.power.outcome.canceled": "cancelado",
+  "guard.power.reason.line_restored": "volvió la corriente de red",
+  "guard.power.reason.sequence_interrupted": "la secuencia se interrumpió",
+  "guard.power.canceledBecause": "Cancelado: {reason}",
+  "guard.power.hostRequested": "Apagado del host solicitado {when}",
+  "guard.power.evidence":
+    "Cada paso queda registrado en el diario de energía local del servidor.",
 };

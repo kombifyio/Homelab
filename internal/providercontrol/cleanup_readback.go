@@ -63,7 +63,11 @@ func (l *PostgresLedger) ReadManagedRuntimeCleanup(
 					)
 				) AS provider_operation_terminal,
 				COALESCE(absence.evidence_ref, '') AS absence_evidence_ref,
-				capacity.release_operation_id IS NOT NULL AS capacity_released
+				capacity.release_operation_id IS NOT NULL AS capacity_released,
+				CASE WHEN operation.status IN ('failed', 'denied') OR operation.phase IN ('failed', 'denied')
+					THEN COALESCE(head.receipt_json #>> '{reason,code}', '')
+					ELSE ''
+				END AS failure_reason_code
 			FROM techstack_vm_leases AS lease
 			JOIN runtime_lease_execution_authorities AS authority
 			  ON authority.tenant_id = lease.tenant_id
@@ -81,7 +85,7 @@ func (l *PostgresLedger) ReadManagedRuntimeCleanup(
 				LIMIT 1
 			) AS capacity ON TRUE
 			LEFT JOIN LATERAL (
-				SELECT candidate.operation_id, candidate.status, candidate.phase
+				SELECT candidate.operation_id, candidate.status, candidate.phase, candidate.head_sequence
 				FROM provider_operations AS candidate
 				WHERE candidate.tenant_id = lease.tenant_id
 				  AND candidate.lease_id = lease.id
@@ -98,6 +102,10 @@ func (l *PostgresLedger) ReadManagedRuntimeCleanup(
 					candidate.operation_id DESC
 				LIMIT 1
 			) AS operation ON TRUE
+			LEFT JOIN provider_operation_receipts AS head
+			  ON head.tenant_id = lease.tenant_id
+			 AND head.operation_id = operation.operation_id
+			 AND head.sequence = operation.head_sequence
 			LEFT JOIN LATERAL (
 				SELECT observation.evidence_ref
 				FROM provider_absence_observations AS observation
@@ -117,6 +125,7 @@ func (l *PostgresLedger) ReadManagedRuntimeCleanup(
 			&facts.ProviderOperationTerminal,
 			&facts.AbsenceEvidenceRef,
 			&facts.CapacityReleased,
+			&facts.FailureReasonCode,
 		)
 	})
 	if errors.Is(err, sql.ErrNoRows) {

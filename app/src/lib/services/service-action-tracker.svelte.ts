@@ -1,8 +1,10 @@
 /**
  * Session tracker for governed service actions.
  *
- * Every governed mutation is accepted by the control plane as a job, and the
- * job receipt (not the POST acknowledgement) is the result. The tracker owns
+ * Every governed mutation (start, stop, restart, update, backup) is accepted
+ * by the control plane as a governed RIL action card and a logs page as a
+ * job, and the card or the job receipt (not the POST acknowledgement) is the
+ * result. The tracker owns
  * that lifecycle for every surface that runs actions - the Services board and
  * the application detail page - so a button renders the same executing /
  * verifying truth everywhere:
@@ -15,16 +17,23 @@
 import { getJob, type JobDetail } from "../api/jobs";
 import {
   SERVICE_LOCK_ACTIONS,
+  getGovernedActionCard,
   getManagedServiceLogs,
   runManagedServiceAction,
+  type ApplicationUpdateOutcome,
+  type ApplicationUpdateSelection,
   type ManagedServiceAction,
   type ManagedServiceLogEntry,
+  type CanonicalService,
 } from "../api/services";
 import { tr } from "../i18n.svelte";
+import { readOwnApplicationLogs } from "./own-application";
 
 export interface TrackedServiceAction {
   action: ManagedServiceAction;
   jobId: string;
+  /** The governed action card a mutation runs as. */
+  actionCardId?: string;
   state: string;
   detail?: string;
   logCursor?: string;
@@ -34,6 +43,10 @@ export interface TrackedServiceAction {
   reasonCode?: string;
   retryable?: boolean;
   historyId?: string;
+  /** The release an application update moves to. */
+  update?: ApplicationUpdateSelection;
+  /** What the node did for an application update (updated, rolled back, ...). */
+  applicationOutcome?: ApplicationUpdateOutcome;
 }
 
 export interface TrackedServiceLogs {
@@ -101,6 +114,30 @@ export function actionFailed(job: TrackedServiceAction | undefined): boolean {
   );
 }
 
+/** A governed action card read as the job shape the tracker follows. */
+async function readActionCardAsJob(cardId: string): Promise<JobDetail> {
+  const card = await getGovernedActionCard(cardId);
+  const state =
+    card.status === "completed" || card.status === "failed"
+      ? card.status
+      : card.status === "denied"
+        ? "cancelled"
+        : card.status === "executing" || card.status === "verifying"
+          ? "running"
+          : "queued";
+  const codes = card.evidence?.summary_codes?.join(", ");
+  return {
+    id: card.execution_id ?? card.id,
+    type: "ril_action_card",
+    state,
+    progress: state === "completed" ? 100 : 0,
+    message: codes,
+    error: state === "failed" ? card.error_code || codes : undefined,
+    created_at: card.created_at,
+    updated_at: card.updated_at,
+  };
+}
+
 function jobOutcome(result: JobDetail["result"]): {
   reasonCode?: string;
   retryable?: boolean;
@@ -143,6 +180,44 @@ function jobOutcome(result: JobDetail["result"]): {
     if (reasonCode || retryable !== undefined) return { reasonCode, retryable };
   }
   return {};
+}
+
+/** The application update outcome a job result carries, if any. */
+export function applicationUpdateOutcome(
+  result: JobDetail["result"],
+): ApplicationUpdateOutcome | undefined {
+  if (!result || typeof result !== "object") return undefined;
+  const outcome = (result as Record<string, unknown>)
+    .application_update_outcome;
+  if (!outcome || typeof outcome !== "object") return undefined;
+  const value = outcome as ApplicationUpdateOutcome;
+  return typeof value.result === "string" ? value : undefined;
+}
+
+/** One localized line for an application update outcome. */
+export function applicationUpdateOutcomeText(
+  outcome: ApplicationUpdateOutcome,
+  fallback?: ApplicationUpdateSelection,
+): string {
+  const to =
+    outcome.target?.version ||
+    fallback?.version ||
+    tr("ui.serviceCards.versionUnknown");
+  const from = outcome.prior?.version || tr("ui.serviceCards.versionUnknown");
+  switch (outcome.result) {
+    case "updated":
+      return tr("ui.serviceCards.appUpdate.updated", { to });
+    case "rolled_back":
+      return tr("ui.serviceCards.appUpdate.rolledBack", { to, from });
+    case "rollback_failed":
+      return tr("ui.serviceCards.appUpdate.rollbackFailed", { from });
+    case "unresolved":
+      return tr("ui.serviceCards.appUpdate.unresolved", { to });
+    default:
+      return tr("ui.serviceCards.appUpdate.refused", {
+        reason: outcome.reason_code || outcome.result,
+      });
+  }
 }
 
 export class ServiceActionTracker {
@@ -192,7 +267,11 @@ export class ServiceActionTracker {
     service: TrackableService,
     action: ManagedServiceAction,
     logCursor?: string,
+    update?: ApplicationUpdateSelection,
   ): Promise<string | null> {
+    if (action === "logs" && (service as Partial<CanonicalService>).own_application) {
+      return this.ownApplicationLogs(service as unknown as CanonicalService);
+    }
     const historyId =
       action === "logs" ? undefined : `h${Date.now()}-${(this.#sequence += 1)}`;
     this.jobs = {
@@ -204,6 +283,7 @@ export class ServiceActionTracker {
         logCursor,
         expectedInventoryRevision: service.inventory_revision,
         historyId,
+        update,
       },
     };
     if (historyId) {
@@ -240,6 +320,7 @@ export class ServiceActionTracker {
         service.inventory_revision,
         crypto.randomUUID(),
         action === "logs" ? { cursor: logCursor } : undefined,
+        update,
       );
       if (!this.#active) return null;
       // A guardrail change is applied by the control plane before it answers,
@@ -259,11 +340,13 @@ export class ServiceActionTracker {
         [service.id]: {
           action,
           jobId: result.job_id,
+          actionCardId: result.action_card_id,
           // The POST is only an acknowledgement; the job receipt is the result.
           state: "queued",
           logCursor,
           expectedInventoryRevision: service.inventory_revision,
           historyId,
+          update,
         },
       };
       this.#touchHistory(historyId, { jobId: result.job_id, state: "queued" });
@@ -305,6 +388,29 @@ export class ServiceActionTracker {
   }
 
   /** Fetch the next older page of logs once the previous collection settled. */
+  /**
+   * The log tail of an app StackKits runs as an own application: one
+   * redacted page of every container, read through own-application.logs.
+   */
+  async ownApplicationLogs(service: CanonicalService): Promise<string | null> {
+    this.logs = { ...this.logs, [service.id]: { loading: true, entries: this.logs[service.id]?.entries ?? [] } };
+    const answer = await readOwnApplicationLogs(service);
+    if ("error" in answer) {
+      this.logs = { ...this.logs, [service.id]: { loading: false, entries: [], error: answer.error } };
+      return answer.error;
+    }
+    const stamp = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})/;
+    const entries: ManagedServiceLogEntry[] = answer.text
+      .split("\n")
+      .filter((line) => line.trim() !== "")
+      .map((line) => {
+        const at = stamp.exec(line)?.[0];
+        return { timestamp: at ?? new Date().toISOString(), message: at ? line.replace(at, "").trim() : line };
+      });
+    this.logs = { ...this.logs, [service.id]: { loading: false, entries } };
+    return null;
+  }
+
   loadMoreLogs(service: TrackableService): void {
     const nextCursor = this.logs[service.id]?.nextCursor;
     if (!nextCursor || isActionActive(this.jobs[service.id])) return;
@@ -367,7 +473,10 @@ export class ServiceActionTracker {
       const updates = await Promise.all(
         activeActions.map(async ([serviceId, action]) => {
           try {
-            return { serviceId, action, job: await getJob(action.jobId) };
+            const job = action.actionCardId
+              ? await readActionCardAsJob(action.actionCardId)
+              : await getJob(action.jobId);
+            return { serviceId, action, job };
           } catch {
             // Retain the job as pollable after a transient read failure.
             return null;
@@ -385,11 +494,13 @@ export class ServiceActionTracker {
         const state = normalizeJobState(update.job.state);
         const terminal = isActionTerminal(state);
         const outcome = jobOutcome(update.job.result);
+        const applicationOutcome = applicationUpdateOutcome(update.job.result);
         const known =
           this.#hooks.observedRevision(update.serviceId) !== undefined;
         const convergenceWindowSeconds = known ? 90 : 60;
-        const detail =
-          state === "completed"
+        const detail = applicationOutcome
+          ? applicationUpdateOutcomeText(applicationOutcome, current.update)
+          : state === "completed"
             ? update.job.message ||
               tr("ui.services.actionCompletedInventoryIsRefreshing")
             : terminal
@@ -406,8 +517,9 @@ export class ServiceActionTracker {
             state === "completed" && current.action !== "logs"
               ? Date.now() + convergenceWindowSeconds * 1000
               : undefined,
-          reasonCode: outcome.reasonCode,
+          reasonCode: applicationOutcome?.reason_code ?? outcome.reasonCode,
           retryable: outcome.retryable,
+          applicationOutcome,
           detail,
         };
         this.#touchHistory(current.historyId, { state, detail });
@@ -429,7 +541,7 @@ export class ServiceActionTracker {
               entries: previousLogs?.entries ?? [],
               nextCursor: previousLogs?.nextCursor,
               error:
-                next[update.serviceId].detail ??
+                next[update.serviceId]?.detail ??
                 tr("ui.services.serviceLogCollectionDidNot"),
             },
           };
@@ -443,6 +555,11 @@ export class ServiceActionTracker {
     } finally {
       this.#polling = false;
     }
+  }
+
+  /** Re-read the inventory now, after a change that ran outside this tracker. */
+  async refreshInventory(): Promise<void> {
+    await this.#hooks.refresh();
   }
 
   async #checkConvergence(): Promise<void> {

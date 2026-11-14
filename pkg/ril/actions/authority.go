@@ -9,12 +9,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
 	"github.com/kombifyio/techstack/pkg/guardreach"
 	jsoncanonicalizer "github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
 	"strings"
 	"time"
 
 	"github.com/kombifyio/techstack/pkg/ril/actioncontract"
+	"github.com/kombifyio/techstack/pkg/ril/primitives"
 	"github.com/google/uuid"
 )
 
@@ -122,13 +124,60 @@ type Authority interface {
 
 type PostgresAuthority struct {
 	db              *sql.DB
-	verifyRelease   func(context.Context, string, string) (string, error)
+	executorBound   ExecutorBoundAdmission
 	decisionGateway RILDecisionGateway
 }
 
-// ConfigureVerifyReleaseAdmission installs the verified exact-release capability authority.
-func (s *PostgresAuthority) ConfigureVerifyReleaseAdmission(admit func(context.Context, string, string) (string, error)) {
-	s.verifyRelease = admit
+// ExecutorBoundTarget is one executor-bound card's binding as created: its
+// server, stack, catalog profile, target and inputs.
+type ExecutorBoundTarget struct {
+	// CardID is the admitted card ("" while it is created).
+	CardID         string
+	TenantID       string
+	OwnerSubjectID string
+	ServerID       string
+	Template       ActionTemplate
+	Profile        primitives.Profile
+}
+
+// ExecutorBoundAdmission admits an executor-bound card when it is created and
+// again when it begins. ContractHash returns the authenticated release
+// capability hash of exactly this primitive on the stack's pinned StackKits
+// release ("" when the release does not qualify it). Derive returns the
+// server-derived target and inputs of a new card from fresh inventory: the
+// caller names only the target scope and the inputs that select the target
+// (the service key); every ref is derived, and a caller-supplied ref that
+// differs refuses. Target validates the target and inputs against fresh
+// inventory and refuses a protected, locked or maintained target.
+type ExecutorBoundAdmission struct {
+	ContractHash func(ctx context.Context, tenantID, stackID, primitiveID string) (string, error)
+	Derive       func(ctx context.Context, target ExecutorBoundTarget) (rilaction.TargetBinding, []rilaction.Input, error)
+	Target       func(ctx context.Context, target ExecutorBoundTarget) error
+}
+
+// ConfigureExecutorBoundAdmission installs the release and inventory authority
+// of the executor-bound primitives.
+func (s *PostgresAuthority) ConfigureExecutorBoundAdmission(admission ExecutorBoundAdmission) {
+	s.executorBound = admission
+}
+
+// admitExecutorBound returns the primitive's authenticated contract hash after
+// the target and inputs passed fresh inventory admission.
+func (s *PostgresAuthority) admitExecutorBound(ctx context.Context, target ExecutorBoundTarget) (string, error) {
+	if s.executorBound.ContractHash == nil || s.executorBound.Target == nil {
+		return "", fmt.Errorf("%w: executor-bound admission unavailable", ErrExecutionAdmission)
+	}
+	if !target.Profile.Admits(target.Template.Target, target.Template.Inputs) {
+		return "", fmt.Errorf("%w: target or inputs differ from the primitive profile", ErrExecutionAdmission)
+	}
+	hash, err := s.executorBound.ContractHash(ctx, target.TenantID, target.Template.StackID, target.Profile.ID)
+	if err != nil || hash == "" {
+		return "", fmt.Errorf("%w: pinned StackKits release lacks the authenticated primitive capability", ErrExecutionAdmission)
+	}
+	if err := s.executorBound.Target(ctx, target); err != nil {
+		return "", fmt.Errorf("%w: %w", ErrExecutionAdmission, err)
+	}
+	return hash, nil
 }
 
 func (s *PostgresAuthority) ConfigureRILDecisionGateway(gateway RILDecisionGateway) {
@@ -141,13 +190,31 @@ func (s *PostgresAuthority) Create(ctx context.Context, input CreateGovernedCard
 	if s == nil || s.db == nil {
 		return nil, fmt.Errorf("ril actions: database not configured")
 	}
-	if input.Template.Primitive.ID == "verify-stackkit-state" {
-		if s.verifyRelease == nil {
+	if primitives.IsExecutorBound(input.Template.Primitive.ID) {
+		profile, ok := primitives.For(input.Template.Primitive)
+		if !ok {
 			return nil, ErrExecutionAdmission
 		}
-		hash, err := s.verifyRelease(ctx, input.TenantID, input.Template.StackID)
-		if err != nil || hash == "" {
-			return nil, ErrExecutionAdmission
+		if s.executorBound.Derive == nil {
+			return nil, fmt.Errorf("%w: executor-bound admission unavailable", ErrExecutionAdmission)
+		}
+		target, inputs, err := s.executorBound.Derive(ctx, ExecutorBoundTarget{
+			TenantID: strings.TrimSpace(input.TenantID), OwnerSubjectID: strings.TrimSpace(input.OwnerSubjectID),
+			ServerID: strings.TrimSpace(input.ServerID), Template: input.Template, Profile: profile,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("%w: %w", ErrExecutionAdmission, err)
+		}
+		if !callerRefsMatchDerived(input.Template, target, inputs) {
+			return nil, fmt.Errorf("%w: caller-supplied target or input differs from the server-derived one", ErrExecutionAdmission)
+		}
+		input.Template.Target, input.Template.Inputs = target, inputs
+		hash, err := s.admitExecutorBound(ctx, ExecutorBoundTarget{
+			TenantID: strings.TrimSpace(input.TenantID), OwnerSubjectID: strings.TrimSpace(input.OwnerSubjectID),
+			ServerID: strings.TrimSpace(input.ServerID), Template: input.Template, Profile: profile,
+		})
+		if err != nil {
+			return nil, err
 		}
 		if input.Template.Primitive.ContractHash != "" && input.Template.Primitive.ContractHash != hash {
 			return nil, ErrExecutionAdmission
@@ -161,6 +228,81 @@ func (s *PostgresAuthority) Create(ctx context.Context, input CreateGovernedCard
 		return err
 	})
 	return out, err
+}
+
+// callerRefsMatchDerived reports whether every target field and input the
+// caller named equals the server-derived one. The caller must name the
+// derived scope; it may omit any ref, but never supply a different or an
+// additional one.
+func callerRefsMatchDerived(template ActionTemplate, target rilaction.TargetBinding, inputs []rilaction.Input) bool {
+	caller := template.Target
+	if caller.Scope != target.Scope {
+		return false
+	}
+	for _, pair := range [][2]string{
+		{caller.SiteRef, target.SiteRef}, {caller.NodeRef, target.NodeRef}, {caller.ModuleInstanceRef, target.ModuleInstanceRef},
+		{caller.RuntimeInstanceRef, target.RuntimeInstanceRef}, {caller.ExecutionChannelRef, target.ExecutionChannelRef},
+	} {
+		if pair[0] != "" && pair[0] != pair[1] {
+			return false
+		}
+	}
+	seen := map[string]bool{}
+	for _, supplied := range template.Inputs {
+		if seen[supplied.ID] {
+			return false
+		}
+		seen[supplied.ID] = true
+		matched := false
+		for _, derived := range inputs {
+			if derived.ID == supplied.ID {
+				matched = supplied.Type == derived.Type && supplied.OpaqueRef == derived.OpaqueRef &&
+					supplied.Boolean == nil && supplied.Integer == nil && supplied.Enum == ""
+				break
+			}
+		}
+		if !matched {
+			return false
+		}
+	}
+	return true
+}
+
+// ActiveServiceMutationCard returns an executing or verifying executor-bound
+// card that mutates this service: a start-service, stop-service or
+// restart-service card for the same service key, or an update-service,
+// run-backup or host-primitive card anywhere on the stack (an update rewrites
+// every service of the stack; a backup snapshots all of them; a host action
+// changes the server under all of them, and two host actions never run side
+// by side). An empty serviceKey (a stack-wide update or backup) matches every
+// mutating service card of the stack. excludeCardID is the card being admitted itself. It is the
+// action-card half of the managed service concurrency guard; the job half is
+// FindUnresolvedServiceJob.
+func (s *PostgresAuthority) ActiveServiceMutationCard(ctx context.Context, tenantID, stackID, serviceKey, excludeCardID string) (string, error) {
+	if s == nil || s.db == nil {
+		return "", fmt.Errorf("ril actions: database not configured")
+	}
+	serviceRef := ""
+	if serviceKey != "" {
+		serviceRef = primitives.Input(primitives.InputRuntimeInstanceRef, serviceKey).OpaqueRef
+	}
+	var id string
+	err := s.withTenant(ctx, tenantID, func(tx *sql.Tx) error {
+		err := tx.QueryRowContext(ctx, `
+			SELECT id FROM ril_action_cards
+			WHERE tenant_id=$1 AND stack_id=$2 AND id<>$4 AND status IN ('executing','verifying')
+			  AND (action_template_json->'primitive'->>'id' IN ('update-service','run-backup',`+hostPrimitiveList()+`)
+			    OR (action_template_json->'primitive'->>'id' IN ('start-service','stop-service','restart-service')
+			      AND ($3 = '' OR EXISTS (
+			        SELECT 1 FROM jsonb_array_elements(COALESCE(action_template_json->'inputs','[]'::jsonb)) AS input
+			        WHERE input->>'id' = 'runtime-instance-ref' AND input->>'opaque_ref' = $3))))
+			ORDER BY created_at ASC LIMIT 1`, tenantID, stackID, serviceRef, excludeCardID).Scan(&id)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		return err
+	})
+	return id, err
 }
 
 // CreateInTx inserts one governed card and its creation audit inside a caller
@@ -190,9 +332,12 @@ func CreateInTx(ctx context.Context, tx *sql.Tx, input CreateGovernedCard) (*Gov
 	if err != nil {
 		return nil, err
 	}
+	// An executor-bound card waits for its one Gateway Decision, which the
+	// acting agent's equipment answers on Begin; it never carries a grant.
 	status := "awaiting_approval"
-	if input.Template.Primitive.ID == "verify-stackkit-state" {
-		if input.Template.Primitive.OperationClass != "product-verify" || input.Template.Grant != nil || input.Template.ConnectorBinding == nil {
+	if primitives.IsExecutorBound(input.Template.Primitive.ID) {
+		profile, ok := primitives.For(input.Template.Primitive)
+		if !ok || input.Template.Grant != nil || !profile.Admits(input.Template.Target, input.Template.Inputs) {
 			return nil, ErrExecutionAdmission
 		}
 	} else if input.Template.Grant == nil {
@@ -261,7 +406,29 @@ func (s *PostgresAuthority) Approve(ctx context.Context, tenantID, ownerID, card
 	receiptHash := digestText(receiptRef + "\x00" + ownerID + "\x00" + correlationID + "\x00" + now.Format(time.RFC3339Nano))
 	record := ApprovalRecord{ReceiptRef: receiptRef, ReceiptHash: receiptHash, ActorSubjectID: ownerID, Class: rilaction.ApprovalClassOwnerStepUp, AuditCorrelation: correlationID, ApprovedAt: now, ValidUntil: now.Add(rilaction.MaxAuthorityValidity)}
 	data, _ := json.Marshal(record)
-	return s.transition(ctx, tenantID, ownerID, cardID, `status='awaiting_approval' AND COALESCE(action_template_json->'primitive'->>'id','') <> 'verify-stackkit-state'`, "approved", `approval_json=$5::jsonb, approved_at=$6`, data, now)
+	return s.transition(ctx, tenantID, ownerID, cardID, `status='awaiting_approval' AND COALESCE(action_template_json->'primitive'->>'id','') NOT IN (`+executorBoundPrimitiveList()+`)`, "approved", `approval_json=$5::jsonb, approved_at=$6`, data, now)
+}
+
+// hostPrimitiveList is the SQL literal list of the host primitive ids, which
+// serialize with every other mutating card of their stack.
+func hostPrimitiveList() string {
+	ids := []string{}
+	for _, profile := range primitives.All() {
+		if profile.IsHost() {
+			ids = append(ids, "'"+profile.ID+"'")
+		}
+	}
+	return strings.Join(ids, ",")
+}
+
+// executorBoundPrimitiveList is the SQL literal list of the closed
+// executor-bound primitive ids; a person approval never admits one of them.
+func executorBoundPrimitiveList() string {
+	ids := make([]string, 0, len(primitives.All()))
+	for _, profile := range primitives.All() {
+		ids = append(ids, "'"+profile.ID+"'")
+	}
+	return strings.Join(ids, ",")
 }
 
 func (s *PostgresAuthority) Deny(ctx context.Context, tenantID, ownerID, cardID, correlationID string, now time.Time) (*GovernedCard, error) {
@@ -299,7 +466,7 @@ func (s *PostgresAuthority) transition(ctx context.Context, tenantID, ownerID, c
 	return out, err
 }
 
-//nolint:gocyclo // Admission keeps approval, grant, replay, and transactional fencing in one fail-closed path.
+//nolint:gocyclo // Admission keeps decision, grant, replay, and transactional fencing in one fail-closed path.
 func (s *PostgresAuthority) Begin(ctx context.Context, input BeginExecution) (BeginResult, error) {
 	if input.Now.Location() != time.UTC {
 		return BeginResult{}, fmt.Errorf("ril actions: UTC clock required")
@@ -310,14 +477,35 @@ func (s *PostgresAuthority) Begin(ctx context.Context, input BeginExecution) (Be
 	if err != nil {
 		return BeginResult{}, err
 	}
-	if current.Template.Primitive.ID == "verify-stackkit-state" && current.Status == "awaiting_approval" {
-		gatewayIssue, gatewayApproval, err = issueDecision(ctx, s.decisionGateway, input)
+	currentProfile, currentExecutorBound := primitives.For(current.Template.Primitive)
+	if primitives.IsExecutorBound(current.Template.Primitive.ID) && !currentExecutorBound {
+		return BeginResult{}, ErrExecutionAdmission
+	}
+	if currentExecutorBound && current.Status == "awaiting_approval" {
+		// The card's connector binding (when it has one) must carry this
+		// primitive's grant scope before any Decision or lease is issued.
+		if err := validateConnectorBinding(current, input); err != nil {
+			return BeginResult{}, err
+		}
+		// Fresh inventory and the exact release capability are admitted again
+		// before the card's one Decision is filed.
+		hash, admitErr := s.admitExecutorBound(ctx, ExecutorBoundTarget{CardID: input.CardID, TenantID: input.TenantID, OwnerSubjectID: input.OwnerSubjectID, ServerID: current.ServerID, Template: current.Template, Profile: currentProfile})
+		if admitErr != nil {
+			return BeginResult{}, admitErr
+		}
+		if hash != current.Template.Primitive.ContractHash {
+			return BeginResult{}, fmt.Errorf("%w: release capability or primitive changed", ErrExecutionAdmission)
+		}
+		gatewayIssue, gatewayApproval, err = prepareAndIssueDecision(ctx, s.decisionGateway, input, currentProfile)
 		if err != nil {
 			var denial *guardreach.GatewayError
 			if errors.As(err, &denial) && denial.Status == 403 && denial.ReasonCode == "ril_decision_not_allowed" {
 				return BeginResult{}, ErrApprovalRequired
 			}
-			return BeginResult{}, fmt.Errorf("%w: gateway issue unavailable: %v", ErrExecutionAdmission, err)
+			if errors.As(err, &denial) && denial.Status == 409 {
+				return BeginResult{}, ErrCardConflict
+			}
+			return BeginResult{}, fmt.Errorf("%w: gateway decision unavailable: %v", ErrExecutionAdmission, err)
 		}
 		input.Now = time.Now().UTC()
 	}
@@ -330,12 +518,13 @@ func (s *PostgresAuthority) Begin(ctx context.Context, input BeginExecution) (Be
 		if err != nil {
 			return err
 		}
-		// Only the configured Gateway can issue evidence for a verify card.
-		// Never fall back to the legacy approval on a changed or missing card.
-		if card.Template.Primitive.ID == "verify-stackkit-state" && gatewayApproval == nil && card.Status != string(StatusCompleted) && card.Status != string(StatusFailed) && card.Status != "executing" && card.Status != "verifying" {
+		profile, executorBound := primitives.For(card.Template.Primitive)
+		// Only the configured Gateway can admit an executor-bound card. Never
+		// fall back to a person approval on a changed or missing card.
+		if executorBound && gatewayApproval == nil && card.Status != string(StatusCompleted) && card.Status != string(StatusFailed) && card.Status != "executing" && card.Status != "verifying" {
 			return fmt.Errorf("%w: gateway RIL authority required", ErrExecutionAdmission)
 		}
-		if gatewayApproval != nil && card.Template.Primitive.ID != "verify-stackkit-state" {
+		if gatewayApproval != nil && (!executorBound || profile.ID != currentProfile.ID) {
 			return ErrExecutionAdmission
 		}
 		if card.Status == string(StatusCompleted) || card.Status == string(StatusFailed) {
@@ -355,12 +544,12 @@ func (s *PostgresAuthority) Begin(ctx context.Context, input BeginExecution) (Be
 				if requestJSON == "" || json.Unmarshal([]byte(requestJSON), &request) != nil || card.ExecutionAdmission == nil {
 					return ErrCardConflict
 				}
-				if request.Primitive.ID == "verify-stackkit-state" {
+				if _, admitted := primitives.For(request.Primitive); admitted {
 					// The frozen proposal's revision is advanced and its body
 					// cleared on any template/owner/server change. Together
 					// with the bound projection hash this identifies the
 					// original admission before a workflow can be resumed.
-					if card.Template.Primitive != request.Primitive || card.Template.ConnectorBinding == nil {
+					if card.Template.Primitive != request.Primitive {
 						return ErrCardConflict
 					}
 					var raw string
@@ -414,7 +603,7 @@ func (s *PostgresAuthority) Begin(ctx context.Context, input BeginExecution) (Be
 			if card.Template.Grant != nil {
 				return ErrExecutionAdmission
 			}
-			grant, err := gatewayLeaseGrant(gatewayIssue)
+			grant, err := gatewayLeaseGrant(gatewayIssue, profile)
 			if err != nil {
 				return ErrExecutionAdmission
 			}
@@ -427,20 +616,11 @@ func (s *PostgresAuthority) Begin(ctx context.Context, input BeginExecution) (Be
 		}
 		validUntil := grantValidUntil(card, input.Now)
 		request := rilaction.Request{APIVersion: rilaction.APIVersionV1Alpha1, ActionCardID: card.ID, ExecutionID: input.ExecutionID, TraceID: input.TraceID, TenantID: input.TenantID, StackID: card.Template.StackID, Primitive: card.Template.Primitive, ResolvedPlanHash: card.Template.ResolvedPlanHash, Approval: rilaction.ApprovalBinding{ReceiptRef: card.Approval.ReceiptRef, ReceiptHash: card.Approval.ReceiptHash, Decision: string(StatusApproved), Class: card.Approval.Class, ApprovedAt: card.Approval.ApprovedAt.Format(time.RFC3339Nano), ValidUntil: card.Approval.ValidUntil.Format(time.RFC3339Nano)}, Grant: *card.Template.Grant, Target: card.Template.Target, Inputs: card.Template.Inputs, EvidenceSinkRef: card.Template.EvidenceSinkRef, IssuedAt: input.Now.Format(time.RFC3339Nano), ValidUntil: validUntil.Format(time.RFC3339Nano), Nonce: "nonce-" + uuid.NewString(), IdempotencyKey: input.IdempotencyKey}
-		if request.Primitive.ID == "verify-stackkit-state" {
-			if s.verifyRelease == nil {
-				return fmt.Errorf("%w: verify release capability unavailable", ErrExecutionAdmission)
-			}
-			hash, err := s.verifyRelease(ctx, request.TenantID, request.StackID)
-			if err != nil || hash == "" || hash != request.Primitive.ContractHash {
-				return fmt.Errorf("%w: verify release capability or primitive changed", ErrExecutionAdmission)
-			}
-		}
 		admission, admittedRequest, admissionErr := admitExecutionTx(ctx, tx, card, request, input.Now)
 		if admissionErr != nil {
 			return admissionErr
 		}
-		if gatewayApproval != nil && (admission.ServerRevision != decisionProposal.ServerRevision || int64(admission.LeaseRevision) != decisionProposal.LifecycleRevision || admission.LeaseRevision == 0) {
+		if gatewayApproval != nil && (admission.ServerRevision != decisionProposal.ServerRevision || admission.LifecycleRevision != decisionProposal.LifecycleRevision || admission.LifecycleRevision == 0) {
 			return ErrExecutionAdmission
 		}
 		request = admittedRequest
@@ -452,7 +632,7 @@ func (s *PostgresAuthority) Begin(ctx context.Context, input BeginExecution) (Be
 				return err
 			}
 		}
-		card, err = scanGovernedCard(tx.QueryRowContext(ctx, `UPDATE ril_action_cards SET status='executing', execution_request_json=$4::jsonb, execution_id=$5, trace_id=$6, idempotency_key=$7, execution_started_at=$8, admission_inventory_revision=$9, admission_server_revision=$10, admission_server_generation=$11, admission_lease_id=$12, admission_lease_revision=$13, admission_resource_generation_id=$14::uuid, execution_admission_digest=$15, updated_at=now() WHERE tenant_id=$1 AND owner_subject_id=$2 AND id=$3 AND status=$16 RETURNING `+governedCardColumns, input.TenantID, input.OwnerSubjectID, input.CardID, requestJSON, input.ExecutionID, input.TraceID, input.IdempotencyKey, input.Now, admission.InventoryRevision, admission.ServerRevision, admission.ServerGeneration, admission.LeaseID, admission.LeaseRevision, admission.ResourceGenerationID, admission.Digest, statusBefore))
+		card, err = scanGovernedCard(tx.QueryRowContext(ctx, `UPDATE ril_action_cards SET status='executing', execution_request_json=$4::jsonb, execution_id=$5, trace_id=$6, idempotency_key=$7, execution_started_at=$8, admission_inventory_revision=$9, admission_server_revision=$10, admission_server_generation=$11, admission_lease_id=$12, admission_lease_revision=$13, admission_resource_generation_id=$14::uuid, execution_admission_digest=$15, updated_at=now() WHERE tenant_id=$1 AND owner_subject_id=$2 AND id=$3 AND status=$16 RETURNING `+governedCardColumns, input.TenantID, input.OwnerSubjectID, input.CardID, requestJSON, input.ExecutionID, input.TraceID, input.IdempotencyKey, input.Now, admission.InventoryRevision, admission.ServerRevision, admission.ServerGeneration, admission.LifecycleAuthorityID, admission.LifecycleRevision, admission.LifecycleGenerationID, admission.Digest, statusBefore))
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrCardConflict
 		}
@@ -460,7 +640,14 @@ func (s *PostgresAuthority) Begin(ctx context.Context, input BeginExecution) (Be
 			return err
 		}
 		if gatewayApproval != nil {
-			if _, err = tx.ExecContext(ctx, `UPDATE ril_action_cards SET issued_lease_ciphertext=$4,issued_lease_expires_at=$5 WHERE tenant_id=$1 AND id=$2 AND execution_id=$3`, input.TenantID, input.CardID, input.ExecutionID, sealed, request.ValidUntil); err != nil {
+			// The Gateway approval (receipt and Decision id) is persisted with
+			// the execution so the typed step receipt carries the AI Platform
+			// approval it ran under.
+			approvalJSON, marshalErr := json.Marshal(gatewayApproval)
+			if marshalErr != nil {
+				return marshalErr
+			}
+			if _, err = tx.ExecContext(ctx, `UPDATE ril_action_cards SET issued_lease_ciphertext=$4,issued_lease_expires_at=$5,approval_json=$6::jsonb WHERE tenant_id=$1 AND id=$2 AND execution_id=$3`, input.TenantID, input.CardID, input.ExecutionID, sealed, request.ValidUntil, approvalJSON); err != nil {
 				return err
 			}
 		}
@@ -650,8 +837,8 @@ func scanGovernedCard(row scanner) (*GovernedCard, error) {
 		c.ExecutionAdmission = &ExecutionAdmission{
 			InventoryRevision: admissionInventoryRevision.Int64,
 			ServerRevision:    admissionServerRevision.Int64, ServerGeneration: admissionServerGeneration.Int64,
-			LeaseID:       admissionLeaseID,
-			LeaseRevision: uint64(admissionLeaseRevision.Int64), ResourceGenerationID: admissionGenerationID,
+			LifecycleAuthorityID: admissionLeaseID,
+			LifecycleRevision:    admissionLeaseRevision.Int64, LifecycleGenerationID: admissionGenerationID,
 			Digest: admissionDigest,
 		}
 	}
@@ -661,12 +848,12 @@ func (s *PostgresAuthority) withTenant(ctx context.Context, tenantID string, fn 
 	if s == nil || s.db == nil {
 		return fmt.Errorf("ril actions: database not configured")
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := tenantcontext.Database(ctx, s.db).BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-	if _, err = tx.ExecContext(ctx, "SELECT set_config('app.tenant_id', $1, true)", strings.TrimSpace(tenantID)); err != nil {
+	if err = tenantcontext.ApplyTenant(ctx, tx, strings.TrimSpace(tenantID)); err != nil {
 		return err
 	}
 	if err = fn(tx); err != nil {

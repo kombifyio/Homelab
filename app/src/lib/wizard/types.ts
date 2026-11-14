@@ -23,6 +23,16 @@ import type { HouseholdDraft } from "./household-draft";
 import type { WizardIntent } from "#lib/api/wizardRuns.js";
 
 /**
+ * One use case's access decision while it is edited: a selected audience may
+ * still have no person; the run request refuses that with a message.
+ */
+export interface UseCaseAccessChoice {
+  mode: "inherit" | "local" | "remote-private";
+  audience?: "owner" | "household" | "selected";
+  person_refs?: string[];
+}
+
+/**
  * Authentication method configuration
  */
 export interface AuthConfig {
@@ -341,6 +351,13 @@ export interface StackConfig {
    * draft. Executable selection is separate; these answers never execute.
    */
   useCaseSetupAnswers?: Record<string, Record<string, string[]>>;
+  /**
+   * Reach and people per use case, set only by a deliberate change. Absent:
+   * the homelab default and any saved decision stay; `inherit` withdraws a
+   * saved decision. Desired only: the backend saves it and blocks until the
+   * node can enforce it.
+   */
+  useCaseAccess?: Record<string, UseCaseAccessChoice>;
   services: ServicesConfig;
 
   // Access & Network

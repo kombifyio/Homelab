@@ -13,6 +13,13 @@ export const appVersion = __APP_VERSION__;
 export const appCommit: string =
   typeof __APP_COMMIT__ !== "undefined" && __APP_COMMIT__ ? __APP_COMMIT__ : "";
 
+// Release identity on analytics events: the full 40-character build SHA, the
+// same value Cloud and the Blog send as `app_version`; the SemVer only in a
+// build without a verified revision (local development).
+export const analyticsRelease: string = /^[0-9a-f]{40}$/.test(appCommit)
+  ? appCommit
+  : appVersion;
+
 export const appBuildTime: string =
   typeof __APP_BUILD_TIME__ !== "undefined" && __APP_BUILD_TIME__
     ? __APP_BUILD_TIME__

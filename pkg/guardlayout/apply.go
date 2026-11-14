@@ -73,6 +73,11 @@ type Options struct {
 	VerifyExecutor func(ctx context.Context, socket string) error
 	// NotifyReady is whether this binary signals readiness to systemd.
 	NotifyReady bool
+	// PowerEnabled admits the UPS-aware ordered shutdown on the executor.
+	PowerEnabled bool
+	// PowerServices and PowerStorageUnits are the root-owned admission lists.
+	PowerServices     []string
+	PowerStorageUnits []string
 	// Activate restarts the daemon onto the new layout. A migration of a
 	// running Guard instead defers to a supervised trial.
 	Activate bool
@@ -177,7 +182,8 @@ func Apply(ctx context.Context, opts Options) (Result, error) {
 	}
 	params := UnitParams{
 		BinaryPath: opts.BinaryPath, OperationsPath: opts.OperationsPath, GuardUser: opts.GuardUser,
-		SocketPath: opts.SocketPath, NotifyReady: opts.NotifyReady,
+		SocketPath: opts.SocketPath, NotifyReady: opts.NotifyReady, PowerEnabled: opts.PowerEnabled,
+		PowerServices: opts.PowerServices, PowerStorageUnits: opts.PowerStorageUnits,
 	}
 	if err := ensureUser(ctx, &opts); err != nil {
 		return result, err

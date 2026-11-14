@@ -14,6 +14,7 @@
   } from "@kombiverselabs/ui/service";
   import BrandLogoIcon from "#lib/components/BrandLogoIcon.svelte";
   import BrandLogoScope from "#lib/components/BrandLogoScope.svelte";
+  import { serviceCardLabels } from "#lib/service-card-adapter.js";
 
   export interface ServiceListItem extends ServiceCardActions {
     id: string;
@@ -56,6 +57,8 @@
     version?: string;
     /** Measured available update; renders the update strip. */
     update?: ServiceUpdate;
+    /** Card class of the strip tone, e.g. kf-update-security. */
+    updateClass?: string;
     /** Owner guardrail engaged on the whole item. */
     locked?: boolean;
     lockedReason?: string;
@@ -111,6 +114,8 @@
     logoSrc: item.logoSrc,
     version: item.version,
     update: item.update,
+    class: item.updateClass,
+    labels: serviceCardLabels(),
     locked: item.locked,
     lockedReason: item.lockedReason,
     placement: item.placement,
@@ -229,7 +234,7 @@
             )}
             {@const normalItems = group.items.filter((item) => !item.attention)}
             {#if attentionItems.length > 0}
-              <div class="mb-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div class="mb-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {#each attentionItems as item (item.id)}
                   {@render detailedCard(item)}
                 {/each}
@@ -237,7 +242,7 @@
             {/if}
             {#if normalItems.length > 0}
               <div
-                class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
+                class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
               >
                 {#each normalItems as item (item.id)}
                   {@render compactCard(item)}
@@ -246,9 +251,11 @@
             {/if}
           {:else}
             <!-- Up to four tiles side by side on wide screens; the tiles stay
-                 compact instead of stretching (operator direction 2026-08-19). -->
+                 compact instead of stretching (operator direction 2026-08-19).
+                 `grid-cols-1` (a minmax(0, 1fr) track) keeps a long status
+                 chip from widening the single phone column past the screen. -->
             <div
-              class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+              class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
             >
               {#each group.items as item (item.id)}
                 {@render detailedCard(item)}

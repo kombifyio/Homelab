@@ -108,7 +108,35 @@ func (s *MemoryStore) SoftDeleteStack(_ context.Context, tenantID, stackID strin
 	stack.UpdatedAt = now
 	stack.Status = "stopped"
 	s.stacks[stackID] = stack
+	s.releaseDeletedStackBindingsLocked(tenantID, stackID)
 	return nil
+}
+
+func (s *MemoryStore) releaseDeletedStackBindingsLocked(tenantID, stackID string) {
+	for id, server := range s.servers {
+		if server.TenantID == tenantID && server.StackID == stackID {
+			server.StackID = ""
+			server.Revision++
+			server.UpdatedAt = s.now()
+			server.Metadata = cloneMap(server.Metadata)
+			delete(server.Metadata, "spec_node_id")
+			s.servers[id] = server
+		}
+	}
+	for id, worker := range s.worker {
+		if worker.TenantID == tenantID && worker.StackID == stackID {
+			worker.StackID = ""
+			worker.UpdatedAt = s.now()
+			s.worker[id] = worker
+		}
+	}
+	for id, node := range s.nodes {
+		if node.TenantID == tenantID && node.StackID == stackID {
+			node.StackID = ""
+			node.UpdatedAt = s.now()
+			s.nodes[id] = node
+		}
+	}
 }
 
 func (s *MemoryStore) UpdateStackRuntime(_ context.Context, tenantID, stackID string, runtime RuntimeUpdate) (*Stack, error) {

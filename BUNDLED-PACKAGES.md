@@ -7,15 +7,17 @@ ships, so versions and rows match this release.
 
 | Bundled package | Version | License in this distribution |
 | --- | --- | --- |
-| `internal/gocommon` | `v0.8.10` | Apache-2.0; see `internal/gocommon/LICENSE` |
-| `@kombiverselabs/ai-sdk` | `0.15.0` | MIT; see `BUNDLED-MIT-LICENSE.txt` |
-| `@kombiverselabs/cloud-notifications` | `0.4.4` | MIT; see `BUNDLED-MIT-LICENSE.txt` |
-| `@kombiverselabs/design` | `0.11.5` | No license field; see the note below |
-| `@kombiverselabs/embed` | `0.15.0` | MIT; see `BUNDLED-MIT-LICENSE.txt` |
-| `@kombiverselabs/execution-contracts` | `0.15.0` | MIT; see `BUNDLED-MIT-LICENSE.txt` |
-| `@kombiverselabs/onboarding-core` | `0.11.5` | MIT; see `BUNDLED-MIT-LICENSE.txt` |
-| `@kombiverselabs/speechkit-voiceagent-client` | `0.77.19` | Apache-2.0; see `package/LICENSE` inside the tarball |
-| `@kombiverselabs/ui` | `0.11.5` | MIT; see `BUNDLED-MIT-LICENSE.txt` |
+| `internal/gocommon` | `v0.8.14-0.20261108151234-720a4e553d49` | Apache-2.0; see `internal/gocommon/LICENSE` |
+| `@kombiverselabs/ai-sdk` | `0.16.6` | MIT; see `BUNDLED-MIT-LICENSE.txt` |
+| `@kombiverselabs/cloud-notifications` | `0.5.0` | MIT; see `BUNDLED-MIT-LICENSE.txt` |
+| `@kombiverselabs/design` | `0.11.17` | No license field; see the note below |
+| `@kombiverselabs/embed` | `0.16.6` | MIT; see `BUNDLED-MIT-LICENSE.txt` |
+| `@kombiverselabs/execution-contracts` | `0.16.6` | MIT; see `BUNDLED-MIT-LICENSE.txt` |
+| `@kombiverselabs/observability` | `0.76.17` | MIT; see `package/LICENSE` inside the tarball |
+| `@kombiverselabs/onboarding-core` | `0.11.17` | MIT; see `BUNDLED-MIT-LICENSE.txt` |
+| `@kombiverselabs/speechkit-voiceagent-client` | `0.79.13` | Apache-2.0; see `package/LICENSE` inside the tarball |
+| `@kombiverselabs/tsconfig` | `0.1.1` | MIT; see `package/LICENSE` inside the tarball |
+| `@kombiverselabs/ui` | `0.11.17` | MIT; see `BUNDLED-MIT-LICENSE.txt` |
 
 The MIT packages declare `MIT` in their bundled `package.json` and ship no
 license file; their terms are in `BUNDLED-MIT-LICENSE.txt`. A package whose

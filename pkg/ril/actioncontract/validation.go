@@ -174,7 +174,7 @@ func validateApproval(binding ApprovalBinding) error {
 	if binding.Decision != "approved" {
 		return invalid("approval.decision", "must be approved")
 	}
-	if binding.Class != ApprovalClassOwnerStepUp && binding.Class != ApprovalClassBreakGlass {
+	if binding.Class != ApprovalClassOwnerStepUp && binding.Class != ApprovalClassBreakGlass && binding.Class != ApprovalClassAgentEquipment {
 		return invalid("approval.class", "is unsupported")
 	}
 	approvedAt, err := parseTimestamp("approval.approved_at", binding.ApprovedAt)

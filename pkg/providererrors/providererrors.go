@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"regexp"
 	"strings"
+
+	"github.com/kombifyio/techstack/internal/providercatalog"
 )
 
 const (
@@ -22,8 +24,29 @@ const (
 
 var (
 	providerCodePattern = regexp.MustCompile(`\b[A-Z][A-Z0-9]+-\d+(?:-\d+)+\b`)
-	providerPattern     = regexp.MustCompile(`(?i)\b(ionos|centron)-managed\b`)
+	providerPattern     = regexp.MustCompile(`(?i)\b(` + strings.Join(quotedProviderIDs(), "|") + `)` +
+		regexp.QuoteMeta(providercatalog.CompositeProviderSuffix) + `\b`)
 )
+
+func quotedProviderIDs() []string {
+	ids := providercatalog.ManagedProviderIDs()
+	for index, id := range ids {
+		ids[index] = regexp.QuoteMeta(id)
+	}
+	return ids
+}
+
+// knownMessagePrefixes are the wrappers adapters and the legacy enroll path put
+// in front of a provider message, for every accepted provider.
+func knownMessagePrefixes() []string {
+	prefixes := []string{"simulate enroll returned"}
+	for _, id := range providercatalog.ManagedProviderIDs() {
+		prefixes = append(prefixes,
+			"create "+id+providercatalog.CompositeProviderSuffix+" node:",
+			id+" create server request failed:")
+	}
+	return prefixes
+}
 
 type Info struct {
 	Provider  string
@@ -147,13 +170,7 @@ func stripKnownPrefixes(message string) string {
 	message = strings.TrimSpace(message)
 	for {
 		before := message
-		for _, marker := range []string{
-			"simulate enroll returned",
-			"create ionos-managed node:",
-			"create centron-managed node:",
-			"ionos create server request failed:",
-			"centron create server request failed:",
-		} {
+		for _, marker := range knownMessagePrefixes() {
 			message = stripPrefixCaseInsensitive(message, marker)
 		}
 		if message == before {
@@ -184,14 +201,12 @@ func providerFromMessage(message string) string {
 		return match
 	}
 	lower := strings.ToLower(message)
-	switch {
-	case strings.Contains(lower, "ionos"):
-		return "ionos-managed"
-	case strings.Contains(lower, "centron"):
-		return "centron-managed"
-	default:
-		return ""
+	for _, id := range providercatalog.ManagedProviderIDs() {
+		if strings.Contains(lower, id) {
+			return id + providercatalog.CompositeProviderSuffix
+		}
 	}
+	return ""
 }
 
 func containsAny(value string, needles ...string) bool {

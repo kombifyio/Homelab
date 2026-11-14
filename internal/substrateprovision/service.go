@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
 	"strconv"
 	"strings"
 	"time"
@@ -49,12 +50,12 @@ func (s *Service) Get(ctx context.Context, tenantID, ownerID, leaseID string) (R
 	if s == nil || s.db == nil || tenantID == "" || ownerID == "" || leaseID == "" {
 		return Result{}, providercontrol.ErrInvalidRequest
 	}
-	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	tx, err := tenantcontext.Database(ctx, s.db).BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return Result{}, err
 	}
 	defer tx.Rollback()
-	if _, err := tx.ExecContext(ctx, `SELECT set_config('app.tenant_id',$1,true)`, tenantID); err != nil {
+	if err := tenantcontext.ApplyTenant(ctx, tx, tenantID); err != nil {
 		return Result{}, err
 	}
 	var result Result
@@ -84,7 +85,7 @@ func (s *Service) Prepare(ctx context.Context, r Request) (Result, error) {
 	leaseID := "substrate-" + hex.EncodeToString(identity[:20])
 	// The lock spans the separate native admission transaction. It selects only
 	// a free slot; the native database unique constraint remains the final fence.
-	conn, err := s.db.Conn(ctx)
+	conn, err := tenantcontext.Database(ctx, s.db).Conn(ctx)
 	if err != nil {
 		return Result{}, err
 	}
@@ -108,7 +109,7 @@ func (s *Service) Prepare(ctx context.Context, r Request) (Result, error) {
 		return Result{}, err
 	}
 	defer tx.Rollback()
-	if _, err = tx.ExecContext(ctx, `SELECT set_config('app.tenant_id',$1,true)`, r.TenantID); err != nil {
+	if err = tenantcontext.ApplyTenant(ctx, tx, r.TenantID); err != nil {
 		return Result{}, err
 	}
 	var allowed bool

@@ -50,6 +50,10 @@ func project(seed map[string]any, intent WizardIntent, homelabID string) (*Proje
 	return NewReleaseProjector(releaseGoalAuthorFixture{}).Project(context.Background(), seed, intent, homelabID)
 }
 
+// seedTemplateDomain stands for the usable placeholder a release-authored
+// Cloud or Modern seed carries; a new deployment must never inherit it.
+const seedTemplateDomain = "template.smoke.stackkit.cc"
+
 func TestProjectFoundDomainIntent(t *testing.T) {
 	for _, tc := range []struct {
 		name, kit, access, requested, want string
@@ -60,13 +64,15 @@ func TestProjectFoundDomainIntent(t *testing.T) {
 		{name: "own VPS custom", kit: KitSlugCloud, access: AccessModeRemotePrivate, requested: "cloud.example.com", want: "cloud.example.com"},
 		{name: "hybrid custom", kit: KitSlugModern, access: AccessModeRemotePrivate, requested: "hybrid.example.com", want: "hybrid.example.com"},
 		{name: "remote without address", kit: KitSlugCloud, access: AccessModeRemotePrivate, wantError: true},
+		{name: "hybrid without address", kit: KitSlugModern, access: AccessModeRemotePrivate, wantError: true},
+		{name: "remote Basement without address", kit: KitSlugBasement, access: AccessModeRemotePrivate, wantError: true},
 		{name: "reserved address", kit: KitSlugBasement, access: AccessModeLocal, requested: "TEMPLATE.INVALID.", wantError: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			seed := basementSeed()
 			seed["kit"] = map[string]any{"slug": tc.kit}
 			seedDomainConsumers(seed, tc.kit)
-			seed["network"] = map[string]any{"domain": map[string]any{"base": "template.invalid"}}
+			seed["network"] = map[string]any{"domain": map[string]any{"base": seedTemplateDomain}}
 			intent := foundIntent("my-homelab")
 			intent.KitAssignment.KitSlug = tc.kit
 			intent.Server.Transport = TransportInstallCommand
@@ -90,8 +96,8 @@ func TestProjectFoundDomainIntent(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if strings.Contains(string(serialized), ".invalid") {
-				t.Fatalf("projected deployment retains an unusable endpoint: %s", serialized)
+			if strings.Contains(string(serialized), seedTemplateDomain) {
+				t.Fatalf("projected deployment inherits the seed's template address: %s", serialized)
 			}
 			if tc.kit == KitSlugCloud {
 				for _, raw := range projection.Spec["routes"].(map[string]any) {
@@ -107,21 +113,22 @@ func TestProjectFoundDomainIntent(t *testing.T) {
 					t.Fatalf("incorrect publication: %v", publication)
 				}
 			}
-			if seed["network"].(map[string]any)["domain"].(map[string]any)["base"] != "template.invalid" {
+			if seed["network"].(map[string]any)["domain"].(map[string]any)["base"] != seedTemplateDomain {
 				t.Fatal("projection changed the shared seed")
 			}
 		})
 	}
 }
 
-// Regression: a managed Cloud seed otherwise reaches address plan as an
-// external template.invalid domain and skips the existing allocator/bind.
+// Regression: a managed Cloud seed otherwise reaches address plan with the
+// seed's template domain as an external domain and skips the existing
+// allocator/bind.
 func TestProjectManagedCloudSelectsPlatformAddressing(t *testing.T) {
 	for _, transport := range []string{TransportKombifyCloud, TransportInstallCommand} {
 		seed := basementSeed()
 		seed["kit"] = map[string]any{"slug": KitSlugCloud}
 		seedDomainConsumers(seed, KitSlugCloud)
-		seed["network"] = map[string]any{"domain": map[string]any{"base": "template.invalid"}}
+		seed["network"] = map[string]any{"domain": map[string]any{"base": seedTemplateDomain}}
 		intent := foundIntent("managed-address")
 		intent.KitAssignment.KitSlug = KitSlugCloud
 		intent.Server.Transport = transport
@@ -153,12 +160,12 @@ func seedDomainConsumers(seed map[string]any, kit string) {
 	if kit == KitSlugCloud {
 		routes := map[string]any{}
 		for _, service := range []string{"base", "id", "auth"} {
-			routes["cloud-"+service+"-public"] = map[string]any{"exposure": "public", "serviceRef": service, "host": service + ".template.invalid"}
+			routes["cloud-"+service+"-public"] = map[string]any{"exposure": "public", "serviceRef": service, "host": service + "." + seedTemplateDomain}
 		}
 		seed["routes"] = routes
 	}
 	if kit == KitSlugModern {
-		seed["bridge"] = map[string]any{"publications": []any{map[string]any{"serviceRef": "photos", "host": "photos.template.invalid"}}}
+		seed["bridge"] = map[string]any{"publications": []any{map[string]any{"serviceRef": "photos", "host": "photos." + seedTemplateDomain}}}
 	}
 }
 
@@ -381,6 +388,7 @@ func TestProjectRespectsPreseededWorkloadAndDataBinding(t *testing.T) {
 	seed := modernSeed()
 	intent := foundIntent("Modern", "photos")
 	intent.KitAssignment.KitSlug = "modern-homelab"
+	intent.DomainBase = "modern.example.com"
 	projection, err := project(seed, intent, "hl-9")
 	if err != nil {
 		t.Fatalf("Project: %v", err)
@@ -508,5 +516,42 @@ func TestProjectJoinPlacesServerOnTheRequestedSite(t *testing.T) {
 	intent.Server.SiteRef = "office"
 	if _, err := project(modernSeed(), intent, "hl-1"); err == nil {
 		t.Fatal("a site the kit does not declare must be refused")
+	}
+}
+
+// The Builder prefill uses existing wizard goals. Projection must pass each
+// goal to release authoring and retain a workload or an explicit unmapped goal.
+type recordingBuilderGoalAuthor struct {
+	selection GoalSelection
+}
+
+func (a *recordingBuilderGoalAuthor) AuthorGoals(ctx context.Context, kit, name, domain, version string, selection GoalSelection) (GoalAuthoring, error) {
+	a.selection = selection
+	return (releaseGoalAuthorFixture{}).AuthorGoals(ctx, kit, name, domain, version, selection)
+}
+
+func TestBuilderWizardGoalsReachReleaseAuthor(t *testing.T) {
+	for _, goal := range []string{"photos", "media", "files", "vault", "smart-home", "game", "mail", "ai", "dev"} {
+		t.Run(goal, func(t *testing.T) {
+			author := &recordingBuilderGoalAuthor{}
+			projector := NewReleaseProjector(author)
+			projector.catalog = nil
+			projection, err := projector.Project(context.Background(), basementSeed(), foundIntent("Builder", goal), "hl-builder")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(author.selection.Goals) != 1 || author.selection.Goals[0] != goal {
+				t.Fatalf("release selection = %v, want [%s]", author.selection.Goals, goal)
+			}
+			workloads, _ := projection.Spec["workloads"].(map[string]any)
+			_, mapped := workloads[goal]
+			if mapped {
+				if len(projection.UnmappedGoals) != 0 {
+					t.Fatalf("mapped goal reported unmapped: %v", projection.UnmappedGoals)
+				}
+			} else if len(projection.UnmappedGoals) != 1 || projection.UnmappedGoals[0] != goal {
+				t.Fatalf("unmapped goals = %v, want [%s]", projection.UnmappedGoals, goal)
+			}
+		})
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/techstack/internal/gocommon/tenantdb"
 	ksapi "github.com/kombifyio/techstack/pkg/api"
 	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/guardidentity"
@@ -70,7 +71,22 @@ func (h workerRouteHandlers) workerAgentIngress(limit int64) httpx.MiddlewareFun
 		case scheme != "bearer":
 			return unauthenticatedWorkerRequest(e)
 		}
+		h.markAgentSystemWork(e)
 		return bound(e)
+	}
+}
+
+// agentSystemWork runs an agent-only route as system work: these routes never
+// serve an owner, and a Guard carries no Edge-signed database context. The
+// handler still authenticates the agent before any tenant transaction.
+func (h workerRouteHandlers) agentSystemWork(e *httpx.Event) error {
+	h.markAgentSystemWork(e)
+	return e.Next()
+}
+
+func (h workerRouteHandlers) markAgentSystemWork(e *httpx.Event) {
+	if h.systemContext != nil && tenantdb.ContextTokenFromContext(e.Request.Context()) == "" {
+		e.Request = e.Request.WithContext(h.systemContext(e.Request.Context()))
 	}
 }
 

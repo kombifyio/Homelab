@@ -83,10 +83,10 @@
 
     try {
       for (const discovery of discoveries) {
-        for (let i = 0; i < discovery.missingCredentials.length; i++) {
+        for (const [i, credential] of discovery.missingCredentials.entries()) {
           const key = `${discovery.service.id}-${i}`;
           if (selectedCredentials.has(key)) {
-            await addServiceCredentials(discovery.missingCredentials[i]);
+            await addServiceCredentials(credential);
           }
         }
       }

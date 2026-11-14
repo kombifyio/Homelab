@@ -140,7 +140,7 @@
   ] as const);
 
   function latest(points: PromQLPoint[]): number | null {
-    return points.length ? points[points.length - 1].value : null;
+    return points.at(-1)?.value ?? null;
   }
 
   function peak(points: PromQLPoint[]): number | null {
@@ -214,6 +214,7 @@
     let anySucceeded = false;
     results.forEach((result, index) => {
       const panel = PANELS[index];
+      if (!panel) return;
       if (result.status !== "fulfilled") {
         next[panel.id] = [];
         return;

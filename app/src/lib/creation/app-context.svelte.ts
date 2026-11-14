@@ -13,6 +13,7 @@ import {
 import { operatorExperience } from "#lib/stores/operatorExperience.svelte.js";
 import { theme } from "#lib/stores/theme.js";
 import type { CreationContext } from "./context";
+import { loadHomelabAccess } from "./use-case-access";
 
 export function appCreationContext(
   deploymentId: () => string | undefined = () => undefined,
@@ -57,6 +58,7 @@ export function appCreationContext(
     },
     appearance: theme.resolved,
     inventory: { listWorkers },
+    homelabAccess: loadHomelabAccess,
     get deploymentId() {
       return deploymentId();
     },

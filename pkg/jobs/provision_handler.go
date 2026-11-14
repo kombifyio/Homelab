@@ -68,7 +68,7 @@ func ProvisionHandler(cfg *ProvisionConfig) JobHandler {
 		}
 		if err := validateFreshManagedProviderSpec(mapFromInterface(specData), spec); err != nil {
 			return wrapProvisionCause(StepValidate, err,
-				"Select a supported managed provider again. Fresh requests require provider_id centron or ionos; composite provider aliases are not executable.")
+				"Select a supported managed provider again. Fresh requests require a canonical provider_id ("+strings.Join(providercatalog.ManagedProviderIDs(), ", ")+"); composite provider aliases are not executable.")
 		}
 
 		requirementsSpec, err := provisionResolveStackKit(cfg, job, q, spec)
@@ -761,7 +761,7 @@ func provisionCreateManagedLease(ctx context.Context, cfg *ProvisionConfig, job 
 	canonicalProviderID, err := providercatalog.ResolveCanonicalProviderID(providerID, spec.Metadata[metadataKeyProviderID])
 	if err != nil {
 		return wrapProvisionCause(StepCreateLease, fmt.Errorf("invalid managed provider identity: %w", err),
-			"Select provider_id centron or ionos before creating a managed server.")
+			"Select a supported provider_id ("+strings.Join(providercatalog.ManagedProviderIDs(), ", ")+") before creating a managed server.")
 	}
 	if err := providercatalog.ValidateNoLegacyProviderFields(
 		spec.Metadata[metadataKeyLeaseProvider],

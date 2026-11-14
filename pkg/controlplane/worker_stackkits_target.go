@@ -19,13 +19,20 @@ const (
 	StackKitsTargetFailed    = "failed"
 )
 
+// StackKitsTargetSourceFirstRollout marks the target a stack's first rollout
+// records: the node holds no applied deployment, so no plan of an older CLI
+// can break, and the first INIT must run on the release that authored its
+// candidate. An owner-approved governed upgrade records no source.
+const StackKitsTargetSourceFirstRollout = "first_rollout"
+
 // WorkerStackKitsTarget is the owner-approved StackKits release of a node and
 // the outcome of the governed upgrade to it. The runtime bundle endpoint
 // serves a published release to a deployed node only while it is the target
-// of a succeeded upgrade.
+// of a succeeded upgrade, or of the stack's first rollout (Source).
 type WorkerStackKitsTarget struct {
 	Version    string    `json:"version"`
 	Outcome    string    `json:"outcome"`
+	Source     string    `json:"source,omitempty"`
 	ApprovedBy string    `json:"approved_by,omitempty"`
 	JobID      string    `json:"job_id,omitempty"`
 	RecordedAt time.Time `json:"recorded_at"`
@@ -47,6 +54,19 @@ func WorkerStackKitsTargetOf(worker *Worker) (WorkerStackKitsTarget, bool) {
 		return WorkerStackKitsTarget{}, false
 	}
 	return target, true
+}
+
+// WorkerStackKitsTargetServes reports whether the worker's recorded target
+// lets the runtime bundle endpoint serve its node the given release. The
+// endpoint and the command dispatch read this one predicate, so a command
+// never names a release the node is not served.
+func WorkerStackKitsTargetServes(worker *Worker, release string) bool {
+	target, ok := WorkerStackKitsTargetOf(worker)
+	return ok && target.Outcome == StackKitsTargetSucceeded && stackKitsReleaseTag(target.Version) == stackKitsReleaseTag(release)
+}
+
+func stackKitsReleaseTag(version string) string {
+	return "v" + strings.TrimPrefix(strings.TrimSpace(version), "v")
 }
 
 func stackKitsTargetValue(target WorkerStackKitsTarget) (map[string]any, error) {

@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	commonedgeauth "github.com/kombifyio/techstack/internal/gocommon/edgeauth"
 	"github.com/kombifyio/techstack/pkg/identity"
 	"golang.org/x/time/rate"
 )
@@ -117,7 +118,12 @@ func RequestRateLimitKey(r *http.Request) string {
 			return key
 		}
 		if service := strings.TrimSpace(r.Header.Get(headerEdgeService)); service != "" {
-			return "edge:service:" + service
+			// A service acting for someone is limited per principal it acts
+			// for; one bucket per service throttled every user it serves.
+			if principal := edgeActingPrincipal(r); principal != "" {
+				return "edge:service:" + service + ":" + principal
+			}
+			return SharedServiceRateLimitPrefix + service
 		}
 	}
 
@@ -126,6 +132,36 @@ func RequestRateLimitKey(r *http.Request) string {
 	}
 
 	return "ip:" + strings.TrimSpace(ExtractClientIP(r))
+}
+
+// SharedServiceRateLimitPrefix starts the key of edge-service traffic that
+// names no principal: all of it shares one bucket, which is sized for platform
+// load rather than for one person.
+const SharedServiceRateLimitPrefix = "edge:service:"
+
+// IsSharedServiceRateLimitKey reports whether key is one shared service bucket.
+func IsSharedServiceRateLimitKey(key string) bool {
+	rest, found := strings.CutPrefix(key, SharedServiceRateLimitPrefix)
+	return found && !strings.Contains(rest, ":")
+}
+
+// edgeActingPrincipal names the principal an edge-authenticated service call
+// acts for, from the edge-set headers: an attested agent, the Gateway-selected
+// resource scope, or the OAuth client. Empty when the call names none.
+func edgeActingPrincipal(r *http.Request) string {
+	for _, candidate := range []struct{ kind, header string }{
+		{"agent", commonedgeauth.HeaderAgentID},
+		{"scope", commonedgeauth.HeaderResourceScope},
+		{"client", commonedgeauth.HeaderClientID},
+	} {
+		if value := strings.TrimSpace(r.Header.Get(candidate.header)); value != "" {
+			if len(value) > 128 {
+				value = value[:128]
+			}
+			return candidate.kind + ":" + value
+		}
+	}
+	return ""
 }
 
 func identityRateLimitKey(prefix string, id *identity.Identity) string {

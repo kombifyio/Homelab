@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/kombifyio/techstack/internal/gocommon/edgeauth"
 	"github.com/kombifyio/techstack/pkg/logger"
 	"github.com/kombifyio/techstack/pkg/providererrors"
 	"github.com/kombifyio/techstack/pkg/releasechannel"
@@ -121,6 +122,7 @@ type Job struct {
 	// credentials are resolved again after restart or across process boundaries.
 	managedRuntimeTarget  *ManagedRuntimeTarget     `json:"-"`
 	requestAuthority      *requestAuthoritySnapshot `json:"-"`
+	flagDecisions         *edgeauth.FlagSet         `json:"-"`
 	suppressPersistence   bool                      `json:"-"`
 	executionClaimPending bool                      `json:"-"`
 	// H5: Per-job cancellation support
@@ -194,7 +196,16 @@ type jobTargetExecution struct {
 
 // NewQueue creates a new job queue.
 func NewQueue(workers int, log *logger.Logger) *Queue {
-	ctx, cancel := context.WithCancel(context.Background())
+	return NewQueueContext(context.Background(), workers, log)
+}
+
+// NewQueueContext is NewQueue whose job contexts carry base's values, such as
+// the hosted system database route. Only Stop cancels the queue.
+func NewQueueContext(base context.Context, workers int, log *logger.Logger) *Queue {
+	if base == nil {
+		base = context.Background()
+	}
+	ctx, cancel := context.WithCancel(context.WithoutCancel(base))
 	q := &Queue{
 		jobs:             make(map[string]*Job),
 		pending:          make(chan *Job, 1000),

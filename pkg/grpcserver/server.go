@@ -46,6 +46,7 @@ type Server struct {
 
 	addr             string
 	tlsConfig        *tls.Config
+	requestContext   func(context.Context) context.Context
 	log              *logger.Logger
 	readTimeout      time.Duration
 	heartbeatTimeout time.Duration
@@ -203,6 +204,9 @@ type Config struct {
 	RuntimeLogPath string
 	// RuntimeLogMaxEntries is the in-memory query buffer size for runtime logs.
 	RuntimeLogMaxEntries int
+	// RequestContext derives every RPC context, such as the hosted system
+	// database route: agents never carry an Edge-signed user context.
+	RequestContext func(context.Context) context.Context
 }
 
 // New creates the Guard gRPC server. Durable typed commands for the SaaS
@@ -281,6 +285,7 @@ func newServer(cfg Config, log *logger.Logger) (*Server, error) {
 
 	return &Server{
 		addr:                 cfg.ListenAddr,
+		requestContext:       cfg.RequestContext,
 		tlsConfig:            tlsConfig,
 		log:                  serverLog,
 		readTimeout:          readTimeout,
@@ -369,6 +374,14 @@ func loadTLSConfig(cfg Config) (*tls.Config, error) {
 	})
 }
 
+// derivedServerStream carries the derived RPC context into stream handlers.
+type derivedServerStream struct {
+	grpc.ServerStream
+	ctx context.Context
+}
+
+func (s derivedServerStream) Context() context.Context { return s.ctx }
+
 // Start starts the gRPC server.
 func (s *Server) Start(ctx context.Context) error {
 	var listener net.Listener
@@ -394,6 +407,17 @@ func (s *Server) Start(ctx context.Context) error {
 
 	s.listener = listener
 	s.running = true
+
+	if derive := s.requestContext; derive != nil {
+		opts = append(opts,
+			grpc.ChainUnaryInterceptor(func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+				return handler(derive(ctx), req)
+			}),
+			grpc.ChainStreamInterceptor(func(srv any, stream grpc.ServerStream, _ *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+				return handler(srv, derivedServerStream{ServerStream: stream, ctx: derive(stream.Context())})
+			}),
+		)
+	}
 
 	// Create gRPC server with options
 	s.grpcServer = grpc.NewServer(opts...)

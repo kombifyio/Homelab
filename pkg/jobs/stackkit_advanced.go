@@ -11,6 +11,7 @@ import (
 	"github.com/kombifyio/techstack/internal/runtimeproduct/runtimeaction"
 	"github.com/kombifyio/techstack/internal/stackkitrelease"
 	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/techstack/pkg/auth/stackkitdecision"
 	"github.com/kombifyio/techstack/pkg/stackkitcommand"
 )
 
@@ -333,9 +334,35 @@ func runAdvancedStackKitLifecycle(ctx context.Context, cfg StackKitLifecycleConf
 		if len(steps) > 1 {
 			commandID = jobID + "-" + step
 		}
+		receipt := ""
+		if step == stackKitStepChangeSetApply && request.Operation == StackKitLifecycleAdvancedChangeSet && decisionReceiptRequired(request) {
+			// The apply is the destructive step: nothing reaches it before a
+			// checked allowed receipt binds exactly the change set the create
+			// stored, its digest, the revision and the acting principal.
+			track := cfg.decisionTrack
+			if track.jobID == "" {
+				track = decisionTracker{jobID: jobID}
+			}
+			if capability.ExpiresAt.IsZero() {
+				summary["success"] = false
+				return summary, decisionRefused("refused", "stackkit_decision_window_too_short", "", "the Advanced capability names no expiry, so the wait for the Owner cannot be bounded")
+			}
+			track.notAfter = capability.ExpiresAt
+			admittedReceipt, decisionErr := requireDecisionReceipt(ctx, cfg, track, request, release, func(serverID string, principal stackkitdecision.Principal) (stackkitdecision.Facts, error) {
+				return changeSetApplyDecisionFacts(serverID, created.ChangeSetID, created.ChangeSetSHA256, created.WorkspaceRevision, principal)
+			})
+			if decisionErr != nil {
+				summary["success"] = false
+				return summary, decisionErr
+			}
+			receipt = admittedReceipt.Compact
+		}
 		admitted, normalized, stepErr := dispatcher.dispatch(ctx, commandID, step, capability, func(command *agentpb.StackKitCommand) {
 			if index > 0 {
 				command.ChangeSetId, command.ChangeSetSha256 = created.ChangeSetID, created.ChangeSetSHA256
+			}
+			if receipt != "" && command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_CHANGE_SET_APPLY {
+				command.DecisionReceipt, command.DecisionPrincipal = receipt, request.DecisionPrincipal
 			}
 		})
 		if normalized != nil {
@@ -427,6 +454,7 @@ func runAdvancedStackKitLifecycleJob(ctx context.Context, cfg StackKitLifecycleC
 		commandScope = fmt.Sprintf("%s-a%d", job.ID, job.Attempts)
 		job.mu.RUnlock()
 	}
+	cfg.decisionTrack = jobDecisionTracker(job, q)
 	summary, err := runAdvancedStackKitLifecycle(ctx, cfg, release, commandScope, req)
 	if summary != nil {
 		if managedAdmission != nil {

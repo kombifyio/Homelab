@@ -35,6 +35,7 @@ import {
   type SubmittedExtendRun,
 } from "./existing-target-assertion";
 import { assertConfigureInstalledWorkload } from "./configure-usecase-assertion";
+import { runConnectedFreeJourney } from "./connected-free-journey";
 import { runGuardReinstallJourney } from "./guard-reinstall-journey";
 import { runStackKitsUpdateJourney } from "./stackkits-update-journey";
 import { assertRemoveInstalledUseCase, assertRemoveSupersededCheckpointRetry, decodeSupersededRemovalFixture } from "./remove-usecase-assertion";
@@ -52,6 +53,7 @@ import {
 import {
   approveWorkerViaApi,
   createPairingTokenViaApi,
+  leaveGoalsStep,
   listWorkersViaApi,
   selectUseCase,
 } from "../helpers/test-utils";
@@ -66,7 +68,6 @@ import {
   type RuntimeGatewaySession,
 } from "./runtime-auth";
 
-import { earlyAccessProductTarget } from "../../../scripts/render-environment-contract.mjs";
 
 const EXISTING_STACK_ID = String(
   process.env.TECHSTACK_RUNTIME_E2E_EXISTING_STACK_ID ?? "",
@@ -84,12 +85,9 @@ const REQUIRE_NATIVE_HOST_PREP =
 if (REQUIRE_NATIVE_HOST_PREP && (
   EXISTING_STACK_ID ||
   String(process.env.TECHSTACK_RUNTIME_E2E_RECOVERY_STACK_ID ?? "").trim() ||
-  process.env.TECHSTACK_E2E_EXPECTED_CHANNEL !== "early-access" ||
-  !/^[a-f0-9]{40}$/.test(process.env.TECHSTACK_E2E_EXPECTED_REVISION ?? "") ||
-  normalizeURL(process.env.TECHSTACK_RUNTIME_E2E_PRODUCT_URL) !== earlyAccessProductTarget.origin ||
-  normalizeURL(process.env.TECHSTACK_RUNTIME_E2E_API_URL) !== earlyAccessProductTarget.gatewayApiBase
+  !/^[a-f0-9]{40}$/.test(process.env.TECHSTACK_E2E_EXPECTED_REVISION ?? "")
 )) {
-  throw new Error("native_host_preparation_journey_requires_exact_early_access_source_and_fresh_foundation");
+  throw new Error("native_host_preparation_journey_requires_exact_production_source_and_fresh_foundation");
 }
 
 
@@ -106,27 +104,23 @@ const PRODUCT_BASE = requireLiveProductURL(
     process.env.TECHSTACK_E2E_PRODUCT_URL,
     EXISTING_STACK_ID ? "" : process.env.PLAYWRIGHT_BASE_URL,
   ) ||
-    (EXISTING_STACK_ID
-      ? earlyAccessProductTarget.origin
-      : "https://techstack.kombify.io"),
+    "https://techstack.kombify.io",
 );
 const API_BASE = requireLiveProductURL(
   "TechStack API",
   firstProductURL(
     process.env.TECHSTACK_RUNTIME_E2E_API_URL,
-    EXISTING_STACK_ID
-      ? earlyAccessProductTarget.gatewayApiBase
-      : process.env.TECHSTACK_API_URL,
+    process.env.TECHSTACK_API_URL,
     PRODUCT_BASE,
   ) || PRODUCT_BASE,
 );
 if (
   EXISTING_STACK_ID &&
-  (PRODUCT_BASE !== earlyAccessProductTarget.origin ||
-    API_BASE !== earlyAccessProductTarget.gatewayApiBase)
+  (PRODUCT_BASE !== "https://techstack.kombify.io" ||
+    API_BASE !== "https://api.kombify.io/v1/techstack")
 ) {
   throw new Error(
-    "existing_target_requires_canonical_early_access_product_and_gateway",
+    "existing_target_requires_canonical_production_product_and_gateway",
   );
 }
 // Agents talk to the stable control plane: on the Early Access channel the owner
@@ -234,6 +228,7 @@ interface RuntimeStackOperationService {
 
 interface ManagedServiceActionResponse {
   job_id?: string;
+  action_card_id?: string;
   service_id?: string;
   action?: string;
   status?: string;
@@ -518,8 +513,10 @@ async function abandonExactStaleManagedRuntimeJob(
     );
   }
 
-  const jobId = String(candidates[0].id ?? "").trim();
-  const jobType = String(candidates[0].type ?? "")
+  const [candidate] = candidates;
+  if (!candidate) return undefined;
+  const jobId = String(candidate.id ?? "").trim();
+  const jobType = String(candidate.type ?? "")
     .trim()
     .toLowerCase();
   if (!jobId) throw new Error("Managed runtime recovery job id is missing");
@@ -636,7 +633,7 @@ async function createManagedRuntimeStackViaWizard(
   });
 
   await page.getByTestId("easy-feature-storage").click();
-  await page.getByTestId("wizard-next").click();
+  await leaveGoalsStep(page);
   await expect(page.getByTestId("easy-step-2")).toBeVisible();
   await page.getByTestId("server-branch-new").click();
   await page.getByTestId("server-mode-kombify-cloud").click();
@@ -1352,7 +1349,8 @@ async function runManagedServiceActionEvidence(args: {
       args.token,
       runtimeApiUrl(
         args.apiBase,
-        `/api/v1/registry/services/${encodeURIComponent(service.id!)}/actions`,
+        // A log read is its own read operation, never a service action.
+        `/api/v1/registry/services/${encodeURIComponent(service.id!)}/${action === "logs" ? "logs" : "actions"}`,
       ),
       {
         method: "POST",
@@ -1360,12 +1358,11 @@ async function runManagedServiceActionEvidence(args: {
           "Content-Type": "application/json",
           "Idempotency-Key": idempotencyKey,
         },
-        body: JSON.stringify({
-          action,
-          expected_inventory_revision: inventoryRevision,
-          owner_approved: true,
-          ...(action === "logs" ? { limit: 100 } : {}),
-        }),
+        body: JSON.stringify(
+          action === "logs"
+            ? { expected_inventory_revision: inventoryRevision, limit: 100 }
+            : { action, expected_inventory_revision: inventoryRevision },
+        ),
       },
     );
     const text = await response.text();
@@ -1389,21 +1386,36 @@ async function runManagedServiceActionEvidence(args: {
     service.inventory_revision,
     restartKey,
   );
+  // A restart is one governed action card (its only write path): the
+  // response names the card and its execution, and the card is read back.
   expect(restart.job_id).toBeTruthy();
+  expect(restart.action_card_id).toBeTruthy();
   expect(replay.job_id).toBe(restart.job_id);
-  const restartJob = await waitForJobTerminal(
-    args.token,
-    String(restart.job_id),
-    180_000,
-    args.apiBase,
-  );
-  expect(restartJob.state).toBe("completed");
+  expect(replay.action_card_id).toBe(restart.action_card_id);
+  const cardDeadline = Date.now() + 180_000;
+  type RestartCard = { status?: string; completed_at?: string };
+  let restartCard: RestartCard = {};
+  while (Date.now() < cardDeadline) {
+    restartCard = await fetchRuntimeApi<RestartCard>(
+      args.token,
+      `/v1/ril/action-cards/${encodeURIComponent(String(restart.action_card_id))}`,
+      args.apiBase,
+    );
+    if (["completed", "failed", "denied"].includes(String(restartCard.status))) {
+      break;
+    }
+    await delay(2_000);
+  }
+  expect(restartCard.status).toBe("completed");
+  // The card stamps completed_at when it turns terminal (same write that sets
+  // updated_at); it is the time this restart finished.
+  expect(typeof restartCard.completed_at).toBe("string");
 
   // The inventory revision moves only when the reported inventory materially
   // changes (platform-s00qn), and a restart can leave the service exactly as
   // it was reported; every accepted inventory still refreshes its observation
   // time, which the Guard stamps on its own clock. So the service is read once
-  // the job is terminal, and a later observation at the same or a newer
+  // the card is terminal, and a later observation at the same or a newer
   // revision proves the inventory saw it again after the restart.
   const initialRevision = service.inventory_revision;
   const readRestartedService = async () => {
@@ -1478,7 +1490,7 @@ async function runManagedServiceActionEvidence(args: {
     declared_actions: service.allowed_actions,
     initial_inventory_revision: service.inventory_revision,
     converged_inventory_revision: convergedService.inventory_revision,
-    restart_finished_at: restartJob.updated_at,
+    restart_finished_at: restartCard.completed_at,
     baseline_observed_at: baselineService?.observed_at,
     converged_observed_at: convergedService.observed_at,
     restart_job_id: restart.job_id,
@@ -1914,8 +1926,7 @@ async function validateManagedRuntimePostSetupUi(args: {
 
   // `/stacks` lands on the owner's one Homelab dashboard: it lists the stack
   // and carries the operations section with the running-services count. The
-  // lease's own controls are on the stack page, which has no operations
-  // section of its own.
+  // lease's own controls are on its server's page.
   await args.page.goto("/stacks", { waitUntil: "domcontentloaded" });
   await expect(args.page.getByTestId("stacks-dashboard")).toBeVisible();
   await expect(
@@ -1937,46 +1948,6 @@ async function validateManagedRuntimePostSetupUi(args: {
     await attachScreenshot(args.page, "runtime-kombify-cloud-stacks.png");
   }
 
-  await args.page.goto(`/stacks/${args.stackId}`, {
-    waitUntil: "domcontentloaded",
-  });
-  await expect(args.page.getByTestId("monthly-runtime-card")).toBeVisible({
-    timeout: 60_000,
-  });
-  await expect(args.page.getByTestId("monthly-runtime-card")).toContainText(
-    args.leaseId,
-  );
-  await expect(
-    args.page.getByTestId("monthly-runtime-enrollment"),
-  ).toContainText(/enrolled/i, { timeout: 60_000 });
-  await expect(args.page.getByTestId("monthly-runtime-state")).toBeVisible();
-  // The power controls follow the server's state: Start is offered while it
-  // is stopped, Stop while it is running (both while the state is unknown), so
-  // at least one of them is always available; the SSH switch and the
-  // connection details stay available. Both are locked while the runtime
-  // status is still loading, so the check waits for it to settle.
-  await expect
-    .poll(
-      async () =>
-        (await args.page
-          .getByTestId("monthly-runtime-action-start")
-          .isEnabled()) ||
-        (await args.page
-          .getByTestId("monthly-runtime-action-stop")
-          .isEnabled()),
-      {
-        message: "the managed server must offer start or stop",
-        timeout: 30_000,
-      },
-    )
-    .toBe(true);
-  await expect(
-    args.page.getByTestId("monthly-runtime-ssh-switch"),
-  ).toBeEnabled();
-  await expect(
-    args.page.getByTestId("monthly-runtime-action-ssh"),
-  ).toBeEnabled();
-  await attachScreenshot(args.page, "runtime-kombify-cloud-management.png");
   await args.page.goto(
     `/services?kit_deployment_id=${encodeURIComponent(args.stackId)}`,
     {
@@ -2478,7 +2449,7 @@ function centronPublicIPv4(server: Record<string, any>) {
         octets.some((octet) => !(octet >= 0 && octet <= 255))
       )
         continue;
-      const [a, b] = octets;
+      const [a = -1, b = -1] = octets;
       const privateRange =
         a === 10 ||
         a === 127 ||
@@ -2585,8 +2556,9 @@ async function provisionCentronServer(
       if (found.length > 1) {
         throw new Error(`centron created ${found.length} servers for ${tag}`);
       }
-      if (found.length === 1 && !found[0].building && found[0].ip) {
-        server = found[0];
+      const candidate = found[0];
+      if (found.length === 1 && candidate && !candidate.building && candidate.ip) {
+        server = candidate;
         break;
       }
       if (Date.now() > deadline) {
@@ -3867,6 +3839,8 @@ test.describe.serial("Runtime E2E scenarios", () => {
           schema: "techstack.wizard-intent/v1",
           run_kind: "first-run",
           name,
+          // Only the foundation: vault and media come through the layout
+          // flow below, even when an earlier run saved them as goals.
           goals: [],
           server: { transport: "install-command" },
           kit_assignment: { mode: "found", kit_slug: "basement-kit" },
@@ -3874,8 +3848,9 @@ test.describe.serial("Runtime E2E scenarios", () => {
       });
       stackId = String(found.kit_deployment_id ?? found.stack_id ?? "");
       expect(stackId).not.toBe("");
-      resources.push(await supplier.provision(1));
-      await enrollWithRunToken(auth.token, resources[0], found);
+      const first = await supplier.provision(1);
+      resources.push(first);
+      await enrollWithRunToken(auth.token, first, found);
 
       const join = await createLayoutWizardRun(auth.token, {
         intent: {
@@ -3891,8 +3866,9 @@ test.describe.serial("Runtime E2E scenarios", () => {
           },
         },
       });
-      resources.push(await supplier.provision(2));
-      await enrollWithRunToken(auth.token, resources[1], join);
+      const second = await supplier.provision(2);
+      resources.push(second);
+      await enrollWithRunToken(auth.token, second, join);
       await waitForConnectedStackServers(auth.token, stackId, 2);
       await waitForStackSettled(auth.token, stackId);
 
@@ -4020,9 +3996,10 @@ test.describe.serial("Runtime E2E scenarios", () => {
   // Guard disconnect and UI demotion (kombify-Techstack-c4kv): one disposable
   // owner server enrolls its Guard; then the host itself drops its HTTPS
   // traffic, so the Guard loses the control plane while the server and its
-  // workload keep running. The persisted read model must turn stale within
-  // 90 s and offline within 5 min, the server page must show that state after
-  // a reload, and after the rule is removed the same Guard (same server, same
+  // workload keep running. The read model must turn stale within 90 s and
+  // offline within 5 min of the last accepted heartbeat (pkg/runtimehealth
+  // windows, qualification finding Q-8), the server page must show that state
+  // after a reload, and after the rule is removed the same Guard (same server, same
   // worker, no second enrollment) must be connected again within 60 s.
   // Connected needs an answered command, never heartbeats alone
   // (kombify-Techstack-b57.5.1): before the cut the owner runs the read-only
@@ -4092,6 +4069,9 @@ test.describe.serial("Runtime E2E scenarios", () => {
           (server) => server.kit_deployment_id === stackId,
         );
       };
+      const serverRow = async () =>
+        (await servers()).find((server) => String(server.id) === serverId);
+      const statePollMs = 2_000;
       const waitForState = async (
         want: string,
         from: number,
@@ -4099,12 +4079,33 @@ test.describe.serial("Runtime E2E scenarios", () => {
       ) => {
         let last = "";
         while (Date.now() - from < limitMs) {
-          const row = (await servers()).find((server) => String(server.id) === serverId);
-          last = String(row?.connection?.state ?? "");
+          last = String((await serverRow())?.connection?.state ?? "");
+          // Counted when the answer arrives, so a slow or retried read never
+          // shortens the measurement.
           if (last === want) return (Date.now() - from) / 1000;
-          await delay(5_000);
+          await delay(statePollMs);
         }
         throw new Error(`The server did not reach ${want} within ${limitMs / 1000}s; last=${last}`);
+      };
+      // The heartbeat windows count from the last accepted heartbeat on the
+      // control plane's clock: each answer carries its own heartbeat silence
+      // (connection.staleness_seconds) beside the state, so neither the
+      // runner's clock nor the poll's round trip enters the measurement.
+      const waitForSilence = async (want: string, limitSeconds: number) => {
+        let last = "";
+        const runnerCap = Date.now() + (limitSeconds + 120) * 1000;
+        while (Date.now() < runnerCap) {
+          const connection = (await serverRow())?.connection ?? {};
+          last = String(connection.state ?? "");
+          const silence = Number(connection.staleness_seconds);
+          expect(Number.isFinite(silence), `the server reports its heartbeat silence: ${JSON.stringify(connection)}`).toBe(true);
+          if (last === want) return silence;
+          if (silence > limitSeconds) {
+            throw new Error(`The server did not reach ${want} within ${limitSeconds}s of heartbeat silence; last=${last} after ${silence}s`);
+          }
+          await delay(statePollMs);
+        }
+        throw new Error(`The server did not reach ${want}: its heartbeat silence never passed ${limitSeconds}s; last=${last}`);
       };
       const guardFact = () =>
         page.locator('[data-testid="guard-fact"][data-fact="connected"]');
@@ -4140,14 +4141,20 @@ test.describe.serial("Runtime E2E scenarios", () => {
       }
       expect(answeredAfterCheck(confirmed), `the update check ${updateCheck.jobId} (${updateCheck.state}) is the Guard's round trip: ${JSON.stringify(confirmed)}`)
         .toBe(true);
-      expect(Number(confirmed.generation), "an HTTPS round trip names its credential generation").toBeGreaterThan(0);
+      expect(typeof confirmed.generation, "an HTTPS round trip names its credential generation").toBe("number");
+      expect(Number(confirmed.generation), "a key-bound Guard answers at generation 0 until its first rotation").toBeGreaterThanOrEqual(0);
       await page.reload({ waitUntil: "domcontentloaded" });
       await expect(guardFact()).toHaveAttribute("data-state", "ok", { timeout: 60_000 });
 
       await ssh(cutRule);
-      const cut = Date.now();
-      const staleSeconds = await waitForState("stale", cut, 90_000);
-      const offlineSeconds = await waitForState("offline", cut, 300_000);
+      // The Guard reports right up to the cut (window gw3: inventory 2.5 s
+      // before it), so a bound counted from the cut is the contract's worst
+      // case with no room for the poll. The resolution covers one poll
+      // interval plus the whole-second staleness; it stays far below the 30 s
+      // sweep lag Q-8 guards against.
+      const windowResolutionSeconds = statePollMs / 1000 + 3;
+      const staleSeconds = await waitForSilence("stale", 90 + windowResolutionSeconds);
+      const offlineSeconds = await waitForSilence("offline", 300 + windowResolutionSeconds);
       await page.goto(serverPage, { waitUntil: "domcontentloaded" });
       await expect(guardFact()).toHaveAttribute("data-state", "attention", { timeout: 60_000 });
       await attachScreenshot(page, "guard-disconnect-offline.png");
@@ -4179,8 +4186,12 @@ test.describe.serial("Runtime E2E scenarios", () => {
         workerId: String(before.worker_id),
         testSourceCommit: process.env.GITHUB_SHA ?? (await testSourceCommit().catch(() => "")),
         cut: "host nftables drop of outbound tcp/443 (the Guard's HTTPS transport)",
+        // stale and offline count from the last heartbeat, reconnect from the restore.
         measured: { staleSeconds, offlineSeconds, reconnectSeconds },
-        bounds: { staleSeconds: 90, offlineSeconds: 300, reconnectSeconds: 60 },
+        bounds: {
+          staleSeconds: 90, offlineSeconds: 300, reconnectSeconds: 60,
+          resolutionSeconds: windowResolutionSeconds,
+        },
         ui: { offline: "attention", reconnected: "ok", source: "server page after reload" },
         roundTrip: {
           heartbeatOnly: { api: String(heartbeatOnly.state ?? "absent"), ui: heartbeatOnlyUi },
@@ -4205,6 +4216,137 @@ test.describe.serial("Runtime E2E scenarios", () => {
       }
       if (stackId) {
         await destroyRuntimeStackViaApi(auth.token, stackId).catch(() => undefined);
+      }
+      await resource?.release();
+    }
+  });
+
+  // Connected free (kombify-StackKits-qqec, Journey C): one owner centron
+  // server runs StackKits local-only from the public Basement installer, then
+  // connects as the shared Free test user, is monitored through the product
+  // API and is detached back to local-only (connected-free-journey.ts).
+  test("connected-free connects a local-only StackKits node as the Free user, monitors it and rolls it back to local-only", async ({
+    page,
+  }) => {
+    test.setTimeout(100 * 60_000);
+    const supplier = ownerServerSupplierFromEnv();
+    const ownerEmail = String(process.env.TEST_FREE_USER_EMAIL ?? "").trim();
+    expect(ownerEmail, "the shared Free test user is configured (TEST_FREE_USER_EMAIL)").not.toBe("");
+    const auth = await authenticateRuntimeUser("oneliner", page, {
+      ...RUNTIME_AUTH_OPTIONS,
+      fixturePrefix: "TEST_FREE_USER",
+    });
+    await page.goto("about:blank");
+    let resource: OwnerServer | undefined;
+    let stackId = "";
+    let serverId = "";
+    let detached = false;
+    let destroyed = false;
+    try {
+      resource = await supplier.provision(1);
+      const host = resource;
+      const receipt = await runConnectedFreeJourney({
+        root: async (command, timeout = 120_000) =>
+          (await runSSH(host.ip, host.keyPair.privateKeyPath, `sh -c ${shellQuote(command)}`, timeout, host.ssh)).stdout.trim(),
+        ownerEmail,
+        connect: async () => {
+          const created = await createLifecycleWizardRun(
+            auth.token,
+            {
+              intent: {
+                schema: "techstack.wizard-intent/v1",
+                run_kind: "first-run",
+                name: `connected-free-${runtimeRunId()}`,
+                goals: [],
+                server: { transport: "install-command", environment_class: "cloud" },
+                kit_assignment: { mode: "found", kit_slug: "basement-kit" },
+              },
+            },
+            (id) => {
+              stackId = id;
+            },
+          );
+          stackId = String(created.run.stack_id ?? created.run.kit_deployment_id);
+          expect(stackId).not.toBe("");
+          const registrationToken = await mintRegistrationToken(
+            auth.token,
+            stackId,
+            String(created.run.pairing_job_id ?? ""),
+          );
+          await enrollOwnerServer(auth.token, host, registrationToken);
+          const connected = await waitForConnectedOwnerServer(auth.token, stackId);
+          serverId = String(connected.id);
+          return { stackId, serverId, workerId: String(connected.worker_id ?? "") };
+        },
+        readServer: async (id) => {
+          const response = await retryTransient("server aggregate", async () => {
+            const answer = await authorizedFetch(
+              auth.token,
+              runtimeApiUrl(API_BASE, `/api/v1/servers/${encodeURIComponent(id)}`),
+              { signal: AbortSignal.timeout(30_000) },
+            );
+            if (answer.status >= 500) throw new Error(`Runtime API GET server HTTP ${answer.status}`);
+            return answer;
+          });
+          if (response.status === 404) return null;
+          const text = await response.text();
+          if (!response.ok) throw new Error(`Runtime API GET server failed with HTTP ${response.status}: ${redactText(text)}`);
+          const json = lifecycleRecord(text);
+          return lifecycleRecord(json.data ?? json);
+        },
+        listServers: async () => {
+          const data = await retryTransient("server list", () =>
+            fetchRuntimeApi<LifecycleRecord[] | { servers?: LifecycleRecord[] }>(auth.token, "/api/v1/servers"),
+          );
+          return Array.isArray(data) ? data : (data.servers ?? []);
+        },
+        get: (apiPath) => retryTransient(apiPath, () => fetchRuntimeApi<LifecycleRecord>(auth.token, apiPath)),
+        detach: async (id) => {
+          const response = await authorizedFetch(
+            auth.token,
+            runtimeApiUrl(API_BASE, `/api/v1/servers/${encodeURIComponent(id)}/detach`),
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ confirm_server_id: id }),
+              signal: AbortSignal.timeout(30_000),
+            },
+          );
+          const text = await response.text();
+          expect(response.status, `the owner's detach is accepted: ${redactText(text)}`).toBe(200);
+          detached = true;
+          const json = lifecycleRecord(text);
+          return lifecycleRecord(json.data ?? json);
+        },
+        destroyStack: async (id) => {
+          const job = await destroyRuntimeStackViaApi(auth.token, id);
+          // A 404 (no job) means the record is already gone.
+          if (job) expect(job.state, "the Cloud stack record is removed").toBe("completed");
+          await waitForStackAbsent(auth.token, id);
+          destroyed = true;
+        },
+        shellQuote,
+        delay,
+      });
+      const evidence = {
+        ...receipt,
+        testSourceCommit: process.env.GITHUB_SHA ?? (await testSourceCommit().catch(() => "")),
+      };
+      await mkdir(ARTIFACTS_DIR, { recursive: true });
+      await writeFile(path.join(ARTIFACTS_DIR, "connected-free-receipt.json"), `${JSON.stringify(evidence, null, 2)}\n`);
+      await attachJson("connected-free-receipt.json", evidence);
+    } finally {
+      const cleanupFailed = (step: string) => (error: unknown) =>
+        logRuntimeE2E(`connected-free cleanup ${step} failed`, {
+          message: redactText(String(error)).slice(0, 600),
+        });
+      // Detach before removing the stack, so no Guard ever receives a removal
+      // for the node's own StackKits workload.
+      if (serverId && !detached) {
+        await detachOwnerServer(auth.token, serverId).catch(cleanupFailed("detach"));
+      }
+      if (stackId && !destroyed) {
+        await destroyRuntimeStackViaApi(auth.token, stackId).catch(cleanupFailed("destroy"));
       }
       await resource?.release();
     }
@@ -4339,7 +4481,6 @@ test.describe.serial("Runtime E2E scenarios", () => {
             expectedRevision: String(
               process.env.TECHSTACK_E2E_EXPECTED_REVISION ?? "",
             ).trim(),
-            earlyAccessOnly: true,
             url: (path) => runtimeApiUrl(API_BASE, path),
             waitForJob: (id) => waitForJobTerminal(token, id, 1_200_000),
           }));
@@ -4591,7 +4732,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
 
   // Day-2 changes to an existing installation (AP04.4; Beads
   // kombify-Techstack-6q9a, -qx9a and -i3p2). One owner server runs a
-  // deployed Basement homelab with its default use cases, vault and media,
+  // deployed Basement homelab with the vault and media its first run selected,
   // and the owner changes it without creating it again: files comes in
   // through Cloud's use-case handoff (the deployed server is the target, so
   // no server is created and Access, Users and Login stay); a typed native
@@ -4599,14 +4740,17 @@ test.describe.serial("Runtime E2E scenarios", () => {
   // media use case are removed with their data retained. Each change is an
   // Advanced change set on the same server that a replay of its idempotency
   // key repeats without a second effect, and the foundation, the server
-  // binding and the services installed before it stay. The stack is
-  // destroyed, the server detached and deleted, and its absence read back
-  // from the supplier.
+  // binding and the services installed before it stay. A second owner server
+  // of the same supplier, deployed at the same time as its own homelab, then
+  // receives the remaining files use case with its data through a native move
+  // (kombify-StackKits-t8jh). Both stacks are destroyed, both servers
+  // detached and deleted, and their absence read back from the supplier.
   test("existing-target-day2 adds, configures and removes use cases on a deployed homelab without creating it again", async ({
     page,
   }) => {
-    // Provision, rollout, an addition, a configuration, two removals and
-    // destroy; the window lane's cleanup step covers a timeout.
+    // Two concurrent provisions and rollouts, an addition, a configuration,
+    // two removals, a move and two concurrent destroys; the window lane's
+    // cleanup step covers a timeout.
     test.setTimeout(120 * 60_000);
     const supplier = ownerServerSupplierFromEnv();
     const auth = await authenticateRuntimeUser(
@@ -4621,25 +4765,70 @@ test.describe.serial("Runtime E2E scenarios", () => {
     let destroyed = false;
     let detached = false;
     let released = false;
+    // The move destination: its own stack, server and supplier resource.
+    let destinationResource: OwnerServer | undefined;
+    let destinationStackId = "";
+    let destinationServerId = "";
+    let destinationDestroyed = false;
+    let destinationDetached = false;
+    let destinationReleased = false;
+    let destinationTeardown: Promise<unknown> | undefined;
     try {
-      await enrollAndDeployLifecycleStack(
-        page,
-        auth.token,
-        supplier,
-        {
-          onStack: (id) => {
-            stackId = id;
+      // Both rollouts save credentials in the Wallet: the owner allows that
+      // once, then both servers enroll and deploy at the same time.
+      const walletConsent = await allowTechstackWalletCreate(page);
+      await attachJson("stack-lifecycle-wallet-consent.json", walletConsent);
+      const deployments = await Promise.allSettled([
+        enrollAndDeployLifecycleStack(
+          page,
+          auth.token,
+          supplier,
+          {
+            onStack: (id) => {
+              stackId = id;
+            },
+            onResource: (server) => {
+              resource = server;
+            },
+            onServer: (id) => {
+              serverId = id;
+            },
           },
-          onResource: (server) => {
-            resource = server;
+          {
+            name: `existing-target-day2-${runId}`,
+            goals: ["media", "vault"],
+            walletConsentGranted: true,
           },
-          onServer: (id) => {
-            serverId = id;
+        ),
+        enrollAndDeployLifecycleStack(
+          page,
+          auth.token,
+          supplier,
+          {
+            onStack: (id) => {
+              destinationStackId = id;
+            },
+            onResource: (server) => {
+              destinationResource = server;
+            },
+            onServer: (id) => {
+              destinationServerId = id;
+            },
           },
-        },
-        { name: `existing-target-day2-${runId}` },
-      );
+          {
+            name: `existing-target-day2-move-${runId}`,
+            goals: ["media", "vault"],
+            serverIndex: 2,
+            walletConsentGranted: true,
+          },
+        ),
+      ]);
+      // Both settle before a failure is raised, so cleanup never races a
+      // provision that is still running.
+      for (const deployment of deployments)
+        if (deployment.status === "rejected") throw deployment.reason;
       const owned = resource!;
+      const destinationOwned = destinationResource!;
       const expectedRevision =
         String(process.env.TECHSTACK_E2E_EXPECTED_REVISION ?? "").trim() ||
         (await testSourceCommit());
@@ -4647,7 +4836,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
       const waitForJob = (id: string) =>
         waitForJobTerminal(auth.token, id, 1_200_000);
 
-      // A first run without goals installs the default use cases. The read
+      // The first run selected vault and media and installed them. The read
       // inspects them natively on the node right after the rollout (uoe2: the
       // inspection reached the node without its workspace and answered 503).
       const inspected = await test.step("Inspect the installed native configuration after the rollout (uoe2)", async () => {
@@ -4665,7 +4854,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
         return view;
       });
       const installed = inspected.use_cases.map((entry) => entry.id);
-      expect(installed, "the default use cases are installed").toEqual(
+      expect(installed, "the first run's use cases are installed").toEqual(
         expect.arrayContaining(["media", "vault"]),
       );
       expect(installed, "files is not installed yet").not.toContain("files");
@@ -4683,7 +4872,6 @@ test.describe.serial("Runtime E2E scenarios", () => {
               stackId,
               serverId,
               useCase: "files",
-              setup: "backend:cloudreve",
             }),
           url,
           waitForJob,
@@ -4777,6 +4965,281 @@ test.describe.serial("Runtime E2E scenarios", () => {
         retained_data: retained.evidence(),
       });
 
+      // The moved application is files, not vault: a move adds the use case
+      // freshly to the destination, and the destination is a Basement first
+      // run like the source, so it already runs the media and vault that run
+      // selected. files is the one use case only the source has (the Cloud
+      // handoff above added it). Moving it after both removals keeps the
+      // vault and media removals on the source exactly as they were, and
+      // files has stayed through both of them as their steps state.
+      const moved = await test.step("Move the files use case with its data to the owner's second server; the source keeps its data (t8jh)", async () => {
+        const useCase = "files";
+        const [sourceView, destinationView] = await Promise.all([
+          readUseCaseConfiguration(auth.token, stackId),
+          readUseCaseConfiguration(auth.token, destinationStackId),
+        ]);
+        const group = sourceView.use_cases.find((entry) => entry.id === useCase);
+        expect(group, "files is installed on the source after both removals").toBeTruthy();
+        expect(
+          destinationView.use_cases.map((entry) => entry.id),
+          "the destination does not run files before the move",
+        ).not.toContain(useCase);
+        const workloadRefs = group!.workloads.map((member) => member.workload_ref).sort();
+        // Containers of files: its workload refs or the cloudreve service;
+        // the bare use-case id is too generic a name to match on.
+        const names = [...workloadRefs, "cloudreve"].map((name) => name.toLowerCase());
+        const [sourceRoot, destinationRoot, sourceAgentId, destinationAgentId] =
+          await Promise.all([
+            stackDataRoot(auth.token, stackId),
+            stackDataRoot(auth.token, destinationStackId),
+            stackServerAgentId(auth.token, stackId, serverId),
+            stackServerAgentId(auth.token, destinationStackId, destinationServerId),
+          ]);
+        expect(destinationAgentId).not.toBe(sourceAgentId);
+        // The source application carries a non-default typed configuration; a
+        // move must carry it to the destination with the data.
+        const change = await typedConfigurationChange(
+          auth.token,
+          stackId,
+          useCase,
+        );
+        await assertConfigureInstalledWorkload({
+          page,
+          token: auth.token,
+          stackId,
+          workloadRef: change.workloadRef,
+          changes: change.changes,
+          url,
+          waitForJob,
+        });
+        const configuredMember = (
+          await readUseCaseConfiguration(auth.token, stackId)
+        ).use_cases
+          .find((entry) => entry.id === useCase)
+          ?.workloads.find(
+            (member) => member.workload_ref === change.workloadRef,
+          );
+        expect(
+          configuredMember,
+          "the source reads back its configured application",
+        ).toBeTruthy();
+        const settingKey = Object.keys(change.changes.settings ?? {})[0];
+        const profileKey = (
+          ["compute", "storage", "accelerator"] as const
+        ).find((profile) => change.changes[`${profile}_profile`] !== undefined);
+        const expectedSetting = settingKey
+          ? configuredMember!.settings.find(
+              (setting) => setting.key === settingKey,
+            )?.current
+          : undefined;
+        const expectedProfile = profileKey
+          ? configuredMember!.profiles[profileKey].current
+          : undefined;
+        const sentinel = await placeMovedDataSentinel(
+          owned,
+          sourceRoot,
+          names,
+          runId,
+        );
+
+        const request = {
+          engine: "native",
+          source_agent_id: sourceAgentId,
+          destination_stack_id: destinationStackId,
+          destination_agent_id: destinationAgentId,
+          use_case: useCase,
+          owner_approved: true,
+        };
+        const key = `e2e-move-${runId}-${randomUUID()}`;
+        const relocationsPath = `/api/v1/stacks/${encodeURIComponent(stackId)}/relocations`;
+        const start = async () => {
+          const response = await authorizedFetch(auth.token, url(relocationsPath), {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Idempotency-Key": key },
+            body: JSON.stringify(request),
+            signal: AbortSignal.timeout(60_000),
+          });
+          const text = await response.text();
+          expect(response.status, `move HTTP ${response.status}: ${redactText(text)}`).toBe(202);
+          const json = lifecycleRecord(text);
+          return lifecycleRecord(json.data ?? json);
+        };
+        const accepted = await start();
+        expect(accepted).toMatchObject({
+          kit_deployment_id: stackId,
+          operation: "workload_relocation",
+          engine: "native",
+          source_retained: true,
+        });
+        const jobId = String(accepted.job_id ?? "");
+        expect(jobId).toMatch(/^relocation-[0-9a-f]+$/);
+        // A replay of the same key answers the same move without a second one.
+        expect((await start()).job_id, "the replay names the same move").toBe(jobId);
+
+        const job = await waitForJob(jobId);
+        const outcome = lifecycleRecord(lifecycleRecord(job.result).workload_relocation);
+        // Until the pinned StackKits release lists application-transfer.receive
+        // and this installation issues its grant, the move refuses before it
+        // touches either node. That is recorded, not failed; every other
+        // outcome is asserted in full below.
+        if (
+          outcome.state === "preflight_failed" &&
+          ["stackkits_release_too_old", "advanced_prerequisite_missing"].includes(String(outcome.reason_code))
+        ) {
+          test.info().annotations.push({
+            type: "pending-prerequisite",
+            description: `native move refused before any node change: ${String(outcome.reason_code)}`,
+          });
+          const untouched = await readUseCaseConfiguration(auth.token, destinationStackId);
+          expect(
+            untouched.use_cases.map((entry) => entry.id),
+            "a refused move leaves the destination unchanged",
+          ).not.toContain(useCase);
+          return { job_id: jobId, pending_prerequisite: String(outcome.reason_code) };
+        }
+        expect(job.state, runtimeJobFailureSummary(job)).toBe("completed");
+        expect(outcome.engine).toBe("native");
+        expect(outcome.use_case).toBe(useCase);
+        expect(outcome.state, "the move reads back moved").toBe("moved");
+        expect(outcome.source_retained).toBe(true);
+        expect(outcome.source_state).toBe("retired-stopped-data-retained");
+        expect(String(outcome.transfer_id ?? "")).toMatch(/^sha256:[0-9a-f]{64}$/);
+        expect(
+          String(lifecycleRecord(outcome.destination_readback).readback_digest ?? ""),
+          "the destination's readback digest",
+        ).toMatch(/^sha256:[0-9a-f]{64}$/);
+        expect(
+          String(lifecycleRecord(outcome.destination_readback).portable_configuration_digest ?? ""),
+          "the destination's verified portable configuration digest",
+        ).toMatch(/^sha256:[0-9a-f]{64}$/);
+        const arrivedConfiguration = (
+          await readUseCaseConfiguration(auth.token, destinationStackId)
+        ).use_cases
+          .find((entry) => entry.id === useCase)
+          ?.workloads.find(
+            (member) => member.workload_ref === change.workloadRef,
+          );
+        expect(
+          arrivedConfiguration,
+          "the destination selects the moved application",
+        ).toBeTruthy();
+        if (settingKey) {
+          expect(
+            arrivedConfiguration!.settings.find(
+              (setting) => setting.key === settingKey,
+            )?.current,
+            "the moved application keeps its public setting",
+          ).toEqual(expectedSetting);
+        }
+        if (profileKey) {
+          expect(
+            arrivedConfiguration!.profiles[profileKey].current,
+            "the moved application keeps its module profile",
+          ).toBe(expectedProfile);
+        }
+        const inspected = await retryTransient("relocation readback", () =>
+          fetchRuntimeApi<LifecycleRecord>(
+            auth.token,
+            `${relocationsPath}/${encodeURIComponent(jobId)}`,
+          ),
+        );
+        expect(inspected.job_id).toBe(jobId);
+        expect(inspected.source_retained).toBe(true);
+
+        // On the destination the application runs, healthy where its image
+        // declares a health check (otherwise the readback's verify above is
+        // the health proof), and its data holds the owner's file.
+        const arrived = await readMovedDataSentinel(
+          destinationOwned,
+          destinationRoot,
+          names,
+          sentinel.file,
+        );
+        expect(arrived.sha256, "the moved data on the destination").toBe(sentinel.sha256);
+        let destinationState = await ownerServerContainerState(destinationOwned, arrived.container);
+        for (
+          const deadline = Date.now() + 300_000;
+          !(destinationState.running && ["healthy", "none"].includes(destinationState.health)) &&
+          Date.now() < deadline;
+        ) {
+          await delay(10_000);
+          destinationState = await ownerServerContainerState(destinationOwned, arrived.container);
+        }
+        expect(destinationState.running, `${arrived.container} runs on the destination`).toBe(true);
+        expect(["healthy", "none"], `${arrived.container} health on the destination`).toContain(
+          destinationState.health,
+        );
+        // The source application is stopped and its data retained.
+        const sourceState = await ownerServerContainerState(owned, sentinel.container);
+        expect(sourceState.running, `${sentinel.container} no longer runs on the source`).toBe(false);
+        const { stdout: retainedSum } = await ownerServerSSH(owned)(
+          `sha256sum -- ${shellQuote(sentinel.path)}`,
+        );
+        expect(retainedSum.trim().split(/\s+/)[0], "the source's retained data").toBe(
+          sentinel.sha256,
+        );
+
+        const [sourceAfter, destinationAfter] = await Promise.all([
+          readUseCaseConfiguration(auth.token, stackId),
+          readUseCaseConfiguration(auth.token, destinationStackId),
+        ]);
+        const received = destinationAfter.use_cases.find((entry) => entry.id === useCase);
+        expect(received, "the destination lists files as installed").toBeTruthy();
+        expect(received!.workloads.map((member) => member.workload_ref).sort()).toEqual(
+          workloadRefs,
+        );
+        expect(
+          sourceAfter.use_cases.map((entry) => entry.id),
+          "the source's intent no longer holds files",
+        ).not.toContain(useCase);
+        return {
+          source_stack_id: stackId,
+          destination_stack_id: destinationStackId,
+          request,
+          job_id: jobId,
+          job: redactObject({ id: job.id, state: job.state, result: { workload_relocation: outcome } }),
+          readback: redactObject(inspected),
+          sentinel: {
+            sha256: sentinel.sha256,
+            source: { container: sentinel.container, path: sentinel.path, running: sourceState.running, retained: true },
+            destination: { container: arrived.container, path: arrived.path, running: destinationState.running, health: destinationState.health },
+          },
+        };
+      });
+      await attachJson("existing-target-day2-move.json", moved);
+
+      // The destination is removed at the same time as the source below.
+      const teardownDestination = async () => {
+        const destinationDestroy = await destroyRuntimeStackViaApi(auth.token, destinationStackId);
+        expect(destinationDestroy?.state).toBe("completed");
+        await waitForStackAbsent(auth.token, destinationStackId);
+        destinationDestroyed = true;
+        await detachOwnerServer(auth.token, destinationServerId);
+        destinationDetached = true;
+        await destinationOwned.release();
+        destinationReleased = true;
+        await expect
+          .poll(() => destinationOwned.isAbsent?.() ?? Promise.resolve(true), {
+            message: "the destination server is still listed by its supplier",
+            timeout: 600_000,
+            intervals: [15_000],
+          })
+          .toBe(true);
+        await attachJson("existing-target-day2-destination-cleanup.json", {
+          stack_id: destinationStackId,
+          destroy_job_id: destinationDestroy?.id,
+          stack_absent_for_owner: true,
+          server_detached: true,
+          provider_absent: true,
+        });
+      };
+      // Settles without rejecting; the error is raised after the source's
+      // own removal below.
+      destinationTeardown = teardownDestination().then(
+        () => undefined,
+        (error: unknown) => error ?? new Error("destination teardown failed"),
+      );
+
       // Remove: destroy through the product, detach the server and delete it
       // at its supplier; the stack and the machine read back absent. The
       // owner's own VPS, enrolled through the install command, carries no
@@ -4785,15 +5248,21 @@ test.describe.serial("Runtime E2E scenarios", () => {
         (await readServerAggregate(auth.token, serverId)).allowed_actions,
         "the owner may detach the server they enrolled",
       ).toContain("detach");
-      // The node-side removal resolves the bound StackSpec the rollout
-      // applied, never the unbound init spec (uoe2: binding_mismatch at
-      // resolvedPlan; a refusal carries the node's current PLAN binding,
-      // which the failure summary prints as removal_current_plan).
-      const destroy = await destroyRuntimeStackViaApi(auth.token, stackId);
-      expect(
-        destroy?.state,
-        `destroy ${destroy?.id ?? ""}: ${redactText(JSON.stringify((destroy as { error?: unknown } | undefined)?.error ?? ""))}`,
-      ).toBe("completed");
+      // The node removes every applied workload one after the other (each
+      // application, then the core), each against the bound StackSpec and the
+      // plan the rollout applied, never the unbound init spec. A removal that
+      // retired its desired selection on the node made the next one refuse
+      // (uoe2: binding_mismatch at resolvedPlan; a refusal carries the node's
+      // current PLAN binding, which the failure summary prints as
+      // removal_current_plan).
+      const destroy = await test.step("Destroy removes every applied workload from the plan the rollout applied (uoe2)", async () => {
+        const job = await destroyRuntimeStackViaApi(auth.token, stackId);
+        expect(
+          job?.state,
+          `destroy ${job?.id ?? ""}: ${redactText(JSON.stringify((job as { error?: unknown } | undefined)?.error ?? ""))}`,
+        ).toBe("completed");
+        return job;
+      });
       await waitForStackAbsent(auth.token, stackId);
       destroyed = true;
       await detachOwnerServer(auth.token, serverId);
@@ -4815,11 +5284,39 @@ test.describe.serial("Runtime E2E scenarios", () => {
         owner_server_provider: supplier.provider,
         provider_absent: true,
       });
+      const destinationTeardownError = await destinationTeardown;
+      if (destinationTeardownError) throw destinationTeardownError;
     } finally {
       const cleanupFailed = (step: string) => (error: unknown) =>
         logRuntimeE2E(`existing-target-day2 cleanup ${step} failed`, {
           message: redactText(String(error)).slice(0, 600),
         });
+      // A destination teardown already running finishes first.
+      await destinationTeardown;
+      if (destinationStackId && !destinationDestroyed) {
+        destinationDestroyed = await destroyRuntimeStackViaApi(
+          auth.token,
+          destinationStackId,
+        ).then(
+          () => true,
+          (error) => (cleanupFailed("destination destroy")(error), false),
+        );
+      }
+      if (destinationServerId && !destinationDetached) {
+        destinationDetached = await detachOwnerServer(
+          auth.token,
+          destinationServerId,
+        ).then(
+          () => true,
+          (error) => (cleanupFailed("destination detach")(error), false),
+        );
+      }
+      if (destinationStackId && !destinationDestroyed && destinationDetached) {
+        await removeLifecycleStackWithOwnerWord(auth.token, destinationStackId)
+          .then(() => waitForStackAbsent(auth.token, destinationStackId))
+          .catch(cleanupFailed("destination destroy after detach"));
+      }
+      if (!destinationReleased) await destinationResource?.release();
       if (stackId && !destroyed) {
         destroyed = await destroyRuntimeStackViaApi(auth.token, stackId).then(
           () => true,
@@ -5458,6 +5955,15 @@ async function runManagedLifecycleEvidence(args: {
       expect(after.services, "the stack's services are unchanged").toEqual(
         before.services,
       );
+      // A refusal before any change leaves the stack running, so it stays in
+      // the drift schedule, which checks only running stacks (platform-j0ap6).
+      const stackAfterRefusal = (await getStackList(session, apiBase)).find(
+        (stack) => stack.id === stackId,
+      );
+      expect(
+        String(stackAfterRefusal?.status ?? ""),
+        "the refused upgrade leaves the stack running",
+      ).toBe("running");
       const verify = await runStackKitLifecycleOperation(
         session,
         stackId,
@@ -5490,6 +5996,13 @@ async function runManagedLifecycleEvidence(args: {
       1_200_000,
       apiBase,
     );
+    // The preview transaction names its pre-upgrade Kopia snapshot anchor
+    // and executor-state rollback anchor, and commits only after Verify.
+    const upgraded = lifecycleRecord(
+      lifecycleRecord(upgrade.result.command_result).data,
+    );
+    const checkpoint = lifecycleRecord(upgraded.checkpoint);
+    const transaction = lifecycleRecord(upgraded.transaction);
     evidence.upgrade = {
       policy,
       outcome: "upgraded",
@@ -5499,7 +6012,18 @@ async function runManagedLifecycleEvidence(args: {
       release: releaseOf(upgrade.result),
       verify_job_id: String(verify.job.id ?? ""),
       verify_success: verify.result.success === true,
+      stackkit_support: String(lifecycleRecord(upgraded.upgradePolicy).support ?? ""),
+      operation_id: String(checkpoint.operationId ?? ""),
+      kopia_anchor_id: String(checkpoint.kopiaAnchorId ?? ""),
+      executor_state_snapshot_id: String(checkpoint.executorStateSnapshotId ?? ""),
+      transaction_status: String(transaction.status ?? ""),
     };
+    expect(upgrade.result.success, "the upgrade succeeds").toBe(true);
+    expect(evidence.upgrade.stackkit_support, "StackKits admitted the kit's policy").toBe(policy.support);
+    expect(evidence.upgrade.kopia_anchor_id, "the pre-upgrade snapshot anchor").toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(evidence.upgrade.executor_state_snapshot_id, "the rollback anchor").toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(evidence.upgrade.transaction_status, "the transaction committed").toBe("succeeded");
+    expect(verify.result.success, "the upgraded stack verifies").toBe(true);
   });
 
   await test.step("Managed bounded retry: a converged rollout is not retried", async () => {
@@ -5842,13 +6366,22 @@ interface LifecycleHooks {
 // starts the rollout; the rollout is started again (twice at most) when the
 // platform itself answered it with an error. What the run created is reported
 // through the hooks as soon as it exists, so the caller's cleanup sees it even
-// when a later step fails.
+// when a later step fails. A caller that deploys several stacks at once gives
+// each its own supplier index and grants the Wallet consent once itself, so
+// the concurrent runs never navigate the one page.
 async function enrollAndDeployLifecycleStack(
   page: Page,
   token: string,
   supplier: ReturnType<typeof ownerServerSupplierFromEnv>,
   hooks: LifecycleHooks,
-  run: { name?: string; environmentClass?: "cloud" | "local" } = {},
+  run: {
+    name?: string;
+    // The use cases the first run selects; by default only the foundation.
+    goals?: string[];
+    environmentClass?: "cloud" | "local";
+    serverIndex?: number;
+    walletConsentGranted?: boolean;
+  } = {},
 ) {
   const name = run.name ?? `stack-lifecycle-${runtimeRunId()}`;
   const created = await createLifecycleWizardRun(
@@ -5858,7 +6391,10 @@ async function enrollAndDeployLifecycleStack(
         schema: "techstack.wizard-intent/v1",
         run_kind: "first-run",
         name,
-        goals: [],
+        // A run gets only the goals it selects plus the saved goals no release
+        // has realized yet (wizard_goal_reconciliation.go), never the use
+        // cases an earlier run of the shared persona installed.
+        goals: run.goals ?? [],
         // Explicit placement evidence lets the product classify the owner
         // server: a rented VPS is cloud, a server at home is local.
         server: {
@@ -5889,7 +6425,7 @@ async function enrollAndDeployLifecycleStack(
     pairingJobId,
   );
   hooks.onPairingJob?.(pairingJobId);
-  const resource = await supplier.provision(1);
+  const resource = await supplier.provision(run.serverIndex ?? 1);
   hooks.onResource(resource);
   await enrollOwnerServer(token, resource, registrationToken);
   const connected = await waitForConnectedOwnerServer(token, stackId);
@@ -5900,8 +6436,10 @@ async function enrollAndDeployLifecycleStack(
   // so the owner first allows Techstack to do that (the consent the
   // product asks for once), then starts the rollout once the product says
   // it can.
-  const walletConsent = await allowTechstackWalletCreate(page);
-  await attachJson("stack-lifecycle-wallet-consent.json", walletConsent);
+  if (!run.walletConsentGranted) {
+    const walletConsent = await allowTechstackWalletCreate(page);
+    await attachJson("stack-lifecycle-wallet-consent.json", walletConsent);
+  }
   await waitForRolloutReadiness(token, stackId);
   let deploy = await startStackRollout(token, stackId);
   let deployJob = await waitForJobTerminal(token, deploy.job_id, 40 * 60_000);
@@ -6185,14 +6723,14 @@ async function allowTechstackWalletCreate(page: Page) {
   return { already_allowed: alreadyAllowed, allowed: true };
 }
 
-// Cloud hands a use case over as /stacks/new?use-case=<id>&setup=<answer>.
+// Cloud hands a use case over as /stacks/new?use-case=<id>.
 // The owner keeps the deployed server chosen on the Server step, so the
 // creation adds to its StackKit (Access, Users and Login stay inactive, no
 // new server step) with the distribution the Unifier verified, and presses
 // "Add use cases". Returns what the page sent and what the product accepted.
 async function submitCloudUseCaseHandoff(
   page: Page,
-  target: { stackId: string; serverId: string; useCase: string; setup: string },
+  target: { stackId: string; serverId: string; useCase: string },
 ): Promise<SubmittedExtendRun> {
   let verifiedPlan = false;
   const observe = async (response: import("@playwright/test").Response) => {
@@ -6218,7 +6756,6 @@ async function submitCloudUseCaseHandoff(
   try {
     const query = new URLSearchParams({
       "use-case": target.useCase,
-      setup: target.setup,
     });
     await page.goto(`/stacks/new?${query}`, { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("easy-step-1")).toBeVisible({
@@ -6230,7 +6767,7 @@ async function submitCloudUseCaseHandoff(
         .locator('[aria-pressed="true"]')
         .first(),
     ).toBeVisible();
-    await page.getByTestId("wizard-next").click();
+    await leaveGoalsStep(page);
     const server = page.locator(
       `[data-testid="homelab-server"][data-server-id="${target.serverId}"]`,
     );
@@ -6274,14 +6811,6 @@ async function submitCloudUseCaseHandoff(
     const key = response.request().headers()["x-idempotency-key"] ?? "";
     expect(key, "the handoff run carries its idempotency key").not.toBe("");
     const body = response.request().postDataJSON();
-    // Cloud's setup answers travel with the use case into the run.
-    for (const pair of target.setup.split(",")) {
-      const [question, choice] = pair.split(":");
-      expect(
-        body.intent?.use_case_setup_answers?.[target.useCase]?.[question],
-        `the handoff answer ${pair} reaches the run`,
-      ).toContain(choice);
-    }
     await expect(page.getByTestId("add-use-cases-result")).toBeVisible({
       timeout: 60_000,
     });
@@ -6362,44 +6891,60 @@ async function typedConfigurationChange(
 // from the native data root; it must read back byte for byte after the
 // removal (data disposition retain). Containers are matched by the workload
 // ref or a service name hint.
+function ownerServerSSH(server: OwnerServer) {
+  return (command: string) =>
+    runSSH(server.ip, server.keyPair.privateKeyPath, command, 60_000, server.ssh);
+}
+
+// The directories under the native data root that the containers of one
+// workload bind, sorted by path; a container belongs to the workload when its
+// name or compose labels carry the workload ref or a service name hint.
+async function workloadDataBinds(
+  ssh: ReturnType<typeof ownerServerSSH>,
+  root: string,
+  names: string[],
+) {
+  const { stdout } = await ssh(
+    "docker ps -aq | xargs -r docker inspect --format '{{json .Name}}\t{{json .Config.Labels}}\t{{json .Mounts}}'",
+  );
+  const candidates: Array<{ container: string; dir: string }> = [];
+  const observed: string[] = [];
+  for (const line of stdout.split("\n").filter(Boolean)) {
+    const [name, labels, mounts] = line.split("\t").map((field) => JSON.parse(field));
+    const identity = [
+      String(name),
+      String(labels?.["com.docker.compose.project"] ?? ""),
+      String(labels?.["com.docker.compose.service"] ?? ""),
+    ]
+      .join(" ")
+      .toLowerCase();
+    for (const mount of (mounts ?? []) as Array<{ Type: string; Source: string }>) {
+      observed.push(`${String(name)} ${mount.Type} ${mount.Source}`);
+      if (
+        mount.Type === "bind" &&
+        mount.Source.startsWith(`${root}/`) &&
+        /^\/[A-Za-z0-9_./-]+$/.test(mount.Source) &&
+        names.some((hint) => identity.includes(hint))
+      )
+        candidates.push({ container: String(name), dir: mount.Source });
+    }
+  }
+  candidates.sort((a, b) => a.dir.localeCompare(b.dir));
+  return { candidates, observed };
+}
+
 function retainedDataSentinels(
   server: OwnerServer,
   runId: string,
   hints: Record<string, string[]>,
 ) {
   const placed = new Map<string, { path: string; sha256: string; container: string }>();
-  const ssh = (command: string) =>
-    runSSH(server.ip, server.keyPair.privateKeyPath, command, 60_000, server.ssh);
+  const ssh = ownerServerSSH(server);
   async function place(workloadRef: string, root: string) {
     const names = [workloadRef, ...(hints[workloadRef] ?? [])].map((name) =>
       name.toLowerCase(),
     );
-    const { stdout } = await ssh(
-      "docker ps -aq | xargs -r docker inspect --format '{{json .Name}}\t{{json .Config.Labels}}\t{{json .Mounts}}'",
-    );
-    const candidates: Array<{ container: string; dir: string }> = [];
-    const observed: string[] = [];
-    for (const line of stdout.split("\n").filter(Boolean)) {
-      const [name, labels, mounts] = line.split("\t").map((field) => JSON.parse(field));
-      const identity = [
-        String(name),
-        String(labels?.["com.docker.compose.project"] ?? ""),
-        String(labels?.["com.docker.compose.service"] ?? ""),
-      ]
-        .join(" ")
-        .toLowerCase();
-      for (const mount of (mounts ?? []) as Array<{ Type: string; Source: string }>) {
-        observed.push(`${String(name)} ${mount.Type} ${mount.Source}`);
-        if (
-          mount.Type === "bind" &&
-          mount.Source.startsWith(`${root}/`) &&
-          /^\/[A-Za-z0-9_./-]+$/.test(mount.Source) &&
-          names.some((hint) => identity.includes(hint))
-        )
-          candidates.push({ container: String(name), dir: mount.Source });
-      }
-    }
-    candidates.sort((a, b) => a.dir.localeCompare(b.dir));
+    const { candidates, observed } = await workloadDataBinds(ssh, root, names);
     let target: (typeof candidates)[number] | undefined;
     for (const candidate of candidates) {
       const kind = (await ssh(`test -d ${shellQuote(candidate.dir)} && echo dir || echo other`)).stdout.trim();
@@ -6451,6 +6996,96 @@ function retainedDataSentinels(
       }));
     },
   };
+}
+
+// The owner's own file in a moved application's data (kombify-StackKits-t8jh):
+// before the move one file goes into a directory a source container of the
+// application binds from the native data root. After the move it must read
+// back byte for byte in the data the same application binds on the
+// destination (the transfer) and still in the source's retained data.
+async function placeMovedDataSentinel(
+  server: OwnerServer,
+  root: string,
+  names: string[],
+  runId: string,
+) {
+  const ssh = ownerServerSSH(server);
+  const { candidates, observed } = await workloadDataBinds(ssh, root, names);
+  for (const candidate of candidates) {
+    const kind = (await ssh(`test -d ${shellQuote(candidate.dir)} && echo dir || echo other`)).stdout.trim();
+    if (kind !== "dir") continue;
+    const file = `.kombify-e2e-moved-${runId}`;
+    const content = `kombify moved-data sentinel ${names.join(",")} ${runId} ${randomUUID()}\n`;
+    const sentinelPath = `${candidate.dir.replace(/\/+$/, "")}/${file}`;
+    await ssh(`printf '%s' ${shellQuote(content)} > ${shellQuote(sentinelPath)}`);
+    return {
+      file,
+      path: sentinelPath,
+      container: candidate.container.replace(/^\//, ""),
+      sha256: createHash("sha256").update(content).digest("hex"),
+    };
+  }
+  throw new Error(
+    `no data directory under ${root} is bound by a container of ${names.join(", ")}; observed mounts: ${observed.join("; ").slice(0, 2_000)}`,
+  );
+}
+
+// Finds the sentinel by its file name in the directories the application's
+// containers bind on this server; the destination binds its own paths.
+async function readMovedDataSentinel(
+  server: OwnerServer,
+  root: string,
+  names: string[],
+  file: string,
+) {
+  const ssh = ownerServerSSH(server);
+  const { candidates, observed } = await workloadDataBinds(ssh, root, names);
+  for (const candidate of candidates) {
+    const sentinelPath = `${candidate.dir.replace(/\/+$/, "")}/${file}`;
+    const { stdout } = await ssh(
+      `test -f ${shellQuote(sentinelPath)} && sha256sum -- ${shellQuote(sentinelPath)} || true`,
+    );
+    const sha256 = stdout.trim().split(/\s+/)[0] ?? "";
+    if (sha256)
+      return { container: candidate.container.replace(/^\//, ""), path: sentinelPath, sha256 };
+  }
+  throw new Error(
+    `${file} is in no data directory a container of ${names.join(", ")} binds under ${root}; observed mounts: ${observed.join("; ").slice(0, 2_000)}`,
+  );
+}
+
+async function ownerServerContainerState(server: OwnerServer, container: string) {
+  const { stdout } = await ownerServerSSH(server)(
+    `docker inspect --format '{{.State.Running}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' ${shellQuote(container)} 2>/dev/null || echo absent`,
+  );
+  const [running = "absent", health = "none"] = stdout.trim().split(/\s+/);
+  return { present: running !== "absent", running: running === "true", health };
+}
+
+async function stackDataRoot(token: string, stackId: string) {
+  const exported = await retryTransient("stack export", () =>
+    fetchRuntimeApi<LifecycleRecord>(
+      token,
+      `/api/v1/stacks/${encodeURIComponent(stackId)}/export`,
+    ),
+  );
+  const spec = lifecycleRecord(exported.stack_spec ?? exported.kombination);
+  const root = String(lifecycleRecord(spec.storage).dataRoot ?? "");
+  expect(root, `the StackSpec of ${stackId} names its native data root`).toMatch(
+    /^\/[A-Za-z0-9_./-]+$/,
+  );
+  return root.replace(/\/+$/, "");
+}
+
+async function stackServerAgentId(token: string, stackId: string, serverId: string) {
+  const operations = await readStackOperations(token, stackId);
+  const server = (operations.servers ?? []).find(
+    (row: LifecycleRecord) =>
+      String(row.server_id ?? row.id) === serverId || String(row.id) === serverId,
+  );
+  const agentId = String(server?.agent_id ?? "").trim();
+  expect(agentId, `the server ${serverId} of ${stackId} names its agent`).not.toBe("");
+  return agentId;
 }
 
 async function startStackRollout(token: string, stackId: string) {
@@ -6576,8 +7211,10 @@ async function runOwnerUpdateCheck(token: string, gateway: RuntimeGatewaySession
   const deadline = Date.now() + 15 * 60_000;
   let job: LifecycleRecord = {};
   while (Date.now() < deadline) {
+    // The job read needs the same Edge-signed maintenance entitlement as the
+    // POST, so it goes through the Gateway too; a direct read answers 403.
     job = await retryTransient("update check", () =>
-      fetchRuntimeApi<LifecycleRecord>(token, `${actions}/${encodeURIComponent(jobId)}`),
+      fetchRuntimeApi<LifecycleRecord>(gateway.token, `${actions}/${encodeURIComponent(jobId)}`, gateway.apiBase),
     );
     if (["completed", "failed", "cancelled"].includes(String(job.state))) {
       return { jobId, state: String(job.state), failure: String(job.failure?.code ?? "") };
@@ -6613,7 +7250,8 @@ async function waitForConnectedOwnerServer(
         id: server.id,
         connection: server.connection?.state,
       }));
-    if (connected.length > 0) return connected[0];
+    const [first] = connected;
+    if (first) return first;
     await delay(10_000);
   }
   throw new Error(

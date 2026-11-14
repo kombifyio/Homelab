@@ -9,6 +9,22 @@
   import { goto } from "$app/navigation";
   import { PageHeader } from "@kombiverselabs/ui/shell";
   import { SegmentedControl } from "@kombiverselabs/ui/primitives";
+  import { EntityActionMenu } from "@kombiverselabs/ui/entity";
+  import { UseCaseCardCompact } from "@kombiverselabs/ui/usecase";
+  import { Plus, SlidersHorizontal, Trash2 } from "@lucide/svelte";
+  import Button from "#lib/components/ui/Button.svelte";
+  import { theme } from "#lib/stores/theme.js";
+  import { listKitDeployments } from "#lib/api/stacks.js";
+  import {
+    getUseCaseConfiguration,
+    type InstalledUseCaseConfiguration,
+  } from "#lib/api/useCaseConfiguration.js";
+  import {
+    addUseCasesHref,
+    configureUseCasesHref,
+    placeUseCasesHref,
+    removeUseCasesHref,
+  } from "#lib/server-links.js";
   import ErrorCallout from "#lib/components/ui/ErrorCallout.svelte";
   import TrademarkNotice from "#lib/components/TrademarkNotice.svelte";
   import LoadingNote from "#lib/components/ui/LoadingNote.svelte";
@@ -103,6 +119,105 @@
     void loadApplications();
   }
 
+  /*
+   * Installed use cases, one shared use-case row each, with their changes
+   * (configure, move, remove) in the row's action menu. A deployment whose
+   * configuration cannot be read is left out; the apps above stay readable.
+   */
+  type InstalledUseCase = {
+    stackId: string;
+    stackName: string;
+    useCase: InstalledUseCaseConfiguration;
+  };
+  let useCases = $state<InstalledUseCase[]>([]);
+  let stackIds = $state<string[]>([]);
+  const multipleStacks = $derived(stackIds.length > 1);
+  /** One StackKit goes straight to its Goals step; several pick a place first. */
+  const addUseCasesTarget = $derived(
+    stackIds.length === 1 && stackIds[0] ? addUseCasesHref(stackIds[0]) : placeUseCasesHref(),
+  );
+  const resolvedAppearance = theme.resolved;
+
+  async function loadUseCases(signal: AbortSignal) {
+    try {
+      const stacks = await listKitDeployments();
+      const results = await Promise.allSettled(
+        stacks.map(async (stack) => ({
+          stack,
+          view: await getUseCaseConfiguration(stack.id, signal),
+        })),
+      );
+      if (signal.aborted) return;
+      stackIds = stacks.map((stack) => stack.id);
+      useCases = results.flatMap((result) =>
+        result.status === "fulfilled"
+          ? result.value.view.use_cases.map((useCase) => ({
+              stackId: result.value.stack.id,
+              stackName: result.value.stack.name,
+              useCase,
+            }))
+          : [],
+      );
+    } catch {
+      // Without a readable deployment list the section stays hidden.
+    }
+  }
+
+  function useCaseHref(entry: InstalledUseCase, base: string): string {
+    const separator = base.includes("?") ? "&" : "?";
+    return `${base}${separator}use-case=${encodeURIComponent(entry.useCase.id)}`;
+  }
+
+  /** Configure opens on this use case's first configurable workload, if any. */
+  function configureHref(entry: InstalledUseCase): string | undefined {
+    const workload = entry.useCase.workloads.find((member) => member.eligible);
+    return workload
+      ? `${configureUseCasesHref(entry.stackId)}?workload=${encodeURIComponent(workload.workload_ref)}`
+      : undefined;
+  }
+
+  function useCaseActions(entry: InstalledUseCase) {
+    const configure = configureHref(entry);
+    const removable = entry.useCase.workloads.some(
+      (member) => member.removal_eligible,
+    );
+    return [
+      {
+        id: "configure",
+        label: tr("ui.apps.useCaseConfigure"),
+        icon: SlidersHorizontal,
+        href: configure,
+        state: configure ? ("ready" as const) : ("disabled" as const),
+      },
+      {
+        id: "remove",
+        label: tr("ui.apps.useCaseRemove"),
+        icon: Trash2,
+        href: useCaseHref(entry, removeUseCasesHref(entry.stackId)),
+        state: removable ? ("ready" as const) : ("disabled" as const),
+      },
+    ];
+  }
+
+  function useCaseVariant(entry: InstalledUseCase): string {
+    const tools = [
+      ...new Set(
+        entry.useCase.workloads
+          .map((member) => member.alternative)
+          .filter(Boolean),
+      ),
+    ].join(" · ");
+    return multipleStacks
+      ? [entry.stackName, tools].filter(Boolean).join(" · ")
+      : tools;
+  }
+
+  onMount(() => {
+    const useCaseLoad = new AbortController();
+    void loadUseCases(useCaseLoad.signal);
+    return () => useCaseLoad.abort();
+  });
+
   onMount(() => {
     try {
       const stored = localStorage.getItem(VIEW_KEY);
@@ -120,6 +235,14 @@
     description={tr("ui.apps.description")}
   >
     {#snippet actions()}
+      <Button
+        variant="primary"
+        testId="add-use-cases-button"
+        onclick={() => goto(addUseCasesTarget)}
+      >
+        <Plus class="h-4 w-4" />
+        {tr("layout.addUseCases.entry")}
+      </Button>
       <!-- The same switch as the server list: a view switcher is a group of
            toggle buttons (aria-pressed), not a tablist: it changes how the
            same content is drawn, not which panel is shown. -->
@@ -199,6 +322,48 @@
         />
       {/each}
     </div>
+  {/if}
+
+  {#if useCases.length > 0}
+    <section
+      class="mt-8"
+      aria-labelledby="installed-use-cases-title"
+      data-testid="installed-use-cases"
+    >
+      <h2
+        id="installed-use-cases-title"
+        class="mb-3 text-base font-semibold text-foreground"
+      >
+        {tr("ui.homelab.installedUseCases")}
+      </h2>
+      <div
+        class="grid grid-cols-1 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(19rem,1fr))]"
+      >
+        {#each useCases as entry (`${entry.stackId}:${entry.useCase.id}`)}
+          <UseCaseCardCompact
+            data-testid="installed-use-case-row"
+            data-stack-id={entry.stackId}
+            data-use-case-id={entry.useCase.id}
+            name={entry.useCase.name}
+            layout="row"
+            art={entry.useCase.id}
+            dark={$resolvedAppearance === "dark"}
+            planState="included"
+            selectable={false}
+            selected={false}
+            description={useCaseVariant(entry)}
+            detailsHref={configureHref(entry)}
+          >
+            {#snippet controls()}
+              <EntityActionMenu
+                actions={useCaseActions(entry)}
+                label={tr("ui.nodeRow.moreActions", { app: entry.useCase.name })}
+              />
+            {/snippet}
+          </UseCaseCardCompact>
+        {/each}
+      </div>
+    </section>
   {/if}
 
   {#if !loading && !failed && applications.length > 0}

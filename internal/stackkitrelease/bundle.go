@@ -163,8 +163,7 @@ func resolveLinuxRuntimeBundleReader(bundlePath string, input io.Reader, admit f
 		useCaseCatalog:     useCases,
 		advancedOperations: catalog,
 		verifyExpectedPlan: binary.verifyExpectedPlan,
-		verifyRILPrimitive: binary.verifyRILPrimitive,
-		rilPrimitiveHash:   binary.rilPrimitiveHash,
+		rilPrimitiveHashes: binary.rilPrimitiveHashes,
 		binaryPath:         linuxRuntimeBinaryPath,
 		receiptPath:        bundlePath,
 		receipt: Receipt{

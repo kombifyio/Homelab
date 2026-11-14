@@ -2,7 +2,7 @@
   import { formatDuration } from "#lib/dashboard/time.js";
   import { tr, trn, formatDateTime, stateLabel } from "#lib/i18n.svelte.js";
   import { onDestroy, onMount } from "svelte";
-  import { AlertTriangle, ArrowRight, RefreshCw, Trash2 } from "@lucide/svelte";
+  import { AlertTriangle, ArrowRight, Trash2 } from "@lucide/svelte";
 
   import { parseApiError } from "#lib/api/errors.js";
   import {
@@ -27,6 +27,7 @@
   } from "#lib/server-card-adapter.js";
   import { serverStatusAxes } from "@kombiverselabs/ui/server";
   import { PageHeader } from "@kombiverselabs/ui/shell";
+  import { SegmentedControl } from "@kombiverselabs/ui/primitives";
   import Button from "#lib/components/ui/Button.svelte";
   import ErrorCallout from "#lib/components/ui/ErrorCallout.svelte";
   import Modal from "#lib/components/Modal.svelte";
@@ -61,7 +62,9 @@
   let pageActive = true;
   let refreshInterval: ReturnType<typeof setInterval> | null = null;
 
-  const AVAILABILITY_WINDOWS: AvailabilityWindow[] = ["7d", "30d", "90d"];
+  const AVAILABILITY_WINDOW_ITEMS = (
+    ["7d", "30d", "90d"] satisfies AvailabilityWindow[]
+  ).map((value) => ({ value, label: value }));
 
   /**
    * Status-axis dots reuse the design system's state hues rather than a
@@ -291,22 +294,7 @@
 </script>
 
 <div class="mx-auto max-w-7xl p-4 md:p-6" data-testid="monitoring-page">
-  <PageHeader title={tr("ui.monitoring.monitoring")}>
-    {#snippet actions()}
-      <div class="flex flex-wrap items-center gap-2">
-        <Button
-          variant="secondary"
-          onclick={() => refresh()}
-          disabled={loading}
-        >
-          <RefreshCw class="h-4 w-4" />
-          {loading
-            ? tr("ui.monitoring.refreshing")
-            : tr("ui.homelabDashboardPage.refresh")}
-        </Button>
-      </div>
-    {/snippet}
-  </PageHeader>
+  <PageHeader title={tr("ui.monitoring.monitoring")} />
 
   {#if error}
     <ErrorCallout
@@ -722,21 +710,13 @@
           >
         </div>
         <div class="flex flex-wrap items-center gap-4">
-          <div class="flex items-center gap-1">
-            {#each AVAILABILITY_WINDOWS as option (option)}
-              <button
-                type="button"
-                class="h-7 rounded-md px-3 text-xs font-medium transition-colors"
-                class:bg-muted={availabilityWindow === option}
-                class:text-foreground={availabilityWindow === option}
-                class:text-muted-foreground={availabilityWindow !== option}
-                aria-pressed={availabilityWindow === option}
-                data-testid="monitoring-window-option"
-                onclick={() => selectAvailabilityWindow(option)}
-                >{option}</button
-              >
-            {/each}
-          </div>
+          <SegmentedControl
+            items={AVAILABILITY_WINDOW_ITEMS}
+            value={availabilityWindow}
+            label={tr("ui.monitoring.availabilityWindowLabel")}
+            onchange={(next) =>
+              selectAvailabilityWindow(next as AvailabilityWindow)}
+          />
           <div class="flex items-center gap-3">
             {#each RIBBON_LEGEND as entry (entry.label)}
               <span

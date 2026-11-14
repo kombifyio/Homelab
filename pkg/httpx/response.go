@@ -33,6 +33,11 @@ func SuccessWithMeta(e *Event, status int, data any, meta *api.ResponseMeta) err
 
 // Error writes a standardized error envelope.
 func Error(e *Event, status int, code api.ErrorCode, message string, details any) error {
+	// A 401 for a session that needs renewal is never a sign-in error: it
+	// becomes the renewal signal the client renews and replays on.
+	if reason, ok := sessionRenewalFor(e, status, code, details); ok {
+		return writeSessionRenewal(e, reason, code, details)
+	}
 	if status >= 500 {
 		captureInternalServerError(e, message, map[string]any{
 			"status":  status,

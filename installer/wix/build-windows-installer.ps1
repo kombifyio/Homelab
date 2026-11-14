@@ -137,6 +137,9 @@ $output = if ([IO.Path]::IsPathRooted($OutputDir)) {
 $intermediate = Join-Path $output "wix-intermediate"
 $stageFragment = Join-Path $intermediate "stage-files.wxs"
 $suffix = if ($DesktopEdition -eq "Cloud") { "-Cloud" } else { "" }
+# Customer-visible edition name (D-2026-11-11-05). $DesktopEdition stays the engineering identifier
+# (feed, file names, install folder, upgrade codes, registry key); only display text uses this value.
+$desktopEditionName = if ($DesktopEdition -eq "Cloud") { "Connected" } else { "Standalone" }
 $msiPath = Join-Path $output "kombify-Techstack$suffix-x64.msi"
 $bundlePath = Join-Path $output "kombify-Techstack$suffix-Setup.exe"
 $installDirectoryName = if ($DesktopEdition -eq "Cloud") { "techstack-cloud" } else { "techstack" }
@@ -154,10 +157,10 @@ foreach ($required in @(
     }
 }
 if ($DesktopEdition -eq "Local" -and !(Test-Path -LiteralPath (Join-Path $stage "techstack.exe") -PathType Leaf)) {
-    throw "Local Windows client stage is incomplete; missing techstack.exe"
+    throw "Standalone Windows client stage is incomplete; missing techstack.exe"
 }
 if ($DesktopEdition -eq "Cloud" -and (Test-Path -LiteralPath (Join-Path $stage "techstack.exe"))) {
-    throw "Cloud Windows client stage cannot contain the local Techstack runtime."
+    throw "Connected Windows client stage cannot contain the local Techstack runtime."
 }
 
 New-Item -ItemType Directory -Force -Path $output | Out-Null
@@ -177,6 +180,7 @@ Invoke-Wix @(
     "-d", "TechStackVersion=$Version",
     "-d", "StageDir=$stage",
     "-d", "DesktopEdition=$DesktopEdition",
+    "-d", "DesktopEditionName=$desktopEditionName",
     "-d", "InstallDirectoryName=$installDirectoryName",
     "-d", "MsiUpgradeCode=$msiUpgradeCode",
     $msiSource,
@@ -193,6 +197,7 @@ Invoke-Wix @(
     "-d", "TechStackVersion=$Version",
     "-d", "StageDir=$stage",
     "-d", "DesktopEdition=$DesktopEdition",
+    "-d", "DesktopEditionName=$desktopEditionName",
     "-d", "InstallDirectoryName=$installDirectoryName",
     "-d", "BundleUpgradeCode=$bundleUpgradeCode",
     "-d", "MsiPath=$msiPath",

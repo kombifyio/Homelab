@@ -37,6 +37,10 @@ type ApprovalClass string
 const (
 	ApprovalClassOwnerStepUp ApprovalClass = "owner-step-up"
 	ApprovalClassBreakGlass  ApprovalClass = "break-glass"
+	// ApprovalClassAgentEquipment is the catalog approval class of every
+	// executor-bound primitive: the acting agent's equipment answers the one
+	// Gateway Decision of the card by policy, never a per-use person prompt.
+	ApprovalClassAgentEquipment ApprovalClass = "agent-equipment"
 )
 
 // Request is one already-approved, short-lived action admission. StackKits
@@ -156,7 +160,10 @@ type VerificationCheck struct {
 // RecoveryEvidence reports only the governed recovery disposition. A named
 // primitive with status "required" must be submitted as a separate approved
 // rilaction.Request and returns its own top-level Evidence; this record cannot
-// claim that separately authorized recovery succeeded or failed.
+// claim that separately authorized recovery succeeded or failed. A "manual"
+// recovery is "recovered" when the executor's own transaction already returned
+// the target to its prior verified state (an update that went back to the
+// previous release) and "manual-required" otherwise.
 type RecoveryEvidence struct {
 	Kind         string `json:"kind"`
 	Status       string `json:"status"`

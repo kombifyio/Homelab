@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	rilaction "github.com/kombifyio/techstack/pkg/ril/actioncontract"
+	"github.com/kombifyio/techstack/pkg/ril/primitives"
 	jsoncanonicalizer "github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
 )
 
@@ -72,11 +73,12 @@ func (s *PostgresAuthority) ReadFrozenDecision(ctx context.Context, tenant, owne
 		if err != nil || json.Unmarshal(raw, &effect) != nil {
 			return ErrExecutionAdmission
 		}
+		_, executorBound := primitives.For(request.Primitive)
 		canonical, err := canonicalEffectDigest(raw)
 		if err != nil || canonical != proposal.EffectDigest {
 			return ErrExecutionAdmission
 		}
-		if effect.CardRevision != revision || effect.CardID != cardID || effect.TenantID != tenant || effect.OwnerSubject != owner || effect.ServerID != card.ServerID || effect.StackID != card.Template.StackID || effect.OperationID != proposal.OperationID || request.ActionCardID != cardID || request.TenantID != tenant || request.StackID != card.Template.StackID || request.Primitive != card.Template.Primitive || request.Primitive.ID != "verify-stackkit-state" || request.ResolvedPlanHash != card.Template.ResolvedPlanHash || request.Target != card.Template.Target || proposal.ServerRevision != card.ExecutionAdmission.ServerRevision || proposal.LifecycleRevision != int64(card.ExecutionAdmission.LeaseRevision) || request.ExecutionID != card.ExecutionID || request.TraceID != card.TraceID || request.IdempotencyKey != card.IdempotencyKey {
+		if effect.CardRevision != revision || effect.CardID != cardID || effect.TenantID != tenant || effect.OwnerSubject != owner || effect.ServerID != card.ServerID || effect.StackID != card.Template.StackID || effect.OperationID != proposal.OperationID || request.ActionCardID != cardID || request.TenantID != tenant || request.StackID != card.Template.StackID || request.Primitive != card.Template.Primitive || !executorBound || !sameInputs(request.Inputs, card.Template.Inputs) || request.ResolvedPlanHash != card.Template.ResolvedPlanHash || request.Target != card.Template.Target || proposal.ServerRevision != card.ExecutionAdmission.ServerRevision || proposal.LifecycleRevision != card.ExecutionAdmission.LifecycleRevision || request.ExecutionID != card.ExecutionID || request.TraceID != card.TraceID || request.IdempotencyKey != card.IdempotencyKey {
 			return fmt.Errorf("%w: frozen execution differs", ErrExecutionAdmission)
 		}
 		execution = FrozenDecisionExecution{ExecutionID: card.ExecutionID, TraceID: card.TraceID, IdempotencyKey: card.IdempotencyKey}
@@ -95,4 +97,14 @@ func canonicalEffectDigest(raw []byte) (string, error) {
 	}
 	sum := sha256.Sum256(append(append([]byte("kombify.ril-effect.v1\n"), canonical...), '\n'))
 	return "sha256:" + hex.EncodeToString(sum[:]), nil
+}
+
+func sameInputs(left, right []rilaction.Input) bool {
+	a, errA := json.Marshal(left)
+	b, errB := json.Marshal(right)
+	if errA != nil || errB != nil {
+		return false
+	}
+	// An absent and an empty input list are the same governed request.
+	return string(a) == string(b) || (len(left) == 0 && len(right) == 0)
 }

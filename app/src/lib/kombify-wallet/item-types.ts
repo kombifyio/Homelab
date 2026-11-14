@@ -278,10 +278,14 @@ export function parseScope(
   | null {
   if (scope === "account") return { kind: "account" };
   const project = /^project:([A-Za-z0-9._-]{1,64})$/.exec(scope);
-  if (project) return { kind: "project", project: project[1] };
+  const projectName = project?.[1];
+  if (projectName) return { kind: "project", project: projectName };
   const env =
     /^environment:([A-Za-z0-9._-]{1,64})\/([A-Za-z0-9._-]{1,64})$/.exec(scope);
-  if (env) return { kind: "environment", project: env[1], environment: env[2] };
+  const envProject = env?.[1];
+  const envName = env?.[2];
+  if (envProject && envName)
+    return { kind: "environment", project: envProject, environment: envName };
   return null;
 }
 
@@ -373,8 +377,8 @@ export function nodeAccessFacts(item: {
   const match = ACCESS_PREFIX.exec(item.description);
   if (!match) return null;
   return {
-    user: match[1],
-    host: match[2].replace(/^\[|\]$/g, ""),
+    user: match[1] ?? "",
+    host: (match[2] ?? "").replace(/^\[|\]$/g, ""),
     ...(match[3] ? { port: Number(match[3]) } : {}),
     method: match[4] === "password" ? "password" : "privateKey",
   };

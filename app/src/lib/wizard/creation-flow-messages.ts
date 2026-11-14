@@ -23,6 +23,14 @@ export const creationFlowMessages = {
       "Runs a StackKit",
     "wizard.server.homelab.firstStackkit":
       "Ready for its first StackKit",
+    "wizard.server.homelab.useTitle":
+      "How {server} is used",
+    "wizard.server.homelab.useNew":
+      "As a new StackKit deployment",
+    "wizard.server.homelab.useJoin":
+      "Add it to {deployment}",
+    "wizard.server.homelab.useJoinBody":
+      "It becomes another server of {deployment}, which then runs the apps you pick.",
     "wizard.server.homelab.disconnected":
       "Reconnect this server first",
     "wizard.server.homelab.leased":
@@ -145,6 +153,14 @@ export const creationFlowMessages = {
       "Läuft mit einem StackKit",
     "wizard.server.homelab.firstStackkit":
       "Bereit für sein erstes StackKit",
+    "wizard.server.homelab.useTitle":
+      "Wie {server} genutzt wird",
+    "wizard.server.homelab.useNew":
+      "Als neues StackKit-Deployment",
+    "wizard.server.homelab.useJoin":
+      "Zu {deployment} hinzufügen",
+    "wizard.server.homelab.useJoinBody":
+      "Er wird ein weiterer Server von {deployment}, das dann die gewählten Apps ausführt.",
     "wizard.server.homelab.disconnected":
       "Verbinde diesen Server zuerst neu",
     "wizard.server.homelab.leased":
@@ -269,6 +285,14 @@ export const creationFlowMessages = {
       "Ejecuta un StackKit",
     "wizard.server.homelab.firstStackkit":
       "Listo para su primer StackKit",
+    "wizard.server.homelab.useTitle":
+      "Cómo se usa {server}",
+    "wizard.server.homelab.useNew":
+      "Como un despliegue nuevo de StackKit",
+    "wizard.server.homelab.useJoin":
+      "Añadirlo a {deployment}",
+    "wizard.server.homelab.useJoinBody":
+      "Pasa a ser otro servidor de {deployment}, que luego ejecuta las apps que elijas.",
     "wizard.server.homelab.disconnected":
       "Vuelve a conectar este servidor primero",
     "wizard.server.homelab.leased":
@@ -392,6 +416,14 @@ export const creationFlowMessages = {
       "运行一个 StackKit",
     "wizard.server.homelab.firstStackkit":
       "可以安装第一个 StackKit",
+    "wizard.server.homelab.useTitle":
+      "{server} 的用途",
+    "wizard.server.homelab.useNew":
+      "作为新的 StackKit 部署",
+    "wizard.server.homelab.useJoin":
+      "将其添加到 {deployment}",
+    "wizard.server.homelab.useJoinBody":
+      "它将成为 {deployment} 的又一台服务器，由其运行你选择的应用。",
     "wizard.server.homelab.disconnected":
       "请先重新连接此服务器",
     "wizard.server.homelab.leased":
@@ -507,6 +539,14 @@ export const creationFlowMessages = {
       "एक StackKit चलाता है",
     "wizard.server.homelab.firstStackkit":
       "अपने पहले StackKit के लिए तैयार",
+    "wizard.server.homelab.useTitle":
+      "{server} का उपयोग कैसे होगा",
+    "wizard.server.homelab.useNew":
+      "नए StackKit डिप्लॉयमेंट के रूप में",
+    "wizard.server.homelab.useJoin":
+      "इसे {deployment} में जोड़ें",
+    "wizard.server.homelab.useJoinBody":
+      "यह {deployment} का एक और सर्वर बन जाता है, जो फिर आपके चुने हुए ऐप्स चलाता है।",
     "wizard.server.homelab.disconnected":
       "पहले इस सर्वर को फिर से कनेक्ट करें",
     "wizard.server.homelab.leased":
@@ -629,6 +669,14 @@ export const creationFlowMessages = {
       "يشغّل StackKit",
     "wizard.server.homelab.firstStackkit":
       "جاهز لأول StackKit",
+    "wizard.server.homelab.useTitle":
+      "كيف يُستخدم {server}",
+    "wizard.server.homelab.useNew":
+      "كعملية نشر StackKit جديدة",
+    "wizard.server.homelab.useJoin":
+      "أضفه إلى {deployment}",
+    "wizard.server.homelab.useJoinBody":
+      "يصبح خادمًا آخر في {deployment}، الذي يشغّل بعد ذلك التطبيقات التي تختارها.",
     "wizard.server.homelab.disconnected":
       "أعد توصيل هذا الخادم أولًا",
     "wizard.server.homelab.leased":

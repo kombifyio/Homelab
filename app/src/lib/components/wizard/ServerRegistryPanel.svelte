@@ -134,7 +134,7 @@
         {/if}
       </p>
     </div>
-    {#if lockFoundation || foundations.length === 1}
+    {#if boundFoundation && (lockFoundation || foundations.length === 1)}
       <div
         class="foundation-option rounded-lg border border-primary/30 bg-primary/5 p-4"
         data-testid={boundFoundation.testId}

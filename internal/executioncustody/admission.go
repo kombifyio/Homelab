@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/db"
 	"github.com/kombifyio/techstack/pkg/guardbinding"
 	"github.com/kombifyio/techstack/pkg/stackkitcommand"
@@ -44,23 +45,61 @@ func (p *Provider) verifyTrustImport(ctx context.Context, grant CallerGrant, bin
 		return err
 	}
 	defer tx.Rollback()
-	rows, err := tx.QueryContext(ctx, `SELECT c.command_json,c.result_json FROM typed_agent_commands c
+	rows, err := tx.QueryContext(ctx, `SELECT c.command_json,c.result_json,c.agent_id,c.result_generation FROM typed_agent_commands c
  JOIN servers s ON s.tenant_id=c.tenant_id AND s.worker_id=c.agent_id
  WHERE c.tenant_id=$1 AND s.stack_id=$2 AND s.owner_subject_id=$3 AND c.state='completed'
- AND c.command_family='stackkit' AND c.contract_version=$4 AND c.result_generation>0
+ AND c.command_family='stackkit' AND c.contract_version=$4 AND c.result_generation>=0
  AND c.result_generation=c.worker_generation AND c.result_revision>0 AND c.result_digest<>''
  ORDER BY c.completed_at DESC LIMIT 64`, binding.TenantID, binding.DeploymentID, grant.OwnerID, guardbinding.ContractVersion)
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	type receipt struct {
+		command, result []byte
+		agent           string
+		generation      int64
+	}
+	var receipts []receipt
 	for rows.Next() {
-		var commandJSON, resultJSON []byte
-		if err := rows.Scan(&commandJSON, &resultJSON); err != nil {
+		var r receipt
+		if err := rows.Scan(&r.command, &r.result, &r.agent, &r.generation); err != nil {
+			_ = rows.Close()
 			return err
 		}
+		receipts = append(receipts, r)
+	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return err
+	}
+	_ = rows.Close()
+	_ = tx.Rollback()
+	// Generation 0 is a key-bound Guard that was never rotated. Its result
+	// counts only while that worker still reads generation 0 and its bound host
+	// key is its last proven identity (controlplane.CommandAuthorityGeneration,
+	// kombify-StackKits-4czp). The identity is read only for such a receipt, so
+	// generation >= 1 evidence keeps its existing reads.
+	keyBound := map[string]bool{}
+	store := controlplane.NewPostgresStore(p.AuditDatabase)
+	for _, r := range receipts {
+		if r.generation == 0 {
+			admitted, seen := keyBound[r.agent]
+			if !seen {
+				worker, err := store.GetWorker(ctx, binding.TenantID, r.agent)
+				if err == nil && worker != nil {
+					generation, ok := controlplane.CommandAuthorityGeneration(*worker, func() (*controlplane.WorkerIdentity, error) {
+						return store.GetWorkerIdentity(ctx, binding.TenantID, r.agent)
+					})
+					admitted = ok && generation == 0
+				}
+				keyBound[r.agent] = admitted
+			}
+			if !admitted {
+				continue
+			}
+		}
 		command, result := &agentpb.StackKitCommand{}, &agentpb.StackKitResult{}
-		if protojson.Unmarshal(commandJSON, command) != nil || protojson.Unmarshal(resultJSON, result) != nil || command.GetStackkitInstanceId() != binding.StackID {
+		if protojson.Unmarshal(r.command, command) != nil || protojson.Unmarshal(r.result, result) != nil || command.GetStackkitInstanceId() != binding.StackID {
 			continue
 		}
 		if stackkitcommand.ValidateResult(result, command) != nil {
@@ -70,9 +109,6 @@ func (p *Provider) verifyTrustImport(ctx context.Context, grant CallerGrant, bin
 		if err == nil && evidence.OwnerRef == binding.OwnerRef && evidence.BundleSHA256 == binding.BundleSHA256 {
 			return nil
 		}
-	}
-	if err := rows.Err(); err != nil {
-		return err
 	}
 	return errors.New("authenticated Guard trust-import receipt is not recorded")
 }

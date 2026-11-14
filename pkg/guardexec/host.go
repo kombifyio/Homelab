@@ -103,6 +103,9 @@ func (h *Host) Capabilities(ctx context.Context) []string {
 	if h.observer.Supported(ctx) {
 		capabilities = append(capabilities, stackkitcommand.HostSecurityCapability)
 	}
+	if powerEnabled() {
+		capabilities = append(capabilities, PowerCapability)
+	}
 	return capabilities
 }
 
@@ -374,6 +377,13 @@ func (h *Host) ProbeFile(_ context.Context, path string) ([]byte, error) {
 		return nil, deny(CodeNotAllowed, "%s changed while it was opened", path)
 	}
 	return io.ReadAll(io.LimitReader(file, maxManifestProbe+1))
+}
+
+// UpdatePreflight applies Stage's manifest decisions (signature, freshness,
+// floor, platform entry, version policy, downgrade guard, failed-trial
+// cooldown) before the daemon downloads the artifact.
+func (h *Host) UpdatePreflight(_ context.Context, params UpdatePreflightParams) error {
+	return h.cfg.Updater.refuseBeforeDownload(StageParams{ManifestFile: params.ManifestFile, ManifestBundleFile: params.ManifestBundleFile}, params.SHA256)
 }
 
 // UpdateStage verifies and stages a signed release.

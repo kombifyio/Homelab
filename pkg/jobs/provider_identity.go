@@ -100,15 +100,10 @@ func validateFreshManagedProviderSpec(raw map[string]interface{}, spec *core.Kom
 func validateUnmanagedRuntimeProviderSyntax(values []string) error {
 	for _, value := range values {
 		normalized := strings.ToLower(strings.TrimSpace(value))
-		switch normalized {
-		case "centron-managed", "ionos-managed":
+		if providercatalog.IsCompositeProviderAlias(normalized) ||
+			(providercatalog.IsCanonicalProviderID(normalized) && value != normalized) {
 			_, err := providercatalog.CanonicalProviderID(value)
 			return err
-		case providercatalog.ProviderCentron, providercatalog.ProviderIONOS:
-			if value != normalized {
-				_, err := providercatalog.CanonicalProviderID(value)
-				return err
-			}
 		}
 	}
 	return nil
@@ -124,12 +119,9 @@ func rawUsesManagedRuntimeMode(values map[string]interface{}) bool {
 }
 
 func looksLikeManagedProviderValue(value string) bool {
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case providerCloud, providercatalog.ProviderCentron, providercatalog.ProviderIONOS, "centron-managed", "ionos-managed":
-		return true
-	default:
-		return false
-	}
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	return normalized == providerCloud || providercatalog.IsCanonicalProviderID(normalized) ||
+		providercatalog.IsCompositeProviderAlias(normalized)
 }
 
 func validateManagedRuntimeProviders(values []string, providerID string) error {

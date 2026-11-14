@@ -3,8 +3,9 @@
 
   Reuses the creation wizard on its Goals step only: the server is the
   homelab's own (inherited), nothing else is asked. The wizard shows the
-  recommended distribution of the selection; pressing "Add use cases" submits
-  an extend run that accepts it. If the homelab changed since the distribution
+  recommended distribution of the selection over every server of the homelab;
+  pressing "Add use cases" submits an extend run that accepts it, on the
+  deployment the recommendation names (this one or another of the homelab). If the homelab changed since the distribution
   was shown, the run stops, nothing is changed, and the updated recommendation
   is shown to be confirmed again.
 -->
@@ -15,8 +16,12 @@
   import { CreationPageFrame } from "#lib/components/wizard/index.js";
   import { getKitDeployment } from "#lib/api/stacks.js";
   import { parseApiError } from "#lib/api/errors.js";
-  import type { LayoutRecommendationAcceptance } from "#lib/api/layout.js";
+  import type {
+    LayoutRecommendationAcceptance,
+    LayoutRunTarget,
+  } from "#lib/api/layout.js";
   import { AddUseCasesRun } from "#lib/creation/add-use-cases.svelte.js";
+  import { clearWizardDraft } from "#lib/wizard/draft-storage.js";
   import { createExpansionConfig, type StackConfig } from "#lib/wizard/index.js";
   import { tr } from "#lib/i18n.svelte.js";
   import UseCasesAddedResult from "./UseCasesAddedResult.svelte";
@@ -39,6 +44,11 @@
   }: Props = $props();
 
   const run = new AddUseCasesRun();
+  // The same draft in the Cloud popup and on this page; an accepted run ends it.
+  const draftKey = $derived(`add-use-case-${stackId}`);
+  $effect(() => {
+    if (run.result) void clearWizardDraft(untrack(() => draftKey));
+  });
 
   // The deep link seeds the first selection only; later edits are the owner's.
   let config = $state<StackConfig>(
@@ -51,6 +61,7 @@
             useCaseSetupAnswers: initialConfig.useCaseSetupAnswers,
             useCaseSettings: initialConfig.useCaseSettings,
             useCaseCapabilities: initialConfig.useCaseCapabilities,
+            useCaseAccess: initialConfig.useCaseAccess,
           }
         : expansion;
     }),
@@ -80,14 +91,22 @@
 
   function addUseCases(
     wizardConfig: StackConfig,
-    extras?: { layoutRecommendation?: LayoutRecommendationAcceptance },
+    extras?: {
+      layoutRecommendation?: LayoutRecommendationAcceptance;
+      layoutTarget?: LayoutRunTarget;
+    },
   ) {
     void run.submit(
       { stackId, stackName: homelabName },
       wizardConfig,
       extras?.layoutRecommendation,
+      extras?.layoutTarget,
     );
   }
+
+  const extended = $derived(
+    run.target ?? { stackId, stackName: homelabName },
+  );
 </script>
 
 <div
@@ -102,8 +121,8 @@
   {:else if run.result}
     <UseCasesAddedResult
       result={run.result}
-      {stackId}
-      progressHref={run.progressHref(stackId, homelabName)}
+      stackId={extended.stackId}
+      progressHref={run.progressHref(extended.stackId, extended.stackName)}
       {embedded}
     />
   {:else}
@@ -120,6 +139,7 @@
       initialConfig={config}
       oncreate={addUseCases}
       isDeploying={run.submitting}
+      {draftKey}
       submitLabel={tr("layout.addUseCases.submit")}
       submittingLabel={tr("layout.addUseCases.submitting")}
       layoutStackId={stackId}

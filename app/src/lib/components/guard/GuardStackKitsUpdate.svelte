@@ -28,7 +28,11 @@
   let { workerId, stackId, agentId, onChanged }: Props = $props();
 
   const TERMINAL = ["completed", "failed", "canceled", "cancelled"];
-  const BEHAVIORS: StackKitsUpdateBehavior[] = ["approve", "automatic"];
+  const BEHAVIORS: StackKitsUpdateBehavior[] = [
+    "ask",
+    "automatic",
+    "with_stackkits_releases",
+  ];
 
   let view = $state<StackKitsUpdateView | null>(null);
   let loadError = $state<string | null>(null);
@@ -225,6 +229,14 @@
           <p class="text-xs text-muted-foreground">
             {tr("guard.updates.behavior.hint")}
           </p>
+          {#if view.behavior === "automatic"}
+            <p
+              class="text-xs text-muted-foreground"
+              data-testid="guard-updates-automatic-pending"
+            >
+              {tr("guard.updates.behavior.automaticPending")}
+            </p>
+          {/if}
         </div>
         <div
           class="inline-flex rounded-md border border-border bg-background p-0.5"

@@ -133,8 +133,10 @@
     }
   }
   async function copyInvitation(person: HouseholdPlannedPerson) {
+    const invitation = invitations[person.client_ref];
+    if (!invitation) return;
     try {
-      await navigator.clipboard.writeText(invitations[person.client_ref]);
+      await navigator.clipboard.writeText(invitation);
       copied = person.client_ref;
     } catch {
       error = tr("wizard.identity.copyError");

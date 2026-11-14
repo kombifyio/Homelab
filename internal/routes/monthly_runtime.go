@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/kombifyio/techstack/internal/gocommon/tenantdb"
 	"github.com/kombifyio/techstack/internal/routes/tenantguard"
 	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
 	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
@@ -316,14 +317,18 @@ func monthlyRuntimeDecommissionError(e *httpx.Event, svc *monthlyruntime.Service
 	case errors.Is(err, monthlyruntime.ErrDecommissionBlockedProtected):
 		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
 			"This server is protected and cannot be decommissioned",
-			monthlyruntime.DecommissionProtectedDetails("", leaseID))
+			monthlyruntime.DecommissionProtectedDetails(monthlyruntime.DecommissionBlockedProviderID(err), leaseID))
 	case errors.Is(err, monthlyruntime.ErrDecommissionBlockedUnreachable):
 		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
 			"Cannot reach the server to decommission it",
-			monthlyruntime.DecommissionUnreachableDetails("", leaseID, svc.ForceDecommissionReady()))
+			monthlyruntime.DecommissionUnreachableDetails(monthlyruntime.DecommissionBlockedProviderID(err), leaseID, svc.ForceDecommissionReady()))
 	case errors.Is(err, monthlyruntime.ErrReconciliationUnavailable):
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable,
 			"Force decommission is temporarily unavailable", nil)
+	case errors.Is(err, monthlyruntime.ErrDecommissionRefused):
+		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
+			"The server could not be removed at the provider",
+			monthlyruntime.DecommissionRefusedDetails(monthlyruntime.DecommissionBlockedProviderID(err), leaseID, err))
 	case errors.Is(err, monthlyruntime.ErrAddressDeregistrationFailed):
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable,
 			"The server's kombify.me addresses could not be removed, so decommission was not started. Retry shortly.",
@@ -389,21 +394,33 @@ func monthlyRuntimeError(e *httpx.Event, err error) error {
 	switch {
 	case errors.Is(err, monthlyruntime.ErrForbidden):
 		return httpx.Forbidden(e, "Forbidden")
+	case errors.Is(err, tenantdb.ErrContextMismatch):
+		// The request's Edge-signed database context names another subject or
+		// organization than the tenant it asks for: a refusal of the caller's
+		// reach, never a provider or runtime failure.
+		return httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden,
+			"This request cannot reach the named tenant", map[string]any{
+				"reason_code": "tenant_context_mismatch", "retryable": false,
+			})
 	case errors.Is(err, monthlyruntime.ErrDemoRestricted):
 		return httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden,
 			"This action is disabled on the kombify demo account", demoRestrictedDetails("runtime_ssh"))
 	case errors.Is(err, monthlyruntime.ErrDecommissionBlockedProtected):
 		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
 			"This server is protected and cannot be decommissioned",
-			monthlyruntime.DecommissionProtectedDetails("", ""))
+			monthlyruntime.DecommissionProtectedDetails(monthlyruntime.DecommissionBlockedProviderID(err), ""))
 	case errors.Is(err, monthlyruntime.ErrFeatureDisabled):
 		var disabled *monthlyruntime.FeatureDisabledError
 		missing := []string{}
-		if errors.As(err, &disabled) && disabled != nil && strings.TrimSpace(disabled.FeatureKey) != "" {
-			missing = append(missing, disabled.FeatureKey)
+		providerID := ""
+		if errors.As(err, &disabled) && disabled != nil {
+			providerID = disabled.ProviderID
+			if strings.TrimSpace(disabled.FeatureKey) != "" {
+				missing = append(missing, disabled.FeatureKey)
+			}
 		}
 		return httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden, "Monthly Runtime is disabled",
-			monthlyruntime.ManagedRuntimeEntitlementDenialDetails("", monthlyruntime.EntitlementReasonFeatureDisabled, nil, missing))
+			monthlyruntime.ManagedRuntimeEntitlementDenialDetails(providerID, monthlyruntime.EntitlementReasonFeatureDisabled, nil, missing))
 	case errors.Is(err, monthlyruntime.ErrPowerTransitionInProgress):
 		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
 			"Another start or stop of this managed server is still converging", monthlyRuntimeDay2Details(
@@ -458,7 +475,10 @@ func monthlyRuntimeError(e *httpx.Event, err error) error {
 			"The released generation does not contain a complete immutable recreate intent", nil)
 	case errors.Is(err, monthlyruntime.ErrExecutionAuthorityInactive):
 		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
-			"Managed runtime is not under active provider-control custody", nil)
+			"Managed runtime is not under active provider-control custody",
+			// Shared by every monthly-runtime route, so it states the fact and no
+			// route-specific next step.
+			map[string]any{"reason_code": "managed_runtime_not_active", "retryable": false})
 	case errors.Is(err, monthlyruntime.ErrNativeRuntimeActionUnsupported):
 		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
 			"Managed runtime action is not supported by the active provider lifecycle",

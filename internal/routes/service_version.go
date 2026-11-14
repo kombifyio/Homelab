@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"context"
 	"net/http"
 	"regexp"
 	"sort"
@@ -29,6 +30,8 @@ const (
 
 	versionSourceImageTag        = "image_tag"
 	versionSourceImageLabel      = "image_label"
+	versionSourceStackKit        = "stackkit"
+	versionSourceImageDigest     = "image_digest"
 	reasonCompilerReleaseUnknown = "compiler_release_unknown"
 	reasonUpdateCheckDisabled    = "update_check_disabled"
 )
@@ -45,19 +48,38 @@ type serviceVersion struct {
 	CheckedAt       *time.Time `json:"checked_at,omitempty"`
 	UpdateMode      string     `json:"update_mode"`
 	ReasonCode      string     `json:"reason_code,omitempty"`
+	// The application release facts of a StackKits-managed application
+	// (D-2026-11-12-06), from the verified StackKits application release
+	// feed; see applyApplicationReleases.
+	applicationReleaseFacts
 }
 
 // serviceVersionFor derives the version fact of one service row.
 //
 // Managed components report their measured image version. The access manifest's
 // StackKitVersion identifies the Kit Definition, not the CLI compiler release,
-// so it cannot admit a comparison with the pinned compiler. Observed containers
-// are compared with their registry and are only updatable once adopted.
-func (h *serviceRuntimeHandlers) serviceVersionFor(service controlplane.ServiceRuntime) *serviceVersion {
+// so it cannot admit a comparison with the pinned compiler; the release a
+// managed service can be updated to is the newer StackKits release its node's
+// Guard reports as withheld (see managedVersion). Observed containers are
+// compared with their registry and are only updatable once adopted.
+//
+// fresh re-reads the node state for an action that is about to dispatch; a
+// read projection reuses it for nodeStackKitsUpdateTTL.
+func (h *serviceRuntimeHandlers) serviceVersionFor(ctx context.Context, service controlplane.ServiceRuntime, server *controlplane.ServerRuntime, fresh bool) *serviceVersion {
 	image := stringFromAnyMap(service.Metadata, "image")
 	label := stringFromAnyMap(service.Metadata, "image_version")
 	if serviceregistry.CanonicalManagementState(service.ManagementState) == serviceregistry.ManagementManaged {
-		return h.managedVersion(service, image, label)
+		// Handlers built without their own pin (the inventory and stack
+		// operations projections) use the shared one, so every read advertises
+		// the update the action admits.
+		release := h.stackKitRelease
+		if release == nil {
+			release = sharedPinnedStackKitRelease
+		}
+		pinned := release()
+		version := managedVersion(ctx, service, server, image, label, pinned, fresh)
+		applyApplicationReleases(ctx, version, service, server, image, label)
+		return version
 	}
 	if appcatalog.ParseImage(image).Repo == "" && label == "" {
 		return nil
@@ -84,10 +106,82 @@ func (h *serviceRuntimeHandlers) serviceVersionFor(service controlplane.ServiceR
 	return version
 }
 
-func (h *serviceRuntimeHandlers) managedVersion(service controlplane.ServiceRuntime, image, label string) *serviceVersion {
+// managedVersion is the update fact of a StackKit-managed service. A managed
+// service changes version only with its stack's StackKits release, so its
+// update is the governed stack upgrade (`update` action): it is offered when
+// the server's Guard runs an older StackKits release than the published one
+// Techstack withholds from it. Current and latest are then both StackKits
+// releases (source `stackkit`), never an image tag compared with a CLI
+// release. The withheld release must be exactly the published release the
+// `update` action installs (pinned); while the Guard still reports another
+// one, no update is offered, so what is advertised is what runs. The upgrade checkpoints the node first, verifies the target live
+// and automatically restores the previous release when that verification
+// fails; the job result carries that outcome as `update_outcome`.
+func managedVersion(ctx context.Context, service controlplane.ServiceRuntime, server *controlplane.ServerRuntime, image, label, pinned string, fresh bool) *serviceVersion {
 	current, source, _ := appcatalog.CurrentVersion(image, label)
-	return &serviceVersion{Current: current, Source: source, Image: image,
+	measured := &serviceVersion{Current: current, Source: source, Image: image,
 		UpdateMode: updateModeUnavailable, ReasonCode: reasonCompilerReleaseUnknown}
+	if server == nil || strings.TrimSpace(server.WorkerID) == "" {
+		return measured
+	}
+	read := cachedNodeStackKitsUpdate
+	if fresh {
+		read = jobs.ReadNodeStackKitRelease
+	}
+	node, ok := read(ctx, service.TenantID, server.WorkerID)
+	if !ok {
+		return measured
+	}
+	installed, available := stackKitReleaseVersion(node.Installed.GetVersion()), stackKitReleaseVersion(node.UpdateAvailable)
+	if order, comparable := appcatalog.CompareVersions(available, installed); installed == "" || available == "" || !comparable || order <= 0 ||
+		available != stackKitReleaseVersion(pinned) {
+		return measured
+	}
+	return &serviceVersion{Current: installed, Source: versionSourceStackKit, Image: image, Latest: available,
+		UpdateAvailable: true, UpdateMode: updateModeStackKitUpgrade}
+}
+
+// nodeStackKitsUpdateTTL bounds how long read projections reuse one node's
+// withheld StackKits release; an update action re-reads it before dispatch.
+const nodeStackKitsUpdateTTL = 30 * time.Second
+
+type nodeStackKitsUpdateEntry struct {
+	node    jobs.NodeStackKitRelease
+	ok      bool
+	expires time.Time
+}
+
+var nodeStackKitsUpdates = struct {
+	sync.Mutex
+	entries map[string]nodeStackKitsUpdateEntry
+}{entries: map[string]nodeStackKitsUpdateEntry{}}
+
+// cachedNodeStackKitsUpdate serves list projections, which advertise one
+// update fact per service row, from one node read per worker and TTL. The read
+// keeps the request's values but not its cancellation, and is bounded, so a
+// cancelled request does not cache a failed read and none can hang on it.
+func cachedNodeStackKitsUpdate(ctx context.Context, tenantID, agentID string) (jobs.NodeStackKitRelease, bool) {
+	key := tenantID + "\x00" + agentID
+	now := time.Now()
+	nodeStackKitsUpdates.Lock()
+	entry, found := nodeStackKitsUpdates.entries[key]
+	nodeStackKitsUpdates.Unlock()
+	if found && now.Before(entry.expires) {
+		return entry.node, entry.ok
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	readCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
+	defer cancel()
+	node, ok := jobs.ReadNodeStackKitRelease(readCtx, tenantID, agentID)
+	nodeStackKitsUpdates.Lock()
+	if len(nodeStackKitsUpdates.entries) >= 4096 {
+		nodeStackKitsUpdates.entries = map[string]nodeStackKitsUpdateEntry{}
+	}
+	nodeStackKitsUpdates.entries[key] = nodeStackKitsUpdateEntry{node: node, ok: ok, expires: now.Add(nodeStackKitsUpdateTTL)}
+	nodeStackKitsUpdates.Unlock()
+	return node, ok
 }
 
 // stackKitReleaseVersion reduces "kit@5.1.0", "v5.1.0" and "5.1.0" to "5.1.0".
@@ -127,7 +221,7 @@ func updateAllowed(service controlplane.ServiceRuntime, version *serviceVersion,
 // keep their backup schedule). Reading a locked service is not a mutation, and
 // neither is backing it up, so the owner guardrail does not suppress it.
 func backupAllowed(service controlplane.ServiceRuntime, server *controlplane.ServerRuntime) bool {
-	if server == nil || adoptedApplication(&service) ||
+	if server == nil || adoptedApplication(&service) || !serverKitHoldsBackupCustody(*server) ||
 		serviceregistry.CanonicalManagementState(service.ManagementState) != serviceregistry.ManagementManaged {
 		return false
 	}
@@ -138,6 +232,10 @@ func backupAllowed(service controlplane.ServiceRuntime, server *controlplane.Ser
 	}
 	return false
 }
+
+// sharedPinnedStackKitRelease serves projections built outside a configured
+// service handler (the inventory update read) from one cached resolution.
+var sharedPinnedStackKitRelease = pinnedStackKitRelease()
 
 // pinnedStackKitRelease returns the StackKits release served to managed agents.
 // Resolving the bundle verifies its files, so the answer is kept for a short

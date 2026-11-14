@@ -31,6 +31,22 @@ func prepareApplicationPrincipal(ctx context.Context, authority *db.DB, cfg adva
 	if err = ensureProviderControlRuntimeLogin(ctx, authority.DB, app.User, app.Password); err != nil {
 		return err
 	}
+	// The hosted system login (platform-3r69a) is ensured beside the application
+	// login from its own DSN, so a release never waits for a manual role.
+	var systemConfig db.Config
+	hostedSystem := cfg.appRole == db.HostedApplicationRole
+	if hostedSystem {
+		if systemConfig, err = db.RuntimeSystemConfig(cfg.application); err != nil {
+			return err
+		}
+		system, parseErr := pgx.ParseConfig(systemConfig.DSN)
+		if parseErr != nil || system.User == migration.User || system.User == app.User {
+			return errors.New("application preparation refuses a system login alias")
+		}
+		if err = ensureProviderControlRuntimeLogin(ctx, authority.DB, db.RuntimeSystemRole, system.Password); err != nil {
+			return err
+		}
+	}
 	tx, err := authority.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -49,6 +65,10 @@ func prepareApplicationPrincipal(ctx context.Context, authority *db.DB, cfg adva
 		if err = db.InstallApplicationCapabilities(ctx, tx, db.ApplicationPrincipal{Role: db.BackupWorkerRole, AuthorityOwner: owner}); err != nil {
 			return err
 		}
+		// The hosted system login holds the same finite application capability.
+		if err = db.InstallApplicationCapabilities(ctx, tx, db.ApplicationPrincipal{Role: db.RuntimeSystemRole, AuthorityOwner: owner}); err != nil {
+			return err
+		}
 	}
 	if err = tx.Commit(); err != nil {
 		return err
@@ -65,5 +85,16 @@ func prepareApplicationPrincipal(ctx context.Context, authority *db.DB, cfg adva
 	if err = application.QueryRowContext(ctx, "SELECT current_user,session_user").Scan(&login, &session); err != nil || login != app.User || session != login {
 		return errors.New("prepared application session differs from the declared login")
 	}
-	return db.VerifyApplicationPrivileges(ctx, application.DB, principal, true)
+	if err = db.VerifyApplicationPrivileges(ctx, application.DB, principal, true); err != nil {
+		return err
+	}
+	if !hostedSystem {
+		return nil
+	}
+	system, err := db.OpenContext(ctx, systemConfig)
+	if err != nil {
+		return errors.New("prepared runtime system login authentication failed")
+	}
+	defer system.Close()
+	return db.VerifyRuntimeSystemLogin(ctx, system)
 }

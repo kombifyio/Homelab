@@ -25,9 +25,9 @@ func ValidateCustody(mode config.DeploymentMode, log *logger.Logger) error {
 	if auth.GetEncryptor() != nil {
 		return nil
 	}
-	// A secondary release channel (Preview, Early Access) holds no master key
-	// (D-2026-10-22-02): it starts with wallet secrets failing closed. Stable
-	// SaaS cannot serve without its key.
+	// A deployment beside this one would hold no master key (D-2026-10-22-02)
+	// and start with wallet secrets failing closed. The one channel's SaaS
+	// deployment cannot serve without its key.
 	if mode.IsSaaS() && !config.SecondaryChannel() {
 		return fmt.Errorf("wallet encryption is required in SaaS mode: set %s to a 32-byte key", auth.EncryptionKeyEnvVar)
 	}

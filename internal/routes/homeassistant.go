@@ -85,5 +85,5 @@ func (h registryRouteHandlers) importHomeAssistant(e *httpx.Event) error {
 	if err != nil {
 		return httpx.NewInternalServerError("Failed to record Home Assistant link", nil)
 	}
-	return httpx.Success(e, http.StatusOK, map[string]any{"service": serviceRegistryRecordFromStore(*service, *stack, *node), "observation": observed, "management_scope": "observed", "migration_available": false, "migration_unavailable_reason": "A separately authorized native backup, isolated restore and source lifecycle executor is required"})
+	return httpx.Success(e, http.StatusOK, map[string]any{"service": serviceRegistryRecordFromStore(*service, *stack, *node), "observation": observed, "management_scope": "observed"})
 }

@@ -70,11 +70,23 @@ func (s *MemoryStore) ApplyReport(ctx context.Context, write ReportWrite) (bool,
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	posture := s.ensure(write.Identity, write.DisplayName, write.Now)
+	if write.Power != nil && write.Security == nil && write.Backup == nil {
+		if posture.Power != nil && posture.Power.SourceEpoch == write.Power.SourceEpoch && write.Power.Sequence <= posture.Power.Sequence {
+			return false, nil
+		}
+		copied := *write.Power
+		posture.Power, posture.PowerReportedAt = &copied, write.Now
+		return true, nil
+	}
 	if posture.SourceEpoch == write.Report.SourceEpoch && write.Report.Sequence <= posture.SourceSequence && posture.SourceSequence != 0 {
 		return false, nil
 	}
 	posture.SourceEpoch, posture.SourceSequence, posture.ReportedAt = write.Report.SourceEpoch, write.Report.Sequence, write.Now
 	posture.GuardVersion, posture.GuardSigned = write.Report.GuardVersion, write.Report.GuardSigned
+	if write.Power != nil {
+		copied := *write.Power
+		posture.Power, posture.PowerReportedAt = &copied, write.Now
+	}
 	if write.Security != nil {
 		posture.Security = MergeSecurity(posture.Security, *write.Security)
 		AnswerVerifyRequest(posture, write.Report.VerifyRequestID)

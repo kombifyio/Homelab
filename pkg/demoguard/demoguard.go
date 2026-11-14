@@ -1,8 +1,9 @@
-// Package demoguard resolves the shared public-demo identity from the
-// environment. The kombify live demo publishes real login credentials, so the
-// demo tenant needs request-time guards (no SSH, no command dispatch, no
-// decommission of the anchor servers). All configuration is env-based; when the
-// variables are unset every predicate returns false and the guards are inert.
+// Package demoguard resolves the shared demo identity from the environment.
+// The demo is one password account whose credentials go out to several people
+// under NDA, so the demo tenant needs request-time guards (no SSH, no command
+// dispatch, no decommission of the anchor servers). All configuration is
+// env-based; when the variables are unset every predicate returns false and
+// the guards are inert.
 package demoguard
 
 import (

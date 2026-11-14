@@ -208,6 +208,10 @@ type Demand struct {
 	pinReason string
 }
 
+// PinOwnerChoice is the reason of a pin the owner chose ("Choose another
+// server"); the other reasons are the planner's own.
+const PinOwnerChoice = "owner_choice"
+
 // Pin binds a workload to a node.
 type Pin struct {
 	Workload string `json:"workload"`

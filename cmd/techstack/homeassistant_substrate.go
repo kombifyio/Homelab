@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
 
 	"github.com/kombifyio/techstack/internal/homeassistant"
 	"github.com/kombifyio/techstack/internal/substrate"
@@ -27,12 +28,12 @@ func (p *homeAssistantSubstrateProvisioner) PrepareIsolatedGuest(ctx context.Con
 	if err != nil {
 		return homeassistant.AdmittedHAOSGuest{}, err
 	}
-	tx, err := p.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	tx, err := tenantcontext.Database(ctx, p.db).BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return homeassistant.AdmittedHAOSGuest{}, err
 	}
 	defer tx.Rollback()
-	if _, err = tx.ExecContext(ctx, `SELECT set_config('app.tenant_id',$1,true)`, p.request.TenantID); err != nil {
+	if err = tenantcontext.ApplyTenant(ctx, tx, p.request.TenantID); err != nil {
 		return homeassistant.AdmittedHAOSGuest{}, err
 	}
 	var payload []byte

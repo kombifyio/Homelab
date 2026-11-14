@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
+	"github.com/kombifyio/techstack/pkg/guardpower"
 	"github.com/google/uuid"
 )
 
@@ -35,7 +36,7 @@ func NewPostgresStore(db *sql.DB, sink AlertSink) (*PostgresStore, error) {
 }
 
 func (s *PostgresStore) withTenant(ctx context.Context, tenantID string, fn func(*sql.Tx) error) error {
-	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	tx, err := tenantcontext.Database(ctx, s.db).BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return err
 	}
@@ -71,7 +72,7 @@ const postureColumns = `tenant_id, worker_id, server_id, owner_subject_id, displ
 	backup_status, backup_reason_code, backup_ready, backup_snapshot_state, backup_last_snapshot_at,
 	backup_restore_state, backup_last_restore_at, backup_reported_at,
 	guard_mode, guard_update_state, guard_update_version, guard_deny_mutations, guard_observed_at,
-	verify_requested_at, verify_request_id, verify_unechoed, created_at, updated_at`
+	verify_requested_at, verify_request_id, verify_unechoed, created_at, updated_at, power_state, power_reported_at`
 
 type scanner interface{ Scan(dest ...any) error }
 
@@ -92,25 +93,32 @@ func timeVal(value sql.NullTime) time.Time {
 
 func scanPosture(row scanner) (*Posture, error) {
 	var p Posture
-	var reported, securityReported, snapshotAt, restoreAt, backupReported, guardObserved, verifyRequested sql.NullTime
-	var evidence []byte
+	var reported, securityReported, snapshotAt, restoreAt, backupReported, guardObserved, verifyRequested, powerReported sql.NullTime
+	var evidence, power []byte
 	if err := row.Scan(
 		&p.TenantID, &p.WorkerID, &p.ServerID, &p.OwnerSubjectID, &p.DisplayName, &p.SourceEpoch, &p.SourceSequence,
 		&reported, &p.GuardVersion, &p.GuardSigned, &p.Security.Status, &p.Security.ReasonCode, &securityReported, &evidence,
 		&p.Backup.Status, &p.Backup.ReasonCode, &p.Backup.Ready, &p.Backup.SnapshotState, &snapshotAt,
 		&p.Backup.RestoreState, &restoreAt, &backupReported,
 		&p.GuardMode, &p.GuardUpdateState, &p.GuardUpdateVersion, &p.GuardDenyMutations, &guardObserved,
-		&verifyRequested, &p.VerifyRequestID, &p.VerifyUnechoed, &p.CreatedAt, &p.UpdatedAt,
+		&verifyRequested, &p.VerifyRequestID, &p.VerifyUnechoed, &p.CreatedAt, &p.UpdatedAt, &power, &powerReported,
 	); err != nil {
 		return nil, err
 	}
 	p.ReportedAt, p.Security.ReportedAt = timeVal(reported), timeVal(securityReported)
 	p.Backup.LastSnapshotAt, p.Backup.LastRestoreAt, p.Backup.ReportedAt = timePtr(snapshotAt), timePtr(restoreAt), timeVal(backupReported)
 	p.GuardObservedAt, p.VerifyRequestedAt = timeVal(guardObserved), timePtr(verifyRequested)
+	p.PowerReportedAt = timeVal(powerReported)
 	if len(evidence) > 0 {
 		var decoded Evidence
 		if err := json.Unmarshal(evidence, &decoded); err == nil {
 			p.Security.Evidence = &decoded
+		}
+	}
+	if len(power) > 0 {
+		var decoded guardpower.PowerReport
+		if err := json.Unmarshal(power, &decoded); err == nil {
+			p.Power = &decoded
 		}
 	}
 	return &p, nil
@@ -185,6 +193,25 @@ func (s *PostgresStore) ApplyReport(ctx context.Context, write ReportWrite) (boo
 		if err != nil {
 			return err
 		}
+		if write.Power != nil && write.Security == nil && write.Backup == nil {
+			// A power snapshot has its own epoch and sequence: it never rewrites
+			// the security/backup cursor, and a replayed snapshot is ignored.
+			if current.Power != nil && current.Power.SourceEpoch == write.Power.SourceEpoch && write.Power.Sequence <= current.Power.Sequence {
+				return nil
+			}
+			raw, marshalErr := json.Marshal(write.Power)
+			if marshalErr != nil {
+				return marshalErr
+			}
+			if _, err := tx.ExecContext(ctx, `
+				UPDATE guard_posture_states SET power_state = $3::jsonb, power_reported_at = $4
+				WHERE tenant_id = $1 AND worker_id = $2
+			`, identity.TenantID, identity.WorkerID, string(raw), write.Now); err != nil {
+				return err
+			}
+			applied = true
+			return nil
+		}
 		if current.SourceEpoch == write.Report.SourceEpoch && current.SourceSequence != 0 && write.Report.Sequence <= current.SourceSequence {
 			return nil
 		}
@@ -206,6 +233,15 @@ func (s *PostgresStore) ApplyReport(ctx context.Context, write ReportWrite) (boo
 			evidence = string(raw)
 		}
 		securityReported, backupReported := nullTime(security.ReportedAt), nullTime(backup.ReportedAt)
+		var power any
+		var powerReported any
+		if write.Power != nil {
+			raw, marshalErr := json.Marshal(write.Power)
+			if marshalErr != nil {
+				return marshalErr
+			}
+			power, powerReported = string(raw), write.Now
+		}
 		if write.Security != nil {
 			AnswerVerifyRequest(current, write.Report.VerifyRequestID)
 		}
@@ -215,13 +251,16 @@ func (s *PostgresStore) ApplyReport(ctx context.Context, write ReportWrite) (boo
 				security_status = $8, security_reason_code = $9, security_reported_at = $10, evidence = $11::jsonb,
 				backup_status = $12, backup_reason_code = $13, backup_ready = $14, backup_snapshot_state = $15,
 				backup_last_snapshot_at = $16, backup_restore_state = $17, backup_last_restore_at = $18, backup_reported_at = $19,
-				verify_request_id = $20, verify_unechoed = $21
+				verify_request_id = $20, verify_unechoed = $21,
+				power_state = COALESCE($22::jsonb, power_state),
+				power_reported_at = COALESCE($23, power_reported_at)
 			WHERE tenant_id = $1 AND worker_id = $2
 		`, identity.TenantID, identity.WorkerID, write.Report.SourceEpoch, write.Report.Sequence, write.Now,
 			write.Report.GuardVersion, write.Report.GuardSigned,
 			security.Status, security.ReasonCode, securityReported, evidence,
 			backup.Status, backup.ReasonCode, backup.Ready, backup.SnapshotState, backup.LastSnapshotAt,
-			backup.RestoreState, backup.LastRestoreAt, backupReported, current.VerifyRequestID, current.VerifyUnechoed); err != nil {
+			backup.RestoreState, backup.LastRestoreAt, backupReported, current.VerifyRequestID, current.VerifyUnechoed,
+			power, powerReported); err != nil {
 			return err
 		}
 		name := firstNonEmpty(write.DisplayName, current.DisplayName)

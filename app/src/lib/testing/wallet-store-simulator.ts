@@ -156,6 +156,14 @@ export function createStoreSimulator(
       if (parts.length !== 5) throw new Error("wallet_transport_invalid");
       const [encodedHeader, encodedKey, encodedIv, encodedText, encodedTag] =
         parts;
+      if (
+        encodedHeader === undefined ||
+        encodedKey === undefined ||
+        encodedIv === undefined ||
+        encodedText === undefined ||
+        encodedTag === undefined
+      )
+        throw new Error("wallet_transport_invalid");
       const header = JSON.parse(
         Buffer.from(encodedHeader, "base64url").toString("utf8"),
       ) as Record<string, unknown>;

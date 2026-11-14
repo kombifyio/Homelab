@@ -64,6 +64,39 @@ func EntitlementGateForDeployment(saas bool) EntitlementGate {
 	return selfHostedEntitlementGate{}
 }
 
+// freshPersonOrActingAgent admits an owner action that needs no person by
+// workspace AI-CAPABILITY-PROVISIONING-TARGET.md section 5e: an agent the
+// Gateway attested as acting for the person passes without a step-up page,
+// and the person's own session still presents a fresh second factor. It
+// returns the attested agent for the audit record, empty for the person. The
+// per-route decisions are in docs/GUARD-PRIVILEGES.md, "Person and agent
+// authority on owner routes".
+func freshPersonOrActingAgent(ctx context.Context, gate EntitlementGate, now time.Time, maxAge time.Duration) (string, bool) {
+	if claims, verified := middleware.VerifiedStepUpFromContext(ctx); verified {
+		if agentID, acting := claims.ActingAgent(); acting {
+			return agentID, true
+		}
+	}
+	return "", entitlementGateOrHosted(gate).FreshMultiFactor(ctx, now, maxAge)
+}
+
+// stepUpRefusal is the refusal of freshPersonOrActingAgent. A person is asked
+// to confirm a second factor; a signed principal that is no person and no attested
+// agent (demo, machine, service, an agent without a signed identity) cannot
+// sign in, so it is told what is missing instead of a retry.
+func stepUpRefusal(ctx context.Context, message, reason string) (string, map[string]any) {
+	if claims, verified := middleware.VerifiedStepUpFromContext(ctx); verified && claims.PrincipalType != middleware.PrincipalTypeUser {
+		return "This action needs the owner or an agent acting for the owner", map[string]any{
+			"reason": "acting_agent_attestation_required", "retryable": false,
+			"guidance": "Call as an agent the kombify Gateway attests for the owner, or let the owner perform the action.",
+		}
+	}
+	return message, map[string]any{
+		"reason": reason, "retryable": true,
+		"guidance": "Confirm with your second factor, then repeat the request within five minutes.",
+	}
+}
+
 // entitlementGateOrHosted keeps an unset gate fail-closed.
 func entitlementGateOrHosted(gate EntitlementGate) EntitlementGate {
 	if gate == nil {

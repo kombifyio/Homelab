@@ -1,0 +1,21 @@
+# kombify Techstack
+
+> The optional operator app on top of StackKits: guided configuration (Easy and Techie), runtime and service inventory across servers, orchestration of a pinned StackKits CLI and governed Day-2 operations. Beta.
+
+- StackKits keeps owning stack definitions and the standalone lifecycle; Techstack never replaces it.
+- The open-source Windows client works account-free against a server in your home network. This hosted entry and the managed capabilities are preview scope.
+- Public HTTPS names for services come from kombify.me.
+
+## Docs
+
+- [Techstack overview](https://docs.kombify.io/techstack/overview.md)
+- [Install Techstack Beta for Windows](https://docs.kombify.io/techstack/install-windows.md)
+- [kombify.me addresses](https://docs.kombify.io/kombify-me/overview.md)
+- [StackKits](https://docs.kombify.io/stackkits/overview.md)
+- [All docs for agents](https://docs.kombify.io/llms.txt)
+
+## Elsewhere
+
+- [kombify platform overview, products and pricing](https://kombify.io/llms-full.txt)
+- [StackKits agent entry points](https://stackkit.cc/llms.txt)
+- Contact: info@kombify.io

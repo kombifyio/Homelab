@@ -77,6 +77,11 @@ type Manager struct {
 	mu  sync.Mutex
 	rec Record
 	key ed25519.PrivateKey
+
+	// rebindReady is closed once a stored tenant rebind became ready in this
+	// process (tenant_rebind.go).
+	rebindReady     chan struct{}
+	rebindReadyOnce sync.Once
 }
 
 // Open prepares the state directory and loads the enrollment record. A missing
@@ -179,7 +184,7 @@ func (m *Manager) decommission(keepKey bool, enrollmentPaths []string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	var failure error
-	secrets := []string{keyFileName, nextKeyName, bootstrapFileName, EnrollmentFileName}
+	secrets := []string{keyFileName, nextKeyName, bootstrapFileName, EnrollmentFileName, tenantRebindFileName}
 	if keepKey {
 		secrets = secrets[1:]
 	}

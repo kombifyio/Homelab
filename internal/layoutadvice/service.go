@@ -6,10 +6,13 @@
 //
 // Order of one computation: project the selection onto the stored StackSpec
 // through the pinned release (authoring stays StackKits'), plan with the
-// Unifier's Layout Planner over the deployment's owner nodes, write one
-// nodeRef per planned workload into the proposal, verify that proposal
-// against exact inventory with `stackkit feasibility`, and only then propose
-// a record. Nothing is executed here (owner decision D2).
+// Unifier's Layout Planner over every server of the owner's homelab (an
+// add-server change stays inside its deployment), choose the target that
+// carries it out (extend a deployment, join a bare server into one, or found
+// one on a bare server), write
+// one nodeRef per planned workload into the target's proposal, verify that
+// proposal against exact inventory with `stackkit feasibility`, and only then
+// propose a record. Nothing is executed here (owner decision D2).
 package layoutadvice
 
 import (
@@ -67,14 +70,21 @@ var (
 	ErrUnverifiable = errors.New("layoutadvice: the recommendation cannot be revalidated against the current homelab")
 	// ErrUnavailable means a required dependency is not configured.
 	ErrUnavailable = errors.New("layoutadvice: layout recommendations are unavailable")
+	// ErrPinServer means a chosen server is not one the owner's deployments
+	// declare in this tenant: another tenant's or owner's, a bare server, an
+	// unknown or a decommissioned one.
+	ErrPinServer = errors.New("layoutadvice: the chosen server is not a server of your StackKit deployments")
+	// ErrPinInvalid means a server choice does not fit the selection.
+	ErrPinInvalid = errors.New("layoutadvice: the server choice does not fit the selection")
 )
 
 // StackReader loads kit deployments.
 type StackReader interface {
 	GetStack(ctx context.Context, tenantID, stackID string) (*controlplane.Stack, error)
+	ListStacksByTenant(ctx context.Context, tenantID string) ([]controlplane.Stack, error)
 }
 
-// ServerReader lists canonical servers.
+// ServerReader lists canonical servers; an empty stack id lists the tenant's.
 type ServerReader interface {
 	ListServerRuntimesByTenant(ctx context.Context, tenantID, stackID string) ([]controlplane.ServerRuntime, error)
 }
@@ -99,6 +109,9 @@ type Service struct {
 	Jobs      JobReader
 	Planner   layout.Planner
 	Now       func() time.Time
+	// MultiNodeJoin offers a bare server joining a deployment only where the
+	// pinned release declares multi-node join for its kit.
+	MultiNodeJoin MultiNodeJoin
 
 	cacheMu sync.Mutex
 	cache   map[string]cachedVerification
@@ -129,6 +142,10 @@ type Selection struct {
 	// PlannedNode is the node an add-server run brings, when its size is
 	// known before it enrolls (a managed offering or a hypervisor guest).
 	PlannedNode *PlannedNode `json:"planned_node,omitempty"`
+	// Pins are the owner's "Choose another server" choices of an add-use-case
+	// selection: use case id to server id. The planner re-solves with them and
+	// StackKits verifies the result before it can be accepted.
+	Pins map[string]string `json:"pins,omitempty"`
 }
 
 // PlannedNode is a node with a declared size.
@@ -151,6 +168,7 @@ type View struct {
 	Scope          string                 `json:"scope"`
 	StackID        string                 `json:"stack_id"`
 	Flow           string                 `json:"flow"`
+	Target         Target                 `json:"target"`
 	Outcome        layout.Outcome         `json:"outcome"`
 	ProposalDigest string                 `json:"proposal_digest,omitempty"`
 	SnapshotDigest string                 `json:"snapshot_digest"`
@@ -162,18 +180,24 @@ type View struct {
 	Nodes          []NodeView             `json:"nodes"`
 	Assignments    []AssignmentView       `json:"assignments"`
 	Existing       []ExistingView         `json:"existing,omitempty"`
-	Notes          []layout.Reason        `json:"notes,omitempty"`
-	Conflicts      []layout.Conflict      `json:"conflicts,omitempty"`
-	Verification   Verification           `json:"verification"`
+	// Servers are the servers the owner can choose for a use case instead.
+	Servers      []ServerChoice    `json:"servers,omitempty"`
+	Notes        []layout.Reason   `json:"notes,omitempty"`
+	Conflicts    []layout.Conflict `json:"conflicts,omitempty"`
+	Verification Verification      `json:"verification"`
 }
 
 // NodeView is one node of the layout.
 type NodeView struct {
-	ID           string              `json:"id"`
-	SpecNodeRef  string              `json:"spec_node_ref,omitempty"`
-	Name         string              `json:"name"`
-	Primary      bool                `json:"primary,omitempty"`
-	Planned      bool                `json:"planned,omitempty"`
+	ID          string `json:"id"`
+	SpecNodeRef string `json:"spec_node_ref,omitempty"`
+	Name        string `json:"name"`
+	Primary     bool   `json:"primary,omitempty"`
+	Planned     bool   `json:"planned,omitempty"`
+	// StackID and StackName name the deployment the node belongs to; both
+	// are empty for a bare server.
+	StackID      string              `json:"stack_id,omitempty"`
+	StackName    string              `json:"stack_name,omitempty"`
 	State        string              `json:"state"`
 	Availability layout.Availability `json:"availability"`
 	Capacity     layout.Resources    `json:"capacity"`
@@ -193,6 +217,16 @@ type AssignmentView struct {
 	Band        string          `json:"band"`
 	Provenance  string          `json:"provenance"`
 	Reasons     []layout.Reason `json:"reasons"`
+}
+
+// ServerChoice is one server of the owner's deployments a use case can be
+// pinned to.
+type ServerChoice struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	StackID   string `json:"stack_id"`
+	StackName string `json:"stack_name"`
+	Connected bool   `json:"connected"`
 }
 
 // ExistingView is a deployed workload that stays where it is.
@@ -220,6 +254,7 @@ type recordPayload struct {
 // computed is one complete evaluation.
 type computed struct {
 	view        View
+	target      Target
 	computation unifier.LayoutComputation
 	proposal    map[string]any
 	assignments map[string]string
@@ -245,11 +280,7 @@ func (s *Service) Preview(ctx context.Context, scope Scope, selection Selection)
 	if err != nil {
 		return View{}, err
 	}
-	projection, err := s.project(ctx, stack, spec, selection)
-	if err != nil {
-		return View{}, err
-	}
-	result, err := s.evaluate(ctx, scope, stack, spec, projection, selection)
+	result, err := s.evaluate(ctx, scope, stack, spec, selection, s.projections(ctx, selection, nil))
 	if err != nil {
 		return View{}, err
 	}
@@ -257,7 +288,7 @@ func (s *Service) Preview(ctx context.Context, scope Scope, selection Selection)
 		result.view.State = "unverified"
 		return result.view, nil
 	}
-	record, err := s.Records.Propose(ctx, s.proposal(scope, stack, selection, result))
+	record, err := s.Records.Propose(ctx, s.proposal(scope, selection, result))
 	if err != nil {
 		return View{}, err
 	}
@@ -275,7 +306,10 @@ type RunAcceptance struct {
 }
 
 // AcceptForRun revalidates the shown recommendation against a fresh snapshot
-// and the run's own projected proposal, then accepts it. The run writes the
+// of the whole homelab and the run's own projected proposal, then accepts it.
+// The run must carry out the recommendation's target: stackID is the
+// deployment the run extends or joins. When the fresh plan chose another
+// target, the replacement says so and nothing is accepted. The run writes the
 // returned assignments into its spec only when Replacement is nil.
 func (s *Service) AcceptForRun(ctx context.Context, scope Scope, acceptance specv2.LayoutRecommendationAcceptance, stackID, flow string, projection *specv2.Projection, correlationID string) (RunAcceptance, error) {
 	if s == nil || s.Records == nil || s.Stacks == nil || s.Servers == nil || s.Workers == nil || s.Catalog == nil {
@@ -289,7 +323,7 @@ func (s *Service) AcceptForRun(ctx context.Context, scope Scope, acceptance spec
 	if err := json.Unmarshal(record.Payload, &payload); err != nil {
 		return RunAcceptance{}, fmt.Errorf("layoutadvice: read recommendation: %w", err)
 	}
-	if payload.Selection.StackID != stackID || payload.Selection.Flow != flow || projection == nil {
+	if !carriesOut(payload.View.Target, stackID) || payload.Selection.Flow != flow || projection == nil {
 		return RunAcceptance{}, ErrSelectionMismatch
 	}
 	if acceptedByRun(*record, correlationID) {
@@ -298,11 +332,21 @@ func (s *Service) AcceptForRun(ctx context.Context, scope Scope, acceptance spec
 		// carries out exactly what it accepted.
 		return RunAcceptance{Assignments: assignmentsFromView(payload.View), Record: record}, nil
 	}
-	stack, spec, err := s.ownedSpec(ctx, scope, stackID)
+	_, spec, err := s.ownedSpec(ctx, scope, stackID)
 	if err != nil {
 		return RunAcceptance{}, err
 	}
-	fresh, err := s.evaluate(ctx, scope, stack, spec, projection, payload.Selection)
+	origin, originSpec, err := s.ownedSpec(ctx, scope, payload.Selection.StackID)
+	if err != nil {
+		return RunAcceptance{}, err
+	}
+	known := map[string]*specv2.Projection{stackID: projection}
+	fresh, err := s.evaluate(ctx, scope, origin, originSpec, payload.Selection, s.projections(ctx, payload.Selection, known))
+	if errors.Is(err, ErrPinServer) || errors.Is(err, ErrPinInvalid) {
+		// The chosen server left the homelab or its deployment since: the
+		// shown advice cannot be revalidated, and a new preview says why.
+		return RunAcceptance{}, fmt.Errorf("%w: %v", ErrUnverifiable, err)
+	}
 	if err != nil {
 		return RunAcceptance{}, err
 	}
@@ -310,14 +354,23 @@ func (s *Service) AcceptForRun(ctx context.Context, scope Scope, acceptance spec
 		// Never accept advice that the current homelab no longer verifies.
 		return RunAcceptance{}, ErrUnverifiable
 	}
-	// Every workload the run adds must be one the plan placed; anything
-	// else was never planned or verified.
-	for workload := range addedWorkloads(spec, projection.Spec) {
-		if _, planned := fresh.assignments[workload]; !planned {
-			return RunAcceptance{}, fmt.Errorf("%w: %s was not part of the recommendation", ErrSelectionMismatch, workload)
+	// A fresh plan for another target is a material change: the record is
+	// replaced below and this run carries out nothing.
+	moved := !carriesOut(fresh.target, stackID)
+	if moved && fresh.material == record.MaterialDigest {
+		// Accepting would bind the record to a run that does not carry it out.
+		return RunAcceptance{}, fmt.Errorf("%w: the recommendation now goes elsewhere", ErrSelectionMismatch)
+	}
+	if !moved {
+		// Every workload the run adds must be one the plan placed; anything
+		// else was never planned or verified.
+		for workload := range addedWorkloads(spec, projection.Spec) {
+			if _, planned := fresh.assignments[workload]; !planned {
+				return RunAcceptance{}, fmt.Errorf("%w: %s was not part of the recommendation", ErrSelectionMismatch, workload)
+			}
 		}
 	}
-	freshProposal := s.proposal(scope, stack, payload.Selection, fresh)
+	freshProposal := s.proposal(scope, payload.Selection, fresh)
 	outcome, err := s.Records.Accept(ctx, actions.AcceptRecommendation{
 		TenantID: scope.TenantID, OwnerSubjectID: scope.OwnerID, ID: record.ID,
 		ProposalDigest: acceptance.ProposalDigest, Fresh: freshProposal, CorrelationID: correlationID, Now: s.now(),
@@ -328,6 +381,9 @@ func (s *Service) AcceptForRun(ctx context.Context, scope Scope, acceptance spec
 	if outcome.Replacement != nil {
 		view := viewFromRecord(*outcome.Replacement, fresh.view)
 		return RunAcceptance{Replacement: &view}, nil
+	}
+	if moved && !outcome.Replayed {
+		return RunAcceptance{}, fmt.Errorf("%w: the recommendation now goes elsewhere", ErrSelectionMismatch)
 	}
 	assignments := fresh.assignments
 	if outcome.Replayed {
@@ -451,6 +507,18 @@ func normalizeSelection(selection Selection) Selection {
 	}
 	sort.Strings(goals)
 	selection.Goals = goals
+	var pins map[string]string
+	for goal, server := range selection.Pins {
+		goal, server = strings.ToLower(strings.TrimSpace(goal)), strings.TrimSpace(server)
+		if goal == "" || server == "" {
+			continue
+		}
+		if pins == nil {
+			pins = map[string]string{}
+		}
+		pins[goal] = server
+	}
+	selection.Pins = pins
 	return selection
 }
 
@@ -495,26 +563,55 @@ func (s *Service) project(ctx context.Context, stack *controlplane.Stack, spec m
 	return s.Projector.Project(ctx, spec, intent, stack.HomelabID)
 }
 
-// evaluate plans over a fresh snapshot and verifies the proposal.
-func (s *Service) evaluate(ctx context.Context, scope Scope, stack *controlplane.Stack, spec map[string]any, projection *specv2.Projection, selection Selection) (computed, error) {
+// evaluate plans over a fresh snapshot of the homelab, starting from the
+// deployment the owner asked from, and verifies the chosen target's proposal.
+func (s *Service) evaluate(ctx context.Context, scope Scope, origin *controlplane.Stack, originSpec map[string]any, selection Selection, project projectionFor) (computed, error) {
 	catalog, err := s.Catalog()
 	if err != nil {
 		return computed{}, fmt.Errorf("layoutadvice: read the pinned use-case catalog: %w", err)
 	}
-	input, err := s.layoutInput(ctx, scope, stack, spec, projection, selection, catalog)
+	hl, err := s.loadHomelab(ctx, scope, origin, originSpec, selection.Flow == FlowAddUseCase)
 	if err != nil {
 		return computed{}, err
 	}
-	computation, err := unifier.ComputeLayout(ctx, catalog, input, s.Planner)
+	chosen, err := s.plan(ctx, scope, hl, selection, catalog, project)
 	if err != nil {
 		return computed{}, err
 	}
-	out := computed{computation: computation, assignments: map[string]string{}}
-	out.view = buildView(scopeKey(stack.ID), selection, computation, catalog.Release.Tag)
+	computation := chosen.computation
+	out := computed{computation: computation, target: chosen.target, assignments: map[string]string{}}
+	out.view = buildView(scopeKey(origin.ID), selection, computation, catalog.Release.Tag)
+	out.view.Target = chosen.target
+	if selection.Flow == FlowAddUseCase {
+		out.view.Servers = serverChoices(hl)
+	}
+	if chosen.deployment != nil {
+		for i := range out.view.Nodes {
+			out.view.Nodes[i].StackID, out.view.Nodes[i].StackName = chosen.deployment.stack.ID, chosen.deployment.stack.Name
+		}
+	}
+	out.view.Notes = append(homelabNotes(hl, chosen), out.view.Notes...)
 	if computation.Result.Outcome != layout.OutcomeFeasible || len(computation.Result.Options) == 0 {
 		out.view.Verification = Verification{Status: VerificationSkipped}
 		return out, nil
 	}
+	if chosen.target.Action == TargetJoin {
+		// The joining node is checked by the run that adds it.
+		out.view.Verification = Verification{Status: VerificationSkipped, Reasons: []layout.Reason{{
+			Code: reasonJoinNotChecked, Params: map[string]string{"server": chosen.target.ServerName, "deployment": chosen.target.StackName},
+			Text: chosen.target.ServerName + " is checked against its hardware when it joins " + chosen.target.StackName + ".",
+		}}}
+		return out, nil
+	}
+	if chosen.deployment == nil {
+		// A new deployment is checked by the run that founds it.
+		out.view.Verification = Verification{Status: VerificationSkipped, Reasons: []layout.Reason{{
+			Code: reasonFoundNotChecked, Params: map[string]string{"server": chosen.target.ServerName},
+			Text: "A new deployment on " + chosen.target.ServerName + " is checked against its hardware when you set it up there.",
+		}}}
+		return out, nil
+	}
+	projection := chosen.projection
 	option := computation.Result.Options[0]
 	for _, assignment := range option.Assignments {
 		for _, workload := range assignmentWorkloads(assignment.Workload, assignment.Workloads) {
@@ -658,19 +755,26 @@ func verificationFromReport(report specv2.FeasibilityReport) Verification {
 	return verification
 }
 
-func (s *Service) proposal(scope Scope, stack *controlplane.Stack, selection Selection, result computed) actions.ProposeRecommendation {
+// proposal records the advice under the scope it was asked in and on the
+// deployment that carries it out.
+func (s *Service) proposal(scope Scope, selection Selection, result computed) actions.ProposeRecommendation {
 	payload, _ := json.Marshal(recordPayload{Selection: selection, View: result.view})
 	proposalDigest := ""
 	if len(result.computation.Result.Options) > 0 {
 		proposalDigest = result.computation.Result.Options[0].Digest
 	}
 	return actions.ProposeRecommendation{
-		TenantID: scope.TenantID, OwnerSubjectID: scope.OwnerID, Scope: scopeKey(stack.ID), StackID: stack.ID,
+		TenantID: scope.TenantID, OwnerSubjectID: scope.OwnerID, Scope: scopeKey(selection.StackID), StackID: result.target.StackID,
 		Title:          "Recommended distribution",
 		ProposalDigest: proposalDigest, SnapshotDigest: result.computation.Snapshot.Digest, MaterialDigest: result.material,
 		Payload: payload, Now: s.now(),
 		Verified: result.view.Outcome == layout.OutcomeFeasible && result.view.Verification.Status == VerificationVerified,
 	}
+}
+
+// carriesOut reports whether a run on stackID carries out the target.
+func carriesOut(target Target, stackID string) bool {
+	return target.Action == TargetExtend && target.StackID != "" && target.StackID == strings.TrimSpace(stackID)
 }
 
 // addedWorkloads are the workloads a projection adds to the stored spec.
@@ -687,8 +791,10 @@ func addedWorkloads(stored, projected map[string]any) map[string]bool {
 }
 
 // materialDigest is what acceptance compares after re-planning: which
-// workload goes to which node under which catalog and policy, never the
-// observation details of the snapshot.
+// workload goes to which node under which catalog and policy and the owner's
+// own server choices, never the observation details of the snapshot. The
+// choices count, so a chosen layout is never matched to a record of the same
+// layout the owner rejected without them.
 func materialDigest(problem layout.Problem, option layout.Option) string {
 	type demand struct {
 		Workload    string           `json:"workload"`
@@ -697,13 +803,19 @@ func materialDigest(problem layout.Problem, option layout.Option) string {
 		Band        string           `json:"band"`
 	}
 	material := struct {
-		Layout  string   `json:"layout"`
-		Catalog string   `json:"catalog"`
-		Policy  string   `json:"policy"`
-		Demands []demand `json:"demands"`
+		Layout  string       `json:"layout"`
+		Catalog string       `json:"catalog"`
+		Policy  string       `json:"policy"`
+		Demands []demand     `json:"demands"`
+		Chosen  []layout.Pin `json:"chosen,omitempty"`
 	}{Layout: layout.LayoutDigest(option), Catalog: problem.CatalogRelease, Policy: problem.PolicyProfile}
 	for _, d := range problem.Demands {
 		material.Demands = append(material.Demands, demand{Workload: d.Workload, Modules: d.Modules, Reservation: d.Reservation, Band: d.Band})
+	}
+	for _, pin := range problem.Pins { // sealed problems keep pins sorted
+		if pin.Reason == layout.PinOwnerChoice {
+			material.Chosen = append(material.Chosen, pin)
+		}
 	}
 	raw, _ := json.Marshal(material)
 	return digest(string(raw))
@@ -721,67 +833,6 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
-}
-
-// layoutInput builds the snapshot input from the canonical servers of the
-// deployment, their registry workers and the stored StackSpec.
-func (s *Service) layoutInput(ctx context.Context, scope Scope, stack *controlplane.Stack, spec map[string]any, projection *specv2.Projection, selection Selection, catalog stackkitrelease.UseCaseCatalog) (unifier.LayoutInput, error) {
-	servers, err := s.Servers.ListServerRuntimesByTenant(ctx, scope.TenantID, stack.ID)
-	if err != nil {
-		return unifier.LayoutInput{}, fmt.Errorf("layoutadvice: list servers: %w", err)
-	}
-	workers, err := s.Workers(ctx, scope.TenantID, scope.OwnerID)
-	if err != nil {
-		return unifier.LayoutInput{}, fmt.Errorf("layoutadvice: read worker inventory: %w", err)
-	}
-	workerByID := map[string]core.Worker{}
-	for _, worker := range workers {
-		workerByID[worker.ID] = worker
-	}
-	specNodes := nodeRoles(spec)
-	primary := primarySpecNode(spec)
-	input := unifier.LayoutInput{
-		Scope: scopeKey(stack.ID), StackID: stack.ID, OwnerID: scope.OwnerID,
-		SpecNodeRefs: map[string]string{}, NodeRoles: map[string][]string{}, RequiresRoles: map[string][]string{},
-		Goals: selection.Goals, ComputeProfile: selection.ComputeProfile, Settings: selection.Settings, Capabilities: selection.Capabilities,
-	}
-	serverOfNode := map[string]string{}
-	for _, server := range servers {
-		if server.OwnerSubjectID != scope.OwnerID || server.DesiredState == "decommissioned" || server.DecommissionedAt != nil {
-			continue
-		}
-		nodeRef := specNodeOfServer(stack.ID, server, specNodes)
-		if nodeRef == "" {
-			continue // a server of the tenant that this deployment does not declare
-		}
-		worker, ok := workerByID[server.WorkerID]
-		if !ok {
-			worker = core.Worker{ID: server.WorkerID, Name: firstNonEmpty(server.DisplayName, server.Name), Status: "offline"}
-		}
-		worker.ServerID, worker.StackID = server.ID, stack.ID
-		worker.Name = firstNonEmpty(server.DisplayName, server.Name, worker.Name)
-		if server.ConnectionState != "connected" && server.ConnectionState != "degraded" {
-			worker.Status = "offline"
-		}
-		input.Workers = append(input.Workers, worker)
-		input.SpecNodeRefs[server.ID] = nodeRef
-		input.NodeRoles[server.ID] = specNodes[nodeRef]
-		serverOfNode[nodeRef] = server.ID
-		if nodeRef == primary {
-			input.PrimaryServerID = server.ID
-		}
-	}
-	if selection.Flow == FlowAddServer && projection != nil && projection.NodeID != "" && serverOfNode[projection.NodeID] == "" {
-		input.Planned = append(input.Planned, plannedLayoutNode(projection.NodeID, projection.Spec, selection.PlannedNode, scope.OwnerID))
-		serverOfNode[projection.NodeID] = plannedPrefix + projection.NodeID
-	}
-	input.Existing = existingComponents(spec, catalog, selection.ComputeProfile, serverOfNode, primary)
-	if projection != nil {
-		for workload, roles := range authoredRequiredRoles(spec, projection.Spec) {
-			input.RequiresRoles[workload] = roles
-		}
-	}
-	return input, nil
 }
 
 func plannedLayoutNode(nodeRef string, projected map[string]any, planned *PlannedNode, ownerID string) layout.Node {

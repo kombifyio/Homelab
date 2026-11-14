@@ -16,9 +16,10 @@ import (
 // expired), or when no release is admitted: the Guard then only observes. The
 // caller signs it with the worker's binding key; an unsigned grant is never
 // admitted by a Guard. generation is the credential generation that
-// authenticated the request.
+// authenticated the request: a key-bound Guard holds no opaque credential and
+// stays at generation 0 until a rotation, so 0 is a real generation.
 func (s *Service) LocalRepairGrant(ctx context.Context, identity Identity, generation int64) (*guardbinding.LocalRepairGrant, error) {
-	if s.localRelease == nil || generation < 1 {
+	if s.localRelease == nil || generation < 0 {
 		return nil, nil
 	}
 	now := s.now()

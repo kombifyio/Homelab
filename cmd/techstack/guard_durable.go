@@ -43,7 +43,7 @@ type householdObserver interface {
 
 // stackKitReconciler is the observation oracle of the typed StackKits actions.
 // It only reads: APPLY is checked with the pinned CLI's verify, an application
-// connector with its verify, and the household identity mutations with the
+// connector with its verify, a home graph sync by idempotent re-issue, and the household identity mutations with the
 // household list. Every other mutating action has no safe oracle and is
 // escalated to an operator.
 type stackKitReconciler struct {
@@ -57,6 +57,20 @@ func (r stackKitReconciler) Reconcile(ctx context.Context, request httpguard.Rec
 		agentpb.StackKitOperation_STACKKIT_OPERATION_HOUSEHOLD_REMOVE.String(),
 		agentpb.StackKitOperation_STACKKIT_OPERATION_HOUSEHOLD_UPDATE_APPS.String():
 		return r.reconcileHousehold(ctx, request)
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_SYNC.String():
+		// A lost acknowledgement is safe to repeat: the Guard re-issue re-sends
+		// the stored command, which carries the old graph document. That is
+		// harmless because the sync is idempotent and the result is bound to
+		// the sent revision and restore items: a stale answer completes only
+		// that revision and removes only the sent restore items, so a newer
+		// revision or restore stays pending and the next run sends it.
+		return httpguard.ReconcileOutcome{Resolution: guardbinding.ResolutionNotApplied, Reason: "home_graph_sync_reissue_idempotent"}
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_AGENT_LINK_INSTALL.String(),
+		agentpb.StackKitOperation_STACKKIT_OPERATION_AGENT_LINK_REMOVE.String():
+		// Re-issuing is the command's own effect: an unchanged link request
+		// changes nothing, a removal of an absent link removes nothing, and the
+		// Guard reach reconciler delivers the current request again.
+		return httpguard.ReconcileOutcome{Resolution: guardbinding.ResolutionNotApplied, Reason: "agent_link_reissue_idempotent"}
 	}
 
 	if request.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_CONNECTOR.String() {

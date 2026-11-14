@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/techstack/pkg/appreleases"
 	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/guardposture"
 	"github.com/kombifyio/techstack/pkg/httpx"
@@ -47,20 +48,54 @@ type runtimeUpdatesOS struct {
 	LastUnattendedRun      *time.Time `json:"last_unattended_run,omitempty"`
 }
 
+// runtimeServiceUpdate is one service with a newer version. Source names the
+// namespace of current and latest (an image tag or label, or `stackkit` for a
+// managed service whose update is its stack's StackKits release), and
+// UpdateMode says how it is applied: `stackkit_upgrade` is the service
+// `update` action (the governed stack upgrade with automatic rollback),
+// `adopt_required` needs the service adopted first.
+//
+// For a StackKits-managed application the facts of the verified application
+// release feed ride along (D-2026-11-12-06): `application_update` is a newer
+// application version independent of a StackKits release (a security fix in
+// every setting, else the newest checked version), `bundled` one that arrives
+// with a StackKits release. The update action of an application version is
+// not executable yet; this read only reports it.
 type runtimeServiceUpdate struct {
-	ServiceID string `json:"service_id"`
-	Name      string `json:"name"`
-	Current   string `json:"current,omitempty"`
-	Latest    string `json:"latest"`
+	ServiceID     string                     `json:"service_id"`
+	Name          string                     `json:"name"`
+	Current       string                     `json:"current,omitempty"`
+	Latest        string                     `json:"latest"`
+	Source        string                     `json:"source,omitempty"`
+	UpdateMode    string                     `json:"update_mode"`
+	UpdateSetting string                     `json:"update_setting,omitempty"`
+	Tested        *bool                      `json:"tested,omitempty"`
+	Advisories    []appreleases.AdvisoryFact `json:"advisories,omitempty"`
+	SecurityFix   *appreleases.SecurityFix   `json:"security_fix,omitempty"`
+}
+
+// runtimeServiceAdvisories is a service whose installed version a known
+// advisory affects while no update is offered for it.
+type runtimeServiceAdvisories struct {
+	ServiceID  string                     `json:"service_id"`
+	Name       string                     `json:"name"`
+	Current    string                     `json:"current,omitempty"`
+	Advisories []appreleases.AdvisoryFact `json:"advisories"`
 }
 
 type runtimeServiceUpdates struct {
 	// Compared counts services whose version was compared with a published
 	// release; NotCompared counts the rest (no measured version, unsupported
-	// registry, check pending or disabled).
+	// registry, check pending or disabled, or application facts not
+	// verified).
 	Compared    int                    `json:"compared"`
 	NotCompared int                    `json:"not_compared"`
 	Available   []runtimeServiceUpdate `json:"available"`
+	// NotVerified counts managed applications whose release and advisory
+	// facts are not verified: they are neither up to date nor free of
+	// known vulnerabilities.
+	NotVerified int                        `json:"not_verified"`
+	Vulnerable  []runtimeServiceAdvisories `json:"vulnerable"`
 }
 
 type runtimeUpdatesServer struct {
@@ -79,26 +114,32 @@ func (h inventoryHandlers) httpInternalRuntimeUpdates(e *httpx.Event) error {
 }
 
 func (h inventoryHandlers) serveRuntimeUpdates(e *httpx.Event, ctx context.Context, scope inventoryScope) {
-	app := h.ownerReadApplication()
-	serverScope, err := app.authorize(ctx, scope, InventoryActionRead, controlplane.InventoryReadTargetServerCollection, "")
+	response, err := h.runtimeUpdatesFor(ctx, h.ownerReadApplication(), scope)
 	if err != nil {
 		h.writeCloudReadError(e, runtimeUpdatesSurface, err)
 		return
+	}
+	_ = e.JSON(http.StatusOK, response)
+}
+
+// runtimeUpdatesFor is the one update projection the private Cloud read and the
+// owner/agent read (GET /api/v1/inventory/updates) serve.
+func (h inventoryHandlers) runtimeUpdatesFor(ctx context.Context, app *inventoryApplication, scope inventoryScope) (runtimeUpdates, error) {
+	serverScope, err := app.authorize(ctx, scope, InventoryActionRead, controlplane.InventoryReadTargetServerCollection, "")
+	if err != nil {
+		return runtimeUpdates{}, err
 	}
 	serviceScope, err := app.authorize(ctx, scope, InventoryActionRead, controlplane.InventoryReadTargetServiceCollection, "")
 	if err != nil {
-		h.writeCloudReadError(e, runtimeUpdatesSurface, err)
-		return
+		return runtimeUpdates{}, err
 	}
 	servers, err := allInventoryServerRows(ctx, app.read, serverScope)
 	if err != nil {
-		h.writeCloudReadError(e, runtimeUpdatesSurface, inventoryStoreError(err))
-		return
+		return runtimeUpdates{}, inventoryStoreError(err)
 	}
 	services, err := allInventoryServiceRows(ctx, app.read, serviceScope)
 	if err != nil {
-		h.writeCloudReadError(e, runtimeUpdatesSurface, inventoryStoreError(err))
-		return
+		return runtimeUpdates{}, inventoryStoreError(err)
 	}
 
 	var views map[string]guardposture.View
@@ -108,17 +149,18 @@ func (h inventoryHandlers) serveRuntimeUpdates(e *httpx.Event, ctx context.Conte
 			views, postureReadable = read, true
 		}
 	}
-	versions := &serviceRuntimeHandlers{updates: h.updates}
+	versions := &serviceRuntimeHandlers{updates: h.updates, stackKitRelease: sharedPinnedStackKitRelease}
 
 	now := app.now().UTC()
 	response := runtimeUpdates{runtimeMonitoringEnvelope: newRuntimeMonitoringEnvelope(now), Servers: make([]runtimeUpdatesServer, 0, len(servers))}
 	index := make(map[string]int, len(servers))
-	for _, server := range servers {
+	for i := range servers {
+		server := servers[i]
 		index[server.ID] = len(response.Servers)
 		response.Servers = append(response.Servers, runtimeUpdatesServer{
 			ServerID: safeLabel(server.ID, 256),
 			OS:       h.runtimeUpdatesOSFrom(server.WorkerID, views, postureReadable),
-			Services: runtimeServiceUpdates{Available: []runtimeServiceUpdate{}},
+			Services: runtimeServiceUpdates{Available: []runtimeServiceUpdate{}, Vulnerable: []runtimeServiceAdvisories{}},
 		})
 	}
 	for _, service := range services {
@@ -127,7 +169,16 @@ func (h inventoryHandlers) serveRuntimeUpdates(e *httpx.Event, ctx context.Conte
 			continue
 		}
 		summary := &response.Servers[position].Services
-		version := versions.serviceVersionFor(service)
+		version := versions.serviceVersionFor(ctx, service, &servers[position], false)
+		if version != nil && version.EvidenceStatus == appreleases.EvidenceNotVerified {
+			summary.NotVerified++
+		}
+		if version != nil && len(version.Advisories) > 0 && !version.UpdateAvailable {
+			summary.Vulnerable = append(summary.Vulnerable, runtimeServiceAdvisories{
+				ServiceID: safeLabel(service.ID, 256), Name: safeLabel(service.Name, 256),
+				Current: safeLabel(version.Current, 128), Advisories: version.Advisories,
+			})
+		}
 		if version == nil || version.Latest == "" {
 			summary.NotCompared++
 			continue
@@ -137,10 +188,12 @@ func (h inventoryHandlers) serveRuntimeUpdates(e *httpx.Event, ctx context.Conte
 			summary.Available = append(summary.Available, runtimeServiceUpdate{
 				ServiceID: safeLabel(service.ID, 256), Name: safeLabel(service.Name, 256),
 				Current: safeLabel(version.Current, 128), Latest: safeLabel(version.Latest, 128),
+				Source: version.Source, UpdateMode: version.UpdateMode, UpdateSetting: version.UpdateSetting,
+				Tested: version.Tested, Advisories: version.Advisories, SecurityFix: version.SecurityFix,
 			})
 		}
 	}
-	_ = e.JSON(http.StatusOK, response)
+	return response, nil
 }
 
 // runtimeUpdatesOSFrom projects the OS update facts of the server's Guard.

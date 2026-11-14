@@ -445,6 +445,12 @@ func runTypedStackKitPreApplySequence(ctx context.Context, sender StackKitComman
 			return "", &typedStackKitOperationError{Operation: StackKitLifecyclePlan, CommandID: commandID, Err: err}
 		}
 		baseRequest.ExpectedSpecHash = specHash
+	} else if baseRequest.ExpectedSpecHash == "" {
+		// A rollout without a current node intent: let a node whose stack never
+		// applied anything run the INIT on the release that authored the candidate.
+		if err := admitFirstRolloutStackKitsRelease(ctx, jobID, baseRequest, release); err != nil {
+			return "", &typedStackKitOperationError{Operation: StackKitLifecycleInit, CommandID: jobID + "-" + StackKitLifecycleInit, Err: err}
+		}
 	}
 	nodePlanHash := ""
 	operations := []string{StackKitLifecycleInit, StackKitLifecycleAdvancedTrustImport}

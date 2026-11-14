@@ -1,8 +1,8 @@
 package routes
 
 import (
-	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -14,10 +14,6 @@ import (
 	"github.com/kombifyio/techstack/pkg/specv2"
 )
 
-// nativeV2WizardFeatureKey gates the native v2 projection surface; the flag is
-// declared in pkg/features/flags.go and defaults to off.
-const nativeV2WizardFeatureKey = "native_v2_wizard"
-
 // Envelope keys of the wizard preview contract.
 const (
 	wizardDetailUserGuidanceKey = "user_guidance"
@@ -27,15 +23,8 @@ const (
 	wizardNoticeTitleField      = "title"
 )
 
-// wizardFeatureChecker is the minimal capability check the wizard routes
-// need; pkg/features.Service satisfies it.
-type wizardFeatureChecker interface {
-	IsEnabled(ctx context.Context, featureKey, userID string) (bool, error)
-}
-
 // WizardRouteConfig wires the native v2 wizard surface.
 type WizardRouteConfig struct {
-	Features  wizardFeatureChecker
 	Seeds     specv2.SeedSource
 	Projector specv2.Projector
 	Validator specv2.SpecValidator
@@ -85,26 +74,26 @@ const wizardProjectionWriteBudget = 5 * time.Minute
 
 func (h wizardRouteHandlers) preview(e *httpx.Event) error {
 	_ = httpx.ExtendWriteDeadline(e.Response, wizardProjectionWriteBudget)
-	userID, _, ok := authenticatedUser(e)
+	_, _, ok := authenticatedUser(e)
 	if !ok {
 		return httpx.Unauthorized(e, "Authentication required")
-	}
-	if !h.nativeV2WizardEnabled(e.Request.Context(), userID) {
-		return httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden, "Native v2 wizard is not enabled", map[string]any{
-			inventoryReasonCodeField:          "feature_not_enabled",
-			"required_features":               []string{nativeV2WizardFeatureKey},
-			"missing_features":                []string{nativeV2WizardFeatureKey},
-			managedRuntimeDetailsRetryableKey: false,
-			wizardDetailUserGuidanceKey: map[string]any{
-				wizardNoticeTitleField: "Native v2 wizard is in beta",
-				wizardGuidanceBodyKey:  "Enable the native_v2_wizard beta feature to preview Architecture v2 projections.",
-			},
-		})
 	}
 
 	request, handled := h.decodeWizardPreview(e)
 	if handled {
 		return nil
+	}
+	if pending := request.Intent.PendingUseCaseAccess(); len(pending) > 0 {
+		blocked := make([]map[string]string, 0, len(pending))
+		for _, slug := range pending {
+			decision := request.Intent.UseCaseAccess[slug]
+			blocked = append(blocked, map[string]string{"use_case": slug, "capability": "use-case-access", "selection": decision.Mode + "/" + decision.Audience})
+		}
+		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "Desired access cannot be projected by this StackKits release", map[string]any{
+			inventoryReasonCodeField:          "wizard_desired_projection_blocked",
+			managedRuntimeDetailsRetryableKey: false,
+			"intent_projection_status":        "blocked", "blocked_capabilities": blocked,
+		})
 	}
 	seed, handled := h.previewSeed(e, request)
 	if handled {
@@ -119,6 +108,14 @@ func (h wizardRouteHandlers) preview(e *httpx.Event) error {
 	}
 	projection, projectErr := h.cfg.Projector.Project(e.Request.Context(), seed, request.Intent, request.Intent.HomelabID)
 	if projectErr != nil {
+		var blocked *specv2.UseCaseAccessProjectionError
+		if errors.As(projectErr, &blocked) {
+			return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, projectErr.Error(), map[string]any{
+				inventoryReasonCodeField:          "wizard_desired_projection_blocked",
+				managedRuntimeDetailsRetryableKey: false,
+				"intent_projection_status":        "blocked", "blocked_capabilities": blocked.Blocked,
+			})
+		}
 		return httpx.Error(e, http.StatusBadRequest, ksapi.ErrCodeValidation, projectErr.Error(), map[string]any{
 			inventoryReasonCodeField:          "wizard_projection_rejected",
 			managedRuntimeDetailsRetryableKey: false,
@@ -237,16 +234,6 @@ func (h wizardRouteHandlers) previewSeed(e *httpx.Event, request wizardPreviewRe
 		return nil, true
 	}
 	return seed, false
-}
-
-// nativeV2WizardEnabled fails closed: a nil checker, a checker error, and a
-// disabled flag all read as disabled.
-func (h wizardRouteHandlers) nativeV2WizardEnabled(ctx context.Context, userID string) bool {
-	if h.cfg.Features == nil {
-		return false
-	}
-	enabled, err := h.cfg.Features.IsEnabled(ctx, nativeV2WizardFeatureKey, userID)
-	return err == nil && enabled
 }
 
 func previewKitSlug(seed map[string]any) string {

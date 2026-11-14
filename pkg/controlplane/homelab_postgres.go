@@ -11,9 +11,15 @@ import (
 	"time"
 )
 
+// homelabColumns is what every homelab read selects. A new column here needs
+// its migration at or below SchemaFloor and HouseholdWorkerSchemaFloor: the
+// household worker reads homelabs through these columns too.
 const homelabColumns = `id, tenant_id, owner_subject_id, name, intent_json::text,
 		created_at, updated_at, deleted_at, named_at,
-		identity_presentation::text, identity_cloud_revision, identity_pending`
+		identity_presentation::text, identity_cloud_revision, identity_pending,
+		identity_authority_server_id, identity_authority_stack_id,
+		identity_origin_name, identity_origin_source, identity_authority_observed_at,
+		` + homelabIdentityAuthorityPresentSQL
 
 func (s *PostgresStore) CreateHomelab(ctx context.Context, req CreateHomelabRequest) (*Homelab, error) {
 	if s == nil || s.db == nil {
@@ -392,6 +398,10 @@ func scanHomelab(row rowScanner) (*Homelab, error) {
 		deletedAt sql.NullTime
 		namedAt   sql.NullTime
 		identity  sql.NullString
+
+		authorityServer, authorityStack, originName, originSource sql.NullString
+		authorityObservedAt                                       sql.NullTime
+		authorityPresent                                          bool
 	)
 	if err := row.Scan(
 		&homelab.ID,
@@ -406,9 +416,16 @@ func scanHomelab(row rowScanner) (*Homelab, error) {
 		&identity,
 		&homelab.Identity.CloudRevision,
 		&homelab.Identity.Pending,
+		&authorityServer,
+		&authorityStack,
+		&originName,
+		&originSource,
+		&authorityObservedAt,
+		&authorityPresent,
 	); err != nil {
 		return nil, err
 	}
+	homelab.IdentityAuthority = homelabIdentityAuthorityFromColumns(authorityServer, authorityStack, originName, originSource, authorityObservedAt, authorityPresent)
 	if err := decodeObject(intentRaw, &homelab.Intent); err != nil {
 		return nil, err
 	}

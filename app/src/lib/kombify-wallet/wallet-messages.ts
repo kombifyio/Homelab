@@ -106,7 +106,8 @@ export const walletMessages = {
       "The value and all of its versions are erased. This cannot be undone.",
     "kwallet.delete.confirm": "Delete permanently",
     "kwallet.delete.title": "Delete {name}?",
-    "kwallet.denied.auth_required": "Sign in again to reach your Wallet.",
+    "kwallet.denied.auth_required":
+      "Your Wallet waits for your confirmation. Nothing was changed.",
     "kwallet.denied.capture_invalid":
       "The Wallet refused the encrypted value. Try again.",
     "kwallet.denied.capture_key_untrusted":
@@ -127,7 +128,7 @@ export const walletMessages = {
     "kwallet.denied.owner_required":
       "Only you, signed in yourself, can manage your Wallet. Agents and delegated sessions cannot.",
     "kwallet.denied.owner_unknown":
-      "Your sign-in does not name a Wallet owner. Sign out and sign in again.",
+      "Your Wallet cannot tell which account it belongs to right now, so its values stay locked. Nothing was changed.",
     "kwallet.denied.replayed": "This change was already sent. Try again.",
     "kwallet.denied.reveal_mismatch":
       "The revealed value did not match this request and was discarded.",
@@ -589,7 +590,7 @@ export const walletMessages = {
     "kwallet.delete.confirm": "Endgültig löschen",
     "kwallet.delete.title": "{name} löschen?",
     "kwallet.denied.auth_required":
-      "Melde dich erneut an, um deine Wallet zu öffnen.",
+      "Deine Wallet wartet auf deine Bestätigung. Es wurde nichts geändert.",
     "kwallet.denied.capture_invalid":
       "Die Wallet hat den verschlüsselten Wert abgelehnt. Versuche es erneut.",
     "kwallet.denied.capture_key_untrusted":
@@ -612,7 +613,7 @@ export const walletMessages = {
     "kwallet.denied.owner_required":
       "Nur du selbst, persönlich angemeldet, kannst deine Wallet verwalten. Agenten und delegierte Sitzungen können das nicht.",
     "kwallet.denied.owner_unknown":
-      "Deine Anmeldung nennt keinen Wallet-Inhaber. Melde dich ab und erneut an.",
+      "Deine Wallet kann gerade nicht erkennen, zu welchem Konto sie gehört, deshalb bleiben ihre Werte gesperrt. Es wurde nichts geändert.",
     "kwallet.denied.replayed":
       "Diese Änderung wurde bereits gesendet. Versuche es erneut.",
     "kwallet.denied.reveal_mismatch":
@@ -1088,7 +1089,7 @@ export const walletMessages = {
     "kwallet.delete.confirm": "Eliminar definitivamente",
     "kwallet.delete.title": "¿Eliminar {name}?",
     "kwallet.denied.auth_required":
-      "Vuelve a iniciar sesión para acceder a tu Wallet.",
+      "Tu Wallet espera tu confirmación. No se ha cambiado nada.",
     "kwallet.denied.capture_invalid":
       "Wallet rechazó el valor cifrado. Inténtalo de nuevo.",
     "kwallet.denied.capture_key_untrusted":
@@ -1109,7 +1110,7 @@ export const walletMessages = {
     "kwallet.denied.owner_required":
       "Solo tú, con tu propia sesión, puedes gestionar tu Wallet. Los agentes y las sesiones delegadas no pueden.",
     "kwallet.denied.owner_unknown":
-      "Tu inicio de sesión no identifica a un titular de Wallet. Cierra sesión y vuelve a iniciarla.",
+      "Tu Wallet no puede saber ahora a qué cuenta pertenece, así que sus valores siguen bloqueados. No se ha cambiado nada.",
     "kwallet.denied.replayed": "Este cambio ya se envió. Inténtalo de nuevo.",
     "kwallet.denied.reveal_mismatch":
       "El valor mostrado no coincidía con esta solicitud y se descartó.",
@@ -1571,7 +1572,8 @@ export const walletMessages = {
     "kwallet.delete.body": "该值及其所有版本都将被清除。此操作无法撤消。",
     "kwallet.delete.confirm": "永久删除",
     "kwallet.delete.title": "删除 {name}？",
-    "kwallet.denied.auth_required": "请重新登录以访问你的 Wallet。",
+    "kwallet.denied.auth_required":
+      "你的 Wallet 正在等待你的确认，未做任何更改。",
     "kwallet.denied.capture_invalid": "Wallet 拒绝了加密的值。请重试。",
     "kwallet.denied.capture_key_untrusted":
       "无法验证 Wallet 的加密密钥。未发送任何内容。",
@@ -1589,7 +1591,7 @@ export const walletMessages = {
     "kwallet.denied.owner_required":
       "只有你本人登录后才能管理你的 Wallet。代理和委托会话无法管理。",
     "kwallet.denied.owner_unknown":
-      "你的登录信息未指明 Wallet 所有者。请退出后重新登录。",
+      "你的 Wallet 目前无法确定它属于哪个帐户，因此其中的值保持锁定。未做任何更改。",
     "kwallet.denied.replayed": "此更改已发送过。请重试。",
     "kwallet.denied.reveal_mismatch": "返回的值与此请求不匹配，已被丢弃。",
     "kwallet.denied.shredded": "此 Wallet 已被清除。",
@@ -2028,7 +2030,7 @@ export const walletMessages = {
     "kwallet.delete.confirm": "स्थायी रूप से हटाएँ",
     "kwallet.delete.title": "{name} हटाएँ?",
     "kwallet.denied.auth_required":
-      "अपने Wallet तक पहुँचने के लिए फिर से साइन इन करें।",
+      "आपका Wallet आपकी पुष्टि की प्रतीक्षा कर रहा है। कुछ भी नहीं बदला गया।",
     "kwallet.denied.capture_invalid":
       "Wallet ने एन्क्रिप्ट किया गया मान अस्वीकार कर दिया। फिर से कोशिश करें।",
     "kwallet.denied.capture_key_untrusted":
@@ -2050,7 +2052,7 @@ export const walletMessages = {
     "kwallet.denied.owner_required":
       "केवल आप, स्वयं साइन इन करके, अपना Wallet प्रबंधित कर सकते हैं। एजेंट और प्रत्यायोजित सत्र ऐसा नहीं कर सकते।",
     "kwallet.denied.owner_unknown":
-      "आपके साइन-इन में Wallet के मालिक का नाम नहीं है। साइन आउट करके फिर से साइन इन करें।",
+      "आपका Wallet अभी यह नहीं पहचान पा रहा कि वह किस खाते का है, इसलिए उसके मान लॉक रहते हैं। कुछ भी नहीं बदला गया।",
     "kwallet.denied.replayed":
       "यह बदलाव पहले ही भेजा जा चुका है। फिर से कोशिश करें।",
     "kwallet.denied.reveal_mismatch":
@@ -2515,7 +2517,7 @@ export const walletMessages = {
     "kwallet.delete.confirm": "حذف نهائي",
     "kwallet.delete.title": "هل تريد حذف {name}؟",
     "kwallet.denied.auth_required":
-      "سجّل الدخول مجددًا للوصول إلى Wallet الخاصة بك.",
+      "تنتظر Wallet الخاصة بك تأكيدك. لم يتغير شيء.",
     "kwallet.denied.capture_invalid":
       "رفضت Wallet القيمة المشفّرة. حاول مرة أخرى.",
     "kwallet.denied.capture_key_untrusted":
@@ -2537,7 +2539,7 @@ export const walletMessages = {
     "kwallet.denied.owner_required":
       "لا يمكن إدارة Wallet الخاصة بك إلا بواسطتك أنت بعد تسجيل دخولك بنفسك. لا يمكن ذلك للوكلاء أو الجلسات المفوّضة.",
     "kwallet.denied.owner_unknown":
-      "لا يحدد تسجيل دخولك مالكًا لـ Wallet. سجّل الخروج ثم سجّل الدخول مجددًا.",
+      "لا تستطيع Wallet الخاصة بك الآن تحديد الحساب الذي تنتمي إليه، لذا تبقى قيمها مقفلة. لم يتغير شيء.",
     "kwallet.denied.replayed": "تم إرسال هذا التغيير بالفعل. حاول مرة أخرى.",
     "kwallet.denied.reveal_mismatch":
       "لم تتطابق القيمة المُظهَرة مع هذا الطلب وتم تجاهلها.",

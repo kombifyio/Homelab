@@ -14,9 +14,9 @@ import {
   noteGatewayTokenSuccess,
 } from "#lib/auth/session-recovery.js";
 import {
-  isSessionReprojectionError,
-  recoverFromSessionReprojection,
-} from "#lib/api/session-reprojection.js";
+  fetchWithSessionRenewal,
+  GATEWAY_TOKEN_UNAVAILABLE_CODE,
+} from "#lib/auth/session-renewal.svelte.js";
 
 import { tr } from "#lib/i18n.svelte.js";
 import {
@@ -233,22 +233,21 @@ export async function resolveGatewayBearer(
     try {
       return await getParentBridgeGatewayToken();
     } catch (bridgeErr) {
-      throw new ApiRequestError(
-        tr("ui.client.gatewayAuthenticationUnavailableSignIn"),
-        {
-          status: 401,
-          code: "gateway_auth_unavailable",
-          url,
-          method,
-          details: {
-            auth0: err instanceof Error ? err.message : "gateway token failed",
-            parentBridge:
-              bridgeErr instanceof Error
-                ? bridgeErr.message
-                : tr("ui.client.parentGatewayTokenFailed"),
-          },
+      // The shared session renewal layer renews on this code and replays
+      // the request; the person only ever sees a neutral confirmation.
+      throw new ApiRequestError(tr("sessionRenewal.pending"), {
+        status: 401,
+        code: GATEWAY_TOKEN_UNAVAILABLE_CODE,
+        url,
+        method,
+        details: {
+          auth0: err instanceof Error ? err.message : "gateway token failed",
+          parentBridge:
+            bridgeErr instanceof Error
+              ? bridgeErr.message
+              : "parent gateway token failed",
         },
-      );
+      });
     }
   }
 }
@@ -262,8 +261,17 @@ function mustStaySameOrigin(endpoint: string, method?: string): boolean {
     (/^\/api\/v1\/servers\/[^/]+\/terminal-sessions$/.test(path) ||
       /^\/api\/v1\/servers\/[^/]+\/access\/authorized-key$/.test(path) ||
       /^\/api\/v1\/wallet\/[^/]+\/reauth-proof$/.test(path));
+  // The Guard binary pins are a public read the control plane serves to
+  // installers. The edge containment rule (owner_20261025_stop_render_artifact_egress)
+  // blocks every Techstack path containing "/install" on api.kombify.io and
+  // admits only this read on the Techstack origin itself; through the Gateway
+  // the request is refused, no pin is known and no install command is shown.
+  const guardPinsRead =
+    (method || "GET").toUpperCase() === "GET" &&
+    path === "/api/v1/workers/install-pins";
   return (
     reauthBoundMutation ||
+    guardPinsRead ||
     path === "/api/v1/csrf" ||
     path === "/api/v1/info" ||
     path === "/api/v1/health" ||
@@ -503,11 +511,6 @@ export async function parseApiErrorResponse(
 
 export interface ApiRequestOptions extends RequestInit {
   timeoutMs?: number;
-  /**
-   * Internal: set on the single automatic replay after an embedded
-   * session-reprojection recovery so the interceptor never loops.
-   */
-  sessionReprojectionReplay?: boolean;
   /** Internal: set on the single automatic replay of an idempotent 429. */
   rateLimitReplay?: boolean;
 }
@@ -567,7 +570,6 @@ export async function fetchApi<T>(
 ): Promise<ApiResponse<T>> {
   const {
     timeoutMs = 10_000,
-    sessionReprojectionReplay = false,
     rateLimitReplay = false,
     ...fetchOptions
   } = options;
@@ -584,103 +586,101 @@ export async function fetchApi<T>(
   // Auth0 API token so the edge signs identity and entitlement flags.
   let gatewayUrl = gatewayUrlFor(endpoint, method);
   if (gatewayUrl) {
-    // The first request must know its deployment channel before it can reach
-    // the shared Gateway. An empty bootstrap must never select Stable.
+    // The first request must read the service's channel answer before it can
+    // reach the shared Gateway. An empty or unknown bootstrap answer must never
+    // select Stable.
     const bootstrap = await loadClientBootstrap();
     gatewayUrl = gatewayUrlFor(endpoint, method);
-    if (gatewayUrl && !["stable", "early-access"].includes(bootstrap.releaseChannel)) {
+    if (gatewayUrl && bootstrap.releaseChannel !== "stable") {
       throw new ApiRequestError(tr("ui.client.networkError"), {
         status: 503, code: "gateway_channel_unavailable", url: gatewayUrl, method,
       });
     }
   }
-  const gatewayToken = gatewayUrl
-    ? await resolveGatewayBearer(gatewayUrl, method)
-    : "";
-
   const url = gatewayUrl ? gatewayUrl : sameOriginUrl;
-  const authHeader: Record<string, string> = gatewayUrl
-    ? { Authorization: `Bearer ${gatewayToken}` }
-    : {};
 
-  const headers = new Headers(fetchOptions.headers);
-  headers.set(
-    "Content-Type",
-    headers.get("Content-Type") || "application/json",
-  );
-  for (const [key, value] of Object.entries(authHeader)) {
-    if (!headers.has(key)) headers.set(key, value);
-  }
-  const authorizationHeader = headers.get("Authorization") ?? "";
-  const hasBearerAuth = authorizationHeader.startsWith("Bearer ");
-  if (
-    typeof window !== "undefined" &&
-    needsCSRF(method) &&
-    !headers.has(CSRF_HEADER_NAME) &&
-    !hasBearerAuth
-  ) {
-    headers.set(CSRF_HEADER_NAME, await getCSRFToken(url));
-  }
+  // One send, rebuilt in full for the single replay after a session renewal
+  // (fresh bearer, same re-readable body).
+  const send = async (): Promise<Response> => {
+    const gatewayToken = gatewayUrl
+      ? await resolveGatewayBearer(gatewayUrl, method)
+      : "";
+    const authHeader: Record<string, string> = gatewayUrl
+      ? { Authorization: `Bearer ${gatewayToken}` }
+      : {};
 
-  if (method === "GET" || method === "HEAD") {
-    await waitForReadRateLimitCooldown(url);
-  }
-
-  // Avoid requests hanging forever (e.g. network/DNS issues). Keep this short
-  // so the UI can surface an actionable error instead of showing endless spinners.
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-  let response: Response;
-  try {
-    response = await fetch(url, {
-      ...fetchOptions,
-      credentials: fetchOptions.credentials ?? "include",
-      signal: fetchOptions.signal ?? controller.signal,
-      headers,
-    });
-  } catch (err) {
-    clearTimeout(timeout);
-    if (err instanceof Error && err.name === "AbortError") {
-      throw new Error(
-        tr("ui.client.requestTimedOutAfterS", {
-          v1: Math.round(timeoutMs / 1000),
-          url,
-        }),
-      );
-    }
-    // Network error (CORS, offline, etc.)
-    throw new Error(
-      API_BASE
-        ? tr("ui.client.networkErrorAt", { base: API_BASE })
-        : tr("ui.client.networkError"),
+    const headers = new Headers(fetchOptions.headers);
+    headers.set(
+      "Content-Type",
+      headers.get("Content-Type") || "application/json",
     );
-  } finally {
-    clearTimeout(timeout);
-  }
+    for (const [key, value] of Object.entries(authHeader)) {
+      if (!headers.has(key)) headers.set(key, value);
+    }
+    const authorizationHeader = headers.get("Authorization") ?? "";
+    const hasBearerAuth = authorizationHeader.startsWith("Bearer ");
+    if (
+      typeof window !== "undefined" &&
+      needsCSRF(method) &&
+      !headers.has(CSRF_HEADER_NAME) &&
+      !hasBearerAuth
+    ) {
+      headers.set(CSRF_HEADER_NAME, await getCSRFToken(url));
+    }
+
+    if (method === "GET" || method === "HEAD") {
+      await waitForReadRateLimitCooldown(url);
+    }
+
+    // Avoid requests hanging forever (e.g. network/DNS issues). Keep this
+    // short so the UI can surface an actionable error instead of showing
+    // endless spinners.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, {
+        ...fetchOptions,
+        credentials: fetchOptions.credentials ?? "include",
+        signal: fetchOptions.signal ?? controller.signal,
+        headers,
+      });
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        throw new Error(
+          tr("ui.client.requestTimedOutAfterS", {
+            v1: Math.round(timeoutMs / 1000),
+            url,
+          }),
+          { cause: err },
+        );
+      }
+      // Network error (CORS, offline, etc.)
+      throw new Error(
+        API_BASE
+          ? tr("ui.client.networkErrorAt", { base: API_BASE })
+          : tr("ui.client.networkError"),
+        { cause: err },
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+
+  // The shared session renewal layer: a request whose session needs renewal
+  // renews once for all waiting requests and is replayed once; pages never
+  // interpret the signal themselves.
+  const response = await fetchWithSessionRenewal(send, {
+    viaGateway: Boolean(gatewayUrl),
+    url,
+    method,
+    pendingMessage: tr("sessionRenewal.pending"),
+  });
 
   if (!response.ok) {
     const error = await parseApiErrorResponse(response, {
       action: "Request failed",
       method,
     });
-    // Central interceptor for the session-recovery class (401 +
-    // reason_code=session_reprojection_required): silently re-enter SSO once
-    // and replay the request when the session was re-minted in place.
-    // Pages never interpret this class themselves.
-    if (
-      typeof window !== "undefined" &&
-      !sessionReprojectionReplay &&
-      isSessionReprojectionError(error)
-    ) {
-      const outcome = await recoverFromSessionReprojection(error);
-      if (outcome === "retry") {
-        return fetchApi<T>(endpoint, {
-          ...options,
-          sessionReprojectionReplay: true,
-        });
-      }
-    }
     if (
       response.status === 429 &&
       !rateLimitReplay &&

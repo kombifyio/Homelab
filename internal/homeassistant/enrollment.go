@@ -10,6 +10,7 @@ import (
 	"github.com/kombifyio/techstack/internal/managedstackkit"
 	"github.com/kombifyio/techstack/pkg/auth"
 	"github.com/kombifyio/techstack/pkg/backupstore"
+	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
 )
 
 // EnrollmentStore persists only already authenticated, canonically validated
@@ -52,11 +53,11 @@ func (s *EnrollmentStore) transaction(ctx context.Context, tenant string) (*sql.
 	if s == nil || s.DB == nil || s.Encryptor == nil || tenant == "" {
 		return nil, ErrUnauthorized
 	}
-	tx, err := s.DB.BeginTx(ctx, nil)
+	tx, err := tenantcontext.Database(ctx, s.DB).BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
-	if _, err = tx.ExecContext(ctx, `SELECT set_config('app.tenant_id',$1,true)`, tenant); err != nil {
+	if err = tenantcontext.ApplyTenant(ctx, tx, tenant); err != nil {
 		tx.Rollback()
 		return nil, err
 	}

@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"regexp"
 	"testing"
@@ -88,5 +89,51 @@ func TestUserContextRejectsRuntimeChosenSubject(t *testing.T) {
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// System work begins on the system login, masks a request token and never
+// redirects a pool other than the application pool (platform-3r69a).
+func TestSystemContextRoutesOnlyTheApplicationPool(t *testing.T) {
+	application, applicationMock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer application.Close()
+	system, systemMock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer system.Close()
+	provider, providerMock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer provider.Close()
+	request := tenantdb.NewContextWithToken(context.Background(), "opaque-gateway-context-fixture")
+	ctx := tenantcontext.WithSystemDatabase(request, application, system)
+	if !tenantcontext.IsSystem(ctx) || tenantdb.ContextTokenFromContext(ctx) != "" {
+		t.Fatal("system work kept the request token or lost its route")
+	}
+	scope := regexp.QuoteMeta("SELECT set_config($1, $2, true), set_config('kombify.ctx_token', '', true)")
+	for _, mock := range []sqlmock.Sqlmock{systemMock, providerMock} {
+		mock.ExpectBegin()
+		mock.ExpectExec(scope).WithArgs("app.tenant_id", "tenant-a").WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectRollback()
+	}
+	for _, pool := range []*sql.DB{application, provider} {
+		tx, err := BeginTenantTransaction(ctx, pool, "tenant-a")
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = tx.Rollback()
+	}
+	for _, mock := range []sqlmock.Sqlmock{applicationMock, systemMock, providerMock} {
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if tenantcontext.Database(tenantcontext.WithSystemDatabase(context.Background(), nil, nil), application) != application {
+		t.Fatal("a runtime without a system login must keep its single serving login")
 	}
 }

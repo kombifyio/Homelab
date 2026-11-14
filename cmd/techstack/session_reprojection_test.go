@@ -4,7 +4,7 @@ package main
 // (kombify-Techstack-nzy1.14): a signature-valid v2 session whose
 // identity/tenant projection cannot resolve must first be re-projected
 // server-side and only fail with the retryable 401
-// session_reprojection_required signal (plus a cleared session cookie) when
+// session renewal signal (reason session_reprojection, plus a cleared session cookie) when
 // unrecoverable. Genuine resource-level denials keep their 403 semantics
 // (covered in internal/routes inventory tests).
 
@@ -125,7 +125,7 @@ func TestSessionReprojectionMatrixRecoversViaOwnerTenantBootstrap(t *testing.T) 
 }
 
 // Matrix row 3: unrecoverable - no memberships and no SaaS owner fallback.
-// The middleware answers 401 + reason_code=session_reprojection_required +
+// The middleware answers 401 + error_code=session_renewal_required (reason session_reprojection) +
 // retryable=true and clears the v2 session cookie so the client's central
 // interceptor can silently re-enter SSO.
 func TestSessionReprojectionMatrixUnrecoverableSignals401AndClearsCookie(t *testing.T) {
@@ -139,11 +139,14 @@ func TestSessionReprojectionMatrixUnrecoverableSignals401AndClearsCookie(t *test
 	err := v2SessionIdentityMiddleware(&v2Boot{session: mgr, authStore: store, defaultTenant: "default", cookieName: "techstack_session", saasMode: false})(event)
 	var apiErr *httpx.APIError
 	if !errors.As(err, &apiErr) || apiErr.Status != http.StatusUnauthorized {
-		t.Fatalf("middleware error = %v, want 401 session_reprojection_required", err)
+		t.Fatalf("middleware error = %v, want 401 session_renewal_required", err)
 	}
 	details, ok := apiErr.Details.(map[string]any)
-	if !ok || details["reason_code"] != sessionreauth.ReasonCode || details["error_code"] != sessionreauth.ReasonCode {
-		t.Fatalf("denial details = %#v, want reason_code/error_code %q", apiErr.Details, sessionreauth.ReasonCode)
+	if apiErr.Code != httpx.SessionRenewalErrorCode || !ok ||
+		details["error_code"] != string(httpx.SessionRenewalErrorCode) ||
+		details["reason"] != sessionreauth.ReasonCode ||
+		details["renew_url"] != httpx.SessionRenewalURL {
+		t.Fatalf("denial = %#v, want session_renewal_required with reason %q and renew_url", apiErr, sessionreauth.ReasonCode)
 	}
 	if details["retryable"] != true {
 		t.Fatalf("denial retryable = %#v, want true", details["retryable"])
@@ -205,13 +208,10 @@ func sessionReprojectionReason(err error) string {
 		return ""
 	}
 	details, _ := apiErr.Details.(map[string]any)
-	reason, _ := details["reason_code"].(string)
-	if reason == "" {
-		reason, _ = details["error_code"].(string)
+	if apiErr.Code != httpx.SessionRenewalErrorCode {
+		return ""
 	}
-	if reason == "" && apiErr.Code == sessionreauth.ReasonCode {
-		reason = sessionreauth.ReasonCode
-	}
+	reason, _ := details["reason"].(string)
 	return reason
 }
 
@@ -313,7 +313,7 @@ func TestCanceledMembershipLookupDoesNotReprojectSession(t *testing.T) {
 		})(event)
 		var apiErr *httpx.APIError
 		if !errors.As(err, &apiErr) || apiErr.Status != http.StatusUnauthorized {
-			t.Fatalf("middleware error = %v, want 401 session_reprojection_required", err)
+			t.Fatalf("middleware error = %v, want 401 session_renewal_required", err)
 		}
 		if reason := sessionReprojectionReason(err); reason != sessionreauth.ReasonCode {
 			t.Fatalf("reason_code = %q, want %s", reason, sessionreauth.ReasonCode)
@@ -336,7 +336,7 @@ func TestCanceledMembershipLookupDoesNotReprojectSession(t *testing.T) {
 		})(event)
 		var apiErr *httpx.APIError
 		if !errors.As(err, &apiErr) || apiErr.Status != http.StatusUnauthorized {
-			t.Fatalf("middleware error = %v, want 401 session_reprojection_required", err)
+			t.Fatalf("middleware error = %v, want 401 session_renewal_required", err)
 		}
 		if reason := sessionReprojectionReason(err); reason != sessionreauth.ReasonCode {
 			t.Fatalf("reason_code = %q, want %s", reason, sessionreauth.ReasonCode)

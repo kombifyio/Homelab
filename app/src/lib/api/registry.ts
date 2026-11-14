@@ -542,6 +542,20 @@ export interface RegistryServer {
   rollout_ready: boolean;
 }
 
+/** One server the native relocation API admits as destination. */
+export interface RegistryMoveDestination {
+  kit_deployment_id: string;
+  server_id: string;
+  agent_id: string;
+}
+
+/** The native move of one installed application, as the backend admits it. */
+export interface RegistryServiceMove {
+  workload_ref: string;
+  source_agent_id: string;
+  destinations: RegistryMoveDestination[];
+}
+
 export interface RegistryService {
   id?: string;
   name: string;
@@ -556,8 +570,8 @@ export interface RegistryService {
   management_state: RegistryManagementState;
   migration_status?: string;
   placement_scope?: "stack";
-  move_allowed?: boolean;
-  move_blocked_reason?: string;
+  /** Present only when this one application can be moved now. */
+  move?: RegistryServiceMove;
   kit_deployment_id: string;
   stack_name: string;
   server_id: string;
@@ -571,8 +585,6 @@ export interface ServiceRegistryPayload {
   kit_deployments: RegistryKitDeployment[];
   servers: RegistryServer[];
   services: RegistryService[];
-  migration_available?: boolean;
-  migration_unavailable_reason?: string;
 }
 
 type ServiceRegistryWirePayload = Omit<ServiceRegistryPayload, "services"> & {
@@ -638,60 +650,6 @@ export async function listServiceRegistry(): Promise<ServiceRegistryPayload> {
     services: (services ?? []).map((service, index) =>
       normalizeRegistryService(service, `services[${index}]`),
     ),
-  };
-}
-
-export async function migrateRegistryService(
-  serviceId: string,
-  targetServerId: string,
-): Promise<{
-  job_id?: string;
-  source_service: RegistryService;
-  target_service: RegistryService;
-}> {
-  const res = await fetchApi<{
-    job_id?: string;
-    source_service: RegistryServiceWire;
-    target_service: RegistryServiceWire;
-  }>("/api/v1/registry/services/migrate", {
-    method: "POST",
-    body: JSON.stringify({
-      service_id: serviceId,
-      target_server_id: targetServerId,
-    }),
-  });
-  return {
-    ...res.data,
-    source_service: normalizeRegistryService(
-      res.data.source_service,
-      "migrate.source_service",
-    ),
-    target_service: normalizeRegistryService(
-      res.data.target_service,
-      "migrate.target_service",
-    ),
-  };
-}
-
-export async function verifyRegistryService(
-  serviceId: string,
-): Promise<{ service: RegistryService; archived_service?: RegistryService }> {
-  const res = await fetchApi<{
-    service: RegistryServiceWire;
-    archived_service?: RegistryServiceWire;
-  }>("/api/v1/registry/services/verify", {
-    method: "POST",
-    body: JSON.stringify({ service_id: serviceId }),
-  });
-  return {
-    ...res.data,
-    service: normalizeRegistryService(res.data.service, "verify.service"),
-    archived_service: res.data.archived_service
-      ? normalizeRegistryService(
-          res.data.archived_service,
-          "verify.archived_service",
-        )
-      : undefined,
   };
 }
 

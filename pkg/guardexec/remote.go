@@ -136,6 +136,27 @@ func (r *Remote) ExecuteStreaming(ctx context.Context, command *agentpb.StackKit
 	return result
 }
 
+// PowerApplicationsStop stops the admitted services through the privileged
+// executor.
+func (r *Remote) PowerApplicationsStop(ctx context.Context, services []string) (PowerStepResult, error) {
+	var result PowerStepResult
+	err := r.Client.CallInto(ctx, OpPowerApplicationsStop, PowerApplicationsParams{Services: services}, &result)
+	return result, err
+}
+
+// PowerStorageQuiesce flushes and unmounts the configured mount units through
+// the privileged executor.
+func (r *Remote) PowerStorageQuiesce(ctx context.Context, units []string) (PowerStepResult, error) {
+	var result PowerStepResult
+	err := r.Client.CallInto(ctx, OpPowerStorageQuiesce, PowerStorageParams{Units: units}, &result)
+	return result, err
+}
+
+// PowerOff asks the privileged executor to power the host off.
+func (r *Remote) PowerOff(ctx context.Context) error {
+	return r.Client.CallInto(ctx, OpPowerOff, nil, &struct{}{})
+}
+
 func (r *Remote) executeParams(ctx context.Context, command *agentpb.StackKitCommand) (ExecuteParams, error) {
 	if admission, ok := guardbinding.AdmissionFrom(ctx); ok && decodesStrictly(admission.Raw) {
 		return ExecuteParams{Command: admission.Raw, Binding: admission.Binding}, nil
@@ -169,7 +190,7 @@ func decodesStrictly(raw []byte) bool {
 func (r *Remote) HostMaintenanceCapabilities() []string {
 	var capabilities []string
 	for _, capability := range r.capabilities() {
-		if capability != stackkitcommand.ApplicationAdoptionCapability && capability != stackkitcommand.ApplicationConnectorCapability {
+		if capability != stackkitcommand.ApplicationAdoptionCapability && capability != stackkitcommand.ApplicationConnectorCapability && capability != PowerCapability {
 			capabilities = append(capabilities, capability)
 		}
 	}
@@ -186,6 +207,18 @@ func (r *Remote) ApplicationCapabilities() []string {
 		}
 	}
 	return capabilities
+}
+
+// PowerAvailable reports whether the privileged executor admits the UPS power
+// sequence. The daemon never starts the controller on an executor that refuses
+// the steps, so a policy cannot report a shutdown the host never ran.
+func (r *Remote) PowerAvailable() bool {
+	for _, capability := range r.capabilities() {
+		if capability == PowerCapability {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *Remote) capabilities() []string {
@@ -364,20 +397,19 @@ func (r *Remote) EnsureTechstackRuntime(ctx context.Context, cfg agentpkg.Techst
 		// The installed executable is the one the signed release names.
 		return r.confirmCurrent(ctx, result, evidence)
 	}
-	artifactPath, digest, artifactVersion, notModified, err := agentpkg.FetchTechstackRuntimeArtifact(ctx, cfg, localDigest)
-	if err != nil {
-		return result, err
-	}
-	if notModified {
-		result.SHA256 = localDigest
-		return result, nil
-	}
-	defer func() { _ = os.Remove(artifactPath) }()
-	params := StageParams{ArtifactFile: filepath.Base(artifactPath)}
-	if evidence != nil {
-		if evidence.SHA256 != digest {
-			return result, errors.New("the control plane's signed release does not name the artifact it served")
+	// policyRefusal reports an executor refusal of this candidate on policy. The
+	// running Guard is unchanged and stays usable; the refusal is reported, not
+	// treated as an outage.
+	policyRefusal := func(err error) error {
+		var refusal *Error
+		if errors.As(err, &refusal) && refusal.Code != CodeUnavailable && refusal.Code != CodeFailed && refusal.Code != CodeRecoveryNeeded {
+			result.SHA256 = localDigest
+			return &UpdateDeniedError{Code: refusal.Code, Message: refusal.Message}
 		}
+		return err
+	}
+	params := StageParams{}
+	if evidence != nil {
 		manifest, decodeErr := base64.StdEncoding.DecodeString(evidence.Manifest)
 		if decodeErr != nil {
 			return result, fmt.Errorf("the release manifest is not base64: %w", decodeErr)
@@ -389,7 +421,36 @@ func (r *Remote) EnsureTechstackRuntime(ctx context.Context, cfg agentpkg.Techst
 			}
 		}
 		params.ManifestFile, params.ManifestBundleFile, params.ArtifactBundleFile = "release-manifest.json", "release-manifest.sigstore.json", "release-artifact.sigstore.json"
-	} else {
+		// A release this host refuses anyway (downgrade, floor, revocation, a
+		// candidate in its failed-trial or denial cooldown) is not downloaded:
+		// downloading it every convergence cycle only to be refused at Stage
+		// exhausted the control plane's download budget and answered every
+		// further cycle with 429.
+		if err := r.Client.CallInto(ctx, OpUpdatePreflight, UpdatePreflightParams{
+			ManifestFile: params.ManifestFile, ManifestBundleFile: params.ManifestBundleFile, SHA256: evidence.SHA256,
+		}, nil); err != nil {
+			return result, policyRefusal(err)
+		}
+	} else if err := r.Client.CallInto(ctx, OpUpdatePreflight, UpdatePreflightParams{}, nil); err != nil {
+		// No signed release (a self-hosted control plane without one): an
+		// executor that admits only signed releases refuses whatever arrives,
+		// so nothing is downloaded for it.
+		return result, policyRefusal(err)
+	}
+	artifactPath, digest, artifactVersion, notModified, err := agentpkg.FetchTechstackRuntimeArtifact(ctx, cfg, localDigest)
+	if err != nil {
+		return result, err
+	}
+	if notModified {
+		result.SHA256 = localDigest
+		return result, nil
+	}
+	defer func() { _ = os.Remove(artifactPath) }()
+	params.ArtifactFile = filepath.Base(artifactPath)
+	if evidence != nil && evidence.SHA256 != digest {
+		return result, errors.New("the control plane's signed release does not name the artifact it served")
+	}
+	if evidence == nil {
 		// No signed release: only a host whose executor was configured to admit
 		// unsigned local builds accepts this, with the version the control
 		// plane announced for the artifact.
@@ -397,15 +458,7 @@ func (r *Remote) EnsureTechstackRuntime(ctx context.Context, cfg agentpkg.Techst
 	}
 	var staged StageResult
 	if err := r.Client.CallInto(ctx, OpUpdateStage, params, &staged); err != nil {
-		var refusal *Error
-		if errors.As(err, &refusal) && refusal.Code != CodeUnavailable && refusal.Code != CodeFailed && refusal.Code != CodeRecoveryNeeded {
-			// The executor refused this candidate on policy. The running Guard is
-			// unchanged and stays usable; the refusal is reported, not treated as
-			// an outage.
-			result.SHA256 = localDigest
-			return result, &UpdateDeniedError{Code: refusal.Code, Message: refusal.Message}
-		}
-		return result, err
+		return result, policyRefusal(err)
 	}
 	result.SHA256 = staged.SHA256
 	if staged.AlreadyCurrent {
@@ -545,4 +598,9 @@ func ReadUpdateStatus(handoffDir string) UpdateStatus {
 		return UpdateStatus{}
 	}
 	return status
+}
+
+// RotateBindingPins hands the executor one signed pin rotation.
+func (r *Remote) RotateBindingPins(ctx context.Context, params BindingPinsRotateParams) error {
+	return r.Client.CallInto(ctx, OpBindingPinsRotate, params, nil)
 }

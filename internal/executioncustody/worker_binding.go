@@ -124,17 +124,23 @@ func (p *Provider) serveWorkerBinding(w http.ResponseWriter, r *http.Request, gr
 		_ = json.NewEncoder(w).Encode(signer.PublicKeys())
 		return
 	}
-	credential, err := controlplane.WorkerCredentialStateFromWorker(*worker)
-	if err != nil || credential.Generation < 1 {
+	// Generation 0 (a key-bound Guard that was never rotated) is signed for only
+	// while the worker's bound host key is its last proven identity; unreadable
+	// credential state never is (kombify-StackKits-4czp).
+	authorityGeneration, admitted := controlplane.CommandAuthorityGeneration(*worker, func() (*controlplane.WorkerIdentity, error) {
+		return controlplane.NewPostgresStore(p.AuditDatabase).GetWorkerIdentity(r.Context(), grant.TenantID, worker.ID)
+	})
+	if !admitted {
 		deny()
 		return
 	}
+	credential := controlplane.WorkerCredentialState{Generation: authorityGeneration}
 	if binding := request.Binding; binding != nil && r.URL.Path == remotePath+"worker-binding/sign" {
 		if binding.TenantID != grant.TenantID || binding.WorkerID != worker.ID || binding.WorkerGeneration != credential.Generation || binding.CurrentGeneration != credential.Generation || binding.ContractVersion != guardbinding.ContractVersion || !binding.AuthorityExpiresAt.After(time.Now()) {
 			deny()
 			return
 		}
-		if binding.Operation == "runtime.install" {
+		if binding.Operation == guardbinding.RuntimeInstallOperation {
 			canonical, err := p.candidateInstallBinding(r.Context(), grant, worker, binding, credential.Generation)
 			if err != nil || signer.Sign(canonical) != nil {
 				deny()

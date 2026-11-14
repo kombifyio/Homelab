@@ -95,22 +95,39 @@ func mirrorReleaseToR2(dir string) (string, error) {
 // differs from the pin compiled into this tool, which is the release source's
 // own pin when the tool is built from that source.
 func mirrorInstallerToR2(path string, requirePinned bool) (string, error) {
+	return mirrorInstallerToR2As(path, requirePinned, "install.sh",
+		artifactdelivery.NormalizeLinuxInstaller, artifactdelivery.LinuxInstallerSHA256,
+		artifactdelivery.LinuxInstallerObjectKey, "text/x-shellscript")
+}
+
+// mirrorWindowsInstallerToR2 mirrors the PowerShell installer under the same
+// contract as the Linux installer, so GET /install.ps1 is also served from
+// private R2 without Render bytes.
+func mirrorWindowsInstallerToR2(path string, requirePinned bool) (string, error) {
+	return mirrorInstallerToR2As(path, requirePinned, "install.ps1",
+		artifactdelivery.NormalizeWindowsInstaller, artifactdelivery.WindowsInstallerSHA256,
+		artifactdelivery.WindowsInstallerObjectKey, "text/plain")
+}
+
+func mirrorInstallerToR2As(path string, requirePinned bool, name string,
+	normalize func([]byte) ([]byte, string), pinnedDigest string,
+	objectKey func(string) string, contentType string) (string, error) {
 	raw, err := os.ReadFile(path) // #nosec G304 -- the workflow's own export of the release source.
 	if err != nil {
 		return "", err
 	}
 	if len(raw) == 0 || len(raw) > r2MirrorInstallerMax {
-		return "", errors.New("install.sh is empty or exceeds the delivery bound")
+		return "", fmt.Errorf("%s is empty or exceeds the delivery bound", name)
 	}
-	normalized, digest := artifactdelivery.NormalizeLinuxInstaller(raw)
-	if requirePinned && digest != artifactdelivery.LinuxInstallerSHA256 {
-		return "", errors.New("install.sh differs from artifactdelivery.LinuxInstallerSHA256; bump the pin with the installer")
+	normalized, digest := normalize(raw)
+	if requirePinned && digest != pinnedDigest {
+		return "", fmt.Errorf("%s differs from its pinned digest; bump the pin with the installer", name)
 	}
 	mirror, err := newR2Mirror()
 	if err != nil {
 		return "", err
 	}
-	staged, err := os.CreateTemp("", "install-*.sh")
+	staged, err := os.CreateTemp("", "installer-*")
 	if err != nil {
 		return "", err
 	}
@@ -122,8 +139,8 @@ func mirrorInstallerToR2(path string, requirePinned bool) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	file := r2MirrorFile{path: staged.Name(), key: artifactdelivery.LinuxInstallerObjectKey(digest), sha256: digest,
-		size: int64(len(normalized)), contentType: "text/x-shellscript"}
+	file := r2MirrorFile{path: staged.Name(), key: objectKey(digest), sha256: digest,
+		size: int64(len(normalized)), contentType: contentType}
 	state, err := mirror.put(file)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", file.key, err)

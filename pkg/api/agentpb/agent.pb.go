@@ -333,10 +333,102 @@ const (
 	StackKitOperation_STACKKIT_OPERATION_RELOCATE_ABORT StackKitOperation = 65
 	// Author a bounded use-case configuration candidate without applying runtime changes.
 	StackKitOperation_STACKKIT_OPERATION_USE_CASE_CONFIGURE StackKitOperation = 66
+	// Native application transfer between two managed nodes of one Owner
+	// (StackKits `stackkit backup transfer-*` and `use-cases add --output`).
+	// application_transfer_json names exactly one closed step; Guard maps it to
+	// fixed argv and private 0600 files. Receiving steps carry the node's
+	// application-transfer.receive capability and source/destination
+	// retirements the application-transfer.retire capability in
+	// advanced_capability. The archive is age-encrypted to the receiving node
+	// and travels node to node; Core carries only signed public documents.
+	StackKitOperation_STACKKIT_OPERATION_APPLICATION_TRANSFER StackKitOperation = 67
 	// Author a retained-data candidate for one workload or an exact catalog use case.
 	StackKitOperation_STACKKIT_OPERATION_USE_CASE_REMOVE StackKitOperation = 68
 	// Apply one Cloud owner/person generation under the node lifecycle lock.
 	StackKitOperation_STACKKIT_OPERATION_HOUSEHOLD_PROJECT StackKitOperation = 69
+	// Homelab identity agent link (HOMELAB-IDENTITY-ACCESS-TARGET section 7,
+	// Gateway ADR 0042 "Agent node envelope contract"; agent capability
+	// stackkit.agent-link.v1). `stackkit identity agent-link install` pins the
+	// Gateway agent envelope key of this server's Connect registration and the
+	// D10 references from agent_link_request; the node verifies the exact
+	// bytes against --expect-sha256 and binds the link to its own Guard
+	// enrollment. A first pin, new key or new owner waits on the node for the
+	// Owner's passkey step-up and answers pending until it is approved.
+	StackKitOperation_STACKKIT_OPERATION_AGENT_LINK_INSTALL StackKitOperation = 70
+	// `stackkit identity agent-link remove`: delete the pin when the server is
+	// detached or its Connect node is revoked.
+	StackKitOperation_STACKKIT_OPERATION_AGENT_LINK_REMOVE StackKitOperation = 71
+	// Home graph sync (catalog operation application.home-graph.sync): project
+	// the owner's kombify home graph onto the node's Home Assistant through the
+	// node-held connector credential, or observe its inventory. Binds the
+	// original connector setup through application_operation_id and
+	// application_connector_request_json (action ensure) and carries the graph
+	// in home_graph_sync_request. The command is idempotent: a re-run converges
+	// to the same Home Assistant state, so a lost ACK is safe to repeat.
+	StackKitOperation_STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_SYNC StackKitOperation = 72
+	// Guard host operations (agent capabilities stackkit.host-inspect.v1 and
+	// stackkit.host-operate.v1). The Guard runs them itself with fixed argv, not
+	// through the pinned StackKits CLI: they carry no StackSpec, workspace
+	// binding or capability document, and no free-form shell path exists.
+	// Read-only: the node's processes (`ps`), at most host_list_limit rows.
+	StackKitOperation_STACKKIT_OPERATION_HOST_LIST_PROCESSES StackKitOperation = 73
+	// Read-only: every container of the node's Docker engine with its owner
+	// (StackKits-managed or unmanaged), at most host_list_limit rows.
+	StackKitOperation_STACKKIT_OPERATION_HOST_LIST_CONTAINERS StackKitOperation = 74
+	// `docker start|stop|restart` of one container named host_target. The Guard
+	// refuses StackKits-managed containers, which run only through the managed
+	// service actions, and its own container.
+	StackKitOperation_STACKKIT_OPERATION_HOST_CONTAINER_ACTION StackKitOperation = 75
+	// `systemctl start|stop|restart` of one .service unit named host_target. The
+	// Guard refuses units of the management path (Guard, sshd, Docker, the
+	// network and the init system itself).
+	StackKitOperation_STACKKIT_OPERATION_HOST_SYSTEMD_ACTION StackKitOperation = 76
+	// Single-application update (D-2026-11-12-06): `stackkit use-cases upgrade
+	// <use_case> --to <application_version> --digest <application_digest>
+	// --capability <file> [--accept-untested] --apply --owner-approve --json`
+	// (catalog operation application-release.update). The node checkpoints the
+	// application's data, moves only that application and rolls it back
+	// automatically when generate, apply or verify fails; the result names
+	// update_outcome (updated, rolled_back, rollback_failed, refused). Requires
+	// owner_approved and the application-release.update capability
+	// (advanced_capability) of exactly this use case, release, digest and kind.
+	StackKitOperation_STACKKIT_OPERATION_USE_CASE_UPGRADE StackKitOperation = 77
+	// "Stack it" (StackKits application.stack.*, agent capability
+	// stackkit.application-stack.v1): one existing single container StackKits did
+	// not install is rebuilt as an own application (techstack.own-application/v4).
+	// Each carries application_container_id and own_application_name.
+	// application.stack.plan: kept/changed/refused rows and the plan digest.
+	StackKitOperation_STACKKIT_OPERATION_APPLICATION_STACK_PLAN StackKitOperation = 78
+	// application.stack: adopt the reviewed plan (application_plan_digest).
+	StackKitOperation_STACKKIT_OPERATION_APPLICATION_STACK StackKitOperation = 79
+	// application.stack.verify: read the adoption and its retention deadline.
+	StackKitOperation_STACKKIT_OPERATION_APPLICATION_STACK_VERIFY StackKitOperation = 80
+	// application.stack.restore-original: within retention, back to the original.
+	StackKitOperation_STACKKIT_OPERATION_APPLICATION_STACK_RESTORE_ORIGINAL StackKitOperation = 81
+	// application.stack.release-original: remove the stopped original.
+	StackKitOperation_STACKKIT_OPERATION_APPLICATION_STACK_RELEASE_ORIGINAL StackKitOperation = 82
+	// Loxone import (catalog operation application.home-graph.loxone-import):
+	// read the Miniserver structure file read-only with the Miniserver
+	// credential kept on the node and merge its rooms and controls into the
+	// home graph carried in home_graph_document. Runs on the node of the home
+	// graph sync (binds the same connector setup through
+	// application_operation_id and application_connector_request_json, action
+	// ensure); writes nothing, so a lost ACK is safe to repeat.
+	StackKitOperation_STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_LOXONE_IMPORT StackKitOperation = 83
+	// One own-application lifecycle operation (StackKits own-application.*,
+	// agent capability stackkit.own-application-lifecycle.v1), named by
+	// own_application_operation: status, logs, review, update.review,
+	// checkpoint-rollback.review, checkpoint-discard.review (reads), and start,
+	// stop, restart, update, rollback, checkpoint-rollback, checkpoint-discard
+	// (executions of a reviewed dry run under the own-application.lifecycle
+	// capability in advanced_capability, with application_operation_id and
+	// own_application_review_digest). Raw own-application result in data.output.
+	StackKitOperation_STACKKIT_OPERATION_OWN_APPLICATION StackKitOperation = 84
+	// own-application.backup: `stackkit backup run --operation-id <id> --json`,
+	// a node snapshot holding every own application volume.
+	StackKitOperation_STACKKIT_OPERATION_OWN_APPLICATION_BACKUP StackKitOperation = 85
+	// Confirmed home graph adoption or read-only inventory, on the connector node.
+	StackKitOperation_STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_ADOPT StackKitOperation = 86
 )
 
 // Enum value maps for StackKitOperation.
@@ -409,79 +501,115 @@ var (
 		64: "STACKKIT_OPERATION_RELOCATE_STATUS",
 		65: "STACKKIT_OPERATION_RELOCATE_ABORT",
 		66: "STACKKIT_OPERATION_USE_CASE_CONFIGURE",
+		67: "STACKKIT_OPERATION_APPLICATION_TRANSFER",
 		68: "STACKKIT_OPERATION_USE_CASE_REMOVE",
 		69: "STACKKIT_OPERATION_HOUSEHOLD_PROJECT",
+		70: "STACKKIT_OPERATION_AGENT_LINK_INSTALL",
+		71: "STACKKIT_OPERATION_AGENT_LINK_REMOVE",
+		72: "STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_SYNC",
+		73: "STACKKIT_OPERATION_HOST_LIST_PROCESSES",
+		74: "STACKKIT_OPERATION_HOST_LIST_CONTAINERS",
+		75: "STACKKIT_OPERATION_HOST_CONTAINER_ACTION",
+		76: "STACKKIT_OPERATION_HOST_SYSTEMD_ACTION",
+		77: "STACKKIT_OPERATION_USE_CASE_UPGRADE",
+		78: "STACKKIT_OPERATION_APPLICATION_STACK_PLAN",
+		79: "STACKKIT_OPERATION_APPLICATION_STACK",
+		80: "STACKKIT_OPERATION_APPLICATION_STACK_VERIFY",
+		81: "STACKKIT_OPERATION_APPLICATION_STACK_RESTORE_ORIGINAL",
+		82: "STACKKIT_OPERATION_APPLICATION_STACK_RELEASE_ORIGINAL",
+		83: "STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_LOXONE_IMPORT",
+		84: "STACKKIT_OPERATION_OWN_APPLICATION",
+		85: "STACKKIT_OPERATION_OWN_APPLICATION_BACKUP",
+		86: "STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_ADOPT",
 	}
 	StackKitOperation_value = map[string]int32{
-		"STACKKIT_OPERATION_UNSPECIFIED":                         0,
-		"STACKKIT_OPERATION_VALIDATE":                            1,
-		"STACKKIT_OPERATION_GENERATE":                            2,
-		"STACKKIT_OPERATION_APPLY":                               3,
-		"STACKKIT_OPERATION_VERIFY":                              4,
-		"STACKKIT_OPERATION_UPGRADE":                             5,
-		"STACKKIT_OPERATION_DRIFT_DETECT":                        6,
-		"STACKKIT_OPERATION_DRIFT_RECONCILE":                     7,
-		"STACKKIT_OPERATION_PLAN":                                8,
-		"STACKKIT_OPERATION_INIT":                                9,
-		"STACKKIT_OPERATION_SERVICE_START":                       10,
-		"STACKKIT_OPERATION_SERVICE_STOP":                        11,
-		"STACKKIT_OPERATION_SERVICE_RESTART":                     12,
-		"STACKKIT_OPERATION_SERVICE_LOGS":                        13,
-		"STACKKIT_OPERATION_REMOVE":                              14,
-		"STACKKIT_OPERATION_ADDRESS_BIND":                        15,
-		"STACKKIT_OPERATION_BACKUP_RUN":                          16,
-		"STACKKIT_OPERATION_BACKUP_STATUS":                       17,
-		"STACKKIT_OPERATION_BACKUP_RESTORE":                      18,
-		"STACKKIT_OPERATION_OWNER_ACTIVATION_STATUS":             19,
-		"STACKKIT_OPERATION_OWNER_ACTIVATION_ISSUE":              20,
-		"STACKKIT_OPERATION_HOUSEHOLD_LIST":                      21,
-		"STACKKIT_OPERATION_HOUSEHOLD_INVITE":                    22,
-		"STACKKIT_OPERATION_BACKUP_CONFIGURE":                    23,
-		"STACKKIT_OPERATION_ADVANCED_TRUST_IMPORT":               24,
-		"STACKKIT_OPERATION_ADVANCED_CHANGE_SET_CREATE":          25,
-		"STACKKIT_OPERATION_ADVANCED_CHANGE_SET_APPLY":           26,
-		"STACKKIT_OPERATION_ADVANCED_DRIFT_RECONCILE":            27,
-		"STACKKIT_OPERATION_ADVANCED_ROLLBACK":                   28,
-		"STACKKIT_OPERATION_ADVANCED_RESTORE_DRILL":              29,
-		"STACKKIT_OPERATION_HOST_UPDATE_PLAN":                    30,
-		"STACKKIT_OPERATION_HOST_UPDATE_APPLY":                   31,
-		"STACKKIT_OPERATION_HOST_REBOOT":                         32,
-		"STACKKIT_OPERATION_HOST_SECURITY_REPAIR":                33,
-		"STACKKIT_OPERATION_APPLICATION_INSPECT":                 34,
-		"STACKKIT_OPERATION_APPLICATION_ADOPT":                   35,
-		"STACKKIT_OPERATION_APPLICATION_VERIFY":                  36,
-		"STACKKIT_OPERATION_APPLICATION_RELEASE":                 37,
-		"STACKKIT_OPERATION_APPLICATION_CONTROL":                 38,
-		"STACKKIT_OPERATION_BACKUP_TARGET_RECIPIENT":             39,
-		"STACKKIT_OPERATION_BACKUP_TARGET_IMPORT":                40,
-		"STACKKIT_OPERATION_BACKUP_TARGET_REBIND":                41,
-		"STACKKIT_OPERATION_FEDERATION_HANDOFF":                  42,
-		"STACKKIT_OPERATION_PREPARE_SOURCE_GENERATION":           43,
-		"STACKKIT_OPERATION_NETWORK_REBIND":                      44,
-		"STACKKIT_OPERATION_NETWORK_STATUS":                      45,
-		"STACKKIT_OPERATION_ADVANCED_ORIGIN_CERTIFICATE_REQUEST": 46,
-		"STACKKIT_OPERATION_ADVANCED_ORIGIN_CERTIFICATE_INSTALL": 47,
-		"STACKKIT_OPERATION_APPLICATION_CONNECTOR":               48,
-		"STACKKIT_OPERATION_APPLICATION_CONNECTOR_VERIFY":        49,
-		"STACKKIT_OPERATION_BACKUP_RESTORE_ACTIVATE":             50,
-		"STACKKIT_OPERATION_BACKUP_RESTORE_RECOVER":              51,
-		"STACKKIT_OPERATION_HOUSEHOLD_REMOVE":                    52,
-		"STACKKIT_OPERATION_HOST_DELIVERY_RECIPIENT":             53,
-		"STACKKIT_OPERATION_WALLET_ITEM_IMPORT":                  54,
-		"STACKKIT_OPERATION_AI_PROVIDER_SETUP":                   55,
-		"STACKKIT_OPERATION_HOUSEHOLD_UPDATE_APPS":               56,
-		"STACKKIT_OPERATION_RELOCATE_PLAN":                       57,
-		"STACKKIT_OPERATION_RELOCATE_CHECK":                      58,
-		"STACKKIT_OPERATION_RELOCATE_DRAIN":                      59,
-		"STACKKIT_OPERATION_RELOCATE_UNDRAIN":                    60,
-		"STACKKIT_OPERATION_RELOCATE_SEND":                       61,
-		"STACKKIT_OPERATION_RELOCATE_RECEIVE":                    62,
-		"STACKKIT_OPERATION_HOST_SSH_APPLY":                      63,
-		"STACKKIT_OPERATION_RELOCATE_STATUS":                     64,
-		"STACKKIT_OPERATION_RELOCATE_ABORT":                      65,
-		"STACKKIT_OPERATION_USE_CASE_CONFIGURE":                  66,
-		"STACKKIT_OPERATION_USE_CASE_REMOVE":                     68,
-		"STACKKIT_OPERATION_HOUSEHOLD_PROJECT":                   69,
+		"STACKKIT_OPERATION_UNSPECIFIED":                          0,
+		"STACKKIT_OPERATION_VALIDATE":                             1,
+		"STACKKIT_OPERATION_GENERATE":                             2,
+		"STACKKIT_OPERATION_APPLY":                                3,
+		"STACKKIT_OPERATION_VERIFY":                               4,
+		"STACKKIT_OPERATION_UPGRADE":                              5,
+		"STACKKIT_OPERATION_DRIFT_DETECT":                         6,
+		"STACKKIT_OPERATION_DRIFT_RECONCILE":                      7,
+		"STACKKIT_OPERATION_PLAN":                                 8,
+		"STACKKIT_OPERATION_INIT":                                 9,
+		"STACKKIT_OPERATION_SERVICE_START":                        10,
+		"STACKKIT_OPERATION_SERVICE_STOP":                         11,
+		"STACKKIT_OPERATION_SERVICE_RESTART":                      12,
+		"STACKKIT_OPERATION_SERVICE_LOGS":                         13,
+		"STACKKIT_OPERATION_REMOVE":                               14,
+		"STACKKIT_OPERATION_ADDRESS_BIND":                         15,
+		"STACKKIT_OPERATION_BACKUP_RUN":                           16,
+		"STACKKIT_OPERATION_BACKUP_STATUS":                        17,
+		"STACKKIT_OPERATION_BACKUP_RESTORE":                       18,
+		"STACKKIT_OPERATION_OWNER_ACTIVATION_STATUS":              19,
+		"STACKKIT_OPERATION_OWNER_ACTIVATION_ISSUE":               20,
+		"STACKKIT_OPERATION_HOUSEHOLD_LIST":                       21,
+		"STACKKIT_OPERATION_HOUSEHOLD_INVITE":                     22,
+		"STACKKIT_OPERATION_BACKUP_CONFIGURE":                     23,
+		"STACKKIT_OPERATION_ADVANCED_TRUST_IMPORT":                24,
+		"STACKKIT_OPERATION_ADVANCED_CHANGE_SET_CREATE":           25,
+		"STACKKIT_OPERATION_ADVANCED_CHANGE_SET_APPLY":            26,
+		"STACKKIT_OPERATION_ADVANCED_DRIFT_RECONCILE":             27,
+		"STACKKIT_OPERATION_ADVANCED_ROLLBACK":                    28,
+		"STACKKIT_OPERATION_ADVANCED_RESTORE_DRILL":               29,
+		"STACKKIT_OPERATION_HOST_UPDATE_PLAN":                     30,
+		"STACKKIT_OPERATION_HOST_UPDATE_APPLY":                    31,
+		"STACKKIT_OPERATION_HOST_REBOOT":                          32,
+		"STACKKIT_OPERATION_HOST_SECURITY_REPAIR":                 33,
+		"STACKKIT_OPERATION_APPLICATION_INSPECT":                  34,
+		"STACKKIT_OPERATION_APPLICATION_ADOPT":                    35,
+		"STACKKIT_OPERATION_APPLICATION_VERIFY":                   36,
+		"STACKKIT_OPERATION_APPLICATION_RELEASE":                  37,
+		"STACKKIT_OPERATION_APPLICATION_CONTROL":                  38,
+		"STACKKIT_OPERATION_BACKUP_TARGET_RECIPIENT":              39,
+		"STACKKIT_OPERATION_BACKUP_TARGET_IMPORT":                 40,
+		"STACKKIT_OPERATION_BACKUP_TARGET_REBIND":                 41,
+		"STACKKIT_OPERATION_FEDERATION_HANDOFF":                   42,
+		"STACKKIT_OPERATION_PREPARE_SOURCE_GENERATION":            43,
+		"STACKKIT_OPERATION_NETWORK_REBIND":                       44,
+		"STACKKIT_OPERATION_NETWORK_STATUS":                       45,
+		"STACKKIT_OPERATION_ADVANCED_ORIGIN_CERTIFICATE_REQUEST":  46,
+		"STACKKIT_OPERATION_ADVANCED_ORIGIN_CERTIFICATE_INSTALL":  47,
+		"STACKKIT_OPERATION_APPLICATION_CONNECTOR":                48,
+		"STACKKIT_OPERATION_APPLICATION_CONNECTOR_VERIFY":         49,
+		"STACKKIT_OPERATION_BACKUP_RESTORE_ACTIVATE":              50,
+		"STACKKIT_OPERATION_BACKUP_RESTORE_RECOVER":               51,
+		"STACKKIT_OPERATION_HOUSEHOLD_REMOVE":                     52,
+		"STACKKIT_OPERATION_HOST_DELIVERY_RECIPIENT":              53,
+		"STACKKIT_OPERATION_WALLET_ITEM_IMPORT":                   54,
+		"STACKKIT_OPERATION_AI_PROVIDER_SETUP":                    55,
+		"STACKKIT_OPERATION_HOUSEHOLD_UPDATE_APPS":                56,
+		"STACKKIT_OPERATION_RELOCATE_PLAN":                        57,
+		"STACKKIT_OPERATION_RELOCATE_CHECK":                       58,
+		"STACKKIT_OPERATION_RELOCATE_DRAIN":                       59,
+		"STACKKIT_OPERATION_RELOCATE_UNDRAIN":                     60,
+		"STACKKIT_OPERATION_RELOCATE_SEND":                        61,
+		"STACKKIT_OPERATION_RELOCATE_RECEIVE":                     62,
+		"STACKKIT_OPERATION_HOST_SSH_APPLY":                       63,
+		"STACKKIT_OPERATION_RELOCATE_STATUS":                      64,
+		"STACKKIT_OPERATION_RELOCATE_ABORT":                       65,
+		"STACKKIT_OPERATION_USE_CASE_CONFIGURE":                   66,
+		"STACKKIT_OPERATION_APPLICATION_TRANSFER":                 67,
+		"STACKKIT_OPERATION_USE_CASE_REMOVE":                      68,
+		"STACKKIT_OPERATION_HOUSEHOLD_PROJECT":                    69,
+		"STACKKIT_OPERATION_AGENT_LINK_INSTALL":                   70,
+		"STACKKIT_OPERATION_AGENT_LINK_REMOVE":                    71,
+		"STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_SYNC":          72,
+		"STACKKIT_OPERATION_HOST_LIST_PROCESSES":                  73,
+		"STACKKIT_OPERATION_HOST_LIST_CONTAINERS":                 74,
+		"STACKKIT_OPERATION_HOST_CONTAINER_ACTION":                75,
+		"STACKKIT_OPERATION_HOST_SYSTEMD_ACTION":                  76,
+		"STACKKIT_OPERATION_USE_CASE_UPGRADE":                     77,
+		"STACKKIT_OPERATION_APPLICATION_STACK_PLAN":               78,
+		"STACKKIT_OPERATION_APPLICATION_STACK":                    79,
+		"STACKKIT_OPERATION_APPLICATION_STACK_VERIFY":             80,
+		"STACKKIT_OPERATION_APPLICATION_STACK_RESTORE_ORIGINAL":   81,
+		"STACKKIT_OPERATION_APPLICATION_STACK_RELEASE_ORIGINAL":   82,
+		"STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_LOXONE_IMPORT": 83,
+		"STACKKIT_OPERATION_OWN_APPLICATION":                      84,
+		"STACKKIT_OPERATION_OWN_APPLICATION_BACKUP":               85,
+		"STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_ADOPT":         86,
 	}
 )
 
@@ -3053,6 +3181,10 @@ type StackKitCommand struct {
 	RelocationTransferId string `protobuf:"bytes,72,opt,name=relocation_transfer_id,json=relocationTransferId,proto3" json:"relocation_transfer_id,omitempty"`
 	// USE_CASE_CONFIGURE only: strict public catalog intent. Guard chooses every argv and candidate path.
 	UseCaseConfigurationJson []byte `protobuf:"bytes,73,opt,name=use_case_configuration_json,json=useCaseConfigurationJson,proto3" json:"use_case_configuration_json,omitempty"`
+	// APPLICATION_TRANSFER only: closed techstack.application-transfer-step/v1
+	// request (at most 1 MiB): the step, the selection, the peer address and
+	// the signed public documents of earlier steps. Never a secret or a path.
+	ApplicationTransferJson []byte `protobuf:"bytes,74,opt,name=application_transfer_json,json=applicationTransferJson,proto3" json:"application_transfer_json,omitempty"`
 	// USE_CASE_REMOVE only: strict retained-data selector and catalog membership.
 	UseCaseRemovalJson []byte `protobuf:"bytes,75,opt,name=use_case_removal_json,json=useCaseRemovalJson,proto3" json:"use_case_removal_json,omitempty"`
 	// HOUSEHOLD_PROJECT only: opaque owner/person digest, positive generation,
@@ -3062,8 +3194,63 @@ type StackKitCommand struct {
 	HouseholdProjectionAction   string `protobuf:"bytes,78,opt,name=household_projection_action,json=householdProjectionAction,proto3" json:"household_projection_action,omitempty"`
 	// Gateway-signed one-use RIL authority; only valid for expected-plan VERIFY.
 	RilExecutionProof *RILExecutionProof `protobuf:"bytes,79,opt,name=ril_execution_proof,json=rilExecutionProof,proto3" json:"ril_execution_proof,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// AGENT_LINK_INSTALL only: the exact stackkit.home-agent-link-request/v1
+	// JSON (at most 64 KiB): server, Connect tenant, the Gateway agent_envelope
+	// key document, the owner's kombify subject and the D10-linked members. Public
+	// values only; the Guard writes it to a workspace file and passes its digest.
+	AgentLinkRequest []byte `protobuf:"bytes,80,opt,name=agent_link_request,json=agentLinkRequest,proto3" json:"agent_link_request,omitempty"`
+	// APPLICATION_HOME_GRAPH_SYNC only: the exact
+	// stackkit.home-graph-sync-request/v1 JSON (at most 512 KiB): the
+	// kombify.home_graph.v1 graph and the bounded restore list. Public home
+	// structure only; no credential. The Guard writes it to a private
+	// workspace file.
+	HomeGraphSyncRequest []byte `protobuf:"bytes,81,opt,name=home_graph_sync_request,json=homeGraphSyncRequest,proto3" json:"home_graph_sync_request,omitempty"`
+	// HOST_CONTAINER_ACTION (container name or id) and HOST_SYSTEMD_ACTION (unit
+	// name) only: the one object of the action.
+	HostTarget string `protobuf:"bytes,82,opt,name=host_target,json=hostTarget,proto3" json:"host_target,omitempty"`
+	// HOST_CONTAINER_ACTION and HOST_SYSTEMD_ACTION only: start, stop or restart.
+	HostAction string `protobuf:"bytes,83,opt,name=host_action,json=hostAction,proto3" json:"host_action,omitempty"`
+	// HOST_LIST_PROCESSES and HOST_LIST_CONTAINERS only: row bound, 0 = default.
+	HostListLimit int32 `protobuf:"varint,84,opt,name=host_list_limit,json=hostListLimit,proto3" json:"host_list_limit,omitempty"`
+	// USE_CASE_UPGRADE only: the catalog use case slug whose one application
+	// moves, the exact upstream release (image tag) and its sha256 manifest
+	// digest, and the owner's acknowledgement that the release is untested.
+	UseCase            string `protobuf:"bytes,85,opt,name=use_case,json=useCase,proto3" json:"use_case,omitempty"`
+	ApplicationVersion string `protobuf:"bytes,86,opt,name=application_version,json=applicationVersion,proto3" json:"application_version,omitempty"`
+	ApplicationDigest  string `protobuf:"bytes,87,opt,name=application_digest,json=applicationDigest,proto3" json:"application_digest,omitempty"`
+	AcceptUntested     bool   `protobuf:"varint,88,opt,name=accept_untested,json=acceptUntested,proto3" json:"accept_untested,omitempty"`
+	// BACKUP_RESTORE_ACTIVATE and ADVANCED_CHANGE_SET_APPLY only: the compact
+	// decision receipt (JWS) the platform's ledger signed for exactly this
+	// operation, and the acting principal it binds (<person|agent_instance>:<id>).
+	// The Agent writes the receipt to a 0600 file and passes
+	// --decision-receipt @<file> --decision-principal <principal>; the pinned
+	// StackKits CLI verifies and spends it. Set at dispatch, never persisted.
+	DecisionReceipt   string `protobuf:"bytes,89,opt,name=decision_receipt,json=decisionReceipt,proto3" json:"decision_receipt,omitempty"`
+	DecisionPrincipal string `protobuf:"bytes,90,opt,name=decision_principal,json=decisionPrincipal,proto3" json:"decision_principal,omitempty"`
+	// APPLICATION_STACK_* only: the own application name the adopted container
+	// becomes (own-<name>).
+	OwnApplicationName string `protobuf:"bytes,91,opt,name=own_application_name,json=ownApplicationName,proto3" json:"own_application_name,omitempty"`
+	// APPLICATION_HOME_GRAPH_LOXONE_IMPORT only: the exact kombify.home_graph.v1
+	// document (at most 480 KiB) the import merges into. Public home structure
+	// only; no credential. The Agent writes it to a private workspace file.
+	HomeGraphDocument []byte `protobuf:"bytes,92,opt,name=home_graph_document,json=homeGraphDocument,proto3" json:"home_graph_document,omitempty"`
+	// OWN_APPLICATION only: the catalog operation (own-application.<step>), the
+	// review digest its dry run returned (executions), the reviewed action of
+	// own-application.review (start, stop, restart, rollback), the version tag
+	// and resolved digest reference of a tag update, whether the review
+	// admitted another major version, and the operation ID of the tag update
+	// whose data checkpoint a rollback restores or a discard removes.
+	OwnApplicationOperation     string `protobuf:"bytes,93,opt,name=own_application_operation,json=ownApplicationOperation,proto3" json:"own_application_operation,omitempty"`
+	OwnApplicationReviewDigest  string `protobuf:"bytes,94,opt,name=own_application_review_digest,json=ownApplicationReviewDigest,proto3" json:"own_application_review_digest,omitempty"`
+	OwnApplicationAction        string `protobuf:"bytes,95,opt,name=own_application_action,json=ownApplicationAction,proto3" json:"own_application_action,omitempty"`
+	OwnApplicationImageTag      string `protobuf:"bytes,96,opt,name=own_application_image_tag,json=ownApplicationImageTag,proto3" json:"own_application_image_tag,omitempty"`
+	OwnApplicationResolvedImage string `protobuf:"bytes,97,opt,name=own_application_resolved_image,json=ownApplicationResolvedImage,proto3" json:"own_application_resolved_image,omitempty"`
+	OwnApplicationAllowMajor    bool   `protobuf:"varint,98,opt,name=own_application_allow_major,json=ownApplicationAllowMajor,proto3" json:"own_application_allow_major,omitempty"`
+	OwnApplicationCheckpoint    string `protobuf:"bytes,99,opt,name=own_application_checkpoint,json=ownApplicationCheckpoint,proto3" json:"own_application_checkpoint,omitempty"`
+	// APPLICATION_HOME_GRAPH_ADOPT only: stackkit.home-graph-adoption-request/v1.
+	HomeGraphAdoptionRequest []byte `protobuf:"bytes,100,opt,name=home_graph_adoption_request,json=homeGraphAdoptionRequest,proto3" json:"home_graph_adoption_request,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *StackKitCommand) Reset() {
@@ -3607,6 +3794,13 @@ func (x *StackKitCommand) GetUseCaseConfigurationJson() []byte {
 	return nil
 }
 
+func (x *StackKitCommand) GetApplicationTransferJson() []byte {
+	if x != nil {
+		return x.ApplicationTransferJson
+	}
+	return nil
+}
+
 func (x *StackKitCommand) GetUseCaseRemovalJson() []byte {
 	if x != nil {
 		return x.UseCaseRemovalJson
@@ -3638,6 +3832,153 @@ func (x *StackKitCommand) GetHouseholdProjectionAction() string {
 func (x *StackKitCommand) GetRilExecutionProof() *RILExecutionProof {
 	if x != nil {
 		return x.RilExecutionProof
+	}
+	return nil
+}
+
+func (x *StackKitCommand) GetAgentLinkRequest() []byte {
+	if x != nil {
+		return x.AgentLinkRequest
+	}
+	return nil
+}
+
+func (x *StackKitCommand) GetHomeGraphSyncRequest() []byte {
+	if x != nil {
+		return x.HomeGraphSyncRequest
+	}
+	return nil
+}
+
+func (x *StackKitCommand) GetHostTarget() string {
+	if x != nil {
+		return x.HostTarget
+	}
+	return ""
+}
+
+func (x *StackKitCommand) GetHostAction() string {
+	if x != nil {
+		return x.HostAction
+	}
+	return ""
+}
+
+func (x *StackKitCommand) GetHostListLimit() int32 {
+	if x != nil {
+		return x.HostListLimit
+	}
+	return 0
+}
+
+func (x *StackKitCommand) GetUseCase() string {
+	if x != nil {
+		return x.UseCase
+	}
+	return ""
+}
+
+func (x *StackKitCommand) GetApplicationVersion() string {
+	if x != nil {
+		return x.ApplicationVersion
+	}
+	return ""
+}
+
+func (x *StackKitCommand) GetApplicationDigest() string {
+	if x != nil {
+		return x.ApplicationDigest
+	}
+	return ""
+}
+
+func (x *StackKitCommand) GetAcceptUntested() bool {
+	if x != nil {
+		return x.AcceptUntested
+	}
+	return false
+}
+
+func (x *StackKitCommand) GetDecisionReceipt() string {
+	if x != nil {
+		return x.DecisionReceipt
+	}
+	return ""
+}
+
+func (x *StackKitCommand) GetDecisionPrincipal() string {
+	if x != nil {
+		return x.DecisionPrincipal
+	}
+	return ""
+}
+
+func (x *StackKitCommand) GetOwnApplicationName() string {
+	if x != nil {
+		return x.OwnApplicationName
+	}
+	return ""
+}
+
+func (x *StackKitCommand) GetHomeGraphDocument() []byte {
+	if x != nil {
+		return x.HomeGraphDocument
+	}
+	return nil
+}
+
+func (x *StackKitCommand) GetOwnApplicationOperation() string {
+	if x != nil {
+		return x.OwnApplicationOperation
+	}
+	return ""
+}
+
+func (x *StackKitCommand) GetOwnApplicationReviewDigest() string {
+	if x != nil {
+		return x.OwnApplicationReviewDigest
+	}
+	return ""
+}
+
+func (x *StackKitCommand) GetOwnApplicationAction() string {
+	if x != nil {
+		return x.OwnApplicationAction
+	}
+	return ""
+}
+
+func (x *StackKitCommand) GetOwnApplicationImageTag() string {
+	if x != nil {
+		return x.OwnApplicationImageTag
+	}
+	return ""
+}
+
+func (x *StackKitCommand) GetOwnApplicationResolvedImage() string {
+	if x != nil {
+		return x.OwnApplicationResolvedImage
+	}
+	return ""
+}
+
+func (x *StackKitCommand) GetOwnApplicationAllowMajor() bool {
+	if x != nil {
+		return x.OwnApplicationAllowMajor
+	}
+	return false
+}
+
+func (x *StackKitCommand) GetOwnApplicationCheckpoint() string {
+	if x != nil {
+		return x.OwnApplicationCheckpoint
+	}
+	return ""
+}
+
+func (x *StackKitCommand) GetHomeGraphAdoptionRequest() []byte {
+	if x != nil {
+		return x.HomeGraphAdoptionRequest
 	}
 	return nil
 }
@@ -3754,8 +4095,14 @@ type StackKitResult struct {
 	// FEDERATION_HANDOFF only: the public document the step produced for the
 	// other node, read by the Agent from the pinned CLI's own output.
 	HandoffDocument []byte `protobuf:"bytes,16,opt,name=handoff_document,json=handoffDocument,proto3" json:"handoff_document,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// PLAN and ADVANCED_CHANGE_SET_CREATE only: sha256:<64 hex> of the bytes of
+	// the workspace StackSpec (working_directory/spec_path) the command ran
+	// against, read by the Agent after the command. It is the revision a
+	// decision receipt binds (StackKits docs/DECISION-RECEIPTS.md); empty when
+	// the Agent could not read the file.
+	WorkspaceRevision string `protobuf:"bytes,17,opt,name=workspace_revision,json=workspaceRevision,proto3" json:"workspace_revision,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *StackKitResult) Reset() {
@@ -3898,6 +4245,13 @@ func (x *StackKitResult) GetHandoffDocument() []byte {
 		return x.HandoffDocument
 	}
 	return nil
+}
+
+func (x *StackKitResult) GetWorkspaceRevision() string {
+	if x != nil {
+		return x.WorkspaceRevision
+	}
+	return ""
 }
 
 // PreCheckRequest is sent from Core to Agent to execute pre-deployment checks.
@@ -5830,7 +6184,7 @@ const file_api_proto_agent_proto_rawDesc = "" +
 	"platformOs\x12#\n" +
 	"\rplatform_arch\x18\x03 \x01(\tR\fplatformArch\x12%\n" +
 	"\x0earchive_sha256\x18\x04 \x01(\tR\rarchiveSha256\x120\n" +
-	"\x14release_index_sha256\x18\x05 \x01(\tR\x12releaseIndexSha256\"\x92\x1d\n" +
+	"\x14release_index_sha256\x18\x05 \x01(\tR\x12releaseIndexSha256\"\xee%\n" +
 	"\x0fStackKitCommand\x12\x1d\n" +
 	"\n" +
 	"command_id\x18\x01 \x01(\tR\tcommandId\x12C\n" +
@@ -5912,19 +6266,43 @@ const file_api_proto_agent_proto_rawDesc = "" +
 	"\x16relocation_set_domains\x18F \x03(\tR\x14relocationSetDomains\x12:\n" +
 	"\x19relocation_resource_uuids\x18G \x03(\tR\x17relocationResourceUuids\x124\n" +
 	"\x16relocation_transfer_id\x18H \x01(\tR\x14relocationTransferId\x12=\n" +
-	"\x1buse_case_configuration_json\x18I \x01(\fR\x18useCaseConfigurationJson\x121\n" +
+	"\x1buse_case_configuration_json\x18I \x01(\fR\x18useCaseConfigurationJson\x12:\n" +
+	"\x19application_transfer_json\x18J \x01(\fR\x17applicationTransferJson\x121\n" +
 	"\x15use_case_removal_json\x18K \x01(\fR\x12useCaseRemovalJson\x128\n" +
 	"\x18household_projection_key\x18L \x01(\tR\x16householdProjectionKey\x12B\n" +
 	"\x1dhousehold_projection_revision\x18M \x01(\x04R\x1bhouseholdProjectionRevision\x12>\n" +
 	"\x1bhousehold_projection_action\x18N \x01(\tR\x19householdProjectionAction\x12U\n" +
-	"\x13ril_execution_proof\x18O \x01(\v2%.techstack.agent.v1.RILExecutionProofR\x11rilExecutionProof\"\xb4\x01\n" +
+	"\x13ril_execution_proof\x18O \x01(\v2%.techstack.agent.v1.RILExecutionProofR\x11rilExecutionProof\x12,\n" +
+	"\x12agent_link_request\x18P \x01(\fR\x10agentLinkRequest\x125\n" +
+	"\x17home_graph_sync_request\x18Q \x01(\fR\x14homeGraphSyncRequest\x12\x1f\n" +
+	"\vhost_target\x18R \x01(\tR\n" +
+	"hostTarget\x12\x1f\n" +
+	"\vhost_action\x18S \x01(\tR\n" +
+	"hostAction\x12&\n" +
+	"\x0fhost_list_limit\x18T \x01(\x05R\rhostListLimit\x12\x19\n" +
+	"\buse_case\x18U \x01(\tR\auseCase\x12/\n" +
+	"\x13application_version\x18V \x01(\tR\x12applicationVersion\x12-\n" +
+	"\x12application_digest\x18W \x01(\tR\x11applicationDigest\x12'\n" +
+	"\x0faccept_untested\x18X \x01(\bR\x0eacceptUntested\x12)\n" +
+	"\x10decision_receipt\x18Y \x01(\tR\x0fdecisionReceipt\x12-\n" +
+	"\x12decision_principal\x18Z \x01(\tR\x11decisionPrincipal\x120\n" +
+	"\x14own_application_name\x18[ \x01(\tR\x12ownApplicationName\x12.\n" +
+	"\x13home_graph_document\x18\\ \x01(\fR\x11homeGraphDocument\x12:\n" +
+	"\x19own_application_operation\x18] \x01(\tR\x17ownApplicationOperation\x12A\n" +
+	"\x1down_application_review_digest\x18^ \x01(\tR\x1aownApplicationReviewDigest\x124\n" +
+	"\x16own_application_action\x18_ \x01(\tR\x14ownApplicationAction\x129\n" +
+	"\x19own_application_image_tag\x18` \x01(\tR\x16ownApplicationImageTag\x12C\n" +
+	"\x1eown_application_resolved_image\x18a \x01(\tR\x1bownApplicationResolvedImage\x12=\n" +
+	"\x1bown_application_allow_major\x18b \x01(\bR\x18ownApplicationAllowMajor\x12<\n" +
+	"\x1aown_application_checkpoint\x18c \x01(\tR\x18ownApplicationCheckpoint\x12=\n" +
+	"\x1bhome_graph_adoption_request\x18d \x01(\fR\x18homeGraphAdoptionRequest\"\xb4\x01\n" +
 	"\x11RILExecutionProof\x12\x1b\n" +
 	"\tlease_jws\x18\x01 \x01(\tR\bleaseJws\x12\x1b\n" +
 	"\tclaim_jws\x18\x02 \x01(\tR\bclaimJws\x12!\n" +
 	"\freceipt_json\x18\x03 \x01(\fR\vreceiptJson\x12\x1f\n" +
 	"\veffect_json\x18\x04 \x01(\fR\n" +
 	"effectJson\x12!\n" +
-	"\fproof_digest\x18\x05 \x01(\tR\vproofDigest\"\xf6\x05\n" +
+	"\fproof_digest\x18\x05 \x01(\tR\vproofDigest\"\xa5\x06\n" +
 	"\x0eStackKitResult\x12\x1d\n" +
 	"\n" +
 	"command_id\x18\x01 \x01(\tR\tcommandId\x12\x18\n" +
@@ -5943,7 +6321,8 @@ const file_api_proto_agent_proto_rawDesc = "" +
 	"\x1apinned_cli_evidence_sha256\x18\r \x01(\tR\x17pinnedCliEvidenceSha256\x122\n" +
 	"\x15sensitive_result_json\x18\x0e \x01(\fR\x13sensitiveResultJson\x12;\n" +
 	"\x1aadvanced_change_set_sha256\x18\x0f \x01(\tR\x17advancedChangeSetSha256\x12)\n" +
-	"\x10handoff_document\x18\x10 \x01(\fR\x0fhandoffDocument\"\x99\x01\n" +
+	"\x10handoff_document\x18\x10 \x01(\fR\x0fhandoffDocument\x12-\n" +
+	"\x12workspace_revision\x18\x11 \x01(\tR\x11workspaceRevision\"\x99\x01\n" +
 	"\x0fPreCheckRequest\x12\x1d\n" +
 	"\n" +
 	"request_id\x18\x01 \x01(\tR\trequestId\x12>\n" +
@@ -6119,7 +6498,7 @@ const file_api_proto_agent_proto_rawDesc = "" +
 	"\x1fTERRAMATE_OPERATION_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17TERRAMATE_OPERATION_RUN\x10\x01\x12\"\n" +
 	"\x1eTERRAMATE_OPERATION_SYNC_DRIFT\x10\x02\x12$\n" +
-	" TERRAMATE_OPERATION_LIST_CHANGED\x10\x03*\xc5\x16\n" +
+	" TERRAMATE_OPERATION_LIST_CHANGED\x10\x03*\xa0\x1d\n" +
 	"\x11StackKitOperation\x12\"\n" +
 	"\x1eSTACKKIT_OPERATION_UNSPECIFIED\x10\x00\x12\x1f\n" +
 	"\x1bSTACKKIT_OPERATION_VALIDATE\x10\x01\x12\x1f\n" +
@@ -6188,9 +6567,27 @@ const file_api_proto_agent_proto_rawDesc = "" +
 	"!STACKKIT_OPERATION_HOST_SSH_APPLY\x10?\x12&\n" +
 	"\"STACKKIT_OPERATION_RELOCATE_STATUS\x10@\x12%\n" +
 	"!STACKKIT_OPERATION_RELOCATE_ABORT\x10A\x12)\n" +
-	"%STACKKIT_OPERATION_USE_CASE_CONFIGURE\x10B\x12&\n" +
+	"%STACKKIT_OPERATION_USE_CASE_CONFIGURE\x10B\x12+\n" +
+	"'STACKKIT_OPERATION_APPLICATION_TRANSFER\x10C\x12&\n" +
 	"\"STACKKIT_OPERATION_USE_CASE_REMOVE\x10D\x12(\n" +
-	"$STACKKIT_OPERATION_HOUSEHOLD_PROJECT\x10E*|\n" +
+	"$STACKKIT_OPERATION_HOUSEHOLD_PROJECT\x10E\x12)\n" +
+	"%STACKKIT_OPERATION_AGENT_LINK_INSTALL\x10F\x12(\n" +
+	"$STACKKIT_OPERATION_AGENT_LINK_REMOVE\x10G\x122\n" +
+	".STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_SYNC\x10H\x12*\n" +
+	"&STACKKIT_OPERATION_HOST_LIST_PROCESSES\x10I\x12+\n" +
+	"'STACKKIT_OPERATION_HOST_LIST_CONTAINERS\x10J\x12,\n" +
+	"(STACKKIT_OPERATION_HOST_CONTAINER_ACTION\x10K\x12*\n" +
+	"&STACKKIT_OPERATION_HOST_SYSTEMD_ACTION\x10L\x12'\n" +
+	"#STACKKIT_OPERATION_USE_CASE_UPGRADE\x10M\x12-\n" +
+	")STACKKIT_OPERATION_APPLICATION_STACK_PLAN\x10N\x12(\n" +
+	"$STACKKIT_OPERATION_APPLICATION_STACK\x10O\x12/\n" +
+	"+STACKKIT_OPERATION_APPLICATION_STACK_VERIFY\x10P\x129\n" +
+	"5STACKKIT_OPERATION_APPLICATION_STACK_RESTORE_ORIGINAL\x10Q\x129\n" +
+	"5STACKKIT_OPERATION_APPLICATION_STACK_RELEASE_ORIGINAL\x10R\x12;\n" +
+	"7STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_LOXONE_IMPORT\x10S\x12&\n" +
+	"\"STACKKIT_OPERATION_OWN_APPLICATION\x10T\x12-\n" +
+	")STACKKIT_OPERATION_OWN_APPLICATION_BACKUP\x10U\x123\n" +
+	"/STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_ADOPT\x10V*|\n" +
 	"\x11StackKitDriftMode\x12#\n" +
 	"\x1fSTACKKIT_DRIFT_MODE_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cSTACKKIT_DRIFT_MODE_STANDARD\x10\x01\x12 \n" +

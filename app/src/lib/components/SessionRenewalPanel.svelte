@@ -1,52 +1,58 @@
 <script lang="ts">
-  import { authHandler } from "#lib/stores/authHandler.svelte.js";
-  import { authStore } from "#lib/stores/auth.svelte.js";
-  import { renewGatewaySession } from "#lib/auth/gateway-auth.js";
-  import { currentAuthReturnTo } from "#lib/auth/login-experience.js";
+  /**
+   * Shown where a page's action waits because the person dismissed the
+   * session renewal confirmation (workspace AUTHENTICATION.md §6). Neutral:
+   * the action is pending, nothing is wrong with the account, and "Continue"
+   * renews in place and then runs the page's action again.
+   */
+  import { sessionRenewal } from "#lib/auth/session-renewal.svelte.js";
   import { tr } from "#lib/i18n.svelte.js";
   import Button from "#lib/components/ui/Button.svelte";
 
   interface Props {
-    /** Post-login return path; defaults to the current location. */
-    returnTo?: string;
-    /** Message id for the body copy; defaults to the renewal explanation. */
+    /** Message id for the body copy; defaults to the pending explanation. */
     bodyKey?: string;
+    /** Runs the page's action again once the session is renewed. */
+    onRenewed?: () => void | Promise<void>;
   }
 
-  const {
-    returnTo,
-    bodyKey = "auth.session.renewal.body",
-  }: Props = $props();
+  const { bodyKey = "sessionRenewal.pending", onRenewed }: Props = $props();
 
-  async function signInAgain() {
-    const target = returnTo ?? currentAuthReturnTo();
-    const outcome = await renewGatewaySession({ returnTo: target });
-    if (outcome === "renewed") {
-      // A fresh token is cached; reload the view without an Auth0 round-trip.
-      window.location.assign(target);
-    } else if (outcome === "unavailable") {
-      authStore.initiateCloudLogin({ returnTo: target });
+  let renewing = $state(false);
+
+  async function continueAction() {
+    renewing = true;
+    try {
+      // Called straight from the click so the renewal window counts it as
+      // its gesture.
+      const renewed = await sessionRenewal.renewWithGesture();
+      if (renewed) await onRenewed?.();
+    } finally {
+      renewing = false;
     }
   }
 </script>
 
-<!-- Self-hides while the global renewal banner is visible so prompts never stack. -->
-{#if !authHandler.showReloginModal}
+<!-- Self-hides while the shared confirmation is visible so prompts never stack. -->
+{#if !sessionRenewal.confirmation}
   <div
-    class="rounded-lg border border-warning/30 bg-warning/10 p-4 text-sm text-foreground"
+    class="rounded-lg border border-border bg-card p-4 text-sm text-foreground"
     data-testid="session-renewal-panel"
   >
-    <p class="font-medium">{tr("auth.session.renewal.title")}</p>
+    <p class="font-medium">{tr("sessionRenewal.title")}</p>
     <p class="mt-1 text-muted-foreground">
       {tr(bodyKey)}
     </p>
     <div class="mt-3 flex flex-wrap gap-2">
       <Button
         variant="primary"
-        testId="session-renewal-signin"
-        onclick={signInAgain}
+        testId="session-renewal-continue-action"
+        disabled={renewing}
+        onclick={continueAction}
       >
-        {tr("auth.session.renewal.signIn")}
+        {renewing
+          ? tr("sessionRenewal.confirming")
+          : tr("sessionRenewal.continue")}
       </Button>
     </div>
   </div>

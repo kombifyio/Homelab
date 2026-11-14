@@ -6,11 +6,12 @@
  */
 import { tr } from "#lib/i18n.svelte.js";
 import { WalletApiError } from "./wallet-api.js";
+import { SESSION_RENEWAL_PENDING_CODE } from "#lib/auth/session-renewal.svelte.js";
 import { WalletTransportClientError } from "./transport.js";
 import { parseScope } from "./item-types.js";
 
 const REASONS: Record<string, string> = {
-  auth_required: "kwallet.denied.auth_required",
+  [SESSION_RENEWAL_PENDING_CODE]: "kwallet.denied.auth_required",
   owner_unknown: "kwallet.denied.owner_unknown",
   wallet_owner_required: "kwallet.denied.owner_required",
   item_unknown: "kwallet.denied.item_unknown",

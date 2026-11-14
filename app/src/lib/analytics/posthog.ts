@@ -16,6 +16,8 @@ export interface PostHogConfig {
   product?: string;
   surface?: string;
   fetchImpl?: typeof fetch;
+  /** Read before every capture; defaults to the shared kombify.io decision. */
+  hasConsent?: () => boolean;
   location?: LocationLike;
   now?: () => number;
   randomId?: () => string;
@@ -114,6 +116,66 @@ const ROUTE_PROPERTY_KEYS = new Set([
 const UNSAFE_ROUTE_VALUE_PATTERN = /(?:https?:\/\/|www\.|[?#])/i;
 const MAX_PROPERTY_ARRAY_LENGTH = 25;
 
+/**
+ * The one analytics decision for kombify.io and every subdomain. Cloud owns
+ * the consent UI and is the only writer (kombify-Cloud
+ * src/lib/analytics/consent.ts, OBSERVABILITY-STANDARD.md §12.1):
+ *
+ *   kombify_analytics_consent=<granted|denied>|<canonical ISO time>
+ *   on Domain=kombify.io, expiring twelve months after the decision.
+ *
+ * Techstack has no consent UI and no default of its own: embedded in Cloud
+ * or standalone, it captures and identifies nobody unless this cookie holds
+ * a fresh `granted`. A missing, unreadable, malformed, future or expired
+ * decision is a refusal.
+ */
+export const ANALYTICS_CONSENT_COOKIE = "kombify_analytics_consent";
+const ANALYTICS_CONSENT_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000;
+
+export function readSharedAnalyticsConsent(
+  cookie: string = readDocumentCookie(),
+  now: number = Date.now(),
+): "granted" | "denied" | null {
+  const prefix = `${ANALYTICS_CONSENT_COOKIE}=`;
+  const raw = cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(prefix));
+  if (!raw) return null;
+  let fields: string[];
+  try {
+    fields = decodeURIComponent(raw.slice(prefix.length)).split("|");
+  } catch {
+    return null;
+  }
+  // Exactly decision and time; anything else is malformed, so no decision.
+  if (fields.length !== 2) return null;
+  const [decision, updatedAt] = fields as [string, string];
+  if (decision !== "granted" && decision !== "denied") return null;
+  const decidedAt = Date.parse(updatedAt);
+  if (
+    !Number.isFinite(decidedAt) ||
+    new Date(decidedAt).toISOString() !== updatedAt ||
+    decidedAt > now ||
+    now - decidedAt >= ANALYTICS_CONSENT_MAX_AGE_MS
+  ) {
+    return null;
+  }
+  return decision;
+}
+
+export function hasSharedAnalyticsConsent(): boolean {
+  return readSharedAnalyticsConsent() === "granted";
+}
+
+function readDocumentCookie(): string {
+  try {
+    return typeof document === "undefined" ? "" : document.cookie;
+  } catch {
+    return "";
+  }
+}
+
 export function createPostHogClient(config: PostHogConfig): PostHogClient {
   const apiKey = normalizeString(config.apiKey);
   const host = normalizePostHogHost(config.host);
@@ -122,6 +184,7 @@ export function createPostHogClient(config: PostHogConfig): PostHogClient {
   const fetchImpl = config.fetchImpl ?? globalThis.fetch?.bind(globalThis);
   const now = config.now ?? Date.now;
   const randomId = config.randomId ?? defaultRandomId;
+  const hasConsent = config.hasConsent ?? hasSharedAnalyticsConsent;
 
   return {
     enabled: !disabled,
@@ -130,6 +193,8 @@ export function createPostHogClient(config: PostHogConfig): PostHogClient {
       event: string,
       options: CaptureOptions = {},
     ): Promise<boolean> {
+      // Consent first, on every capture: a withdrawal applies at once.
+      if (!hasConsent()) return false;
       if (disabled || !apiKey || !fetchImpl || !isValidEventName(event)) {
         return false;
       }

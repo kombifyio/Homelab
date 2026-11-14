@@ -12,6 +12,7 @@
   } from "#lib/client/windows-onboarding.js";
   import { authStore } from "#lib/stores/auth.svelte.js";
   import TechstackBrandLogo from "#lib/components/TechstackBrandLogo.svelte";
+  import Button from "#lib/components/ui/Button.svelte";
 
   let adminEmail = $state("");
   let adminPassword = $state("");
@@ -251,18 +252,17 @@
               required
               disabled={submitting}
             />
-            <button
+            <Button
               type="submit"
-              data-testid="windows-local-existing-submit"
+              variant="primary"
+              testId="windows-local-existing-submit"
               disabled={!canSignInExistingOwner || submitting}
-              data-kx="control"
-              data-variant="primary"
-              class="mt-6 inline-flex h-10 w-full items-center justify-center rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+              class="mt-6 w-full"
             >
               {submitting
                 ? tr("ui.clientLocal.signingIn")
                 : tr("ui.clientLocal.signInLocally")}
-            </button>
+            </Button>
           {:else}
             <div
               class="mb-5 flex items-center gap-2 text-lg font-semibold text-foreground"
@@ -325,18 +325,17 @@
               required
               disabled={submitting}
             />
-            <button
+            <Button
               type="submit"
-              data-testid="windows-local-setup-submit"
+              variant="primary"
+              testId="windows-local-setup-submit"
               disabled={!canSubmit || submitting}
-              data-kx="control"
-              data-variant="primary"
-              class="mt-6 inline-flex h-10 w-full items-center justify-center rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+              class="mt-6 w-full"
             >
               {submitting
                 ? tr("ui.clientLocal.creatingLocalOwner")
                 : tr("ui.clientLocal.continueLocalSetup")}
-            </button>
+            </Button>
           {/if}
         {/if}
       </form>

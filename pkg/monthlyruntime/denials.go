@@ -1,6 +1,10 @@
 package monthlyruntime
 
-import "strings"
+import (
+	"errors"
+	"strings"
+	"time"
+)
 
 // Operational (non-entitlement) managed-runtime failure identifiers. These ride
 // in the SAME structured error envelope as ManagedRuntimeEntitlementDenialDetails
@@ -21,6 +25,11 @@ const (
 	// ReasonLeaseProtected is the reason_code for a decommission blocked on a
 	// protected demo anchor lease.
 	ReasonLeaseProtected = "lease_protected"
+	// DecommissionBlockedProviderRefusedErrorCode marks a decommission whose
+	// provider cleanup attempts are spent without proving provider absence.
+	DecommissionBlockedProviderRefusedErrorCode = "decommission_blocked_provider_refused"
+	// ReasonProviderCleanupRefused is the reason_code for that refusal.
+	ReasonProviderCleanupRefused = "provider_cleanup_refused"
 )
 
 type failureEnvelope struct {
@@ -66,6 +75,14 @@ func managedRuntimeProviderID(providerID string) string {
 	return providerID
 }
 
+// decommissionProviderID names the provider of the lease a decommission
+// refusal is about (DecommissionBlockedProviderID). Unlike a new managed
+// runtime, an existing lease has no default provider: an unknown one is
+// omitted rather than guessed.
+func decommissionProviderID(providerID string) string {
+	return strings.ToLower(strings.TrimSpace(providerID))
+}
+
 // DecommissionProtectedDetails is the structured envelope returned (409) when a
 // decommission is refused because the lease is one of the protected demo
 // anchor servers. Not retryable and no force offer: the protection is
@@ -78,13 +95,62 @@ func DecommissionProtectedDetails(providerID, leaseID string) map[string]any {
 	return structuredFailureDetails(failureEnvelope{
 		phase: "managed_runtime_decommission", phaseLabel: "Managed runtime decommission",
 		errorCode: DecommissionBlockedProtectedErrorCode, reasonCode: ReasonLeaseProtected,
-		capability: ManagedRuntimeCapability, providerID: managedRuntimeProviderID(providerID),
+		capability: ManagedRuntimeCapability, providerID: decommissionProviderID(providerID),
 		guidance: map[string]any{
 			"title": "This server is part of the kombify live demo",
 			"body":  "The demo's anchor servers are protected and cannot be decommissioned. If this account currently has managed-server capacity, use the add-server flow instead.",
 			"next_steps": []string{
 				"Try the add-server flow if managed-server capacity is available for this account.",
 			},
+		},
+	}, extra)
+}
+
+// DecommissionRefusedDetails is the structured envelope returned (409) when the
+// provider cleanup of an already accepted decommission stopped without proving
+// that the server is gone. The provider reason decides the repair: a conflict
+// means the provider holds resources kombify did not create next to this
+// server, so deleting would destroy them; every other reason is a provider
+// failure the next attempt re-reads.
+func DecommissionRefusedDetails(providerID, leaseID string, err error) map[string]any {
+	extra := map[string]any{"force_offered": false}
+	if id := strings.TrimSpace(leaseID); id != "" {
+		extra["lease_id"] = id
+	}
+	var refused *DecommissionRefusedError
+	if !errors.As(err, &refused) {
+		refused = nil
+	}
+	when := "later"
+	if refused != nil {
+		if code := strings.TrimSpace(refused.ProviderReasonCode); code != "" {
+			extra["provider_reason_code"] = code
+		}
+		if !refused.RetryAfter.IsZero() {
+			extra["retry_after"] = refused.RetryAfter.UTC().Format(time.RFC3339)
+			when = "after " + refused.RetryAfter.UTC().Format(time.RFC3339)
+		}
+	}
+	conflict := refused != nil && refused.ProviderConflict
+	title := "The server could not be removed at the provider"
+	body := "Every cleanup attempt for this server stopped without the provider confirming that it is gone. The server may still be running and billing at the provider."
+	nextSteps := []string{"Retry the decommission " + when + "; each attempt reads the provider again before it deletes anything."}
+	if conflict {
+		title = "Other resources share this server's provider datacenter"
+		body = "The provider datacenter that kombify created for this server also holds servers or networks kombify did not create. Removing the datacenter would delete them too, so kombify stopped before deleting anything."
+		nextSteps = []string{
+			"Move or delete the resources that were added to this server's provider datacenter.",
+			"Kombify reads the provider again " + when + " and then removes the server; a decommission retry from then on starts it too.",
+		}
+	}
+	return structuredFailureDetails(failureEnvelope{
+		phase: "managed_runtime_decommission", phaseLabel: "Managed runtime decommission",
+		errorCode: DecommissionBlockedProviderRefusedErrorCode, reasonCode: ReasonProviderCleanupRefused,
+		capability: ManagedRuntimeCapability, providerID: decommissionProviderID(providerID), retryable: !conflict,
+		guidance: map[string]any{
+			"title":      title,
+			"body":       body,
+			"next_steps": nextSteps,
 		},
 	}, extra)
 }
@@ -107,7 +173,7 @@ func DecommissionUnreachableDetails(providerID, leaseID string, forceOffered boo
 	return structuredFailureDetails(failureEnvelope{
 		phase: "managed_runtime_decommission", phaseLabel: "Managed runtime decommission",
 		errorCode: DecommissionBlockedUnreachableErrorCode, reasonCode: ReasonRuntimeUnreachable,
-		capability: ManagedRuntimeCapability, providerID: managedRuntimeProviderID(providerID), retryable: true,
+		capability: ManagedRuntimeCapability, providerID: decommissionProviderID(providerID), retryable: true,
 		guidance: map[string]any{
 			"title":      "Cannot reach the server to decommission it",
 			"body":       body,

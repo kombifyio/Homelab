@@ -218,6 +218,8 @@ func RegisterInventoryRoutes(r *httpx.Router, cfg InventoryRouteConfig) {
 	r.GET("/api/v1/inventory/servers/{serverId}/health", h.httpServerHealth)
 	r.GET("/api/v1/inventory/servers/{serverId}/ports", h.httpServerPorts)
 	r.GET("/api/v1/inventory/services", h.httpListServices)
+	r.GET("/api/v1/inventory/backups", h.httpInventoryBackups)
+	r.GET("/api/v1/inventory/updates", h.httpInventoryUpdates)
 	r.GET("/api/v1/inventory/servers/{serverId}/access-context", h.httpServerAccessContext)
 	r.GET("/api/v1/tool-manifest.json", serveToolManifest)
 	// Private Cloud servicecall read for the dashboard Overview (servers +

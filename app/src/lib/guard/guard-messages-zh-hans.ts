@@ -215,7 +215,7 @@ export const guardMessagesZhHans: Record<
   "guard.reach.publish.disable": "停止发布",
   "guard.reach.publish.current": "已发布:{service},端口 {port}。",
   "guard.reach.publish.stepUp":
-    "发布需要在最近五分钟内使用第二因素重新登录。请重新登录后再重复此步骤。",
+    "发布需要在最近五分钟内用你的第二因素进行确认。请确认后再重复此步骤。",
   "guard.upgrade.title": "批准此服务器的密钥",
   "guard.upgrade.pending":
     "指纹为 {fingerprint} 的密钥正在等待你的批准。仅当 Guard 在此服务器上记录了相同指纹时才批准。",
@@ -224,7 +224,7 @@ export const guardMessagesZhHans: Record<
   "guard.upgrade.approve": "批准密钥",
   "guard.upgrade.reject": "拒绝密钥",
   "guard.upgrade.stepUp":
-    "批准需要在最近五分钟内使用第二因素重新登录。请重新登录后再重复此步骤。",
+    "批准需要在最近五分钟内用你的第二因素进行确认。请确认后再重复此步骤。",
   "guard.upgrade.done": "服务器密钥已批准。",
 
   "guard.reach.reason.guard_key_not_bound":
@@ -353,8 +353,8 @@ export const guardMessagesZhHans: Record<
   "guard.outcomes.releasing": "正在释放…",
   "guard.outcomes.back": "返回",
   "guard.outcomes.stepUp":
-    "释放结果需要使用第二重验证因素重新登录(五分钟内)。请重新登录,然后重复此步骤。你的备注不会被保留。",
-  "guard.outcomes.stepUpAction": "重新登录",
+    "释放结果需要在五分钟内用你的第二因素进行确认。请确认,然后重复此步骤。你的备注不会被保留。",
+  "guard.outcomes.stepUpAction": "确认",
   "guard.outcomes.stale": "你检查期间该操作发生了变化。列表已更新,请重新检查。",
   "guard.outcomes.loadFailed": "无法加载未解决操作的列表。",
   "guard.outcomes.receipt":
@@ -397,13 +397,14 @@ export const guardMessagesZhHans: Record<
   "guard.ladder.bound.awaiting": "正在等待配对命令在服务器上运行。",
   "guard.ladder.bound.awaitingNext":
     "请在服务器上运行该命令。如果已过期,请生成新的命令。",
-  "guard.updates.title": "StackKits 更新",
+  "guard.updates.title": "更新",
   "guard.updates.runs": "运行 {version}",
   "guard.updates.behavior.label": "更新方式",
-  "guard.updates.behavior.hint":
-    "无论你在此如何选择，此服务器上应用的安全补丁都会立即安装。",
-  "guard.updates.behavior.approve": "询问我（逐个批准更新）",
-  "guard.updates.behavior.automatic": "自动安装更新",
+  "guard.updates.behavior.hint": "安全修复始终会立即提供。",
+  "guard.updates.behavior.ask": "询问我",
+  "guard.updates.behavior.automatic": "自动",
+  "guard.updates.behavior.with_stackkits_releases": "随 StackKits 版本更新",
+  "guard.updates.behavior.automaticPending": "应用暂不支持自动更新。",
   "guard.updates.available": "StackKits {version} 可用",
   "guard.updates.forUseCase": "适用于你的 {name}",
   "guard.updates.other": "此更新还包括",
@@ -435,4 +436,28 @@ export const guardMessagesZhHans: Record<
   "guard.updates.kind.fixed": "已修复",
   "guard.updates.kind.changed": "已更改",
   "guard.updates.kind.reverted": "已撤销",
+  "guard.power.title": "UPS 保护",
+  "guard.power.state.line": "使用市电",
+  "guard.power.state.on_battery": "使用电池供电",
+  "guard.power.state.shutdown": "已请求有序关机",
+  "guard.power.state.canceled": "关机已取消",
+  "guard.power.state.unknown": "电源状态无证据",
+  "guard.power.observed": "观测于 {when}",
+  "guard.power.charge": "电池 {percent}%",
+  "guard.power.runtime": "约剩 {minutes} 分钟",
+  "guard.power.steps": "有序关机",
+  "guard.power.step.applications": "应用",
+  "guard.power.step.storage": "存储",
+  "guard.power.step.host": "主机",
+  "guard.power.outcome.pending": "待处理",
+  "guard.power.outcome.running": "进行中",
+  "guard.power.outcome.succeeded": "成功",
+  "guard.power.outcome.failed": "失败",
+  "guard.power.outcome.skipped": "已跳过",
+  "guard.power.outcome.canceled": "已取消",
+  "guard.power.reason.line_restored": "市电恢复",
+  "guard.power.reason.sequence_interrupted": "序列被中断",
+  "guard.power.canceledBecause": "已取消：{reason}",
+  "guard.power.hostRequested": "已请求主机关机 {when}",
+  "guard.power.evidence": "每个步骤都会记录在服务器的本地电源日志中。",
 };

@@ -606,3 +606,28 @@ func startForwardBatchLoad(ctx context.Context, db *sql.DB, cycle func(context.C
 	}
 	return func() { cancel(); wg.Wait() }, rounds
 }
+
+// Production created provider_resource_free_terminalization_validate_insert
+// from a CRLF migration file, so the exact LF patch targets of migration 190
+// never matched there and Techstack 0.48.3 stopped at the release preparation
+// (2026-11-10). The bounded correction folds the read definition to LF before
+// patching and stays bound to the shipped SQL, CRLF checkout or not.
+func TestSubstrateAbsenceMigrationFoldsCRLFDefinition(t *testing.T) {
+	body, err := migrationsFS.ReadFile("migrations/190_substrate_failed_provision_guest_absence.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, source := range [][]byte{body, []byte(strings.ReplaceAll(string(body), "\n", "\r\n"))} {
+		effective, err := substrateAbsenceEffectiveBody(source)
+		if err != nil {
+			t.Fatalf("correction refused the shipped migration: %v", err)
+		}
+		fold := "    ) INTO function_definition;\n    function_definition := pg_catalog.replace(function_definition, E'\\r\\n', E'\\n');\n"
+		if strings.Count(string(effective), fold) != 1 || strings.Contains(string(effective), "\r") {
+			t.Fatal("effective migration does not fold the definition to LF exactly once")
+		}
+	}
+	if _, err := substrateAbsenceEffectiveBody(append([]byte("-- changed\n"), body...)); err == nil {
+		t.Fatal("correction admitted a changed migration")
+	}
+}

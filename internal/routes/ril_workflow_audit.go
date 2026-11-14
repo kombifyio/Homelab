@@ -9,6 +9,8 @@ import (
 
 	ksapi "github.com/kombifyio/techstack/pkg/api"
 	"github.com/kombifyio/techstack/pkg/httpx"
+	rilaction "github.com/kombifyio/techstack/pkg/ril/actioncontract"
+	"github.com/kombifyio/techstack/pkg/ril/actions"
 	"github.com/kombifyio/techstack/pkg/ril/workflow"
 )
 
@@ -20,16 +22,21 @@ type WorkflowAuditReader interface {
 	ListAudit(context.Context, string, string, int) ([]workflow.AuditEvent, error)
 }
 
-type workflowAuditHandler struct{ reader WorkflowAuditReader }
+type workflowAuditHandler struct {
+	reader   WorkflowAuditReader
+	receipts actions.StepReceiptReader
+}
 
 // RegisterWorkflowAuditRoutes exposes the sanitized durable run/step history
 // to the authenticated owner. Inputs, outputs, context, idempotency keys, raw
-// errors, and connector material never cross this boundary.
-func RegisterWorkflowAuditRoutes(r *httpx.Router, reader WorkflowAuditReader) {
+// errors, and connector material never cross this boundary. A run of a
+// governed action card that reached a terminal state also carries the card's
+// typed step receipt when receipts is configured.
+func RegisterWorkflowAuditRoutes(r *httpx.Router, reader WorkflowAuditReader, receipts actions.StepReceiptReader) {
 	if reader == nil {
 		panic("RegisterWorkflowAuditRoutes: reader required")
 	}
-	h := workflowAuditHandler{reader: reader}
+	h := workflowAuditHandler{reader: reader, receipts: receipts}
 	r.GET("/v1/ril/workflow-runs/{runId}", h.get)
 }
 
@@ -58,12 +65,30 @@ func (h workflowAuditHandler) get(e *httpx.Event) error {
 	if err != nil {
 		return writeWorkflowAuditError(e, err)
 	}
+	receipt, err := h.cardReceipt(ctx, scope.tenantID, scope.ownerID, run.CardID)
+	if err != nil {
+		return writeWorkflowAuditError(e, err)
+	}
 	e.Response.Header().Set("Cache-Control", "private, no-store")
 	return httpx.Success(e, http.StatusOK, workflowAuditResponse{
-		Run:    projectWorkflowRun(run),
-		Steps:  projectWorkflowSteps(steps),
-		Events: events,
+		Run:     projectWorkflowRun(run),
+		Steps:   projectWorkflowSteps(steps),
+		Events:  events,
+		Receipt: receipt,
 	})
+}
+
+// cardReceipt returns the typed step receipt of the run's card, or nil while
+// the card has none (no card, not terminal yet, or no persisted approval).
+func (h workflowAuditHandler) cardReceipt(ctx context.Context, tenantID, ownerID, cardID string) (*rilaction.StepReceipt, error) {
+	if h.receipts == nil || strings.TrimSpace(cardID) == "" {
+		return nil, nil
+	}
+	receipt, err := h.receipts.StepReceipt(ctx, tenantID, ownerID, cardID)
+	if errors.Is(err, actions.ErrCardNotFound) || errors.Is(err, actions.ErrCardConflict) {
+		return nil, nil
+	}
+	return receipt, err
 }
 
 type workflowRunAudit struct {
@@ -89,9 +114,10 @@ type workflowStepAudit struct {
 }
 
 type workflowAuditResponse struct {
-	Run    workflowRunAudit      `json:"run"`
-	Steps  []workflowStepAudit   `json:"steps"`
-	Events []workflow.AuditEvent `json:"events"`
+	Run     workflowRunAudit       `json:"run"`
+	Steps   []workflowStepAudit    `json:"steps"`
+	Events  []workflow.AuditEvent  `json:"events"`
+	Receipt *rilaction.StepReceipt `json:"receipt,omitempty"`
 }
 
 func workflowRunTenant(run *workflow.Run) string {

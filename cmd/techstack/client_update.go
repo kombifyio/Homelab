@@ -381,7 +381,7 @@ func validateClientUpdatePackage(m *manifest.Manifest) error {
 	if clientUpdateEdition == "cloud" {
 		prefix, installer = "windows-cloud-v", "kombify-Techstack-Cloud-Setup.exe"
 		if m.Channel != "beta" {
-			return errors.New("the Cloud installer is bound to the beta channel")
+			return errors.New("the Connected installer is bound to the beta channel")
 		}
 	} else if clientUpdateEdition != "local" {
 		return errors.New("unsupported Windows installer edition")

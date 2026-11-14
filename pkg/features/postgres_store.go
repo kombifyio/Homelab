@@ -16,60 +16,6 @@ func NewPostgresStore(db *sql.DB) *PostgresStore {
 	return &PostgresStore{db: db}
 }
 
-func (s *PostgresStore) GetUserFlag(ctx context.Context, userID, featureKey string) (*bool, error) {
-	tenantID := featureTenantID(ctx, userID)
-	var enabled *bool
-	err := s.withTenant(ctx, tenantID, func(tx *sql.Tx) error {
-		var value bool
-		err := tx.QueryRowContext(ctx, `
-			SELECT enabled
-			FROM feature_preferences
-			WHERE tenant_id = $1 AND subject_id = $2 AND feature_key = $3
-		`, tenantID, userID, featureKey).Scan(&value)
-		if err == sql.ErrNoRows {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		enabled = &value
-		return nil
-	})
-	return enabled, err
-}
-
-func (s *PostgresStore) GetUserFlags(ctx context.Context, userID string, featureKeys []string) (map[string]bool, error) {
-	result := make(map[string]bool)
-	if len(featureKeys) == 0 {
-		return result, nil
-	}
-	tenantID := featureTenantID(ctx, userID)
-	err := s.withTenant(ctx, tenantID, func(tx *sql.Tx) error {
-		rows, err := tx.QueryContext(ctx, `
-			SELECT feature_key, enabled
-			FROM feature_preferences
-			WHERE tenant_id = $1 AND subject_id = $2
-		`, tenantID, userID)
-		if err != nil {
-			return err
-		}
-		defer func() { _ = rows.Close() }()
-		allowed := stringSet(featureKeys)
-		for rows.Next() {
-			var key string
-			var enabled bool
-			if err := rows.Scan(&key, &enabled); err != nil {
-				return err
-			}
-			if allowed[key] {
-				result[key] = enabled
-			}
-		}
-		return rows.Err()
-	})
-	return result, err
-}
-
 func (s *PostgresStore) GetUserConsentsMap(ctx context.Context, userID string, featureKeys []string) (map[string]bool, error) {
 	result := make(map[string]bool)
 	if len(featureKeys) == 0 {
@@ -126,7 +72,7 @@ func (s *PostgresStore) withTenant(ctx context.Context, tenantID string, fn func
 	if tenantID == "" {
 		return fmt.Errorf("features: tenant id required")
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := tenantcontext.Database(ctx, s.db).BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}

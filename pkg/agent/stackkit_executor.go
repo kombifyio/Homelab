@@ -50,6 +50,10 @@ const (
 	// agent hands to `stackkit advanced trust import --bundle`; the CLI reads
 	// the bundle from a file only. It is removed after the command.
 	stackKitAdvancedTrustBundlePath = ".stackkit/techstack-advanced-trust-bundle.json"
+	// stackKitAgentLinkRequestPath is the workspace-relative file the agent
+	// hands to `stackkit identity agent-link install --file`; it holds only
+	// public values and is removed after the command.
+	stackKitAgentLinkRequestPath = ".stackkit/agent-link-request.json"
 )
 
 var stackKitTargetReleasePattern = regexp.MustCompile(
@@ -112,6 +116,24 @@ func (executor *StackKitExecutor) Available() bool {
 	return executor != nil && executor.pinPath != "" && executor.cacheRoot != ""
 }
 
+// ReleasePin returns the exact release this executor resolved, so a local
+// command the Guard builds itself carries the same pin a dispatched command
+// would. It is host-owned configuration, never a request field.
+func (executor *StackKitExecutor) ReleasePin() (*agentpb.StackKitReleasePin, error) {
+	if !executor.Available() {
+		return nil, fmt.Errorf("the pinned StackKits release is unavailable")
+	}
+	release, err := executor.releaseCache().ResolvePin(executor.pinPath)
+	if err != nil {
+		return nil, fmt.Errorf("resolve pinned StackKits release: %w", err)
+	}
+	receipt := release.Receipt()
+	return &agentpb.StackKitReleasePin{
+		Version: receipt.Version, PlatformOs: receipt.Platform.OS, PlatformArch: receipt.Platform.Arch,
+		ArchiveSha256: receipt.ArchiveSHA256, ReleaseIndexSha256: receipt.IndexSHA256,
+	}, nil
+}
+
 func (executor *StackKitExecutor) Validate() error {
 	executor.mu.RLock()
 	defer executor.mu.RUnlock()
@@ -168,18 +190,34 @@ func (executor *StackKitExecutor) execute(ctx context.Context, command *agentpb.
 		result.CommandId = command.CommandId
 		result.Release = cloneStackKitReleasePin(command.Release)
 	}
+	if command != nil && stackkitcommand.IsGuardHostOperation(command.Operation) {
+		// The Guard runs these itself with fixed argv, not the pinned CLI, so
+		// they need neither the release cache nor the runtime lock.
+		if err := stackkitcommand.ValidateCommand(command); err != nil {
+			return finishStackKitResult(result, command, nil, nil, err, started)
+		}
+		// A host action is one governed RIL primitive: the Gateway proof binds
+		// exactly this verb, object, node and identity, and is verified here
+		// immediately before the Guard acts. A list runs without a proof.
+		if stackkitcommand.IsGuardHostMutation(command.Operation) {
+			if _, err := nodeproof.Verify(ctx, command, rilPurposeKeyFile(), time.Now().UTC()); err != nil {
+				return finishStackKitResult(result, command, nil, nil, err, started)
+			}
+		}
+		return executeHostOperation(ctx, command, started)
+	}
 	timeout := defaultStackKitCommandTimeout
 	if command != nil && command.TimeoutSeconds > 0 {
 		timeout = time.Duration(command.TimeoutSeconds) * time.Second
 	}
+	// The Gateway claim admits only the start of the process: it is verified
+	// here and again immediately before the OS process boundary. The process
+	// itself is bounded by the command's own timeout, never by the short claim
+	// lifetime, so a restart or an upgrade is not killed when its claim expires.
 	if command != nil && command.RilExecutionProof != nil {
-		deadline, err := nodeproof.Verify(ctx, command, rilPurposeKeyFile(), time.Now().UTC())
-		if err != nil {
+		if _, err := nodeproof.Verify(ctx, command, rilPurposeKeyFile(), time.Now().UTC()); err != nil {
 			return finishStackKitResult(result, command, nil, nil, err, started)
 		}
-		var cancelAuthority context.CancelFunc
-		ctx, cancelAuthority = context.WithDeadline(ctx, deadline)
-		defer cancelAuthority()
 	}
 	runCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -198,6 +236,10 @@ func (executor *StackKitExecutor) execute(ctx context.Context, command *agentpb.
 	if workDir != "" && command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_TRUST_IMPORT {
 		bundlePath := filepath.Join(workDir, filepath.FromSlash(stackKitAdvancedTrustBundlePath))
 		defer func() { _ = os.Remove(bundlePath) }()
+	}
+	if workDir != "" && command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_AGENT_LINK_INSTALL {
+		requestPath := filepath.Join(workDir, filepath.FromSlash(stackKitAgentLinkRequestPath))
+		defer func() { _ = os.Remove(requestPath) }()
 	}
 	if err != nil {
 		return finishStackKitResult(result, command, nil, nil, err, started)
@@ -266,7 +308,7 @@ func (executor *StackKitExecutor) execute(ctx context.Context, command *agentpb.
 		close(silenceStopped)
 	}
 	// Recheck immediately before the OS process boundary after any queue,
-	// runtime lock or release preparation. A timer also kills the subprocess.
+	// runtime lock or release preparation: an expired claim never starts it.
 	if command.RilExecutionProof != nil {
 		if _, err := nodeproof.Verify(runCtx, command, rilPurposeKeyFile(), time.Now().UTC()); err != nil {
 			close(eventsDone)
@@ -334,6 +376,17 @@ func (executor *StackKitExecutor) execute(ctx context.Context, command *agentpb.
 			handoffDocument, publicOutput = document, envelope
 		}
 	}
+	if command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_TRANSFER {
+		// Public signed documents travel unredacted inside the one transfer
+		// envelope (as federation hand-off documents do).
+		envelope, collectErr := collectApplicationTransferDocument(command, []byte(stdout.String()), tempFiles, runErr)
+		switch {
+		case collectErr != nil && runErr == nil:
+			runErr = collectErr
+		case collectErr == nil:
+			publicOutput = envelope
+		}
+	}
 	finished := finishStackKitResult(
 		result,
 		command,
@@ -361,6 +414,10 @@ func (executor *StackKitExecutor) execute(ctx context.Context, command *agentpb.
 			return finishStackKitResult(result, command, publicOutput, &receipt, digestErr, started)
 		}
 		finished.AdvancedChangeSetSha256 = digest
+	}
+	if finished.Success && (command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_PLAN ||
+		command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_CHANGE_SET_CREATE) {
+		finished.WorkspaceRevision = stackKitWorkspaceRevision(workDir, command)
 	}
 	if finished.Success && command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_PLAN && command.StackkitInstanceId != "" {
 		if command.SourceGenerationInspection {
@@ -615,18 +672,39 @@ func (executor *StackKitExecutor) prepare(command *agentpb.StackKitCommand) (
 		operationArgs, tempFiles, err = stackKitUseCaseRemoveArgs(workDir, command)
 	} else if command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_CONFIGURE {
 		operationArgs, tempFiles, err = stackKitUseCaseConfigureArgs(workDir, command)
+	} else if command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_TRANSFER {
+		operationArgs, tempFiles, err = stackKitApplicationTransferArgs(workDir, command)
 	} else if hostOperation {
 		operationArgs, err = stackKitHostArgs(command)
 	} else if stackkitcommand.IsHandoffOperation(command.Operation) {
 		operationArgs, tempFiles, err = stackKitHandoffArgs(workDir, command)
 	} else if stackkitcommand.IsApplicationConnectorOperation(command.Operation) {
 		operationArgs, tempFiles, err = stackKitConnectorArgs(release, workDir, command)
+	} else if stackkitcommand.IsHomeGraphAdoptionOperation(command.Operation) {
+		operationArgs, tempFiles, err = stackKitHomeGraphAdoptionArgs(release, workDir, command)
+	} else if stackkitcommand.IsHomeGraphSyncOperation(command.Operation) {
+		operationArgs, tempFiles, err = stackKitHomeGraphArgs(release, workDir, command)
+	} else if stackkitcommand.IsHomeGraphLoxoneImportOperation(command.Operation) {
+		operationArgs, tempFiles, err = stackKitHomeGraphLoxoneImportArgs(release, workDir, command)
 	} else if stackkitcommand.IsApplicationOperation(command.Operation) {
 		operationArgs, err = stackKitApplicationArgs(release, command)
+	} else if stackkitcommand.IsApplicationStackOperation(command.Operation) {
+		operationArgs, err = stackKitApplicationStackArgs(release, command)
+	} else if stackkitcommand.IsOwnApplicationOperation(command.Operation) {
+		operationArgs, tempFiles, err = stackKitOwnApplicationArgs(release, workDir, command)
+	} else if command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_UPGRADE {
+		operationArgs, tempFiles, err = stackKitApplicationUpdateArgs(release, workDir, command)
 	} else if stackkitcommand.IsAdvancedOperation(command.Operation) {
 		operationArgs, tempFiles, err = stackKitAdvancedOperationArgs(release, workDir, specPath, command)
 	} else {
 		operationArgs, err = stackKitOperationArgs(command)
+	}
+	if err == nil && !hostOperation {
+		var receiptFiles []string
+		operationArgs, receiptFiles, err = stackKitDecisionReceiptArgs(workDir, command, operationArgs)
+		tempFiles = append(tempFiles, receiptFiles...)
+	} else if err == nil && (command.GetDecisionReceipt() != "" || command.GetDecisionPrincipal() != "") {
+		err = fmt.Errorf("a decision receipt covers no host operation")
 	}
 	if err != nil {
 		_ = os.Remove(eventPath)
@@ -677,35 +755,60 @@ func (executor *StackKitExecutor) prepare(command *agentpb.StackKitCommand) (
 			return stackkitrelease.Release{}, nil, workDir, "", tempFiles, err
 		}
 	}
+	if command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_AGENT_LINK_INSTALL {
+		if err := materializeStackKitWorkspaceFile(workDir, stackKitAgentLinkRequestPath, ".agent-link-request-*.json", command.AgentLinkRequest); err != nil {
+			_ = os.Remove(eventPath)
+			return stackkitrelease.Release{}, nil, workDir, "", tempFiles, err
+		}
+	}
 	return release, append(args, operationArgs...), workDir, eventPath, tempFiles, nil
 }
 
 func requireStackKitWorkspaceInstance(workDir, specPath, expected string) error {
+	actual, err := WorkspaceStackKitInstanceID(workDir, specPath)
+	if err != nil {
+		return err
+	}
 	expected = strings.TrimSpace(expected)
 	if expected == "" {
 		return fmt.Errorf("StackKit workspace instance identity is required")
 	}
-	path := filepath.Join(workDir, filepath.FromSlash(specPath))
-	info, err := os.Lstat(path)
-	if err != nil {
-		return fmt.Errorf("inspect StackKit workspace identity: %w", err)
-	}
-	if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Size() <= 0 || info.Size() > 2<<20 {
-		return fmt.Errorf("StackKit workspace identity requires a bounded regular StackSpec")
-	}
-	data, err := os.ReadFile(path) // #nosec G304 -- path is confined to the validated StackKit workspace and relative spec path.
-	if err != nil {
-		return fmt.Errorf("read StackKit workspace identity: %w", err)
-	}
-	var spec map[string]any
-	if err := yaml.Unmarshal(data, &spec); err != nil {
-		return fmt.Errorf("decode StackKit workspace identity: %w", err)
-	}
-	actual := specv2.ResolvedStackKitInstanceID(spec)
-	if actual == "" || actual != expected {
+	if actual != expected {
 		return fmt.Errorf("StackKit workspace instance identity does not match the dispatched authority")
 	}
 	return nil
+}
+
+// WorkspaceStackKitInstanceID reads the StackSpec identity of the node's
+// StackKits workspace. The Guard uses it to build a local typed command (the
+// UPS application stop) with the same workspace binding a dispatched command
+// carries; it is host-owned configuration, never a request field.
+func WorkspaceStackKitInstanceID(workDir, specPath string) (string, error) {
+	specPath, err := cleanStackKitRelativePath(specPath, "stack-spec.yaml", "spec_path")
+	if err != nil {
+		return "", err
+	}
+	path := filepath.Join(workDir, filepath.FromSlash(specPath))
+	info, err := os.Lstat(path)
+	if err != nil {
+		return "", fmt.Errorf("inspect StackKit workspace identity: %w", err)
+	}
+	if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Size() <= 0 || info.Size() > 2<<20 {
+		return "", fmt.Errorf("StackKit workspace identity requires a bounded regular StackSpec")
+	}
+	data, err := os.ReadFile(path) // #nosec G304 -- path is confined to the validated StackKit workspace and relative spec path.
+	if err != nil {
+		return "", fmt.Errorf("read StackKit workspace identity: %w", err)
+	}
+	var spec map[string]any
+	if err := yaml.Unmarshal(data, &spec); err != nil {
+		return "", fmt.Errorf("decode StackKit workspace identity: %w", err)
+	}
+	actual := specv2.ResolvedStackKitInstanceID(spec)
+	if actual == "" {
+		return "", fmt.Errorf("StackKit workspace has no instance identity")
+	}
+	return actual, nil
 }
 
 func materializeStackKitInventory(workDir string, raw []byte) error {
@@ -816,9 +919,21 @@ func stackKitOperationArgs(command *agentpb.StackKitCommand) ([]string, error) {
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_REMOVE:
 		return stackKitRemoveArgs(command)
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_BACKUP_RUN:
-		return stackKitBackupRunArgs(command)
+		args, err := stackKitBackupRunArgs(command)
+		if err != nil {
+			return nil, err
+		}
+		hashArgs, err := stackKitRILPrimitiveHashArgs(command)
+		if err != nil {
+			return nil, err
+		}
+		return append(args, hashArgs...), nil
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_BACKUP_STATUS:
-		return []string{"backup", "status", "--json"}, nil
+		hashArgs, err := stackKitRILPrimitiveHashArgs(command)
+		if err != nil {
+			return nil, err
+		}
+		return append([]string{"backup", "status", "--json"}, hashArgs...), nil
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_BACKUP_CONFIGURE:
 		return []string{"backup", "configure", "--json"}, nil
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_BACKUP_RESTORE:
@@ -910,6 +1025,23 @@ func stackKitOperationArgs(command *agentpb.StackKitCommand) ([]string, error) {
 			return nil, fmt.Errorf("StackKit household removal requires Owner approval and a username")
 		}
 		return []string{"user", "remove", command.HouseholdUsername, "--owner-approve", "--json"}, nil
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_AGENT_LINK_INSTALL:
+		request := command.AgentLinkRequest
+		if !command.OwnerApproved || len(request) == 0 || len(request) > stackkitcommand.MaxAgentLinkRequestBytes {
+			return nil, fmt.Errorf("StackKit agent link install requires Owner approval and a bounded request")
+		}
+		return []string{
+			"identity", "agent-link", "install",
+			"--file", stackKitAgentLinkRequestPath,
+			"--expect-sha256", stackkitcommand.AgentLinkRequestDigest(request),
+			"--wait", stackkitcommand.AgentLinkOwnerWait,
+			"--owner-approve", "--json",
+		}, nil
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_AGENT_LINK_REMOVE:
+		if !command.OwnerApproved {
+			return nil, fmt.Errorf("StackKit agent link removal requires Owner approval")
+		}
+		return []string{"identity", "agent-link", "remove", "--owner-approve", "--json"}, nil
 	default:
 		return nil, fmt.Errorf("unsupported StackKit operation %s", command.Operation.String())
 	}
@@ -954,6 +1086,35 @@ func materializeStackKitAdvancedTrustBundle(workDir string, bundle []byte) error
 	}
 	if err := replaceStackKitInventory(tmpName, filepath.Join(workDir, filepath.FromSlash(stackKitAdvancedTrustBundlePath))); err != nil {
 		return fmt.Errorf("publish Advanced trust bundle: %w", err)
+	}
+	return nil
+}
+
+// materializeStackKitWorkspaceFile publishes exact bytes at a workspace-relative
+// path below .stackkit through a private temporary file and an atomic rename.
+func materializeStackKitWorkspaceFile(workDir, relative, pattern string, content []byte) error {
+	directory := filepath.Join(workDir, ".stackkit")
+	if err := requireStackKitStateDir(workDir); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(directory, 0o750); err != nil {
+		return fmt.Errorf("create StackKits workspace directory: %w", err)
+	}
+	tmp, err := os.CreateTemp(directory, pattern)
+	if err != nil {
+		return fmt.Errorf("create temporary %s: %w", relative, err)
+	}
+	tmpName := tmp.Name()
+	defer func() { _ = os.Remove(tmpName) }()
+	if _, err := tmp.Write(content); err != nil {
+		_ = tmp.Close()
+		return fmt.Errorf("write %s: %w", relative, err)
+	}
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("close %s: %w", relative, err)
+	}
+	if err := replaceStackKitInventory(tmpName, filepath.Join(workDir, filepath.FromSlash(relative))); err != nil {
+		return fmt.Errorf("publish %s: %w", relative, err)
 	}
 	return nil
 }
@@ -1046,18 +1207,11 @@ func stackKitVerifyArgs(command *agentpb.StackKitCommand) ([]string, error) {
 	if command.ExpectedPlanHash != "" {
 		args = append(args, "--expected-plan-hash", command.ExpectedPlanHash)
 	}
-	if command.RilExecutionProof != nil {
-		var effect struct {
-			Primitive struct {
-				ID           string `json:"id"`
-				ContractHash string `json:"contractHash"`
-			} `json:"primitive"`
-		}
-		if json.Unmarshal(command.RilExecutionProof.EffectJson, &effect) != nil || effect.Primitive.ID != "verify-stackkit-state" || !stackKitExpectedSpecHashPattern.MatchString(effect.Primitive.ContractHash) {
-			return nil, fmt.Errorf("RIL primitive contract invalid")
-		}
-		args = append(args, "--expected-ril-primitive-hash", effect.Primitive.ContractHash)
+	hashArgs, err := stackKitRILPrimitiveHashArgs(command)
+	if err != nil {
+		return nil, err
 	}
+	args = append(args, hashArgs...)
 	if command.Offline {
 		args = append(args, "--offline")
 	}
@@ -1072,18 +1226,45 @@ func stackKitUpgradeArgs(command *agentpb.StackKitCommand) ([]string, error) {
 	if !stackKitTargetReleasePattern.MatchString(target) {
 		return nil, fmt.Errorf("StackKit upgrade target_release is invalid")
 	}
-	if !command.DryRun && !command.OwnerApproved {
+	// A verified RIL proof is the approval of the governed update: its
+	// equipment-answered receipt binds this exact service and target release.
+	if !command.DryRun && !command.OwnerApproved && command.RilExecutionProof == nil {
 		return nil, fmt.Errorf("StackKit upgrade requires explicit Owner approval")
 	}
 	args := []string{"upgrade", "--to", target, "--json"}
 	if command.DryRun {
 		args = append(args, "--dry-run")
+	} else if command.Release != nil &&
+		stackkitcommand.ReleaseAtLeast(command.Release.Version, stackkitcommand.MinUpgradeOwnerApprovalRelease) {
+		args = append(args, "--owner-approve")
 	}
-	return args, nil
+	hashArgs, err := stackKitRILPrimitiveHashArgs(command)
+	if err != nil {
+		return nil, err
+	}
+	return append(args, hashArgs...), nil
+}
+
+// stackKitRILPrimitiveHashArgs passes the pinned CLI the contract hash of the
+// proof's own primitive, only for that primitive's Guard operation; the CLI
+// refuses unless its embedded hash for that primitive is equal. The proof was
+// authenticated by nodeproof.Verify before arguments are built. A command
+// without a proof gets no argument.
+func stackKitRILPrimitiveHashArgs(command *agentpb.StackKitCommand) ([]string, error) {
+	if command.RilExecutionProof == nil {
+		return nil, nil
+	}
+	_, hash, err := nodeproof.PrimitiveContract(command)
+	if err != nil {
+		return nil, err
+	}
+	return []string{"--expected-ril-primitive-hash", hash}, nil
 }
 
 func stackKitServiceMutationArgs(command *agentpb.StackKitCommand) ([]string, error) {
-	if !command.OwnerApproved {
+	// A verified start-service, stop-service or restart-service proof is the
+	// approval of the governed service mutation.
+	if !command.OwnerApproved && command.RilExecutionProof == nil {
 		return nil, fmt.Errorf("StackKit service mutation requires explicit Owner approval")
 	}
 	serviceKey := strings.TrimSpace(command.ServiceKey)
@@ -1091,7 +1272,11 @@ func stackKitServiceMutationArgs(command *agentpb.StackKitCommand) ([]string, er
 		return nil, fmt.Errorf("StackKit service_key is invalid")
 	}
 	action := strings.TrimPrefix(strings.ToLower(command.Operation.String()), "stackkit_operation_service_")
-	return []string{"service", action, serviceKey, "--json", "--owner-approve"}, nil
+	hashArgs, err := stackKitRILPrimitiveHashArgs(command)
+	if err != nil {
+		return nil, err
+	}
+	return append([]string{"service", action, serviceKey, "--json", "--owner-approve"}, hashArgs...), nil
 }
 
 func stackKitServiceLogsArgs(command *agentpb.StackKitCommand) ([]string, error) {

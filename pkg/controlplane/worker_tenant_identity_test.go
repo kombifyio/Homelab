@@ -127,6 +127,9 @@ func TestPostgresStoreWorkerUpsertConflictsOnTenantAndID(t *testing.T) {
 
 	mock.ExpectBegin()
 	expectTenantGUC(mock, "tenant-a")
+	mock.ExpectQuery("(?s)SELECT .*FROM servers.*FOR SHARE").
+		WithArgs("tenant-a", "shared-worker").
+		WillReturnRows(sqlmock.NewRows([]string{"instance_id", "stack_id"}))
 	mock.ExpectQuery(
 		"(?s)" + regexp.QuoteMeta("INSERT INTO workers") + ".*" +
 			regexp.QuoteMeta("ON CONFLICT (tenant_id, id) DO UPDATE"),

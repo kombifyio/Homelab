@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"crypto/ed25519"
 	"encoding/base64"
+	"errors"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/kombifyio/techstack/internal/datasubject"
 	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/techstack/pkg/monthlyruntime"
 )
 
 // registerDataSubjectRoute mounts the Cloud data-subject participant route. It
@@ -51,6 +55,10 @@ func registerDataSubjectRoute(router *httpx.Router, deps routeDeps) {
 
 func dataSubjectExecutor(deps routeDeps, retention time.Duration) datasubject.Executor {
 	exec := &datasubject.StoreExecutor{EvidenceRetention: retention}
+	if deps.governedDecommission != nil {
+		// Erasure decommissions the subject's managed leases before it erases.
+		exec.Decommissioner = deps.governedDecommission
+	}
 	if deps.v2 != nil && deps.v2.db != nil && deps.v2.db.DB != nil {
 		exec.Store = &datasubject.SQLStore{DB: deps.v2.db.DB}
 		// Migration 156 owns the cross-tenant subject directory. Until it is
@@ -59,4 +67,40 @@ func dataSubjectExecutor(deps routeDeps, retention time.Duration) datasubject.Ex
 		exec.Directory = &datasubject.SQLDirectory{DB: deps.v2.db.DB}
 	}
 	return exec
+}
+
+// dataSubjectGovernedActor names the account-erasure cascade in the lease
+// journal: the Gateway-delivered data-subject request is its authority.
+const dataSubjectGovernedActor = "service:gateway/datasubject"
+
+// governedDecommissionBinding hands the monthly-runtime service to the
+// data-subject participant, which is registered before the service exists.
+// Until it is bound, erasure stays blocked on live resources.
+type governedDecommissionBinding struct {
+	mu  sync.RWMutex
+	svc *monthlyruntime.Service
+}
+
+func (b *governedDecommissionBinding) bind(svc *monthlyruntime.Service) {
+	if b == nil {
+		return
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.svc = svc
+}
+
+// DecommissionErasedSubject admits the governed decommission of the erased
+// subject's managed leases in one tenant.
+func (b *governedDecommissionBinding) DecommissionErasedSubject(ctx context.Context, p datasubject.Principal, requestID string) ([]string, error) {
+	var svc *monthlyruntime.Service
+	if b != nil {
+		b.mu.RLock()
+		svc = b.svc
+		b.mu.RUnlock()
+	}
+	if svc == nil {
+		return nil, errors.New("governed decommission is not wired")
+	}
+	return svc.DecommissionErasedSubjectLeases(ctx, p.TenantID, p.Subject, dataSubjectGovernedActor, requestID)
 }

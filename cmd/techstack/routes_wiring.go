@@ -24,6 +24,7 @@ import (
 	"github.com/kombifyio/techstack/internal/layoutadvice"
 	"github.com/kombifyio/techstack/internal/managedstackkit"
 	productnotifications "github.com/kombifyio/techstack/internal/notifications"
+	"github.com/kombifyio/techstack/internal/providercatalog"
 	"github.com/kombifyio/techstack/internal/providercontrol"
 	"github.com/kombifyio/techstack/internal/rilactionexecution"
 	"github.com/kombifyio/techstack/internal/routes"
@@ -33,6 +34,7 @@ import (
 	"github.com/kombifyio/techstack/internal/stackkitrelease"
 	"github.com/kombifyio/techstack/pkg/agentcontrol"
 	ksapi "github.com/kombifyio/techstack/pkg/api"
+	"github.com/kombifyio/techstack/pkg/api/agentpb"
 	storageauth "github.com/kombifyio/techstack/pkg/auth"
 	"github.com/kombifyio/techstack/pkg/backupstore"
 	"github.com/kombifyio/techstack/pkg/clientpairing"
@@ -50,9 +52,11 @@ import (
 	"github.com/kombifyio/techstack/pkg/monthlyruntime"
 	"github.com/kombifyio/techstack/pkg/ril/actions"
 	"github.com/kombifyio/techstack/pkg/ril/activities"
+	"github.com/kombifyio/techstack/pkg/ril/primitives"
 	"github.com/kombifyio/techstack/pkg/servermaintenance"
 	"github.com/kombifyio/techstack/pkg/specv2"
 	"github.com/kombifyio/techstack/pkg/stackrouting"
+	"github.com/kombifyio/techstack/pkg/unifier"
 	v2 "github.com/kombifyio/techstack/pkg/v2"
 	"github.com/kombifyio/techstack/pkg/v2/auth/providers"
 	"github.com/kombifyio/techstack/pkg/vmleases"
@@ -65,6 +69,7 @@ var (
 	isProviderMutationActivationBlocked     = func(error) bool { return false }
 	isProviderNativeDecommissionUnavailable = func(error) bool { return false }
 	isProviderDecommissionPending           = func(*jobs.ManagedLeaseDecommissionResult, error) bool { return false }
+	providerDecommissionRefusal             = func(error) *monthlyruntime.DecommissionRefusedError { return nil }
 	registerProviderIncidentRoutes          = func(*httpx.Router, *sql.DB) {}
 	registerProviderResolutionRoutes        = func(*httpx.Router, any, routes.InventoryPolicy) {}
 )
@@ -114,6 +119,9 @@ func (r managedLeaseRecoveryIntent) EnqueueProviderReconciliation(ctx context.Co
 	}
 	if isProviderDecommissionPending(result, err) {
 		return nil
+	}
+	if refusal := providerDecommissionRefusal(err); refusal != nil {
+		return refusal
 	}
 	if isProviderMutationActivationBlocked(err) ||
 		isProviderNativeDecommissionUnavailable(err) {
@@ -463,6 +471,21 @@ type serverRuntimeControlPlaneAuthority interface {
 	controlplane.ServerEventStore
 }
 
+// hostOperationsRouteConfig wires the Guard host operation routes. Without a
+// typed command channel it returns nil and the routes stay unregistered.
+func hostOperationsRouteConfig(deps routeDeps, workers controlplane.WorkerStore, stacks controlplane.StackStore, actionCards *routes.ServiceActionCards) *routes.ServerHostOperationsRouteConfig {
+	dispatcher := jobs.NewHostOperationsDispatcher(deps.orch.StackKitCommander())
+	if dispatcher == nil || workers == nil {
+		return nil
+	}
+	return &routes.ServerHostOperationsRouteConfig{
+		Dispatcher: dispatcher, Workers: workers,
+		Entitlements:                routes.EntitlementGateForDeployment(deps.startup.cfg.DeploymentMode.IsSaaS()),
+		ControlPlaneMachineIDDigest: servermaintenance.LocalMachineIDDigest(""),
+		ActionCards:                 actionCards, Stacks: stacks,
+	}
+}
+
 func serverRuntimeControlPlaneStore(boot *v2Boot) serverRuntimeControlPlaneAuthority {
 	if boot == nil || boot.db == nil || boot.db.DB == nil {
 		return nil
@@ -545,7 +568,7 @@ func publicOriginHost() string {
 	return parsed.Hostname()
 }
 
-func registerRuntimeInventoryRoutes(router *httpx.Router, deps routeDeps, state runtimeRouteState, inventoryPolicy routes.InventoryPolicy) *routes.ManagedRuntimeExpansion {
+func registerRuntimeInventoryRoutes(router *httpx.Router, deps routeDeps, state runtimeRouteState, inventoryPolicy routes.InventoryPolicy, actionCards *routes.ServiceActionCards) *routes.ManagedRuntimeExpansion {
 	registerProviderResolutionRoutes(router, deps.providerResolution, inventoryPolicy)
 	var metricWriter routes.WorkerMetricWriter
 	if deps.monitor != nil && deps.monitor.tsdb != nil {
@@ -628,6 +651,11 @@ func registerRuntimeInventoryRoutes(router *httpx.Router, deps routeDeps, state 
 			Rebinder: deps.orch, Workers: workerStore, Jobs: stackStores.Jobs,
 			Entitlements: routes.EntitlementGateForDeployment(deps.startup.cfg.DeploymentMode.IsSaaS()),
 		},
+		// The dispatcher runs the Guard host operations (processes, containers,
+		// bounded container and service actions) on agents that advertise
+		// stackkit.host-inspect.v1 or stackkit.host-operate.v1; without a
+		// commander the routes are not registered.
+		HostOperations: hostOperationsRouteConfig(deps, workerStore, stackStores.Stacks, actionCards),
 		// The dispatcher runs `stackkit host` on agents that advertise
 		// stackkit.host-maintenance.v1; without a commander it is nil and
 		// maintenance stays inert.
@@ -669,6 +697,7 @@ func registerRuntimeInventoryRoutes(router *httpx.Router, deps routeDeps, state 
 		Metrics: deps.monitor.queryBackend,
 		Policy:  inventoryPolicy,
 		Store:   serviceRuntimeStore, Stacks: stackStores.Stacks, Servers: serverRuntimeStore, Jobs: stackStores.Jobs, Orchestrator: deps.orch,
+		ActionCards: actionCards,
 	})
 	inventoryReadStore, ok := serverRuntimeStore.(controlplane.InventoryReadStore)
 	if !ok {
@@ -743,6 +772,8 @@ func registerRuntimeInventoryRoutes(router *httpx.Router, deps routeDeps, state 
 		ConnectorReconciler:  deps.orch,
 		UserNotices:          userNoticeSink(deps),
 		StackKitsUpdates:     deps.orch,
+		ApplicationNotices:   applicationNotices(deps),
+		SystemContext:        deps.v2.systemContext,
 	})
 	routes.RegisterStackOperationsRoutesWithStores(router, deps.monitor.queryBackend, deps.monitor.status, deps.monitor.alertEngine, deps.grpc.server, routes.StackOperationsRouteStores{
 		Stacks:   stackStores.Stacks,
@@ -754,6 +785,15 @@ func registerRuntimeInventoryRoutes(router *httpx.Router, deps routeDeps, state 
 		Activity: stackStores.Activity,
 	}, state.leaseSvc)
 	return managedExpansion
+}
+
+// applicationNotices returns untyped nil without the product notification
+// outbox, so the worker routes send no application.vulnerability notice.
+func applicationNotices(deps routeDeps) productnotifications.ProductEventEnqueuer {
+	if deps.monitor == nil || deps.monitor.notifyOutbox == nil {
+		return nil
+	}
+	return deps.monitor.notifyOutbox
 }
 
 // workerRuntimeLogs returns untyped nil when no runtime log store is available.
@@ -824,7 +864,10 @@ func registerVMLeaseRoutes(router *httpx.Router, deps routeDeps) (runtimeRouteSt
 	allowedProviders := map[string]bool{}
 	providerSource := "blocked:no_active_catalog"
 	if deps.startup.cfg.ProviderCatalog.Mode == config.ProviderCatalogSelfHostedStatic {
-		allowedProviders = map[string]bool{"centron": true, "ionos": true}
+		allowedProviders = map[string]bool{}
+		for _, providerID := range providercatalog.ManagedProviderIDs() {
+			allowedProviders[providerID] = true
+		}
 		providerSource = string(config.ProviderCatalogSelfHostedStatic)
 	} else if deps.v2 != nil && deps.v2.db != nil && deps.v2.db.DB != nil {
 		catalogProviders, catalogErr := vmleases.LoadTechStackLeasingProviderSet(context.Background(), deps.v2.db.DB)
@@ -874,27 +917,31 @@ func vmLeaseStore(boot *v2Boot) (vmleases.Store, string) {
 	return vmleases.NewPostgresStore(boot.db.DB), "postgres"
 }
 
-func registerRILRoutes(router *httpx.Router, deps routeDeps, inventoryPolicy routes.InventoryPolicy) {
+// registerRILRoutes wires the governed action-card path and returns it as the
+// entry the managed service actions restart and update use.
+func registerRILRoutes(router *httpx.Router, deps routeDeps, inventoryPolicy routes.InventoryPolicy) *routes.ServiceActionCards {
 	if deps.workflowEngine == nil {
 		panic("registerRILRoutes: workflow engine required")
 	}
 	authority := actions.NewPostgresAuthority(deps.v2.db.DB)
 	authority.ConfigureRILDecisionGateway(bootMaintenanceOriginGateway(deps.log))
-	authority.ConfigureVerifyReleaseAdmission(func(ctx context.Context, tenant, stack string) (string, error) {
-		release, err := jobs.TargetStackKitReleaseForStack(ctx, tenant, stack)
-		if err != nil {
-			return "", err
-		}
-		if release == nil || !release.VerifyExpectedPlanSupported() || !release.VerifyRILPrimitiveSupported() {
-			return "", fmt.Errorf("exact StackKits release lacks authenticated RIL verify capabilities")
-		}
-		return release.RILPrimitiveHash(), nil
-	})
+	// The StackKits decision receipt path files with the same Gateway client,
+	// service identity and key; without that custody it stays refused.
+	if ledger := bootMaintenanceOriginGateway(deps.log); ledger != nil {
+		jobs.SetStackKitDecisionLedger(ledger)
+	}
 	ledger := controlplane.NewPostgresStore(deps.v2.db.DB)
 	if deps.grpc.server != nil {
 		deps.grpc.server.SetRILHealStore(ledger)
 	}
-	dispatcher, err := rilactionexecution.NewPinnedCLIDispatcher(rilactionexecution.PinnedCLIConfig{Sender: deps.orch.StackKitCommander(), Authority: rilactionexecution.PostgresDispatchAuthority{DB: deps.v2.db.DB}, ProofGateway: bootMaintenanceOriginGateway(deps.log)})
+	targets, ok := workerControlPlaneStore(deps.v2).(controlplane.WorkerStackKitsTargetRecorder)
+	if !ok {
+		panic("registerRILRoutes: canonical worker store cannot record StackKits targets")
+	}
+	dispatcher, err := rilactionexecution.NewStackKitDispatcher(rilactionexecution.StackKitDispatcherConfig{
+		Sender: deps.orch.StackKitCommander(), Authority: rilactionexecution.PostgresDispatchAuthority{DB: deps.v2.db.DB},
+		ProofGateway: bootMaintenanceOriginGateway(deps.log), Lifecycle: deps.orch, StackKitsTargets: targets,
+	})
 	if err != nil {
 		panic(fmt.Sprintf("registerRILRoutes: %v", err))
 	}
@@ -910,11 +957,40 @@ func registerRILRoutes(router *httpx.Router, deps routeDeps, inventoryPolicy rou
 		panic(fmt.Sprintf("registerRILRoutes: %v", err))
 	}
 	launcher := &activities.RemediationLauncher{Engine: deps.workflowEngine, Authority: authority}
-	routes.RegisterGovernedActionRoutes(router, routes.GovernedActionRouteConfig{Authority: authority, Workflow: launcher, Policy: inventoryPolicy, Servers: ledger, DecisionAuthority: bootMaintenanceOriginGateway(deps.log)})
+	cards := &routes.ServiceActionCards{Authority: authority, Launcher: launcher, Lifecycle: deps.orch, Background: deps.v2.systemContext}
+	// An executor-bound card is admitted against the exact release capability
+	// of its primitive and against fresh inventory, on both entries.
+	inventory := controlPlanePostgresStore(deps.v2)
+	deriveTarget, admitTarget := routes.NewRILExecutorBoundInventory(routes.ServiceRuntimeRouteConfig{
+		Store: inventory, Stacks: inventory, Servers: inventory, Jobs: inventory, ActionCards: cards,
+		HostEligibility: &routes.HostOperationEligibility{
+			Workers: workerControlPlaneStore(deps.v2), ControlPlaneMachineIDDigest: servermaintenance.LocalMachineIDDigest(""),
+			Entitlements: routes.EntitlementGateForDeployment(deps.startup.cfg.DeploymentMode.IsSaaS()),
+		},
+	})
+	authority.ConfigureExecutorBoundAdmission(actions.ExecutorBoundAdmission{
+		ContractHash: func(ctx context.Context, tenant, stack, primitiveID string) (string, error) {
+			release, err := jobs.TargetStackKitReleaseForStack(ctx, tenant, stack)
+			if err != nil {
+				return "", err
+			}
+			if release == nil || !release.RILPrimitiveSupported(primitiveID) {
+				return "", fmt.Errorf("exact StackKits release lacks the authenticated %s primitive capability", primitiveID)
+			}
+			if profile, _ := primitives.Lookup(primitiveID); profile.GuardOperation == agentpb.StackKitOperation_STACKKIT_OPERATION_VERIFY && !release.VerifyExpectedPlanSupported() {
+				return "", fmt.Errorf("exact StackKits release lacks the qualified plan verifier")
+			}
+			return release.RILPrimitiveHash(primitiveID), nil
+		},
+		Derive: deriveTarget,
+		Target: admitTarget,
+	})
+	routes.RegisterGovernedActionRoutes(router, routes.GovernedActionRouteConfig{Authority: authority, Workflow: launcher, Policy: inventoryPolicy, Servers: ledger, DecisionAuthority: bootMaintenanceOriginGateway(deps.log), Background: deps.v2.systemContext})
 	routes.RegisterRILGatewayCardRoute(router, authority)
 	routes.RegisterRILHostIdentityRoute(router, deps.v2.db.DB)
-	routes.RegisterWorkflowAuditRoutes(router, deps.workflowEngine)
+	routes.RegisterWorkflowAuditRoutes(router, deps.workflowEngine, authority)
 	routes.RegisterRILHealRoutes(router, ledger)
+	return cards
 }
 
 func registerNetworkRoutes(router *httpx.Router, deps routeDeps) {
@@ -929,13 +1005,13 @@ func registerNetworkRoutes(router *httpx.Router, deps routeDeps) {
 func initFeatureService(deps routeDeps) (*features.Service, error) {
 	featureStore := featureStateStore(deps)
 	return features.NewService(featureStore, features.ServiceConfig{
-		AllowUserOverrides: true,
+		Edition: deps.startup.cfg.Edition,
 	})
 }
 
 // sharedFeatureService returns the one feature service of this boot, creating
 // it on first use. It needs a pointer receiver: the service is process-wide
-// (it registers the OpenFeature provider and caches user flags), so the route
+// (it holds the shipped catalog and consent store), so the route
 // build and the backup admission must read the same instance from the same
 // deps value. A nil result means the service could not start; callers fail
 // closed.
@@ -961,7 +1037,6 @@ func (deps *routeDeps) sharedFeatureService() *features.Service {
 func registerWizardRoutes(router *httpx.Router, deps routeDeps, featureSvc *features.Service, managedLeases jobs.ManagedLeaseManager, managedExpansion *routes.ManagedRuntimeExpansion) {
 	stores := stackControlPlaneStores(deps.v2)
 	cfg := routes.WizardRouteConfig{
-		Features:        featureSvc,
 		Seeds:           specv2.NewTemplateSeedSourceFromEnv(),
 		RemoteSSHTester: routes.NewDiscoveryRemoteSSHAdapter(discovery.New()),
 		Wallet:          stores.Wallet,
@@ -978,7 +1053,8 @@ func registerWizardRoutes(router *httpx.Router, deps routeDeps, featureSvc *feat
 		migrator = validator
 	}
 	routes.RegisterWizardRoutes(router, cfg)
-	layoutAdvice := newLayoutAdvice(deps, stores, cfg.Projector, validator)
+	multiNodeJoin := newMultiNodeJoinGate()
+	layoutAdvice := newLayoutAdvice(deps, stores, cfg.Projector, validator, multiNodeJoin)
 	routes.RegisterLayoutRecommendationRoutes(router, routes.LayoutRecommendationRouteConfig{Service: layoutAdvice})
 
 	var notificationOutbox productnotifications.ProductEventEnqueuer
@@ -1000,6 +1076,7 @@ func registerWizardRoutes(router *httpx.Router, deps routeDeps, featureSvc *feat
 		ExistingServers: routes.NewWizardExistingServers(routes.StackOperationsRouteStores{
 			Stacks: stores.Stacks, Servers: stores.Servers, Workers: workerControlPlaneStore(deps.v2),
 		}),
+		MultiNodeJoin:      multiNodeJoin,
 		GuestProvisioner:   wizardCustomerGuestProvisioner(deps, managedLeases),
 		NotificationOutbox: notificationOutbox,
 		Trust: trust.RouteStores{
@@ -1035,7 +1112,18 @@ func registerWizardRoutes(router *httpx.Router, deps routeDeps, featureSvc *feat
 // Layout Planner over the canonical servers, verified by the pinned StackKits
 // feasibility operation and recorded on the RIL action-card authority. It is
 // nil without the Postgres control plane, and the routes then answer 503.
-func newLayoutAdvice(deps routeDeps, stores stackroutes.ControlPlaneStores, projector specv2.Projector, validator *specv2.CLIValidator) *layoutadvice.Service {
+// newMultiNodeJoinGate reads multi-node join from the released kit metadata
+// the catalog routes read. Without it no enrolled server joins a deployment.
+func newMultiNodeJoinGate() layoutadvice.MultiNodeJoin {
+	loader, err := unifier.NewStackKitLoader()
+	if err != nil || loader == nil {
+		fmt.Printf("⚠️  Joining enrolled servers disabled: %v\n", err)
+		return nil
+	}
+	return loader
+}
+
+func newLayoutAdvice(deps routeDeps, stores stackroutes.ControlPlaneStores, projector specv2.Projector, validator *specv2.CLIValidator, multiNodeJoin layoutadvice.MultiNodeJoin) *layoutadvice.Service {
 	servers := serverRuntimeControlPlaneStore(deps.v2)
 	if deps.v2 == nil || deps.v2.db == nil || deps.v2.db.DB == nil || stores.Stacks == nil || servers == nil {
 		return nil
@@ -1049,6 +1137,7 @@ func newLayoutAdvice(deps routeDeps, stores stackroutes.ControlPlaneStores, proj
 		Stacks: stores.Stacks, Servers: servers, Workers: workers,
 		Catalog: stackkitrelease.ResolveUseCaseCatalog, Projector: projector,
 		Records: actions.NewPostgresAuthority(deps.v2.db.DB), Jobs: stores.Jobs,
+		MultiNodeJoin: multiNodeJoin,
 	}
 	if validator != nil {
 		service.Checker = validator
@@ -1122,6 +1211,7 @@ func registerFeatureRoutes(router *httpx.Router, deps routeDeps, state runtimeRo
 		Addresses:       managedAddressDeregistrar{},
 	}
 	routes.RegisterMonthlyRuntimeRoutes(router, monthlyRuntimeSvc, state.managedRuntimeExpansion)
+	deps.governedDecommission.bind(monthlyRuntimeSvc)
 	state.runtimeActions.RuntimeTargetResolver = monthlyRuntimeTargetResolver(
 		monthlyRuntimeSvc,
 		serverRuntimeControlPlaneStore(deps.v2),

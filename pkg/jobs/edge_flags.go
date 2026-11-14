@@ -9,8 +9,6 @@ import (
 	"github.com/kombifyio/techstack/pkg/middleware"
 )
 
-const payloadKeyEdgeFlags = "edge_flags"
-
 type requestAuthoritySnapshot struct {
 	tenantID     string
 	ownerID      string
@@ -30,18 +28,19 @@ func (c requestAuthorityContext) Value(key any) any {
 	return c.Context.Value(key)
 }
 
-// CopyEdgeFlagsFromContext snapshots the signed Edge flag decisions into a job
-// payload. Jobs run asynchronously, so they cannot rely on the original HTTP
-// request context still being present when managed runtime actions continue.
-func CopyEdgeFlagsFromContext(ctx context.Context, payload map[string]interface{}) {
-	if payload == nil {
+// CopyEdgeFlagsFromContext retains the exact verified decisions only for this
+// in-process job. Persisted payloads cannot recreate signed flag authority.
+func CopyEdgeFlagsFromContext(ctx context.Context, job *Job) {
+	if job == nil {
 		return
 	}
-	flags, ok := edgeauth.FlagsFromContext(ctx)
-	if !ok || len(flags.Flags) == 0 {
-		return
+	flags, present := edgeauth.FlagsFromContext(ctx)
+	job.mu.Lock()
+	defer job.mu.Unlock()
+	job.flagDecisions = nil
+	if present {
+		job.flagDecisions = &flags
 	}
-	payload[payloadKeyEdgeFlags] = cloneBoolMap(flags.Flags)
 }
 
 // CaptureRequestAuthority stores an in-process-only authority context containing
@@ -112,14 +111,15 @@ func captureRequestAuthority(ctx context.Context, job *Job, tenantID, ownerID st
 }
 
 func contextWithJobEdgeFlags(ctx context.Context, job *Job) context.Context {
-	if job == nil || len(job.Payload) == 0 {
+	if job == nil {
 		return ctx
 	}
-	flags := boolMapFromAny(job.Payload[payloadKeyEdgeFlags])
-	if len(flags) == 0 {
+	job.mu.RLock()
+	defer job.mu.RUnlock()
+	if job.flagDecisions == nil {
 		return ctx
 	}
-	return edgeauth.FlagsToContext(ctx, edgeauth.FlagSet{Flags: flags})
+	return edgeauth.FlagsToContext(ctx, *job.flagDecisions)
 }
 
 func contextWithJobRequestAuthority(ctx context.Context, job *Job) context.Context {
@@ -140,17 +140,6 @@ func contextWithJobRequestAuthority(ctx context.Context, job *Job) context.Conte
 	return requestAuthorityContext{Context: ctx, authority: snapshot.authorityCtx}
 }
 
-func cloneBoolMap(in map[string]bool) map[string]bool {
-	if len(in) == 0 {
-		return nil
-	}
-	out := make(map[string]bool, len(in))
-	for key, value := range in {
-		out[key] = value
-	}
-	return out
-}
-
 func cloneRequestAuthoritySnapshot(in *requestAuthoritySnapshot) *requestAuthoritySnapshot {
 	if in == nil {
 		return nil
@@ -159,22 +148,5 @@ func cloneRequestAuthoritySnapshot(in *requestAuthoritySnapshot) *requestAuthori
 		tenantID: in.tenantID, ownerID: in.ownerID,
 		authorityCtx: in.authorityCtx,
 		entitlements: append([]string(nil), in.entitlements...),
-	}
-}
-
-func boolMapFromAny(raw interface{}) map[string]bool {
-	switch typed := raw.(type) {
-	case map[string]bool:
-		return cloneBoolMap(typed)
-	case map[string]interface{}:
-		out := make(map[string]bool, len(typed))
-		for key, value := range typed {
-			if boolValue, ok := value.(bool); ok {
-				out[key] = boolValue
-			}
-		}
-		return out
-	default:
-		return nil
 	}
 }

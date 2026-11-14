@@ -25,6 +25,7 @@ import (
 	"github.com/kombifyio/techstack/pkg/api/agentpb"
 	"github.com/kombifyio/techstack/pkg/guardbinding"
 	"github.com/kombifyio/techstack/pkg/guardcompat"
+	"github.com/kombifyio/techstack/pkg/guardidentity"
 	"github.com/kombifyio/techstack/pkg/ril/nodeproof"
 	"github.com/kombifyio/techstack/pkg/runtimeconvergence"
 	"github.com/kombifyio/techstack/pkg/stackkitcommand"
@@ -112,22 +113,51 @@ type Config struct {
 	// plane revoked its identity. Once true, no further effect is admitted,
 	// including one already admitted but not yet started. Nil observes none.
 	AuthorityRevoked func() bool
+	// TenantRebind connects the Guard's same-subject tenant rebind custody
+	// (hostidentity.Manager). Nil ignores offers.
+	TenantRebind TenantRebindCustody
 }
+
+// TenantRebindCustody stores a tenant rebind offer from the heartbeat answer
+// and decides, when the control plane refuses the current credential, whether
+// a stored offer for exactly this tenant is ready to be applied.
+type TenantRebindCustody interface {
+	// StageTenantRebind validates and stores an offer; a repeated offer of the
+	// stored directive is a no-op.
+	StageTenantRebind(offer guardidentity.TenantRebindOffer) error
+	// StagedTenantRebindID is the directive id to acknowledge, or "".
+	StagedTenantRebindID() string
+	// TenantRebindReadyAfterRefusal is called after the control plane refused
+	// the current credential: it proves a stored offer's credential against the
+	// control plane and reports whether the offer became ready.
+	TenantRebindReadyAfterRefusal(ctx context.Context) bool
+}
+
+// ErrTenantRebindReady stops the Guard after the control plane refused its
+// credential while it holds a tenant rebind offer for its current tenant. The
+// service restarts, applies the offer and continues under the canonical tenant.
+var ErrTenantRebindReady = guardidentity.ErrTenantRebindReady
 
 // Client continuously publishes authenticated heartbeat and inventory
 // observations. It never logs the bearer token or request payload.
 type Client struct {
-	cfg            Config
-	httpClient     *http.Client
-	log            *slog.Logger
-	sourceEpoch    string
-	sequence       atomic.Int64
-	firstHeartbeat sync.Once
+	cfg                  Config
+	httpClient           *http.Client
+	log                  *slog.Logger
+	sourceEpoch          string
+	sequence             atomic.Int64
+	firstHeartbeat       sync.Once
+	inventoryWake        chan struct{}
+	inventoryRequestMu   sync.Mutex
+	lastInventoryRequest string
 	// workerGate is held while a provider command runs (HoldWorker).
 	workerGate chan struct{}
 	// durable is set by EnableDurableOperations and selects the journaled typed
 	// command path.
 	durable *durableOps
+	// resultsPausedUntil (Unix nanoseconds) is when result deliveries may ask
+	// again after the control plane answered one with Retry-After.
+	resultsPausedUntil atomic.Int64
 }
 
 type controlRequest struct {
@@ -144,7 +174,8 @@ type controlRequest struct {
 
 type controlResponse struct {
 	Data struct {
-		Command *agentpb.StackKitCommand `json:"command"`
+		Command          *agentpb.StackKitCommand `json:"command"`
+		InventoryRefresh string                   `json:"inventory_refresh"`
 	} `json:"data"`
 }
 
@@ -237,7 +268,7 @@ func New(cfg Config) (*Client, error) {
 	}
 	return &Client{
 		cfg: cfg, httpClient: client, log: logger.With("component", "http-guard"),
-		sourceEpoch: cfg.SourceEpoch, workerGate: make(chan struct{}, 1),
+		sourceEpoch: cfg.SourceEpoch, workerGate: make(chan struct{}, 1), inventoryWake: make(chan struct{}, 1),
 	}, nil
 }
 
@@ -253,21 +284,32 @@ func (c *Client) Run(ctx context.Context) error {
 	}
 	backoff := newRetryBackoff(time.Second, 30*time.Second)
 	for {
+		// This cycle satisfies every wake queued before collection starts,
+		// including a request received during a failed cycle's backoff.
+		select {
+		case <-c.inventoryWake:
+		default:
+		}
 		c.progress()
 		err := c.sendCycle(ctx)
 		if ctx.Err() != nil {
 			return nil
 		}
+		if errors.Is(err, ErrTenantRebindReady) {
+			c.log.Warn("guard_tenant_rebind_ready", "runtime_agent_id", c.cfg.RuntimeAgentID)
+			return err
+		}
 		c.progress()
 		delay := c.cfg.Interval
 		if err != nil {
-			delay = backoff.Next()
+			// A pause the control plane asked for is honoured, never shortened.
+			delay = max(backoff.Next(), retryAfterOf(err))
 			c.log.Warn("guard_publish_failed", "error", err.Error(), "retry_in", delay.String())
 		} else {
 			backoff.Reset()
 			c.log.Debug("guard_publish_succeeded", "runtime_agent_id", c.cfg.RuntimeAgentID)
 		}
-		if err := c.waitWithProgress(ctx, delay); err != nil {
+		if err := c.waitWithProgress(ctx, delay, err == nil); err != nil {
 			return nil
 		}
 	}
@@ -280,12 +322,24 @@ func (c *Client) progress() {
 }
 
 // waitWithProgress waits for delay and reports progress while it does.
-func (c *Client) waitWithProgress(ctx context.Context, delay time.Duration) error {
+func (c *Client) waitWithProgress(ctx context.Context, delay time.Duration, allowInventoryWake bool) error {
 	const tick = 10 * time.Second
+	var wake <-chan struct{}
+	if allowInventoryWake {
+		wake = c.inventoryWake
+	}
 	for delay > 0 {
 		step := min(delay, tick)
-		if err := waitContext(ctx, step); err != nil {
-			return err
+		timer := time.NewTimer(step)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		case <-wake:
+			timer.Stop()
+			c.progress()
+			return nil
+		case <-timer.C:
 		}
 		delay -= step
 		c.progress()
@@ -302,7 +356,7 @@ func (c *Client) runControlLoop(ctx context.Context) {
 	for ctx.Err() == nil {
 		command, err := c.pollTypedCommand(ctx)
 		if err != nil {
-			delay := backoff.Next()
+			delay := max(backoff.Next(), retryAfterOf(err))
 			c.log.Warn("guard_control_poll_failed", "error", err.Error(), "retry_in", delay.String())
 			_ = waitContext(ctx, delay)
 			continue
@@ -370,6 +424,7 @@ func (c *Client) controlIdentity() controlRequest {
 			stackkitcommand.AdvancedTrustImportCapability,
 			stackkitcommand.AdvancedOperationsCapability,
 			stackkitcommand.FederationHandoffCapability,
+			stackkitcommand.IdentityJoinCapability,
 		}, capabilities...),
 	}
 }
@@ -382,7 +437,7 @@ func (c *Client) hostMaintenanceCapabilities() []string {
 }
 
 func (c *Client) pollTypedCommand(ctx context.Context) (*agentpb.StackKitCommand, error) {
-	status, body, err := c.postJSONResponseLimit(ctx, c.cfg.CommandURL, c.controlIdentity(), maxCommandResponseBody)
+	status, body, retryAfter, err := c.postJSONExchange(ctx, c.cfg.CommandURL, c.controlIdentity(), maxCommandResponseBody)
 	if err != nil {
 		return nil, err
 	}
@@ -390,16 +445,37 @@ func (c *Client) pollTypedCommand(ctx context.Context) (*agentpb.StackKitCommand
 		return nil, nil
 	}
 	if status != http.StatusOK {
-		return nil, unexpectedStatusError(status, body)
+		return nil, withRetryAfter(unexpectedStatusError(status, body), retryAfter)
 	}
 	var response controlResponse
 	if err := json.Unmarshal(body, &response); err != nil {
 		return nil, fmt.Errorf("decode typed command: %w", err)
 	}
+	if response.Data.InventoryRefresh != "" {
+		c.requestInventoryRefresh(response.Data.InventoryRefresh)
+		if response.Data.Command == nil {
+			return nil, nil
+		}
+	}
 	if response.Data.Command == nil || strings.TrimSpace(response.Data.Command.GetCommandId()) == "" {
 		return nil, errors.New("typed command response is empty")
 	}
 	return response.Data.Command, nil
+}
+
+// Repeated polls coalesce into one normal observation cycle. A request never
+// bypasses transport backoff or runs discovery concurrently with publication.
+func (c *Client) requestInventoryRefresh(requestID string) {
+	c.inventoryRequestMu.Lock()
+	defer c.inventoryRequestMu.Unlock()
+	if requestID == c.lastInventoryRequest {
+		return
+	}
+	c.lastInventoryRequest = requestID
+	select {
+	case c.inventoryWake <- struct{}{}:
+	default:
+	}
 }
 
 func (c *Client) submitTypedResult(ctx context.Context, result *agentpb.StackKitResult) error {
@@ -436,13 +512,20 @@ func (c *Client) postJSONResponse(ctx context.Context, endpoint string, payload 
 }
 
 func (c *Client) postJSONResponseLimit(ctx context.Context, endpoint string, payload any, limit int64) (int, []byte, error) {
+	status, body, _, err := c.postJSONExchange(ctx, endpoint, payload, limit)
+	return status, body, err
+}
+
+// postJSONExchange posts once and also returns the pause a 429 or 503 asked
+// for with Retry-After (zero for any other answer).
+func (c *Client) postJSONExchange(ctx context.Context, endpoint string, payload any, limit int64) (int, []byte, time.Duration, error) {
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, 0, err
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, 0, err
 	}
 	req.Header.Set("Authorization", "Bearer "+c.cfg.AgentToken)
 	req.Header.Set("Content-Type", "application/json")
@@ -452,14 +535,15 @@ func (c *Client) postJSONResponseLimit(ctx context.Context, endpoint string, pay
 	}
 	response, err := c.httpClient.Do(req)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, 0, err
 	}
 	defer response.Body.Close()
+	retryAfter := retryAfterOfResponse(response)
 	responseBody, readErr := io.ReadAll(io.LimitReader(response.Body, limit+1))
 	if int64(len(responseBody)) > limit {
-		return response.StatusCode, nil, fmt.Errorf("guard response exceeds %d bytes", limit)
+		return response.StatusCode, nil, retryAfter, fmt.Errorf("guard response exceeds %d bytes", limit)
 	}
-	return response.StatusCode, responseBody, readErr
+	return response.StatusCode, responseBody, retryAfter, readErr
 }
 
 func unexpectedStatusError(status int, payload []byte) error {
@@ -476,7 +560,7 @@ func (c *Client) sendCycle(ctx context.Context) error {
 			return fmt.Errorf("collect host heartbeat: %w", err)
 		}
 		c.prepareObservation(&snapshot)
-		if publishErr := c.postJSON(ctx, c.cfg.HeartbeatURL, c.heartbeat(snapshot)); publishErr != nil {
+		if publishErr := c.postHeartbeat(ctx, c.heartbeat(snapshot)); publishErr != nil {
 			return fmt.Errorf("publish heartbeat: %w", publishErr)
 		}
 		c.firstHeartbeat.Do(func() {
@@ -500,7 +584,7 @@ func (c *Client) sendCycle(ctx context.Context) error {
 		return fmt.Errorf("collect inventory: %w", err)
 	}
 	c.prepareObservation(&snapshot)
-	if publishErr := c.postJSON(ctx, c.cfg.HeartbeatURL, c.heartbeat(snapshot)); publishErr != nil {
+	if publishErr := c.postHeartbeat(ctx, c.heartbeat(snapshot)); publishErr != nil {
 		return fmt.Errorf("publish heartbeat: %w", publishErr)
 	}
 	c.firstHeartbeat.Do(func() {
@@ -520,11 +604,9 @@ func (c *Client) prepareObservation(snapshot *Snapshot) {
 	snapshot.RuntimeConvergence = c.runtimeConvergenceSnapshot()
 	snapshot.StackKitCapabilities = nil
 	for _, capability := range c.controlIdentity().Capabilities {
-		switch capability {
-		case "stackkit", stackkitcommand.ExpectedPlanHashCapability, stackkitcommand.VerifyExpectedPlanHashCapability, stackkitcommand.RILPrimitiveHashCapability, stackkitcommand.RILExecutionProofCapability, stackkitcommand.WorkspaceInstanceCapability, stackkitcommand.RestoreActivationCapability, stackkitcommand.OriginalRecoveryReleaseCapability, stackkitcommand.AdvancedOperationsCapability:
-			if !slices.Contains(snapshot.StackKitCapabilities, capability) {
-				snapshot.StackKitCapabilities = append(snapshot.StackKitCapabilities, capability)
-			}
+		if slices.Contains(stackkitcommand.ObservedStackKitCapabilities, capability) &&
+			!slices.Contains(snapshot.StackKitCapabilities, capability) {
+			snapshot.StackKitCapabilities = append(snapshot.StackKitCapabilities, capability)
 		}
 	}
 	snapshot.HostMaintenance = slices.Contains(c.hostMaintenanceCapabilities(), stackkitcommand.HostMaintenanceCapability)
@@ -583,15 +665,56 @@ func newGuardSourceEpoch() (string, error) {
 }
 
 func (c *Client) postJSON(ctx context.Context, endpoint string, payload any) error {
+	return c.postJSONWith(ctx, endpoint, payload, nil)
+}
+
+// postHeartbeat posts one heartbeat and hands its answer to the tenant rebind
+// custody: the heartbeat is the authenticated channel that carries an offer.
+func (c *Client) postHeartbeat(ctx context.Context, heartbeat Heartbeat) error {
+	custody := c.cfg.TenantRebind
+	if custody == nil {
+		return c.postJSON(ctx, c.cfg.HeartbeatURL, heartbeat)
+	}
+	heartbeat.GuardTenantRebindStaged = custody.StagedTenantRebindID()
+	return c.postJSONWith(ctx, c.cfg.HeartbeatURL, heartbeat, c.stageTenantRebindOffer)
+}
+
+func (c *Client) stageTenantRebindOffer(answer []byte) {
+	var envelope struct {
+		Data map[string]json.RawMessage `json:"data"`
+	}
+	if json.Unmarshal(answer, &envelope) != nil {
+		return
+	}
+	raw, ok := envelope.Data[guardidentity.TenantRebindOfferField]
+	if !ok || len(raw) == 0 || string(raw) == "null" {
+		return
+	}
+	var offer guardidentity.TenantRebindOffer
+	if err := json.Unmarshal(raw, &offer); err != nil {
+		c.log.Warn("guard_tenant_rebind_offer_unreadable")
+		return
+	}
+	if err := c.cfg.TenantRebind.StageTenantRebind(offer); err != nil {
+		c.log.Warn("guard_tenant_rebind_offer_refused", "reason", err.Error())
+		return
+	}
+	c.log.Info("guard_tenant_rebind_offer_stored", "directive_id", offer.Directive.DirectiveID,
+		"from_tenant", offer.Directive.FromTenantID, "to_tenant", offer.Directive.ToTenantID)
+}
+
+func (c *Client) postJSONWith(ctx context.Context, endpoint string, payload any, onOK func([]byte)) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return err
 	}
 	var lastErr error
+	// asked is the pause the last load answer (429, 503) named with Retry-After.
+	var asked time.Duration
 	for attempt := 0; attempt < c.cfg.RetryAttempts; attempt++ {
 		c.progress()
 		if attempt > 0 {
-			delay := time.Duration(1<<uint(attempt-1)) * 250 * time.Millisecond
+			delay := max(time.Duration(1<<uint(attempt-1))*250*time.Millisecond, asked)
 			if err := waitContext(ctx, delay); err != nil {
 				return err
 			}
@@ -618,7 +741,16 @@ func (c *Client) postJSON(ctx context.Context, endpoint string, payload any) err
 		payload, _ := io.ReadAll(io.LimitReader(resp.Body, maxResponseBody))
 		_ = resp.Body.Close()
 		if resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices {
+			if onOK != nil {
+				onOK(payload)
+			}
 			return nil
+		}
+		// A refused credential while a tenant rebind offer for exactly this
+		// tenant is stored means the rows moved: restart under the offer.
+		if resp.StatusCode == http.StatusUnauthorized && c.cfg.TenantRebind != nil &&
+			c.cfg.TenantRebind.TenantRebindReadyAfterRefusal(ctx) {
+			return ErrTenantRebindReady
 		}
 		if detail := compactResponseDetail(payload); detail != "" {
 			lastErr = fmt.Errorf("unexpected HTTP status %d: %s", resp.StatusCode, detail)
@@ -628,8 +760,13 @@ func (c *Client) postJSON(ctx context.Context, endpoint string, payload any) err
 		if resp.StatusCode < http.StatusInternalServerError && resp.StatusCode != http.StatusTooManyRequests {
 			break
 		}
+		// A longer pause than one request should wait goes to the caller's
+		// schedule instead of being retried early.
+		if asked = retryAfterOfResponse(resp); asked > maxInlineRetryAfter {
+			return withRetryAfter(lastErr, asked)
+		}
 	}
-	return lastErr
+	return withRetryAfter(lastErr, asked)
 }
 
 // compactResponseDetail renders a rejection envelope as one bounded log-safe

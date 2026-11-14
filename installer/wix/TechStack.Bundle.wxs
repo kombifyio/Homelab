@@ -7,7 +7,7 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
   <Bundle
-    Name="kombify Techstack $(var.DesktopEdition)"
+    Name="kombify Techstack $(var.DesktopEditionName)"
     Manufacturer="kombify"
     Version="$(var.TechStackVersion)"
     UpgradeCode="$(var.BundleUpgradeCode)"

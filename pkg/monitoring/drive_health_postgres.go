@@ -23,7 +23,7 @@ func NewPostgresDriveHealthStore(db *sql.DB) (*PostgresDriveHealthStore, error) 
 	return &PostgresDriveHealthStore{db: db}, nil
 }
 func (p *PostgresDriveHealthStore) tenant(ctx context.Context, tenant string, fn func(*sql.Tx) error) error {
-	tx, err := p.db.BeginTx(ctx, nil)
+	tx, err := tenantcontext.Database(ctx, p.db).BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}

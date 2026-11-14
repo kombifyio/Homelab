@@ -3,6 +3,8 @@ package guardposture
 import (
 	"context"
 	"time"
+
+	"github.com/kombifyio/techstack/pkg/guardpower"
 )
 
 // Store persists posture. Implementations are tenant scoped: a read or write
@@ -66,6 +68,7 @@ type ReportWrite struct {
 	// Security and Backup are the new observations; nil leaves the stored one.
 	Security        *SecurityRecord
 	Backup          *BackupRecord
+	Power           *guardpower.PowerReport
 	Reconciliations []Reconciliation
 	Now             time.Time
 }

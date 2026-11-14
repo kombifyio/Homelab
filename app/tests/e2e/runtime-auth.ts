@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { fillSecret } from "../helpers/secret-input";
 import { type Page } from "@playwright/test";
 
@@ -33,9 +34,22 @@ export interface RuntimeAuthOptions {
   sessionCookieName?: string;
   entryPath?: string;
   expectedAuthIssuer?: string;
-  /** Existing canonical shared identities, selected explicitly for A/B isolation. */
-  fixturePrefix?: "TEST_RIL_PRO_USER" | "TEST_ALL_YOU_NEED_USER";
+  /**
+   * Existing canonical shared identities, selected explicitly for A/B
+   * isolation, or a shared staff fixture of the test fleet (TEST_ADMIN,
+   * TEST_GLOBAL_ADMIN) for staff-only governed operations. Staff fixtures
+   * answer Auth0's authenticator challenge with `<prefix>_TOTP_SECRET`.
+   */
+  fixturePrefix?: RuntimeFixturePrefix;
 }
+
+export type RuntimeFixturePrefix =
+  | "TEST_RIL_PRO_USER"
+  | "TEST_ALL_YOU_NEED_USER"
+  | "TEST_FREE_USER"
+  | RuntimeStaffFixturePrefix;
+
+export type RuntimeStaffFixturePrefix = "TEST_ADMIN" | "TEST_GLOBAL_ADMIN";
 
 export async function authenticateRuntimeUser(
   role: RuntimeAuthRole,
@@ -65,6 +79,11 @@ export async function authenticateRuntimeUser(
       process.env.TECHSTACK_AUTH_CLOUD_ISSUER ??
       "https://login.kombify.io",
   );
+  const totpSecret =
+    "totpSecret" in user && typeof user.totpSecret === "string"
+      ? user.totpSecret
+      : undefined;
+  await answerAuth0OtpChallenge(page, totpSecret);
   await continuePastAuth0PostLoginPrompts(page);
   await waitForRuntimeDashboard(page);
   const token = await browserSessionToken(page, options);
@@ -76,11 +95,59 @@ export async function authenticateRuntimeUser(
   return { token };
 }
 
-function canonicalRuntimeFixture(prefix: NonNullable<RuntimeAuthOptions["fixturePrefix"]>) {
+function canonicalRuntimeFixture(prefix: RuntimeFixturePrefix) {
   const email = process.env[`${prefix}_EMAIL`]?.trim();
   const password = process.env[`${prefix}_PASSWORD`];
   if (!email || !password) throw new Error(`Canonical shared fixture ${prefix} is not configured`);
-  return { email, password };
+  const totpSecret = process.env[`${prefix}_TOTP_SECRET`]?.trim() || undefined;
+  return { email, password, totpSecret };
+}
+
+const OTP_CHALLENGE_PATH = "/u/mfa-otp-challenge";
+
+// Staff fixtures carry an enrolled authenticator (kombify-require-staff-mfa).
+// One code per challenge: a rejected code fails the login instead of spending
+// Auth0's MFA attempt budget. The code is never logged.
+async function answerAuth0OtpChallenge(page: Page, totpSecret: string | undefined) {
+  const challenged = await page
+    .waitForURL((url) => url.pathname.startsWith(OTP_CHALLENGE_PATH), { timeout: 10_000 })
+    .then(() => true, () => false);
+  if (!challenged) return;
+  if (!totpSecret) {
+    throw new Error("Auth0 requires an authenticator code, but the fixture has no <PREFIX>_TOTP_SECRET");
+  }
+  const codeInput = visibleLocator(page, 'input[name="code"], input[autocomplete="one-time-code"]');
+  await codeInput.first().waitFor({ state: "visible", timeout: 15_000 });
+  await codeInput.first().fill(runtimeTotp(totpSecret));
+  const continueButton = page.getByRole("button", { name: /^continue$/i }).first();
+  if (await continueButton.isVisible().catch(() => false)) {
+    await continueButton.click({ noWaitAfter: true });
+  } else {
+    await codeInput.first().press("Enter");
+  }
+  const accepted = await page
+    .waitForURL((url) => !url.pathname.startsWith(OTP_CHALLENGE_PATH), { timeout: 15_000 })
+    .then(() => true, () => false);
+  if (!accepted) throw new Error("Auth0 did not accept the staff fixture's authenticator code");
+}
+
+// RFC 6238 TOTP (SHA-1, 30 s, 6 digits) over a base32 seed.
+function runtimeTotp(seed: string, timeMs = Date.now()): string {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = "";
+  for (const char of seed.replace(/[\s=-]/g, "").toUpperCase()) {
+    const value = alphabet.indexOf(char);
+    if (value < 0) throw new Error("TOTP secret is not base32");
+    bits += value.toString(2).padStart(5, "0");
+  }
+  const key = Buffer.from((bits.match(/.{8}/g) ?? []).map((byte) => parseInt(byte, 2)));
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(timeMs / 30_000)));
+  const digest = createHmac("sha1", key).update(counter).digest();
+  const lastByte = digest[digest.length - 1];
+  if (lastByte === undefined) throw new Error("TOTP digest is empty");
+  const offset = lastByte & 0x0f;
+  return String((digest.readUInt32BE(offset) & 0x7fffffff) % 1_000_000).padStart(6, "0");
 }
 
 export async function fetchBrowserWhoAmI(page: Page): Promise<{
@@ -312,30 +379,24 @@ async function fillAuth0UniversalLogin(
     // Auth0's automatic passkey POST can replace this document. Fill and
     // submit the same identifier form in one browser task so navigation
     // cannot discard the username between separate Playwright operations.
-    await emailInput.first().evaluate((input, { identifier, expectedOrigin }) => {
-      if (location.origin.toLowerCase() !== expectedOrigin) {
-        throw new Error("Refusing to enter Auth0 identifier on unexpected issuer");
+    // A document replaced during that task (by the submit itself or by that
+    // POST) destroys its context; the page that follows decides: its
+    // password field continues below, a fresh identifier form is filled again.
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        await submitAuth0Identifier(emailInput, email, expectedOrigin);
+        break;
+      } catch (error) {
+        if (
+          attempt >= 3 ||
+          !/Execution context was destroyed/i.test(String(error))
+        )
+          throw error;
       }
-      if (
-        !(input instanceof HTMLInputElement) ||
-        !input.form ||
-        input.disabled ||
-        input.readOnly
-      ) {
-        throw new Error("Auth0 identifier field is not editable in a form");
-      }
-      const form = input.form;
-      const submitter = form.querySelector(
-        'button[type="submit"][name="action"]',
-      );
-      if (!(submitter instanceof HTMLButtonElement)) {
-        throw new Error("Auth0 identifier form has no Continue submitter");
-      }
-      input.value = identifier;
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-      form.requestSubmit(submitter);
-    }, { identifier: email, expectedOrigin });
+      const next = await nextAuth0Field(page, passwordInput, emailInput);
+      assertExpectedIssuer(page, expectedOrigin);
+      if (next !== "identifier") break;
+    }
   } else {
     await fillSecret(emailInput.first(), email);
   }
@@ -346,6 +407,56 @@ async function fillAuth0UniversalLogin(
     .getByRole("button", { name: /^(log in|sign in|continue)$/i })
     .last()
     .click();
+}
+
+// Which Auth0 form follows a replaced document: the password field, a new
+// identifier form, or (after 20 s) neither, which the password wait reports.
+async function nextAuth0Field(
+  page: Page,
+  passwordInput: ReturnType<typeof visibleLocator>,
+  emailInput: ReturnType<typeof visibleLocator>,
+): Promise<"password" | "identifier" | "none"> {
+  const deadline = Date.now() + 20_000;
+  while (Date.now() < deadline) {
+    await page.waitForLoadState("domcontentloaded").catch(() => undefined);
+    if (await passwordInput.first().isVisible().catch(() => false))
+      return "password";
+    if (await emailInput.first().isVisible().catch(() => false))
+      return "identifier";
+    await page.waitForTimeout(250);
+  }
+  return "none";
+}
+
+async function submitAuth0Identifier(
+  emailInput: ReturnType<typeof visibleLocator>,
+  email: string,
+  expectedOrigin: string,
+) {
+  await emailInput.first().evaluate((input, { identifier, expectedOrigin }) => {
+    if (location.origin.toLowerCase() !== expectedOrigin) {
+      throw new Error("Refusing to enter Auth0 identifier on unexpected issuer");
+    }
+    if (
+      !(input instanceof HTMLInputElement) ||
+      !input.form ||
+      input.disabled ||
+      input.readOnly
+    ) {
+      throw new Error("Auth0 identifier field is not editable in a form");
+    }
+    const form = input.form;
+    const submitter = form.querySelector(
+      'button[type="submit"][name="action"]',
+    );
+    if (!(submitter instanceof HTMLButtonElement)) {
+      throw new Error("Auth0 identifier form has no Continue submitter");
+    }
+    input.value = identifier;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    form.requestSubmit(submitter);
+  }, { identifier: email, expectedOrigin });
 }
 
 function requireExpectedIssuerOrigin(value: string) {

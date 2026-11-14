@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sort"
 	"time"
 
@@ -18,8 +19,10 @@ import (
 // operator and the person.
 const (
 	// ReasonLiveResources: an active lease or a provisioned server still exists.
-	// Techstack decommissions provider resources first; erasure never deletes
-	// the rows that track them.
+	// Techstack decommissions provider resources first (an erase admits the
+	// governed decommission of the subject's managed leases and stays blocked
+	// until provider absence is proven); erasure never deletes the rows that
+	// track them.
 	ReasonLiveResources = "techstack_live_provider_resources"
 	// ReasonEraseIncomplete: rows remained after the deletion passes.
 	ReasonEraseIncomplete = "techstack_erase_incomplete"
@@ -88,10 +91,21 @@ type Store interface {
 	Erase(ctx context.Context, p Principal) (map[string]int64, error)
 }
 
+// SubjectDecommissioner admits the governed decommission of the managed leases
+// an erased subject still owns in one tenant and returns the admitted lease
+// ids. Provider teardown completes asynchronously; the erasure stays blocked
+// until the store no longer counts a live resource.
+type SubjectDecommissioner interface {
+	DecommissionErasedSubject(ctx context.Context, p Principal, requestID string) ([]string, error)
+}
+
 // StoreExecutor implements Executor over a Directory and a Store.
 type StoreExecutor struct {
 	Directory Directory
 	Store     Store
+	// Decommissioner removes the subject's managed provider resources when an
+	// erase finds them live. Without it an erase only reports them blocked.
+	Decommissioner SubjectDecommissioner
 	// EvidenceRetention is how long provider execution evidence (capacity
 	// reservations, recovery candidates, mutation receipts) is kept after an
 	// erasure. Erasure is blocked until it is configured.
@@ -106,9 +120,18 @@ func (e *StoreExecutor) now() time.Time {
 	return time.Now()
 }
 
+type processorInventoryKind struct{}
+
 func (e *StoreExecutor) resolve(ctx context.Context, ref string) ([]Principal, error) {
 	if e.Directory == nil || e.Store == nil {
 		return nil, BlockedError{Reason: ReasonDirectoryUnwired}
+	}
+	for _, adapter := range []any{e.Directory, e.Store} {
+		if binding, ok := adapter.(interface{ processorBinding(context.Context) error }); ok {
+			if err := binding.processorBinding(ctx); err != nil {
+				return nil, err
+			}
+		}
 	}
 	all, err := e.Directory.Lookup(ctx, ref)
 	if err != nil {
@@ -130,6 +153,7 @@ func (e *StoreExecutor) resolve(ctx context.Context, ref string) ([]Principal, e
 // Export reports the inventory Techstack holds for the subject: dataset ids and
 // row counts only, never row content, so no secret leaves in clear.
 func (e *StoreExecutor) Export(ctx context.Context, subjectRef string) (Outcome, error) {
+	ctx = context.WithValue(ctx, processorInventoryKind{}, true)
 	principals, err := e.resolve(ctx, subjectRef)
 	if err != nil {
 		return Outcome{}, err
@@ -151,10 +175,14 @@ func (e *StoreExecutor) Export(ctx context.Context, subjectRef string) (Outcome,
 }
 
 // Erase deletes the subject's control-plane rows. Live provider resources block
-// it before anything is deleted. Backups, logs and provider evidence are
-// reported as retained with retained_until, never as erased. Redelivery is
-// safe: a finished erasure leaves no erasable row and resolves to nothing held.
-func (e *StoreExecutor) Erase(ctx context.Context, subjectRef string) (Outcome, error) {
+// it before anything is deleted: the erase first admits the governed
+// decommission of the subject's managed leases, then answers blocked until
+// provider absence is proven, and Cloud redelivers. Backups, logs and provider
+// evidence are reported as retained with retained_until, never as erased.
+// Redelivery is safe: a finished erasure leaves no erasable row and resolves
+// to nothing held, and a lease already handed to provider control is not
+// admitted again.
+func (e *StoreExecutor) Erase(ctx context.Context, subjectRef, requestID string) (Outcome, error) {
 	if e.EvidenceRetention <= 0 {
 		return Outcome{}, BlockedError{Reason: ReasonEvidenceRetention}
 	}
@@ -167,15 +195,21 @@ func (e *StoreExecutor) Erase(ctx context.Context, subjectRef string) (Outcome, 
 		inv Inventory
 	}
 	var all []held
+	var live []Principal
 	for _, p := range principals {
 		inv, err := e.Store.Inventory(ctx, p)
 		if err != nil {
 			return Outcome{}, err
 		}
 		if inv.LiveResources > 0 {
-			return Outcome{}, BlockedError{Reason: ReasonLiveResources}
+			live = append(live, p)
+			continue
 		}
 		all = append(all, held{p, inv})
+	}
+	if len(live) > 0 {
+		e.decommissionLive(ctx, live, requestID)
+		return Outcome{}, BlockedError{Reason: ReasonLiveResources}
 	}
 
 	var out Outcome
@@ -222,4 +256,23 @@ func (e *StoreExecutor) Erase(ctx context.Context, subjectRef string) (Outcome, 
 		return out, ErrNothingHeld
 	}
 	return out, nil
+}
+
+// decommissionLive admits the governed decommission for every principal that
+// still holds live resources. Refusals are logged and leave the erasure
+// blocked; the next redelivery tries again.
+func (e *StoreExecutor) decommissionLive(ctx context.Context, live []Principal, requestID string) {
+	if e.Decommissioner == nil {
+		return
+	}
+	for _, p := range live {
+		admitted, err := e.Decommissioner.DecommissionErasedSubject(ctx, p, requestID)
+		if err != nil {
+			slog.Error("datasubject_erase_decommission_refused",
+				"request_id", requestID, "tenant_id", p.TenantID, "admitted", len(admitted), "error", err)
+			continue
+		}
+		slog.Info("datasubject_erase_decommission_admitted",
+			"request_id", requestID, "tenant_id", p.TenantID, "admitted", len(admitted))
+	}
 }

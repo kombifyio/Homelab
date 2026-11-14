@@ -30,33 +30,32 @@ const (
 
 	registryResponseServersKey = "servers"
 
-	registryBaseKit                    = "basement-kit"
-	registryCloudKit                   = "cloud-kit"
-	registryFoundationRole             = "foundation"
-	registryServicePocketID            = "pocket_id"
-	registryServiceTypeAuth            = "auth"
-	registryServiceTraefik             = "traefik"
-	registryServiceMonitor             = "monitoring"
-	registryServiceVault               = "vaultwarden"
-	registryServiceImmich              = "immich"
-	registryServiceFiles               = "files"
-	registryUnknownStatus              = "unknown"
-	registryObservedState              = "observed"
-	registryManagedState               = "managed"
-	registryCustomService              = "custom"
-	registryStatusArchived             = "archived"
-	registryStatusDeploying            = "deploying"
-	registryStatusError                = "error"
-	registryStatusMigrating            = "migrating"
-	registryStatusPendingVerification  = "pending_verification"
-	registryStatusRunning              = "running"
-	registryStatusStopped              = "stopped"
-	registryPlacementScopeStack        = "stack"
-	stackKitOutputKey                  = "stackkit_outputs"
-	stackKitsInventorySource           = "stackkits-inventory"
-	runtimeLeaseIDKey                  = "lease_id"
-	runtimeHealthDegraded              = "degraded"
-	registryMigrationUnavailableReason = "Runtime service migration is not enabled until a real deploy, health verification, cutover, and source-drain executor is available."
+	registryBaseKit                   = "basement-kit"
+	registryCloudKit                  = "cloud-kit"
+	registryFoundationRole            = "foundation"
+	registryServicePocketID           = "pocket_id"
+	registryServiceTypeAuth           = "auth"
+	registryServiceTraefik            = "traefik"
+	registryServiceMonitor            = "monitoring"
+	registryServiceVault              = "vaultwarden"
+	registryServiceImmich             = "immich"
+	registryServiceFiles              = "files"
+	registryUnknownStatus             = "unknown"
+	registryObservedState             = "observed"
+	registryManagedState              = "managed"
+	registryCustomService             = "custom"
+	registryStatusArchived            = "archived"
+	registryStatusDeploying           = "deploying"
+	registryStatusError               = "error"
+	registryStatusMigrating           = "migrating"
+	registryStatusPendingVerification = "pending_verification"
+	registryStatusRunning             = "running"
+	registryStatusStopped             = "stopped"
+	registryPlacementScopeStack       = "stack"
+	stackKitOutputKey                 = "stackkit_outputs"
+	stackKitsInventorySource          = "stackkits-inventory"
+	runtimeLeaseIDKey                 = "lease_id"
+	runtimeHealthDegraded             = "degraded"
 )
 
 // stackKitOutputManagementState pins the StackKit job-output projection to the
@@ -99,8 +98,6 @@ func RegisterRegistryRoutesWithStores(r *httpx.Router, stores RegistryRouteStore
 	r.GET("/api/v1/registry/services", h.services)
 	r.POST("/api/v1/registry/services/import", h.importUnmanagedService)
 	r.POST("/api/v1/registry/services/home-assistant/import", h.importHomeAssistant)
-	r.POST("/api/v1/registry/services/migrate", h.migrateService)
-	r.POST("/api/v1/registry/services/verify", h.verifyService)
 	r.DELETE("/api/v1/registry/services/{id}", h.deleteService)
 }
 
@@ -117,12 +114,10 @@ type registryRouteHandlers struct {
 }
 
 type registryPayload struct {
-	Catalog                    []registryCatalogService `json:"catalog"`
-	Stacks                     []registryStack          `json:"kit_deployments"`
-	Servers                    []registryServer         `json:"servers"`
-	Services                   []registryService        `json:"services"`
-	MigrationAvailable         bool                     `json:"migration_available"`
-	MigrationUnavailableReason string                   `json:"migration_unavailable_reason,omitempty"`
+	Catalog  []registryCatalogService `json:"catalog"`
+	Stacks   []registryStack          `json:"kit_deployments"`
+	Servers  []registryServer         `json:"servers"`
+	Services []registryService        `json:"services"`
 }
 
 type registryStack struct {
@@ -180,14 +175,18 @@ type registryService struct {
 	ManagementState   string                     `json:"management_state"`
 	MigrationStatus   string                     `json:"migration_status,omitempty"`
 	PlacementScope    string                     `json:"placement_scope"`
-	MoveAllowed       bool                       `json:"move_allowed"`
-	MoveBlockedReason string                     `json:"move_blocked_reason,omitempty"`
-	KitDeploymentID   string                     `json:"kit_deployment_id"`
-	StackName         string                     `json:"stack_name"`
-	ServerID          string                     `json:"server_id"`
-	ServerName        string                     `json:"server_name"`
-	Port              int                        `json:"port,omitempty"`
-	URL               string                     `json:"url,omitempty"`
+	// Move is present only when the native relocation API can move this one
+	// application now; it carries exactly the identities that API takes.
+	Move *registryServiceMove `json:"move,omitempty"`
+	// moveRuntimeRef is the StackKits-declared runtime ref of a managed
+	// application control (`<workloadRef>-<nodeRef>`); never serialized.
+	moveRuntimeRef  string
+	KitDeploymentID string `json:"kit_deployment_id"`
+	StackName       string `json:"stack_name"`
+	ServerID        string `json:"server_id"`
+	ServerName      string `json:"server_name"`
+	Port            int    `json:"port,omitempty"`
+	URL             string `json:"url,omitempty"`
 	// EnvironmentClass is the hosting class of the server this service runs on,
 	// resolved through the same canonical-server match as `servers`, so a
 	// legacy node's services carry their server's class. It is omitted when the
@@ -297,12 +296,10 @@ func (h registryRouteHandlers) registryPayloadFromStore(e *httpx.Event, tenantID
 	}
 
 	payload := registryPayload{
-		Catalog:                    registryServiceCatalog(),
-		Stacks:                     []registryStack{},
-		Servers:                    []registryServer{},
-		Services:                   []registryService{},
-		MigrationAvailable:         false,
-		MigrationUnavailableReason: registryMigrationUnavailableReason,
+		Catalog:  registryServiceCatalog(),
+		Stacks:   []registryStack{},
+		Servers:  []registryServer{},
+		Services: []registryService{},
 	}
 	workersByID := map[string]controlplane.Worker{}
 	if h.workerStore != nil {
@@ -374,6 +371,7 @@ func (h registryRouteHandlers) registryPayloadFromStore(e *httpx.Event, tenantID
 		}
 		payload.Services = append(payload.Services, stackServices...)
 	}
+	attachRegistryMoves(&payload, ownedStacks, workersByID)
 
 	sort.SliceStable(payload.Servers, func(i, j int) bool {
 		if payload.Servers[i].KitDeploymentID != payload.Servers[j].KitDeploymentID {
@@ -773,33 +771,30 @@ func serviceRegistryRecordFromStoreWithHealth(service controlplane.Service, stac
 	}
 	managementState := registryStoreManagementState(service)
 	displayName := firstNonEmptyString(stringFromAnyMap(service.Metadata, "display_name"), canonicalServiceDisplayName(name), name)
-	moveAllowed, moveBlockedReason := registryServiceMoveEligibility(status, managementState)
 	nodeName := firstNonEmptyString(node.Name, node.WorkerID, node.ID, service.NodeID)
 	serviceURL := service.URL
 	if migrationState != "" || (service.Source == stackKitsInventorySource && !accessFresh) {
 		serviceURL = ""
 	}
 	return registryService{
-		ID:                service.ID,
-		Name:              name,
-		DisplayName:       displayName,
-		ApplicationKey:    name,
-		ApplicationName:   displayName,
-		Type:              firstNonEmptyString(stringFromAnyMap(service.Metadata, "type"), canonicalServiceType(name)),
-		Status:            status,
-		HealthState:       string(healthState),
-		ObservedAt:        observedAt,
-		ManagementState:   managementState,
-		MigrationStatus:   strings.TrimSpace(service.MigrationStatus),
-		PlacementScope:    registryPlacementScopeStack,
-		MoveAllowed:       moveAllowed,
-		MoveBlockedReason: moveBlockedReason,
-		KitDeploymentID:   stack.ID,
-		StackName:         firstNonEmptyString(stack.Name, stack.ID),
-		ServerID:          firstNonEmptyString(node.ID, service.NodeID),
-		ServerName:        nodeName,
-		Port:              intFromAnyMap(service.Metadata, "port"),
-		URL:               serviceURL,
+		ID:              service.ID,
+		Name:            name,
+		DisplayName:     displayName,
+		ApplicationKey:  name,
+		ApplicationName: displayName,
+		Type:            firstNonEmptyString(stringFromAnyMap(service.Metadata, "type"), canonicalServiceType(name)),
+		Status:          status,
+		HealthState:     string(healthState),
+		ObservedAt:      observedAt,
+		ManagementState: managementState,
+		MigrationStatus: strings.TrimSpace(service.MigrationStatus),
+		PlacementScope:  registryPlacementScopeStack,
+		KitDeploymentID: stack.ID,
+		StackName:       firstNonEmptyString(stack.Name, stack.ID),
+		ServerID:        firstNonEmptyString(node.ID, service.NodeID),
+		ServerName:      nodeName,
+		Port:            intFromAnyMap(service.Metadata, "port"),
+		URL:             serviceURL,
 	}
 }
 
@@ -850,29 +845,26 @@ func registryServicesFromStackKitOutputs(outputs map[string]any, stack controlpl
 		status := stackKitObservedServiceStatus(item, now)
 		// StackKit job output is by construction a rollout of ours, so its
 		// ownership comes from the same source rule the aggregate applies.
-		moveAllowed, moveBlockedReason := registryServiceMoveEligibility(status, stackKitOutputManagementState)
 		services = append(services, registryService{
-			ID:                firstNonEmptyString(stringFromAnyMap(item, "id"), stack.ID+":"+name),
-			Name:              name,
-			DisplayName:       displayName,
-			ApplicationKey:    name,
-			ApplicationName:   displayName,
-			Type:              firstNonEmptyString(stringFromAnyMap(item, "type"), canonicalServiceType(name)),
-			Status:            status,
-			HealthState:       status,
-			ObservedAt:        stringFromAnyMap(item, "observed_at"),
-			ManagementState:   stackKitOutputManagementState,
-			MigrationStatus:   strings.TrimSpace(stringFromAnyMap(item, "migration_status")),
-			PlacementScope:    registryPlacementScopeStack,
-			MoveAllowed:       moveAllowed,
-			MoveBlockedReason: moveBlockedReason,
-			KitDeploymentID:   stack.ID,
-			StackName:         firstNonEmptyString(stack.Name, stack.ID),
-			ServerID:          server.ID,
-			ServerName:        firstNonEmptyString(server.Name, server.Hostname),
-			Port:              intFromAnyMap(item, "port"),
-			URL:               stackKitObservedServiceURL(item, now),
-			EnvironmentClass:  server.EnvironmentClass,
+			ID:               firstNonEmptyString(stringFromAnyMap(item, "id"), stack.ID+":"+name),
+			Name:             name,
+			DisplayName:      displayName,
+			ApplicationKey:   name,
+			ApplicationName:  displayName,
+			Type:             firstNonEmptyString(stringFromAnyMap(item, "type"), canonicalServiceType(name)),
+			Status:           status,
+			HealthState:      status,
+			ObservedAt:       stringFromAnyMap(item, "observed_at"),
+			ManagementState:  stackKitOutputManagementState,
+			MigrationStatus:  strings.TrimSpace(stringFromAnyMap(item, "migration_status")),
+			PlacementScope:   registryPlacementScopeStack,
+			KitDeploymentID:  stack.ID,
+			StackName:        firstNonEmptyString(stack.Name, stack.ID),
+			ServerID:         server.ID,
+			ServerName:       firstNonEmptyString(server.Name, server.Hostname),
+			Port:             intFromAnyMap(item, "port"),
+			URL:              stackKitObservedServiceURL(item, now),
+			EnvironmentClass: server.EnvironmentClass,
 		})
 	}
 	// A name alone cannot identify two placements. Keep old stack:name IDs
@@ -979,72 +971,6 @@ func registryServiceCatalog() []registryCatalogService {
 	return catalog
 }
 
-func (h registryRouteHandlers) migrateService(e *httpx.Event) error {
-	ownerID, err := requireAuth(e)
-	if err != nil {
-		return err
-	}
-	var req struct {
-		ServiceID      string `json:"service_id"`
-		TargetServerID string `json:"target_server_id"`
-	}
-	if err := json.NewDecoder(e.Request.Body).Decode(&req); err != nil {
-		return httpx.BadRequest(e, err.Error(), nil)
-	}
-	req.ServiceID = strings.TrimSpace(req.ServiceID)
-	req.TargetServerID = strings.TrimSpace(req.TargetServerID)
-	if req.ServiceID == "" || req.TargetServerID == "" {
-		return httpx.BadRequest(e, "Service ID and target Server ID are required", nil)
-	}
-	tenantID, err := h.requireRegistryMutationTenant(e, ownerID, "techstack.registry.services.migrate")
-	if err != nil {
-		return err
-	}
-	// Fail closed until this route is backed by a durable runtime workflow.
-	// The retired metadata-only implementation copied a row and completed a job
-	// without deploying, probing, cutting over, or draining a workload.
-	if !registryMigrationRuntimeAvailable() {
-		return registryMigrationUnavailable(e)
-	}
-	handled, err := h.migrateServiceFromStore(e, tenantID, ownerID, req.ServiceID, req.TargetServerID)
-	if !handled && err == nil {
-		return httpx.NotFound(e, "Service not found")
-	}
-	return err
-}
-
-func (h registryRouteHandlers) verifyService(e *httpx.Event) error {
-	ownerID, err := requireAuth(e)
-	if err != nil {
-		return err
-	}
-	var req struct {
-		ServiceID string `json:"service_id"`
-	}
-	if err := json.NewDecoder(e.Request.Body).Decode(&req); err != nil {
-		return httpx.BadRequest(e, err.Error(), nil)
-	}
-	req.ServiceID = strings.TrimSpace(req.ServiceID)
-	if req.ServiceID == "" {
-		return httpx.BadRequest(e, "Service ID is required", nil)
-	}
-	tenantID, err := h.requireRegistryMutationTenant(e, ownerID, "techstack.registry.services.verify")
-	if err != nil {
-		return err
-	}
-	// Manual confirmation must never manufacture a healthy target. A future
-	// executor will replace this guard only after current target inventory and
-	// health evidence have been verified.
-	if !registryMigrationRuntimeAvailable() {
-		return registryMigrationUnavailable(e)
-	}
-	handled, err := h.verifyServiceFromStore(e, tenantID, ownerID, req.ServiceID)
-	if !handled && err == nil {
-		return httpx.NotFound(e, "Service not found")
-	}
-	return err
-}
-
 func (h registryRouteHandlers) deleteService(e *httpx.Event) error {
 	ownerID, err := requireAuth(e)
 	if err != nil {
@@ -1074,187 +1000,6 @@ func (h registryRouteHandlers) requireRegistryMutationTenant(e *httpx.Event, own
 		return "", httpx.NewInternalServerError("Canonical registry stores are unavailable", nil)
 	}
 	return tenantID, nil
-}
-
-func (h registryRouteHandlers) migrateServiceFromStore(e *httpx.Event, tenantID, ownerID, serviceID, targetServerID string) (bool, error) {
-	if blocked, response := h.blockUnfencedCanonicalServiceMutation(e, "migrate"); blocked {
-		return true, response
-	}
-	ctx := e.Request.Context()
-	service, err := h.registryStore.GetService(ctx, tenantID, serviceID)
-	if errors.Is(err, controlplane.ErrNotFound) {
-		return false, nil
-	}
-	if err != nil {
-		return true, httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to fetch service", nil)
-	}
-	sourceNode, err := h.registryStore.GetNode(ctx, tenantID, service.NodeID)
-	if errors.Is(err, controlplane.ErrNotFound) {
-		return true, httpx.NotFound(e, "Source server not found")
-	}
-	if err != nil {
-		return true, httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to fetch source server", nil)
-	}
-	stack, err := h.stackStore.GetStack(ctx, tenantID, service.StackID)
-	if errors.Is(err, controlplane.ErrNotFound) {
-		return true, httpx.NotFound(e, "Stack not found")
-	}
-	if err != nil {
-		return true, httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to fetch stack", nil)
-	}
-	if stack.OwnerSubjectID != ownerID {
-		return true, httpx.Forbidden(e, "Not your stack")
-	}
-	targetNode, err := h.registryStore.GetNode(ctx, tenantID, targetServerID)
-	if errors.Is(err, controlplane.ErrNotFound) {
-		return true, httpx.NotFound(e, "Target server not found")
-	}
-	if err != nil {
-		return true, httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to fetch target server", nil)
-	}
-	if targetNode.StackID != stack.ID {
-		return true, httpx.BadRequest(e, "Target server must belong to the same stack", nil)
-	}
-	if targetNode.ID == sourceNode.ID {
-		return true, httpx.BadRequest(e, "Target server must be different from the source server", nil)
-	}
-
-	moveAllowed, moveBlockedReason := registryStoreServiceMoveEligibility(*service)
-	if !moveAllowed {
-		return true, httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "Application cannot be moved", map[string]any{
-			"service_id": serviceID,
-			"status":     service.Status,
-			"reason":     moveBlockedReason,
-		})
-	}
-	if duplicate := h.activeServiceOnStoreNode(ctx, tenantID, stack.ID, targetNode.ID, registryStoreServiceKey(*service)); duplicate != nil {
-		return true, httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "Target server already has an active service with this name", map[string]any{
-			"service_id":        serviceID,
-			"target_server_id":  targetServerID,
-			"target_service_id": duplicate.ID,
-		})
-	}
-
-	source := *service
-	source.Status = registryStatusMigrating
-	source.MigrationStatus = registryStatusMigrating
-	source.URL = ""
-	updatedSource, err := h.registryStore.UpsertService(ctx, source)
-	if err != nil {
-		return true, httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to update source service status", nil)
-	}
-
-	target := controlplane.Service{
-		ID:              runtimeidentity.ServiceID(stack.ID, targetNode.ID, registryStoreServiceKey(*service), "default"),
-		TenantID:        tenantID,
-		InstanceID:      firstNonEmptyString(service.InstanceID, stack.InstanceID),
-		StackID:         stack.ID,
-		NodeID:          targetNode.ID,
-		ServiceKey:      registryStoreServiceKey(*service),
-		Name:            firstNonEmptyString(service.Name, service.ServiceKey),
-		Status:          registryStatusPendingVerification,
-		Source:          firstNonEmptyString(service.Source, stackKitOutputKey),
-		URL:             "",
-		MigrationStatus: registryStatusPendingVerification,
-		Metadata:        cloneRegistryMetadata(service.Metadata),
-	}
-	target.Metadata["migrated_from_service_id"] = service.ID
-	target.Metadata["migrated_from_node_id"] = sourceNode.ID
-	updatedTarget, err := h.registryStore.UpsertService(ctx, target)
-	if err != nil {
-		return true, httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to create target service", nil)
-	}
-
-	jobID, err := h.createServiceMigrationJobFromStore(ctx, tenantID, *stack, *updatedSource, *updatedTarget)
-	if err != nil {
-		return true, httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to create migration job", nil)
-	}
-
-	return true, httpx.Success(e, http.StatusOK, map[string]any{
-		"job_id":         jobID,
-		"source_service": serviceRegistryRecordFromStore(*updatedSource, *stack, *sourceNode),
-		"target_service": serviceRegistryRecordFromStore(*updatedTarget, *stack, *targetNode),
-	})
-}
-
-func (h registryRouteHandlers) verifyServiceFromStore(e *httpx.Event, tenantID, ownerID, serviceID string) (bool, error) {
-	if blocked, response := h.blockUnfencedCanonicalServiceMutation(e, "verify"); blocked {
-		return true, response
-	}
-	ctx := e.Request.Context()
-	service, err := h.registryStore.GetService(ctx, tenantID, serviceID)
-	if errors.Is(err, controlplane.ErrNotFound) {
-		return false, nil
-	}
-	if err != nil {
-		return true, httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to fetch service", nil)
-	}
-	node, err := h.registryStore.GetNode(ctx, tenantID, service.NodeID)
-	if errors.Is(err, controlplane.ErrNotFound) {
-		return true, httpx.NotFound(e, "Server not found")
-	}
-	if err != nil {
-		return true, httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to fetch server", nil)
-	}
-	stack, err := h.stackStore.GetStack(ctx, tenantID, service.StackID)
-	if errors.Is(err, controlplane.ErrNotFound) {
-		return true, httpx.NotFound(e, "Stack not found")
-	}
-	if err != nil {
-		return true, httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to fetch stack", nil)
-	}
-	if stack.OwnerSubjectID != ownerID {
-		return true, httpx.Forbidden(e, "Not your stack")
-	}
-	if service.Status != registryStatusPendingVerification {
-		return true, httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "Only applications pending verification can be finished", map[string]any{
-			"service_id": serviceID,
-			"status":     service.Status,
-		})
-	}
-
-	verified := *service
-	verified.Status = registryStatusRunning
-	verified.MigrationStatus = ""
-	updatedService, err := h.registryStore.UpsertService(ctx, verified)
-	if err != nil {
-		return true, httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to update service status", nil)
-	}
-
-	var archivedService *controlplane.Service
-	var archivedNode *controlplane.Node
-	services, listErr := h.registryStore.ListServicesByStack(ctx, tenantID, stack.ID)
-	if listErr == nil {
-		serviceKey := registryStoreServiceKey(*service)
-		for _, candidate := range services {
-			if candidate.ID == service.ID || candidate.NodeID == node.ID {
-				continue
-			}
-			if registryStoreServiceKey(candidate) != serviceKey || candidate.Status != registryStatusMigrating {
-				continue
-			}
-			candidate.Status = registryStatusArchived
-			candidate.MigrationStatus = registryStatusArchived
-			saved, saveErr := h.registryStore.UpsertService(ctx, candidate)
-			if saveErr != nil {
-				continue
-			}
-			archivedService = saved
-			if n, nErr := h.registryStore.GetNode(ctx, tenantID, saved.NodeID); nErr == nil {
-				archivedNode = n
-			}
-			break
-		}
-	}
-
-	var archivedServiceData any
-	if archivedService != nil && archivedNode != nil {
-		archivedServiceData = serviceRegistryRecordFromStore(*archivedService, *stack, *archivedNode)
-	}
-	return true, httpx.Success(e, http.StatusOK, map[string]any{
-		"service":          serviceRegistryRecordFromStore(*updatedService, *stack, *node),
-		"archived_service": archivedServiceData,
-	})
 }
 
 func (h registryRouteHandlers) deleteServiceFromStore(e *httpx.Event, tenantID, ownerID, serviceID string) (bool, error) {
@@ -1331,13 +1076,6 @@ func registryStoreManagementState(service controlplane.Service) string {
 	return string(serviceregistry.CanonicalManagementState(service.ManagementState))
 }
 
-func registryStoreServiceMoveEligibility(service controlplane.Service) (bool, string) {
-	return registryServiceMoveEligibility(
-		firstNonEmptyString(service.Status, registryUnknownStatus),
-		registryStoreManagementState(service),
-	)
-}
-
 func registryServiceActiveMigrationState(service controlplane.Service) string {
 	for _, state := range []string{service.MigrationStatus, service.Status} {
 		switch strings.ToLower(strings.TrimSpace(state)) {
@@ -1348,143 +1086,6 @@ func registryServiceActiveMigrationState(service controlplane.Service) string {
 	return ""
 }
 
-func (h registryRouteHandlers) activeServiceOnStoreNode(ctx context.Context, tenantID, stackID, nodeID, serviceName string) *controlplane.Service {
-	serviceName = normalizeServiceKey(serviceName)
-	if serviceName == "" {
-		return nil
-	}
-	services, err := h.registryStore.ListServicesByStack(ctx, tenantID, stackID)
-	if err != nil {
-		return nil
-	}
-	for _, service := range services {
-		if service.NodeID != nodeID {
-			continue
-		}
-		if normalizeServiceKey(registryStoreServiceKey(service)) != serviceName {
-			continue
-		}
-		if service.Status == registryStatusArchived {
-			continue
-		}
-		candidate := service
-		return &candidate
-	}
-	return nil
-}
-
-func (h registryRouteHandlers) createServiceMigrationJobFromStore(ctx context.Context, tenantID string, stack controlplane.Stack, source, target controlplane.Service) (string, error) {
-	if h.jobStore == nil {
-		return "", nil
-	}
-	jobID := registryStoreServiceID("job", tenantID, stack.ID, source.ID, target.ID)
-	job, err := h.jobStore.UpsertJob(ctx, controlplane.UpsertJobRequest{
-		ID:         jobID,
-		TenantID:   tenantID,
-		InstanceID: firstNonEmptyString(stack.InstanceID, source.InstanceID, target.InstanceID),
-		StackID:    stack.ID,
-		Type:       "update",
-		State:      "completed",
-		Priority:   0,
-		Progress:   100,
-		Step:       "service-migration",
-		Message:    "Service migration handoff recorded; verify the target service when the runtime is healthy.",
-		Result: map[string]any{
-			"application_key":   registryStoreServiceKey(source),
-			"kind":              "service_migration",
-			"source_service_id": source.ID,
-			"source_server_id":  source.NodeID,
-			"target_service_id": target.ID,
-			"target_server_id":  target.NodeID,
-			"service_name":      registryStoreServiceKey(source),
-		},
-		ScheduledFor: time.Now().UTC(),
-	})
-	if err != nil {
-		return "", err
-	}
-	return job.ID, nil
-}
-
 func registryStoreServiceKey(service controlplane.Service) string {
 	return normalizeServiceKey(firstNonEmptyString(service.ServiceKey, service.Name, service.ID))
-}
-
-func registryStoreServiceID(prefix string, values ...string) string {
-	parts := append([]string{prefix}, values...)
-	clean := make([]string, 0, len(parts))
-	for _, part := range parts {
-		part = strings.ToLower(strings.TrimSpace(part))
-		if part == "" {
-			continue
-		}
-		var b strings.Builder
-		for _, r := range part {
-			switch {
-			case r >= 'a' && r <= 'z':
-				b.WriteRune(r)
-			case r >= '0' && r <= '9':
-				b.WriteRune(r)
-			default:
-				if b.Len() > 0 && !strings.HasSuffix(b.String(), "-") {
-					b.WriteRune('-')
-				}
-			}
-		}
-		item := strings.Trim(b.String(), "-")
-		if item != "" {
-			clean = append(clean, item)
-		}
-	}
-	return strings.Join(clean, "-")
-}
-
-func cloneRegistryMetadata(in map[string]any) map[string]any {
-	out := map[string]any{}
-	for key, value := range in {
-		out[key] = value
-	}
-	return out
-}
-
-func registryServiceMoveEligibility(status, managementState string) (bool, string) {
-	// The Registry currently has no runtime migration executor. Keeping every
-	// service immovable prevents the UI and direct API clients from presenting a
-	// metadata handoff as a completed workload migration.
-	if !registryMigrationRuntimeAvailable() {
-		return false, registryMigrationUnavailableReason
-	}
-	status = strings.TrimSpace(status)
-	managementState = strings.TrimSpace(managementState)
-	if managementState == registryObservedState {
-		return false, "Observed unmanaged applications must be adopted before they can be moved."
-	}
-	switch status {
-	case registryStatusRunning, registryStatusStopped, string(runtimehealth.ServiceHealthy):
-		return true, ""
-	case preCheckStatusPending:
-		return false, "Application rollout must finish before it can be moved."
-	case registryStatusMigrating, registryStatusDeploying, registryStatusPendingVerification:
-		return false, "Application is already moving or waiting for verification."
-	case registryStatusArchived:
-		return false, "Archived application copies cannot be moved."
-	case registryStatusError:
-		return false, "Resolve the application error before moving it."
-	default:
-		return false, "Application needs a stable running or stopped state before it can be moved."
-	}
-}
-
-func registryMigrationUnavailable(e *httpx.Event) error {
-	return httpx.Error(e, http.StatusNotImplemented, ksapi.ErrCodeUnavailable, "Runtime service migration is unavailable", map[string]any{
-		"reason": registryMigrationUnavailableReason,
-	})
-}
-
-// registryMigrationRuntimeAvailable stays false until the route is wired to a
-// durable runtime executor. It is a function (rather than a user-controlled
-// flag) so no deployment can accidentally re-enable the legacy metadata-only
-// transition.
-func registryMigrationRuntimeAvailable() bool {
-	return false
 }

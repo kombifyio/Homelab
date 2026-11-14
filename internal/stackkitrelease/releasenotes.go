@@ -9,14 +9,13 @@ import (
 	"sync"
 )
 
-// pinned-release-notes.json is rendered by scripts/stackkits-release-notes.mjs
-// from the CHANGELOG.md of the pinned StackKits release whenever the repin
-// moves the pin; Techstack proposes updates from it.
+// pinned-release-notes.json is rendered by scripts/update-stackkits-pin.mjs
+// from digest-bound, attested release notes whenever the repin moves the pin.
 //
 //go:embed pinned-release-notes.json
 var pinnedReleaseNotes []byte
 
-const releaseNotesSchema = "techstack.stackkits-release-notes/v1"
+const releaseNotesSchema = "stackkits.release-notes/v1"
 
 // Release note kinds. ReleaseNoteSecurity is the security marker: its scope
 // names the affected app.
@@ -30,14 +29,10 @@ const (
 
 // ReleaseNotes are the StackKits release notes up to the pinned release.
 type ReleaseNotes struct {
-	SchemaVersion string `json:"schemaVersion"`
-	Source        struct {
-		Version      string `json:"version"`
-		Changelog    string `json:"changelog"`
-		SourceCommit string `json:"sourceCommit"`
-	} `json:"source"`
-	ChangelogURL string        `json:"changelogUrl"`
-	Releases     []ReleaseNote `json:"releases"`
+	SchemaVersion string        `json:"schemaVersion"`
+	Version       string        `json:"version"`
+	ChangelogURL  string        `json:"changelogUrl"`
+	Releases      []ReleaseNote `json:"releases"`
 }
 
 // ReleaseNote is one released `## <version>` section of CHANGELOG.md.
@@ -74,13 +69,26 @@ func parseReleaseNotes(raw []byte) (ReleaseNotes, error) {
 	if err := json.Unmarshal(raw, &notes); err != nil {
 		return ReleaseNotes{}, fmt.Errorf("decode pinned StackKits release notes: %w", err)
 	}
-	if notes.SchemaVersion != releaseNotesSchema || !strings.HasPrefix(notes.ChangelogURL, "https://") {
+	if notes.SchemaVersion != releaseNotesSchema || notes.ChangelogURL != "https://stackkit.cc/changelog" {
 		return ReleaseNotes{}, fmt.Errorf("pinned StackKits release notes have an unknown schema")
 	}
+	if _, ok := ParseReleaseVersion(notes.Version); !ok {
+		return ReleaseNotes{}, fmt.Errorf("pinned StackKits release notes name no exact target")
+	}
+	targetFound := false
+	seen := map[string]bool{}
 	for _, release := range notes.Releases {
+		if seen[release.Version] {
+			return ReleaseNotes{}, fmt.Errorf("duplicate StackKits release notes for %s", release.Version)
+		}
+		seen[release.Version] = true
+		targetFound = targetFound || release.Version == notes.Version
 		if _, ok := ParseReleaseVersion(release.Version); !ok {
 			return ReleaseNotes{}, fmt.Errorf("pinned StackKits release notes name an inexact release %q", release.Version)
 		}
+	}
+	if !targetFound {
+		return ReleaseNotes{}, fmt.Errorf("pinned StackKits release notes omit their target")
 	}
 	return notes, nil
 }

@@ -143,7 +143,11 @@
         ...group,
         resources: group.resources.sort(order),
       }))
-      .sort((a, b) => order(a.resources[0], b.resources[0]));
+      .sort((a, b) => {
+        const [left] = a.resources;
+        const [right] = b.resources;
+        return left && right ? order(left, right) : 0;
+      });
   });
 
   function volumeName(resource: StorageForecastResource): string {

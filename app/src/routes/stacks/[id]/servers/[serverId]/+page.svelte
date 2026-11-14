@@ -5,10 +5,7 @@
   import { untrack } from "svelte";
   import { goto } from "$app/navigation";
   import { parseApiError } from "#lib/api/errors.js";
-  import {
-    isGatewayLoginRedirecting,
-    isGatewayAuthFailure,
-  } from "#lib/auth/session-recovery.js";
+  import { isGatewayLoginRedirecting } from "#lib/auth/session-recovery.js";
   import { authHandler } from "#lib/stores/authHandler.svelte.js";
   import { useViewContextOverlay } from "#lib/stores/viewContext.svelte.js";
   import SessionRenewalPanel from "#lib/components/SessionRenewalPanel.svelte";
@@ -34,12 +31,16 @@
     getMonthlyRuntimeSSHInfo,
     reconnectMonthlyRuntime,
     resolveMonthlyRuntimeCustody,
+    startMonthlyRuntime,
+    stopMonthlyRuntime,
     type MonthlyRuntimeStatus,
     type StackMetricValue,
     type StackServerAddress,
     type StackServerDetailsPayload,
     type StackServerEndpoint,
   } from "#lib/api/stacks.js";
+  import { confirmInApp } from "#lib/dialogs/in-app-dialog.js";
+  import { toast } from "#lib/stores/toast.js";
   import { isLegacyOrUnboundCustody } from "#lib/custody/server-custody.js";
   import {
     mergeServerDetailsPayload,
@@ -54,6 +55,7 @@
     serviceCardStatus,
   } from "#lib/service-card-adapter.js";
   import { ServiceCardCompact } from "@kombiverselabs/ui/service";
+  import { EntityActionMenu, type EntityAction } from "@kombiverselabs/ui/entity";
   import BrandLogoIcon from "#lib/components/BrandLogoIcon.svelte";
   import BrandLogoScope from "#lib/components/BrandLogoScope.svelte";
   import { brandDomainForTool } from "#lib/brand-logo.js";
@@ -80,12 +82,14 @@
     Gauge,
     HardDrive,
     ListChecks,
+    Play,
     Plus,
     Server,
     TerminalSquare,
     RefreshCw,
     Settings2,
     ShieldCheck,
+    Square,
     Trash2,
   } from "@lucide/svelte";
 
@@ -111,7 +115,7 @@
   let showDetachConfirmation = $state(false);
   let showCustodyResolutionConfirmation = $state(false);
   let actionLoading = $state<
-    "ssh" | "reconnect" | "decommission" | "detach" | "resolve-custody" | null
+    "ssh" | "reconnect" | "start" | "stop" | "decommission" | "detach" | "resolve-custody" | null
   >(null);
   let lifecycleBusy = $state(false);
   let runtimeStatus = $state<MonthlyRuntimeStatus | null>(null);
@@ -189,10 +193,24 @@
       }
     };
     void refresh();
-    const closeStream = streamRuntimeLogs(logScope, merge, () => {
-      if (active) runtimeLogsError = tr("ui.stacksIdServersServerId.liveStreamReconnecting");
-    });
-    const poll = window.setInterval(refresh, 5_000);
+    // The live stream delivers while it is connected; the read only fills
+    // in while it is down, and never in a hidden tab.
+    let streaming = false;
+    const closeStream = streamRuntimeLogs(
+      logScope,
+      merge,
+      () => {
+        streaming = false;
+        if (active) runtimeLogsError = tr("ui.stacksIdServersServerId.liveStreamReconnecting");
+      },
+      () => {
+        streaming = true;
+      },
+    );
+    const poll = window.setInterval(() => {
+      if (streaming || document.visibilityState === "hidden") return;
+      void refresh();
+    }, 5_000);
     return () => {
       active = false;
       closeStream();
@@ -268,7 +286,7 @@
         refreshing = false;
         return;
       }
-      if (parsed.isAuthError || isGatewayAuthFailure(detailsSettled.reason)) {
+      if (parsed.isAuthError) {
         const outcome = await authHandler.handleUnauthorized(
           () => load(),
           undefined,
@@ -346,6 +364,39 @@
     }
   }
 
+  async function changePower(action: "start" | "stop") {
+    const leaseId = managedLeaseId();
+    if (!leaseId) return;
+    if (
+      action === "stop" &&
+      !(await confirmInApp({
+        title: tr("ui.stacksId.stopManagedServer"),
+        message: tr("ui.stacksId.theServerShutsDownAnd"),
+        confirmText: tr("ui.stacksId.stop"),
+        tone: "danger",
+      }))
+    ) {
+      return;
+    }
+    actionLoading = action;
+    actionError = null;
+    try {
+      runtimeStatus =
+        action === "start"
+          ? await startMonthlyRuntime(leaseId)
+          : await stopMonthlyRuntime(leaseId);
+      toast.success(
+        tr(action === "start" ? "stackDetail.toast.starting" : "stackDetail.toast.stopping"),
+      );
+      await load();
+    } catch (err) {
+      const parsed = parseApiError(err);
+      actionError = parsed.message || tr("ui.stacksId.monthlyRuntimeActionFailed");
+    } finally {
+      actionLoading = null;
+    }
+  }
+
   async function decommissionServer() {
     const leaseId = managedLeaseId();
     if (!leaseId) return;
@@ -370,7 +421,7 @@
     try {
       await detachSelfOwnedServer(serverId);
       showDetachConfirmation = false;
-      await goto(`/stacks/${encodeURIComponent(stackId)}`);
+      await goto("/dashboard");
     } catch (err) {
       const parsed = parseApiError(err);
       actionError = parsed.message || tr("ui.stacksIdServersServerId.serverDetachFailed");
@@ -528,6 +579,126 @@
       activeTab = tab;
     }
   }
+
+  // Disconnected as this page already reads it for access and drive health.
+  const serverDisconnected = $derived(
+    canonicalServer
+      ? canonicalServer.connection.state === "offline" ||
+          canonicalServer.connection.state === "revoked"
+      : details?.server.status === "offline",
+  );
+  // The managed server's power state. Unknown stays actionable both ways: a
+  // state the API did not report must never lock the person out.
+  const powerState = $derived.by<"running" | "stopped" | "busy" | "unknown">(() => {
+    if (runtimeStatus?.power?.status === "pending") return "busy";
+    const raw = (
+      runtimeStatus?.status?.state ||
+      runtimeStatus?.observed_state ||
+      runtimeStatus?.desired_state ||
+      details?.server.capabilities?.lifecycle_state ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+    if (["running", "active", "started", "on", "ready"].includes(raw)) return "running";
+    if (["stopped", "off", "shutoff", "shutdown", "halted"].includes(raw)) return "stopped";
+    return "unknown";
+  });
+
+  // This server's own actions: the one menu at the end of the title line, at
+  // every width.
+  const serverMenuActions = $derived.by<EntityAction[]>(() => {
+    if (!details) return [];
+    const busy = actionLoading !== null;
+    const items: EntityAction[] = [];
+    if (managedLeaseId()) {
+      items.push({
+        id: "access",
+        label:
+          actionLoading === "ssh"
+            ? tr("ui.stacksIdServersServerId.checking")
+            : tr("ui.stacksCreatingCreationLease.access"),
+        icon: ShieldCheck,
+        state: busy ? "disabled" : "ready",
+        onSelect: () => void requestSSHInfo(),
+      });
+      if (serverDisconnected) {
+        items.push({
+          id: "reconnect",
+          label:
+            actionLoading === "reconnect"
+              ? tr("ui.homelabDashboardPage.reconnecting")
+              : tr("ui.homelabDashboardPage.reconnect"),
+          icon: RefreshCw,
+          state: busy ? "disabled" : "ready",
+          onSelect: () => void reconnectServer(),
+        });
+      }
+      items.push(
+        {
+          id: "start",
+          label: tr("ui.stacksId.start"),
+          icon: Play,
+          state:
+            busy || powerState === "busy" || powerState === "running"
+              ? "disabled"
+              : "ready",
+          onSelect: () => void changePower("start"),
+        },
+        {
+          id: "stop",
+          label: tr("ui.stacksId.stop"),
+          icon: Square,
+          state:
+            busy || powerState === "busy" || powerState === "stopped"
+              ? "disabled"
+              : "ready",
+          onSelect: () => void changePower("stop"),
+        },
+      );
+    }
+    if (canonicalServer?.id) {
+      items.push({
+        id: "add-use-cases",
+        label: tr("layout.addUseCases.entry"),
+        icon: Plus,
+        href: placeUseCasesHref(canonicalServer.id),
+      });
+    }
+    const historyId = canonicalServer?.id || details.server.server_id;
+    if (historyId) {
+      items.push({
+        id: "history",
+        label: tr("serverPage.historyLink"),
+        icon: Activity,
+        href: serverHistoryHref(historyId),
+      });
+    }
+    return items;
+  });
+
+  // On a phone the section tabs are one row that scrolls sideways. Keep the
+  // current tab in view by scrolling the row only (never the page): a tab cut
+  // off at the edge brings the tab before it to the row's start.
+  let tabStrip = $state<HTMLElement>();
+  $effect(() => {
+    void activeTab;
+    const strip = tabStrip;
+    if (!strip || strip.scrollWidth <= strip.clientWidth) return;
+    const tab = strip.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!tab) return;
+    const box = strip.getBoundingClientRect();
+    const rect = tab.getBoundingClientRect();
+    if (rect.left >= box.left - 1 && rect.right <= box.right + 1) return;
+    const anchor = (tab.previousElementSibling as HTMLElement | null) ?? tab;
+    const target = anchor.getBoundingClientRect();
+    const rtl = getComputedStyle(strip).direction === "rtl";
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    strip.scrollBy({
+      left: rtl ? target.right - box.right : target.left - box.left,
+      behavior: reduced ? "auto" : "smooth",
+    });
+  });
 </script>
 
 <svelte:head>
@@ -550,7 +721,7 @@
       testid="server-details-loading-state"
     />
   {:else if sessionRenewalRequired && !details}
-    <SessionRenewalPanel />
+    <SessionRenewalPanel onRenewed={() => load()} />
   {:else if error && !details}
     <ErrorCallout
       testId="server-details-error"
@@ -576,13 +747,19 @@
       aria-label={tr("ui.stacksIdServersServerId.serverDetailSections")}
       data-testid="server-details-tabs"
     >
-      <div class="flex flex-wrap gap-1" role="tablist">
+      <!-- Phones: one row that scrolls sideways (no scrollbar, 44 px tabs,
+           focus ring inside the clip); from 48rem the strip wraps as before. -->
+      <div
+        bind:this={tabStrip}
+        class="flex flex-nowrap gap-1 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden min-[48rem]:flex-wrap min-[48rem]:overflow-visible"
+        role="tablist"
+      >
         {#each ["overview", "services", "ports", "checks", "logs", "settings"] as tab (tab)}
           <button
             type="button"
             role="tab"
             aria-selected={activeTab === tab}
-            class="px-3 py-2 text-sm {activeTab === tab
+            class="min-h-11 shrink-0 whitespace-nowrap px-3 py-2 text-sm focus-visible:-outline-offset-2 min-[48rem]:min-h-0 min-[48rem]:focus-visible:outline-offset-2 {activeTab === tab
               ? 'border-b-2 border-primary text-foreground'
               : 'text-muted-foreground hover:text-foreground'}"
             data-testid={`server-tab-${tab}`}
@@ -624,72 +801,24 @@
                 capabilities={details.server.capabilities}
               />
             </div>
-            <h1 class="truncate text-2xl font-semibold text-foreground">
-              {details.server.hostname}
-            </h1>
+            <div class="flex items-center justify-between gap-2">
+              <h1 class="min-w-0 truncate text-2xl font-semibold text-foreground">
+                {details.server.hostname}
+              </h1>
+              <div class="shrink-0" data-testid="server-actions-menu">
+                <EntityActionMenu
+                  actions={serverMenuActions}
+                  label={tr("ui.stacksIdServersServerId.moreActions", {
+                    name: details.server.hostname || serverId || "",
+                  })}
+                  size={40}
+                />
+              </div>
+            </div>
             <p class="mt-1 text-sm text-muted-foreground">
               {serverOSLabel()}
               - {details.server.ip || tr("serverPage.noIp")}
             </p>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            {#if managedLeaseId()}
-              <Button
-                variant="secondary"
-                testId="server-access-button"
-                onclick={requestSSHInfo}
-                disabled={actionLoading !== null}
-              >
-                <ShieldCheck class="h-4 w-4" />
-                {actionLoading === "ssh" ? tr("ui.stacksIdServersServerId.checking") : tr("ui.stacksCreatingCreationLease.access")}
-              </Button>
-              <Button
-                variant="secondary"
-                testId="server-reconnect-button"
-                onclick={reconnectServer}
-                disabled={actionLoading !== null}
-              >
-                <RefreshCw class="h-4 w-4" />
-                {actionLoading === "reconnect"
-                  ? tr("ui.homelabDashboardPage.reconnecting")
-                  : tr("ui.homelabDashboardPage.reconnect")}
-              </Button>
-            {/if}
-            {#if canonicalServer?.id}
-              <!-- Use cases for this server's StackKit, preselected. -->
-              <a
-                href={placeUseCasesHref(canonicalServer.id)}
-                data-kx="control"
-                data-variant="secondary"
-                class="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium"
-                data-testid="server-add-use-cases"
-              >
-                <Plus class="h-4 w-4" aria-hidden="true" />
-                {tr("layout.addUseCases.entry")}
-              </a>
-            {/if}
-            {#if canonicalServer?.id || details.server.server_id}
-              <!-- The same server as history and metrics. -->
-              <a
-                href={serverHistoryHref(
-                  canonicalServer?.id || details.server.server_id || serverId || "",
-                )}
-                class="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-primary hover:underline"
-                data-testid="server-history-link"
-              >
-                <Activity class="h-4 w-4" aria-hidden="true" />
-                {tr("serverPage.historyLink")}
-              </a>
-            {/if}
-            <Button
-              variant="secondary"
-              testId="server-details-refresh"
-              onclick={() => void load()}
-              disabled={refreshing}
-            >
-              <RefreshCw class="h-4 w-4 {refreshing ? 'animate-spin' : ''}" />
-              {refreshing ? tr("ui.monitoring.refreshing") : tr("ui.homelabDashboardPage.refresh")}
-            </Button>
           </div>
         </div>
       </header>
@@ -759,7 +888,7 @@
         agentId={details.server.agent_id}
         canDetach={canDetachSelfOwnedServer}
         onChanged={() => load()}
-        onDetached={() => goto(`/stacks/${encodeURIComponent(stackId ?? "")}`)}
+        onDetached={() => goto("/dashboard")}
       />
       <div class="mb-6">
         <ServerNetworkCard

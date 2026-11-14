@@ -150,7 +150,7 @@ func (h wizardRunHandlers) runWizardExtend(e *httpx.Event, run *wizardRunState) 
 			intent.Name = name // extending never renames the deployment
 		}
 	}
-	projection, handled := h.projectAndValidate(e, base, intent, run.homelabID, h.layoutAcceptanceHook(e, run, stack.ID))
+	projection, handled := h.projectAndValidate(e, base, intent, run, h.layoutAcceptanceHook(e, run, stack.ID))
 	if handled {
 		return nil
 	}

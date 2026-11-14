@@ -53,16 +53,6 @@ export async function getWalletItems(): Promise<WalletItem[]> {
   return walletItemsFromResponse(res.data);
 }
 
-export async function getWalletItemsByKitDeployment(
-  kitDeploymentId: string,
-): Promise<WalletItem[]> {
-  const res = await fetchApi<WalletListResponse | WalletItem[]>(
-    `/api/v1/wallet?stack_id=${encodeURIComponent(kitDeploymentId)}`,
-    { method: "GET", credentials: "include" },
-  );
-  return walletItemsFromResponse(res.data);
-}
-
 export async function createWalletItem(
   data: Partial<WalletItem>,
 ): Promise<WalletItem> {

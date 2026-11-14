@@ -39,14 +39,6 @@ func (h wizardRouteHandlers) testRemoteSSH(e *httpx.Event) error {
 	if !ok {
 		return httpx.Unauthorized(e, "Authentication required")
 	}
-	if !h.nativeV2WizardEnabled(e.Request.Context(), ownerID) {
-		return httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden, "Native v2 wizard is not enabled", map[string]any{
-			inventoryReasonCodeField:          "feature_not_enabled",
-			"required_features":               []string{nativeV2WizardFeatureKey},
-			"missing_features":                []string{nativeV2WizardFeatureKey},
-			managedRuntimeDetailsRetryableKey: false,
-		})
-	}
 	if h.cfg.RemoteSSHTester == nil {
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Remote SSH testing is not configured", map[string]any{
 			inventoryReasonCodeField:          "wizard_remote_ssh_unavailable",

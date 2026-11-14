@@ -87,7 +87,7 @@ func nodeLifecycleProductEvent(server controlplane.ServerRuntime, transition con
 	return productnotifications.ProductEvent{
 		Topic:          topic,
 		Auth0UserID:    strings.TrimSpace(server.OwnerSubjectID),
-		OrganizationID: strings.TrimSpace(server.TenantID),
+		TenantID:       strings.TrimSpace(server.TenantID),
 		IdempotencyKey: fmt.Sprintf("techstack:node:%s:transition:%d:%s", strings.TrimSpace(server.NodeID), transition.ID, eventKey),
 		SourceApp:      notificationSourceApp,
 		EventKey:       eventKey,

@@ -12,8 +12,7 @@ import (
 // Stable (platform-77da5). "in-process" keeps the due-stack scanner and backup
 // jobs in the HTTP process, the behaviour before the private worker split,
 // until a governed Stable worker target exists; "private-worker" hands both to
-// the backup-worker process. Preview and Early Access always leave backups to
-// the private worker. The release runner reads the same file from the release
+// the backup-worker process. The release runner reads the same file from the release
 // source, and /api/v1/health reports the owner this process applies.
 //
 //go:embed backup_owner.json

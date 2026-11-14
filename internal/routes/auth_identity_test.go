@@ -2,10 +2,13 @@ package routes
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/kombifyio/techstack/internal/gocommon/tenantdb"
 	"github.com/kombifyio/techstack/pkg/httpx"
 	"github.com/kombifyio/techstack/pkg/identity"
 )
@@ -89,5 +92,38 @@ func TestAuthenticatedUserDetectsSignedEdgeGlobalAdminRole(t *testing.T) {
 	}
 	if !isAdmin {
 		t.Fatal("authenticatedUser did not detect signed edge global_admin role")
+	}
+}
+
+
+// A lease read or write whose Edge-signed database context names another
+// subject or organization than the tenant it asks for is the caller's missing
+// reach. Every monthly-runtime route maps it to a structured 403, never to the
+// 502 of a runtime failure.
+func TestMonthlyRuntimeErrorRefusesTenantContextMismatch(t *testing.T) {
+	mismatch := fmt.Errorf("lease read: %w", tenantdb.ErrContextMismatch)
+	for name, mapper := range map[string]func(*httpx.Event) error{
+		"operation error":    func(e *httpx.Event) error { return monthlyRuntimeError(e, mismatch) },
+		"decommission error": func(e *httpx.Event) error { return monthlyRuntimeDecommissionError(e, nil, mismatch, "lease-1") },
+	} {
+		t.Run(name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			e := &httpx.Event{Request: httptest.NewRequest(http.MethodGet, "/api/v1/monthly-runtimes/lease-1", nil), Response: rec}
+			_ = mapper(e)
+			if rec.Code != http.StatusForbidden {
+				t.Fatalf("status = %d, want 403; body %s", rec.Code, rec.Body.String())
+			}
+			var body struct {
+				Error struct {
+					Details map[string]any `json:"details"`
+				} `json:"error"`
+			}
+			if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+				t.Fatalf("decode body: %v", err)
+			}
+			if got := body.Error.Details["reason_code"]; got != "tenant_context_mismatch" {
+				t.Fatalf("reason_code = %v, want tenant_context_mismatch", got)
+			}
+		})
 	}
 }

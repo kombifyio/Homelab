@@ -37,6 +37,20 @@ export interface LayoutSelection {
   use_case_settings?: Record<string, Record<string, string | boolean>>;
   use_case_capabilities?: Record<string, Record<string, string>>;
   planned_node?: LayoutPlannedNode;
+  /**
+   * "Choose another server" (add-use-case only): use case id to server id.
+   * The planner re-solves with the choice and StackKits verifies the result.
+   */
+  pins?: Record<string, string>;
+}
+
+/** A server of the owner's deployments that a use case can be pinned to. */
+export interface LayoutServerChoice {
+  id: string;
+  name: string;
+  stack_id: string;
+  stack_name: string;
+  connected: boolean;
 }
 
 export type LayoutOutcome =
@@ -83,6 +97,9 @@ export interface LayoutNodeView {
   name: string;
   primary?: boolean;
   planned?: boolean;
+  /** The deployment the server belongs to; absent for a bare server. */
+  stack_id?: string;
+  stack_name?: string;
   state: string;
   availability: LayoutAvailability;
   capacity: LayoutResources;
@@ -124,13 +141,30 @@ export interface LayoutVerification {
   reasons?: LayoutReason[];
 }
 
+/**
+ * Where a recommendation is carried out. The planner looks at every server of
+ * the homelab: `extend` adds the selection to a deployment (the one asked
+ * from or another one), `join` names a connected bare server that can join a
+ * deployment as a new node, `found` one that can run it as a new deployment;
+ * join and found targets are information only.
+ */
+export interface LayoutTarget {
+  action: "extend" | "join" | "found";
+  stack_id?: string;
+  stack_name?: string;
+  server_id?: string;
+  server_name?: string;
+}
+
 export interface LayoutRecommendationView {
   id?: string;
   api_version: string;
   state: LayoutViewState;
   scope: string;
+  /** The deployment the selection was asked from. */
   stack_id: string;
   flow: LayoutFlow;
+  target: LayoutTarget;
   outcome: LayoutOutcome;
   proposal_digest?: string;
   snapshot_digest: string;
@@ -142,6 +176,8 @@ export interface LayoutRecommendationView {
   nodes: LayoutNodeView[];
   assignments: LayoutAssignmentView[];
   existing?: LayoutExistingView[];
+  /** The servers a use case can be pinned to instead (add-use-case only). */
+  servers?: LayoutServerChoice[];
   notes?: LayoutReason[];
   conflicts?: LayoutConflictView[];
   verification: LayoutVerification;
@@ -165,6 +201,25 @@ export function acceptableLayoutRecommendation(
   if (view.state !== "open" || view.verification?.status !== "verified")
     return undefined;
   return { id: view.id, proposal_digest: view.proposal_digest };
+}
+
+/** The deployment a run must extend to carry out a recommendation. */
+export interface LayoutRunTarget {
+  stackId: string;
+  stackName: string;
+}
+
+/**
+ * The deployment that carries out an acceptable recommendation; it can be
+ * another deployment of the homelab than the one the selection was asked from.
+ */
+export function layoutRunTarget(
+  view: LayoutRecommendationView | null | undefined,
+): LayoutRunTarget | undefined {
+  if (!acceptableLayoutRecommendation(view)) return undefined;
+  const target = view?.target;
+  if (target?.action !== "extend" || !target.stack_id) return undefined;
+  return { stackId: target.stack_id, stackName: target.stack_name ?? "" };
 }
 
 /**

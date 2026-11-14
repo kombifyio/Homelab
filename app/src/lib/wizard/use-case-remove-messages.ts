@@ -5,7 +5,7 @@ export const useCaseRemoveMessages = {
     "removeUseCase.title": "Remove installed applications",
     "removeUseCase.body":
       "Choose an application or a complete installed use case in this StackKit.",
-    "removeUseCase.back": "Back to this StackKit",
+    "removeUseCase.back": "Back to apps",
     "removeUseCase.useCase": "Use case",
     "removeUseCase.scope": "Remove",
     "removeUseCase.scopeGroup": "Complete use case",
@@ -39,7 +39,7 @@ export const useCaseRemoveMessages = {
     "removeUseCase.title": "Installierte Anwendungen entfernen",
     "removeUseCase.body":
       "Wähle eine Anwendung oder einen vollständigen installierten Use Case in diesem StackKit.",
-    "removeUseCase.back": "Zurück zu diesem StackKit",
+    "removeUseCase.back": "Zurück zu den Apps",
     "removeUseCase.useCase": "Use Case",
     "removeUseCase.scope": "Entfernen",
     "removeUseCase.scopeGroup": "Vollständiger Use Case",
@@ -73,7 +73,7 @@ export const useCaseRemoveMessages = {
     "removeUseCase.title": "Eliminar aplicaciones instaladas",
     "removeUseCase.body":
       "Elige una aplicación o un caso de uso instalado completo en este StackKit.",
-    "removeUseCase.back": "Volver a este StackKit",
+    "removeUseCase.back": "Volver a las apps",
     "removeUseCase.useCase": "Caso de uso",
     "removeUseCase.scope": "Eliminar",
     "removeUseCase.scopeGroup": "Caso de uso completo",
@@ -106,7 +106,7 @@ export const useCaseRemoveMessages = {
     "removeUseCase.entry": "移除用例",
     "removeUseCase.title": "移除已安装的应用",
     "removeUseCase.body": "在此 StackKit 中选择一个应用或完整的已安装用例。",
-    "removeUseCase.back": "返回此 StackKit",
+    "removeUseCase.back": "返回应用",
     "removeUseCase.useCase": "用例",
     "removeUseCase.scope": "移除范围",
     "removeUseCase.scopeGroup": "完整用例",
@@ -132,7 +132,7 @@ export const useCaseRemoveMessages = {
     "removeUseCase.title": "इंस्टॉल किए गए ऐप हटाएँ",
     "removeUseCase.body":
       "इस StackKit में एक ऐप या पूरा इंस्टॉल किया गया उपयोग का मामला चुनें।",
-    "removeUseCase.back": "इस StackKit पर वापस जाएँ",
+    "removeUseCase.back": "ऐप्स पर वापस जाएँ",
     "removeUseCase.useCase": "उपयोग का मामला",
     "removeUseCase.scope": "हटाएँ",
     "removeUseCase.scopeGroup": "पूरा उपयोग का मामला",
@@ -165,7 +165,7 @@ export const useCaseRemoveMessages = {
     "removeUseCase.title": "إزالة التطبيقات المثبتة",
     "removeUseCase.body":
       "اختر تطبيقًا أو حالة استخدام مثبتة كاملة في StackKit هذا.",
-    "removeUseCase.back": "العودة إلى StackKit هذا",
+    "removeUseCase.back": "العودة إلى التطبيقات",
     "removeUseCase.useCase": "حالة الاستخدام",
     "removeUseCase.scope": "إزالة",
     "removeUseCase.scopeGroup": "حالة الاستخدام كاملة",

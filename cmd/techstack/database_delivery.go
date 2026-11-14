@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/kombifyio/techstack/pkg/auth/testidentity"
+	"github.com/kombifyio/techstack/pkg/config"
 	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/db"
 	"github.com/kombifyio/techstack/pkg/identity"
@@ -94,6 +95,9 @@ func runDatabaseDelivery(ctx context.Context, args []string) error {
 	if staging && args[0] == "fixture" {
 		return prepareStagingPreviewFixture(ctx)
 	}
+	if staging && args[0] == "local-tenant" {
+		return prepareStagingLocalTenant(ctx)
+	}
 	if !staging && len(args) == 1 && args[0] == "contract" {
 		return runContractMigrations(ctx)
 	}
@@ -109,7 +113,7 @@ func runDatabaseDelivery(ctx context.Context, args []string) error {
 			return err
 		}
 	}
-	if os.Getenv(db.EnvAllowDBGenesis) != "false" || db.ReleaseChannel() != "stable" {
+	if os.Getenv(db.EnvAllowDBGenesis) != "false" || config.RejectRetiredReleaseChannel() != nil {
 		return errDatabaseDeliveryAdmission
 	}
 	// Production applies its own expand migrations inside its own Delivery.
@@ -301,6 +305,10 @@ func runDatabaseDelivery(ctx context.Context, args []string) error {
 				evidence["execution_adapter"] = db.RILQueueAdapterEvidence()
 				break
 			}
+			if pending.Version == "190_substrate_failed_provision_guest_absence.sql" {
+				evidence["execution_adapter"] = db.SubstrateAbsenceAdapterEvidence()
+				break
+			}
 		}
 		evidence["db_context_key_id"] = contextKey.id
 		evidence["db_context_registered"] = true
@@ -330,7 +338,7 @@ func prepareStagingPreviewFixture(ctx context.Context) error {
 		!regexp.MustCompile(`^auth0\|[A-Za-z0-9_-]{1,128}$`).MatchString(subject) ||
 		os.Getenv(testidentity.EnvSubjects) != subject || testidentity.Admit(subject, tenantID) != nil ||
 		os.Getenv(db.EnvAllowDBGenesis) != "false" || os.Getenv(db.EnvDatabaseMigrationMode) != "verify" ||
-		db.ReleaseChannel() != "stable" {
+		config.RejectRetiredReleaseChannel() != nil {
 		return errDatabaseDeliveryAdmission
 	}
 	for _, name := range []string{db.EnvMigrationDatabaseURL, "TECHSTACK_ADVANCED_ISSUER_DATABASE_URL",

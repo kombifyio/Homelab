@@ -1,16 +1,21 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/kombifyio/techstack/pkg/api/agentpb"
 	"github.com/kombifyio/techstack/pkg/config"
+	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/guardreach"
 	"github.com/kombifyio/techstack/pkg/kombifyme"
 	"github.com/kombifyio/techstack/pkg/logger"
+	"github.com/kombifyio/techstack/pkg/orchestrator"
 	"github.com/kombifyio/techstack/pkg/serviceauth"
+	"github.com/kombifyio/techstack/pkg/stackkitcommand"
 )
 
 const (
@@ -45,7 +50,7 @@ func bootMaintenanceOriginGateway(log *logger.Logger) *guardreach.Gateway {
 // enable flag and one missing either credential (the service-auth secret for
 // Connect, the platform kombify.me key for the relay) run no reach at all;
 // Guard enrollment and execution are unaffected either way.
-func bootGuardReach(v2 *v2Boot, edition config.Edition, log *logger.Logger) *guardreach.Service {
+func bootGuardReach(v2 *v2Boot, edition config.Edition, orch *orchestrator.Orchestrator, log *logger.Logger) *guardreach.Service {
 	if !edition.IsSaaS() || !envBoolDefault(guardReachEnabledEnv, false) {
 		return nil
 	}
@@ -80,9 +85,14 @@ func bootGuardReach(v2 *v2Boot, edition config.Edition, log *logger.Logger) *gua
 	}
 	poll, _ := time.ParseDuration(strings.TrimSpace(os.Getenv(guardReachPollEnv)))
 	meConfig.HTTPClient = &http.Client{Timeout: 20 * time.Second}
+	var agentLinks guardreach.AgentLinkDelivery
+	if orch != nil {
+		agentLinks = guardReachAgentLinks{orch: orch, links: store}
+	}
 	service, err := guardreach.New(guardreach.Config{
 		Store: reachStore, Me: guardreach.NewMe(kombifyme.NewClient(meConfig)), Connect: gateway,
 		Identities: guardreach.ControlPlane{Workers: store, Identities: store, Servers: store}, Access: store,
+		AgentLinks:     agentLinks,
 		RelayURL:       os.Getenv(guardReachRelayEnv),
 		RevocationPoll: poll, Logger: log.Logger,
 	})
@@ -92,4 +102,60 @@ func bootGuardReach(v2 *v2Boot, edition config.Edition, log *logger.Logger) *gua
 	}
 	log.Info("guard_reach_ready")
 	return service
+}
+
+// householdRefsByOwner is the D10 reference read the agent link needs.
+type householdRefsByOwner interface {
+	ListHouseholdRefsByOwner(ctx context.Context, tenantID, ownerSubjectID string) ([]controlplane.HomelabIdentityRef, error)
+}
+
+// guardReachAgentLinks delivers the homelab identity agent link of a reach row
+// to its node: the owner-approved StackKit identity operation on the row's own
+// Guard worker (the identity runtime of the row's stack), and the D10 members
+// of that stack whose Pocket ID link is verified. Techstack, the D10 link
+// authority, delivers member changes under a pinned key on its own; a new key
+// or owner is approved by the Owner with a passkey step-up on the node, never
+// by this assertion alone. The node binds the link to its own Guard enrollment
+// and Owner custody.
+type guardReachAgentLinks struct {
+	orch  *orchestrator.Orchestrator
+	links householdRefsByOwner
+}
+
+func (a guardReachAgentLinks) LinkedMembers(ctx context.Context, row guardreach.Row) ([]guardreach.AgentLinkMember, error) {
+	refs, err := a.links.ListHouseholdRefsByOwner(ctx, row.TenantID, row.OwnerSubjectID)
+	if err != nil {
+		return nil, err
+	}
+	members := make([]guardreach.AgentLinkMember, 0, len(refs))
+	for _, ref := range refs {
+		if ref.StackID != row.StackID || ref.Status != controlplane.HouseholdLinkLinked || ref.IdP != controlplane.HouseholdIdPPocketID {
+			continue
+		}
+		members = append(members, guardreach.AgentLinkMember{CloudSubject: ref.CloudSubject, Username: ref.Username})
+	}
+	return members, nil
+}
+
+// Install pins the link on the node. A new key or owner waits there for the
+// Owner's passkey step-up; the node then answers pending and the reach
+// reconciler dispatches again until the Owner approved or the request lapsed.
+func (a guardReachAgentLinks) Install(ctx context.Context, row guardreach.Row, request []byte) error {
+	result, err := a.run(ctx, row, agentpb.StackKitOperation_STACKKIT_OPERATION_AGENT_LINK_INSTALL, request)
+	if err == nil && stackkitcommand.AgentLinkResultPending(result) {
+		return guardreach.ErrAgentLinkOwnerPending
+	}
+	return err
+}
+
+func (a guardReachAgentLinks) Remove(ctx context.Context, row guardreach.Row) error {
+	_, err := a.run(ctx, row, agentpb.StackKitOperation_STACKKIT_OPERATION_AGENT_LINK_REMOVE, nil)
+	return err
+}
+
+func (a guardReachAgentLinks) run(ctx context.Context, row guardreach.Row, operation agentpb.StackKitOperation, request []byte) (*agentpb.StackKitResult, error) {
+	return a.orch.RunStackKitIdentityCommand(ctx, orchestrator.StackKitIdentityCommandRequest{
+		TenantID: row.TenantID, OwnerID: row.OwnerSubjectID, DeploymentID: row.StackID,
+		Operation: operation, OwnerApproved: true, ExpectedAgentID: row.WorkerID, AgentLinkRequest: request,
+	})
 }

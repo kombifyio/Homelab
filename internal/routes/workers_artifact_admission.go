@@ -276,6 +276,9 @@ func (h workerRouteHandlers) admitArtifact(e *httpx.Event, kind string) error {
 		e.Response.WriteHeader(http.StatusNotModified)
 		return nil
 	}
+	if kind == "guard_binary" && h.guardBinaryUpdateRefusal(e, authorization, entry.SHA256, true, now) {
+		return nil
+	}
 	charge, validRange := admittedArtifactBytes(e.Request, entry.Size, `"`+entry.SHA256+`"`)
 	if !validRange {
 		e.Response.Header().Set("Content-Range", fmt.Sprintf("bytes */%d", entry.Size))
@@ -285,15 +288,14 @@ func (h workerRouteHandlers) admitArtifact(e *httpx.Event, kind string) error {
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Artifact admission budget is unavailable", nil)
 	}
 	budgetKey := kind + ":" + authorization.tokenHash
-	release, allowed := h.binaryDownloadGuard.acquire(budgetKey, authorization.resetAt, now, entry.Size)
-	if !allowed {
-		e.Response.Header().Set("Retry-After", "900")
-		return httpx.Error(e, http.StatusTooManyRequests, ksapi.ErrCodeRateLimited, "Artifact delivery admission is rate limited", nil)
-	}
-	defer release()
 	// Charge an admitted transfer at its full bound: an acknowledgement loss
 	// must not grant an unbounded fresh R2 body on the next request.
-	h.binaryDownloadGuard.record(budgetKey, charge)
+	if refusal := h.binaryDownloadGuard.charge(budgetKey, authorization.resetAt, now, entry.Size, charge); refusal != nil {
+		return writeAgentBinaryRefusal(e, refusal, "Artifact delivery admission")
+	}
+	if kind == "guard_binary" {
+		h.recordGuardTransfer(e.Request, authorization, entry.SHA256, entry.Size, now)
+	}
 	return httpx.Success(e, http.StatusOK, artifactAdmission{
 		Schema: "techstack.artifact-admission/v1", artifactDeliveryEntry: entry,
 		ReleaseVersion: index.ReleaseVersion, ManifestSHA256: index.ManifestSHA256, IndexSHA256: indexDigest,

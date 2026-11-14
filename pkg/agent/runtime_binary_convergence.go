@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -226,6 +227,13 @@ func readRuntimeArtifactSlice(
 			return slice, nil
 		}
 		lastErr = err
+		// An answer of the control plane is final for this cycle: a refusal or
+		// a Retry-After goes to the caller's schedule. Retrying it here only
+		// repeated the 429 of an exhausted download budget three times.
+		var status *ArtifactHTTPError
+		if errors.As(err, &status) && (status.StatusCode < 500 || status.RetryAfter > 0) {
+			return runtimeArtifactSlice{}, err
+		}
 		select {
 		case <-ctx.Done():
 			return runtimeArtifactSlice{}, ctx.Err()
@@ -264,7 +272,7 @@ func requestRuntimeArtifactSlice(
 		return runtimeArtifactSlice{notModified: true}, nil
 	}
 	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusPartialContent {
-		return runtimeArtifactSlice{}, fmt.Errorf("techstack runtime download returned HTTP %d", response.StatusCode)
+		return runtimeArtifactSlice{}, &ArtifactHTTPError{Operation: "techstack runtime download", StatusCode: response.StatusCode, RetryAfter: ArtifactRetryAfter(response.Header.Get("Retry-After"), time.Now())}
 	}
 	digest := strings.ToLower(strings.TrimSpace(response.Header.Get("X-Kombify-Artifact-SHA256")))
 	if len(digest) != sha256.Size*2 {

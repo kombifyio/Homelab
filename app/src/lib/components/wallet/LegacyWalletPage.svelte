@@ -65,6 +65,8 @@
   let loading = $state(true);
   let error = $state<string | null>(null);
   let sessionRenewalRequired = $state(false);
+  // The action that waits for the session renewal confirmation.
+  let sessionRenewalRetry: (() => Promise<void>) | null = null;
   // Embedded only: the item whose reveal waits for a fresh sign-in
   // confirmation in a separate window (the frame itself must never navigate).
   let stepUpItemId = $state<string | null>(null);
@@ -297,7 +299,10 @@
           undefined,
           err,
         );
-        if (outcome === "reauth_required") sessionRenewalRequired = true;
+        if (outcome === "reauth_required") {
+          sessionRenewalRetry = () => loadWalletItems();
+          sessionRenewalRequired = true;
+        }
         return;
       }
       error = parsed.message;
@@ -648,7 +653,10 @@
           err,
           { allowAutoRedirect: false },
         );
-        if (outcome === "reauth_required") sessionRenewalRequired = true;
+        if (outcome === "reauth_required") {
+          sessionRenewalRetry = () => handleSaveCredential(data);
+          sessionRenewalRequired = true;
+        }
         return;
       }
       error = parsed.isForbidden
@@ -696,7 +704,10 @@
           undefined,
           err,
         );
-        if (outcome === "reauth_required") sessionRenewalRequired = true;
+        if (outcome === "reauth_required") {
+          sessionRenewalRetry = () => handleDeleteCredential(id);
+          sessionRenewalRequired = true;
+        }
         return;
       }
       error = parsed.isForbidden
@@ -799,7 +810,10 @@
           err,
           { allowAutoRedirect: false },
         );
-        if (outcome === "reauth_required") sessionRenewalRequired = true;
+        if (outcome === "reauth_required") {
+          sessionRenewalRetry = () => handleConfirmRotation();
+          sessionRenewalRequired = true;
+        }
         return;
       }
       error = parsed.message;
@@ -1131,7 +1145,14 @@
 
     {#if sessionRenewalRequired}
       <div class="mb-8">
-        <SessionRenewalPanel returnTo="/wallet" />
+        <SessionRenewalPanel
+          onRenewed={async () => {
+            sessionRenewalRequired = false;
+            const retry = sessionRenewalRetry ?? loadWalletItems;
+            sessionRenewalRetry = null;
+            await retry();
+          }}
+        />
       </div>
     {/if}
 

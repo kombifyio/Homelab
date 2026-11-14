@@ -35,7 +35,6 @@ import {
   getPostLogoutRedirectPath,
   resolveLoginExperience,
 } from "#lib/auth/login-experience.js";
-import { clearReprojectionReauthMarker } from "#lib/api/session-reprojection.js";
 import {
   hasWindowsLocalClientContext,
   windowsLocalClientReturnUrl,
@@ -236,6 +235,22 @@ class AuthStore {
   }
 
   /**
+   * Session renewal probe (#lib/auth/session-renewal.svelte.ts): adopt a
+   * session that is valid again, and leave the signed-in state untouched
+   * when it is not yet, so the page and its unsaved input stay mounted while
+   * the renewal is still under way.
+   */
+  async probeRenewedSession(): Promise<boolean> {
+    if (!browser || !this.initialized) return false;
+    try {
+      await getV2WhoAmI();
+    } catch {
+      return false;
+    }
+    return this.syncV2Session();
+  }
+
+  /**
    * Detect auth mode from backend
    */
   private async detectAuthMode(): Promise<void> {
@@ -307,7 +322,6 @@ class AuthStore {
       }
       this.cloudUser = v2WhoAmIToCloudUser(whoami);
       this.v2SessionActive = true;
-      clearReprojectionReauthMarker();
       return true;
     } catch {
       this.cloudUser = null;
@@ -421,7 +435,6 @@ class AuthStore {
       ? portalCloudUserToCloudUser(data.cloud_user)
       : this.cloudUser;
     setStackIdentity(data.stack_identity ?? null);
-    clearReprojectionReauthMarker();
   }
 
   /**
@@ -448,7 +461,6 @@ class AuthStore {
     await logoutLocalSession();
     await clearGatewayAuth();
     clearTechstackSecuritySessionState();
-    clearReprojectionReauthMarker();
     this.cloudUser = null;
     this.v2SessionActive = false;
   }
@@ -524,7 +536,6 @@ class AuthStore {
     this.cloudUser = null;
     this.v2SessionActive = false;
     clearTechstackSecuritySessionState();
-    clearReprojectionReauthMarker();
     this.loading = false;
     this.error = null;
   }

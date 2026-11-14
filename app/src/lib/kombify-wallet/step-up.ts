@@ -32,8 +32,10 @@ export function parseResume(
   value: string | null | undefined,
 ): WalletResume | null {
   const match = RESUME.exec(value ?? "");
-  return match
-    ? { action: match[1] as WalletResumeAction, itemId: match[2] }
+  const action = match?.[1];
+  const itemId = match?.[2];
+  return action !== undefined && itemId !== undefined
+    ? { action: action as WalletResumeAction, itemId }
     : null;
 }
 

@@ -31,8 +31,10 @@
     const values = points.map((point) => point.value);
     const observedTop = Math.max(...values, threshold ?? 0) * 1.08;
     const top = max ?? (observedTop > 0 ? observedTop : 1);
-    const first = points[0].at;
-    const span = points[points.length - 1].at - first || 1;
+    const first = points[0]?.at;
+    const last = points[points.length - 1]?.at;
+    if (first === undefined || last === undefined) return null;
+    const span = last - first || 1;
     return {
       top,
       x: (at: number) => ((at - first) / span) * WIDTH,

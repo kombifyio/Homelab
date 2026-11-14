@@ -130,7 +130,7 @@ export function parseBoxSettings(value: unknown): BoxSettings | null {
       !rules ||
       !part ||
       Object.entries(part).some(
-        ([name, v]) => Object.hasOwn(rules, name) && !rules[name](v),
+        ([name, v]) => Object.hasOwn(rules, name) && !rules[name]?.(v),
       )
     )
       return null;

@@ -45,6 +45,10 @@ func RegisterCRUDRuntimeRoutes(r *httpx.Router, runtime auth.RuntimeStore, orch 
 	// starting name is a placeholder, not a product name.
 	r.PATCH("/api/v1/homelab", h.renameHomelab)
 
+	// POST /api/v1/homelab/kit-deployments/{id}/identity-join - Join one kit
+	// deployment of the homelab to the homelab's identity Authority (P2).
+	r.POST("/api/v1/homelab/kit-deployments/{id}/identity-join", h.startHomelabIdentityJoin)
+
 	// The homelab name is the Stack Identity name: these routes read and write
 	// the same homelab row, and /sync applies one kombify Cloud sync step
 	// (STACKKITS-PRODUCT-BOUNDARY-STANDARD.md §10.8).

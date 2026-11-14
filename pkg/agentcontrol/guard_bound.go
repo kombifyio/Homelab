@@ -57,7 +57,10 @@ type ReportRequest struct {
 	CommandID string
 	// Generation is the credential generation that authenticated the report.
 	Generation int64
-	Report     guardbinding.ResultReport
+	// GenerationUnknown marks a report whose worker credential state could not
+	// be read: it proves no binding and leaves no round trip.
+	GenerationUnknown bool
+	Report            guardbinding.ResultReport
 	// Result is required for a terminal report and ignored otherwise.
 	Result *agentpb.StackKitResult
 	// PredecessorAgentID, when set, delivers the held outcome of a command the

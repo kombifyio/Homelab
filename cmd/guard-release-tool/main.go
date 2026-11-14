@@ -6,6 +6,7 @@
 //	guard-release-tool verify <dir>               verify the release in <dir> the way a Guard does
 //	guard-release-tool r2-mirror <dir>            copy the indexed delivery files to private R2
 //	guard-release-tool r2-mirror-installer <file> copy a release source's Linux install.sh to private R2
+//	guard-release-tool r2-mirror-windows-installer <file> copy a release source's install.ps1 to private R2
 //
 // The digests are the lowercase hex values pkg/guardrelease.TreeDigest defines.
 // verify reads release-manifest.json, release-manifest.sigstore.json and, for
@@ -24,6 +25,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"time"
 
@@ -32,7 +34,7 @@ import (
 
 func main() {
 	if len(os.Args) < 3 {
-		fmt.Fprintln(os.Stderr, "usage: guard-release-tool tree-digest <dir> | archive-digest <file.tar.gz> | verify <dir> [--expected-source <40-character SHA>] [--require-runtime-bundles] [--require-current-policy | --refresh-published] | r2-mirror <dir> | r2-mirror-installer <install.sh> [--require-pinned]")
+		fmt.Fprintln(os.Stderr, "usage: guard-release-tool tree-digest <dir> | archive-digest <file.tar.gz> | verify <dir> [--expected-source <40-character SHA>] [--require-runtime-bundles] [--require-current-policy | --refresh-published] | r2-mirror <dir> | r2-mirror-installer <install.sh> [--require-pinned] | r2-mirror-windows-installer <install.ps1> [--require-pinned]")
 		os.Exit(64)
 	}
 	output, err := run(os.Args[1], os.Args[2], os.Args[3:]...)
@@ -46,7 +48,7 @@ func main() {
 }
 
 func run(command, arg string, extra ...string) (string, error) {
-	if len(extra) != 0 && command != "verify" && command != "artifact-index" && command != "r2-mirror-installer" {
+	if len(extra) != 0 && command != "verify" && command != "artifact-index" && command != "r2-mirror-installer" && command != "r2-mirror-windows-installer" {
 		return "", fmt.Errorf("%s takes one path", command)
 	}
 	switch command {
@@ -71,6 +73,11 @@ func run(command, arg string, extra ...string) (string, error) {
 			return "", errors.New("r2-mirror-installer takes one path and optionally --require-pinned")
 		}
 		return mirrorInstallerToR2(arg, len(extra) == 1)
+	case "r2-mirror-windows-installer":
+		if len(extra) > 1 || (len(extra) == 1 && extra[0] != "--require-pinned") {
+			return "", errors.New("r2-mirror-windows-installer takes one path and optionally --require-pinned")
+		}
+		return mirrorWindowsInstallerToR2(arg, len(extra) == 1)
 	case "tree-digest":
 		return guardrelease.TreeDigest(arg)
 	case "archive-digest":
@@ -139,7 +146,13 @@ func verifySeedManifest(dir string) error {
 	if err != nil {
 		return err
 	}
-	verifier, err := guardrelease.NewVerifier(guardrelease.Options{Now: func() time.Time { return seed.IssuedAt }})
+	options := guardrelease.Options{Now: func() time.Time { return seed.IssuedAt }}
+	if seed.BuildProvenance != nil {
+		identity := guardrelease.DefaultIdentity
+		identity.Extensions.SourceRepositoryDigest = seed.BuildProvenance.ExecutorSHA
+		options.Identity = identity
+	}
+	verifier, err := guardrelease.NewVerifier(options)
 	if err != nil {
 		return err
 	}
@@ -327,10 +340,21 @@ func verifyRelease(dir, expectedSource string, requireRuntime, refreshPublished,
 	if err != nil {
 		return fmt.Errorf("release manifest: %w", err)
 	}
-	// Nightly refresh signs the manifest from a later main commit. Only the
-	// immutable binary certificates must name the caller's exact source.
+	artifactSource := expectedSource
+	if manifest.BuildProvenance != nil {
+		artifactSource, err = verifyBuildProvenance(dir, manifest, raw, bundle, expectedSource)
+		if err != nil {
+			return err
+		}
+		artifactOptions, err = artifactVerificationOptions(artifactSource)
+		if err != nil {
+			return err
+		}
+	}
+	// The immutable binary certificates name the actual authenticated executor;
+	// a historical source additionally requires its signed source-to-bytes proof.
 	artifactVerifier := verifier
-	if expectedSource != "" {
+	if artifactSource != "" {
 		artifactOptions.Now = options.Now
 		artifactVerifier, err = guardrelease.NewVerifier(artifactOptions)
 		if err != nil {
@@ -382,4 +406,61 @@ func verifyRelease(dir, expectedSource string, requireRuntime, refreshPublished,
 		return errors.New("the release holds only part of its runtime archive pair")
 	}
 	return nil
+}
+
+// A refreshed manifest cannot rewrite the immutable build statement. Verify
+// the publication seed at its signed issuance time and pin its certificate to
+// the actual executor before trusting SourceSHA or any subject digest.
+func verifyBuildProvenance(dir string, manifest *guardrelease.Manifest, raw, signature []byte, expectedSource string) (string, error) {
+	build := manifest.BuildProvenance
+	if err := build.Validate(); err != nil {
+		return "", err
+	}
+	if expectedSource != "" && build.SourceSHA != expectedSource {
+		return "", errors.New("signed build source differs from the expected release")
+	}
+	seedRaw, err := os.ReadFile(filepath.Join(dir, "release-manifest-seed.json"))
+	if errors.Is(err, os.ErrNotExist) {
+		seedRaw = raw
+	} else if err != nil {
+		return "", err
+	} else {
+		signature, err = os.ReadFile(filepath.Join(dir, "release-manifest-seed.sigstore.json"))
+		if err != nil {
+			return "", err
+		}
+	}
+	seed, err := guardrelease.ParseManifest(seedRaw)
+	if err != nil {
+		return "", err
+	}
+	if !reflect.DeepEqual(seed.BuildProvenance, build) || seed.Version != manifest.Version || !reflect.DeepEqual(seed.Artifacts, manifest.Artifacts) || !reflect.DeepEqual(seed.StackKits, manifest.StackKits) {
+		return "", errors.New("current manifest differs from immutable build subjects")
+	}
+	options, err := artifactVerificationOptions(build.ExecutorSHA)
+	if err != nil {
+		return "", err
+	}
+	options.Now = func() time.Time { return seed.IssuedAt }
+	verifier, err := guardrelease.NewVerifier(options)
+	if err != nil {
+		return "", err
+	}
+	verified, err := verifier.VerifyManifest(seedRaw, signature)
+	if err != nil {
+		return "", fmt.Errorf("native build seed signature: %w", err)
+	}
+	if !reflect.DeepEqual(verified.BuildProvenance, build) {
+		return "", errors.New("native build statement changed")
+	}
+	for name, subject := range build.Subjects {
+		got, size, err := fileDigest(filepath.Join(dir, name))
+		if err != nil {
+			return "", err
+		}
+		if got != subject.SHA256 || size != subject.Size {
+			return "", fmt.Errorf("native build subject %s differs", name)
+		}
+	}
+	return build.ExecutorSHA, nil
 }

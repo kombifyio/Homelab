@@ -1,3 +1,4 @@
+import type { CanonicalService } from "#lib/api/services.js";
 import type {
   RegistryCatalogService,
   RegistryServer,
@@ -81,16 +82,18 @@ export function serviceMeta(service: RegistryService): string {
   return meta.join(" · ");
 }
 
-/** Nodes of the same deployment, other than its own, that accept a rollout. */
+/** Exactly the servers the backend admits as destination of this move. */
 export function moveTargetsFor(
   servers: RegistryServer[],
   service: RegistryService,
 ): RegistryServer[] {
-  return servers.filter(
-    (server) =>
-      server.kit_deployment_id === service.kit_deployment_id &&
-      server.id !== service.server_id &&
-      server.rollout_ready,
+  const destinations = service.move?.destinations ?? [];
+  return servers.filter((server) =>
+    destinations.some(
+      (destination) =>
+        destination.server_id === server.id &&
+        destination.kit_deployment_id === server.kit_deployment_id,
+    ),
   );
 }
 
@@ -134,6 +137,8 @@ export interface PlacementCard {
   status: ServiceStatusKind;
   migration?: ServiceMigration;
   canMove: boolean;
+  /** Server ids this card may be dropped on; empty when it cannot move. */
+  moveTargetIds: string[];
   migrating: boolean;
   migrationMessage: string;
   actions: ServiceCardAction[];
@@ -146,4 +151,38 @@ export interface PlacementColumn {
   cloud: boolean;
   capacity: ServerCapacity;
   cards: PlacementCard[];
+  /** Unmanaged containers observed on this Node. */
+  unmanaged: UnmanagedCard[];
+}
+
+/**
+ * One unmanaged container on its Node, running outside any stack. Dropping it
+ * on the stacked area of its own Node opens "Stack it"; it moves once stacked.
+ */
+export interface UnmanagedCard {
+  key: string;
+  runtime: CanonicalService;
+  name: string;
+  meta: string;
+  placement: ServicePlacement;
+  status: ServiceStatusKind;
+  /** The backend admits Stack it for this container now. */
+  canStack: boolean;
+  /** Already stacked; the stopped original is kept until its retention ends. */
+  stacked: boolean;
+  actions: ServiceCardAction[];
+}
+
+/** Unmanaged containers of one Node; StackKits-run own applications excluded. */
+export function unmanagedOn(
+  services: CanonicalService[],
+  serverId: string,
+): CanonicalService[] {
+  return services.filter(
+    (service) =>
+      service.server_id === serverId &&
+      service.management_state === "observed" &&
+      !service.own_application &&
+      service.adoption?.stack_it?.state !== "released",
+  );
 }

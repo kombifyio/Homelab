@@ -174,6 +174,9 @@ func RegisterUnifierRoutes(r *httpx.Router, workers controlplane.WorkerStore) er
 	r.POST("/api/v1/unifier/recommendations", func(e *httpx.Event) error { return api.handleRecommendations(e) })
 	r.GET("/api/v1/operator/self-disclosure", func(e *httpx.Event) error { return api.handleGetSelfDisclosure(e) })
 	r.PUT("/api/v1/operator/self-disclosure", func(e *httpx.Event) error { return api.handlePutSelfDisclosure(e) })
+	// The same tenant-scoped database keeps the owner's creation drafts.
+	drafts, _ := workers.(controlplane.CreationDraftStore)
+	registerCreationDraftRoutes(r, drafts)
 	r.POST("/api/v1/unifier/pipeline", func(e *httpx.Event) error { return api.handlePipeline(e) })
 	r.POST("/api/v1/unifier/pipeline/validate", func(e *httpx.Event) error { return api.handlePipeline(e) })
 	r.POST("/api/v1/unifier/pipeline/preview", func(e *httpx.Event) error { return api.handlePipelinePreview(e) })

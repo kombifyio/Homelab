@@ -8,11 +8,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/config"
 	"github.com/kombifyio/techstack/pkg/guardcompat"
 	"github.com/kombifyio/techstack/pkg/pairingtoken"
 	"github.com/kombifyio/techstack/pkg/workerauth"
@@ -199,12 +199,12 @@ func (i *EnrollmentIssuer) recordCapability(
 		return fmt.Errorf("guardbootstrap: encode capability metadata: %w", err)
 	}
 
-	tx, err := i.database.BeginTx(ctx, nil)
+	tx, err := tenantcontext.Database(ctx, i.database).BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-	if _, err := tx.ExecContext(ctx, `SELECT set_config($1, $2, true)`, "app.tenant_id", request.TenantID); err != nil {
+	if err := tenantcontext.ApplyTenant(ctx, tx, request.TenantID); err != nil {
 		return err
 	}
 
@@ -266,11 +266,6 @@ func enrollmentSeed() []byte {
 // publicOrigin mirrors the probe order documented on the tunnel resolver: an
 // explicitly configured hostname always wins over anything Render injects.
 func publicOrigin() (string, bool) {
-	if override := config.AgentOriginOverride(); override != "" {
-		if origin, err := normalizeOrigin(override); err == nil {
-			return origin, true
-		}
-	}
 	for _, key := range []string{"TECHSTACK_PUBLIC_ORIGIN", "TECHSTACK_PUBLIC_URL", "RENDER_EXTERNAL_URL"} {
 		if raw := strings.TrimSpace(os.Getenv(key)); raw != "" {
 			if origin, err := normalizeOrigin(raw); err == nil {

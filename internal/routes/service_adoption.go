@@ -121,8 +121,14 @@ func (h *serviceRuntimeHandlers) prepareAdoption(e *httpx.Event) error {
 	if err != nil {
 		return err
 	}
-	if r.Mode != "adopt_in_place" || r.OwnerApproved || r.PlanDigest != "" {
-		return httpx.BadRequest(e, "Only a read-only adopt_in_place assessment is supported", nil)
+	if r.Mode == adoptionModeStackIt {
+		return h.prepareStackIt(e, t, r, key)
+	}
+	if r.Mode != adoptionModeInPlace || r.OwnerApproved || r.PlanDigest != "" {
+		return httpx.BadRequest(e, "Only a read-only adopt_in_place or stack_it assessment is supported", nil)
+	}
+	if !inPlaceAdoptionProfile(*t.service) {
+		return inPlaceProfileUnsupported(e)
 	}
 	if t.service.ManagementState != "observed" {
 		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "Service already has a lifecycle binding", nil)
@@ -147,7 +153,11 @@ func (h *serviceRuntimeHandlers) readAdoption(e *httpx.Event) error {
 	if err != nil {
 		return err
 	}
-	return httpx.Success(e, http.StatusOK, map[string]any{"plan_id": plan.ID, "service_id": t.service.ID, "status": serviceActionJobStatus(plan.State), "assessment": plan.Result["application_evidence"], "source_binding": plan.Result["application_binding"], "error": plan.Error})
+	receipt, _ := plan.Result["service_action_receipt"].(map[string]any)
+	if receipt["action"] == jobs.StackKitLifecycleApplicationStackPlan {
+		return httpx.Success(e, http.StatusOK, map[string]any{"plan_id": plan.ID, "service_id": t.service.ID, "mode": adoptionModeStackIt, "status": serviceActionJobStatus(plan.State), "stack_plan": plan.Result["application_stack"], "error": plan.Error})
+	}
+	return httpx.Success(e, http.StatusOK, map[string]any{"plan_id": plan.ID, "service_id": t.service.ID, "mode": adoptionModeInPlace, "status": serviceActionJobStatus(plan.State), "assessment": plan.Result["application_evidence"], "source_binding": plan.Result["application_binding"], "error": plan.Error})
 }
 func (h *serviceRuntimeHandlers) loadAdoptionPlan(e *httpx.Event, t adoptionTarget) (*controlplane.Job, error) {
 	if h.jobs == nil {
@@ -158,7 +168,7 @@ func (h *serviceRuntimeHandlers) loadAdoptionPlan(e *httpx.Event, t adoptionTarg
 		return nil, httpx.Reject(e, http.StatusNotFound, ksapi.ErrCodeNotFound, "Adoption plan not found", nil)
 	}
 	receipt, _ := plan.Result["service_action_receipt"].(map[string]any)
-	if receipt["service_id"] != t.service.ID || receipt["action"] != jobs.StackKitLifecycleApplicationInspect || plan.Payload["owner_id"] != t.owner {
+	if receipt["service_id"] != t.service.ID || (receipt["action"] != jobs.StackKitLifecycleApplicationInspect && receipt["action"] != jobs.StackKitLifecycleApplicationStackPlan) || plan.Payload["owner_id"] != t.owner {
 		return nil, httpx.Reject(e, http.StatusNotFound, ksapi.ErrCodeNotFound, "Adoption plan not found", nil)
 	}
 	return plan, nil
@@ -175,12 +185,21 @@ func (h *serviceRuntimeHandlers) executeAdoption(e *httpx.Event) error {
 	if err != nil {
 		return err
 	}
-	if !r.OwnerApproved || r.Mode != "adopt_in_place" || r.PlanDigest == "" {
-		return httpx.BadRequest(e, "Execute requires the reviewed in-place plan digest and Owner approval", nil)
-	}
 	plan, err := h.loadAdoptionPlan(e, t)
 	if err != nil {
 		return err
+	}
+	receipt, _ := plan.Result["service_action_receipt"].(map[string]any)
+	if stackPlan := receipt["action"] == jobs.StackKitLifecycleApplicationStackPlan; stackPlan != (r.Mode == adoptionModeStackIt) {
+		return httpx.BadRequest(e, "Execute uses the mode of its plan", nil)
+	} else if stackPlan {
+		return h.executeStackIt(e, t, r, key, plan)
+	}
+	if !r.OwnerApproved || r.Mode != adoptionModeInPlace || r.PlanDigest == "" {
+		return httpx.BadRequest(e, "Execute requires the reviewed in-place plan digest and Owner approval", nil)
+	}
+	if !inPlaceAdoptionProfile(*t.service) {
+		return inPlaceProfileUnsupported(e)
 	}
 	if plan.State != "completed" {
 		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "Adoption assessment is not complete", nil)
@@ -244,10 +263,7 @@ func (h *serviceRuntimeHandlers) releaseAdoption(e *httpx.Event) error {
 }
 
 func retainedApplicationBinding(t adoptionTarget) *jobs.ApplicationLifecycleBinding {
-	jobID, _ := t.head.Service.Metadata["application_adoption_job_id"].(string)
-	return &jobs.ApplicationLifecycleBinding{ContainerID: jobs.ApplicationContainerIdentity(t.head.Service), ServerID: t.head.Service.ServerID,
-		ExpectedServiceRevision: t.head.Revision, ExpectedIntentRevision: jobs.ApplicationIntentRevision(t.head.Service),
-		ExpectedManagementState: t.head.Service.ManagementState, ExpectedDesiredState: t.head.Service.DesiredState, ExpectedAdoptionJobID: jobID}
+	return jobs.RetainedApplicationBinding(t.head)
 }
 func adoptedApplication(service *controlplane.ServiceRuntime) bool {
 	data, _ := json.Marshal(service.Metadata["application_adoption"])
@@ -266,19 +282,35 @@ func (h *serviceRuntimeHandlers) enqueueAdoption(e *httpx.Event, t adoptionTarge
 }
 func adoptionLifecycleRequest(t adoptionTarget, r adoptionRequest, key, op string, binding *jobs.ApplicationLifecycleBinding) jobs.StackKitLifecycleRequest {
 	fingerprint := sha256.Sum256([]byte(strings.Join([]string{t.tenant, t.service.ID, op, strconv.FormatInt(r.ExpectedInventoryRevision, 10), r.PlanDigest, binding.PlanJobID, binding.ContainerID}, "\x00")))
-	return jobs.StackKitLifecycleRequest{StackID: t.stack.ID, StackKitInstanceID: t.stack.StackKitInstanceID, TenantID: t.tenant, OwnerID: t.owner, AgentID: t.server.WorkerID, Operation: op, OwnerApproved: r.OwnerApproved, ServiceID: t.service.ID, ServiceKey: "smart-home", DurableJobID: jobs.StackKitServiceActionJobID(t.tenant, t.owner, key), ServiceActionDigest: hex.EncodeToString(fingerprint[:]), Application: binding}
+	return jobs.StackKitLifecycleRequest{StackID: t.stack.ID, StackKitInstanceID: t.stack.StackKitInstanceID, TenantID: t.tenant, OwnerID: t.owner, AgentID: t.server.WorkerID, Operation: op, OwnerApproved: r.OwnerApproved, ServiceID: t.service.ID, ServiceKey: adoptionServiceKey(binding), DurableJobID: jobs.StackKitServiceActionJobID(t.tenant, t.owner, key), ServiceActionDigest: hex.EncodeToString(fingerprint[:]), Application: binding}
+}
+
+// adoptionServiceKey is the workload the in-place profile is bound to; a
+// Stack it request names its container and own application instead.
+func adoptionServiceKey(binding *jobs.ApplicationLifecycleBinding) string {
+	if binding != nil && binding.Profile != "" {
+		return ""
+	}
+	return "smart-home"
 }
 
 type serviceAdoptionAvailability struct {
-	PreviewAvailable   bool   `json:"preview_available"`
-	ExecutionAvailable bool   `json:"execution_available"`
-	ReleaseAvailable   bool   `json:"release_available"`
-	ProfileRef         string `json:"profile_ref,omitempty"`
-	ReasonCode         string `json:"reason_code,omitempty"`
+	// StackIt is the own-application adoption of an unmanaged container.
+	StackIt            *stackItAvailability `json:"stack_it,omitempty"`
+	PreviewAvailable   bool                 `json:"preview_available"`
+	ExecutionAvailable bool                 `json:"execution_available"`
+	ReleaseAvailable   bool                 `json:"release_available"`
+	ProfileRef         string               `json:"profile_ref,omitempty"`
+	ReasonCode         string               `json:"reason_code,omitempty"`
 }
 
-func (h *serviceRuntimeHandlers) adoptionAvailability(s controlplane.ServiceRuntime, admission func() (*agentpb.StackKitReleasePin, error)) serviceAdoptionAvailability {
-	a := serviceAdoptionAvailability{ReasonCode: "application_adoption_unavailable"}
+func (h *serviceRuntimeHandlers) adoptionAvailability(ctx context.Context, s controlplane.ServiceRuntime, admission func() (*agentpb.StackKitReleasePin, error)) serviceAdoptionAvailability {
+	a := serviceAdoptionAvailability{ReasonCode: "application_adoption_unavailable", StackIt: h.stackItAvailabilityFor(ctx, s)}
+	if s.ManagementState == "observed" && !inPlaceAdoptionProfile(s) {
+		// Every other unmanaged container is stacked as an own application.
+		a.ReasonCode = "application_adoption_profile_unsupported"
+		return a
+	}
 	if s.ManagementState != "observed" && !adoptedApplication(&s) {
 		return a
 	}

@@ -29,8 +29,8 @@ func advancedCapabilityIssuer(ctx context.Context, boot *v2Boot, log *logger.Log
 		}
 		return nil
 	}
-	// Secondary channels may delegate to native Execution; they never open
-	// local installation signing custody, regardless of a leftover URL.
+	// A deployment beside this one may delegate to native Execution; it never
+	// opens local installation signing custody, regardless of a leftover URL.
 	if config.SecondaryChannel() && mode != advancedIssuerCustodyRemote {
 		if log != nil {
 			log.Info("advanced_issuer_not_served", "reason", "secondary_release_channel")
@@ -55,7 +55,7 @@ func advancedCapabilityIssuer(ctx context.Context, boot *v2Boot, log *logger.Log
 	}
 	if mode == advancedIssuerCustodyRemote {
 		if config.SecondaryChannel() {
-			// Early Access depends on no other host (D-2026-10-30-04).
+			// A deployment beside this one depends on no other host (D-2026-10-30-04).
 			if log != nil {
 				log.Warn("advanced_issuer_unavailable", "reason", "early_access_has_no_execution_host")
 			}

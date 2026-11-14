@@ -8,6 +8,15 @@
 // user-context extraction from edgeauth headers) are enforced here so every
 // service gets identical, DSGVO-safe behavior.
 //
+// Error budget: Init wraps the error hook in ErrorBudget, so a service reports
+// a failure at most once per affected subject (user, else tenant or
+// organization, else "system") per hour. Repeats are counted and attached to
+// the next report as tag error_budget.suppressed and context
+// error_budget.suppressed_since_last; subjects beyond 100 per fingerprint and
+// hour are dropped and counted as error_budget.more_subjects. Transactions are
+// not budgeted. Services that call sentry.Init themselves use
+// ErrorBudget(ErrorBudgetOptions{}, scrubPII).
+//
 // Scope: SaaS services only (Ebene 2 per PRODUCT-SEGMENTATION.md).
 // OSS tools (Ebene 1 — Sim, SpeechKit, StackKits, TechStack-OSS) MUST NOT
 // import this package. See ../platform/standards/OBSERVABILITY-STANDARD.md.
@@ -85,7 +94,7 @@ func MustInit(cfg Config) func() {
 		EnableTracing:    traces > 0,
 		TracesSampleRate: traces,
 		Debug:            cfg.Debug,
-		BeforeSend:       scrubPII,
+		BeforeSend:       ErrorBudget(ErrorBudgetOptions{}, scrubPII),
 	}
 	options.BeforeSendTransaction = scrubPII
 	err := sentry.Init(options)

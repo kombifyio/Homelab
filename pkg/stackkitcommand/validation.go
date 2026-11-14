@@ -14,15 +14,33 @@ import (
 	"time"
 
 	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/techstack/pkg/ril/primitives"
 )
+
+// ObservedStackKitCapabilities lists every StackKit capability a Guard may report
+// in its heartbeat. The Guard reports only these and the control plane keeps only
+// these, so both sides read this one list.
+var ObservedStackKitCapabilities = []string{
+	"stackkit",
+	ExpectedPlanHashCapability,
+	VerifyExpectedPlanHashCapability,
+	RILPrimitiveHashCapability,
+	RILExecutionProofCapability,
+	WorkspaceInstanceCapability,
+	RestoreActivationCapability,
+	OriginalRecoveryReleaseCapability,
+	AdvancedOperationsCapability,
+	HostInspectCapability,
+	HostOperateCapability,
+}
 
 const (
 	CommandResultVersion              = "stackkit.command-result/v1"
 	RolloutEventVersion               = "stackkit.rollout-event/v1"
 	ExpectedPlanHashCapability        = "stackkit.apply.expected-plan-hash.v1"
-	RILPrimitiveHashCapability        = "stackkit.verify.ril-primitive-hash.v1"
+	RILPrimitiveHashCapability        = "stackkit.ril-primitive-hash.v2"
 	VerifyExpectedPlanHashCapability  = "stackkit.verify.expected-plan-hash.v1"
-	RILExecutionProofCapability       = "stackkit.ril-execution-proof.v1"
+	RILExecutionProofCapability       = "stackkit.ril-execution-proof.v2"
 	WorkspaceInstanceCapability       = "stackkit.workspace-instance-binding.v1"
 	RestoreActivationCapability       = "stackkit.restore-activation.v1"
 	OriginalRecoveryReleaseCapability = "stackkit.restore-original-release.v1"
@@ -56,6 +74,12 @@ const (
 	// MinHostUpdateRelease is the first release whose Plan observes active
 	// update units before package work, so it can safely poll an Apply.
 	MinHostUpdateRelease = "v0.48.9"
+	// MinUpgradeOwnerApprovalRelease is the first release whose
+	// `stackkit upgrade` takes --owner-approve, which a kit's preview upgrade
+	// policy requires for a fresh upgrade; it also opens the Cloud Kit preview
+	// (kombify-StackKits-1w93). Pending publication: older pins neither accept
+	// nor require the flag.
+	MinUpgradeOwnerApprovalRelease = "v0.55.20"
 	// MaxAdvancedTrustBundleBytes is the StackKits trust-bundle size limit.
 	MaxAdvancedTrustBundleBytes = 64 << 10
 	commandResultStatusSuccess  = "success"
@@ -84,11 +108,14 @@ func ValidateCommand(command *agentpb.StackKitCommand) error {
 	if !commandIDPattern.MatchString(command.CommandId) {
 		return fmt.Errorf("StackKit command_id is invalid")
 	}
-	if strings.TrimSpace(command.WorkingDirectory) == "" && !IsHostOperation(command.Operation) {
+	if strings.TrimSpace(command.WorkingDirectory) == "" && !IsHostOperation(command.Operation) && !IsGuardHostOperation(command.Operation) {
 		return fmt.Errorf("StackKit working_directory is required")
 	}
 	if command.Operation != agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_UPDATE_APPLY && strings.TrimSpace(command.HostPlanDigest) != "" {
 		return fmt.Errorf("StackKit host_plan_digest is only valid for host update apply")
+	}
+	if !IsGuardHostOperation(command.Operation) && (command.HostTarget != "" || command.HostAction != "" || command.HostListLimit != 0) {
+		return fmt.Errorf("StackKit host_target, host_action and host_list_limit are only valid for Guard host operations")
 	}
 	if command.Operation != agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_SECURITY_REPAIR && len(command.HostSecurityControls) != 0 {
 		return fmt.Errorf("StackKit host_security_controls are only valid for host security repair")
@@ -96,12 +123,26 @@ func ValidateCommand(command *agentpb.StackKitCommand) error {
 	if command.TimeoutSeconds < 0 || command.TimeoutSeconds > int32((2*time.Hour)/time.Second) {
 		return fmt.Errorf("StackKit timeout_seconds must be between 0 and 7200")
 	}
+	if command.DecisionReceipt != "" || command.DecisionPrincipal != "" {
+		// A decision receipt covers only the two first-slice operations Core
+		// dispatches (StackKits docs/DECISION-RECEIPTS.md), never a dry run,
+		// and always travels with the principal it binds.
+		switch command.Operation {
+		case agentpb.StackKitOperation_STACKKIT_OPERATION_BACKUP_RESTORE_ACTIVATE,
+			agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_CHANGE_SET_APPLY:
+		default:
+			return fmt.Errorf("StackKit decision_receipt is only valid for restore activation and change-set apply")
+		}
+		if command.DryRun || command.DecisionReceipt == "" || command.DecisionPrincipal == "" || len(command.DecisionReceipt) > 16384 || len(command.DecisionPrincipal) > 300 {
+			return fmt.Errorf("StackKit decision_receipt requires its acting principal and no dry run")
+		}
+	}
 	if proof := command.RilExecutionProof; proof != nil {
 		digest, digestErr := RILProofDigest(proof)
 		if digestErr != nil || digest != proof.ProofDigest {
 			return fmt.Errorf("RIL proof digest mismatch")
 		}
-		if command.Operation != agentpb.StackKitOperation_STACKKIT_OPERATION_VERIFY || !specHashPattern.MatchString(command.ExpectedPlanHash) || len(proof.LeaseJws) == 0 || len(proof.LeaseJws) > 16384 || len(proof.ClaimJws) == 0 || len(proof.ClaimJws) > 16384 || len(proof.ReceiptJson) == 0 || len(proof.ReceiptJson) > 65536 || len(proof.EffectJson) == 0 || len(proof.EffectJson) > 65536 {
+		if !rilProofOperation(command) || len(proof.LeaseJws) == 0 || len(proof.LeaseJws) > 16384 || len(proof.ClaimJws) == 0 || len(proof.ClaimJws) > 16384 || len(proof.ReceiptJson) == 0 || len(proof.ReceiptJson) > 65536 || len(proof.EffectJson) == 0 || len(proof.EffectJson) > 65536 {
 			return fmt.Errorf("invalid RIL execution proof")
 		}
 	}
@@ -149,6 +190,18 @@ func ValidateCommand(command *agentpb.StackKitCommand) error {
 	if command.Operation != agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_TRUST_IMPORT && len(command.AdvancedTrustBundle) != 0 {
 		return fmt.Errorf("StackKit advanced_trust_bundle is only valid for advanced trust import")
 	}
+	if command.Operation != agentpb.StackKitOperation_STACKKIT_OPERATION_AGENT_LINK_INSTALL && len(command.AgentLinkRequest) != 0 {
+		return fmt.Errorf("StackKit agent_link_request is only valid for agent link install")
+	}
+	if !IsHomeGraphAdoptionOperation(command.Operation) && len(command.HomeGraphAdoptionRequest) != 0 {
+		return fmt.Errorf("home_graph_adoption_request requires home graph adoption")
+	}
+	if !IsHomeGraphSyncOperation(command.Operation) && len(command.HomeGraphSyncRequest) != 0 {
+		return fmt.Errorf("StackKit home_graph_sync_request is only valid for home graph sync")
+	}
+	if !IsHomeGraphLoxoneImportOperation(command.Operation) && len(command.HomeGraphDocument) != 0 {
+		return fmt.Errorf("StackKit home_graph_document is only valid for the Loxone import")
+	}
 	if err := validateAdvancedFields(command); err != nil {
 		return err
 	}
@@ -164,14 +217,32 @@ func ValidateCommand(command *agentpb.StackKitCommand) error {
 	if err := ValidateUseCaseRemovalFields(command); err != nil {
 		return err
 	}
+	if err := validateApplicationUpdateFields(command); err != nil {
+		return err
+	}
 	if err := validateWorkloadRelocationFields(command); err != nil {
+		return err
+	}
+	if err := ValidateApplicationTransferFields(command); err != nil {
+		return err
+	}
+	if err := validateOwnApplicationFields(command); err != nil {
 		return err
 	}
 	if err := validateApplicationFields(command); err != nil {
 		return err
 	}
-	if !IsApplicationConnectorOperation(command.Operation) && len(command.ApplicationConnectorRequestJson) != 0 {
+	if !IsApplicationConnectorOperation(command.Operation) && !IsHomeGraphSyncOperation(command.Operation) && !IsHomeGraphLoxoneImportOperation(command.Operation) && !IsHomeGraphAdoptionOperation(command.Operation) && len(command.ApplicationConnectorRequestJson) != 0 {
 		return fmt.Errorf("connector metadata requires a connector operation")
+	}
+	if IsHomeGraphAdoptionOperation(command.Operation) {
+		return validateHomeGraphAdoptionCommand(command)
+	}
+	if IsHomeGraphSyncOperation(command.Operation) {
+		return validateHomeGraphSyncCommand(command)
+	}
+	if IsHomeGraphLoxoneImportOperation(command.Operation) {
+		return validateHomeGraphLoxoneImportCommand(command)
 	}
 	if IsApplicationConnectorOperation(command.Operation) {
 		return validateApplicationConnectorCommand(command)
@@ -179,11 +250,18 @@ func ValidateCommand(command *agentpb.StackKitCommand) error {
 	if IsApplicationOperation(command.Operation) {
 		return validateApplicationCommand(command)
 	}
+	if IsApplicationStackOperation(command.Operation) {
+		return validateApplicationStackCommand(command)
+	}
+	if IsOwnApplicationOperation(command.Operation) {
+		return validateOwnApplicationCommand(command)
+	}
 	if !IsHandoffOperation(command.Operation) && handoffFieldsPresent(command) {
 		return fmt.Errorf("StackKit federation hand-off fields are only valid for federation hand-off")
 	}
 	switch command.Operation {
-	case agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_CONFIGURE, agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_REMOVE:
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_CONFIGURE, agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_REMOVE,
+		agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_TRANSFER:
 		return nil // Strict fields and typed payload were admitted above.
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_PREPARE_SOURCE_GENERATION:
 		if command.Stackkit != "cloud-kit" || command.LocalSiteRef != "cloud" || command.StackkitInstanceId == "" || len(command.InventoryJson) != 0 || len(command.CandidateSpecJson) != 0 || command.DryRun || command.Offline || command.TargetRelease != "" || command.ExpectedPlanHash != "" {
@@ -213,6 +291,8 @@ func ValidateCommand(command *agentpb.StackKitCommand) error {
 		return validateApplyCommand(command)
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_UPGRADE:
 		return validateUpgradeCommand(command)
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_UPGRADE:
+		return validateApplicationUpdateCommand(command)
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_DRIFT_RECONCILE:
 		return validateDriftReconcileCommand(command)
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_SERVICE_START,
@@ -262,6 +342,9 @@ func ValidateCommand(command *agentpb.StackKitCommand) error {
 		return validateHouseholdProjectionCommand(command)
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_TRUST_IMPORT:
 		return validateAdvancedTrustImportCommand(command)
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_AGENT_LINK_INSTALL,
+		agentpb.StackKitOperation_STACKKIT_OPERATION_AGENT_LINK_REMOVE:
+		return validateAgentLinkCommand(command)
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_CHANGE_SET_CREATE,
 		agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_CHANGE_SET_APPLY,
 		agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_DRIFT_RECONCILE,
@@ -276,6 +359,11 @@ func ValidateCommand(command *agentpb.StackKitCommand) error {
 		agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_REBOOT,
 		agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_SECURITY_REPAIR:
 		return validateHostCommand(command)
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_LIST_PROCESSES,
+		agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_LIST_CONTAINERS,
+		agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_CONTAINER_ACTION,
+		agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_SYSTEMD_ACTION:
+		return validateGuardHostCommand(command)
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_NETWORK_REBIND,
 		agentpb.StackKitOperation_STACKKIT_OPERATION_NETWORK_STATUS:
 		return validateNetworkCommand(command)
@@ -546,8 +634,40 @@ func validateApplyCommand(command *agentpb.StackKitCommand) error {
 	return nil
 }
 
+// rilProofOperation reports whether a proof-carrying command runs one
+// executor-bound primitive's Guard operation in its required shape. The node
+// binds the proof to the exact operation, service, release, plan or stack.
+func rilProofOperation(command *agentpb.StackKitCommand) bool {
+	for _, profile := range primitives.All() {
+		if !profile.AdmitsGuardOperation(command.Operation) {
+			continue
+		}
+		switch command.Operation {
+		case agentpb.StackKitOperation_STACKKIT_OPERATION_VERIFY:
+			return specHashPattern.MatchString(command.ExpectedPlanHash)
+		case agentpb.StackKitOperation_STACKKIT_OPERATION_SERVICE_START, agentpb.StackKitOperation_STACKKIT_OPERATION_SERVICE_STOP,
+			agentpb.StackKitOperation_STACKKIT_OPERATION_SERVICE_RESTART:
+			return serviceKeyPattern.MatchString(command.ServiceKey)
+		case agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_CONTROL:
+			// The power action and exact container are validated with the
+			// application command and bound to the effect by the node.
+			return command.ApplicationAction != ""
+		case agentpb.StackKitOperation_STACKKIT_OPERATION_UPGRADE:
+			return !command.DryRun && versionPattern.MatchString(command.TargetRelease)
+		case agentpb.StackKitOperation_STACKKIT_OPERATION_BACKUP_STATUS, agentpb.StackKitOperation_STACKKIT_OPERATION_BACKUP_RUN:
+			return true
+		case agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_CONTAINER_ACTION:
+			return ValidHostAction(command.HostAction) && ValidHostContainerRef(command.HostTarget)
+		case agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_SYSTEMD_ACTION:
+			return ValidHostAction(command.HostAction) && ValidHostUnit(command.HostTarget)
+		}
+	}
+	return false
+}
+
 func validateUpgradeCommand(command *agentpb.StackKitCommand) error {
-	if !command.DryRun && !command.OwnerApproved {
+	// A RIL proof is the approval of a governed update (validated above).
+	if !command.DryRun && !command.OwnerApproved && command.RilExecutionProof == nil {
 		return fmt.Errorf("StackKit upgrade requires Owner approval")
 	}
 	target := strings.TrimSpace(command.TargetRelease)
@@ -565,7 +685,9 @@ func validateDriftReconcileCommand(*agentpb.StackKitCommand) error {
 }
 
 func validateServiceMutationCommand(command *agentpb.StackKitCommand) error {
-	if !command.OwnerApproved {
+	// A RIL proof is the approval of a governed start, stop or restart
+	// (validated above).
+	if !command.OwnerApproved && command.RilExecutionProof == nil {
 		return fmt.Errorf("StackKit service mutation requires Owner approval")
 	}
 	if err := validateServiceKey(command); err != nil {
@@ -723,11 +845,12 @@ func RequiresWorkspaceInstanceBinding(command *agentpb.StackKitCommand) bool {
 	if command == nil {
 		return false
 	}
-	if IsApplicationOperation(command.Operation) || IsApplicationConnectorOperation(command.Operation) {
+	if IsApplicationOperation(command.Operation) || IsApplicationStackOperation(command.Operation) || IsApplicationConnectorOperation(command.Operation) || IsHomeGraphSyncOperation(command.Operation) || IsHomeGraphLoxoneImportOperation(command.Operation) || IsHomeGraphAdoptionOperation(command.Operation) || IsOwnApplicationOperation(command.Operation) {
 		return true
 	}
 	switch command.Operation {
-	case agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_CONFIGURE, agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_REMOVE:
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_CONFIGURE, agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_REMOVE,
+		agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_TRANSFER, agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_UPGRADE:
 		return true
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_PREPARE_SOURCE_GENERATION:
 		return true
@@ -767,14 +890,25 @@ func RequiredAgentCapabilities(command *agentpb.StackKitCommand) []string {
 	if command != nil && IsApplicationOperation(command.Operation) {
 		required = append(required, ApplicationAdoptionCapability)
 	}
-	if command != nil && IsApplicationConnectorOperation(command.Operation) {
+	if command != nil && IsApplicationStackOperation(command.Operation) {
+		required = append(required, ApplicationStackCapability)
+	}
+	if command != nil && IsOwnApplicationOperation(command.Operation) {
+		required = append(required, OwnApplicationCapability)
+	}
+	if command != nil && (IsApplicationConnectorOperation(command.Operation) || IsHomeGraphSyncOperation(command.Operation) || IsHomeGraphLoxoneImportOperation(command.Operation) || IsHomeGraphAdoptionOperation(command.Operation)) {
 		required = append(required, ApplicationConnectorCapability)
 	}
 	if command != nil && command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_APPLY {
 		required = append(required, ExpectedPlanHashCapability)
 	}
 	if command != nil && command.RilExecutionProof != nil {
-		required = append(required, RILExecutionProofCapability, RILPrimitiveHashCapability)
+		required = append(required, RILExecutionProofCapability)
+		// A Guard host action runs in the Guard itself, not in a StackKits
+		// executable that compares a primitive hash.
+		if !IsGuardHostOperation(command.Operation) {
+			required = append(required, RILPrimitiveHashCapability)
+		}
 	}
 	if command != nil && command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_VERIFY && command.ExpectedPlanHash != "" {
 		required = append(required, VerifyExpectedPlanHashCapability)
@@ -785,14 +919,27 @@ func RequiredAgentCapabilities(command *agentpb.StackKitCommand) []string {
 	if command != nil && command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_TRUST_IMPORT {
 		required = append(required, AdvancedTrustImportCapability)
 	}
+	if command != nil && IsAgentLinkOperation(command.Operation) {
+		required = append(required, AgentLinkCapability)
+	}
 	if command != nil && IsAdvancedOperation(command.Operation) {
 		required = append(required, AdvancedOperationsCapability)
 	}
 	if command != nil && IsHandoffOperation(command.Operation) {
 		required = append(required, FederationHandoffCapability)
+		if IsIdentityJoinStep(command.HandoffStep) {
+			required = append(required, IdentityJoinCapability)
+		}
 	}
 	if command != nil && IsNetworkOperation(command.Operation) {
 		required = append(required, NetworkCapability)
+	}
+	if command != nil && IsGuardHostOperation(command.Operation) {
+		if IsGuardHostMutation(command.Operation) {
+			required = append(required, HostOperateCapability)
+		} else {
+			required = append(required, HostInspectCapability)
+		}
 	}
 	if command != nil && IsHostOperation(command.Operation) {
 		if command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_SECURITY_REPAIR {
@@ -865,18 +1012,59 @@ func validateResult(result *agentpb.StackKitResult, command *agentpb.StackKitCom
 				return err
 			}
 		}
+		if IsHomeGraphAdoptionOperation(command.Operation) {
+			if _, err := ParseHomeGraphAdoptionResult(command, result); err != nil {
+				return err
+			}
+		}
+		if IsHomeGraphSyncOperation(command.Operation) {
+			if _, err := ParseHomeGraphSyncResult(command, result); err != nil {
+				return err
+			}
+		}
+		if IsHomeGraphLoxoneImportOperation(command.Operation) {
+			if _, err := ParseHomeGraphLoxoneImportResult(command, result); err != nil {
+				return err
+			}
+		}
 		if IsApplicationOperation(command.Operation) {
 			if _, err := ParseApplicationEvidence(command, result); err != nil {
 				return err
 			}
 		}
+		if IsApplicationStackOperation(command.Operation) {
+			if _, err := ParseApplicationStackResult(command, result); err != nil {
+				return err
+			}
+		}
+		if IsOwnApplicationOperation(command.Operation) {
+			if _, err := ParseOwnApplicationResult(command, result); err != nil {
+				return err
+			}
+		}
+		if IsAgentLinkOperation(command.Operation) {
+			if _, err := ParseAgentLinkEvidence(command, result); err != nil {
+				return err
+			}
+		}
 		switch command.Operation {
+		case agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_LIST_PROCESSES,
+			agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_LIST_CONTAINERS,
+			agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_CONTAINER_ACTION,
+			agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_SYSTEMD_ACTION:
+			if _, err := decodeHostOperationData(command, result); err != nil {
+				return err
+			}
 		case agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_REMOVE:
 			if _, err := ParseUseCaseRemovalEvidence(command, result); err != nil {
 				return err
 			}
 		case agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_CONFIGURE:
 			if _, err := ParseUseCaseConfigurationEvidence(command, result); err != nil {
+				return err
+			}
+		case agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_TRANSFER:
+			if _, err := ParseApplicationTransferEvidence(command, result); err != nil {
 				return err
 			}
 		case agentpb.StackKitOperation_STACKKIT_OPERATION_BACKUP_RUN:
@@ -1028,11 +1216,29 @@ func validateRolloutEvents(events [][]byte) error {
 // stackkit.command-result/v1. The Agent and every accepting transport share
 // this mapping so evidence for one operation cannot satisfy another.
 func ResultCommandName(operation agentpb.StackKitOperation) string {
+	if name := guardHostCommandName(operation); name != "" {
+		return name
+	}
 	if IsApplicationConnectorOperation(operation) {
 		return "stackkit setup connector"
 	}
+	if IsHomeGraphAdoptionOperation(operation) {
+		return "stackkit setup home-graph-adopt"
+	}
+	if IsHomeGraphSyncOperation(operation) {
+		return "stackkit setup home-graph"
+	}
+	if IsHomeGraphLoxoneImportOperation(operation) {
+		return "stackkit setup loxone-import"
+	}
 	if name := applicationCommandName(operation); name != "" {
 		return name
+	}
+	if IsApplicationStackOperation(operation) || operation == agentpb.StackKitOperation_STACKKIT_OPERATION_OWN_APPLICATION {
+		return "stackkit app own"
+	}
+	if operation == agentpb.StackKitOperation_STACKKIT_OPERATION_OWN_APPLICATION_BACKUP {
+		return "stackkit backup run"
 	}
 	if name := walletItemDeliveryCommandName(operation); name != "" {
 		return name
@@ -1043,8 +1249,14 @@ func ResultCommandName(operation agentpb.StackKitOperation) string {
 	switch operation {
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_CONFIGURE:
 		return "stackkit use-cases configure"
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_TRANSFER:
+		// Guard wraps every transfer step in this one envelope; the step's own
+		// JSON document travels unredacted inside it.
+		return "stackkit backup application-transfer"
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_REMOVE:
 		return "stackkit remove"
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_UPGRADE:
+		return "stackkit use-cases upgrade"
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_INIT:
 		return "stackkit init"
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_VALIDATE:
@@ -1135,6 +1347,10 @@ func ResultCommandName(operation agentpb.StackKitOperation) string {
 		return "stackkit network rebind"
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_NETWORK_STATUS:
 		return "stackkit network status"
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_AGENT_LINK_INSTALL:
+		return "stackkit identity agent-link install"
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_AGENT_LINK_REMOVE:
+		return "stackkit identity agent-link remove"
 	default:
 		return ""
 	}
@@ -1457,6 +1673,7 @@ func IsMutatingOperation(operation agentpb.StackKitOperation) bool {
 	switch operation {
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_VALIDATE,
 		agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_CONNECTOR_VERIFY,
+		agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_LOXONE_IMPORT,
 		agentpb.StackKitOperation_STACKKIT_OPERATION_VERIFY,
 		agentpb.StackKitOperation_STACKKIT_OPERATION_DRIFT_DETECT,
 		agentpb.StackKitOperation_STACKKIT_OPERATION_PLAN,
@@ -1465,7 +1682,9 @@ func IsMutatingOperation(operation agentpb.StackKitOperation) bool {
 		agentpb.StackKitOperation_STACKKIT_OPERATION_OWNER_ACTIVATION_STATUS,
 		agentpb.StackKitOperation_STACKKIT_OPERATION_HOUSEHOLD_LIST,
 		agentpb.StackKitOperation_STACKKIT_OPERATION_NETWORK_STATUS,
-		agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_UPDATE_PLAN:
+		agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_UPDATE_PLAN,
+		agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_LIST_PROCESSES,
+		agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_LIST_CONTAINERS:
 		return false
 	default:
 		return true

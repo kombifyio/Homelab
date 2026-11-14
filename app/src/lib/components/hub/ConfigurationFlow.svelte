@@ -5,28 +5,42 @@
   import { getClientBootstrap } from "#lib/client/bootstrap.js";
   import { API_BASE } from "#lib/api/client.js";
   import { parseApiError, type ParsedApiError } from "#lib/api/errors.js";
-  import { appCommit, appVersion } from "#lib/config.js";
+  import { analyticsRelease, appCommit, appVersion } from "#lib/config.js";
   import { authHandler } from "#lib/stores/authHandler.svelte.js";
   import { authStore } from "#lib/stores/auth.svelte.js";
   import SessionRenewalPanel from "#lib/components/SessionRenewalPanel.svelte";
-  import { loadFeatures } from "#lib/stores/features.js";
+  import { features, loadFeatures } from "#lib/stores/features.js";
   import { getHomelab } from "#lib/api/homelab.js";
   import { storedBlockedWizardConfig } from "#lib/wizard/stored-decisions.js";
   import { WizardInputError } from "#lib/wizard/wizardRunRequest.js";
   import {
     CREATION_PROCESSES,
+    focusedOnUseCase,
     withServerChoice,
   } from "#lib/creation/core/index.js";
   import { listCanonicalServers } from "#lib/api/registry.js";
   import { listKitDeployments } from "#lib/api/stacks.js";
+  import { listStackKits, type StackKitInfo } from "#lib/api/unifier.js";
   import {
+    homelabJoinTargets,
     homelabServerChoices,
+    type HomelabJoinTarget,
     type HomelabServerChoice,
     type HomelabServerSelection,
   } from "#lib/creation/homelab-servers.js";
-  import { AddUseCasesRun } from "#lib/creation/add-use-cases.svelte.js";
+  import {
+    AddUseCasesRun,
+    useCaseAccessBlockedNotice,
+  } from "#lib/creation/add-use-cases.svelte.js";
+  import {
+    USE_CASE_ACCESS_FLAG,
+    useCaseAccessBlockedGoals,
+  } from "#lib/creation/use-case-access.js";
   import { clearWizardDraft } from "#lib/wizard/draft-storage.js";
-  import type { LayoutRecommendationAcceptance } from "#lib/api/layout.js";
+  import type {
+    LayoutRecommendationAcceptance,
+    LayoutRunTarget,
+  } from "#lib/api/layout.js";
   import UseCasesAddedResult from "./UseCasesAddedResult.svelte";
   import {
     creationScreenHref,
@@ -53,6 +67,10 @@
   } from "#lib/analytics/posthog.js";
   import { tr } from "#lib/i18n.svelte.js";
   import {
+    walletDenialMessage,
+    walletDenialOf,
+  } from "#lib/kombify-wallet/denials.svelte.js";
+  import {
     putOperatorSelfDisclosure,
     type OperatorSelfDisclosure,
   } from "#lib/api/operatorProfile.js";
@@ -64,9 +82,10 @@
     embedded?: boolean;
     /** Host-owned navigation keeps the flow usable in a panel or modal shell. */
     onNavigate?: (href: string) => void | Promise<void>;
-    returnTo?: string;
     /** Ephemeral creation intent selected by the caller, without profile storage. */
     initialConfig?: StackConfig;
+    /** Separate a caller-owned creation draft from the normal creation draft. */
+    draftScope?: string;
     /** Already enrolled canonical server selected for its first StackKit. */
     existingServerId?: string;
     /** Voluntary answers a link handed over (the kombify Cloud capture surface). */
@@ -81,18 +100,24 @@
     chooseServer?: boolean;
     /** The server the person started from, chosen first when it can be used. */
     preferredServerId?: string;
+    /**
+     * The one use case the person opened the creation for (a use case on the
+     * dashboard): the server comes first, then that use case alone.
+     */
+    focusGoal?: string;
   }
 
   let {
     embedded = false,
     onNavigate,
-    returnTo,
     initialConfig,
+    draftScope,
     existingServerId,
     selfDisclosure = null,
     onSelfDisclosureSettled,
     chooseServer = false,
     preferredServerId = "",
+    focusGoal = "",
   }: Props = $props();
 
   // -- the person's existing servers, chosen on the Server step ---------------
@@ -124,6 +149,29 @@
       : undefined,
   );
   const chosenDeployment = $derived(chosenServer?.deploymentId);
+  // A chosen server without a StackKit may join one of the running
+  // deployments instead (`?join=<deployment>`); the address keeps the choice.
+  let joinTargets = $state<HomelabJoinTarget[]>([]);
+  let joinDeploymentId = $state(
+    untrack(() => page.url.searchParams.get("join") ?? ""),
+  );
+  const joinTarget = $derived(
+    chosenServer &&
+      chosenServer.state === "ready" &&
+      !chosenDeployment &&
+      joinTargets.some((target) => target.id === joinDeploymentId)
+      ? joinDeploymentId
+      : "",
+  );
+
+  function selectJoin(id: string) {
+    joinDeploymentId = id;
+    const url = new URL(currentUrl.href);
+    if (id) url.searchParams.set("join", id);
+    else url.searchParams.delete("join");
+    if (url.href !== currentUrl.href)
+      replaceState(`${url.pathname}${url.search}${url.hash}`, page.state);
+  }
   // One homelab per person: once they have a server, a new one adds use cases
   // to it rather than creating a homelab.
   const addsToHomelab = $derived(
@@ -131,9 +179,12 @@
   );
 
   function selectServer(id: string) {
+    // A join chosen for one server never carries over to another.
+    if (id !== selectedServerId) joinDeploymentId = "";
     selectedServerId = id;
     const url = new URL(currentUrl.href);
     url.searchParams.set("target", id ? `${TARGET_PREFIX}${id}` : "new");
+    if (!joinDeploymentId) url.searchParams.delete("join");
     if (url.href !== currentUrl.href)
       replaceState(`${url.pathname}${url.search}${url.hash}`, page.state);
   }
@@ -142,10 +193,13 @@
     homelabLoading = true;
     homelabFailed = false;
     try {
-      const [deployments, servers] = await Promise.all([
+      const [deployments, servers, kits] = await Promise.all([
         listKitDeployments(),
         listCanonicalServers(),
+        // Without the catalog no join is offered; the rest still works.
+        listStackKits().catch((): StackKitInfo[] => []),
       ]);
+      joinTargets = homelabJoinTargets(deployments, kits);
       const stackkits = new Map(
         deployments.map((deployment) => [
           deployment.id,
@@ -226,13 +280,35 @@
         },
         select: selectServer,
         retry: () => void loadHomelabServers(),
+        get joinTargets() {
+          return joinTargets;
+        },
+        get joinTarget() {
+          return joinTarget;
+        },
+        selectJoin,
       }
     : undefined;
 
   // Use cases for a server that runs a StackKit go through that StackKit.
   const addRun = new AddUseCasesRun();
+  // One draft per process and target, the same in every frame: the module
+  // that places use cases on a server and the page it continues on
+  // (`/use-cases/new?server=`) both name that server.
+  const draftServer = $derived(
+    existingServerId || (chooseServer ? preferredServerId : ""),
+  );
+  const draftKey = $derived(
+    draftScope ??
+      `${
+        /^[A-Za-z0-9_.:-]{1,160}$/.test(draftServer)
+          ? `stack-install-${draftServer}`
+          : "stack-create"
+      }${focusGoal ? `:use-case-${focusGoal}` : ""}`,
+  );
+  // An accepted run ends the draft.
   $effect(() => {
-    if (addRun.result) clearWizardDraft("stack-create");
+    if (addRun.result) void clearWizardDraft(untrack(() => draftKey));
   });
 
   // A link only prefills. Anyone can craft one, so handed-over answers are
@@ -271,9 +347,18 @@
     savedDecisionsError = false;
     savedDecisionsLoading = true;
   }
+  // Saved access decisions reopen only while their feature flag is on.
+  const allFeatures = features.allFeatures;
+  const restoredConfig = $derived.by(() => {
+    if (!savedConfig?.useCaseAccess) return savedConfig;
+    if ($allFeatures.get(USE_CASE_ACCESS_FLAG)?.enabled === true)
+      return savedConfig;
+    const { useCaseAccess: _hidden, ...rest } = savedConfig;
+    return rest;
+  });
   const wizardPrefill = $derived.by(() => {
     if (!handedOver || selfDisclosureState === "discarded")
-      return initialConfig ?? savedConfig;
+      return initialConfig ?? restoredConfig;
     const prefill = selfDisclosureWizardConfig(handedOver);
     // A profile import must not replace an explicit creation selection.
     return initialConfig
@@ -575,7 +660,7 @@
         (authStore.deploymentMode === "saas"
           ? "saas-embedded"
           : "selfhost-oss"),
-      appVersion,
+      appVersion: analyticsRelease,
       location: window.location,
     }).capture(event, {
       user,
@@ -632,22 +717,42 @@
     if (lastAttempt && !isDeploying) void handleCreate(lastAttempt);
   }
 
-  const process = $derived(
+  const baseProcess = $derived(
     chosenDeployment
       ? withServerChoice(CREATION_PROCESSES["add-use-case"])
+      : joinTarget
+        ? withServerChoice(CREATION_PROCESSES["join-on-server"])
       : chosenServer
         ? withServerChoice(CREATION_PROCESSES["place-on-server"])
         : existingServerId
           ? CREATION_PROCESSES["place-on-server"]
           : CREATION_PROCESSES.stack,
   );
+  const process = $derived(
+    focusGoal ? focusedOnUseCase(baseProcess, focusGoal) : baseProcess,
+  );
   const targetServerId = $derived(
     chosenServer && !chosenDeployment ? chosenServer.id : existingServerId,
   );
+  // The attempt a refusal ends: a join's key belongs to its deployment.
+  const attemptTarget = $derived(
+    joinTarget ? { stackId: joinTarget, existingServerId: targetServerId } : {},
+  );
+  // Refusals of a join whose guidance the backend words; the first two
+  // change nothing, so the next submit is a new attempt.
+  const JOIN_REFUSALS_NOTHING_CHANGED = new Set([
+    "wizard_join_multi_node_unsupported",
+    "wizard_join_existing_server_requires_running",
+  ]);
+  const JOIN_REFUSALS = new Set([
+    ...JOIN_REFUSALS_NOTHING_CHANGED,
+    "wizard_existing_server_not_admitted",
+    "wizard_join_existing_server_resume_unavailable",
+  ]);
 
   function openConflictStack() {
     if (conflictStackId) {
-      void navigate(`/stacks/${encodeURIComponent(conflictStackId)}`);
+      void navigate("/dashboard");
     }
   }
 
@@ -658,6 +763,14 @@
     validationStage = tr("ui.configurationFlow.validatingWithStackkits");
     const { run, request } = await submitCreationRun(process, config, {
       existingServerId: targetServerId,
+      ...(joinTarget
+        ? {
+            stackId: joinTarget,
+            stackName:
+              joinTargets.find((target) => target.id === joinTarget)?.name ??
+              "",
+          }
+        : {}),
     });
     captureStackCreationEvent(
       "techstack:stack_created",
@@ -675,10 +788,14 @@
 
   async function handleCreate(
     config: StackConfig,
-    extras?: { layoutRecommendation?: LayoutRecommendationAcceptance },
+    extras?: {
+      layoutRecommendation?: LayoutRecommendationAcceptance;
+      layoutTarget?: LayoutRunTarget;
+    },
   ) {
     if (chosenDeployment) {
       clearCreateError();
+      const target = extras?.layoutTarget;
       await addRun.submit(
         {
           stackId: chosenDeployment,
@@ -686,6 +803,11 @@
         },
         config,
         extras?.layoutRecommendation,
+        target && {
+          ...target,
+          stackName:
+            target.stackName || (deploymentNames.get(target.stackId) ?? ""),
+        },
       );
       return;
     }
@@ -778,15 +900,14 @@
           retryable: true,
         });
       } else if (parsed.isAuthError) {
-        // Use global auth handler for 401 errors. Auto-redirect is disabled
-        // here: a full-page bounce would destroy the in-memory wizard config.
+        // The session needs renewal: renew in place and create again. The
+        // in-memory wizard config stays; nothing was created yet.
         isDeploying = false;
         const outcome = await authHandler.handleUnauthorized(
-          // Retry function - will be called after successful re-login
           async () => {
             await handleCreate(config);
           },
-          "auth.session.expired.default",
+          undefined,
           error,
           { allowAutoRedirect: false },
         );
@@ -836,22 +957,38 @@
         }
       } else if (parsed.status === 409 || (error as any)?.status === 409) {
         const conflictDetails = createErrorDetails(parsed.details);
+        const walletRefusal = walletDenialOf({
+          code: conflictDetails.reasonCode ?? undefined,
+          details: parsed.details,
+        });
         if (
           conflictDetails.reasonCode === "wizard_desired_projection_blocked"
         ) {
           // The owner decisions are durably saved. A later edited decision is
           // a new request, while this saved request keeps its original key.
-          forgetCreationAttempt(process, {});
+          forgetCreationAttempt(process, attemptTarget);
           conflictStackId = null;
           conflictStackName = null;
-          showCreateError({
-            title:
-              conflictDetails.guidanceTitle || tr("wizard.error.blocked.title"),
-            message:
-              conflictDetails.guidanceBody ?? tr("wizard.error.blocked.body"),
-            steps: nextStepsOf(conflictDetails),
-            technical: technicalLines(parsed, parsed.message),
-          });
+          // Access for one use case: said with its name, without codes.
+          const accessBlocked = useCaseAccessBlockedGoals(error);
+          const notice =
+            accessBlocked.length > 0
+              ? useCaseAccessBlockedNotice(accessBlocked)
+              : null;
+          showCreateError(
+            notice
+              ? { title: notice.title, message: notice.body }
+              : {
+                  title:
+                    conflictDetails.guidanceTitle ||
+                    tr("wizard.error.blocked.title"),
+                  message:
+                    conflictDetails.guidanceBody ??
+                    tr("wizard.error.blocked.body"),
+                  steps: nextStepsOf(conflictDetails),
+                  technical: technicalLines(parsed, parsed.message),
+                },
+          );
         } else if (
           conflictDetails.reasonCode === "wizard_idempotency_conflict" ||
           conflictDetails.reasonCode === "idempotency_conflict"
@@ -859,7 +996,7 @@
           // The session's attempt key already completed a DIFFERENT run.
           // Discard it so the next submit mints a fresh key instead of
           // dead-ending every retry on the same 409.
-          forgetCreationAttempt(process, {});
+          forgetCreationAttempt(process, attemptTarget);
           conflictStackId = conflictDetails.stackId || null;
           conflictStackName = null;
           showCreateError({
@@ -867,6 +1004,31 @@
               "ui.configurationFlow.aPreviousSubmissionAlreadyCompleted",
             ),
             message: tr("ui.configurationFlow.anEarlierSubmissionFromThis"),
+            technical: technicalLines(parsed, parsed.message),
+            retryable: true,
+          });
+        } else if (JOIN_REFUSALS.has(conflictDetails.reasonCode ?? "")) {
+          if (JOIN_REFUSALS_NOTHING_CHANGED.has(conflictDetails.reasonCode ?? ""))
+            forgetCreationAttempt(process, attemptTarget);
+          conflictStackId = null;
+          conflictStackName = null;
+          showCreateError({
+            title:
+              conflictDetails.guidanceTitle ||
+              tr("ui.configurationFlow.theBackendRejectedThisStackkit"),
+            message: conflictDetails.guidanceBody ?? parsed.message,
+            steps: nextStepsOf(conflictDetails),
+            technical: technicalLines(parsed, parsed.message),
+          });
+        } else if (walletRefusal) {
+          // A Wallet refusal (Techstack may not save credentials yet) is not a
+          // name conflict: the client already raised the Wallet prompt, and
+          // the same answers can be submitted again once it is allowed.
+          conflictStackId = null;
+          conflictStackName = null;
+          showCreateError({
+            title: tr("ui.configurationFlow.deploymentFailed"),
+            message: walletDenialMessage(walletRefusal),
             technical: technicalLines(parsed, parsed.message),
             retryable: true,
           });
@@ -964,7 +1126,7 @@
 
 <div
   class={embedded
-    ? "w-full min-w-0 overflow-x-hidden p-6"
+    ? "flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-hidden px-5 pt-3 pb-1"
     : "w-full min-w-0 overflow-x-hidden px-3 py-6 sm:px-6 lg:p-8"}
   data-flow="configuration"
   data-presentation={embedded ? "embedded" : "page"}
@@ -1010,13 +1172,14 @@
       </div>
     </ErrorCallout>
   {:else if addRun.result && chosenDeployment}
+    {@const extended = addRun.target ?? {
+      stackId: chosenDeployment,
+      stackName: deploymentNames.get(chosenDeployment) ?? "",
+    }}
     <UseCasesAddedResult
       result={addRun.result}
-      stackId={chosenDeployment}
-      progressHref={addRun.progressHref(
-        chosenDeployment,
-        deploymentNames.get(chosenDeployment) ?? "",
-      )}
+      stackId={extended.stackId}
+      progressHref={addRun.progressHref(extended.stackId, extended.stackName)}
       {embedded}
     />
   {:else if !holdWizardForSelfDisclosure}
@@ -1025,9 +1188,7 @@
       oncreate={handleCreate}
       isDeploying={isDeploying || addRun.submitting}
       initialConfig={wizardPrefill}
-      draftKey={existingServerId
-        ? `stack-install-${existingServerId}`
-        : "stack-create"}
+      {draftKey}
       {homelab}
       layoutStackId={chosenDeployment}
       layoutReplacement={chosenDeployment ? addRun.replacement : undefined}
@@ -1085,7 +1246,12 @@
             tabindex="-1"
             class="scroll-mt-6 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <SessionRenewalPanel returnTo={returnTo ?? currentRoute()} />
+            <SessionRenewalPanel
+              onRenewed={async () => {
+                sessionRenewalRequired = false;
+                if (lastAttempt) await handleCreate(lastAttempt);
+              }}
+            />
           </div>
         {/if}
 

@@ -269,10 +269,102 @@ enum StackKitOperation {
   STACKKIT_OPERATION_RELOCATE_ABORT = 65;
   // Author a bounded use-case configuration candidate without applying runtime changes.
   STACKKIT_OPERATION_USE_CASE_CONFIGURE = 66;
+  // Native application transfer between two managed nodes of one Owner
+  // (StackKits `stackkit backup transfer-*` and `use-cases add --output`).
+  // application_transfer_json names exactly one closed step; Guard maps it to
+  // fixed argv and private 0600 files. Receiving steps carry the node's
+  // application-transfer.receive capability and source/destination
+  // retirements the application-transfer.retire capability in
+  // advanced_capability. The archive is age-encrypted to the receiving node
+  // and travels node to node; Core carries only signed public documents.
+  STACKKIT_OPERATION_APPLICATION_TRANSFER = 67;
   // Author a retained-data candidate for one workload or an exact catalog use case.
   STACKKIT_OPERATION_USE_CASE_REMOVE = 68;
   // Apply one Cloud owner/person generation under the node lifecycle lock.
   STACKKIT_OPERATION_HOUSEHOLD_PROJECT = 69;
+  // Homelab identity agent link (HOMELAB-IDENTITY-ACCESS-TARGET section 7,
+  // Gateway ADR 0042 "Agent node envelope contract"; agent capability
+  // stackkit.agent-link.v1). `stackkit identity agent-link install` pins the
+  // Gateway agent envelope key of this server's Connect registration and the
+  // D10 references from agent_link_request; the node verifies the exact
+  // bytes against --expect-sha256 and binds the link to its own Guard
+  // enrollment. A first pin, new key or new owner waits on the node for the
+  // Owner's passkey step-up and answers pending until it is approved.
+  STACKKIT_OPERATION_AGENT_LINK_INSTALL = 70;
+  // `stackkit identity agent-link remove`: delete the pin when the server is
+  // detached or its Connect node is revoked.
+  STACKKIT_OPERATION_AGENT_LINK_REMOVE = 71;
+  // Home graph sync (catalog operation application.home-graph.sync): project
+  // the owner's kombify home graph onto the node's Home Assistant through the
+  // node-held connector credential, or observe its inventory. Binds the
+  // original connector setup through application_operation_id and
+  // application_connector_request_json (action ensure) and carries the graph
+  // in home_graph_sync_request. The command is idempotent: a re-run converges
+  // to the same Home Assistant state, so a lost ACK is safe to repeat.
+  STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_SYNC = 72;
+  // Guard host operations (agent capabilities stackkit.host-inspect.v1 and
+  // stackkit.host-operate.v1). The Guard runs them itself with fixed argv, not
+  // through the pinned StackKits CLI: they carry no StackSpec, workspace
+  // binding or capability document, and no free-form shell path exists.
+  // Read-only: the node's processes (`ps`), at most host_list_limit rows.
+  STACKKIT_OPERATION_HOST_LIST_PROCESSES = 73;
+  // Read-only: every container of the node's Docker engine with its owner
+  // (StackKits-managed or unmanaged), at most host_list_limit rows.
+  STACKKIT_OPERATION_HOST_LIST_CONTAINERS = 74;
+  // `docker start|stop|restart` of one container named host_target. The Guard
+  // refuses StackKits-managed containers, which run only through the managed
+  // service actions, and its own container.
+  STACKKIT_OPERATION_HOST_CONTAINER_ACTION = 75;
+  // `systemctl start|stop|restart` of one .service unit named host_target. The
+  // Guard refuses units of the management path (Guard, sshd, Docker, the
+  // network and the init system itself).
+  STACKKIT_OPERATION_HOST_SYSTEMD_ACTION = 76;
+  // Single-application update (D-2026-11-12-06): `stackkit use-cases upgrade
+  // <use_case> --to <application_version> --digest <application_digest>
+  // --capability <file> [--accept-untested] --apply --owner-approve --json`
+  // (catalog operation application-release.update). The node checkpoints the
+  // application's data, moves only that application and rolls it back
+  // automatically when generate, apply or verify fails; the result names
+  // update_outcome (updated, rolled_back, rollback_failed, refused). Requires
+  // owner_approved and the application-release.update capability
+  // (advanced_capability) of exactly this use case, release, digest and kind.
+  STACKKIT_OPERATION_USE_CASE_UPGRADE = 77;
+  // "Stack it" (StackKits application.stack.*, agent capability
+  // stackkit.application-stack.v1): one existing single container StackKits did
+  // not install is rebuilt as an own application (techstack.own-application/v4).
+  // Each carries application_container_id and own_application_name.
+  // application.stack.plan: kept/changed/refused rows and the plan digest.
+  STACKKIT_OPERATION_APPLICATION_STACK_PLAN = 78;
+  // application.stack: adopt the reviewed plan (application_plan_digest).
+  STACKKIT_OPERATION_APPLICATION_STACK = 79;
+  // application.stack.verify: read the adoption and its retention deadline.
+  STACKKIT_OPERATION_APPLICATION_STACK_VERIFY = 80;
+  // application.stack.restore-original: within retention, back to the original.
+  STACKKIT_OPERATION_APPLICATION_STACK_RESTORE_ORIGINAL = 81;
+  // application.stack.release-original: remove the stopped original.
+  STACKKIT_OPERATION_APPLICATION_STACK_RELEASE_ORIGINAL = 82;
+  // Loxone import (catalog operation application.home-graph.loxone-import):
+  // read the Miniserver structure file read-only with the Miniserver
+  // credential kept on the node and merge its rooms and controls into the
+  // home graph carried in home_graph_document. Runs on the node of the home
+  // graph sync (binds the same connector setup through
+  // application_operation_id and application_connector_request_json, action
+  // ensure); writes nothing, so a lost ACK is safe to repeat.
+  STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_LOXONE_IMPORT = 83;
+  // One own-application lifecycle operation (StackKits own-application.*,
+  // agent capability stackkit.own-application-lifecycle.v1), named by
+  // own_application_operation: status, logs, review, update.review,
+  // checkpoint-rollback.review, checkpoint-discard.review (reads), and start,
+  // stop, restart, update, rollback, checkpoint-rollback, checkpoint-discard
+  // (executions of a reviewed dry run under the own-application.lifecycle
+  // capability in advanced_capability, with application_operation_id and
+  // own_application_review_digest). Raw own-application result in data.output.
+  STACKKIT_OPERATION_OWN_APPLICATION = 84;
+  // own-application.backup: `stackkit backup run --operation-id <id> --json`,
+  // a node snapshot holding every own application volume.
+  STACKKIT_OPERATION_OWN_APPLICATION_BACKUP = 85;
+  // Confirmed home graph adoption or read-only inventory, on the connector node.
+  STACKKIT_OPERATION_APPLICATION_HOME_GRAPH_ADOPT = 86;
 }
 
 enum StackKitDriftMode {
@@ -692,6 +784,10 @@ message StackKitCommand {
   string relocation_transfer_id = 72;
   // USE_CASE_CONFIGURE only: strict public catalog intent. Guard chooses every argv and candidate path.
   bytes use_case_configuration_json = 73;
+  // APPLICATION_TRANSFER only: closed techstack.application-transfer-step/v1
+  // request (at most 1 MiB): the step, the selection, the peer address and
+  // the signed public documents of earlier steps. Never a secret or a path.
+  bytes application_transfer_json = 74;
   // USE_CASE_REMOVE only: strict retained-data selector and catalog membership.
   bytes use_case_removal_json = 75;
   // HOUSEHOLD_PROJECT only: opaque owner/person digest, positive generation,
@@ -701,6 +797,61 @@ message StackKitCommand {
   string household_projection_action = 78;
   // Gateway-signed one-use RIL authority; only valid for expected-plan VERIFY.
   RILExecutionProof ril_execution_proof = 79;
+  // AGENT_LINK_INSTALL only: the exact stackkit.home-agent-link-request/v1
+  // JSON (at most 64 KiB): server, Connect tenant, the Gateway agent_envelope
+  // key document, the owner's kombify subject and the D10-linked members. Public
+  // values only; the Guard writes it to a workspace file and passes its digest.
+  bytes agent_link_request = 80;
+  // APPLICATION_HOME_GRAPH_SYNC only: the exact
+  // stackkit.home-graph-sync-request/v1 JSON (at most 512 KiB): the
+  // kombify.home_graph.v1 graph and the bounded restore list. Public home
+  // structure only; no credential. The Guard writes it to a private
+  // workspace file.
+  bytes home_graph_sync_request = 81;
+  // HOST_CONTAINER_ACTION (container name or id) and HOST_SYSTEMD_ACTION (unit
+  // name) only: the one object of the action.
+  string host_target = 82;
+  // HOST_CONTAINER_ACTION and HOST_SYSTEMD_ACTION only: start, stop or restart.
+  string host_action = 83;
+  // HOST_LIST_PROCESSES and HOST_LIST_CONTAINERS only: row bound, 0 = default.
+  int32 host_list_limit = 84;
+  // USE_CASE_UPGRADE only: the catalog use case slug whose one application
+  // moves, the exact upstream release (image tag) and its sha256 manifest
+  // digest, and the owner's acknowledgement that the release is untested.
+  string use_case = 85;
+  string application_version = 86;
+  string application_digest = 87;
+  bool accept_untested = 88;
+  // BACKUP_RESTORE_ACTIVATE and ADVANCED_CHANGE_SET_APPLY only: the compact
+  // decision receipt (JWS) the platform's ledger signed for exactly this
+  // operation, and the acting principal it binds (<person|agent_instance>:<id>).
+  // The Agent writes the receipt to a 0600 file and passes
+  // --decision-receipt @<file> --decision-principal <principal>; the pinned
+  // StackKits CLI verifies and spends it. Set at dispatch, never persisted.
+  string decision_receipt = 89;
+  string decision_principal = 90;
+  // APPLICATION_STACK_* only: the own application name the adopted container
+  // becomes (own-<name>).
+  string own_application_name = 91;
+  // APPLICATION_HOME_GRAPH_LOXONE_IMPORT only: the exact kombify.home_graph.v1
+  // document (at most 480 KiB) the import merges into. Public home structure
+  // only; no credential. The Agent writes it to a private workspace file.
+  bytes home_graph_document = 92;
+  // OWN_APPLICATION only: the catalog operation (own-application.<step>), the
+  // review digest its dry run returned (executions), the reviewed action of
+  // own-application.review (start, stop, restart, rollback), the version tag
+  // and resolved digest reference of a tag update, whether the review
+  // admitted another major version, and the operation ID of the tag update
+  // whose data checkpoint a rollback restores or a discard removes.
+  string own_application_operation = 93;
+  string own_application_review_digest = 94;
+  string own_application_action = 95;
+  string own_application_image_tag = 96;
+  string own_application_resolved_image = 97;
+  bool own_application_allow_major = 98;
+  string own_application_checkpoint = 99;
+  // APPLICATION_HOME_GRAPH_ADOPT only: stackkit.home-graph-adoption-request/v1.
+  bytes home_graph_adoption_request = 100;
 }
 
 // Public, bounded Gateway proofs. No key material or authority URLs travel here.
@@ -746,6 +897,12 @@ message StackKitResult {
   // FEDERATION_HANDOFF only: the public document the step produced for the
   // other node, read by the Agent from the pinned CLI's own output.
   bytes handoff_document = 16;
+  // PLAN and ADVANCED_CHANGE_SET_CREATE only: sha256:<64 hex> of the bytes of
+  // the workspace StackSpec (working_directory/spec_path) the command ran
+  // against, read by the Agent after the command. It is the revision a
+  // decision receipt binds (StackKits docs/DECISION-RECEIPTS.md); empty when
+  // the Agent could not read the file.
+  string workspace_revision = 17;
 }
 
 // =============================================================================

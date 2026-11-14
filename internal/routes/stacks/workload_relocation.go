@@ -11,6 +11,7 @@ import (
 	"github.com/kombifyio/techstack/pkg/httpx"
 	"github.com/kombifyio/techstack/pkg/jobs"
 	"github.com/kombifyio/techstack/pkg/orchestrator"
+	"github.com/kombifyio/techstack/pkg/stackkitcommand"
 )
 
 // Called from the existing CRUD route composition with its configured stores.
@@ -76,6 +77,9 @@ func (h crudRouteHandlers) startWorkloadRelocation(e *httpx.Event) error {
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Workload relocation is unavailable", nil)
 	}
 	var body struct {
+		Engine             string   `json:"engine,omitempty"`
+		UseCase            string   `json:"use_case,omitempty"`
+		Workloads          []string `json:"workloads,omitempty"`
 		SourceAgentID      string   `json:"source_agent_id"`
 		DestinationStackID string   `json:"destination_stack_id"`
 		DestinationAgentID string   `json:"destination_agent_id"`
@@ -91,12 +95,27 @@ func (h crudRouteHandlers) startWorkloadRelocation(e *httpx.Event) error {
 	if len(e.Request.Header.Values("Idempotency-Key")) != 1 {
 		return httpx.BadRequest(e, "Exactly one Idempotency-Key is required")
 	}
-	input := orchestrator.WorkloadRelocationInput{SourceStackID: strings.TrimSpace(e.Request.PathValue("id")), SourceAgentID: body.SourceAgentID, DestinationStackID: body.DestinationStackID, DestinationAgentID: body.DestinationAgentID, Projects: body.Projects, ResourceUUIDs: body.ResourceUUIDs, WalletItemID: body.WalletItemID, DomainSwitches: body.DomainSwitches, OwnerApproved: body.OwnerApproved}
+	input := orchestrator.WorkloadRelocationInput{Engine: strings.TrimSpace(body.Engine), UseCase: strings.TrimSpace(body.UseCase), Workloads: body.Workloads, SourceStackID: strings.TrimSpace(e.Request.PathValue("id")), SourceAgentID: body.SourceAgentID, DestinationStackID: body.DestinationStackID, DestinationAgentID: body.DestinationAgentID, Projects: body.Projects, ResourceUUIDs: body.ResourceUUIDs, WalletItemID: body.WalletItemID, DomainSwitches: body.DomainSwitches, OwnerApproved: body.OwnerApproved}
 	if !input.OwnerApproved || input.SourceStackID == "" || input.DestinationStackID == "" {
 		return httpx.BadRequest(e, "Source, destination and explicit Owner approval are required")
 	}
-	if err := jobs.ValidateWorkloadRelocationSelection(input.Projects, input.ResourceUUIDs); err != nil {
-		return httpx.BadRequest(e, err.Error())
+	switch input.Engine {
+	case jobs.RelocationEngineNative:
+		if len(input.Projects) != 0 || len(input.ResourceUUIDs) != 0 || input.WalletItemID != "" || len(input.DomainSwitches) != 0 {
+			return httpx.BadRequest(e, "A native move takes a use case or one application, not Coolify projects, a Wallet item or domain switches")
+		}
+		if err := stackkitcommand.ValidateApplicationTransferSelection(input.UseCase, input.Workloads); err != nil {
+			return httpx.BadRequest(e, err.Error())
+		}
+	case "", jobs.RelocationEngineCoolify:
+		if input.UseCase != "" || len(input.Workloads) != 0 {
+			return httpx.BadRequest(e, "Use cases and applications move with engine native")
+		}
+		if err := jobs.ValidateWorkloadRelocationSelection(input.Projects, input.ResourceUUIDs); err != nil {
+			return httpx.BadRequest(e, err.Error())
+		}
+	default:
+		return httpx.BadRequest(e, "engine must be coolify or native")
 	}
 	for _, target := range []struct{ stack, agent string }{{input.SourceStackID, input.SourceAgentID}, {input.DestinationStackID, input.DestinationAgentID}} {
 		if h.stackStore == nil {
@@ -125,5 +144,9 @@ func (h crudRouteHandlers) startWorkloadRelocation(e *httpx.Event) error {
 	if err != nil {
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Relocation prerequisites are unavailable", map[string]any{"reason": err.Error()})
 	}
-	return httpx.Success(e, http.StatusAccepted, map[string]any{"job_id": id, "kit_deployment_id": input.SourceStackID, "operation": "workload_relocation", "source_retained": true})
+	engine := input.Engine
+	if engine == "" {
+		engine = jobs.RelocationEngineCoolify
+	}
+	return httpx.Success(e, http.StatusAccepted, map[string]any{"job_id": id, "kit_deployment_id": input.SourceStackID, "operation": "workload_relocation", "engine": engine, "source_retained": true})
 }

@@ -7,7 +7,6 @@ import { companion } from "#lib/companion/ask.svelte.js";
 import { getJob, streamJobProgress } from "#lib/api/jobs.js";
 import { getRuntimeLogs } from "#lib/api/runtime-logs.js";
 import { renewNodePairing } from "#lib/api/pairing.js";
-import { getBestPublicServerUrl } from "#lib/api/client.js";
 import {
   deployStack,
   provisionStack,
@@ -30,7 +29,6 @@ import {
   getCanonicalServer,
   type CanonicalServer,
 } from "#lib/api/registry.js";
-import { getNetworks } from "#lib/discovery/api.js";
 import { getWorkerRegistryUrl } from "#lib/api/tunnel.js";
 import { getGuardBinaryPins } from "#lib/api/workers.js";
 import {
@@ -55,7 +53,7 @@ import {
   resolvePlannedServerTarget,
   serverHasFreshGuardHeartbeat,
 } from "#lib/wizard/guard-connection.js";
-import { appVersion } from "#lib/config.js";
+import { analyticsRelease, appVersion } from "#lib/config.js";
 import { NEW_SERVER_CREATION_HREF } from "#lib/server-links.js";
 import { authStore } from "#lib/stores/auth.svelte.js";
 import {
@@ -73,8 +71,7 @@ import {
   createAddServerTaskList,
   updateTasksFromJob,
   updateTasksWithError,
-  generateInstallCommand,
-  generateInstallCommands,
+  generatePinnedConnectCommand,
   parseManagedRuntimeProviderError,
   STEP_DETAILS,
   RUNTIME_TASKS,
@@ -109,7 +106,6 @@ import {
   getBoolean,
   getString,
   hasVerifiedRuntimeResult,
-  isLocalhostHost,
   isRunningJobStatus,
   isServerProvisioningMode,
   normalizeCreationOperation,
@@ -171,6 +167,7 @@ let remoteServerHost = $state("");
 let remoteServerUser = $state("");
 let remoteServerPort = $state<number | null>(null);
 let serverUrl = $state("");
+let registryConnectCommand = $state("");
 // The private-LAN bridge pin applies only while serverUrl is that bridge.
 let lanBridge = $state<{ url: string; pin: string } | null>(null);
 let lanPin = $derived(lanBridge && lanBridge.url === serverUrl ? lanBridge.pin : "");
@@ -594,7 +591,7 @@ let servicesHref = $derived(() => {
     : "/services";
 });
 let proofRows = $derived(
-  [
+  ([
     ["simulation", tr("ui.stacksCreatingCreation-controller.simulationGate")],
     ["rollout", tr("ui.stacksCreatingCreation-controller.stackkitRollout")],
     [
@@ -602,7 +599,7 @@ let proofRows = $derived(
       tr("ui.stacksCreatingCreation-controller.serviceVerification"),
     ],
     ["restore", tr("ui.stacksCreatingCreation-controller.restoreDrill")],
-  ]
+  ] as const)
     .map(([key, label]) => ({
       key,
       label,
@@ -661,24 +658,24 @@ function syncTaskListForOperation() {
   }
 }
 
-// Generate install command
+// Pairing authority stays in Techstack; the command never contains the capability.
 let installCommand = $derived(
-  showInstallCommand && registrationToken && serverUrl
-    ? generateInstallCommand(serverUrl, registrationToken, lanPin, binaryPin)
-    : "",
+  lanPin ? generatePinnedConnectCommand(serverUrl, lanPin, binaryPin) : registryConnectCommand,
 );
-let allInstallCommands = $derived(
-  showInstallCommand && registrationToken && serverUrl
-    ? generateInstallCommands(serverUrl, registrationToken, lanPin, binaryPin)
-    : [],
-);
+
+async function loadConnectCommand() {
+  registryConnectCommand = "";
+  const registry = await getWorkerRegistryUrl();
+  serverUrl = registry.url;
+  registryConnectCommand = registry.connect_command;
+  lanBridge = registry.lan_pin ? { url: registry.url, pin: registry.lan_pin } : null;
+}
 
 // The command the person runs on their own server is the next step of a
 // finished creation: shown once there is one and no Guard pairing replaces it.
 let installCommandVisible = $derived(
   showInstallCommand &&
     Boolean(registrationToken) &&
-    Boolean(installCommand) &&
     !agentPairingRequired,
 );
 
@@ -1184,7 +1181,8 @@ async function recoverPairingCommand() {
   pairingRecoveryBusy = true;
   pairingRecoveryError = "";
   try {
-    if (!binaryPin) await loadBinaryPins();
+    await loadConnectCommand();
+    if (lanPin && !binaryPin) await loadBinaryPins();
     const job = await getJob(pairingJobId || jobId);
     const metadata = normalizeJobResult(job.result);
     const pairing = await renewNodePairing(stackId, metadata || {});
@@ -1317,7 +1315,7 @@ function captureRolloutEvent(
     edition:
       bootstrap.kombifyEdition ||
       (authStore.deploymentMode === "saas" ? "saas-embedded" : "selfhost-oss"),
-    appVersion,
+    appVersion: analyticsRelease,
     location: window.location,
   }).capture(event, {
     user,
@@ -1680,66 +1678,11 @@ async function mount() {
     });
   }
 
-  // Determine server URL for install command.
-  // On a hosted SaaS (techstack.kombify.io, *.onrender.com, custom domain) the
-  // window already resolves to a public, worker-reachable URL. Falling back to
-  // a LAN/RFC1918 address from getNetworks() in that scenario yields a worker
-  // command pointing at an unreachable host (e.g. 10.31.x.x on Render). Only
-  // attempt the LAN scan when the UI itself is being served from localhost,
-  // which only happens on self-hosted/dev workstations.
-  let bestUrl = getBestPublicServerUrl();
-  const runningOnLocalhost = isLocalhostHost(window.location.hostname);
-
-  if (
-    runningOnLocalhost &&
-    (bestUrl.includes("localhost") || bestUrl.includes("127.0.0.1"))
-  ) {
-    try {
-      const networks = await getNetworks();
-      let candidate = "";
-
-      // Find first non-loopback IPv4
-      for (const net of networks) {
-        for (const ip of net.ips) {
-          // Simple IPv4 check (contains dot, not 127.x)
-          if (ip.includes(".") && !ip.startsWith("127.")) {
-            // Prefer standard home/office private ranges over likely Docker ranges (172.x)
-            if (ip.startsWith("192.168.") || ip.startsWith("10.")) {
-              candidate = ip;
-              break;
-            }
-            // Fallback to any other private IP (e.g. 172.x) if we haven't found a better one yet
-            if (!candidate) candidate = ip;
-          }
-        }
-        // If we found a preferred candidate, stop searching
-        if (
-          candidate &&
-          (candidate.startsWith("192.168.") || candidate.startsWith("10."))
-        ) {
-          break;
-        }
-      }
-
-      if (candidate) {
-        const port = window.location.port ? `:${window.location.port}` : "";
-        bestUrl = `${window.location.protocol}//${candidate}${port}`;
-      }
-    } catch (e) {
-      console.warn("Failed to get local networks:", e);
-    }
+  try {
+    await loadConnectCommand();
+  } catch {
+    pairingRecoveryError = tr("connect.unavailable");
   }
-
-  if (runningOnLocalhost) {
-    try {
-      const registry = await getWorkerRegistryUrl();
-      if (registry.url) bestUrl = registry.url;
-      lanBridge = registry.url && registry.lan_pin ? { url: registry.url, pin: registry.lan_pin } : null;
-    } catch (e) {
-      console.warn("Failed to resolve the private-LAN enrollment URL:", e);
-    }
-  }
-  serverUrl = bestUrl || window.location.origin;
   if (pageDestroyed) return;
   void loadBinaryPins();
 
@@ -2789,9 +2732,7 @@ export const creation = {
   get installCommandVisible() {
     return installCommandVisible;
   },
-  get allInstallCommands() {
-    return allInstallCommands;
-  },
+
   get resumeAvailableLabel() {
     return resumeAvailableLabel;
   },

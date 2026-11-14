@@ -37,11 +37,13 @@ func RegisterTunnelRoutes(r *httpx.Router, resolver *tunnel.RegistryURLResolver,
 		}
 
 		response := map[string]any{
-			"url":  url,
-			"mode": string(resolver.GetCurrentMode()),
+			"url":             url,
+			"mode":            string(resolver.GetCurrentMode()),
+			"connect_command": tunnel.ConnectCommand(url),
 		}
 		if pin := resolver.LocalBridgePin(url); pin != "" {
 			response["lan_pin"] = pin
+			response["connect_command"] = ""
 		}
 		return httpx.Success(e, http.StatusOK, response)
 	})
@@ -183,9 +185,13 @@ func tunnelInstallCommand(e *httpx.Event, resolver *tunnel.RegistryURLResolver, 
 	if err := e.BindBody(&req); err != nil {
 		return httpx.Error(e, http.StatusBadRequest, ksapi.ErrCodeValidation, "invalid request body", nil)
 	}
+	connect := req.Mode == "connect"
+	if connect && req.Token != "" {
+		return httpx.Error(e, http.StatusBadRequest, ksapi.ErrCodeValidation, "connect prepares a fresh pairing", nil)
+	}
 	reinstall := req.Mode == installCommandModeReinstallGuard
-	if req.Mode != "" && req.Mode != installCommandModeInstall && !reinstall {
-		return httpx.Error(e, http.StatusBadRequest, ksapi.ErrCodeValidation, "mode must be install or reinstall-guard", nil)
+	if req.Mode != "" && req.Mode != installCommandModeInstall && !reinstall && !connect {
+		return httpx.Error(e, http.StatusBadRequest, ksapi.ErrCodeValidation, "mode must be install, connect or reinstall-guard", nil)
 	}
 	tokenName := "Install command"
 	if reinstall {
@@ -217,6 +223,20 @@ func tunnelInstallCommand(e *httpx.Event, resolver *tunnel.RegistryURLResolver, 
 		minted, req.Token = &token, token.Token
 	}
 
+	if connect {
+		registryURL, err := resolver.GetRegistryURL(ctx)
+		if err != nil {
+			return httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Connection origin is unavailable", nil)
+		}
+		e.Response.Header().Set("Cache-Control", "no-store")
+		return httpx.Success(e, http.StatusOK, map[string]any{
+			"command":      tunnel.ConnectCommand(registryURL),
+			"pairing":      minted.Token,
+			"expires_at":   minted.ExpiresAt,
+			"registry_url": registryURL,
+			"lan_pin":      resolver.LocalBridgePin(registryURL),
+		})
+	}
 	if reinstall {
 		return tunnelGuardReinstallCommand(ctx, e, resolver, req.Token, minted)
 	}

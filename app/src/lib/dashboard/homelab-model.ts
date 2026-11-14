@@ -124,7 +124,9 @@ export function hasUserInterface(service: CanonicalService): boolean {
 }
 
 /** The component that speaks for an application on its tile. */
-function representative(members: CanonicalService[]): CanonicalService {
+function representative(
+  members: CanonicalService[],
+): CanonicalService | undefined {
   return (
     members.find((member) => serviceAccessUrl(member)) ??
     members.find(isCatalogApp) ??
@@ -196,6 +198,7 @@ export function foldApplications(
       continue;
     }
     const lead = representative(group);
+    if (!lead) continue;
     apps.push(lead);
     members[lead.id] = group;
   }

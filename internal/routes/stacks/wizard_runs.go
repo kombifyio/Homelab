@@ -61,10 +61,6 @@ const (
 	stackConfigKeySpecV1State = "stack_spec_v1_state"
 	stackConfigSpecV1Archived = "archived"
 
-	// wizardRunFeatureKey gates the facade behind the same beta flag as the
-	// preview endpoint (pkg/features/flags.go).
-	wizardRunFeatureKey = "native_v2_wizard"
-
 	maxWizardRunBodyBytes = 2 << 20
 
 	wizardRunUserGuidanceKey = "user_guidance"
@@ -93,19 +89,22 @@ const (
 // Validator, and Migrator are release-bound dependencies; Trust carries the
 // pairing mint stores.
 type WizardRunRouteConfig struct {
-	AuthRuntime        auth.RuntimeStore
-	Orch               *orchestrator.Orchestrator
-	DeploymentMode     config.DeploymentMode
-	Features           managedRuntimeFeatureChecker
-	Seeds              specv2.SeedSource
-	Projector          specv2.Projector
-	Validator          specv2.SpecValidator
-	Migrator           specv2.SpecMigrator
-	ReleaseVersion     string
-	Trust              trust.RouteStores
-	ManagedLeases      jobs.ManagedLeaseManager
-	ManagedExpansion   WizardManagedRuntimeExpansion
-	ExistingServers    WizardExistingServers
+	AuthRuntime      auth.RuntimeStore
+	Orch             *orchestrator.Orchestrator
+	DeploymentMode   config.DeploymentMode
+	Features         managedRuntimeFeatureChecker
+	Seeds            specv2.SeedSource
+	Projector        specv2.Projector
+	Validator        specv2.SpecValidator
+	Migrator         specv2.SpecMigrator
+	ReleaseVersion   string
+	Trust            trust.RouteStores
+	ManagedLeases    jobs.ManagedLeaseManager
+	ManagedExpansion WizardManagedRuntimeExpansion
+	ExistingServers  WizardExistingServers
+	// MultiNodeJoin gates an enrolled server joining a deployment on the
+	// pinned StackKits release. Nil refuses every such join.
+	MultiNodeJoin      WizardMultiNodeJoin
 	GuestProvisioner   WizardGuestProvisioner
 	NotificationOutbox productnotifications.ProductEventEnqueuer
 	Wallet             controlplane.WalletStore
@@ -301,19 +300,6 @@ func (h wizardRunHandlers) createWizardRun(e *httpx.Event) error {
 				"Wizard runs persist through the Postgres control plane, which is not configured on this instance.",
 			))
 	}
-	if !h.wizardRunEnabled(e.Request.Context(), ownerID) {
-		return httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden,
-			"The native v2 wizard is not enabled for this account", map[string]any{
-				detailsKeyReasonCode: "feature_not_enabled",
-				"required_features":  []string{wizardRunFeatureKey},
-				"missing_features":   []string{wizardRunFeatureKey},
-				detailsKeyRetryable:  false,
-				wizardRunUserGuidanceKey: map[string]any{
-					wizardRunGuidanceTitle: "Beta feature required",
-					wizardRunGuidanceBody:  "Enable the native_v2_wizard beta feature to run the v2 creation wizard.",
-				},
-			})
-	}
 	request, requestedIntent, intentAdjustments, ok := h.decodeWizardRun(e)
 	if !ok {
 		return nil
@@ -391,9 +377,6 @@ func (h wizardRunHandlers) getActiveWizardRun(e *httpx.Event) error {
 				"Control plane unavailable",
 				"Wizard runs persist through the Postgres control plane, which is not configured on this instance.",
 			))
-	}
-	if !h.wizardRunEnabled(e.Request.Context(), ownerID) {
-		return httpx.Success(e, http.StatusOK, map[string]any{"run": nil})
 	}
 	run, err := h.wizardRuns.GetLatestWizardRunByOwner(e.Request.Context(), tenantID, ownerID)
 	if err != nil {
@@ -523,6 +506,14 @@ type wizardRunState struct {
 	// layoutRecommendationID is the accepted layout recommendation this run
 	// carries out, set only after revalidation accepted it.
 	layoutRecommendationID string
+	// joinBaseSpec is the deployment's StackSpec before an enrolled server
+	// joined it. Every unfinished ledger entry keeps it, so a same-key retry
+	// after the join committed still prepares the change set from it.
+	joinBaseSpec map[string]any
+	// joinRequests are the change sets prepared for that join. They are kept
+	// like joinBaseSpec, so a retry dispatches the accepted ones, never a
+	// re-planned set.
+	joinRequests []jobs.StackKitLifecycleRequest
 }
 
 func (run *wizardRunState) coerced() bool {
@@ -579,14 +570,6 @@ func (h wizardRunHandlers) decodeWizardRun(e *httpx.Event) (wizardRunRequest, sp
 func wizardRunRequestWithIntent(request wizardRunRequest, intent specv2.WizardIntent) wizardRunRequest {
 	request.Intent = intent
 	return request
-}
-
-func (h wizardRunHandlers) wizardRunEnabled(ctx context.Context, userID string) bool {
-	if h.crud.runtimeFeatures == nil {
-		return false
-	}
-	enabled, err := h.crud.runtimeFeatures.IsEnabled(ctx, wizardRunFeatureKey, userID)
-	return err == nil && enabled
 }
 
 // replayWizardRunFromLedger serves a completed ledger entry for the request's

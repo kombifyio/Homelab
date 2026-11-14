@@ -46,10 +46,18 @@
       }
     };
     void tick();
-    const timer = setInterval(() => void tick(), POLL_MS);
+    // A hidden tab does not poll; it reads once when it is shown again.
+    const timer = setInterval(() => {
+      if (document.visibilityState !== "hidden") void tick();
+    }, POLL_MS);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") void tick();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       active = false;
       clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   });
 

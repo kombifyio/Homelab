@@ -141,7 +141,7 @@ func (s *PostgresStore) withTenant(ctx context.Context, tenantID string, fn func
 	// The stack-operation advisory lock relies on seeing commits made by the
 	// previous lock holder. Pin the tenant transaction to READ COMMITTED even if
 	// a deployment changes the database/session default.
-	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	tx, err := tenantcontext.Database(ctx, s.db).BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return err
 	}

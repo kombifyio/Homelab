@@ -39,6 +39,29 @@ func stackKitHandoffArgs(workDir string, command *agentpb.StackKitCommand) ([]st
 		file = relativeStackKitPath(workDir, path)
 	}
 	ref, aux := command.HandoffRef, command.HandoffRef2
+	if stackkitcommand.IsIdentityJoinStep(step.Name) {
+		// The step's output file is fresh for this command and removed with
+		// the input after its document was collected.
+		out := identityJoinOutputPath(command)
+		if out != "" {
+			absolute := filepath.Join(workDir, out)
+			if err := os.MkdirAll(filepath.Dir(absolute), 0o700); err != nil {
+				removeStackKitTempFiles(files)
+				return nil, nil, err
+			}
+			if err := os.Remove(absolute); err != nil && !errors.Is(err, os.ErrNotExist) {
+				removeStackKitTempFiles(files)
+				return nil, nil, err
+			}
+			files = append(files, absolute)
+		}
+		args, err := stackkitcommand.IdentityJoinArgs(command, file, filepath.ToSlash(out))
+		if err != nil {
+			removeStackKitTempFiles(files)
+			return nil, nil, err
+		}
+		return args, files, nil
+	}
 	var args []string
 	switch step.Name {
 	case stackkitcommand.HandoffMemberAdmit:
@@ -73,6 +96,9 @@ func stackKitHandoffArgs(workDir string, command *agentpb.StackKitCommand) ([]st
 // handoffOutputPath is the file the pinned CLI writes a step's document to;
 // empty when the document is the command's own stdout.
 func handoffOutputPath(command *agentpb.StackKitCommand) string {
+	if stackkitcommand.IsIdentityJoinStep(command.HandoffStep) {
+		return identityJoinOutputPath(command)
+	}
 	switch command.HandoffStep {
 	case stackkitcommand.HandoffMemberAdmit:
 		return filepath.Join(".stackkit", "fleet", "member-admissions", command.HandoffRef+".json")
@@ -84,6 +110,16 @@ func handoffOutputPath(command *agentpb.StackKitCommand) string {
 		return filepath.Join("deploy", ".stackkit", "resolved-plan.json")
 	}
 	return ""
+}
+
+// identityJoinOutputPath is the fixed file an identity join step writes its
+// document to inside the workspace's .stackkit directory; empty when the CLI
+// prints it.
+func identityJoinOutputPath(command *agentpb.StackKitCommand) string {
+	if !stackkitcommand.IdentityJoinWritesFile(command.HandoffStep) {
+		return ""
+	}
+	return filepath.Join(".stackkit", "identity-join", command.HandoffStep+".json")
 }
 
 // linkRequirementCapability is the one capability the Modern plan binds its

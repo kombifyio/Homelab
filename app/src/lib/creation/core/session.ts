@@ -4,12 +4,8 @@
  * store contract, so a frame reads it like any other store. What a move means
  * on screen (address, focus, the list of what is missing) belongs to the frame.
  */
-import type { CreationProcess } from "./processes";
-import {
-  CREATION_STEP_KEYS,
-  creationStepNumber as position,
-  type CreationStepKey,
-} from "./steps";
+import { creationStepOrder, type CreationProcess } from "./processes";
+import { creationStepNumber, type CreationStepKey } from "./steps";
 
 export interface CreationSessionState {
   process: CreationProcess;
@@ -43,7 +39,7 @@ export interface CreationSession {
 }
 
 const activeOf = (process: CreationProcess) =>
-  CREATION_STEP_KEYS.filter((key) => !process.inactive[key]);
+  creationStepOrder(process).filter((key) => !process.inactive[key]);
 
 export function createCreationSession(init: {
   process: CreationProcess;
@@ -57,11 +53,13 @@ export function createCreationSession(init: {
   let state: CreationSessionState = {
     process: init.process,
     current: start,
-    furthest:
-      init.furthest && position(init.furthest) > position(start)
-        ? init.furthest
-        : start,
+    furthest: start,
   };
+  // Places in the process's own order; a process may change while it runs.
+  const position = (key: CreationStepKey) =>
+    creationStepNumber(key, creationStepOrder(state.process));
+  if (init.furthest && position(init.furthest) > position(start))
+    state.furthest = init.furthest;
   const listeners = new Set<(state: CreationSessionState) => void>();
 
   function commit(next: Partial<CreationSessionState>) {
@@ -137,7 +135,35 @@ export function createCreationSession(init: {
     },
     open,
     setProcess(process) {
-      if (process.key !== state.process.key) commit({ process });
+      if (processShape(process) === processShape(state.process)) return;
+      // A step the new process cannot open is left for the last one it can
+      // open at or before it (else its first), so the frame never shows a
+      // step without content whose Next does nothing.
+      const active = activeOf(process);
+      const order = creationStepOrder(process);
+      const at = (key: CreationStepKey) => creationStepNumber(key, order);
+      const settle = (key: CreationStepKey) =>
+        active.includes(key)
+          ? key
+          : (active.findLast((candidate) => at(candidate) <= at(key)) ??
+            active[0] ??
+            key);
+      const current = settle(state.current);
+      const reached = settle(state.furthest);
+      commit({
+        process,
+        current,
+        furthest: at(reached) < at(current) ? current : reached,
+      });
     },
   };
 }
+
+/** What decides the steps: the process, its order, focus and closed steps. */
+const processShape = (process: CreationProcess) =>
+  [
+    process.key,
+    creationStepOrder(process).join(","),
+    process.focusGoal ?? "",
+    Object.keys(process.inactive).sort().join(","),
+  ].join("|");

@@ -50,6 +50,8 @@ jobs:
           name: windows-spec-templates
           path: dist/spec-templates
           if-no-files-found: error
+          # Handoff between jobs of this run only; the GitHub release keeps the bytes.
+          retention-days: 1
 
   build-runtime-pair:
     runs-on: windows-2025
@@ -97,6 +99,8 @@ jobs:
           name: windows-runtime-pair
           path: dist/windows-runtime-pair
           if-no-files-found: error
+          # Handoff between jobs of this run only; the GitHub release keeps the bytes.
+          retention-days: 1
 
   windows-client:
     needs: [spec-templates, build-runtime-pair]
@@ -146,6 +150,8 @@ jobs:
             dist/windows-client/SHA256SUMS.txt
             dist/windows-client/UNSIGNED-WINDOWS-RELEASE.txt
           if-no-files-found: error
+          # Handoff between jobs of this run only; the GitHub release keeps the bytes.
+          retention-days: 1
 
   publish-release:
     if: startsWith(github.ref, 'refs/tags/v')

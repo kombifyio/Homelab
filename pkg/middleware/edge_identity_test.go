@@ -2,7 +2,9 @@ package middleware
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -18,6 +20,7 @@ import (
 	"github.com/kombifyio/techstack/internal/gocommon/identity"
 	"github.com/kombifyio/techstack/internal/gocommon/tenantdb"
 	"github.com/kombifyio/techstack/pkg/config"
+	"github.com/kombifyio/techstack/pkg/features"
 	"github.com/kombifyio/techstack/pkg/httpx"
 )
 
@@ -55,7 +58,6 @@ func TestEdgeIdentityMiddleware_SelfHosted(t *testing.T) {
 	e := newTestEvent("GET", "/test")
 	e.Request.Header.Set("X-User-ID", "user-123")
 	e.Request.Header.Set(tenantdb.ContextTokenHeader, "untrusted-local-header")
-	e.Request.Header.Set(headerEdgeAuth, edgeAuthValueJWT)
 
 	if err := mw(e); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -1040,6 +1042,52 @@ func signEdgeRequestV9(t *testing.T, e *httpx.Event, secret string) {
 	edgeauthtest.Sign(t, e.Request, edgeauthtest.Config{Version: commonedgeauth.EdgeSignatureVersionV9, Secret: secret, KeyID: defaultEdgeKeyID, At: time.Now(), Nonce: nonce, SignedPath: e.Request.URL.RequestURI()})
 }
 
+// An agent acting for the person is admitted only from the signed principal
+// type and agent attestation of a v7/v9 envelope (section 5e): a demo or
+// machine principal, an agent without a signed identity, and the same headers
+// under an envelope that does not bind them never act as an agent.
+func TestEdgeIdentityMiddleware_ActingAgentOnlyFromSignedAttestation(t *testing.T) {
+	mw := EdgeIdentityMiddlewareWithConfig(EdgeIdentityConfig{Mode: config.ModeSaaS, EdgeAuthSecret: testEdgeAuthSecret})
+	acting := func(principalType, agentID string, sign func(*testing.T, *httpx.Event, string)) (string, bool) {
+		t.Helper()
+		e := newTestEvent("POST", "/v1/techstack/servers/s1/security/repairs")
+		e.Request.Header.Set(headerEdgeAuth, edgeAuthValueJWT)
+		e.Request.Header.Set("X-User-ID", "auth0|owner")
+		e.Request.Header.Set(commonedgeauth.HeaderPrincipalType, principalType)
+		e.Request.Header.Set(commonedgeauth.HeaderAgentID, agentID)
+		sign(t, e, testEdgeAuthSecret)
+		if err := mw(e); err != nil {
+			t.Fatalf("middleware error: %v", err)
+		}
+		if code := e.Response.(*httptest.ResponseRecorder).Code; code != 200 {
+			t.Fatalf("expected signed request to pass, got %d", code)
+		}
+		claims, ok := VerifiedStepUpFromContext(e.Request.Context())
+		if !ok {
+			return "", false
+		}
+		if claims.FreshMultiFactor(time.Now(), time.Hour) {
+			t.Fatalf("an agent principal presented a step-up: %#v", claims)
+		}
+		return claims.ActingAgent()
+	}
+	for _, principalType := range []string{PrincipalTypeAgent, PrincipalTypeDelegatedUser} {
+		if agentID, ok := acting(principalType, "companion-1", signEdgeRequestV9); !ok || agentID != "companion-1" {
+			t.Fatalf("%s: signed agent not acting: %q %v", principalType, agentID, ok)
+		}
+	}
+	for _, refused := range []struct{ principalType, agentID string }{
+		{PrincipalTypeAgent, ""}, {"demo", "companion-1"}, {"machine", "companion-1"}, {PrincipalTypeUser, "companion-1"},
+	} {
+		if agentID, ok := acting(refused.principalType, refused.agentID, signEdgeRequestV9); ok {
+			t.Fatalf("%+v acted as agent %q", refused, agentID)
+		}
+	}
+	if agentID, ok := acting(PrincipalTypeAgent, "companion-1", signEdgeRequestV2); ok {
+		t.Fatalf("an unbound v2 agent header acted as agent %q", agentID)
+	}
+}
+
 // Regression (kombify-Techstack-7kf0): only a verified v9 envelope that signs
 // email_verified=true carries Identity.EmailVerified; v9 keeps the signed
 // entitlements of v2/v7; an unsigned (v2) email-verified header is ignored and
@@ -1310,5 +1358,200 @@ func TestEdgeIdentityMiddleware_OpaqueDBContextTransport(t *testing.T) {
 				t.Fatal("DB-context token authenticated a request")
 			}
 		})
+	}
+}
+
+func TestConnectedSelfHostConsumesSignedFlagsWithoutReplacingLocalIdentity(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		flags        map[string]bool
+		omit, tamper bool
+		want         bool
+	}{
+		{name: "empty signed map", flags: map[string]bool{}},
+		{name: "signed off", flags: map[string]bool{"self.healing.enabled": false}},
+		{name: "signed on", flags: map[string]bool{"self.healing.enabled": true}, want: true},
+		{name: "missing signed map", omit: true},
+		{name: "tampered signed map", flags: map[string]bool{}, tamper: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := newTestEvent("GET", "/test")
+			owner := &identity.Identity{UserID: "local-owner", OrgID: "local-tenant"}
+			e.Request = e.Request.WithContext(identity.NewContext(e.Request.Context(), owner))
+			e.Request.Header.Set(headerEdgeAuth, edgeAuthValueJWT)
+			e.Request.Header.Set("X-User-ID", "cloud-user")
+			signEdgeRequest(t, e, testEdgeAuthSecret)
+			if !tc.omit {
+				headers, err := commonedgeauth.SignFlagHeaders(testEdgeAuthSecret, "primary", tc.flags, nil, time.Now())
+				if err != nil {
+					t.Fatal(err)
+				}
+				for key, values := range headers {
+					for _, value := range values {
+						e.Request.Header.Set(key, value)
+					}
+				}
+			}
+			if tc.tamper {
+				e.Request.Header.Set(commonedgeauth.HeaderFlags, `{"self.healing.enabled":true}`)
+			}
+			err := EdgeIdentityMiddlewareWithConfig(EdgeIdentityConfig{Mode: config.ModeSelfHosted, EdgeAuthSecret: testEdgeAuthSecret})(e)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tc.tamper {
+				if e.Response.(*httptest.ResponseRecorder).Code != http.StatusUnauthorized {
+					t.Fatalf("tampered response=%d", e.Response.(*httptest.ResponseRecorder).Code)
+				}
+				return
+			}
+			if got := identity.FromContext(e.Request.Context()); got != owner {
+				t.Fatalf("local identity replaced: %+v", got)
+			}
+			svc, err := features.NewService(nil, features.ServiceConfig{Edition: config.EditionSelfHostOSS})
+			if err != nil {
+				t.Fatal(err)
+			}
+			enabled, err := svc.IsEnabled(e.Request.Context(), "self_healing", owner.UserID)
+			if err != nil || enabled != tc.want {
+				t.Fatalf("enabled=%v err=%v want=%v", enabled, err, tc.want)
+			}
+		})
+	}
+}
+
+// Old preference methods deliberately remain on this test store: any accidental
+// return to local rows must fail, even when the old table survives a held drop.
+type consentStore struct {
+	consent bool
+	err     error
+}
+
+func (s consentStore) GetUserFlag(context.Context, string, string) (*bool, error) {
+	panic("retired local flag read")
+}
+func (s consentStore) GetUserFlags(context.Context, string, []string) (map[string]bool, error) {
+	panic("retired local flags read")
+}
+func (s consentStore) HasUserConsent(context.Context, string, string) (bool, error) {
+	return s.consent, s.err
+}
+func (s consentStore) GetUserConsentsMap(context.Context, string, []string) (map[string]bool, error) {
+	return map[string]bool{"network_discovery": s.consent}, s.err
+}
+
+func TestSignedDecisionsAreAuthoritativeAcrossEditions(t *testing.T) {
+	for _, edition := range []config.Edition{"", config.EditionSelfHostOSS, config.EditionPreview, config.EditionSaaSStandalone, config.EditionSaaSEmbedded} {
+		t.Run(string(edition), func(t *testing.T) {
+			svc, err := features.NewService(consentStore{consent: true}, features.ServiceConfig{Edition: edition})
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, tc := range []struct {
+				name  string
+				flags map[string]bool
+				key   string
+				want  bool
+			}{
+				{"empty map denies shipped feature", map[string]bool{}, "self_healing", false},
+				{"nil map denies shipped feature", nil, "self_healing", false},
+				{"explicit off denies shipped feature", map[string]bool{"self.healing.enabled": false}, "self_healing", false},
+				{"signed on defeats default off", map[string]bool{"self.healing.enabled": true}, "self_healing", true},
+				{"unrelated grant cannot enable missing key", map[string]bool{"self.healing.enabled": true}, "custom_domains", false},
+				{"canonical runtime grant", map[string]bool{"techstack.managed.runtime": true}, "monthly_runtime", true},
+				{"caller alias uses canonical decision", map[string]bool{"techstack.managed.runtime": true}, "techstack_monthly_runtime", true},
+				{"canonical off beats old alias on", map[string]bool{"techstack.managed.runtime": false, "techstack_monthly_runtime": true}, "monthly_runtime", false},
+				{"other entitlement cannot grant omitted runtime", map[string]bool{"all_features": true, "*": true, "sim.monthly.runtime.standard": true}, "monthly_runtime", false},
+				{"backup signed decision", map[string]bool{"techstack.backup.config": true}, "backup_config", true},
+			} {
+				t.Run(tc.name, func(t *testing.T) {
+					ctx := commonedgeauth.FlagsToContext(t.Context(), commonedgeauth.FlagSet{Flags: tc.flags})
+					got, err := svc.IsEnabled(ctx, tc.key, "synthetic-owner")
+					if err != nil || got != tc.want {
+						t.Fatalf("IsEnabled=%v,%v; want %v", got, err, tc.want)
+					}
+					listed, err := svc.GetAllFlags(ctx, "synthetic-owner", true)
+					if err != nil {
+						t.Fatal(err)
+					}
+					key := tc.key
+					if key == "techstack_monthly_runtime" {
+						key = "monthly_runtime"
+					}
+					if listed[key].Enabled != tc.want || !listed[key].Locked {
+						t.Fatalf("listed %s=%+v; want enabled=%v, locked", key, listed[key], tc.want)
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestOfflineDecisionsPerEdition(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		edition     config.Edition
+		remediation bool
+	}{
+		{"local code defaults", "", false},
+		{"selfhost shipped features", config.EditionSelfHostOSS, true},
+		{"hosted missing signature", config.EditionSaaSStandalone, false},
+		{"embedded missing signature", config.EditionSaaSEmbedded, false},
+		{"preview missing signature", config.EditionPreview, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			svc, err := features.NewService(consentStore{}, features.ServiceConfig{Edition: tc.edition})
+			if err != nil {
+				t.Fatal(err)
+			}
+			listed, err := svc.GetAllFlags(t.Context(), "synthetic-owner", true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for key, want := range map[string]bool{"self_healing": tc.remediation} {
+				got, err := svc.IsEnabled(t.Context(), key, "synthetic-owner")
+				if err != nil || got != want || listed[key].Enabled != want {
+					t.Fatalf("%s: decision=%v err=%v listed=%v want=%v", key, got, err, listed[key].Enabled, want)
+				}
+			}
+		})
+	}
+}
+
+func TestConsentGatesSignedAndSelfHostedDecisions(t *testing.T) {
+	for _, signed := range []bool{false, true} {
+		for _, tc := range []struct {
+			name    string
+			store   features.Store
+			want    bool
+			wantErr bool
+		}{
+			{"missing store", nil, false, false},
+			{"no consent", consentStore{}, false, false},
+			{"consented", consentStore{consent: true}, true, false},
+			{"consent read failed", consentStore{err: errors.New("consent unavailable")}, false, true},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				svc, err := features.NewService(tc.store, features.ServiceConfig{Edition: config.EditionSelfHostOSS})
+				if err != nil {
+					t.Fatal(err)
+				}
+				ctx := t.Context()
+				if signed {
+					ctx = commonedgeauth.FlagsToContext(ctx, commonedgeauth.FlagSet{Flags: map[string]bool{"network.discovery.enabled": true}})
+				}
+				got, err := svc.IsEnabled(ctx, "network_discovery", "synthetic-owner")
+				if got != tc.want || (err != nil) != tc.wantErr {
+					t.Fatalf("decision=%v,%v want=%v error=%v", got, err, tc.want, tc.wantErr)
+				}
+				listed, err := svc.GetAllFlags(ctx, "synthetic-owner", true)
+				if (err != nil) != tc.wantErr {
+					t.Fatalf("list error=%v", err)
+				}
+				if err == nil && listed["network_discovery"].Enabled != tc.want {
+					t.Fatalf("listed=%+v", listed["network_discovery"])
+				}
+			})
+		}
 	}
 }

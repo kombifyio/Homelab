@@ -290,7 +290,7 @@ func listInventoryServicesSnapshot(ctx context.Context, tx *sql.Tx, scope Invent
 // page rows on one MVCC snapshot. The general store intentionally uses READ
 // COMMITTED for command paths, so inventory owns this read-only boundary.
 func (s *PostgresStore) withTenantInventorySnapshot(ctx context.Context, tenantID string, fn func(*sql.Tx) error) error {
-	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
+	tx, err := tenantcontext.Database(ctx, s.db).BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	if err != nil {
 		return err
 	}

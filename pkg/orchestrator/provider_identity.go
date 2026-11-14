@@ -144,8 +144,8 @@ func (s *provisionProviderIdentity) observeFields(fields map[string]interface{},
 func (s *provisionProviderIdentity) validateRuntimeProviders(providerID string) error {
 	for _, value := range s.runtimeIDs {
 		normalized := strings.ToLower(strings.TrimSpace(value))
-		if normalized == "centron-managed" || normalized == "ionos-managed" ||
-			((normalized == providercatalog.ProviderCentron || normalized == providercatalog.ProviderIONOS) && value != normalized) {
+		if providercatalog.IsCompositeProviderAlias(normalized) ||
+			(providercatalog.IsCanonicalProviderID(normalized) && value != normalized) {
 			_, err := providercatalog.CanonicalProviderID(value)
 			return err
 		}
@@ -169,10 +169,13 @@ func (s *provisionProviderIdentity) validateRuntimeProviders(providerID string) 
 }
 
 func (s *provisionProviderIdentity) observeProviderMode(value string) {
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "cloud":
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	if providercatalog.IsCanonicalProviderID(normalized) || providercatalog.IsCompositeProviderAlias(normalized) {
 		s.managed = true
-	case providercatalog.ProviderCentron, providercatalog.ProviderIONOS, "centron-managed", "ionos-managed":
+		return
+	}
+	switch normalized {
+	case "cloud":
 		s.managed = true
 	case runtimeProvisionKombify, "managed-cloud", runtimeLaneMonthly:
 		s.managed = true

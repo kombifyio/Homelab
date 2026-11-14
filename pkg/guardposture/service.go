@@ -84,6 +84,10 @@ type ServiceConfig struct {
 	LocalRelease func() (*guardbinding.LocalReleasePin, error)
 	Logger       *slog.Logger
 	Now          func() time.Time
+	// BaseContext carries process-wide values, such as the hosted system
+	// database route, into background repairs. Close, not its cancellation,
+	// stops them. Nil is context.Background().
+	BaseContext context.Context
 }
 
 // Service is the posture use-case layer: it reads what a Guard reports, keeps
@@ -126,7 +130,11 @@ func NewService(cfg ServiceConfig) (*Service, error) {
 	if logger == nil {
 		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
-	ctx, stop := context.WithCancel(context.Background())
+	base := context.Background()
+	if cfg.BaseContext != nil {
+		base = context.WithoutCancel(cfg.BaseContext)
+	}
+	ctx, stop := context.WithCancel(base)
 	return &Service{
 		store: cfg.Store, policy: cfg.Policy.Normalize(), dispatcher: cfg.Dispatcher, localRelease: cfg.LocalRelease, log: logger.With("component", "guard-posture"),
 		now: cfg.Now, background: ctx, stop: stop, guardSeen: map[string]guardSeen{},
@@ -171,6 +179,9 @@ func (s *Service) Ingest(ctx context.Context, identity Identity, displayName str
 	}
 
 	write := ReportWrite{Identity: identity, DisplayName: displayName, Report: report, Now: now}
+	if report.Power != nil {
+		write.Power = report.Power
+	}
 	if report.Security != nil {
 		record, evidence := s.securityRecord(report.Security, now)
 		write.Security = &record

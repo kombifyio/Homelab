@@ -246,7 +246,7 @@ func NewPostgresCursors(db *sql.DB) (*PostgresCursors, error) {
 }
 
 func (p *PostgresCursors) withTenant(ctx context.Context, tenantID string, fn func(*sql.Tx) error) error {
-	tx, err := p.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	tx, err := tenantcontext.Database(ctx, p.db).BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return err
 	}

@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
+
 	"github.com/kombifyio/techstack/pkg/agentcontrol"
 	ksapi "github.com/kombifyio/techstack/pkg/api"
 	"github.com/kombifyio/techstack/pkg/api/agentpb"
@@ -80,6 +82,20 @@ func credentialGeneration(authCtx runtimeAgentAuthContext) int64 {
 	return state.Generation
 }
 
+// knownCredentialGeneration is credentialGeneration, or -1 when no credential
+// state could be read. A key-bound Guard that was never rotated holds a real
+// generation 0, so 0 alone cannot tell the two apart.
+func knownCredentialGeneration(authCtx runtimeAgentAuthContext) int64 {
+	if authCtx.Worker == nil {
+		return -1
+	}
+	state, err := controlplane.WorkerCredentialStateFromWorker(*authCtx.Worker)
+	if err != nil {
+		return -1
+	}
+	return state.Generation
+}
+
 func (request workerControlRequest) authRequest(id string) workerInventoryRequest {
 	return workerInventoryRequest{
 		RuntimeAgentID: firstNonEmpty(request.RuntimeAgentID, id),
@@ -124,6 +140,7 @@ func (h workerRouteHandlers) nextTypedCommand(e *httpx.Event) error {
 		// lets the Guard deliver the held outcomes that still fence this server.
 		return httpx.Success(e, http.StatusOK, map[string]any{"predecessor_recovery": recovery})
 	}
+	refreshID := h.pendingInventoryRefresh(e.Request.Context(), authCtx)
 	pollCtx, cancel := context.WithTimeout(e.Request.Context(), guardCommandPollTimeout)
 	defer cancel()
 	var command *agentpb.StackKitCommand
@@ -156,16 +173,25 @@ func (h workerRouteHandlers) nextTypedCommand(e *httpx.Event) error {
 	}
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			if refreshID != "" && e.Request.Context().Err() == nil {
+				return httpx.Success(e, http.StatusOK, map[string]any{"inventory_refresh": refreshID})
+			}
 			e.Response.WriteHeader(http.StatusNoContent)
 			return nil
 		}
 		return httpx.Error(e, http.StatusConflict, "CAPABILITY_REQUIRED", err.Error(), nil)
 	}
 	if !found {
+		if refreshID != "" {
+			return httpx.Success(e, http.StatusOK, map[string]any{"inventory_refresh": refreshID})
+		}
 		e.Response.WriteHeader(http.StatusNoContent)
 		return nil
 	}
 	payload := map[string]any{"command": command}
+	if refreshID != "" {
+		payload["inventory_refresh"] = refreshID
+	}
 	if binding != nil {
 		binding.ServerID = authCtx.ServerID
 		signer, err := h.bindingSignerFor(e.Request.Context(), authCtx.TenantID, authCtx.RuntimeAgentID)
@@ -179,6 +205,23 @@ func (h workerRouteHandlers) nextTypedCommand(e *httpx.Event) error {
 		payload["binding"] = binding
 	}
 	return httpx.Success(e, http.StatusOK, payload)
+}
+
+func (h workerRouteHandlers) pendingInventoryRefresh(ctx context.Context, authCtx runtimeAgentAuthContext) string {
+	readCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	serverID := firstNonEmpty(authCtx.ServerID, runtimeServerIDForWorker(authCtx.RuntimeAgentID))
+	server, err := h.serverStore.GetServerRuntime(readCtx, authCtx.TenantID, serverID)
+	if err != nil {
+		if !errors.Is(err, controlplane.ErrNotFound) {
+			slog.Warn("guard_inventory_refresh_read_failed", "tenant_id", authCtx.TenantID, "server_id", serverID, "error", err)
+		}
+		return ""
+	}
+	if server == nil || server.WorkerID != authCtx.RuntimeAgentID || server.StackID != authCtx.StackID {
+		return ""
+	}
+	return controlplane.PendingServerInventoryRefresh(*server, time.Now())
 }
 
 func (h workerRouteHandlers) submitTypedCommandResult(e *httpx.Event) error {
@@ -220,6 +263,7 @@ func (h workerRouteHandlers) submitTypedCommandResult(e *httpx.Event) error {
 		if errors.Is(err, agentcontrol.ErrCommandNotPending) || errors.Is(err, agentcontrol.ErrResultRejected) {
 			return httpx.Error(e, http.StatusConflict, "CONFLICT", "Typed command result does not match a pending command", nil)
 		}
+		logTypedOutcomeFailure(e, "workers.commands.result", id, authCtx, request.Result.GetCommandId(), err)
 		return httpx.Error(e, http.StatusInternalServerError, "INTERNAL", "Failed to accept typed command result", nil)
 	}
 	return httpx.Success(e, http.StatusAccepted, map[string]any{"command_id": request.Result.GetCommandId(), "accepted": true})
@@ -245,6 +289,7 @@ func (h workerRouteHandlers) submitTypedReport(e *httpx.Event, control boundTena
 	ack, err := control.SubmitReportForTenant(e.Request.Context(), agentcontrol.ReportRequest{
 		TenantID: authCtx.TenantID, AgentID: authCtx.RuntimeAgentID, CommandID: commandID,
 		Generation: credentialGeneration(authCtx), Report: *request.Report, Result: request.Result,
+		GenerationUnknown:  knownCredentialGeneration(authCtx) < 0,
 		PredecessorAgentID: predecessor,
 	})
 	if err == nil && predecessor != "" {
@@ -261,10 +306,55 @@ func (h workerRouteHandlers) submitTypedReport(e *httpx.Event, control boundTena
 		case errors.Is(err, agentcontrol.ErrResultRejected):
 			return writeGuardDenial(e, guardbinding.Denyf(guardbinding.CodeResultRejected, "the report was rejected"))
 		default:
+			logTypedOutcomeFailure(e, "workers.commands.report", e.Request.PathValue("id"), authCtx, commandID, err,
+				"report_state", request.Report.State, "report_revision", request.Report.Revision, "predecessor_worker_id", predecessor)
 			return httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to commit typed command outcome", nil)
 		}
 	}
 	return httpx.Success(e, http.StatusAccepted, ack)
+}
+
+// logTypedOutcomeFailure names why the control plane could not commit a
+// Guard's typed result or report, before the 500 answers it: the Sentry event
+// of the response carries the cause, and one structured line names the
+// command, the worker, the credential generation (-1 when unreadable) and the
+// error class. A PostgreSQL refusal adds its SQLSTATE, constraint and table,
+// never the failing row; the error text is the redacted, bounded cause that
+// httpx.RecordDependencyFailure keeps. Request payloads, results and proofs
+// are never logged. A client that left first is logged as a warning.
+func logTypedOutcomeFailure(e *httpx.Event, operation, workerID string, authCtx runtimeAgentAuthContext, commandID string, err error, extra ...any) {
+	httpx.RecordDependencyFailure(e, operation, err)
+	ctx := e.Request.Context()
+	failure, _ := httpx.DependencyFailureFrom(ctx)
+	attrs := []any{
+		"operation", operation,
+		"tenant_id", authCtx.TenantID,
+		"worker_id", boundedLogID(workerID),
+		"runtime_agent_id", authCtx.RuntimeAgentID,
+		"command_id", boundedLogID(commandID),
+		"credential_generation", knownCredentialGeneration(authCtx),
+		"error_class", failure.Class,
+		"error", failure.Message,
+	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		attrs = append(attrs, "sqlstate", pgErr.Code, "constraint", pgErr.ConstraintName, "table", pgErr.TableName)
+	}
+	level := slog.LevelError
+	if failure.Class == "canceled" || httpx.ClientGone(ctx) {
+		level = slog.LevelWarn
+	}
+	slog.Log(ctx, level, "guard_typed_outcome_commit_failed", append(attrs, extra...)...)
+}
+
+// boundedLogID keeps a caller-supplied identifier to the 128 bytes a valid
+// command ID can have, so an oversized one cannot flood the log line.
+func boundedLogID(value string) string {
+	value = strings.TrimSpace(value)
+	if len(value) > 128 {
+		return strings.ToValidUTF8(value[:128], "") + "…"
+	}
+	return value
 }
 
 // writeGuardDenial renders a structured, machine-readable refusal. The Guard

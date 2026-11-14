@@ -21,6 +21,7 @@
   import BrandLogoIcon from "#lib/components/BrandLogoIcon.svelte";
   import BrandLogoScope from "#lib/components/BrandLogoScope.svelte";
   import ServiceAdoptionDialog from "#lib/components/inventory/ServiceAdoptionDialog.svelte";
+  import OwnApplicationPanel from "#lib/components/inventory/OwnApplicationPanel.svelte";
   import { listJobs, type JobDetail } from "#lib/api/jobs.js";
   import {
     listServiceRegistry,
@@ -39,6 +40,11 @@
     serviceCardStatus,
     serviceCardStatusMessage,
     serviceCardUpdate,
+    serviceCardVersionNotice,
+    serviceCardUpdateClass,
+    serviceCardUpdateDetail,
+    serviceCardLabels,
+    advisorySeverityLabel,
     serviceCardVersion,
     serviceIsLocked,
     serviceLockReason,
@@ -56,6 +62,7 @@
     applicationCardActions,
     componentCardActions,
     runApplicationAction,
+    runApplicationVersionUpdate,
     runComponentAction,
     type ApplicationAction,
   } from "#lib/services/application-actions.js";
@@ -64,10 +71,13 @@
     applicationOwnership,
     applicationPlacement,
     applicationVersion,
+    componentGrants,
     componentState,
     logsTarget,
     runtimePlacement,
+    updateTarget,
   } from "#lib/services/application-card.js";
+  import type { ApplicationVersionOffer } from "#lib/api/services.js";
 
   type TabId = "overview" | "components" | "logs" | "activity" | "settings";
   const TABS: readonly TabId[] = [
@@ -187,6 +197,7 @@
     event.preventDefault();
     const step = event.key === "ArrowRight" ? 1 : -1;
     const next = TABS[(index + step + TABS.length) % TABS.length];
+    if (!next) return;
     setTab(next);
     queueMicrotask(() =>
       document.getElementById(`application-tab-${next}`)?.focus(),
@@ -205,6 +216,21 @@
       ? applicationPlacement(application, placementContext, registryServiceFor)
       : "unknown",
   );
+  /**
+   * An app StackKits runs as an own application has no catalog version fact;
+   * its running image tag is the version (a digest-pinned image has none).
+   */
+  const ownVersion = $derived.by(() => {
+    const image = application?.components.find((c) => c.own_application)
+      ?.own_application?.status?.image;
+    if (!image || image.includes("@")) return undefined;
+    const tag = image.slice(image.lastIndexOf("/") + 1).split(":")[1];
+    return tag || undefined;
+  });
+  const ownApplicationOnly = $derived(
+    Boolean(application?.components.some((c) => c.own_application)),
+  );
+
   const version = $derived(
     application ? applicationVersion(application) : undefined,
   );
@@ -255,6 +281,36 @@
     if (!application) return;
     actionError = null;
     const error = await runApplicationAction(tracker, application, action);
+    if (error) actionError = error;
+  }
+
+  /**
+   * A newer version the owner may pick behind "Show newer versions": every
+   * in-track version while the setting asks or updates automatically, only
+   * the security fix while updates arrive with StackKits releases. The
+   * server re-checks the same policy.
+   */
+  function versionUpdatable(offer: ApplicationVersionOffer): boolean {
+    if (!application || !offer.digest || !updateTarget(application)) {
+      return false;
+    }
+    const facts = applicationVersion(application);
+    if (facts?.update_mode !== "application_update") return false;
+    // A major version moves only with a StackKits release.
+    const major = (value?: string) => value?.replace(/^v/, "").split(".")[0];
+    if (!facts.current || major(facts.current) !== major(offer.version)) {
+      return false;
+    }
+    if (facts.update_setting === "with_stackkits_releases") {
+      return facts.security_fix?.version === offer.version;
+    }
+    return true;
+  }
+
+  async function requestVersionUpdate(offer: ApplicationVersionOffer) {
+    if (!application) return;
+    actionError = null;
+    const error = await runApplicationVersionUpdate(tracker, application, offer);
     if (error) actionError = error;
   }
 
@@ -321,7 +377,7 @@
     if (tab !== "logs" || !component) return;
     untrack(() => {
       if (
-        component.allowed_actions.includes("logs") &&
+        componentGrants(component, "logs") &&
         !tracker.logs[component.id] &&
         !isActionActive(tracker.jobs[component.id])
       ) {
@@ -573,13 +629,16 @@
               logoSrc={logo.src}
               version={serviceCardVersion(version)}
               update={serviceCardUpdate(version)}
+              class={serviceCardUpdateClass(version)}
+              labels={serviceCardLabels()}
               {placement}
               {status}
               statusLabel={stateLabel(application.status)}
               statusMessage={status === "error" ||
               heroActions.some((a) => a.id === "adopt")
                 ? undefined
-                : serviceCardStatusMessage({ status: application.status })}
+                : (serviceCardStatusMessage({ status: application.status }) ??
+                  serviceCardVersionNotice(version))}
               managementLabel={ownership === "managed"
                 ? tr("ui.services.stacked")
                 : ownership === "observed"
@@ -597,9 +656,16 @@
             {@const job = tracker.jobs[component.id]}
             {#if job && (job.action !== "logs" || actionFailed(job))}
               <div
-                class="rounded-lg border border-border/70 bg-muted/25 p-3 text-xs"
+                class="rounded-lg border p-3 text-xs {job.applicationOutcome
+                  ?.result === 'rollback_failed' ||
+                job.applicationOutcome?.result === 'unresolved'
+                  ? 'border-destructive/50 bg-destructive/10'
+                  : job.applicationOutcome?.result === 'rolled_back'
+                    ? 'border-warning/50 bg-warning/10'
+                    : 'border-border/70 bg-muted/25'}"
                 role={actionFailed(job) ? "alert" : "status"}
                 data-testid="application-job-status"
+                data-outcome={job.applicationOutcome?.result}
               >
                 <p class="font-medium text-foreground">
                   {tr("ui.serviceCards.jobLine", {
@@ -616,6 +682,11 @@
             {/if}
           {/each}
 
+          {#each application.components.filter((c) => c.own_application) as component (component.id)}
+            <OwnApplicationPanel {component} onChanged={reloadQuietly} />
+          {/each}
+
+          {#if version || ownVersion || !ownApplicationOnly}
           <section
             class="rounded-lg border border-border bg-card/60 p-4"
             aria-labelledby="version-title"
@@ -623,7 +694,16 @@
             <h2 id="version-title" class="text-base font-semibold">
               {tr("ui.serviceDetail.version.title")}
             </h2>
-            {#if version}
+            {#if !version && ownVersion}
+              <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                <div>
+                  <dt class="text-muted-foreground">
+                    {tr("ui.serviceDetail.version.installed")}
+                  </dt>
+                  <dd class="font-mono" data-testid="own-app-version">{ownVersion}</dd>
+                </div>
+              </dl>
+            {:else if version}
               <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-2">
                 <div>
                   <dt class="text-muted-foreground">
@@ -644,6 +724,14 @@
                       {#if !version.update_available}
                         <span class="ml-1 font-sans text-xs text-success"
                           >{tr("ui.serviceDetail.version.upToDate")}</span
+                        >
+                      {:else if serviceCardUpdateDetail(version)}
+                        <span
+                          class="ml-1 font-sans text-xs {version.security_fix
+                            ? 'text-destructive'
+                            : 'text-muted-foreground'}"
+                          data-testid="application-update-detail"
+                          >{serviceCardUpdateDetail(version)}</span
                         >
                       {/if}
                     {:else}
@@ -684,19 +772,107 @@
                     <dd>{stateLabel(version.update_mode)}</dd>
                   </div>
                 {/if}
+                {#if version.evidence_status}
+                  <div>
+                    <dt class="text-muted-foreground">
+                      {tr("ui.serviceDetail.version.evidence")}
+                    </dt>
+                    <dd data-testid="application-version-evidence">
+                      {version.evidence_status === "verified"
+                        ? tr("ui.serviceDetail.version.verified")
+                        : tr("ui.serviceCards.update.notVerified")}
+                    </dd>
+                  </div>
+                {/if}
                 <div>
                   <dt class="text-muted-foreground">
                     {tr("ui.serviceDetail.version.checked")}
                   </dt>
-                  <dd>{when(version.checked_at)}</dd>
+                  <dd>{when(version.observed_at ?? version.checked_at)}</dd>
                 </div>
               </dl>
+              {#if version.advisories?.length}
+                <ul
+                  class="mt-3 flex flex-col gap-1.5"
+                  data-testid="application-advisories"
+                >
+                  {#each version.advisories as advisory (advisory.id)}
+                    <li class="flex flex-wrap items-center gap-2 text-xs">
+                      <span
+                        class="rounded px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide {advisory.severity ===
+                        'critical'
+                          ? 'bg-destructive/15 text-destructive'
+                          : advisory.high
+                            ? 'bg-warning/15 text-warning'
+                            : 'bg-muted text-muted-foreground'}"
+                        >{advisorySeverityLabel(advisory.severity)}</span
+                      >
+                      {#if advisory.url}
+                        <a
+                          class="font-mono text-primary hover:underline"
+                          href={advisory.url}
+                          target="_blank"
+                          rel="noopener noreferrer">{advisory.id}</a
+                        >
+                      {:else}
+                        <span class="font-mono">{advisory.id}</span>
+                      {/if}
+                      {#if advisory.affects !== "installed"}
+                        <span class="text-muted-foreground"
+                          >{tr("ui.serviceDetail.version.mayAffect")}</span
+                        >
+                      {/if}
+                    </li>
+                  {/each}
+                </ul>
+              {/if}
+              {#if version.newer_versions?.length}
+                <details class="mt-3 text-xs" data-testid="application-newer-versions">
+                  <summary class="cursor-pointer text-muted-foreground">
+                    {tr("ui.serviceDetail.version.showNewer")}
+                  </summary>
+                  <ul class="mt-2 flex flex-col gap-1">
+                    {#each version.newer_versions as offer (offer.version)}
+                      <li class="flex flex-wrap items-center gap-2">
+                        <span class="font-mono">{offer.version}</span>
+                        <span class="text-muted-foreground"
+                          >{offer.tested
+                            ? tr("ui.serviceCards.update.checked")
+                            : tr("ui.serviceCards.update.unchecked")}</span
+                        >
+                        {#if offer.release_notes_url}
+                          <a
+                            class="text-primary hover:underline"
+                            href={offer.release_notes_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >{tr("ui.serviceDetail.version.releaseNotes")}</a
+                          >
+                        {/if}
+                        {#if versionUpdatable(offer)}
+                          <button
+                            type="button"
+                            class="ml-auto rounded-md border border-border px-2 py-0.5 font-medium text-foreground hover:bg-muted disabled:opacity-50"
+                            disabled={application.components.some((component) =>
+                              isActionActive(tracker.jobs[component.id]),
+                            )}
+                            data-testid="application-version-update"
+                            onclick={() => requestVersionUpdate(offer)}
+                            >{actionLabel("update")}</button
+                          >
+                        {/if}
+                      </li>
+                    {/each}
+                  </ul>
+                </details>
+              {/if}
             {:else}
               <p class="mt-2 text-sm text-muted-foreground">
                 {tr("ui.serviceDetail.version.none")}
               </p>
             {/if}
           </section>
+          {/if}
 
           <section
             class="rounded-lg border border-border bg-card/60 p-4"
@@ -827,12 +1003,7 @@
                 {tr("ui.serviceDetail.facts.stack")}
               </dt>
               <dd class="break-all">
-                <a
-                  class="text-primary hover:underline"
-                  href="/stacks/{encodeURIComponent(
-                    application.kit_deployment_id,
-                  )}">{stack?.name || application.kit_deployment_id}</a
-                >
+                {stack?.name || application.kit_deployment_id}
               </dd>
             </div>
             <div>
@@ -931,6 +1102,8 @@
                     )}
                     version={serviceCardVersion(component.version)}
                     update={serviceCardUpdate(component.version)}
+                    class={serviceCardUpdateClass(component.version)}
+                    labels={serviceCardLabels()}
                     placement={componentPlacement(component)}
                     status={componentStatus}
                     statusLabel={stateLabel(componentState(component))}
@@ -1016,7 +1189,7 @@
               <Button
                 variant="secondary"
                 size="sm"
-                disabled={!logComponent.allowed_actions.includes("logs") ||
+                disabled={!componentGrants(logComponent, "logs") ||
                   isActionActive(logJob)}
                 onclick={() => void fetchLogs(logComponent)}
               >
@@ -1028,7 +1201,7 @@
             </div>
           </div>
 
-          {#if !logComponent.allowed_actions.includes("logs")}
+          {#if !componentGrants(logComponent, "logs")}
             <p class="text-sm text-muted-foreground">
               {tr("ui.serviceDetail.logs.notGranted")}
             </p>

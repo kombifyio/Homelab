@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"strings"
 	"time"
 
@@ -29,6 +28,9 @@ func (n stackKitLifecycleNotifier) ObserveTerminalJob(ctx context.Context, job j
 	if n.outbox == nil {
 		return nil
 	}
+	if job.Type == jobs.JobTypeStackKitLifecycle && strings.EqualFold(stackKitNotificationString(job, "operation"), jobs.StackKitLifecycleApplicationUpdate) {
+		return n.observeApplicationUpdate(ctx, job)
+	}
 	eventKey, operation, state, relevant := stackKitLifecycleNotificationIdentity(job)
 	if !relevant {
 		return nil
@@ -44,7 +46,7 @@ func (n stackKitLifecycleNotifier) ObserveTerminalJob(ctx context.Context, job j
 			"has_owner", ownerID != "", "has_stackkit_id", stackKitID != "", "has_node_id", nodeID != "")
 		return nil
 	}
-	deepLink := "/stacks/" + url.PathEscape(kitDeploymentID)
+	deepLink := "/dashboard"
 	completedAt := time.Now().UTC()
 	if job.CompletedAt != nil {
 		completedAt = job.CompletedAt.UTC()
@@ -65,7 +67,7 @@ func (n stackKitLifecycleNotifier) ObserveTerminalJob(ctx context.Context, job j
 	for _, channel := range []string{"in_app", "push"} {
 		if err := n.outbox.Enqueue(ctx, productnotifications.ProductEvent{
 			Topic: stackKitLifecycleNotificationTopic, Channel: channel,
-			Auth0UserID: ownerID, OrganizationID: tenantID,
+			Auth0UserID: ownerID, TenantID: tenantID,
 			IdempotencyKey: fmt.Sprintf("techstack:stackkit:%s:%s:%s", job.ID, eventKey, channel),
 			Payload:        payload, SourceApp: notificationSourceApp, EventKey: eventKey,
 			SubjectRef: "stackkit:" + stackKitID, DeepLink: deepLink,

@@ -270,8 +270,8 @@ func (r *deployRollout) portAdmissionError(err error) error {
 // awaitHostBaseline admits the rollout once the node's listener inventory is
 // verified. Missing, incomplete or stale evidence (host_baseline_unverified) is
 // retried for a bounded time with a customer-visible waiting state, because a
-// freshly enrolled Guard publishes its first inventory only moments after it
-// connects. A conflicting listener or any other error is returned at once, and
+// Guard is explicitly asked to publish a fresh inventory. A conflicting
+// listener or any other error is returned at once, and
 // evidence that never verifies fails closed with the original refusal.
 func (r *deployRollout) awaitHostBaseline(ctx context.Context, generation portinventory.GenerationRef) error {
 	started := time.Now()
@@ -301,10 +301,19 @@ func (r *deployRollout) awaitHostBaseline(ctx context.Context, generation portin
 			return r.portAdmissionError(evaluation)
 		}
 		if !waiting {
+			if r.cfg.RequestHostInventory == nil {
+				return wrapProvisionError(StepPortAdmission, "Guard inventory refresh is unavailable", "The server's host inventory could not be requested. No host mutation was started.")
+			}
+			requestCtx, cancel := context.WithTimeout(ctx, portLifecycleReconciliationTimeout)
+			requestErr := r.cfg.RequestHostInventory(requestCtx, generation.TenantID, generation.ServerID, generation.StackID, deadline)
+			cancel()
+			if requestErr != nil {
+				return wrapProvisionCause(StepPortAdmission, requestErr, "The server's host inventory could not be requested. No host mutation was started.")
+			}
 			waiting = true
 			r.recordHostBaselineWait("waiting", started, deadline)
 			step, progress := r.job.stepProgress()
-			r.updateJobStepProgress(step, progress, "Waiting for the server to report its first host inventory before the rollout starts.")
+			r.updateJobStepProgress(step, progress, "Fresh host inventory requested from the Guard; waiting for its verified report before rollout.")
 		}
 		timer := time.NewTimer(hostBaselineWaitPollInterval)
 		select {
@@ -320,7 +329,8 @@ func (r *deployRollout) recordHostBaselineWait(state string, started, deadline t
 	r.job.mutateResult(func(result map[string]interface{}) {
 		result["host_baseline_wait"] = map[string]interface{}{
 			"state": state, "started_at": started.UTC(), "deadline": deadline.UTC(),
-			"message": "The rollout waits for the server's first verified host inventory (at most " + hostBaselineWaitBudget.String() + ").",
+			"inventory_refresh_requested": true,
+			"message":                     "Fresh host inventory was requested from the Guard; rollout waits for its verified report (at most " + hostBaselineWaitBudget.String() + ").",
 		}
 	})
 }

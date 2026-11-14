@@ -90,6 +90,8 @@ func withJobSentryScope(ctx context.Context, job *Job) (context.Context, func(er
 			flushSentryHub(hub)
 			return
 		}
+		// A recurring job that fails on every run reports once per tenant and
+		// hour: the shared error budget (tenant_id tag) deduplicates repeats.
 		if err != nil && !isOwnerHostRefusal(err) {
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetContext("job", jobSentryContext(job))

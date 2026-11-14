@@ -102,19 +102,21 @@ export function assertRuntimeInventoryExpectation(
     servers.length === 1,
     `${expectation.profile} expects exactly one server, got ${servers.length}`,
   );
-  const serverId = requiredString(servers[0].id, "servers[0].id");
+  const server = servers[0];
+  invariant(server !== undefined, `${expectation.profile} expects a server`);
+  const serverId = requiredString(server.id, "servers[0].id");
   if (expectation.server.id) {
     assertEqual(serverId, expectation.server.id, `${expectation.profile} REST server id`);
   }
 
-  const server = servers[0];
   const addresses = requiredRecord(server.addresses, "servers[0].addresses");
   const observedPrivateIPs = requiredStringArray(
     addresses.private_ips,
     "servers[0].addresses.private_ips",
   );
+  const [firstPrivateIP] = observedPrivateIPs;
   invariant(
-    observedPrivateIPs.length > 0,
+    firstPrivateIP !== undefined,
     "servers[0].addresses.private_ips must contain a current Guard observation",
   );
   assertIncludes(
@@ -247,7 +249,7 @@ export function assertRuntimeInventoryExpectation(
         id: serverId,
         // The registry id is target authority. The address is current Guard
         // evidence only and may change without changing the protected target.
-        privateIp: observedPrivateIPs[0],
+        privateIp: firstPrivateIP,
         domain: expectation.server.domain,
         os: expectation.server.os.toLowerCase(),
         stackkit: expectation.server.stackkit,

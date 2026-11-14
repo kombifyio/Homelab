@@ -5,9 +5,8 @@
 // acts in a test tenant.
 //
 // Test tenants are marked by construction, never by a stored flag a user could
-// set: the server-owned "test:" namespace, the owner tenant ("usr:<subject>" or
-// the naked subject) of a configured test subject, or the configured public
-// demo tenant. Tenant ids otherwise come from Auth0 organization claims or the
+// set: the server-owned "test:" namespace, the owner tenant "usr:<subject>" of
+// a configured test subject, or the configured public demo tenant. Tenant ids otherwise come from Auth0 organization claims or the
 // Gateway's owner rule, so none of these can be claimed by a real account. The
 // public demo identities (pkg/demoguard) are test identities too: they share
 // the demo tenant, which holds no customer's data.
@@ -50,8 +49,8 @@ func Subjects() map[string]struct{} {
 }
 
 // IsTestSubject reports whether subject is a configured test identity: a
-// test subject, a public demo subject, or the demo tenant's legacy owner id
-// that the identity middleware projects a demo principal onto.
+// test subject, a public demo subject, or the demo tenant id that the identity
+// middleware projects a demo principal onto.
 func IsTestSubject(subject string) bool {
 	subject = strings.TrimSpace(subject)
 	if subject == "" {
@@ -72,7 +71,8 @@ func IsTestTenant(tenantID string) bool {
 	if strings.HasPrefix(tenantID, TenantPrefix) || demoguard.IsDemoTenant(tenantID) {
 		return true
 	}
-	return IsTestSubject(strings.TrimPrefix(tenantID, ownerTenantPrefix))
+	subject, owner := strings.CutPrefix(tenantID, ownerTenantPrefix)
+	return owner && IsTestSubject(subject)
 }
 
 // Admit refuses a subject acting in a tenant on the other side of the test

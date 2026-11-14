@@ -13,24 +13,25 @@ import (
 	"github.com/kombifyio/techstack/pkg/specv2"
 )
 
-type wizardBlockedCapability struct {
-	UseCase    string `json:"use_case"`
-	Capability string `json:"capability"`
-	Selection  string `json:"selection"`
-}
+type wizardBlockedCapability = specv2.BlockedUseCaseAccess
 
 // The guided tool answer records the desired catalog option separately from
 // execution capabilities. A recorded required option blocks projection; it
 // never makes "off" legal in an actual generated or dispatched plan.
 func admitWizardDesiredCapabilities(intent specv2.WizardIntent) (specv2.WizardIntent, []wizardBlockedCapability, error) {
+	var blocked []wizardBlockedCapability
+	for _, slug := range intent.PendingUseCaseAccess() {
+		decision := intent.UseCaseAccess[slug]
+		blocked = append(blocked, wizardBlockedCapability{UseCase: slug, Capability: "use-case-access", Selection: decision.Mode + "/" + decision.Audience})
+	}
+	sort.Slice(blocked, func(i, j int) bool { return blocked[i].UseCase < blocked[j].UseCase })
 	if len(intent.UseCaseCapabilities) == 0 && len(intent.UseCaseSetupAnswers) == 0 {
-		return intent, nil, nil
+		return intent, blocked, nil
 	}
 	catalog, err := stackkitrelease.ResolveUseCaseCatalog()
 	if err != nil {
 		return intent, nil, err
 	}
-	var blocked []wizardBlockedCapability
 	// Link handoffs can carry only guided answers. A missing execution map
 	// must not turn a recorded required choice into the release's default.
 	for slug, answers := range intent.UseCaseSetupAnswers {
@@ -52,7 +53,7 @@ func admitWizardDesiredCapabilities(intent specv2.WizardIntent) (specv2.WizardIn
 			}
 			for _, option := range options {
 				if len(answer) == 1 && answer[0] == option.ID && option.Realization == "recorded" {
-					blocked = append(blocked, wizardBlockedCapability{slug, capability.ID, option.ID})
+					blocked = append(blocked, wizardBlockedCapability{UseCase: slug, Capability: capability.ID, Selection: option.ID})
 				}
 			}
 		}
@@ -85,7 +86,7 @@ func admitWizardDesiredCapabilities(intent specv2.WizardIntent) (specv2.WizardIn
 						if value != "off" && value != option.ID {
 							return intent, nil, fmt.Errorf("use case %q capability %q conflicts with its desired recorded option", slug, id)
 						}
-						blocked = append(blocked, wizardBlockedCapability{slug, id, option.ID})
+						blocked = append(blocked, wizardBlockedCapability{UseCase: slug, Capability: id, Selection: option.ID})
 						recorded = true
 					}
 				}

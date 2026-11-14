@@ -1,4 +1,11 @@
 export const zhHans: Record<string, string> = {
+  "ui.homelab.firstServerHint": "连接已有服务器或设置新服务器。你的服务器将显示在这里。",
+  "ui.homelab.installedUseCases": "已安装的使用场景",
+  "ui.homelab.transferHint": "导入技术栈配置或导出所选技术栈。",
+  "ui.homelab.export": "导出",
+  "ui.homelab.importSpec": "StackKit 规范",
+  "ui.apps.useCaseConfigure": "配置",
+  "ui.apps.useCaseRemove": "移除",
   "ui.clientLocal.bootstrapPassword": "初始化密码",
   "ui.clientLocal.bootstrapGuidance":
     "在此安装的主机终端上运行 {command}，获取初始化密码。如果以前的密码已被使用或已过期，该命令会替换它，旧密码将不再有效。",
@@ -7,8 +14,8 @@ export const zhHans: Record<string, string> = {
   "setupReplay.body":
     "查看此设备的连接方式，然后重新浏览介绍。设置草稿会保留在这里。",
   "setupReplay.edition": "安装版本",
-  "setupReplay.localEdition": "Techstack Local",
-  "setupReplay.cloudEdition": "Techstack Cloud",
+  "setupReplay.localEdition": "Techstack Standalone",
+  "setupReplay.cloudEdition": "Techstack Connected",
   "setupReplay.connection": "连接",
   "setupReplay.address": "地址",
   "setupReplay.browser": "网页浏览器",
@@ -17,6 +24,31 @@ export const zhHans: Record<string, string> = {
   "setupReplay.skip": "跳过设置",
   "setupReplay.keep": "保留连接",
   "ui.services.stackIt": "Stack it",
+  "ui.services.unmanaged": "未托管",
+  "ui.services.stackItFirst": "先 Stack it，再迁移",
+  "ui.services.stackItHere": "在此对 {name} 执行 Stack it",
+  "ui.services.stackItPlanning": "正在规划…",
+  "ui.services.stackItRecreated": "将重建为新容器。原容器会停止并保留 7 天。",
+  "ui.services.stackItName": "名称",
+  "ui.services.stackItData": "数据",
+  "ui.services.stackItDowntime": "停机时间",
+  "ui.services.stackItSeconds": "约 {seconds} 秒",
+  "ui.services.stackItDisk": "{size} · 可用 {free}",
+  "ui.services.stackItPorts": "端口",
+  "ui.services.stackItSecrets": "隐藏的设置",
+  "ui.services.stackItRow.kept": "保留",
+  "ui.services.stackItRow.changed": "更改",
+  "ui.services.stackItRow.refused": "拒绝",
+  "ui.services.stackItRefused": "此容器暂时无法纳入堆栈。",
+  "ui.services.stackItDone": "已纳入堆栈。",
+  "ui.services.originalKept": "原容器已保留",
+  "ui.services.originalKeptUntil": "原容器保留至 {date}",
+  "ui.services.restoreOriginal": "恢复原容器",
+  "ui.services.removeOriginal": "移除原容器",
+  "ui.services.restoreOriginalBody": "移除已纳入堆栈的应用（其数据保留），并重新启动原容器。",
+  "ui.services.removeOriginalBody": "移除已停止的原容器。其数据保留。",
+  "ui.services.originalRestored": "已恢复原容器。",
+  "ui.services.originalRemoved": "已移除原容器。",
   "ui.services.approveStackIt": "批准此次接管",
   "ui.services.releaseBinding": "解除生命周期管理",
   "ui.services.adoptionScope": "审核此现有 Home Assistant 容器，以在原位置管理其生命周期。此配置不支持其他应用，也不支持迁移到另一个服务器。",
@@ -324,7 +356,6 @@ export const zhHans: Record<string, string> = {
   "ui.dashboard.healthy": "健康",
   "ui.dashboard.alerts": "警报",
   "ui.common.importExport": "导入 / 导出",
-  "ui.dashboard.sections": "Homelab 分区",
   "ui.dashboard.failureDetails": "详情",
   "ui.dashboard.hideFailureDetails": "隐藏详情",
   "ui.dashboard.inventoryUnavailable": "无法读取服务器和服务的当前状态。下方保存的遥测数据仅用于诊断，并不表示你的 Homelab 是空的。",
@@ -379,8 +410,6 @@ export const zhHans: Record<string, string> = {
     "清理仍在进行中。只有当租约、标准服务器、提供商操作、移除证据和容量释放全部进入终态后，才能重新创建。",
   "ui.common.close": "关闭",
   "ui.metric.noSamples": "此时间段内没有样本",
-  "ui.relogin.localPath": "继续本地 Techstack 设置流程。此界面不会收集密码。",
-  "ui.relogin.continueLocal": "继续本地设置",
   "ui.rotation.schedule": "轮换计划",
   "ui.rotation.rotateNow": "立即轮换",
   "ui.serverAccess.authorizeKey": "授权我的 SSH 密钥",
@@ -443,7 +472,7 @@ export const zhHans: Record<string, string> = {
   "wizard.preview.reset": "重置",
   "wizard.preview.language": "预览语言",
   "wizard.preview.sandboxNotice":
-    "交互式设计预览。用相同的选择对比 A 和 B。选择只保留在此视图中，不会安装任何内容。邮件和游戏展示的是计划中的 Beta 体验。",
+    "交互式设计预览。用相同的选择对比圆形视图和紧凑视图。选择只保留在此视图中，不会安装任何内容。邮件和游戏展示的是计划中的 Beta 体验。",
   "wizard.preview.files.title": "文档与文件",
   "wizard.preview.files.description": "你的日常文件，放在属于你自己的地方。",
   "wizard.preview.files.help":
@@ -496,9 +525,6 @@ export const zhHans: Record<string, string> = {
     "可选的集成邮件套件，带有 SOGo 网页邮箱和群组协作功能。可选择套件或单独的服务器；同一批邮箱不需要两者兼备。",
   "wizard.preview.service.pterodactyl":
     "为游戏选定的平台。计划中的集成会管理独立的 Minecraft Java 版和基岩版配置、它们的资源以及持久世界。",
-  "wizard.preview.compare": "对比两种设计",
-  "wizard.preview.discover": "发现",
-  "wizard.preview.focus": "专注",
   "wizard.preview.eyebrow": "你的数字之家",
   "wizard.preview.title": "为重要的事腾出空间。",
   "wizard.preview.subtitle":
@@ -513,8 +539,6 @@ export const zhHans: Record<string, string> = {
   "wizard.preview.aboutUseCase": "深入了解",
   "wizard.preview.inside": "此使用场景中的工具",
   "wizard.preview.explore": "探索与自定义",
-  "wizard.preview.selectUseCase": "选择",
-  "wizard.preview.collapse": "收起详情",
   "wizard.preview.selected": "已选择",
   "wizard.preview.optional": "可选",
   "wizard.preview.selectionCount": "已选择",
@@ -1076,6 +1100,10 @@ export const zhHans: Record<string, string> = {
   "wizard.server.command.join.review": "确认这个服务器",
   "wizard.server.command.join.reviewBody":
     "选择此设备的连接方式。你的 Homelab 访问权限、成员和登录保持不变。",
+  "wizard.focus.title": "设置 {useCase}",
+  "wizard.focus.subtitle":
+    "选择应用及其设置方式。需要时，细节随时可查。",
+  "wizard.step.useCase": "用例",
   "wizard.step.inherited": "已为你的 Homelab 设置好",
   "wizard.step.existingOwner": "你的 Homelab 所有者保持不变",
   "wizard.settings.title": "Homelab 设置",
@@ -1248,16 +1276,6 @@ export const zhHans: Record<string, string> = {
   "auth.email": "电子邮件",
   "auth.password": "密码",
   "auth.username": "用户名",
-  "auth.session.renewal.title": "需要刷新会话",
-  "auth.session.renewal.body":
-    "我们无法自动续期你对 kombify Cloud 的安全访问。你的工作是安全的，重新登录即可从上次离开的地方继续。",
-  "auth.session.renewal.signIn": "重新登录",
-  "auth.session.renewal.retry": "重试",
-  "auth.session.renewal.retrying": "正在重试…",
-  "auth.session.gatewayUnavailable":
-    "无法验证对 kombify Cloud 的安全访问。请重新登录以继续。",
-  "auth.session.tenantContextRequired":
-    "你的会话未携带任何 kombify 组织，因此无法显示租户数据。请从你的 kombify Cloud 门户打开 Techstack，或重新登录。",
   "wizard.run.banner.inProgressTitle": "你的 Homelab 正在设置中",
   "wizard.run.banner.inProgressBody":
     "设置仍在运行。你可以查看进度，也可以稍后再回来。",
@@ -1273,21 +1291,6 @@ export const zhHans: Record<string, string> = {
   "wizard.run.banner.cancelFailed": "无法取消推出",
   "wizard.run.banner.dismiss": "忽略",
   "wizard.run.banner.dismissFailed": "无法忽略此通知",
-  "auth.session.expired.default": "你的会话已过期。请重新登录。",
-  "auth.session.expired.title": "会话已过期",
-  "auth.session.expired.subtitle": "请重新登录",
-  "auth.session.expired.saasBody":
-    "你的 Techstack 会话已过期。请继续使用 Auth0，登录后即可回到此工作流程。",
-  "auth.session.expired.continueAuth0": "继续使用 Auth0",
-  "auth.session.expired.reconnecting": "正在重新连接...",
-  "auth.session.expired.signOut": "退出登录",
-  "auth.session.expired.reopenPortal": "重新打开 kombify Cloud",
-  "auth.session.expired.embeddedHint":
-    "在新标签页中打开 kombify Cloud 并在那里登录，然后回到这里重试刷新会话。",
-  "auth.session.expired.embeddedRefreshFailed":
-    "无法刷新嵌入的 kombify Cloud 会话。请重新打开 kombify Cloud 再次登录，然后重试。",
-  "auth.session.expired.dataPreserved":
-    "你的数据已保留。登录后，你可以从上次离开的地方继续。",
   "nav.notifications": "通知",
   "companion.frameTitle": "kombify Companion",
   "companion.open": "打开 Companion",
@@ -1369,7 +1372,6 @@ export const zhHans: Record<string, string> = {
     "此窗口将自动关闭。",
   "ui.authCloud-link-complete.youCanCloseThisTab":
     "你可以关闭此标签页并返回向导。",
-  "ui.authHandler.yourSessionHasExpiredPlease": "你的会话已过期。请重新登录。",
   "ui.authSso.noSsoTokenProvided": "未提供 SSO 令牌",
   "ui.authSso.ssoAuthenticationFailed": "SSO 身份验证失败",
   "ui.authSso.ssoAuthenticationKombifyTechstack":
@@ -1378,12 +1380,9 @@ export const zhHans: Record<string, string> = {
   "ui.authSso.yourKombifyCloudSessionCould":
     "无法恢复你的 kombify Cloud 会话。请重试。",
   "ui.client.csrfTokenResponseMissingToken": "CSRF 令牌响应缺少令牌",
-  "ui.client.gatewayAuthenticationUnavailableSignIn":
-    "Gateway 身份验证不可用。请重新登录以验证你的托管运行时权益。",
   "ui.client.networkError": "网络错误：无法连接到 API。后端是否可达？",
   "ui.client.networkErrorAt":
     "网络错误：无法连接到位于 {base} 的 API。后端是否可达？",
-  "ui.client.parentGatewayTokenFailed": "父级网关令牌失败",
   "ui.client.requestTimedOutAfterS": "请求在 {v1} 秒后超时：{url}",
   "ui.client.serverReturnedHTMLInsteadOf":
     "{basePrefix}服务器返回了 HTML 而不是 JSON（{status}）。后端是否可达，你是否已通过身份验证？",
@@ -1662,7 +1661,6 @@ export const zhHans: Record<string, string> = {
   "ui.homelabDashboardPage.resolveStaleCustodyRecord": "处理过期的托管记录？",
   "ui.homelabDashboardPage.retry": "重试",
   "ui.homelabDashboardPage.retryExactCleanup": "重试该确切清理",
-  "ui.homelabDashboardPage.review": "查看",
   "ui.homelabDashboardPage.reviewStart": "查看并创建",
   "ui.homelabDashboardPage.rolloutReadinessIsUnavailableRefresh":
     "无法获取部署就绪状态。启动前请先刷新运维数据。",
@@ -1846,6 +1844,7 @@ export const zhHans: Record<string, string> = {
   "ui.monitoring.acrossEpisodes.other": "共 {count} 次事件",
   "ui.monitoring.availabilityHistoryIsUnavailableOn": "此安装不提供可用性历史记录。",
   "ui.monitoring.availabilityWindow": "可用性 · {window}",
+  "ui.monitoring.availabilityWindowLabel": "可用性时间段",
   "ui.monitoring.dailyState": "每日状态",
   "ui.monitoring.dailyStateLabel": "{name}：每日连接状态",
   "ui.monitoring.downFor": "宕机 {duration}",
@@ -1967,12 +1966,30 @@ export const zhHans: Record<string, string> = {
   "ui.ownerState.recoveryPassphraseMustBeAt":
     "恢复密码短语至少需要 {MIN_RECOVERY_PASSPHRASE_LENGTH} 个字符",
   "ui.ownerState.recoveryPassphrasesDoNotMatch": "两次输入的恢复密码短语不一致",
+  "ui.ownerState.theCloudLinkCouldNotBeRemoved":
+    "无法移除 kombify Cloud 关联。请重试。",
+  "ui.ownerState.theCloudLinkCouldNotBeSaved":
+    "无法保存 kombify Cloud 关联。请重试。",
+  "ui.ownerState.theCloudLinkCouldNotBeStarted":
+    "无法启动 kombify Cloud 关联。请重试。",
+  "ui.ownerState.theCloudLinkIsTemporarilyUnavailable":
+    "kombify Cloud 关联暂时不可用。请稍后重试。",
+  "ui.ownerState.theCloudLinkStatusCouldNotBeRead":
+    "无法读取 kombify Cloud 关联状态。请稍后重试。",
+  "ui.ownerState.theCloudProfileCouldNotBeRead":
+    "无法读取 kombify Cloud 个人资料。请重新开始连接。",
+  "ui.ownerState.theCloudTokenExchangeFailed":
+    "kombify Cloud 令牌交换失败。请重新开始连接。",
+  "ui.ownerState.theKombifyCloudAccountIsAlready":
+    "您的 kombify Cloud 账号已连接。Cloud 关联仅在自托管安装中可用。",
   "ui.ownerState.theKombifyCloudEmailIs":
     "kombify Cloud 的电子邮件尚未验证。请在你的 Cloud 账户中验证后再重新关联。",
   "ui.ownerState.theKombifyCloudProfileHas":
     "kombify Cloud 个人资料没有电子邮件地址。",
   "ui.ownerState.theLinkRequestExpiredStart":
     "关联请求已过期。请重新发起连接。",
+  "ui.ownerState.theLinkRequestIsMissingStart":
+    "关联请求缺少代码或状态。请重新发起连接。",
   "ui.ownerState.theSelectedOwnerSourceIs":
     "所选的所有者来源已不再受支持。请选择本地所有者，或关联你的 kombify Cloud 个人资料。",
   "ui.ownerState.thisInstanceHasNoKombify": "此实例未配置 kombify Cloud 登录。",
@@ -2434,7 +2451,6 @@ export const zhHans: Record<string, string> = {
   "ui.serviceSheet.notPlaced": "未放置",
   "ui.serviceSheet.ownership": "归属：{value}",
   "ui.serviceSheet.stackkit": "StackKit {version}",
-  "ui.services.aboutToMove": "你即将把此应用从 {slot} 迁移到 {slot}。",
   "ui.services.action.freeze": "冻结",
   "ui.services.action.logs": "日志",
   "ui.services.action.restart": "重启",
@@ -2455,14 +2471,10 @@ export const zhHans: Record<string, string> = {
   "ui.services.anyRuntimeInventoryShownAbove":
     "上方显示的任何运行时清单均保持只读。在服务注册表恢复之前，目录、导入、验证和迁移操作将保持禁用。",
   "ui.services.application": "应用",
-  "ui.services.applicationIsAlreadyMovingOr": "应用正在迁移或正在等待验证。",
   "ui.services.applicationManagementIsTemporarilyUnavailable":
     "应用管理暂时不可用",
   "ui.services.applicationManagementIsUnavailableUntil":
     "在服务注册表恢复之前，应用管理不可用。",
-  "ui.services.applicationMove": "迁移应用",
-  "ui.services.applicationNeedsAStableRunning":
-    "应用需要处于稳定的运行或停止状态，才能进行迁移。",
   "ui.services.applicationPlacementIsTemporarilyUnavailable":
     "应用放置暂时不可用",
   "ui.services.applications": "应用",
@@ -2491,12 +2503,8 @@ export const zhHans: Record<string, string> = {
   "ui.services.desiredObserved": "期望 {desired} · 观测 {observed}",
   "ui.services.discoveredOn": "在 {name} 上发现 — 不由 kombify 管理",
   "ui.services.displayName": "显示名称",
-  "ui.services.dragAndDropStaysDisabled": "拖放暂不可用。要安全地迁移应用，需要将安装、健康检查、切换以及旧副本的清理实现自动化。",
-  "ui.services.dropManagedApplicationsHere": "将托管应用拖放到此处",
   "ui.services.error": "错误",
   "ui.services.failedToDeleteArchivedService": "删除已归档的服务失败。",
-  "ui.services.failedToInitiateMigration": "无法启动迁移。",
-  "ui.services.failedToVerifyService": "验证服务失败。",
   "ui.services.fetchLogs": "获取日志",
   "ui.services.freshnessValue": "新鲜度：{value}",
   "ui.services.health": "健康状态",
@@ -2506,17 +2514,14 @@ export const zhHans: Record<string, string> = {
   "ui.services.loadingCanonicalServiceInventory": "正在加载权威服务清单",
   "ui.services.localNode": "本地服务器",
   "ui.services.managedProviderTarget": "托管提供商目标",
-  "ui.services.migrationJobIsActive": "迁移任务正在进行。",
+  "ui.services.moreActions": "服务的更多操作",
   "ui.services.moveApplication": "迁移应用",
   "ui.services.moveHere": "将 {name} 迁移到此处",
-  "ui.services.moveSteps": "迁移步骤：",
-  "ui.services.moveToAnotherNode": "迁移到其他服务器…",
   "ui.services.mutationsRequireOwnerApprovalA":
     "变更需要所有者批准；在测得状态改变之前会先运行一次 StackKits 验证。",
   "ui.services.noApplicationsDeployed": "尚未部署任何应用",
   "ui.services.noApplicationsMatching": "没有状态为 {status} 的应用",
   "ui.services.noApplicationsReported": "未报告任何应用",
-  "ui.services.noAvailableTargetNodeFor": "此应用没有可用的目标服务器。",
   "ui.services.noCanonicalRuntimeObservationYet":
     "尚无权威运行时观测 — 显示的是注册表投影。",
   "ui.services.noGovernedActionHasRun": "本次会话中尚未执行任何受管控的操作。",
@@ -2529,12 +2534,10 @@ export const zhHans: Record<string, string> = {
   "ui.services.nodeCapabilities": "服务器能力",
   "ui.services.nodeColumn": "服务器{name} 列",
   "ui.services.observed": "已观测",
-  "ui.services.stacked": "Stacked",
-  "ui.services.unstacked": "Unstacked",
+  "ui.services.stacked": "已堆叠",
+  "ui.services.unstacked": "未堆叠",
   "ui.services.observedTechnicalComponentsWithoutApplication":
     "已观测到的、没有应用级控制的技术组件",
-  "ui.services.observedUnmanagedApplicationsMustBe":
-    "已观测到的未托管应用必须先纳入管理，才能迁移。",
   "ui.services.open": "打开",
   "ui.services.operationValue": "操作：{value}",
   "ui.services.ownershipUnknown": "归属未知",
@@ -2550,14 +2553,10 @@ export const zhHans: Record<string, string> = {
   "ui.services.port": "端口",
   "ui.services.ramUsedOf": "{used} GB / {total} GB",
   "ui.services.refreshLogs": "刷新日志",
-  "ui.services.relocatingOnBackend": "后端正在迁移...",
   "ui.services.removeOldCopy": "移除旧副本…",
   "ui.services.retryManagementData": "重试加载管理数据",
   "ui.services.running": "运行中",
   "ui.services.runtimeInventoryCouldNotBe": "无法加载运行时清单。",
-  "ui.services.runtimeMigrationIsNotEnabled": "运行时迁移尚未启用",
-  "ui.services.runtimeMigrationUnavailable": "运行时迁移不可用",
-  "ui.services.runtimeServiceMigrationIsNot": "此安装未启用在服务器之间迁移应用的功能。",
   "ui.services.runtimeTarget": "运行时目标",
   "ui.services.selectANodeAndCatalog": "请选择一个服务器和一个目录服务。",
   "ui.services.selectANodeThenEnter": "请先选择一个服务器，然后输入服务名称。",
@@ -2575,18 +2574,12 @@ export const zhHans: Record<string, string> = {
   "ui.services.showingLastVerifiedCapacityTelemetry":
     "显示最近一次验证的容量遥测数据",
   "ui.services.stackkitsApplicationModel": "StackKits 应用模型",
-  "ui.services.startMove": "开始迁移",
-  "ui.services.startsControlledMove": "这将开始受控迁移 {slot}。",
   "ui.services.statusValue": "状态：{value}",
   "ui.services.storage": "存储",
   "ui.services.storageFreeOf": "可用 {free} GB / 共 {total} GB",
   "ui.services.systemServices": "系统服务",
-  "ui.services.targetIsReadyForVerification": "目标已就绪，可以验证。",
-  "ui.services.targetNode": "目标服务器",
   "ui.services.targetValue": "目标：{value}",
   "ui.services.telemetryPending": "遥测数据待处理",
-  "ui.services.temporaryInstance": "将在 {slot} 上部署一个临时实例。",
-  "ui.services.theApplicationConfigWillBe": "应用配置将被复制到目标服务器。",
   "ui.services.theLastLogPageWas": "最后一页日志为空。",
   "ui.services.theLastSuccessfulSnapshotRemains": "最近一次成功的快照会一直保留显示，直到此 Homelab 报告替代快照或明确的应用宕机证据。",
   "ui.services.thisHomelab": "此 Homelab",
@@ -2595,13 +2588,8 @@ export const zhHans: Record<string, string> = {
   "ui.services.type2": "类型",
   "ui.services.unclassifiedRuntimeComponentsAppearHere":
     "未分类的运行时组件会显示在这里。",
-  "ui.services.uponYourManualVerificationThe":
-    "在你手动验证后，旧实例会被停用，并可被永久移除。",
   "ui.services.url": "URL",
-  "ui.services.verifyFinish": "验证并完成",
   "ui.services.verifying": "· 正在验证",
-  "ui.services.waitingForRuntimeDeployment": "正在等待安装...",
-  "ui.services.youCanTestTheNew": "在旧实例保持运行的同时，你可以测试新实例。",
   "ui.servicesApplicationId.addressClass": "地址类别",
   "ui.servicesApplicationId.applicationDetails": "应用详情",
   "ui.servicesApplicationId.applicationDetailsCouldNotBe": "无法加载应用详情。",
@@ -2844,7 +2832,7 @@ export const zhHans: Record<string, string> = {
   "ui.stacksCreatingCreation-controller.rolloutRetryRequiresTheExact":
     "重试推出需要确切的失败作业和托管 VM 租约。",
   "ui.stacksCreatingCreation-controller.serviceVerification": "服务验证",
-  "ui.stacksCreatingCreation-controller.sessionExpired": "会话已过期",
+  "ui.stacksCreatingCreation-controller.sessionExpired": "正在等待你的确认",
   "ui.stacksCreatingCreation-controller.simulationGate": "模拟关卡",
   "ui.stacksCreatingCreation-controller.stackkitRollout": "StackKit 推出",
   "ui.stacksCreatingCreation-controller.stackkitRuntimeVerificationMissing":
@@ -2870,7 +2858,7 @@ export const zhHans: Record<string, string> = {
   "ui.stacksCreatingCreation-controller.yourRemoteNodeConfigurationIs":
     "你的远程服务器配置已可用于推出",
   "ui.stacksCreatingCreation-controller.yourSessionIsNoLonger":
-    "你的会话已失效，因此无法检查创建进度。请重新登录并再次打开此创建任务以继续监控。",
+    "创建仍在服务器上运行。请再次检查并确认你的会话，以便在此继续跟踪进度。",
   "ui.stacksCreatingCreation-results.backendError":
     "{cleanDetails}\n\n后端错误：\n{cleanError}",
   "ui.stacksCreatingCreation-results.incidentContext": "事件上下文：",
@@ -3151,6 +3139,7 @@ export const zhHans: Record<string, string> = {
   "ui.stacksId.monitoringEvidence": "监控证据",
   "ui.stacksId.monthlyRuntime": "按月运行时",
   "ui.stacksId.monthlyRuntimeActionFailed": "按月运行时操作失败",
+  "ui.stacksId.moreActions": "{name} 的更多操作",
   "ui.stacksId.noCredentialsConfiguredForThis": "此 Homelab 尚未配置凭据。",
   "ui.stacksId.noLeaseAttached": "未关联租约",
   "ui.stacksId.noStackkitDeploymentIdProvided": "未提供 Homelab ID",
@@ -3217,6 +3206,7 @@ export const zhHans: Record<string, string> = {
     "托管运行时的租约上下文。",
   "ui.stacksIdServersServerId.memory": "内存",
   "ui.stacksIdServersServerId.metadata": "元数据",
+  "ui.stacksIdServersServerId.moreActions": "{name} 的更多操作",
   "ui.stacksIdServersServerId.noCompilerDeclaredReservationOr":
     "在最新的完整 Guard 快照中，没有编译器声明的预留或已绑定的运行时监听器。",
   "ui.stacksIdServersServerId.noDesiredListenerIsReserved":

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
 	"log/slog"
 	"time"
 )
@@ -68,11 +69,11 @@ func reapRILExpiry(ctx context.Context, db *sql.DB, listSQL, clearSQL string) er
 		if x.tenant == "" || x.id == "" {
 			return fmt.Errorf("invalid RIL expiry index identity")
 		}
-		tx, e := db.BeginTx(ctx, nil)
+		tx, e := tenantcontext.Database(ctx, db).BeginTx(ctx, nil)
 		if e != nil {
 			return e
 		}
-		if _, e = tx.ExecContext(ctx, `SELECT set_config('app.tenant_id',$1,true)`, x.tenant); e == nil {
+		if e = tenantcontext.ApplyTenant(ctx, tx, x.tenant); e == nil {
 			_, e = tx.ExecContext(ctx, clearSQL, x.tenant, x.id)
 		}
 		if e != nil {

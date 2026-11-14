@@ -32,10 +32,18 @@ type ApplicationLifecycleBinding struct {
 	PlanJobID               string                               `json:"plan_job_id,omitempty"`
 	ReviewedPlan            *stackkitcommand.ApplicationEvidence `json:"reviewed_plan,omitempty"`
 	Action                  string                               `json:"action,omitempty"`
+	// Profile selects the adoption profile: empty for the Home Assistant
+	// in-place profile, own-application-adopted/v1 for Stack it.
+	Profile            string                                  `json:"profile,omitempty"`
+	OwnApplicationName string                                  `json:"own_application_name,omitempty"`
+	ReviewedStack      *stackkitcommand.ApplicationStackResult `json:"reviewed_stack,omitempty"`
 }
 
 func applicationAgentOperation(op string) (agentpb.StackKitOperation, bool) {
 	m := map[string]agentpb.StackKitOperation{StackKitLifecycleApplicationInspect: agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_INSPECT, StackKitLifecycleApplicationAdopt: agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_ADOPT, StackKitLifecycleApplicationVerify: agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_VERIFY, StackKitLifecycleApplicationRelease: agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_RELEASE, StackKitLifecycleApplicationControl: agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_CONTROL}
+	if v, ok := applicationStackAgentOperations[op]; ok {
+		return v, true
+	}
 	v, ok := m[op]
 	return v, ok
 }
@@ -44,6 +52,12 @@ func IsApplicationLifecycleOperation(op string) bool {
 	return ok
 }
 func validateApplicationLifecycleRequest(req *StackKitLifecycleRequest) error {
+	if IsApplicationStackLifecycleOperation(req.Operation) {
+		return validateApplicationStackRequest(req)
+	}
+	if req.Application != nil && (req.Application.Profile != "" || req.Application.OwnApplicationName != "" || req.Application.ReviewedStack != nil) {
+		return fmt.Errorf("the in-place application profile carries no Stack it binding")
+	}
 	if req.Application == nil || req.Application.ServerID == "" || req.Application.ExpectedServiceRevision <= 0 || req.ServiceID == "" || req.ServiceKey != "smart-home" {
 		return fmt.Errorf("application lifecycle requires a retained exact service/source binding")
 	}
@@ -76,6 +90,9 @@ func applicationCommand(req StackKitLifecycleRequest, release stackkitrelease.Re
 func runApplicationLifecycleJob(ctx context.Context, cfg StackKitLifecycleConfig, job *Job, q *Queue, req StackKitLifecycleRequest, release stackkitrelease.Release) error {
 	if cfg.Services == nil {
 		return NewConfigError(fmt.Errorf("application aggregate authority is unavailable"))
+	}
+	if IsApplicationStackLifecycleOperation(req.Operation) {
+		return runApplicationStackJob(ctx, cfg, job, q, req, release)
 	}
 	head, err := cfg.Services.ReadServiceEventHead(ctx, req.TenantID, req.ServiceID)
 	if err != nil {
@@ -186,14 +203,26 @@ func runApplicationLifecycleJob(ctx context.Context, cfg StackKitLifecycleConfig
 	if req.Operation == StackKitLifecycleApplicationInspect {
 		return nil
 	}
-	head, err = cfg.Services.ReadServiceEventHead(ctx, req.TenantID, req.ServiceID)
+	if err := projectApplicationReceipt(ctx, cfg, job.ID, req, evidence); err != nil {
+		return err
+	}
+	q.UpdateProgress(job.ID, 100, "Application lifecycle receipt verified and projected")
+	return nil
+}
+
+// projectApplicationReceipt projects one verified application lifecycle
+// receipt onto the service aggregate under the retained binding's fence. The
+// managed job and the RIL executor-bound service primitives share it; the
+// operation id (job or RIL execution) marks the receipt as projected.
+func projectApplicationReceipt(ctx context.Context, cfg StackKitLifecycleConfig, operationID string, req StackKitLifecycleRequest, evidence stackkitcommand.ApplicationEvidence) error {
+	head, err := cfg.Services.ReadServiceEventHead(ctx, req.TenantID, req.ServiceID)
 	if err != nil {
 		return NewPermanentError(err)
 	}
 	if head.Service.StackID != req.StackID || head.Service.ServerID != req.Application.ServerID || ApplicationContainerIdentity(head.Service) != req.Application.ContainerID {
 		return NewPermanentError(fmt.Errorf("application source changed before receipt projection"))
 	}
-	if head.Service.Metadata["application_adoption_job_id"] == job.ID {
+	if head.Service.Metadata["application_adoption_job_id"] == operationID {
 		return nil
 	}
 	if !applicationProjectionFence(head, req.Application) {
@@ -204,7 +233,7 @@ func runApplicationLifecycleJob(ctx context.Context, cfg StackKitLifecycleConfig
 		metadata = map[string]any{}
 	}
 	metadata["application_adoption"] = stackkitcommand.ApplicationEvidenceMap(evidence)
-	metadata["application_adoption_job_id"] = job.ID
+	metadata["application_adoption_job_id"] = operationID
 	management := "managed"
 	var capabilities []string
 	if req.Operation == StackKitLifecycleApplicationRelease {
@@ -226,11 +255,10 @@ func runApplicationLifecycleJob(ctx context.Context, cfg StackKitLifecycleConfig
 	}
 	// Preserve measured runtime dimensions: adoption and release assert ownership,
 	// not health. The next Guard observation supplies current measured state.
-	_, err = cfg.Services.ApplyServiceEvent(ctx, controlplane.ServiceEvent{TenantID: req.TenantID, ServiceID: req.ServiceID, ExpectedRevision: &head.Revision, Authority: controlplane.ServiceEventAuthorityControlPlane, Source: "stackkit-application-adoption", ReasonCode: req.Operation, EnforceIdentityBinding: true, Runtime: patch, Evidence: map[string]any{"job_id": job.ID, "plan_digest": evidence.PlanDigest, "receipt": stackkitcommand.ApplicationEvidenceMap(evidence)}})
+	_, err = cfg.Services.ApplyServiceEvent(ctx, controlplane.ServiceEvent{TenantID: req.TenantID, ServiceID: req.ServiceID, ExpectedRevision: &head.Revision, Authority: controlplane.ServiceEventAuthorityControlPlane, Source: "stackkit-application-adoption", ReasonCode: req.Operation, EnforceIdentityBinding: true, Runtime: patch, Evidence: map[string]any{"job_id": operationID, "plan_digest": evidence.PlanDigest, "receipt": stackkitcommand.ApplicationEvidenceMap(evidence)}})
 	if err != nil {
 		return NewResourceError(err)
 	}
-	q.UpdateProgress(job.ID, 100, "Application lifecycle receipt verified and projected")
 	return nil
 }
 

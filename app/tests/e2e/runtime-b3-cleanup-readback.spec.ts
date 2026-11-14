@@ -7,8 +7,8 @@ import { authenticateRuntimeUser } from "./runtime-auth";
 
 // Cleanup proof of a failed B3 window run whose product removal did not pass
 // (homelab-node-run-selfhosted.yml, job b3-cleanup-proof): the shared RIL-Pro
-// owner reads that the run's stack is gone and its server retired, on Stable
-// and on Early Access, because the run's evidence does not name its channel.
+// owner reads that the run's stack is gone and its server retired on the
+// production service.
 // This step only reads; the removal itself goes through the product.
 
 const STACK_ID = process.env.TECHSTACK_B3_CLEANUP_STACK_ID?.trim() ?? "";
@@ -21,7 +21,7 @@ const PRODUCT_BASE = liveProductURL(
 const API_BASE = liveProductURL(
   process.env.TECHSTACK_RUNTIME_E2E_API_URL || PRODUCT_BASE,
 );
-const CHANNELS = ["stable", "early-access"] as const;
+const CHANNELS = ["stable"] as const;
 const READBACK = resolve(
   process.env.RUNTIME_E2E_ARTIFACTS_DIR ?? "../artifacts/runtime-e2e",
   "b3-cleanup-readback.json",
@@ -42,13 +42,11 @@ test("a failed B3 run's stack is gone for its owner and its server is retired", 
   for (const channel of CHANNELS) {
     const stack = await ownerJSON(
       auth.token,
-      channel,
       `/api/v1/stacks/${encodeURIComponent(STACK_ID)}`,
     );
-    const stacks = await ownerJSON(auth.token, channel, "/api/v1/stacks");
+    const stacks = await ownerJSON(auth.token, "/api/v1/stacks");
     const server = await ownerJSON(
       auth.token,
-      channel,
       `/api/v1/servers/${encodeURIComponent(SERVER_ID)}`,
     );
     const data = server.body?.data ?? {};
@@ -106,18 +104,11 @@ test("a failed B3 run's stack is gone for its owner and its server is retired", 
   }
 });
 
-async function ownerJSON(
-  token: string,
-  channel: (typeof CHANNELS)[number],
-  endpoint: string,
-) {
+async function ownerJSON(token: string, endpoint: string) {
   const response = await fetch(`${API_BASE}${endpoint}`, {
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
-      ...(channel === "early-access"
-        ? { "x-kombify-release-channel": "early-access" }
-        : {}),
     },
     signal: AbortSignal.timeout(30_000),
   });

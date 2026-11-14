@@ -1,6 +1,7 @@
 <script lang="ts">
   import { tr } from "#lib/i18n.svelte.js";
   import type { Snippet } from "svelte";
+  import { MediaQuery } from "svelte/reactivity";
 
   import NodeMessageLine from "#lib/components/dashboard/NodeMessageLine.svelte";
   import NodeRow from "#lib/components/dashboard/NodeRow.svelte";
@@ -20,7 +21,6 @@
   interface Props {
     nodes: NodeView[];
     deploymentName: (deploymentId: string) => string;
-    deploymentHref: (deploymentId: string) => string;
     nodeHref: (node: NodeView) => string;
     onOpenService: (serviceId: string) => void;
     people: SectionState<PersonEntry>;
@@ -40,7 +40,6 @@
   let {
     nodes,
     deploymentName,
-    deploymentHref,
     nodeHref,
     onOpenService,
     people,
@@ -53,8 +52,12 @@
     listMessageDetails,
   }: Props = $props();
 
-  // Below 1280 px the devices column becomes a tab beside the Nodes.
-  let tab = $state<"nodes" | "devices">("nodes");
+  // Below the shell's phone breakpoint (48rem) the page head (title, add
+  // server) sits in the top bar, so the cards start at the top; the list's
+  // heading line is head too and stays for screen readers, its "All
+  // services" link follows the cards. The cards and the devices column are
+  // the same as on the desktop, in one column.
+  const wide = new MediaQuery("min-width: 48rem");
   const groups = $derived(groupNodesByDeployment(nodes, deploymentName));
   const allListMessages = $derived<NodeMessage[]>([
     ...(canonicalInventoryUnavailable
@@ -81,50 +84,37 @@
   {/if}
 {/snippet}
 
-<!-- Viewport-bound: the host gives this a bounded height; the Node list and
-     the devices column scroll on their own, the page never grows. -->
+<!-- From 48rem up viewport-bound: the host gives this a bounded height; the
+     Node list and the devices column scroll on their own, the page never
+     grows. On a phone the Node list flows with the page and takes the screen. -->
 <div
   class="flex flex-1 flex-col gap-3"
   data-testid="dashboard-complete"
 >
   <div
-    class="flex shrink-0 gap-1 xl:hidden"
-    role="tablist"
-    aria-label={tr("ui.dashboard.sections")}
-  >
-    {#each [["nodes", tr("ui.dashboard.nodes")], ["devices", tr("ui.dashboard.devicesPeople")]] as [id, label] (id)}
-      <button
-        type="button"
-        role="tab"
-        aria-selected={tab === id}
-        data-kx={tab === id ? "control selection" : "control"}
-        class="rounded-lg px-3 py-1.5 text-sm"
-        data-testid="dashboard-tab-{id}"
-        onclick={() => (tab = id as "nodes" | "devices")}
-      >
-        {label}
-      </button>
-    {/each}
-  </div>
-
-  <div
-    class="grid min-h-[18rem] flex-1 basis-0 grid-rows-[minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
+    class="grid gap-4 md:min-h-[18rem] md:flex-1 md:basis-0 md:grid-rows-[minmax(0,1fr)] xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
   >
     <section
-      class="{tab === 'devices' ? 'hidden xl:flex' : 'flex'} min-h-0 min-w-0 flex-col gap-2"
+      class="flex min-h-0 min-w-0 flex-col gap-2"
       aria-labelledby="dashboard-nodes-title"
       data-testid="server-inventory-panel"
     >
-      <div class="flex shrink-0 items-baseline justify-between gap-2">
+      <div
+        class="flex shrink-0 items-baseline justify-between gap-2 {wide.current
+          ? ''
+          : 'sr-only'}"
+      >
         <h2
           id="dashboard-nodes-title"
           class="text-base font-semibold text-foreground"
         >
           {tr("ui.completeDashboard.nodesApps")}
         </h2>
-        <a class="text-sm text-primary hover:underline" href="/services"
-          >{tr("ui.completeDashboard.allServices")}</a
-        >
+        {#if wide.current}
+          <a class="text-sm text-primary hover:underline" href="/services"
+            >{tr("ui.completeDashboard.allServices")}</a
+          >
+        {/if}
       </div>
 
       <!-- The list's left edge is also the cards' edge. The scroll box reaches
@@ -132,7 +122,7 @@
            so a federation bundle can sit there without pushing any card. -->
       <div class="relative flex min-h-0 flex-1 flex-col">
       <div
-        class="dashboard-scroll -ml-3.5 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto pr-1 pl-3.5 md:-ml-[22px] md:pl-[22px]"
+        class="dashboard-scroll -ml-3.5 flex min-h-0 flex-1 flex-col gap-2.5 pr-1 md:overflow-y-auto pl-3.5 md:-ml-[22px] md:pl-[22px]"
         style:padding-bottom={allListMessages.length > 0 ? "2.75rem" : undefined}
         data-testid="dashboard-node-list"
       >
@@ -153,10 +143,9 @@
                 data-testid="federation-bundle"
               >
                 <span class="w-0.5 flex-1 rounded-sm"></span>
-                <a
-                  href={deploymentHref(group.deploymentId)}
+                <span
                   class="federation-label font-mono text-[10px] tracking-[0.12em] uppercase"
-                  >{group.label}</a
+                  >{group.label}</span
                 >
                 <span class="w-0.5 flex-1 rounded-sm"></span>
               </div>
@@ -193,13 +182,18 @@
       {/if}
       </div>
 
+      {#if !wide.current}
+        <a
+          class="shrink-0 self-start text-sm text-primary hover:underline"
+          href="/services"
+          data-testid="dashboard-all-services">{tr("ui.completeDashboard.allServices")}</a
+        >
+      {/if}
       <TrademarkNotice class="shrink-0" />
     </section>
 
     <div
-      class="{tab === 'nodes'
-        ? 'hidden xl:block'
-        : 'block'} dashboard-scroll min-h-0 min-w-0 overflow-y-auto pr-1"
+      class="dashboard-scroll block min-h-0 min-w-0 pr-1 md:hidden md:overflow-y-auto xl:block"
       data-testid="dashboard-device-list"
     >
       <PeoplePanel {people} {devices} />
@@ -227,7 +221,7 @@
   .federation-bundle {
     --federation: oklch(0.66 0.17 290);
   }
-  .federation-bundle span {
+  .federation-bundle span:not(.federation-label) {
     background: var(--federation);
   }
   .federation-label {
@@ -235,8 +229,5 @@
     transform: rotate(180deg);
     color: color-mix(in oklab, var(--federation) 70%, var(--color-foreground));
     text-decoration: none;
-  }
-  .federation-label:hover {
-    text-decoration: underline;
   }
 </style>

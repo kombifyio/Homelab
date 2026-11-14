@@ -22,7 +22,7 @@ export const useCaseConfigureMessages = {
     "configure.noChanges": "Choose a different value to apply changes.",
     "configure.accepted":
       "Your changes have been dispatched to the existing servers. Follow their results below.",
-    "configure.back": "Back to this StackKit",
+    "configure.back": "Back to apps",
     "configure.loadFailed":
       "The installed configuration could not be loaded. Try again.",
     "configure.stale":
@@ -37,13 +37,13 @@ export const useCaseConfigureMessages = {
   },
   de: {
     "configure.invalidNumber": "Gib eine gültige Zahl ein, um fortzufahren.",
-    "configure.entry": "Anwendungsfälle konfigurieren",
-    "configure.title": "Installierten Anwendungsfall konfigurieren",
+    "configure.entry": "Use Cases konfigurieren",
+    "configure.title": "Installierten Use Case konfigurieren",
     "configure.body":
       "Passe eine installierte Anwendung in diesem StackKit an. Deine Server, anderen Anwendungen und vorhandenen Daten bleiben erhalten.",
     "configure.empty":
-      "Dieses StackKit hat keine installierten Anwendungsfälle zum Konfigurieren.",
-    "configure.useCase": "Anwendungsfall",
+      "Dieses StackKit hat keine installierten Use Cases zum Konfigurieren.",
+    "configure.useCase": "Use Case",
     "configure.workload": "Anwendung",
     "configure.compute": "Rechenprofil",
     "configure.storage": "Speicherprofil",
@@ -59,7 +59,7 @@ export const useCaseConfigureMessages = {
       "Wähle einen anderen Wert, um Änderungen anzuwenden.",
     "configure.accepted":
       "Deine Änderungen wurden an die vorhandenen Server übergeben. Verfolge unten die Ergebnisse.",
-    "configure.back": "Zurück zu diesem StackKit",
+    "configure.back": "Zurück zu den Apps",
     "configure.loadFailed":
       "Die installierte Konfiguration konnte nicht geladen werden. Versuche es erneut.",
     "configure.stale":
@@ -96,7 +96,7 @@ export const useCaseConfigureMessages = {
     "configure.noChanges": "Elige un valor diferente para aplicar cambios.",
     "configure.accepted":
       "Los cambios se han enviado a los servidores existentes. Sigue sus resultados abajo.",
-    "configure.back": "Volver a este StackKit",
+    "configure.back": "Volver a las apps",
     "configure.loadFailed":
       "No se pudo cargar la configuración instalada. Inténtalo de nuevo.",
     "configure.stale":
@@ -129,7 +129,7 @@ export const useCaseConfigureMessages = {
     "configure.submitting": "正在应用更改…",
     "configure.noChanges": "请选择不同的值以应用更改。",
     "configure.accepted": "更改已发送到现有服务器。请在下方查看结果。",
-    "configure.back": "返回此 StackKit",
+    "configure.back": "返回应用",
     "configure.loadFailed": "无法加载已安装的配置。请重试。",
     "configure.stale": "配置已更改。请重新加载并检查你的更改后再试。",
     "configure.unavailable": "目前无法配置此应用。",
@@ -161,7 +161,7 @@ export const useCaseConfigureMessages = {
     "configure.noChanges": "बदलाव लागू करने के लिए अलग मान चुनें।",
     "configure.accepted":
       "आपके बदलाव मौजूदा सर्वर को भेज दिए गए हैं। नीचे उनके नतीजे देखें।",
-    "configure.back": "इस StackKit पर वापस जाएँ",
+    "configure.back": "ऐप्स पर वापस जाएँ",
     "configure.loadFailed":
       "इंस्टॉल किया गया कॉन्फ़िगरेशन लोड नहीं हो सका। फिर प्रयास करें।",
     "configure.stale":
@@ -196,7 +196,7 @@ export const useCaseConfigureMessages = {
     "configure.noChanges": "اختر قيمة مختلفة لتطبيق التغييرات.",
     "configure.accepted":
       "أُرسلت تغييراتك إلى الخوادم الموجودة. تابع نتائجها أدناه.",
-    "configure.back": "العودة إلى StackKit هذا",
+    "configure.back": "العودة إلى التطبيقات",
     "configure.loadFailed": "تعذّر تحميل التهيئة المثبّتة. حاول مجددًا.",
     "configure.stale":
       "تغيّرت التهيئة. أعد تحميلها وراجع تغييراتك قبل المحاولة مجددًا.",

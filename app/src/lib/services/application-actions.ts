@@ -4,10 +4,17 @@
  * application detail page so both gate and report identically.
  */
 import type { ServiceCardAction } from "@kombiverselabs/ui/service";
-import type { CanonicalService, ServiceApplication } from "../api/services";
+import type {
+  ApplicationUpdateSelection,
+  ApplicationVersionOffer,
+  CanonicalService,
+  ServiceApplication,
+  ServiceVersionInfo,
+} from "../api/services";
 import { confirmInApp } from "../dialogs/in-app-dialog";
 import { tr } from "../i18n.svelte";
 import {
+  advisorySeverityLabel,
   serviceCardActions,
   serviceIsLocked,
   serviceLockReason,
@@ -15,7 +22,12 @@ import {
   type GovernedServiceAction,
 } from "../service-card-adapter";
 import {
+  runOwnApplicationPower,
+  runOwnApplicationUpdate,
+} from "./own-application";
+import {
   FANOUT_ACTIONS,
+  grantedActions,
   adoptTarget,
   applicationLocked,
   applicationVersion,
@@ -91,6 +103,113 @@ async function confirmApplicationAction(
   });
 }
 
+/** The update fact moves one application, not the whole stack. */
+export function isApplicationUpdate(
+  version: ServiceVersionInfo | undefined,
+): boolean {
+  return version?.update_mode === "application_update";
+}
+
+/**
+ * The release an application update offers by default: the security fix in
+ * every setting, else the newest checked version the fact names.
+ */
+export function defaultApplicationUpdateOffer(
+  version: ServiceVersionInfo | undefined,
+): ApplicationVersionOffer | undefined {
+  if (!version) return undefined;
+  if (version.security_fix?.digest) return version.security_fix;
+  return version.newer_versions?.find(
+    (offer) => offer.version === version.latest && offer.digest,
+  );
+}
+
+/**
+ * Owner decision for one application update. A checked version is one plain
+ * approval; an unchecked one is updated only on the owner's own
+ * responsibility; a security fix names the advisory and its severity. Returns
+ * the selection to send, or null when declined.
+ */
+export async function confirmApplicationUpdate(
+  application: Pick<
+    ServiceApplication,
+    "display_name" | "components" | "version"
+  >,
+  offer: ApplicationVersionOffer,
+): Promise<ApplicationUpdateSelection | null> {
+  const version = applicationVersion(application);
+  if (!offer.digest || !version) return null;
+  const name = application.display_name;
+  const from = version.current || tr("ui.serviceCards.versionUnknown");
+  const title = tr("ui.serviceCards.updateTitle", { name });
+  const fix =
+    version.security_fix?.version === offer.version
+      ? version.security_fix
+      : undefined;
+  const advisory = fix
+    ? version.advisories?.find(
+        (entry) =>
+          fix.advisories.includes(entry.id) && entry.affects === "installed",
+      )
+    : undefined;
+  const selection: ApplicationUpdateSelection = {
+    version: offer.version,
+    digest: offer.digest,
+  };
+  if (advisory) selection.advisory_id = advisory.id;
+  if (!offer.tested) selection.acknowledge_untested = true;
+  // Two short lines: the move with its one qualifier, and the safety net.
+  const notes: string[] = [];
+  if (advisory) {
+    notes.push(
+      tr("ui.serviceCards.appUpdate.fixes", {
+        advisory: advisory.id,
+        severity: advisorySeverityLabel(advisory.severity),
+      }),
+    );
+  }
+  if (!advisory || !offer.tested) {
+    notes.push(
+      tr(
+        offer.tested
+          ? "ui.serviceCards.update.checked"
+          : "ui.serviceCards.update.unchecked",
+      ),
+    );
+  }
+  const message = `${tr("ui.serviceCards.appUpdate.line", {
+    from,
+    to: offer.version,
+    note: notes.join(" · "),
+  })}\n${tr("ui.serviceCards.appUpdate.safety")}`;
+  const approved = await confirmInApp({
+    title,
+    message,
+    confirmText: offer.tested
+      ? tr("ui.serviceCards.approveUpdate")
+      : tr("ui.serviceCards.approveUnchecked"),
+    tone: advisory ? "danger" : offer.tested ? "primary" : "warning",
+  });
+  return approved ? selection : null;
+}
+
+/**
+ * Update one application to a chosen release (the default offer, or a newer
+ * version the owner picked behind "Show newer versions"). Returns a failure
+ * message, or null when nothing failed (including a declined approval).
+ */
+export async function runApplicationVersionUpdate(
+  tracker: ServiceActionTracker,
+  application: ServiceApplication,
+  offer: ApplicationVersionOffer,
+): Promise<string | null> {
+  const target = updateTarget(application);
+  if (!target) return null;
+  const selection = await confirmApplicationUpdate(application, offer);
+  if (!selection) return null;
+  return tracker.run(target, "update", undefined, selection);
+}
+
 /**
  * Run an application-level action behind one approval. Returns a failure
  * message, or null when nothing failed (including a declined approval).
@@ -102,6 +221,22 @@ export async function runApplicationAction(
 ): Promise<string | null> {
   const targets = applicationActionTargets(application, action);
   if (targets.length === 0) return null;
+  const own = targets.find((target) => target.own_application);
+  if (own) {
+    // An app StackKits runs as an own application: its reviewed lifecycle.
+    const failure =
+      action === "update"
+        ? await runOwnApplicationUpdate(own)
+        : await runOwnApplicationPower(own, action);
+    await tracker.refreshInventory();
+    return failure;
+  }
+  if (action === "update" && isApplicationUpdate(applicationVersion(application))) {
+    const offer = defaultApplicationUpdateOffer(applicationVersion(application));
+    return offer
+      ? runApplicationVersionUpdate(tracker, application, offer)
+      : null;
+  }
   if (!(await confirmApplicationAction(application, action, targets.length))) {
     return null;
   }
@@ -147,6 +282,25 @@ export async function runComponentAction(
     if (!(await confirmLockChange(component, action))) return null;
     return tracker.run(component, action);
   }
+  if (component.own_application && action !== "logs") {
+    if (action === "update" || action === "start" || action === "stop" || action === "restart") {
+      const failure =
+        action === "update"
+          ? await runOwnApplicationUpdate(component)
+          : await runOwnApplicationPower(component, action);
+      await tracker.refreshInventory();
+      return failure;
+    }
+  }
+  if (action === "update" && isApplicationUpdate(component.version ?? undefined)) {
+    const offer = defaultApplicationUpdateOffer(component.version ?? undefined);
+    if (!offer) return null;
+    const selection = await confirmApplicationUpdate(
+      { display_name: component.name, components: [component], version: component.version },
+      offer,
+    );
+    return selection ? tracker.run(component, "update", undefined, selection) : null;
+  }
   if (action !== "logs") {
     const label = actionLabel(action);
     const approved = await confirmInApp({
@@ -177,10 +331,15 @@ export async function runComponentAction(
 export function adoptionUnavailableReason(
   adoption?: CanonicalService["adoption"],
 ): string {
-  switch (adoption?.reason_code) {
+  // An unmanaged container is stacked as an own application: its own reason
+  // decides; Home Assistant keeps the in-place profile's reason.
+  switch (adoption?.stack_it?.reason_code ?? adoption?.reason_code) {
     case "application_source_identity_unavailable":
       return tr("ui.services.adoptionSourceIdentityUnavailable");
+    case "application_stacked":
+      return tr("ui.services.stacked");
     case "application_adoption_unavailable":
+    case "application_stack_unavailable":
       return tr("ui.services.adoptionReleaseUnavailable");
     default:
       return tr("ui.services.adoptionUnavailable");
@@ -258,7 +417,11 @@ export function applicationCardActions(
     lockedReason: serviceLockReason(lockedComponent?.mutation_lock),
     activeAction: running?.action,
     converging: running?.converging,
-    updateAvailable: Boolean(applicationVersion(application)?.update_available),
+    updateAvailable:
+      stackUpdateAvailable(applicationVersion(application)) ||
+      application.components.some((component) =>
+        component.own_application?.actions.includes("update"),
+      ),
     onAction: (action: GovernedServiceAction) => {
       if (action === "logs") {
         const target = logsTarget(application);
@@ -298,17 +461,32 @@ export function componentCardActions(
   const job = tracker.jobs[component.id];
   const active = isActionActive(job);
   return serviceCardActions({
-    allowedActions: component.allowed_actions,
+    allowedActions: grantedActions(component),
     managementState: component.management_state,
     locked: serviceIsLocked(component.mutation_lock),
     lockedReason: serviceLockReason(component.mutation_lock),
     activeAction: active ? job?.action : undefined,
     converging: job?.converging,
-    updateAvailable: Boolean(component.version?.update_available),
+    updateAvailable:
+      stackUpdateAvailable(component.version) ||
+      Boolean(component.own_application?.actions.includes("update")),
     onAction: handlers.onAction,
     onAdopt: handlers.onAdopt,
     adoptDeniedReason: adoptionDeniedReason(component),
     onOpen: handlers.onOpen,
     onDetails: handlers.onDetails,
   });
+}
+
+/**
+ * An executable update: a pending StackKits release (the stack) or an
+ * application update (this application only). A bundled version arrives with
+ * a StackKits release and has no own action.
+ */
+function stackUpdateAvailable(version?: ServiceVersionInfo | null): boolean {
+  return Boolean(
+    version?.update_available &&
+      (version.update_mode === "stackkit_upgrade" ||
+        version.update_mode === "application_update"),
+  );
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/kombifyio/techstack/pkg/agentcontrol"
 	ksapi "github.com/kombifyio/techstack/pkg/api"
+	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/guardbinding"
 	"github.com/kombifyio/techstack/pkg/guardposture"
 	"github.com/kombifyio/techstack/pkg/httpx"
@@ -51,7 +52,7 @@ func (h workerRouteHandlers) workerPosture(e *httpx.Event) error {
 	displayName := guardPostureDisplayName(authCtx)
 	var evidence guardposture.LocalOperationEvidence
 	if json.Unmarshal(body, &evidence) == nil && evidence.OperationID != "" {
-		ack, err := h.posture.AcceptLocalOperation(e.Request.Context(), identity, displayName, credentialGeneration(authCtx), evidence)
+		ack, err := h.posture.AcceptLocalOperation(e.Request.Context(), identity, displayName, knownCredentialGeneration(authCtx), evidence)
 		if err != nil {
 			var denial *guardbinding.Denial
 			if errors.As(err, &denial) && denial != nil {
@@ -80,13 +81,17 @@ func (h workerRouteHandlers) workerPosture(e *httpx.Event) error {
 // for this Guard, or nil. Every answer carries the current state: a Guard
 // drops the grant it holds when an answer has none, so a withdrawal or expiry
 // leaves it observe-only. Without a binding signing key no grant is issued,
-// because a Guard never admits an unsigned one.
+// because a Guard never admits an unsigned one, and a request that did not
+// prove the host key (a legacy bearer worker) gets none either.
 func (h workerRouteHandlers) localRepairGrant(ctx context.Context, authCtx runtimeAgentAuthContext, identity guardposture.Identity) *guardbinding.LocalRepairGrant {
+	if authCtx.IdentityBinding != controlplane.IdentityBindingHostKey {
+		return nil
+	}
 	signer, err := h.bindingSignerFor(ctx, identity.TenantID, identity.WorkerID)
 	if err != nil || signer == nil {
 		return nil
 	}
-	grant, err := h.posture.LocalRepairGrant(ctx, identity, credentialGeneration(authCtx))
+	grant, err := h.posture.LocalRepairGrant(ctx, identity, knownCredentialGeneration(authCtx))
 	if err != nil {
 		slog.Warn("guard_local_repair_grant_failed", "worker_id", identity.WorkerID, "error", err.Error())
 		return nil

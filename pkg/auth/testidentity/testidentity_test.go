@@ -16,7 +16,7 @@ func TestAdmitKeepsTestIdentitiesAndRealTenantsApart(t *testing.T) {
 		refused               bool
 	}{
 		{"test subject in its owner tenant", "auth0|tester", "usr:auth0|tester", false},
-		{"test subject in its naked owner tenant", "auth0|tester", "auth0|tester", false},
+		{"test subject in a naked subject tenant", "auth0|tester", "auth0|tester", true},
 		{"test subject in a server test tenant", "auth0|tester", "test:journey", false},
 		{"fixture subject in its owner tenant", "auth0|fixture", "usr:auth0|fixture", false},
 		{"test subject in another test identity's tenant", "auth0|tester", "usr:auth0|second", false},
@@ -38,17 +38,17 @@ func TestAdmitKeepsTestIdentitiesAndRealTenantsApart(t *testing.T) {
 func TestPublicDemoIdentitiesStayInTheDemoTenant(t *testing.T) {
 	t.Setenv(EnvSubjects, "")
 	t.Setenv(EnvFixtureSubject, "")
-	t.Setenv(demoguard.EnvDemoUserIDs, "oauth2|kombify-demo|visitor")
-	t.Setenv(demoguard.EnvDemoTenantID, "tenant-demo")
+	t.Setenv(demoguard.EnvDemoUserIDs, "auth0|demo-visitor")
+	t.Setenv(demoguard.EnvDemoTenantID, "usr:auth0|demo-visitor")
 
 	for _, tc := range []struct {
 		name, subject, tenant string
 		refused               bool
 	}{
-		{"demo principal in the demo tenant", "oauth2|kombify-demo|visitor", "tenant-demo", false},
-		{"projected legacy demo owner in the demo tenant", "tenant-demo", "tenant-demo", false},
-		{"demo principal in a real organization", "oauth2|kombify-demo|visitor", "org_real", true},
-		{"real subject in the demo tenant", "auth0|real", "tenant-demo", true},
+		{"demo principal in the demo tenant", "auth0|demo-visitor", "usr:auth0|demo-visitor", false},
+		{"demo tenant owner in the demo tenant", "usr:auth0|demo-visitor", "usr:auth0|demo-visitor", false},
+		{"demo principal in a real organization", "auth0|demo-visitor", "org_real", true},
+		{"real subject in the demo tenant", "auth0|real", "usr:auth0|demo-visitor", true},
 	} {
 		err := Admit(tc.subject, tc.tenant)
 		if tc.refused != errors.Is(err, ErrTenantBoundary) {

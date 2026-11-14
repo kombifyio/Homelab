@@ -17,6 +17,11 @@ import (
 // WorkloadRelocationInput names existing deployments only. Paths, node
 // identities and source reachability are resolved from current authorities.
 type WorkloadRelocationInput struct {
+	// Engine is coolify (PaaS projects) or native (one installed use case or
+	// one application, moved with the StackKits application transfer).
+	Engine             string   `json:"engine,omitempty"`
+	UseCase            string   `json:"use_case,omitempty"`
+	Workloads          []string `json:"workloads,omitempty"`
 	SourceStackID      string   `json:"source_stack_id"`
 	SourceAgentID      string   `json:"source_agent_id"`
 	DestinationStackID string   `json:"destination_stack_id"`
@@ -117,11 +122,14 @@ func (o *Orchestrator) EnqueueWorkloadRelocation(ctx context.Context, tenant, ow
 	if err != nil {
 		return "", err
 	}
-	destination, _, err := o.relocationNode(ctx, tenant, owner, input.DestinationStackID, input.DestinationAgentID, false)
+	// A native move is node to node in both directions of its handshake: the
+	// source admits exactly the destination's current Guard address.
+	destination, destinationAddress, err := o.relocationNode(ctx, tenant, owner, input.DestinationStackID, input.DestinationAgentID, input.Engine == jobs.RelocationEngineNative)
 	if err != nil {
 		return "", err
 	}
-	req, err := jobs.NormalizeWorkloadRelocationRequest(jobs.WorkloadRelocationRequest{TenantID: tenant, OwnerID: owner, Source: source, Destination: destination, Projects: input.Projects, ResourceUUIDs: input.ResourceUUIDs, SourceAddress: address, WalletItemID: input.WalletItemID, DomainSwitches: input.DomainSwitches, OwnerApproved: input.OwnerApproved}, nil)
+	req, err := jobs.NormalizeWorkloadRelocationRequest(jobs.WorkloadRelocationRequest{TenantID: tenant, OwnerID: owner, Engine: input.Engine, UseCase: input.UseCase, Workloads: input.Workloads, DestinationAddress: destinationAddress,
+		Source: source, Destination: destination, Projects: input.Projects, ResourceUUIDs: input.ResourceUUIDs, SourceAddress: address, WalletItemID: input.WalletItemID, DomainSwitches: input.DomainSwitches, OwnerApproved: input.OwnerApproved}, nil)
 	if err != nil {
 		return "", err
 	}
@@ -132,7 +140,7 @@ func (o *Orchestrator) EnqueueWorkloadRelocation(ctx context.Context, tenant, ow
 	payload["tenant_id"], payload["owner_id"], payload["agent_id"] = tenant, owner, source.AgentID
 	payload["execution_targets"] = []controlplane.ExecutionTarget{{StackID: source.StackID, AgentID: source.AgentID}, {StackID: destination.StackID, AgentID: destination.AgentID}}
 	job := &jobs.Job{ID: id, Type: jobs.JobTypeWorkloadRelocation, TargetType: targetTypeStack, TargetID: source.StackID, TargetName: source.StackName, Payload: payload, Result: map[string]any{"relocation_request_sha256": intentDigest}, MaxAttempts: 1}
-	jobs.CopyEdgeFlagsFromContext(ctx, job.Payload)
+	jobs.CopyEdgeFlagsFromContext(ctx, job)
 	jobs.CaptureRequestAuthority(ctx, job, tenant, owner)
 	jobs.CaptureRequestOperateAuthority(ctx, job, tenant, owner)
 	_, err = o.jobStore.CreateJob(ctx, controlplane.UpsertJobRequest{ID: id, TenantID: tenant, StackID: source.StackID, Type: string(job.Type), State: persistentStatePending, Payload: job.Payload, Result: job.Result, ScheduledFor: time.Now().UTC()})
@@ -172,6 +180,16 @@ func (o *Orchestrator) recoverWorkloadRelocation(ctx context.Context, tenant, ow
 	}
 	if request.TenantID != tenant || request.OwnerID != owner {
 		return nil, controlplane.ErrNotFound
+	}
+	if request.Engine == jobs.RelocationEngineNative {
+		// A native move reports its own durable outcome. It is never resumed
+		// or repeated from here: each node resolves its side through its own
+		// transfer journal.
+		if resolve || abort {
+			return nil, fmt.Errorf("%w: a native move resolves through its node transfer journals", controlplane.ErrConflict)
+		}
+		outcome, _ := job.Result["workload_relocation"].(map[string]any)
+		return map[string]any{"job_id": id, "state": job.State, "engine": jobs.RelocationEngineNative, "workload_relocation": outcome, "source_retained": true, "resolved": false}, nil
 	}
 	for _, side := range []struct {
 		node   jobs.WorkloadRelocationNode

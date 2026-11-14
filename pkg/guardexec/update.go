@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -41,6 +40,10 @@ const (
 	// failedCandidateCooldown keeps a candidate that failed its trial from being
 	// staged again immediately.
 	failedCandidateCooldown = 24 * time.Hour
+	// deniedCandidateCooldown keeps a candidate Stage refused after it was
+	// downloaded (its signature, a revoked digest) from being downloaded again
+	// every convergence cycle. A new release has a new digest and is not held.
+	deniedCandidateCooldown = 6 * time.Hour
 	// trialCrashLoopRestarts is how many restarts during a trial count as a
 	// crash loop; waiting out the budget would only prolong the outage.
 	trialCrashLoopRestarts = 3
@@ -52,7 +55,11 @@ const (
 	manifestBundle    = "manifest.sigstore.json"
 	floorFile         = "manifest-floor.json"
 	failedFile        = "failed-candidates.json"
+	deniedFile        = "denied-candidates.json"
 	denyMutationsFile = "deny-mutations"
+	// haltedFile marks a release that cannot start with no admissible previous
+	// Guard: the Guard service stays stopped until an operator recovers it.
+	haltedFile = "halted-release"
 
 	// Files shared with the unprivileged daemon through the handoff directory.
 	HandoffStatusFile     = "update-status.json"
@@ -110,6 +117,11 @@ type Systemd interface {
 	// RunTransient starts argv in its own transient unit, outside the caller's
 	// control group, so it survives the restart it supervises.
 	RunTransient(ctx context.Context, unit string, argv []string) error
+	// StopNoBlock queues a stop of a unit without waiting for it, so a process
+	// of that unit may ask for its own stop.
+	StopNoBlock(ctx context.Context, unit string) error
+	// DaemonReload makes the service manager read changed unit files.
+	DaemonReload(ctx context.Context) error
 }
 
 // UpdaterConfig wires an Updater.
@@ -127,6 +139,8 @@ type UpdaterConfig struct {
 	GuardOnly bool
 	// AgentUnit is the service restarted to run the new Guard.
 	AgentUnit string
+	// SystemdDir holds the drop-in that arms trial recovery on AgentUnit.
+	SystemdDir string
 	// CurrentVersion is the version of the Guard that is running now.
 	CurrentVersion string
 	GOOS, GOARCH   string
@@ -162,6 +176,9 @@ func NewUpdater(cfg UpdaterConfig) (*Updater, error) {
 	}
 	if cfg.AgentUnit == "" {
 		cfg.AgentUnit = "techstack-agent.service"
+	}
+	if cfg.SystemdDir == "" {
+		cfg.SystemdDir = "/etc/systemd/system"
 	}
 	if cfg.GOOS == "" {
 		cfg.GOOS = runtime.GOOS
@@ -213,6 +230,11 @@ func (u *Updater) Recover() error {
 	if err := os.Remove(u.path(denyMutationsFile)); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
+	// The halt of a release that could not start ends with the operator's recovery.
+	if err := os.Remove(u.path(haltedFile)); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	u.disarmTrialRecovery(context.Background(), true)
 	return u.record(UpdateStatus{State: StateCommitted, Version: u.cfg.CurrentVersion, Reason: "operator_recovery", At: u.cfg.Now()})
 }
 
@@ -264,7 +286,7 @@ func (u *Updater) Stage(_ context.Context, params StageParams) (StageResult, err
 	}
 	version, err := u.authenticate(params, privateArtifact, digest)
 	if err != nil {
-		return StageResult{}, u.recordDenial(err)
+		return StageResult{}, u.recordDenial(u.rememberDenial(digest, err))
 	}
 	if failedAt, failed := u.failedCandidate(digest); failed && u.cfg.Now().Sub(failedAt) < failedCandidateCooldown {
 		return StageResult{}, u.recordDenial(deny(CodeNotAllowed, "this release failed its trial at %s and is not staged again yet", failedAt.UTC().Format(time.RFC3339)))
@@ -341,222 +363,6 @@ func (u *Updater) authenticate(params StageParams, artifact, digest string) (str
 	return evidence.Version, nil
 }
 
-// AuthenticateManifest verifies a release manifest from the handoff directory
-// against the pinned trust and remembers it. A manifest older than one this host
-// already accepted is refused (manifest_superseded): a stale but still-fresh
-// manifest must not undo a newer revocation. What is remembered is the floor,
-// the newest issue time, the highest minimum version and the union of every
-// revocation ever seen; the newest verified manifest also decides which StackKits
-// runtime may install.
-func (u *Updater) AuthenticateManifest(manifestFileName, bundleFileName string) (*guardrelease.Manifest, error) {
-	manifestRaw, err := readHandoff(u.cfg.HandoffDir, manifestFileName, maxManifestFile)
-	if err != nil {
-		return nil, err
-	}
-	manifestSig, err := readHandoff(u.cfg.HandoffDir, bundleFileName, maxBundleFile)
-	if err != nil {
-		return nil, err
-	}
-	u.floorMu.Lock()
-	defer u.floorMu.Unlock()
-	manifest, next, err := u.acceptManifest(manifestRaw, manifestSig)
-	if err != nil {
-		return nil, err
-	}
-	// The floor is written before the cached manifest: a crash between the two
-	// leaves the stricter state.
-	if err := writeJSONAtomic(u.path(floorFile), next, 0o600); err != nil {
-		return nil, err
-	}
-	if err := writeFileAtomic(u.path(manifestFile), manifestRaw, 0o600); err != nil {
-		return nil, err
-	}
-	if err := writeFileAtomic(u.path(manifestBundle), manifestSig, 0o600); err != nil {
-		return nil, err
-	}
-	return manifest, nil
-}
-
-// acceptManifest verifies a manifest and applies the host's floor to it without
-// persisting anything. It returns the trusted manifest and the floor that
-// includes it; a manifest the floor refuses is returned with its denial. The
-// caller holds floorMu.
-func (u *Updater) acceptManifest(raw, bundle []byte) (*guardrelease.Manifest, guardrelease.Floor, error) {
-	if u.cfg.Verifier == nil {
-		return nil, guardrelease.Floor{}, deny(CodeUnavailable, "the release verifier is not configured")
-	}
-	manifest, err := u.cfg.Verifier.VerifyManifest(raw, bundle)
-	if err != nil {
-		return nil, guardrelease.Floor{}, asDenial(err)
-	}
-	floor, err := u.loadFloor()
-	if err != nil {
-		return nil, guardrelease.Floor{}, err
-	}
-	next, denial := floor.Accept(manifest)
-	if denial != nil {
-		return manifest, guardrelease.Floor{}, &Denial{Code: denial.Code, Message: denial.Message}
-	}
-	return manifest, next, nil
-}
-
-// platformDenial applies, in Stage's order, what a verified manifest decides for
-// this platform's artifact: presence, the manifest's version policy, the
-// downgrade guard and the host's accumulated floor.
-func (u *Updater) platformDenial(manifest *guardrelease.Manifest, floor guardrelease.Floor) *guardrelease.Denial {
-	entry, ok := manifest.Artifact(u.cfg.GOOS, u.cfg.GOARCH)
-	if !ok {
-		return &guardrelease.Denial{Code: guardrelease.CodeNotInManifest, Message: fmt.Sprintf("the release has no %s/%s artifact", u.cfg.GOOS, u.cfg.GOARCH)}
-	}
-	if denial := manifest.Admit(manifest.Version, entry.SHA256); denial != nil {
-		return denial
-	}
-	if denial := manifest.CheckDowngrade(u.cfg.CurrentVersion); denial != nil {
-		return denial
-	}
-	return floor.Admit(manifest.Version, entry.SHA256)
-}
-
-// ManifestAdmission is the read-only answer to "would this host admit the
-// release this signed manifest describes?".
-type ManifestAdmission struct {
-	Admitted         bool   `json:"admitted"`
-	Code             string `json:"code,omitempty"`
-	Message          string `json:"message,omitempty"`
-	InstalledVersion string `json:"installed_version"`
-	ManifestVersion  string `json:"manifest_version,omitempty"`
-}
-
-// CheckManifest runs the decision Stage takes for a release, from the signed
-// manifest alone: signature, freshness, the host's floor (manifest_superseded),
-// this platform's artifact, the version policy and the downgrade guard, against
-// the installed version. It reads the host's state and changes nothing: the
-// floor, the cached manifest, the status and every executable stay as they are.
-// A refusal is the returned decision; only an unreadable input or state is an
-// error.
-func (u *Updater) CheckManifest(manifestPath, bundlePath string) (ManifestAdmission, error) {
-	result := ManifestAdmission{InstalledVersion: u.cfg.CurrentVersion}
-	manifestRaw, err := readBounded(manifestPath, maxManifestFile)
-	if err != nil {
-		return result, err
-	}
-	manifestSig, err := readBounded(bundlePath, maxBundleFile)
-	if err != nil {
-		return result, err
-	}
-	u.floorMu.Lock()
-	defer u.floorMu.Unlock()
-	manifest, floor, err := u.acceptManifest(manifestRaw, manifestSig)
-	if manifest != nil {
-		result.ManifestVersion = manifest.Version
-	}
-	if err != nil {
-		var denied *Denial
-		if errors.As(err, &denied) {
-			result.Code, result.Message = denied.Code, denied.Message
-			return result, nil
-		}
-		return result, err
-	}
-	if denial := u.platformDenial(manifest, floor); denial != nil {
-		result.Code, result.Message = denial.Code, denial.Message
-		return result, nil
-	}
-	result.Admitted = true
-	return result, nil
-}
-
-// refuseBeforeDownload applies, from the signed manifest in the handoff directory
-// and the digest it names, every refusal Stage would reach only after the
-// artifact arrived. Like Stage it remembers the manifest first, so a release this
-// host refuses still advances its floor and its revocations.
-func (u *Updater) refuseBeforeDownload(params StageParams, digest string) error {
-	manifest, err := u.AuthenticateManifest(params.ManifestFile, params.ManifestBundleFile)
-	if err != nil {
-		return u.recordDenial(err)
-	}
-	u.floorMu.Lock()
-	floor, err := u.loadFloor()
-	u.floorMu.Unlock()
-	if err != nil {
-		return err
-	}
-	if denial := u.platformDenial(manifest, floor); denial != nil {
-		return u.recordDenial(&Denial{Code: denial.Code, Message: denial.Message})
-	}
-	if failedAt, failed := u.failedCandidate(digest); failed && u.cfg.Now().Sub(failedAt) < failedCandidateCooldown {
-		return u.recordDenial(deny(CodeNotAllowed, "this release failed its trial at %s and is not staged again yet", failedAt.UTC().Format(time.RFC3339)))
-	}
-	return nil
-}
-
-// loadFloor reads the persisted manifest floor. A host that has none yet starts
-// from the manifest it cached before floors existed, so the revocations it
-// already knew are kept. An unreadable floor is an error, never an empty floor:
-// resetting it would forget every revocation.
-func (u *Updater) loadFloor() (guardrelease.Floor, error) {
-	raw, err := os.ReadFile(u.path(floorFile))
-	if errors.Is(err, os.ErrNotExist) {
-		var floor guardrelease.Floor
-		if manifest := u.cachedManifest(); manifest != nil {
-			floor, _ = floor.Accept(manifest)
-		}
-		return floor, nil
-	}
-	if err != nil {
-		return guardrelease.Floor{}, deny(CodeFailed, "the release manifest floor cannot be read: %v", err)
-	}
-	var floor guardrelease.Floor
-	if err := json.Unmarshal(raw, &floor); err != nil {
-		return guardrelease.Floor{}, deny(CodeFailed, "the release manifest floor is unreadable")
-	}
-	return floor, nil
-}
-
-// AllowsUnsigned reports whether this executor was configured to admit builds
-// without release evidence.
-func (u *Updater) AllowsUnsigned() bool { return u.cfg.AllowUnsigned }
-
-// recordDenial publishes a refused candidate in the update status so the owner
-// sees it in the heartbeat, and returns the denial unchanged. The status of an
-// update in progress, of a rollback and of a recovery need is not overwritten.
-func (u *Updater) recordDenial(err error) error {
-	var denial *Denial
-	if !errors.As(err, &denial) {
-		return err
-	}
-	switch u.Status().State {
-	case StateTrial, StateRolledBack, StateRecoveryNeeded:
-		// A trial in progress, a rollback and a recovery need stay visible.
-		return err
-	}
-	_ = u.record(UpdateStatus{State: StateDenied, Version: u.cfg.CurrentVersion, Reason: denial.Code})
-	return err
-}
-
-func asDenial(err error) error {
-	var release *guardrelease.Denial
-	if errors.As(err, &release) {
-		return &Denial{Code: release.Code, Message: release.Message}
-	}
-	return err
-}
-
-// cachedManifest returns the last manifest that passed verification. It only
-// seeds the floor of a host that predates floors; admission decisions use the
-// floor.
-func (u *Updater) cachedManifest() *guardrelease.Manifest {
-	raw, err := os.ReadFile(u.path(manifestFile))
-	if err != nil {
-		return nil
-	}
-	manifest, err := guardrelease.ParseManifest(raw)
-	if err != nil {
-		return nil
-	}
-	return manifest
-}
-
 // Commit switches the installed executables to the staged release and starts a
 // supervised trial. The previous executables are kept as .prev (hard links) so
 // the switch is an atomic rename per file.
@@ -599,23 +405,30 @@ func (u *Updater) Commit(ctx context.Context, params CommitParams) (CommitResult
 		return CommitResult{}, err
 	}
 	_ = os.Remove(filepath.Join(u.cfg.HandoffDir, HandoffTrialReadyFile))
+	// The recovery hook is armed before anything is switched: from here on a
+	// reboot or a lost supervisor is adopted by the next start of the Guard.
+	if err := u.armTrialRecovery(ctx); err != nil {
+		u.endUnstartedTrial(ctx, trial, true)
+		return CommitResult{}, fmt.Errorf("arm the update trial recovery: %w", err)
+	}
 	if err := u.switchTo(".next"); err != nil {
-		_ = u.switchBack()
+		u.endUnstartedTrial(ctx, trial, true)
 		return CommitResult{}, err
 	}
 	_ = u.record(UpdateStatus{State: StateTrial, Version: staged.Version, PreviousVersion: u.cfg.CurrentVersion, TrialID: trial.ID})
-	supervisor := []string{u.cfg.AgentPath + ".prev", "guard-executor", "trial", "--id", trial.ID}
-	if u.cfg.GuardOnly {
-		// No executor environment file names this layout on a substrate host.
-		supervisor = append(supervisor, "--guard-only", "--state-dir", u.cfg.StateDir, "--handoff-dir", u.cfg.HandoffDir, "--agent-path", u.cfg.AgentPath)
+	err = u.cfg.Systemd.RunTransient(ctx, trialUnit(trial.ID), u.supervisorArgv(trial.ID, false))
+	if err != nil && u.supervisorRunning(ctx, trial.ID) {
+		// An adoption started the supervisor first.
+		err = nil
 	}
-	if err := u.cfg.Systemd.RunTransient(ctx, "techstack-guard-trial-"+trial.ID, supervisor); err != nil {
+	if err == nil && !u.supervisorStarted(ctx, trial.ID) {
+		err = errors.New("the supervisor unit did not start")
+	}
+	if err != nil {
 		// Nothing supervises the switch, so it is not kept: the previous Guard was
 		// never stopped and keeps running.
-		_ = u.switchBack()
-		_ = os.Remove(u.path(trialFile))
-		_ = os.Remove(filepath.Join(u.cfg.HandoffDir, HandoffTrialFile))
 		_ = u.record(UpdateStatus{State: StateRolledBack, Version: u.cfg.CurrentVersion, PreviousVersion: staged.Version, Reason: "trial_supervisor_unavailable", TrialID: trial.ID})
+		u.endUnstartedTrial(ctx, trial, true)
 		return CommitResult{}, fmt.Errorf("start the update trial supervisor: %w", err)
 	}
 	return CommitResult{TrialID: trial.ID}, nil
@@ -662,144 +475,6 @@ func (u *Updater) switchBack() error {
 		}
 	}
 	return first
-}
-
-// RunTrial supervises the first run of a new Guard. It restarts the Guard
-// service and waits for the Guard to report an authenticated round trip. If that
-// does not happen within the budget, or the service fails repeatedly, the
-// previous executable is restored when it is still admissible; otherwise the
-// host is marked as needing recovery and mutations are denied.
-func (u *Updater) RunTrial(ctx context.Context, id string) error {
-	raw, err := os.ReadFile(u.path(trialFile))
-	if err != nil {
-		return fmt.Errorf("read the trial record: %w", err)
-	}
-	var trial trialRecord
-	if err := json.Unmarshal(raw, &trial); err != nil || trial.ID != id {
-		return errors.New("the trial record does not name this trial")
-	}
-	if err := u.cfg.Systemd.Restart(ctx, u.cfg.AgentUnit); err != nil {
-		u.cfg.Log.Error("guard_trial_restart_failed", "error", err.Error())
-	}
-	ticker := time.NewTicker(u.cfg.TrialPoll)
-	defer ticker.Stop()
-	for {
-		if u.trialConfirmed(trial) {
-			return u.finishTrial(trial)
-		}
-		if reason := u.trialFailure(ctx, trial); reason != "" {
-			return u.failTrial(ctx, trial, reason)
-		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-		}
-	}
-}
-
-func (u *Updater) trialConfirmed(trial trialRecord) bool {
-	raw, err := os.ReadFile(filepath.Join(u.cfg.HandoffDir, HandoffTrialReadyFile))
-	if err != nil {
-		return false
-	}
-	var ready TrialReady
-	return json.Unmarshal(raw, &ready) == nil && ready.TrialID == trial.ID && ready.Version == trial.Version && !ready.At.Before(trial.StartedAt)
-}
-
-func (u *Updater) trialFailure(ctx context.Context, trial trialRecord) string {
-	if !u.cfg.Now().Before(trial.Deadline) {
-		return "trial_not_confirmed_within_budget"
-	}
-	props, err := u.cfg.Systemd.Show(ctx, u.cfg.AgentUnit, "NRestarts", "ActiveState")
-	if err == nil && props["ActiveState"] == "failed" {
-		return "service_failed"
-	}
-	if restarts, parseErr := strconv.Atoi(props["NRestarts"]); err == nil && parseErr == nil && restarts >= trialCrashLoopRestarts {
-		return "service_crash_loop"
-	}
-	return ""
-}
-
-func (u *Updater) finishTrial(trial trialRecord) error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	_ = os.Remove(u.path(trialFile))
-	_ = os.Remove(u.path(stagedFile))
-	_ = os.Remove(filepath.Join(u.cfg.HandoffDir, HandoffTrialFile))
-	return u.record(UpdateStatus{State: StateCommitted, Version: trial.Version, PreviousVersion: trial.PrevVersion, TrialID: trial.ID})
-}
-
-func (u *Updater) failTrial(ctx context.Context, trial trialRecord, reason string) error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	u.cfg.Log.Error("guard_trial_failed", "version", trial.Version, "reason", reason)
-	u.markFailed(trial.SHA256)
-	_ = os.Remove(filepath.Join(u.cfg.HandoffDir, HandoffTrialFile))
-	_ = os.Remove(u.path(trialFile))
-	if fallback := u.fallbackProblem(trial); fallback != "" {
-		if err := os.WriteFile(u.path(denyMutationsFile), []byte(fallback+"\n"), 0o600); err != nil {
-			return err
-		}
-		return u.record(UpdateStatus{State: StateRecoveryNeeded, Version: trial.Version, PreviousVersion: trial.PrevVersion, Reason: fallback, TrialID: trial.ID})
-	}
-	if err := u.switchBackForRollback(); err != nil {
-		_ = os.WriteFile(u.path(denyMutationsFile), []byte("rollback_failed\n"), 0o600)
-		return u.record(UpdateStatus{State: StateRecoveryNeeded, Version: trial.Version, PreviousVersion: trial.PrevVersion, Reason: "rollback_failed", TrialID: trial.ID})
-	}
-	if err := u.cfg.Systemd.Restart(ctx, u.cfg.AgentUnit); err != nil {
-		u.cfg.Log.Error("guard_rollback_restart_failed", "error", err.Error())
-	}
-	return u.record(UpdateStatus{State: StateRolledBack, Version: trial.PrevVersion, PreviousVersion: trial.Version, Reason: reason, TrialID: trial.ID})
-}
-
-func (u *Updater) switchBackForRollback() error { return u.switchBack() }
-
-// fallbackProblem returns why the previous executable may not run again, or ""
-// when it is intact and still admissible. A revoked or below-minimum binary is
-// never re-admitted, even to recover from a failed update.
-func (u *Updater) fallbackProblem(trial trialRecord) string {
-	digest, err := fileDigest(u.cfg.AgentPath + ".prev")
-	if err != nil || digest != trial.PrevSHA256 {
-		return "previous_executable_missing_or_changed"
-	}
-	if !u.cfg.GuardOnly {
-		if opsDigest, err := fileDigest(u.cfg.OperationsPath + ".prev"); err != nil || opsDigest != trial.PrevSHA256 {
-			return "previous_operations_executable_missing_or_changed"
-		}
-	}
-	floor, err := u.loadFloor()
-	if err != nil {
-		return "manifest_floor_unreadable"
-	}
-	if denial := floor.Admit(trial.PrevVersion, trial.PrevSHA256); denial != nil {
-		return "previous_executable_not_admissible_" + denial.Code
-	}
-	return ""
-}
-
-func (u *Updater) failedCandidate(digest string) (time.Time, bool) {
-	var failed map[string]time.Time
-	raw, err := os.ReadFile(u.path(failedFile))
-	if err != nil || json.Unmarshal(raw, &failed) != nil {
-		return time.Time{}, false
-	}
-	at, ok := failed[digest]
-	return at, ok
-}
-
-func (u *Updater) markFailed(digest string) {
-	failed := map[string]time.Time{}
-	if raw, err := os.ReadFile(u.path(failedFile)); err == nil {
-		_ = json.Unmarshal(raw, &failed)
-	}
-	failed[digest] = u.cfg.Now()
-	for key, at := range failed {
-		if u.cfg.Now().Sub(at) > 30*24*time.Hour {
-			delete(failed, key)
-		}
-	}
-	_ = writeJSONAtomic(u.path(failedFile), failed, 0o600)
 }
 
 // Describe summarizes the update state for status.

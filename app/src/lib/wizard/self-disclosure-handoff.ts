@@ -117,31 +117,6 @@ export function creationUseCaseHandoffKey(params: HandoffParams): string {
   return one(params, "use-case", CANONICAL_USE_CASE_GOALS) ?? "";
 }
 
-const SETUP_ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
-const SETUP_MAX_PAIRS = 64;
-
-/**
- * Guided-setup answers a link carries as `setup=<question>:<choice>,…`, e.g.
- * from the Cloud dashboard's use-case card. Ids are closed tokens; the card
- * resolves them against its own flow and drops whatever it does not know.
- */
-export function creationSetupHandoff(
-  params: HandoffParams,
-): Record<string, string[]> | undefined {
-  const answers: Record<string, string[]> = {};
-  const pairs = (params.get("setup") ?? "")
-    .split(",")
-    .slice(0, SETUP_MAX_PAIRS);
-  for (const pair of pairs) {
-    const [question, choice, ...rest] = pair.trim().toLowerCase().split(":");
-    if (rest.length > 0 || !SETUP_ID.test(question ?? "")) continue;
-    if (!SETUP_ID.test(choice ?? "")) continue;
-    const list = (answers[question] ??= []);
-    if (!list.includes(choice)) list.push(choice);
-  }
-  return Object.keys(answers).length > 0 ? answers : undefined;
-}
-
 /** A use-case navigation choice seeds only this creation draft, never a profile. */
 export function creationUseCaseWizardConfig(
   params: HandoffParams,
@@ -155,8 +130,6 @@ export function creationUseCaseWizardConfig(
     }
     config.goals.everything = false;
   }
-  const setup = creationSetupHandoff(params);
-  if (setup) config.useCaseSetupAnswers = { [selected]: setup };
   return config;
 }
 

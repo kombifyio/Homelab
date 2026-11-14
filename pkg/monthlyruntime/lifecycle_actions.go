@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/techstack/internal/providercatalog"
 	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
 	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
 	"github.com/kombifyio/techstack/pkg/vmleases"
@@ -27,7 +28,89 @@ var (
 	// addresses of a runtime could not be proven removed; provider teardown
 	// is then not admitted, so no address outlives its server.
 	ErrAddressDeregistrationFailed = errors.New("monthlyruntime: managed addresses could not be removed before decommission")
+	// ErrDecommissionRefused is returned when provider control has spent its
+	// cleanup attempts for the server's resource generation without proving
+	// provider absence. The route layer maps it to 409 with the repair.
+	ErrDecommissionRefused = errors.New("monthlyruntime: provider cleanup attempts are spent without proving provider absence")
 )
+
+// DecommissionRefusedError carries the last provider reason and the time the
+// next cleanup attempt is admitted. It matches ErrDecommissionRefused.
+// ProviderConflict reports that the provider holds resources kombify did not
+// create next to the server, which only their removal can resolve.
+type DecommissionRefusedError struct {
+	ProviderReasonCode string
+	ProviderConflict   bool
+	RetryAfter         time.Time
+	Cause              error
+}
+
+func (e *DecommissionRefusedError) Error() string {
+	if e == nil || e.Cause == nil {
+		return ErrDecommissionRefused.Error()
+	}
+	return ErrDecommissionRefused.Error() + ": " + e.Cause.Error()
+}
+
+func (e *DecommissionRefusedError) Is(target error) bool { return target == ErrDecommissionRefused }
+
+func (e *DecommissionRefusedError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.Cause
+}
+
+// DecommissionBlockedError attaches the provider of the lease a decommission
+// refusal is about, so the structured refusal names the provider that actually
+// holds the server. It matches the refusal it wraps.
+type DecommissionBlockedError struct {
+	ProviderID string
+	Err        error
+}
+
+func (e *DecommissionBlockedError) Error() string {
+	if e == nil || e.Err == nil {
+		return "monthlyruntime: decommission blocked"
+	}
+	return e.Err.Error()
+}
+
+func (e *DecommissionBlockedError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.Err
+}
+
+// DecommissionBlockedProviderID returns the provider of the lease a
+// decommission refusal is about, or "" when err names no lease.
+func DecommissionBlockedProviderID(err error) string {
+	var blocked *DecommissionBlockedError
+	if !errors.As(err, &blocked) || blocked == nil {
+		return ""
+	}
+	return blocked.ProviderID
+}
+
+// leaseDecommissionError attaches the lease's provider to a decommission
+// refusal; every other error passes through unchanged. The refusals listed
+// here are the ones monthlyRuntimeDecommissionError (internal/routes) maps to
+// a structured envelope; a new one belongs in both.
+func leaseDecommissionError(lease *vmlease.Lease, err error) error {
+	if err == nil || lease == nil || !(errors.Is(err, ErrDecommissionBlockedProtected) ||
+		errors.Is(err, ErrDecommissionBlockedUnreachable) || errors.Is(err, ErrDecommissionRefused)) {
+		return err
+	}
+	providerID, resolveErr := providercatalog.ResolveCanonicalProviderID(
+		strings.TrimSpace(lease.Resource.ProviderID),
+		strings.TrimSpace(lease.Metadata[MetadataKeyProviderID]),
+	)
+	if resolveErr != nil {
+		return err
+	}
+	return &DecommissionBlockedError{ProviderID: providerID, Err: err}
+}
 
 // AddressDeregistrar removes the managed kombify.me addresses that route to one
 // runtime origin and returns lease metadata evidence of their absence.
@@ -179,6 +262,10 @@ func (s *Service) enqueueNativeDecommission(ctx context.Context, tenantID string
 	if req.Force {
 		reason = "force_decommission_unreachable"
 	}
+	if req.governed != nil {
+		// Action already recorded the governed admission in the journal.
+		reason = "governed_decommission_" + string(req.governed.reason)
+	}
 	addressEvidence, err := s.deregisterRuntimeAddresses(ctx, tenantID, lease)
 	if err != nil {
 		return nil, err
@@ -202,6 +289,11 @@ func (s *Service) enqueueNativeDecommission(ctx context.Context, tenantID string
 	if req.Force {
 		metadata["force_decommission_requested_at"] = metadata["provider_decommission_requested_at"]
 		metadata["force_decommission_requested_by"] = actor
+	}
+	if req.governed != nil {
+		for key, value := range req.governed.metadata(lease.Metadata) {
+			metadata[key] = value
+		}
 	}
 	for key, value := range addressEvidence {
 		metadata[key] = value

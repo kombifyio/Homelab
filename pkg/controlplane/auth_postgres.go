@@ -148,7 +148,7 @@ func (s *PostgresStore) UpsertUser(ctx context.Context, user User) (*User, error
 	if err != nil {
 		return nil, err
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := tenantcontext.Database(ctx, s.db).BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -306,7 +306,7 @@ func (s *PostgresStore) ListMembershipsByUser(ctx context.Context, userID string
 		return nil, fmt.Errorf("controlplane: user id required")
 	}
 
-	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: true})
+	tx, err := tenantcontext.Database(ctx, s.db).BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: true})
 	if err != nil {
 		return nil, err
 	}

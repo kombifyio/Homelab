@@ -412,7 +412,7 @@ func verifyApplicationPrivileges(ctx context.Context, q PrivilegeQuerier, princi
 func verifyApplicationContextSchema(ctx context.Context, q PrivilegeQuerier, principal ApplicationPrincipal, requireCapabilities bool) error {
 	var safe bool
 	class := "runtime"
-	if principal.Role == BackupWorkerRole {
+	if principal.Role == BackupWorkerRole || principal.Role == RuntimeSystemRole {
 		class = "system"
 	}
 	err := q.QueryRowContext(ctx, `SELECT n.nspowner=(SELECT oid FROM pg_roles WHERE rolname=$2)
@@ -428,7 +428,8 @@ func verifyApplicationContextSchema(ctx context.Context, q PrivilegeQuerier, pri
 	 AND NOT EXISTS(SELECT 1 FROM kombify_ctx.role_class WHERE role_name=$1 AND class<>$4)
 	 AND (NOT $3 OR has_schema_privilege($1,n.oid,'USAGE'))
 	 AND ($1 NOT IN ('techstack_application','techstack_backup_worker') OR EXISTS(SELECT 1 FROM kombify_ctx.role_class WHERE role_name=$1 AND class=$4))
-	 FROM pg_namespace n WHERE n.nspname='kombify_ctx'`, principal.Role, principal.AuthorityOwner, requireCapabilities, class).Scan(&safe)
+	 AND ($1<>$5 OR EXISTS(SELECT 1 FROM kombify_ctx.role_class WHERE role_name=$1 AND class='system'))
+	 FROM pg_namespace n WHERE n.nspname='kombify_ctx'`, principal.Role, principal.AuthorityOwner, requireCapabilities, class, RuntimeSystemRole).Scan(&safe)
 	if err != nil || !safe {
 		return fmt.Errorf("Common context namespace ownership, classification or PUBLIC authority is unsafe")
 	}

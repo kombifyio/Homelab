@@ -19,8 +19,8 @@ import (
 	"time"
 
 	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
-	contract "github.com/kombifyio/stackkits/contracts/datasubject"
 	"github.com/kombifyio/techstack/pkg/serviceauth"
+	contract "github.com/kombifyio/stackkits/contracts/datasubject"
 )
 
 const (
@@ -53,10 +53,12 @@ type Outcome struct {
 }
 
 // Executor resolves the opaque subject to Techstack's own data and acts on it.
-// Both methods are idempotent on the same subject: Cloud redelivers.
+// Both methods are idempotent on the same subject: Cloud redelivers. Erase
+// carries the request id, which names the erasure in the lease journal of a
+// decommission it admits.
 type Executor interface {
 	Export(ctx context.Context, subjectRef string) (Outcome, error)
-	Erase(ctx context.Context, subjectRef string) (Outcome, error)
+	Erase(ctx context.Context, subjectRef, requestID string) (Outcome, error)
 }
 
 // Config configures the handler.
@@ -109,7 +111,7 @@ type unwired struct{}
 func (unwired) Export(context.Context, string) (Outcome, error) {
 	return Outcome{}, BlockedError{Reason: ReasonExecutorNotWired}
 }
-func (unwired) Erase(context.Context, string) (Outcome, error) {
+func (unwired) Erase(context.Context, string, string) (Outcome, error) {
 	return Outcome{}, BlockedError{Reason: ReasonExecutorNotWired}
 }
 
@@ -141,11 +143,12 @@ func (h *handler) serve(w http.ResponseWriter, r *http.Request) {
 		CompletedAt: h.cfg.Now().UTC(),
 		Datasets:    []contract.Dataset{}, Retained: []contract.Retained{}, Processors: []contract.Processor{},
 	}
+	ctx, effects := withProcessorEffects(r.Context(), req.RequestID)
 	var out Outcome
 	if req.Kind == contract.KindExport {
-		out, err = h.cfg.Executor.Export(r.Context(), req.SubjectRef)
+		out, err = h.cfg.Executor.Export(ctx, req.SubjectRef)
 	} else {
-		out, err = h.cfg.Executor.Erase(r.Context(), req.SubjectRef)
+		out, err = h.cfg.Executor.Erase(ctx, req.SubjectRef, req.RequestID)
 	}
 	var blocked BlockedError
 	switch {
@@ -168,6 +171,7 @@ func (h *handler) serve(w http.ResponseWriter, r *http.Request) {
 	if out.Retained != nil {
 		receipt.Retained = out.Retained
 	}
+	receipt.Processors = effects.snapshot()
 	sealed, err := receipt.Seal(h.cfg.SigningKey)
 	if err != nil {
 		http.Error(w, "receipt unavailable", http.StatusInternalServerError)

@@ -59,6 +59,12 @@ type stackKitLifecycleResponse struct {
 	AgentID         string `json:"agent_id"`
 	Operation       string `json:"operation"`
 	Status          string `json:"status"`
+	// DecisionReceipt is "required" when the operation runs on the
+	// platform's signed decision receipt (flag stackkit_decision_receipt):
+	// the job files the decision and shows its id and state (pending,
+	// allowed, denied, expired, refused) in its result member
+	// decision_receipt. Absent otherwise.
+	DecisionReceipt string `json:"decision_receipt,omitempty"`
 }
 
 // stackLockGuardedOperations are the stack-scoped operations that would write
@@ -210,6 +216,12 @@ func (h crudRouteHandlers) startStackKitLifecycle(e *httpx.Event) error {
 		}
 		input.CandidateSpecJSON = candidate
 	}
+	// With the stackkit_decision_receipt flag on, a first-slice operation runs
+	// on the platform's signed decision receipt, not on the body's
+	// owner_approved; with the flag off nothing here changes.
+	if err := h.admitStackKitDecisionReceipt(e, &input); err != nil {
+		return err
+	}
 	if strings.ToLower(strings.TrimSpace(input.Operation)) == jobs.StackKitLifecycleBackupRestoreActivate {
 		if len(e.Request.Header.Values("Idempotency-Key")) != 1 {
 			return httpx.BadRequest(e, "Exactly one bounded Idempotency-Key is required for restore activation")
@@ -233,7 +245,12 @@ func (h crudRouteHandlers) startStackKitLifecycle(e *httpx.Event) error {
 			}
 			return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Original restore acceptance is unavailable", nil)
 		} else if replayed {
-			return httpx.Success(e, http.StatusAccepted, stackKitLifecycleResponse{JobID: original, KitDeploymentID: stackID, AgentID: input.AgentID, Operation: input.Operation, Status: "queued"})
+			response := stackKitLifecycleResponse{JobID: original, KitDeploymentID: stackID, AgentID: input.AgentID, Operation: input.Operation, Status: "queued"}
+			if input.DecisionPrincipal != "" {
+				// The replay answers exactly as the original acceptance did.
+				response.DecisionReceipt = "required"
+			}
+			return httpx.Success(e, http.StatusAccepted, response)
 		}
 	}
 	normalized, err := jobs.NormalizeStackKitLifecycleRequest(input)
@@ -258,6 +275,18 @@ func (h crudRouteHandlers) startStackKitLifecycle(e *httpx.Event) error {
 		}
 		if errors.Is(err, controlplane.ErrNotFound) {
 			return httpx.NotFound(e, "Stack or agent not found")
+		}
+		var notReadable *jobs.BackupNotReadableError
+		if errors.As(err, &notReadable) {
+			title, body, nextSteps := notReadable.Guidance()
+			return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "This server keeps no backup to check",
+				map[string]interface{}{
+					"reason_code": notReadable.ReasonCode(),
+					"retryable":   false,
+					"user_guidance": map[string]interface{}{
+						"title": title, "body": body, "next_steps": nextSteps,
+					},
+				})
 		}
 		var denied *orchestrator.ManagedBackupDeniedError
 		if errors.As(err, &denied) {
@@ -295,11 +324,15 @@ func (h crudRouteHandlers) startStackKitLifecycle(e *httpx.Event) error {
 			nil,
 		)
 	}
-	return httpx.Success(e, http.StatusAccepted, stackKitLifecycleResponse{
+	response := stackKitLifecycleResponse{
 		JobID:           jobID,
 		KitDeploymentID: stackID,
 		AgentID:         normalized.AgentID,
 		Operation:       normalized.Operation,
 		Status:          "queued",
-	})
+	}
+	if normalized.DecisionPrincipal != "" {
+		response.DecisionReceipt = "required"
+	}
+	return httpx.Success(e, http.StatusAccepted, response)
 }

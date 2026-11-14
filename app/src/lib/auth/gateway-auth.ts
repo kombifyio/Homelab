@@ -219,27 +219,56 @@ export async function startGatewayStepUp(options: {
   }
 }
 
+/** True while Auth0 refuses silent renewal until a second factor is confirmed. */
+export function gatewayRenewalNeedsSecondFactor(): boolean {
+  return stepUpRefusal !== null;
+}
+
 /**
- * User-initiated session renewal ("Sign in again"). Tries the silent
- * refresh-token/iframe acquisition once and only redirects to Auth0 when that
- * fails. Returns "renewed" when a fresh token is cached (no navigation),
- * "redirecting" when the SPA login started, "unavailable" when this build
- * has no gateway client (the caller falls back to the v2 cookie login).
+ * Renew the API token in a small Universal Login window (session renewal,
+ * AUTHENTICATION.md §6). A live Auth0 session completes it without a prompt;
+ * after an `mfa_required` refusal it asks only for the second factor (PAPE
+ * multi-factor acr). Pass a window opened inside a click handler when the
+ * browser blocked the unprompted one. Returns "renewed", "blocked" (no window
+ * could open), "dismissed" (closed without completing) or "unavailable" (no
+ * SPA client in this build).
  */
-export async function renewGatewaySession(options?: {
-  returnTo?: string | null;
-}): Promise<"renewed" | "redirecting" | "unavailable"> {
+export async function renewGatewayTokenInWindow(
+  popup?: Window | null,
+): Promise<"renewed" | "blocked" | "dismissed" | "unavailable"> {
   if (typeof window === "undefined") return "unavailable";
   if (!isGatewayAuthConfigured() && !testClient) return "unavailable";
-  if (stepUpRefusal === null) {
-    try {
-      await getGatewayToken();
-      return "renewed";
-    } catch {
-      // Fall through to the SPA login (a step-up after an MFA refusal).
+  const c = await getClient();
+  if (typeof c.loginWithPopup !== "function") return "unavailable";
+  try {
+    await c.loginWithPopup(
+      {
+        authorizationParams: {
+          audience: AUDIENCE,
+          scope: "openid profile email offline_access",
+          ...(stepUpRefusal !== null
+            ? { acr_values: MFA_STEP_UP_ACR_VALUES }
+            : {}),
+        },
+      },
+      popup ? { popup } : undefined,
+    );
+  } catch (err) {
+    // PopupOpenError: the browser refused the window. Anything else
+    // (cancelled, timeout) means the window closed without completing.
+    if (err instanceof Error && /window\.open returned/i.test(err.message)) {
+      return "blocked";
     }
+    return "dismissed";
   }
-  return (await startGatewayLogin(options)) ? "redirecting" : "unavailable";
+  stepUpRefusal = null;
+  tokenInFlight = null;
+  try {
+    await getGatewayToken();
+    return "renewed";
+  } catch {
+    return "dismissed";
+  }
 }
 
 /**
@@ -250,19 +279,26 @@ export async function renewGatewaySession(options?: {
  * Silent-only: the SPA login round-trip lives in auth init / the recovery
  * ladder so a wizard holding unsaved state can refuse the navigation.
  */
-export async function getGatewayToken(): Promise<string> {
+export async function getGatewayToken(options?: {
+  /**
+   * Skip the cached token: the Gateway just refused it, so session renewal
+   * asks Auth0 for a new one with the refresh token.
+   */
+  fresh?: boolean;
+}): Promise<string> {
   if (stepUpRefusal !== null) throw stepUpRefusal;
-  tokenInFlight ??= acquireGatewayToken().finally(() => {
+  tokenInFlight ??= acquireGatewayToken(options?.fresh === true).finally(() => {
     tokenInFlight = null;
   });
   return tokenInFlight;
 }
 
-async function acquireGatewayToken(): Promise<string> {
+async function acquireGatewayToken(fresh: boolean): Promise<string> {
   const c = await getClient();
   let token: string | undefined;
   try {
     token = await c.getTokenSilently({
+      ...(fresh ? { cacheMode: "off" as const } : {}),
       authorizationParams: {
         audience: AUDIENCE,
         scope: "openid profile email offline_access",

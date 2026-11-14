@@ -8,21 +8,19 @@ import (
 	"github.com/kombifyio/techstack/pkg/config"
 )
 
-// EnvReleaseChannel names the release channel a deployment serves
-// (CI-CD-PLATFORM-STANDARD §4.6). "early-access" (Early Access) changes
-// behavior; the retired value "preview" is read as early-access (never stable), and every
-// other value, including unset, is stable.
+// EnvReleaseChannel is the retired channel selector (config.EnvReleaseChannel).
+// A deployment that still names a channel other than stable refuses to start.
 const EnvReleaseChannel = config.EnvReleaseChannel
 
-// ReleaseChannel returns "early-access" or "stable".
+// ReleaseChannel reports the one channel this deployment serves: stable.
 func ReleaseChannel() string {
 	return config.ReleaseChannel()
 }
 
-// refusePreviewMigration keeps secondary serving processes verify-only with
-// genesis disabled. Preview uses the non-production Stage database, migrated
-// first by the governed exact-source main path; Early Access migrations remain
-// owned by the release path. Neither serving process holds migration custody.
+// refusePreviewMigration keeps a serving process beside the one channel
+// verify-only with genesis disabled. No admitted process is one
+// (config.RejectRetiredReleaseChannel refuses it), so this admits the
+// self-hosted and hosted boots unchanged.
 func refusePreviewMigration() error {
 	if !config.SecondaryChannel() {
 		return nil

@@ -147,10 +147,34 @@ const (
 //     HTTP routes migrated from Edge. CF strips client-injected headers.
 //  2. Edge shared secret (X-Edge-Auth-Secret) — legacy path for gRPC (Phase 5).
 //
-// In self-hosted mode this is a no-op pass-through.
+// Self-hosted requests retain local identity; connected requests also verify flags.
 func EdgeIdentityMiddlewareWithConfig(cfg EdgeIdentityConfig) func(*httpx.Event) error {
 	return func(e *httpx.Event) error {
 		if !cfg.Mode.IsSaaS() {
+			if e.Request.Header.Get(headerEdgeAuth) == "" && e.Request.Header.Get(commonedgeauth.HeaderFlags) == "" && e.Request.Header.Get(commonedgeauth.HeaderFlagsSignature) == "" {
+				return e.Next()
+			}
+			// A connected installation consumes decisions without replacing its local
+			// Owner identity or granting a Cloud principal local installation access.
+			if !isSupportedEdgeAuthValue(strings.TrimSpace(e.Request.Header.Get(headerEdgeAuth))) {
+				stripIdentityHeaders(e.Request)
+				http.Error(e.Response, "invalid edge authentication", http.StatusUnauthorized)
+				return nil
+			}
+			if _, _, _, err := verifyEdgeSignature(e.Request, cfg); err != nil {
+				stripIdentityHeaders(e.Request)
+				http.Error(e.Response, "invalid edge authentication", http.StatusUnauthorized)
+				return nil
+			}
+			if err := attachEdgeFlags(e, cfg); err != nil {
+				stripIdentityHeaders(e.Request)
+				writeEdgeDecisionUnverifiable(e)
+				return nil
+			}
+			if _, present := commonedgeauth.FlagsFromContext(e.Request.Context()); !present {
+				e.Request = e.Request.WithContext(commonedgeauth.FlagsToContext(e.Request.Context(), commonedgeauth.FlagSet{}))
+			}
+			stripIdentityHeaders(e.Request)
 			return e.Next()
 		}
 
@@ -173,10 +197,12 @@ func EdgeIdentityMiddlewareWithConfig(cfg EdgeIdentityConfig) func(*httpx.Event)
 			if stepUpBound {
 				// Only a verified v7 envelope binds amr/acr/auth_time. Any
 				// other version attaches nothing, so step-up checks fail closed.
-				// v7 also binds the principal type, which the step-up requires.
+				// v7 also binds the principal type, which the step-up requires,
+				// and the attested agent of an agent principal.
 				e.Request = e.Request.WithContext(WithVerifiedStepUp(e.Request.Context(), StepUpClaims{
 					AMR: stepUp.AMR, ACR: stepUp.ACR, AuthTime: stepUp.AuthTime,
 					PrincipalType: strings.TrimSpace(e.Request.Header.Get(commonedgeauth.HeaderPrincipalType)),
+					AgentID:       strings.TrimSpace(e.Request.Header.Get(commonedgeauth.HeaderAgentID)),
 				}))
 			}
 			if err := attachSignedEdgeEntitlements(e); err != nil {

@@ -74,6 +74,7 @@ func (h serverRuntimeHandlers) applyPosture(item *serverRuntimeResponse, workerI
 		view = h.posture.View(nil)
 	}
 	item.Security, item.Recovery, item.Updates = &view.Security, &view.Recovery, &view.Updates
+	item.Power = view.Power
 }
 
 // postureServer authenticates the owner, proves the server is theirs and
@@ -101,22 +102,22 @@ func (h serverRuntimeHandlers) postureServer(e *httpx.Event, capability string, 
 }
 
 // postureStepUp requires the entitlement that meters maintaining one's own
-// server and a fresh multi-factor sign-in, the same gate as releasing an
-// unresolved outcome.
-func (h serverRuntimeHandlers) postureStepUp(e *httpx.Event) error {
+// server and either a fresh multi-factor sign-in of the person or an agent
+// acting for the person, the same gate as releasing an unresolved outcome. It
+// returns the acting agent for the audit record.
+func (h serverRuntimeHandlers) postureStepUp(e *httpx.Event) (string, error) {
 	gate := entitlementGateOrHosted(h.postureEntitlements)
 	ctx := e.Request.Context()
 	if !gate.SignedGrant(ctx, ServerMaintenanceEntitlement) {
-		return writeEntitlementDenial(e, "techstack.servers.security.repair", ServerMaintenanceEntitlement)
+		return "", writeEntitlementDenial(e, "techstack.servers.security.repair", ServerMaintenanceEntitlement)
 	}
-	if !gate.FreshMultiFactor(ctx, h.now().UTC(), serverPostureStepUpMaxAge) {
+	agentID, ok := freshPersonOrActingAgent(ctx, gate, h.now().UTC(), serverPostureStepUpMaxAge)
+	if !ok {
 		// Reject, not Error: a helper's caller stops on a non-nil error only.
-		return httpx.Reject(e, http.StatusForbidden, ksapi.ErrCodeForbidden, "A fresh multi-factor sign-in is required to change the host's security configuration", map[string]any{
-			"reason": postureReasonStepUp, "retryable": true,
-			"guidance": "Sign in again with a second factor and repeat the request within five minutes.",
-		})
+		message, details := stepUpRefusal(ctx, "A fresh multi-factor sign-in is required to change the host's security configuration", postureReasonStepUp)
+		return "", httpx.Reject(e, http.StatusForbidden, ksapi.ErrCodeForbidden, message, details)
 	}
-	return nil
+	return agentID, nil
 }
 
 type postureVerifyResponse struct {
@@ -216,7 +217,8 @@ func (h serverRuntimeHandlers) postureRequestRepair(e *httpx.Event) error {
 		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "The Guard is not connected", map[string]any{
 			"reason": postureReasonNotReady, "guidance": "Wait until the server is connected, then repair again."})
 	}
-	if err := h.postureStepUp(e); err != nil {
+	agentID, err := h.postureStepUp(e)
+	if err != nil {
 		return err
 	}
 	raw, readErr := io.ReadAll(io.LimitReader(e.Request.Body, 4097))
@@ -237,7 +239,7 @@ func (h serverRuntimeHandlers) postureRequestRepair(e *httpx.Event) error {
 		return writePostureRepairError(e, repairErr, h.now().UTC())
 	}
 	slog.Warn("guard_security_repair_requested", "tenant_id", identity.TenantID, "worker_id", identity.WorkerID, "repair_id", repair.ID,
-		"controls", strings.Join(repair.Controls, ","), "actor", ownerID)
+		"controls", strings.Join(repair.Controls, ","), "actor", ownerID, "agent_id", agentID)
 	return httpx.Success(e, http.StatusAccepted, repair)
 }
 
@@ -300,7 +302,8 @@ func (h serverRuntimeHandlers) postureSetAutoRepair(e *httpx.Event) error {
 	if err != nil || server == nil {
 		return err
 	}
-	if err := h.postureStepUp(e); err != nil {
+	agentID, err := h.postureStepUp(e)
+	if err != nil {
 		return err
 	}
 	raw, readErr := io.ReadAll(io.LimitReader(e.Request.Body, 4097))
@@ -324,7 +327,7 @@ func (h serverRuntimeHandlers) postureSetAutoRepair(e *httpx.Event) error {
 		}
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Automatic repair settings are unavailable", nil)
 	}
-	slog.Warn("guard_auto_repair_policy_set", "tenant_id", identity.TenantID, "worker_id", identity.WorkerID, "enabled", request.Enabled, "actor", ownerID)
+	slog.Warn("guard_auto_repair_policy_set", "tenant_id", identity.TenantID, "worker_id", identity.WorkerID, "enabled", request.Enabled, "actor", ownerID, "agent_id", agentID)
 	return httpx.Success(e, http.StatusOK, autoRepairResponse(server.ID, policy, h.now().UTC()))
 }
 

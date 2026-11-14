@@ -264,6 +264,13 @@ export async function decryptCompact(
   const parts = compact.split(".");
   if (parts.length !== 5) return fail();
   const [encodedHeader, encodedKey, encodedIv, encodedText, encodedTag] = parts;
+  if (
+    encodedKey === undefined ||
+    encodedIv === undefined ||
+    encodedText === undefined ||
+    encodedTag === undefined
+  )
+    return fail();
   const header = decodeProtectedHeader(compact);
   const epk = header.epk as Record<string, unknown> | undefined;
   if (
