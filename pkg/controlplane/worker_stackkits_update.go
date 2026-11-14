@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -19,11 +20,32 @@ const (
 	WorkerStackKitsUpdateAttemptResourceKey = "stackkits_update_attempt"
 )
 
-// Update behaviors of a node. The global default is approve.
+// Update settings of a node (D-2026-11-12-06), one setting for the StackKits
+// release and the applications it manages. The default is ask.
+//
+//   - ask: Techstack proposes; the owner approves a StackKits release, and a
+//     checked (tested) application version is offered with one click.
+//   - automatic: a StackKits release starts without a click; checked
+//     application versions apply in the maintenance window.
+//   - with_stackkits_releases: applications change only with a StackKits
+//     release; a StackKits release itself is approved like ask.
+//
+// Security fixes are offered in every setting. A stored legacy `approve`
+// reads as ask.
 const (
-	StackKitsUpdateApprove   = "approve"
-	StackKitsUpdateAutomatic = "automatic"
+	StackKitsUpdateAsk                   = "ask"
+	StackKitsUpdateAutomatic             = "automatic"
+	StackKitsUpdateWithStackKitsReleases = "with_stackkits_releases"
 )
+
+// ValidStackKitsUpdateBehavior reports whether behavior is a setting value.
+func ValidStackKitsUpdateBehavior(behavior string) bool {
+	switch behavior {
+	case StackKitsUpdateAsk, StackKitsUpdateAutomatic, StackKitsUpdateWithStackKitsReleases:
+		return true
+	}
+	return false
+}
 
 // Triggers of an update Techstack starts without a click.
 const (
@@ -71,11 +93,11 @@ type WorkerStackKitsUpdateStore interface {
 }
 
 // WorkerStackKitsUpdateBehaviorOf reads a node's update setting; a node without
-// one approves each update.
+// one asks.
 func WorkerStackKitsUpdateBehaviorOf(worker *Worker) WorkerStackKitsUpdateBehavior {
 	var behavior WorkerStackKitsUpdateBehavior
-	if worker == nil || !decodeWorkerResource(worker.Resources[WorkerStackKitsUpdateBehaviorResourceKey], &behavior) || behavior.Behavior != StackKitsUpdateAutomatic {
-		return WorkerStackKitsUpdateBehavior{Behavior: StackKitsUpdateApprove, SetBy: behavior.SetBy, SetAt: behavior.SetAt}
+	if worker == nil || !decodeWorkerResource(worker.Resources[WorkerStackKitsUpdateBehaviorResourceKey], &behavior) || !ValidStackKitsUpdateBehavior(behavior.Behavior) {
+		return WorkerStackKitsUpdateBehavior{Behavior: StackKitsUpdateAsk, SetBy: behavior.SetBy, SetAt: behavior.SetAt}
 	}
 	return behavior
 }
@@ -107,7 +129,7 @@ func resourceValue(value any) (map[string]any, error) {
 }
 
 func stackKitsUpdateBehaviorValue(behavior WorkerStackKitsUpdateBehavior) (map[string]any, error) {
-	if behavior.Behavior != StackKitsUpdateApprove && behavior.Behavior != StackKitsUpdateAutomatic {
+	if !ValidStackKitsUpdateBehavior(behavior.Behavior) {
 		return nil, fmt.Errorf("controlplane: unknown StackKits update behavior")
 	}
 	if behavior.SetAt.IsZero() {
@@ -127,27 +149,6 @@ func stackKitsUpdateAttemptValue(attempt WorkerStackKitsUpdateAttempt) (map[stri
 	return resourceValue(attempt)
 }
 
-func (s *PostgresStore) patchWorkerResources(ctx context.Context, tenantID, workerID string, patch map[string]any) error {
-	raw, err := json.Marshal(patch)
-	if err != nil {
-		return err
-	}
-	return s.withTenant(ctx, tenantID, func(tx *sql.Tx) error {
-		result, execErr := tx.ExecContext(ctx, `
-			UPDATE workers
-			SET resources_json = COALESCE(resources_json, '{}'::jsonb) || $3::jsonb, updated_at = now()
-			WHERE tenant_id = $1 AND id = $2
-		`, tenantID, workerID, string(raw))
-		if execErr != nil {
-			return execErr
-		}
-		if rows, rowsErr := result.RowsAffected(); rowsErr == nil && rows == 0 {
-			return ErrNotFound
-		}
-		return nil
-	})
-}
-
 func (s *PostgresStore) SetWorkerStackKitsUpdateBehavior(ctx context.Context, tenantID, workerID string, behavior WorkerStackKitsUpdateBehavior) error {
 	if s == nil || s.db == nil {
 		return fmt.Errorf("controlplane: database not configured")
@@ -156,7 +157,41 @@ func (s *PostgresStore) SetWorkerStackKitsUpdateBehavior(ctx context.Context, te
 	if err != nil {
 		return err
 	}
-	return s.patchWorkerResources(ctx, tenantID, workerID, map[string]any{WorkerStackKitsUpdateBehaviorResourceKey: value})
+	raw, err := json.Marshal(map[string]any{WorkerStackKitsUpdateBehaviorResourceKey: value})
+	if err != nil {
+		return err
+	}
+	// The setting and its audit record commit together: who changed the
+	// node's update setting, from what and to what.
+	return s.withTenant(ctx, tenantID, func(tx *sql.Tx) error {
+		var previous sql.NullString
+		if err := tx.QueryRowContext(ctx, `
+			SELECT resources_json->'stackkits_update_behavior'->>'behavior'
+			FROM workers WHERE tenant_id = $1 AND id = $2 FOR UPDATE
+		`, tenantID, workerID).Scan(&previous); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return ErrNotFound
+			}
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `
+			UPDATE workers
+			SET resources_json = COALESCE(resources_json, '{}'::jsonb) || $3::jsonb, updated_at = now()
+			WHERE tenant_id = $1 AND id = $2
+		`, tenantID, workerID, string(raw)); err != nil {
+			return err
+		}
+		from := previous.String
+		if !ValidStackKitsUpdateBehavior(from) {
+			from = StackKitsUpdateAsk
+		}
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO audit_events (tenant_id, actor_subject_id, action, resource_type, resource_id, details_json)
+			VALUES ($1, NULLIF($2, ''), 'worker.update_setting.changed', 'worker', $3,
+				jsonb_build_object('from', $4::text, 'to', $5::text))
+		`, tenantID, strings.TrimSpace(behavior.SetBy), workerID, from, behavior.Behavior)
+		return err
+	})
 }
 
 func (s *PostgresStore) ClaimWorkerStackKitsUpdateAttempt(ctx context.Context, tenantID, workerID string, attempt WorkerStackKitsUpdateAttempt) (bool, error) {

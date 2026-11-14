@@ -128,6 +128,7 @@ func httpsRoundTripProbeCandidates(store *controlplane.PostgresStore, grpcState 
 				}
 				// A Guard without a readable credential generation cannot leave
 				// a round trip (agentcontrol.recordRoundTrip), so it is not probed.
+				// Generation 0 is a key-bound Guard that was never rotated.
 				generations := map[string]int64{}
 				if workers, err := store.ListWorkersByTenant(ctx, tenantID); err == nil {
 					for _, worker := range workers {
@@ -145,8 +146,8 @@ func httpsRoundTripProbeCandidates(store *controlplane.PostgresStore, grpcState 
 						!containsString(capabilities(server), stackkitcommand.HostMaintenanceCapability) {
 						continue
 					}
-					generation := generations[workerID]
-					if generation <= 0 {
+					generation, known := generations[workerID]
+					if !known || generation < 0 {
 						continue
 					}
 					out = append(out, guardRoundTripProbeTarget{
@@ -201,7 +202,7 @@ func guardRoundTripProbeDue(target guardRoundTripProbeTarget, trip *agentcontrol
 	if trip == nil || now.Sub(trip.AcknowledgedAt) >= guardcompat.CommandRoundTripProbeAfter {
 		return true
 	}
-	if target.generation > 0 {
+	if !target.mtls {
 		return trip.Transport != agentcontrol.RoundTripTransportHTTPS || trip.Generation != target.generation
 	}
 	return trip.Transport != agentcontrol.RoundTripTransportMTLS
@@ -214,7 +215,7 @@ func guardRoundTripProbeDue(target guardRoundTripProbeTarget, trip *agentcontrol
 // earlier round trip no longer counts, so it gets its own probe.
 func guardRoundTripProbeCommandID(target guardRoundTripProbeTarget, now time.Time) string {
 	identity := "kombify.guard/round-trip-probe/v1\x00" + target.tenantID + "\x00" + target.agentID
-	if target.generation > 0 {
+	if !target.mtls {
 		identity += "\x00" + strconv.FormatInt(target.generation, 10)
 	}
 	sum := sha256.Sum256([]byte(identity))

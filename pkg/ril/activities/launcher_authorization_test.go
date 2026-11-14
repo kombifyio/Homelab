@@ -54,6 +54,15 @@ func TestCanonicalVerifyReachesDecisionAuthorityWithoutGrantBypass(t *testing.T)
 		reaches bool
 	}{
 		{"canonical", func(*actions.GovernedCard) {}, true},
+		{"restart profile", func(c *actions.GovernedCard) {
+			c.Template.Primitive = rilaction.PrimitiveBinding{ID: "restart-service", OperationClass: "runtime-service-action"}
+			c.Template.Target = rilaction.TargetBinding{Scope: rilaction.TargetScopeRuntimeInstance, SiteRef: "server", NodeRef: "main", RuntimeInstanceRef: "worker", ExecutionChannelRef: "worker"}
+			c.Template.Inputs = []rilaction.Input{{ID: "runtime-instance-ref", Type: rilaction.InputTypeOpaqueReference, OpaqueRef: "object:service/jellyfin"}}
+		}, true},
+		{"restart without service input", func(c *actions.GovernedCard) {
+			c.Template.Primitive = rilaction.PrimitiveBinding{ID: "restart-service", OperationClass: "runtime-service-action"}
+			c.Template.Target = rilaction.TargetBinding{Scope: rilaction.TargetScopeRuntimeInstance, SiteRef: "server", NodeRef: "main", RuntimeInstanceRef: "worker", ExecutionChannelRef: "worker"}
+		}, false},
 		{"other primitive", func(c *actions.GovernedCard) { c.Template.Primitive.ID = "apply-stackkit-change" }, false},
 		{"other class", func(c *actions.GovernedCard) { c.Template.Primitive.OperationClass = "product-apply" }, false},
 		{"other scope", func(c *actions.GovernedCard) { c.Template.Target.Scope = rilaction.TargetScopeRuntimeInstance }, false},

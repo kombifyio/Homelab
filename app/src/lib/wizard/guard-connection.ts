@@ -105,11 +105,13 @@ function disambiguateGuardCandidates(
     const remoteMatches = candidates.filter((server) =>
       serverMatchesRemoteTarget(server, remoteNeedle),
     );
-    if (remoteMatches.length === 1) return remoteMatches[0];
+    if (remoteMatches.length === 1) return remoteMatches[0] ?? null;
     if (remoteMatches.length > 1) {
-      return [...remoteMatches].sort(
-        (left, right) => heartbeatTimestamp(right) - heartbeatTimestamp(left),
-      )[0];
+      return (
+        [...remoteMatches].sort(
+          (left, right) => heartbeatTimestamp(right) - heartbeatTimestamp(left),
+        )[0] ?? null
+      );
     }
   }
 
@@ -117,7 +119,7 @@ function disambiguateGuardCandidates(
     const expectedMatches = candidates.filter(
       (server) => normalizedServerIdentity(server.name) === expectedNeedle,
     );
-    if (expectedMatches.length === 1) return expectedMatches[0];
+    if (expectedMatches.length === 1) return expectedMatches[0] ?? null;
   }
 
   const pairingStartedAtMs = Date.parse(input.pairingStartedAt || "");
@@ -128,23 +130,28 @@ function disambiguateGuardCandidates(
     const createdDuringPairing = candidates.filter((server) =>
       serverCreatedDuringPairing(server, pairingStartedAtMs),
     );
-    if (createdDuringPairing.length === 1) return createdDuringPairing[0];
+    if (createdDuringPairing.length === 1)
+      return createdDuringPairing[0] ?? null;
     if (createdDuringPairing.length > 1) {
-      return [...createdDuringPairing].sort(
-        (left, right) => heartbeatTimestamp(right) - heartbeatTimestamp(left),
-      )[0];
+      return (
+        [...createdDuringPairing].sort(
+          (left, right) => heartbeatTimestamp(right) - heartbeatTimestamp(left),
+        )[0] ?? null
+      );
     }
   }
 
-  if (candidates.length === 1) return candidates[0];
+  if (candidates.length === 1) return candidates[0] ?? null;
 
   if (input.creationOperation === "add-server") {
     return null;
   }
 
-  return [...candidates].sort(
-    (left, right) => heartbeatTimestamp(right) - heartbeatTimestamp(left),
-  )[0];
+  return (
+    [...candidates].sort(
+      (left, right) => heartbeatTimestamp(right) - heartbeatTimestamp(left),
+    )[0] ?? null
+  );
 }
 
 export function selectGuardConnectedServer(

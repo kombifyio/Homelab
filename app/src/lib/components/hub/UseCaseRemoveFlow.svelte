@@ -22,7 +22,10 @@
   import ErrorCallout from "#lib/components/ui/ErrorCallout.svelte";
   import UseCaseRunProgress from "./UseCaseRunProgress.svelte";
 
-  let { stackId }: { stackId: string } = $props();
+  let {
+    stackId,
+    preferredUseCase = "",
+  }: { stackId: string; preferredUseCase?: string } = $props();
   type Failure = { stale: boolean; details: string };
   type RemovalState =
     | { kind: "loading" }
@@ -80,9 +83,16 @@
     try {
       const next = await getUseCaseConfiguration(stackId, attempt.signal);
       if (attempt.signal.aborted) return;
+      if (
+        preferredUseCase &&
+        !useCaseId &&
+        !next.use_cases.some((entry) => entry.id === preferredUseCase)
+      )
+        throw new Error("Selected use case is no longer installed");
       const selected =
-        next.use_cases.find((entry) => entry.id === useCaseId) ??
-        next.use_cases[0];
+        next.use_cases.find(
+          (entry) => entry.id === (useCaseId || preferredUseCase),
+        ) ?? next.use_cases[0];
       useCaseId = selected?.id ?? "";
       workloadRef =
         selected?.workloads.find(
@@ -158,7 +168,7 @@
   data-stack-id={stackId}
 >
   <a
-    href={`/stacks/${encodeURIComponent(stackId)}`}
+    href="/apps"
     class="inline-flex items-center gap-2 text-sm text-primary hover:underline"
     ><ArrowLeft size={16} aria-hidden="true" />{tr("removeUseCase.back")}</a
   >

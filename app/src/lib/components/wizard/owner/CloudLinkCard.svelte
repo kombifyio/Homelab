@@ -161,11 +161,11 @@
           >
         </p>
       {/if}
-      {#if owner.cloudLinkError}
-        <p class="text-xs text-destructive" data-testid="cloud-link-error">
-          {owner.cloudLinkError}
-        </p>
-      {/if}
+    {/if}
+    {#if owner.cloudLinkError}
+      <p class="text-xs text-destructive" data-testid="cloud-link-error">
+        {owner.cloudLinkError}
+      </p>
     {/if}
   </div>
 </div>

@@ -1369,6 +1369,73 @@
     </section>
   {/if}
 
+  {#if evidence.extension.power}
+    {@const power = evidence.extension.power}
+    <section class="mt-5" data-testid="guard-power">
+      <h3 class="text-sm font-semibold">{tr("guard.power.title")}</h3>
+      <p class="mt-1 text-sm text-muted-foreground">
+        {tr(`guard.power.state.${power.state}`)}
+        {#if power.observed_at}
+          · {tr("guard.power.observed", {
+            when: formatTime(power.observed_at),
+          })}
+        {/if}
+      </p>
+      {#if power.charge_percent !== undefined}
+        <p class="mt-1 text-sm text-muted-foreground">
+          {tr("guard.power.charge", {
+            percent: Math.round(power.charge_percent),
+          })}
+          {#if power.runtime_seconds !== undefined}
+            · {tr("guard.power.runtime", {
+              minutes: Math.round(power.runtime_seconds / 60),
+            })}
+          {/if}
+        </p>
+      {/if}
+      {#if power.steps && power.steps.length > 0}
+        <p class="mt-3 text-xs font-medium uppercase text-muted-foreground">
+          {tr("guard.power.steps")}
+        </p>
+        <ul class="mt-1 space-y-1 text-sm">
+          {#each power.steps as step (step.name)}
+            <li class="flex flex-wrap items-baseline gap-2">
+              <span class="font-medium">
+                {labelOr(`guard.power.step.${step.name}`, step.name)}
+              </span>
+              <span class="text-muted-foreground">
+                {tr(`guard.power.outcome.${step.outcome}`)}
+              </span>
+              {#if step.detail}
+                <span class="text-xs text-muted-foreground">{step.detail}</span>
+              {/if}
+            </li>
+          {/each}
+        </ul>
+      {/if}
+      {#if power.cancel_reason}
+        <p class="mt-2 text-sm text-muted-foreground">
+          {tr("guard.power.canceledBecause", {
+            reason: labelOr(
+              `guard.power.reason.${power.cancel_reason}`,
+              power.cancel_reason,
+            ),
+          })}
+        </p>
+      {/if}
+      {#if power.host_requested_at}
+        <p class="mt-2 text-sm text-muted-foreground">
+          {tr("guard.power.hostRequested", {
+            when: formatTime(power.host_requested_at),
+          })}
+        </p>
+      {/if}
+      <p class="mt-2 text-xs text-muted-foreground">
+        {tr("guard.power.evidence")}
+      </p>
+    </section>
+  {/if}
+
   {#if evidence.worker_id}
     <div class="mt-5">
       <GuardOutcomes

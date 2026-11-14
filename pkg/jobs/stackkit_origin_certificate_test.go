@@ -13,6 +13,9 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"github.com/kombifyio/techstack/internal/gocommon/edgeauth"
+	"github.com/kombifyio/techstack/pkg/config"
+	"github.com/kombifyio/techstack/pkg/features"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -392,5 +395,46 @@ func TestPublicTLSRepairRedispatchesApplyAfterTheCertificateInstall(t *testing.T
 	}
 	if apply == nil || apply.ExpectedPlanHash == "" || apply.SpecPath != "stack-spec.bound.yaml" {
 		t.Fatalf("apply = %+v, want it dispatched with the planned hash and the bound StackSpec", apply)
+	}
+}
+
+func TestJobFlagsRetainOnlyRequestDecisions(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		flags map[string]bool
+		want  bool
+	}{
+		{"signed on", map[string]bool{"self.healing.enabled": true}, true},
+		{"signed off", map[string]bool{"self.healing.enabled": false}, false},
+		{"empty signed map", map[string]bool{}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			job := &Job{Payload: map[string]interface{}{"edge_flags": map[string]bool{"self.healing.enabled": !tc.want}}}
+			request := edgeauth.FlagsToContext(t.Context(), edgeauth.FlagSet{Flags: tc.flags})
+			CopyEdgeFlagsFromContext(request, job)
+			svc, err := features.NewService(nil, features.ServiceConfig{Edition: config.EditionSaaSStandalone})
+			if err != nil {
+				t.Fatal(err)
+			}
+			ctx := contextWithJobEdgeFlags(context.Background(), job)
+			got, err := svc.IsEnabled(ctx, "self_healing", "synthetic-owner")
+			if err != nil || got != tc.want {
+				t.Fatalf("job decision=%v,%v want=%v", got, err, tc.want)
+			}
+			// The persisted payload, including any pre-cutover flags, cannot grant after restart.
+			data, err := json.Marshal(job)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var restored Job
+			if err := json.Unmarshal(data, &restored); err != nil {
+				t.Fatal(err)
+			}
+			restoredCtx := contextWithJobEdgeFlags(context.Background(), &restored)
+			got, err = svc.IsEnabled(restoredCtx, "self_healing", "synthetic-owner")
+			if err != nil || got {
+				t.Fatalf("restored payload granted feature: %v,%v", got, err)
+			}
+		})
 	}
 }

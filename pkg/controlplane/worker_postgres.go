@@ -35,6 +35,10 @@ func upsertWorkerHeartbeatTx(ctx context.Context, tx *sql.Tx, worker Worker) (*W
 	if tenantID == "" {
 		return nil, fmt.Errorf("controlplane: tenant id required")
 	}
+	canonical, err := canonicalWorkerPlacementTx(ctx, tx, &worker)
+	if err != nil {
+		return nil, err
+	}
 	tagsJSON, err := marshalObject(worker.Tags)
 	if err != nil {
 		return nil, err
@@ -65,8 +69,8 @@ func upsertWorkerHeartbeatTx(ctx context.Context, tx *sql.Tx, worker Worker) (*W
 				$23::jsonb, NULLIF($24, ''), $25::jsonb, $26::jsonb
 			)
 			ON CONFLICT (tenant_id, id) DO UPDATE SET
-				instance_id = EXCLUDED.instance_id,
-				stack_id = EXCLUDED.stack_id,
+				instance_id = CASE WHEN $27 THEN EXCLUDED.instance_id ELSE workers.instance_id END,
+				stack_id = CASE WHEN $27 THEN EXCLUDED.stack_id ELSE workers.stack_id END,
 				hostname = EXCLUDED.hostname,
 				ip = EXCLUDED.ip,
 				os = EXCLUDED.os,
@@ -100,6 +104,7 @@ func upsertWorkerHeartbeatTx(ctx context.Context, tx *sql.Tx, worker Worker) (*W
 					- 'stackkits_target'
 					- 'stackkits_update_behavior'
 					- 'stackkits_update_attempt'
+					- 'guard_tenant_rebind'
 				) || jsonb_strip_nulls(jsonb_build_object(
 					'agent_token_sha256', workers.resources_json->'agent_token_sha256',
 					'enrollment_idempotency_sha256', workers.resources_json->'enrollment_idempotency_sha256',
@@ -107,7 +112,8 @@ func upsertWorkerHeartbeatTx(ctx context.Context, tx *sql.Tx, worker Worker) (*W
 					'credential_generation', workers.resources_json->'credential_generation',
 					'stackkits_target', workers.resources_json->'stackkits_target',
 					'stackkits_update_behavior', workers.resources_json->'stackkits_update_behavior',
-					'stackkits_update_attempt', workers.resources_json->'stackkits_update_attempt'
+					'stackkits_update_attempt', workers.resources_json->'stackkits_update_attempt',
+					'guard_tenant_rebind', workers.resources_json->'guard_tenant_rebind'
 				)),
 				updated_at = now()
 			RETURNING id, tenant_id, instance_id, stack_id, hostname, ip, os, arch, token_hash,
@@ -121,7 +127,7 @@ func upsertWorkerHeartbeatTx(ctx context.Context, tx *sql.Tx, worker Worker) (*W
 		worker.Approved, nullableTime(worker.ApprovedAt), lastSeen, worker.CPUCores,
 		worker.RAMMB, worker.DiskGB, worker.GPU, worker.HasNVME, worker.HasHWTranscode,
 		worker.DockerVersion, worker.Type, worker.Provider, tagsJSON, worker.OwnerSubjectID,
-		capabilitiesJSON, resourcesJSON,
+		capabilitiesJSON, resourcesJSON, canonical,
 	))
 }
 
@@ -609,3 +615,18 @@ func scanPairingToken(row rowScanner) (*PairingToken, error) {
 var _ WorkerStore = (*PostgresStore)(nil)
 
 var _ WorkerCredentialStore = (*PostgresStore)(nil)
+
+// Placement is control-plane state, not a fact an in-flight heartbeat owns.
+// Hold the canonical row until the worker projection commits, serializing it
+// with assignment and destroy release. New enrollment can precede its server.
+func canonicalWorkerPlacementTx(ctx context.Context, tx *sql.Tx, worker *Worker) (bool, error) {
+	err := tx.QueryRowContext(ctx, `
+		SELECT COALESCE(instance_id, ''), COALESCE(stack_id, '')
+		FROM servers WHERE tenant_id = $1 AND worker_id = $2
+		ORDER BY id LIMIT 1 FOR SHARE
+	`, worker.TenantID, worker.ID).Scan(&worker.InstanceID, &worker.StackID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	return err == nil, err
+}

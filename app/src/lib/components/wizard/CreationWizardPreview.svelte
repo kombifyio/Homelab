@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { untrack } from "svelte";
   import { ArrowLeft, RotateCcw } from "@lucide/svelte";
   import { tr } from "#lib/i18n.svelte.js";
   import LanguageSwitcher from "#lib/components/ui/LanguageSwitcher.svelte";
@@ -11,7 +10,6 @@
     loadPreviewUseCaseCatalog,
     type UseCaseCatalogView,
   } from "#lib/api/useCaseCatalog.js";
-  import type { CreationVariant } from "#lib/wizard/creationGoals.js";
   import CreationGoals from "./CreationGoals.svelte";
   import ThemeToggle from "../ui/ThemeToggle.svelte";
   import ServerStep from "./steps/ServerStep.svelte";
@@ -19,10 +17,7 @@
   import { appCreationContext } from "#lib/creation/app-context.svelte.js";
   import { provideCreationContext } from "#lib/creation/context.js";
 
-  let {
-    initialVariant = "discover",
-    catalogTag = "latest",
-  }: { initialVariant?: CreationVariant; catalogTag?: string } = $props();
+  let { catalogTag = "latest" }: { catalogTag?: string } = $props();
   provideCreationContext(appCreationContext());
   // The tiles of exactly one StackKits release: the repin renders the same
   // response the runtime API serves into static/preview-catalogs/<tag>.json.
@@ -45,8 +40,7 @@
     return config;
   }
   let config = $state(initialConfig());
-  let variant = $state(untrack(() => initialVariant));
-  let previewStep = $state<"goals" | "node">("goals");
+  let previewStep = $state<"goals" | "configure" | "node">("goals");
 </script>
 
 <div class="creation-preview-page">
@@ -85,6 +79,12 @@
     >
     <button
       type="button"
+      aria-pressed={previewStep === "configure"}
+      onclick={() => (previewStep = "configure")}
+      >{tr("wizard.goals.configure.tab")}</button
+    >
+    <button
+      type="button"
       aria-pressed={previewStep === "node"}
       onclick={() => (previewStep = "node")}
       >{tr("wizard.server.preview.node")}</button
@@ -95,8 +95,10 @@
   {:else}
     <CreationGoals
       bind:config
-      bind:variant
       {catalog}
+      stage={previewStep === "configure" ? "configure" : "pick"}
+      onstagechange={(stage) =>
+        (previewStep = stage === "configure" ? "configure" : "goals")}
       reviewMode={true}
       onGoalChange={(goal, value) => {
         if (config.goals) config.goals[goal] = value;

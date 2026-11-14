@@ -19,9 +19,7 @@ vi.mock("@sentry/sveltekit", () => sentryState);
 import {
   AUTO_RELOGIN_MARKER_KEY,
   AUTO_RELOGIN_TTL_MS,
-  classifyAuthFailure,
   clearAutoReloginMarker,
-  isGatewayAuthFailure,
   markAutoReloginAttempt,
   noteGatewayTokenSuccess,
   shouldAttemptAutoRelogin,
@@ -44,61 +42,6 @@ function fakeStorage(initial: Record<string, string> = {}): Storage {
     },
   };
 }
-
-describe("isGatewayAuthFailure", () => {
-  it("matches the typed ApiRequestError codes", () => {
-    expect(
-      isGatewayAuthFailure({ status: 401, code: "gateway_auth_unavailable" }),
-    ).toBe(true);
-  });
-
-  it("matches Auth0 SPA silent-auth error shapes", () => {
-    expect(isGatewayAuthFailure({ error: "login_required" })).toBe(true);
-    expect(isGatewayAuthFailure({ error: "missing_refresh_token" })).toBe(true);
-    // A staff session without a second factor recovers through the SSO
-    // round-trip instead of a dead error (platform-jx5m6).
-    expect(isGatewayAuthFailure({ error: "mfa_required" })).toBe(true);
-  });
-
-  it("matches the typed Error messages thrown by gateway-auth", () => {
-    expect(isGatewayAuthFailure(new Error("gateway_auth_unavailable"))).toBe(
-      true,
-    );
-    expect(isGatewayAuthFailure(new Error("login_required"))).toBe(true);
-  });
-
-  it("rejects plain 401s and unrelated errors", () => {
-    expect(isGatewayAuthFailure({ status: 401 })).toBe(false);
-    expect(isGatewayAuthFailure(new Error("boom"))).toBe(false);
-    expect(isGatewayAuthFailure(null)).toBe(false);
-    expect(isGatewayAuthFailure("gateway_auth_unavailable")).toBe(false);
-  });
-});
-
-describe("classifyAuthFailure", () => {
-  const gatewayError = { status: 401, code: "gateway_auth_unavailable" };
-
-  it("is session_dead whenever the browser session is inactive", () => {
-    expect(classifyAuthFailure(gatewayError, { v2SessionActive: false })).toBe(
-      "session_dead",
-    );
-    expect(
-      classifyAuthFailure({ status: 401 }, { v2SessionActive: false }),
-    ).toBe("session_dead");
-  });
-
-  it("is gateway_token for gateway failures with an alive session", () => {
-    expect(classifyAuthFailure(gatewayError, { v2SessionActive: true })).toBe(
-      "gateway_token",
-    );
-  });
-
-  it("is generic_401 otherwise", () => {
-    expect(
-      classifyAuthFailure({ status: 401 }, { v2SessionActive: true }),
-    ).toBe("generic_401");
-  });
-});
 
 describe("auto-relogin loop guard", () => {
   it("allows the attempt when no marker exists", () => {

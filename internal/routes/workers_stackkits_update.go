@@ -84,8 +84,8 @@ func (h workerRouteHandlers) setStackKitsUpdateBehavior(e *httpx.Event) error {
 	decoder := json.NewDecoder(strings.NewReader(string(raw)))
 	decoder.DisallowUnknownFields()
 	if readErr != nil || len(raw) > 1024 || decoder.Decode(&request) != nil ||
-		(request.Behavior != controlplane.StackKitsUpdateApprove && request.Behavior != controlplane.StackKitsUpdateAutomatic) {
-		return httpx.BadRequest(e, "behavior must be approve or automatic", nil)
+		!controlplane.ValidStackKitsUpdateBehavior(request.Behavior) {
+		return httpx.BadRequest(e, "behavior must be ask, automatic or with_stackkits_releases", nil)
 	}
 	view, err := h.stackKitsUpdates.SetStackKitsUpdateBehavior(e.Request.Context(), tenantID, ownerID, workerID, request.Behavior)
 	if err != nil {
@@ -122,7 +122,7 @@ func newStackKitsUpdateEvaluator(updates WorkerStackKitsUpdates) *stackKitsUpdat
 	}
 }
 
-func (ev *stackKitsUpdateEvaluator) observe(tenantID, workerID string, convergence *runtimeconvergence.Snapshot) {
+func (ev *stackKitsUpdateEvaluator) observe(requestCtx context.Context, tenantID, workerID string, convergence *runtimeconvergence.Snapshot) {
 	if ev == nil || convergence == nil || !stackKitsUpdatePending(*convergence) {
 		return
 	}
@@ -149,7 +149,8 @@ func (ev *stackKitsUpdateEvaluator) observe(tenantID, workerID string, convergen
 	ev.mu.Unlock()
 	go func() {
 		defer func() { <-ev.slots }()
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		// Detached from the heartbeat, but on the same Guard-ingress login.
+		ctx, cancel := context.WithTimeout(context.WithoutCancel(requestCtx), time.Minute)
 		defer cancel()
 		if _, err := ev.updates.EvaluateStackKitsUpdate(ctx, tenantID, workerID); err != nil {
 			logger.Default().Warn("stackkits_update_evaluation_failed", "worker_id", workerID, "error", err.Error())

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { creation } from "./creation-controller.svelte.js";
-  import { formatDateTime, tr, trParts } from "#lib/i18n.svelte.js";
+  import { tr } from "#lib/i18n.svelte.js";
+  import OwnServerConnect from "#lib/components/OwnServerConnect.svelte";
   import GuardReadinessLadder from "#lib/components/guard/GuardReadinessLadder.svelte";
   import { authStore } from "#lib/stores/auth.svelte.js";
   import WalletServerAccessPicker from "#lib/kombify-wallet/components/WalletServerAccessPicker.svelte";
@@ -41,7 +42,9 @@
         </h2>
         <p class="mt-2 max-w-2xl text-sm text-muted-foreground">
           {#if creation.waitingForProviderProvision}
-            {tr("ui.stacksCreatingCreationRunStatus.theProviderOperationHasNot")}
+            {tr(
+              "ui.stacksCreatingCreationRunStatus.theProviderOperationHasNot",
+            )}
           {:else}
             {tr("ui.stacksCreatingCreationRunStatus.theManagedRuntimeIsNot")}
           {/if}
@@ -52,12 +55,16 @@
             data-testid="waiting-enrollment-next-resume"
           >
             {tr("ui.stacksCreatingCreationRunStatus.nextScheduledCheck")}
-            <time datetime={creation.jobNextResumeAt}>{creation.nextResumeLabel}</time>
+            <time datetime={creation.jobNextResumeAt}
+              >{creation.nextResumeLabel}</time
+            >
           </p>
         {/if}
         <p class="mt-3 max-w-2xl text-xs text-muted-foreground">
           {#if creation.jobResumeAvailableAt}
-            {tr("ui.creationRun.resumeStartingAt", { time: creation.resumeAvailableLabel })}
+            {tr("ui.creationRun.resumeStartingAt", {
+              time: creation.resumeAvailableLabel,
+            })}
           {:else}
             {tr("ui.stacksCreatingCreationRunStatus.aManualResumeIsEnabled")}
           {/if}
@@ -156,8 +163,12 @@
           {creation.retryingRollout
             ? tr("ui.stacksCreatingCreationRunStatus.validatingTheExistingVm")
             : creation.waitingForProviderProvision
-              ? tr("ui.stacksCreatingCreationRunStatus.continueRolloutOnTheExisting")
-              : tr("ui.stacksCreatingCreationRunStatus.resumeEnrollmentOnTheExisting")}
+              ? tr(
+                  "ui.stacksCreatingCreationRunStatus.continueRolloutOnTheExisting",
+                )
+              : tr(
+                  "ui.stacksCreatingCreationRunStatus.resumeEnrollmentOnTheExisting",
+                )}
         </button>
         {#if creation.retryError}
           <p
@@ -171,18 +182,12 @@
     {/if}
   </section>
 {:else if creation.serverProvisioningMode === "connect-remote" && creation.agentPairingWaiting}
-  <section
-    data-kx="plate"
-    class="p-6"
-    data-testid="remote-ssh-enrollment-card"
-  >
+  <section data-kx="plate" class="p-6" data-testid="remote-ssh-enrollment-card">
     <div
       class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
     >
       <div>
-        <p
-          class="text-xs font-semibold uppercase tracking-wide text-primary"
-        >
+        <p class="text-xs font-semibold uppercase tracking-wide text-primary">
           {tr("ui.stacksCreatingCreationRunStatus.connectMyNode")}
         </p>
         <h2 class="mt-1 text-xl font-semibold text-foreground">
@@ -196,12 +201,18 @@
         </h2>
         <p class="mt-2 max-w-2xl text-sm text-muted-foreground">
           {#if creation.remoteEnrollmentActive}
-            {tr("ui.stacksCreatingCreationRunStatus.kombifyIsInstallingAndEnrolling")}
+            {tr(
+              "ui.stacksCreatingCreationRunStatus.kombifyIsInstallingAndEnrolling",
+            )}
           {:else if creation.remoteEnrollmentFailed}
             {creation.pairingRecoveryError ||
-              tr("ui.stacksCreatingCreationRunStatus.checkSshHostCredentialsAnd")}
+              tr(
+                "ui.stacksCreatingCreationRunStatus.checkSshHostCredentialsAnd",
+              )}
           {:else}
-            {tr("ui.stacksCreatingCreationRunStatus.enrollmentOverSshFinishedThis")}
+            {tr(
+              "ui.stacksCreatingCreationRunStatus.enrollmentOverSshFinishedThis",
+            )}
           {/if}
         </p>
       </div>
@@ -221,10 +232,10 @@
     </div>
 
     {#if creation.remoteServerHost}
-      <div
-        class="mt-5 rounded-lg border border-border bg-muted/40 p-3"
-      >
-        <p class="text-xs text-muted-foreground">{tr("ui.stacksCreatingCreationRunStatus.remoteTarget")}</p>
+      <div class="mt-5 rounded-lg border border-border bg-muted/40 p-3">
+        <p class="text-xs text-muted-foreground">
+          {tr("ui.stacksCreatingCreationRunStatus.remoteTarget")}
+        </p>
         <p class="mt-1 font-mono text-sm text-foreground">
           {creation.remoteServerUser
             ? `${creation.remoteServerUser}@`
@@ -280,7 +291,9 @@
         >
           {creation.retryingRollout
             ? tr("ui.stacksCreatingCreationRunStatus.retryingSshConnection")
-            : tr("ui.stacksCreatingCreationRunStatus.retryConnectionOnSavedServer")}
+            : tr(
+                "ui.stacksCreatingCreationRunStatus.retryConnectionOnSavedServer",
+              )}
         </button>
         {#if creation.pairingRecoveryError}
           <p
@@ -309,18 +322,12 @@
     {/if}
   </section>
 {:else if creation.agentPairingWaiting}
-  <section
-    data-kx="plate"
-    class="p-6"
-    data-testid="guard-pairing-card"
-  >
+  <section data-kx="plate" class="p-6" data-testid="guard-pairing-card">
     <div
       class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
     >
       <div>
-        <p
-          class="text-xs font-semibold uppercase tracking-wide text-primary"
-        >
+        <p class="text-xs font-semibold uppercase tracking-wide text-primary">
           {tr("ui.stacksCreatingCreationRunStatus.waitingForRealConnection")}
         </p>
         <h2 class="mt-1 text-xl font-semibold text-foreground">
@@ -340,9 +347,7 @@
     </div>
 
     {#if creation.remoteServerHost}
-      <div
-        class="mt-5 rounded-lg border border-border bg-muted/40 p-3"
-      >
+      <div class="mt-5 rounded-lg border border-border bg-muted/40 p-3">
         <p class="text-xs text-muted-foreground">
           {tr("ui.stacksCreatingCreationRunStatus.plannedRemoteTarget")}
         </p>
@@ -359,100 +364,14 @@
       </div>
     {/if}
 
-    {#if creation.registrationToken && creation.installCommand}
-      <div class="mt-5">
-        <label
-          for="pairing-server-url"
-          class="block text-xs font-medium text-muted-foreground"
-        >
-          {tr("ui.stacksCreatingCreationRunStatus.techstackUrlReachableFromThe")}
-        </label>
-        <input
-          id="pairing-server-url"
-          type="text"
-          bind:value={creation.serverUrl}
-          class="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-        />
-      </div>
-      <pre
-        class="mt-4 max-w-full overflow-x-auto whitespace-pre-wrap break-all rounded-lg border border-border bg-background p-4 pr-4 font-mono text-sm leading-relaxed text-primary"
-        data-testid="server-registration-command">{creation.installCommand}</pre>
-      <button
-        type="button"
-        onclick={() => creation.copyToClipboard(creation.installCommand, "pairing")}
-        disabled={creation.pairingTokenExpired}
-        data-kx="control"
-        data-variant="primary"
-        class="mt-3 inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium disabled:pointer-events-none disabled:opacity-50 sm:w-auto"
-        data-testid="copy-pairing-command"
-      >
-        {#if creation.copiedCommand === "pairing"}
-          {tr("ui.stacksCreatingCreationRunStatus.pairingCommandCopied")}
-        {:else if creation.copiedCommand === "error:pairing"}
-          {tr("ui.stacksCreatingCreationRunStatus.copyFailedSelectTheCommand")}
-        {:else}
-          {tr("ui.stacksCreatingCreationRunStatus.copyPairingCommand")}
-        {/if}
-      </button>
-      {#if creation.pairingTokenExpiresAt}
-        <p class="mt-3 text-xs text-muted-foreground">
-          {trParts("ui.creationRun.pairingTokenExpires")[0]}<time
-            datetime={creation.pairingTokenExpiresAt}
-            >{formatDateTime(creation.pairingTokenExpiresAt)}</time
-          >{trParts("ui.creationRun.pairingTokenExpires")[1]}
-        </p>
-      {/if}
-      {#if creation.pairingTokenExpired}
-        <div
-          class="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3"
-          role="alert"
-        >
-          <p class="text-sm font-medium text-destructive">
-            {tr("ui.stacksCreatingCreationRunStatus.thisPairingTokenHasExpired")}
-          </p>
-          <p class="mt-1 text-xs text-muted-foreground">
-            {tr("ui.stacksCreatingCreationRunStatus.generateAFreshCommandTo")}
-          </p>
-          <button
-            type="button"
-            data-kx="control"
-            class="mt-3 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium"
-            onclick={creation.recoverPairingCommand}
-            disabled={creation.pairingRecoveryBusy}
-          >
-            {tr("ui.stacksCreatingCreationRunStatus.generateNewCommand")}
-          </button>
-        </div>
-      {/if}
-    {:else}
-      <div
-        class="mt-5 rounded-lg border border-destructive/30 bg-destructive/10 p-4"
-        role="alert"
-      >
-        <p class="text-sm font-medium text-destructive">
-          {tr("ui.stacksCreatingCreationRunStatus.pairingCommandUnavailable")}
-        </p>
-        <p class="mt-1 text-xs text-muted-foreground">
-          {tr("ui.stacksCreatingCreationRunStatus.generateAShortLivedCommand")}
-        </p>
-        <button
-          type="button"
-          data-kx="control"
-          class="mt-3 rounded-lg px-3 py-1.5 text-sm font-medium"
-          onclick={creation.recoverPairingCommand}
-          disabled={creation.pairingRecoveryBusy}
-        >
-          {creation.pairingRecoveryBusy
-            ? tr("ui.stacksCreatingCreationRunStatus.preparingCommand")
-            : tr("ui.stacksCreatingCreationRunStatus.generatePairingCommand")}
-        </button>
-      </div>
-    {/if}
-    {#if creation.pairingRecoveryError}
-      <p role="alert" class="mt-3 text-sm text-destructive">
-        {creation.pairingRecoveryError}
-      </p>
-    {/if}
+    <OwnServerConnect
+      command={creation.installCommand}
+      pairing={creation.registrationToken}
+      expiresAt={creation.pairingTokenExpiresAt}
+      busy={creation.pairingRecoveryBusy}
+      error={creation.pairingRecoveryError}
+      onRenew={creation.recoverPairingCommand}
+    />
 
     <GuardReadinessLadder
       server={creation.connectedServer}

@@ -421,7 +421,7 @@ func (o *PostgresOutbox) mutateClaim(ctx context.Context, claim Claim, mutation 
 }
 
 func (o *PostgresOutbox) beginTenant(ctx context.Context, tenantID string) (*sql.Tx, error) {
-	tx, err := o.db.BeginTx(ctx, nil)
+	tx, err := tenantcontext.Database(ctx, o.db).BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}

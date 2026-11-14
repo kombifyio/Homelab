@@ -92,6 +92,58 @@
     {
       "version": "183_ril_queue_proof_expiry.sql",
       "sha256": "a86e7b7427aa844258114824ff044879356e911a8e8e5597db05a8d1259cf874"
+    },
+    {
+      "version": "184_guard_generation_zero_evidence.sql",
+      "sha256": "1b2901ec03a051015ebaa3237161e6866f05f3e93af98eaf817496580a2e680d"
+    },
+    {
+      "version": "185_homelab_identity_authority.additive.sql",
+      "sha256": "83cbcc519130994e18c71acd21fb5bd17cf9b7bd67298d111789a95556c7c8b0"
+    },
+    {
+      "version": "186_proxmox_absence_observations.sql",
+      "sha256": "d27982c4825e67cbe59f8b34def887664e11f4676954c0f56fd2dfa04e298b29"
+    },
+    {
+      "version": "187_guard_reach_agent_link.additive.sql",
+      "sha256": "dd76714cead22d147ea57d04dfe80d1c0668ff1b680e5e7ade6166e6a2e5b144"
+    },
+    {
+      "version": "188_creation_drafts.additive.sql",
+      "sha256": "7adf6173bd415428e06aea498b6138505656944dd3ce53c5c888a539d2cfbcf8"
+    },
+    {
+      "version": "189_substrate_resource_free_terminalization.sql",
+      "sha256": "a7a64f31ac278f037558180cf5d0f16106c58f657e38b1b9a1f983d653f1f50e"
+    },
+    {
+      "version": "190_substrate_failed_provision_guest_absence.sql",
+      "sha256": "363a8b3c19990a54e0ffdd04c1f5713bae8670951982b8e3db0ccd4f616e2128"
+    },
+    {
+      "version": "191_runtime_system_role.sql",
+      "sha256": "cd1fab58dfd2f22e520a9ed426787f08f75a3e7c78173f5d20443d5555b7ff2c"
+    },
+    {
+      "version": "192_home_graph_state.additive.sql",
+      "sha256": "db1165a94d86f3cc3fa534601b95a9d6e8cd069a102e66da5f99d6ab1addc160"
+    },
+    {
+      "version": "193_custody_retenant_archive.additive.sql",
+      "sha256": "19345b5668bf7922f6eeb32b84f35d59d4cc9c838bc398bd5e58050d0f2aea9d"
+    },
+    {
+      "version": "194_guard_power.additive.sql",
+      "sha256": "73a85104380aa2fc9ca64aa657c8ddf63e5b2d32ce25150e96a35ee6686af3dc"
+    },
+    {
+      "version": "195_shared_feature_flag_authority.sql",
+      "sha256": "6e2f5f4cee7a6603a0badb8d0dd984a42174f128777fc22f2d98debdf87442ff"
+    },
+    {
+      "version": "196_server_registry_retained_tenants.sql",
+      "sha256": "5a642ae9cd04429755f3e2ed8e624a6fb3e2a6a4a1c260a513efd5d4e3264d3d"
     }
   ],
   "database_target": "core",

@@ -484,6 +484,27 @@ func retainApplicationAdoption(next *serviceAggregateHead, current *serviceAggre
 	delete(next.Runtime.Metadata, "application_adoption")
 	delete(next.Runtime.Metadata, "application_adoption_job_id")
 	delete(next.Runtime.Metadata, "application_intent_revision")
+	// The Stack it record of an original container (own-application
+	// adoption) belongs to the control plane, for that exact container only.
+	delete(next.Runtime.Metadata, "own_application_adoption")
+	delete(next.Runtime.Metadata, "own_application_adoption_job_id")
+	if current != nil && sameServiceContainer(current.Runtime, event.Runtime) && current.Runtime.Metadata["own_application_adoption"] != nil {
+		if next.Runtime.Metadata == nil {
+			next.Runtime.Metadata = map[string]any{}
+		}
+		next.Runtime.Metadata["own_application_adoption"] = current.Runtime.Metadata["own_application_adoption"]
+		next.Runtime.Metadata["own_application_adoption_job_id"] = current.Runtime.Metadata["own_application_adoption_job_id"]
+	}
+	// The last own-application status of a row StackKits runs as an own
+	// application is the control plane's projection of a signed node answer;
+	// it survives the container replacement of a tag update or a restart.
+	delete(next.Runtime.Metadata, "own_application_status")
+	if current != nil && current.Runtime.Metadata["own_application_status"] != nil {
+		if next.Runtime.Metadata == nil {
+			next.Runtime.Metadata = map[string]any{}
+		}
+		next.Runtime.Metadata["own_application_status"] = current.Runtime.Metadata["own_application_status"]
+	}
 	// Declared service intent belongs to the canonical declaration, independently
 	// of the observed container. Retain only the stored marker, never Guard input;
 	// application adoption below still requires the exact immutable container.

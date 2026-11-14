@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/kombifyio/techstack/pkg/guardbinding"
+	"github.com/kombifyio/techstack/pkg/guardpower"
 )
 
 // ReportSchema is the Guard-to-control-plane posture report.
@@ -55,6 +56,9 @@ type Report struct {
 	VerifyRequestID string          `json:"verify_request_id,omitempty"`
 	Security        *SecurityReport `json:"security,omitempty"`
 	Backup          *BackupReport   `json:"backup,omitempty"`
+	// Power is the UPS-aware power protection snapshot. A power-only report
+	// changes no security or backup observation.
+	Power *guardpower.PowerReport `json:"power,omitempty"`
 }
 
 // SecurityReport is one host security observation.
@@ -106,13 +110,18 @@ func (r *Report) Validate(now time.Time) error {
 		return invalidReport("the observation time is missing or in the future")
 	}
 	if r.CheckIn {
-		if r.Security != nil || r.Backup != nil {
+		if r.Security != nil || r.Backup != nil || r.Power != nil {
 			return invalidReport("a check-in carries no observation")
 		}
 		return nil
 	}
-	if r.Security == nil && r.Backup == nil {
+	if r.Security == nil && r.Backup == nil && r.Power == nil {
 		return invalidReport("the report observes nothing")
+	}
+	if r.Power != nil {
+		if err := r.Power.Validate(now); err != nil {
+			return invalidReport("power report: %v", err)
+		}
 	}
 	if r.Security != nil {
 		if err := validateObservation(r.Security.Status, r.Security.ReasonCode, len(r.Security.Evidence) > 0); err != nil {

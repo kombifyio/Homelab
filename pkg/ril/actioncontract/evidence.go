@@ -212,8 +212,8 @@ func validateRecoveryEvidence(evidence RecoveryEvidence) error {
 			return err
 		}
 	case "manual":
-		if evidence.Status != "manual-required" || evidence.PrimitiveRef != "" {
-			return invalid("evidence.recovery", "manual requires manual-required status and no primitive")
+		if (evidence.Status != "manual-required" && evidence.Status != "recovered") || evidence.PrimitiveRef != "" {
+			return invalid("evidence.recovery", "manual requires manual-required or recovered status and no primitive")
 		}
 	default:
 		return invalid("evidence.recovery.kind", "is unsupported")

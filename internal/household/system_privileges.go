@@ -7,6 +7,15 @@ import (
 	"github.com/kombifyio/techstack/internal/systemdb"
 )
 
+// homeGraphCloudMigration is the Cloud migration that grants the household
+// system role SELECT on the home graph tables (D-2026-11-09-03, Cloud #2770).
+const homeGraphCloudMigration = "000404_home_graph.up.sql"
+
+// homeGraphCloudTables are readable by the household system role once
+// homeGraphCloudMigration is applied; the worker reads them to project the
+// home graph to the owner's node.
+var homeGraphCloudTables = []string{"home_graphs", "home_floors", "home_rooms", "home_devices", "home_assignments"}
+
 // This is a startup assertion of the two migration-owned capabilities, not a
 // grant installer. Unexpected inherited/PUBLIC/column rights and any
 // SECURITY DEFINER routine beyond the expected ones refuse execution; the
@@ -24,6 +33,17 @@ func verifyHouseholdPrivileges(ctx context.Context, pool *sql.DB, cloud bool) er
 		tables["public.household_node_projections"] = "SELECT,INSERT,UPDATE"
 		columns["public.users"] = "id,auth_subject,email,name,avatar_url"
 		functions["public.household_reduce_lifecycle(integer)"] = true
+		// Cloud and Techstack release independently: the expected set follows
+		// the Cloud ledger, so the worker starts before and after 000404.
+		homeGraph, err := cloudMigrationApplied(ctx, pool, homeGraphCloudMigration)
+		if err != nil {
+			return err
+		}
+		if homeGraph {
+			for _, name := range homeGraphCloudTables {
+				tables["public."+name] = "SELECT"
+			}
+		}
 	} else {
 		for _, name := range []string{"schema_migrations", "techstack_memberships", "techstack_tenants", "homelabs", "stacks", "workers", "servers"} {
 			tables["public."+name] = "SELECT"
@@ -35,4 +55,15 @@ func verifyHouseholdPrivileges(ctx context.Context, pool *sql.DB, cloud bool) er
 		columns["public.services"] = "tenant_id,stack_id,service_key,name,management_state"
 	}
 	return systemdb.VerifyPrivileges(ctx, pool, tables, columns, functions)
+}
+
+// cloudMigrationApplied reports whether the Cloud ledger records version as
+// cleanly applied. A read failure refuses startup rather than guessing.
+func cloudMigrationApplied(ctx context.Context, pool *sql.DB, version string) (bool, error) {
+	var applied bool
+	err := pool.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM public.kombify_db_migrations WHERE version=$1 AND NOT dirty AND applied_at IS NOT NULL)`, version).Scan(&applied)
+	if err != nil {
+		return false, &StartupRefusal{Stage: "cloud-migration", Reason: "Cloud migration ledger unavailable"}
+	}
+	return applied, nil
 }

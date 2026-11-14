@@ -284,7 +284,7 @@ func (h wizardRunHandlers) projectFoundSpec(e *httpx.Event, run *wizardRunState)
 			))
 		return nil, true
 	}
-	projection, handled := h.projectAndValidate(e, seed, run.request.Intent, run.homelabID)
+	projection, handled := h.projectAndValidate(e, seed, run.request.Intent, run)
 	if !handled {
 		run.captureGoalActivations(projection)
 	}
@@ -293,7 +293,7 @@ func (h wizardRunHandlers) projectFoundSpec(e *httpx.Event, run *wizardRunState)
 
 // projectAndValidate runs the shared projection + pinned-CLI validation gate
 // for both lanes.
-func (h wizardRunHandlers) projectAndValidate(e *httpx.Event, seed map[string]any, intent specv2.WizardIntent, homelabID string, beforeValidate ...func(*specv2.Projection) bool) (*specv2.Projection, bool) {
+func (h wizardRunHandlers) projectAndValidate(e *httpx.Event, seed map[string]any, intent specv2.WizardIntent, run *wizardRunState, beforeValidate ...func(*specv2.Projection) bool) (*specv2.Projection, bool) {
 	if h.cfg.Projector == nil {
 		_ = httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable,
 			"StackKits goal authoring is not configured", wizardRunDetails(
@@ -303,8 +303,21 @@ func (h wizardRunHandlers) projectAndValidate(e *httpx.Event, seed map[string]an
 			))
 		return nil, true
 	}
-	projection, projErr := h.cfg.Projector.Project(e.Request.Context(), seed, intent, homelabID)
+	projection, projErr := h.cfg.Projector.Project(e.Request.Context(), seed, intent, run.homelabID)
 	if projErr != nil {
+		var blocked *specv2.UseCaseAccessProjectionError
+		if errors.As(projErr, &blocked) {
+			run.blockedCapabilities = blocked.Blocked
+			if err := h.persistBlockedWizardRun(e, run); err != nil {
+				var apiErr *httpx.APIError
+				if errors.As(err, &apiErr) {
+					_ = httpx.Error(e, apiErr.Status, apiErr.Code, apiErr.Message, apiErr.Details)
+				} else {
+					_ = httpx.InternalError(e, "Blocked wizard run could not be saved")
+				}
+			}
+			return nil, true
+		}
 		details := wizardRunDetails(
 			"wizard_projection_rejected", false,
 			"This Node could not be added",
@@ -631,6 +644,12 @@ func (h wizardRunHandlers) runWizardJoin(e *httpx.Event, run *wizardRunState) er
 	if findErr != nil {
 		return findErr
 	}
+	existingServer := strings.TrimSpace(run.request.Intent.Server.ExistingServerID) != ""
+	if existingServer {
+		if handled, err := h.admitWizardJoinExistingServer(e, run, stack); handled {
+			return err
+		}
+	}
 	managedJoin := wizardRunTransport(run.request) == specv2.TransportKombifyCloud
 	if managedJoin && h.cfg.ManagedExpansion == nil {
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable,
@@ -645,7 +664,7 @@ func (h wizardRunHandlers) runWizardJoin(e *httpx.Event, run *wizardRunState) er
 			"Managed provider selection is required", wizardRunDetails(
 				"wizard_managed_provider_required", false,
 				"Select a managed provider",
-				"Choose Centron or IONOS before adding this managed Node.",
+				"Choose a managed provider before adding this managed Node.",
 			))
 	}
 	baseline, handled := h.captureWizardJoinServerBaseline(e, run, stack.ID)
@@ -661,6 +680,11 @@ func (h wizardRunHandlers) runWizardJoin(e *httpx.Event, run *wizardRunState) er
 	projection, persisted, handled := h.resolveJoinProjection(e, run, stack, base)
 	if handled {
 		return nil
+	}
+	if existingServer {
+		if handled := h.resolveWizardJoinExistingServer(e, run, stack, base, projection, persisted); handled {
+			return nil
+		}
 	}
 	if homelabHandled := h.ensureWizardHomelab(e, run, stack.Name); homelabHandled {
 		return nil
@@ -727,6 +751,9 @@ func (h wizardRunHandlers) runWizardJoin(e *httpx.Event, run *wizardRunState) er
 	}
 	if managedJoin {
 		return h.runWizardManagedJoin(e, run, stack, projection, persisted)
+	}
+	if existingServer {
+		return h.finishWizardJoinExistingServer(e, run, stack, projection, persisted)
 	}
 
 	plannedServerID, err := h.crud.persistJoinServerIntent(
@@ -888,7 +915,36 @@ func (h wizardRunHandlers) seedWizardJoinBase(e *httpx.Event, run *wizardRunStat
 		metadata["name"] = name
 	}
 	base["metadata"] = metadata
+	// The seed carries the release's template address, never this homelab's:
+	// keep the address the legacy stack already owns.
+	access := run.request.Intent.Access.Mode
+	if err := specv2.ApplySeedDeploymentDomain(base, targetKit, wizardLegacyDomainBase(stored, legacy),
+		access == "" || access == specv2.AccessModeLocal); err != nil {
+		_ = httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
+			"The homelab has no usable domain", wizardRunDetails(
+				"wizard_join_domain_unresolved", false,
+				"This homelab has no usable domain",
+				"Add-server keeps the address the homelab already owns, and its configuration names none it can use: "+err.Error(),
+			))
+		return nil, false, true
+	}
 	return base, true, false
+}
+
+// wizardLegacyDomainBase reads the address a legacy stack already owns, in the
+// order the rollout handoff reads it (pkg/jobs stackSpecDomainBase).
+func wizardLegacyDomainBase(documents ...map[string]any) string {
+	for _, document := range documents {
+		network, _ := document["network"].(map[string]any)
+		domain, _ := network["domain"].(map[string]any)
+		metadata, _ := document["metadata"].(map[string]any)
+		for _, candidate := range []any{document["domain"], network["domain"], domain["base"], metadata["domain"]} {
+			if value, ok := candidate.(string); ok && strings.TrimSpace(value) != "" {
+				return strings.TrimSpace(value)
+			}
+		}
+	}
+	return ""
 }
 
 func stackSpecMapFromValueOrEmpty(value any) map[string]any {
@@ -1078,7 +1134,7 @@ func (h wizardRunHandlers) resolveJoinProjection(e *httpx.Event, run *wizardRunS
 			intent.Name = name
 		}
 	}
-	projection, handled := h.projectAndValidate(e, base, intent, run.homelabID, h.layoutAcceptanceHook(e, run, stack.ID))
+	projection, handled := h.projectAndValidate(e, base, intent, run, h.layoutAcceptanceHook(e, run, stack.ID))
 	if !handled {
 		run.captureGoalActivations(projection)
 	}
@@ -1149,6 +1205,20 @@ func (h wizardRunHandlers) persistWizardHomelabIntent(ctx context.Context, run *
 			}
 			wizard["use_case_capabilities"] = stored
 		}
+		if len(decisions.UseCaseAccess) > 0 {
+			stored, _ := wizard["use_case_access"].(map[string]any)
+			if stored == nil {
+				stored = map[string]any{}
+			}
+			for slug, decision := range decisions.UseCaseAccess {
+				if decision.Mode == "inherit" {
+					delete(stored, slug)
+				} else {
+					stored[slug] = decision
+				}
+			}
+			wizard["use_case_access"] = stored
+		}
 		mergeWizardSetupAnswers(wizard, decisions.UseCaseSetupAnswers)
 		if decisions.Access.Mode != "" || decisions.Access.Publications != nil {
 			wizard["access"] = decisions.Access
@@ -1185,6 +1255,25 @@ func (h wizardRunHandlers) persistWizardHomelabIntent(ctx context.Context, run *
 		_, blocked, err := admitWizardDesiredCapabilities(canonical)
 		if err != nil {
 			return err
+		}
+		// Topology-dependent refusals cannot be reconstructed from intent alone.
+		// Keep another run's refusals until this run actually reconsiders them.
+		var priorBlocked []wizardBlockedCapability
+		if raw, err := json.Marshal(wizard["blocked_capabilities"]); err == nil {
+			_ = json.Unmarshal(raw, &priorBlocked)
+		}
+		for _, item := range append(priorBlocked, run.blockedCapabilities...) {
+			decision, exists := canonical.UseCaseAccess[item.UseCase]
+			current := slices.ContainsFunc(run.blockedCapabilities, func(b wizardBlockedCapability) bool { return b == item })
+			if item.Capability != "use-case-access" || !exists || decision.Mode == "inherit" ||
+				item.Selection != decision.Mode+"/"+decision.Audience ||
+				(slices.Contains(run.evaluatedGoals, item.UseCase) && !current) ||
+				slices.ContainsFunc(blocked, func(b wizardBlockedCapability) bool {
+					return b.UseCase == item.UseCase && b.Capability == item.Capability
+				}) {
+				continue
+			}
+			blocked = append(blocked, item)
 		}
 		if len(blocked) > 0 {
 			wizard["projection_status"] = "blocked"
@@ -1253,6 +1342,12 @@ func (h wizardRunHandlers) wizardRunLedgerEntry(run *wizardRunState, outcome con
 	}
 	if run.evaluatedGoals != nil {
 		result["evaluated_goals"] = append([]string{}, run.evaluatedGoals...)
+	}
+	if run.joinBaseSpec != nil && outcome.Status != "completed" {
+		result[wizardJoinBaseSpecKey] = run.joinBaseSpec
+		if run.joinRequests != nil {
+			result[wizardJoinRequestsKey] = run.joinRequests
+		}
 	}
 	if len(run.intentAdjustments) > 0 {
 		result["intent_adjustments"] = append([]specv2.IntentAdjustment(nil), run.intentAdjustments...)

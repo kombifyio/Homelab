@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/kombifyio/techstack/internal/executionchannel"
+	"github.com/kombifyio/techstack/internal/providercatalog"
 	"github.com/kombifyio/techstack/internal/stackkitrelease"
 	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/jobs"
@@ -162,18 +163,18 @@ func serverNodeActions(server controlplane.ServerRuntime, detachable bool) []str
 }
 
 // managedPowerProvider reports whether the server's provider has native
-// start/stop and SSH-grant executors (the managed IONOS and centron lanes).
+// start/stop and SSH-grant executors. Every accepted managed provider does:
+// its adapter implements providercontrol.ExactHandleReconcileExecutor, which
+// docs/ADD-A-PROVIDER.md requires of a managed-server adapter.
 func managedPowerProvider(providerRef string) bool {
 	provider := strings.ToLower(strings.TrimSpace(providerRef))
 	if index := strings.IndexByte(provider, ':'); index >= 0 {
 		provider = provider[:index]
 	}
-	switch provider {
-	case "ionos", "ionos-managed", "centron", "centron-managed":
-		return true
-	default:
-		return false
+	if providercatalog.IsCompositeProviderAlias(provider) {
+		provider = strings.TrimSuffix(provider, providercatalog.CompositeProviderSuffix)
 	}
+	return providercatalog.IsCanonicalProviderID(provider)
 }
 
 // serverStackActions is what the StackKit deployment on this node admits. It
@@ -199,10 +200,13 @@ func serverStackActions(server controlplane.ServerRuntime) []string {
 		serverStackActionPlan, serverStackActionVerify, serverStackActionApply,
 		serverStackActionUpgrade, serverStackActionDriftDetect, serverStackActionDriftReconcile,
 	}
-	// Direct backup operations are admitted only for Basement by the existing
-	// orchestrator. Cloud and other managed kits retain their schedule authority.
-	if jobs.NormalizeStackKitRef(stringFromAnyMap(server.Metadata, "stackkit")) == jobs.DefaultBasementKitRef {
-		actions = append(actions, serverStackActionBackupStatus, serverStackActionBackupRestore)
+	// The backup status only reads, so every kit admits it. Direct backup
+	// custody (restore here, run and configure in the Day-2 projection) is
+	// admitted only for Basement by the existing orchestrator. Cloud and other
+	// managed kits retain their schedule authority.
+	actions = append(actions, serverStackActionBackupStatus)
+	if serverKitHoldsBackupCustody(server) {
+		actions = append(actions, serverStackActionBackupRestore)
 	}
 	sort.Strings(actions)
 	return actions
@@ -211,6 +215,13 @@ func serverStackActions(server controlplane.ServerRuntime) []string {
 // Day-2 actions require the authenticated node transport and the exact runtime
 // release it has converged. The dispatcher still performs operation admission,
 // capability issuance, service-lock checks and owner approval before dispatch.
+// serverKitHoldsBackupCustody reports a server whose kit keeps its backup
+// custody on the owner's host, where direct backup run, configure and restore
+// are admitted.
+func serverKitHoldsBackupCustody(server controlplane.ServerRuntime) bool {
+	return jobs.NormalizeStackKitRef(stringFromAnyMap(server.Metadata, "stackkit")) == jobs.DefaultBasementKitRef
+}
+
 func (h serverRuntimeHandlers) applyStackKitActions(ctx context.Context, item *serverRuntimeResponse, server controlplane.ServerRuntime) {
 	if item.Capabilities == nil || item.Capabilities.IdentityBinding != serverIdentityKeyBound ||
 		!slices.Contains(item.StackActions, serverStackActionApply) {
@@ -229,7 +240,7 @@ func (h serverRuntimeHandlers) applyStackKitActions(ctx context.Context, item *s
 	// A missing catalog leaves only the non-Advanced actions admitted by the
 	// pinned receipt. Release verification remains with its owning resolver.
 	catalog, _ := configured.AdvancedOperations()
-	item.StackActions = append(item.StackActions, stackKitDay2Actions(item, capabilities, configured.Receipt(), catalog)...)
+	item.StackActions = append(item.StackActions, stackKitDay2Actions(item, capabilities, configured.Receipt(), catalog, serverKitHoldsBackupCustody(server))...)
 	sort.Strings(item.StackActions)
 }
 
@@ -268,7 +279,7 @@ func stackActionMutates(action string) bool {
 // stackKitDay2Actions classifies already verified release and node observations.
 // It opens no database and grants no command authority: the central dispatcher
 // repeats the tenant, entitlement, release, approval and execution admission.
-func stackKitDay2Actions(item *serverRuntimeResponse, capabilities []string, configured stackkitrelease.Receipt, catalog stackkitrelease.AdvancedOperationsCatalog) []string {
+func stackKitDay2Actions(item *serverRuntimeResponse, capabilities []string, configured stackkitrelease.Receipt, catalog stackkitrelease.AdvancedOperationsCatalog, backupCustody bool) []string {
 	if item.Capabilities == nil || item.Capabilities.IdentityBinding != serverIdentityKeyBound ||
 		!slices.Contains(item.StackActions, serverStackActionApply) || !stackKitRuntimeConverged(item, configured) {
 		return nil
@@ -281,7 +292,7 @@ func stackKitDay2Actions(item *serverRuntimeResponse, capabilities []string, con
 	actions := []string{}
 	// Direct backup custody remains Basement-only, as admitted by the base
 	// projection. Other managed kits retain their existing schedule authority.
-	if slices.Contains(item.StackActions, serverStackActionBackupStatus) {
+	if backupCustody && slices.Contains(item.StackActions, serverStackActionBackupStatus) {
 		actions = append(actions, serverStackActionBackupRun, serverStackActionBackupConfigure)
 	}
 	if restoreStackActionsSupported(item, capabilities, configured) {

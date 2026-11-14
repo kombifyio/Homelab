@@ -241,7 +241,7 @@ export const guardMessagesAr: Record<keyof typeof guardMessages.en, string> = {
   "guard.reach.publish.disable": "إيقاف النشر",
   "guard.reach.publish.current": "منشور: {service} على المنفذ {port}.",
   "guard.reach.publish.stepUp":
-    "يتطلب النشر تسجيل دخول حديثًا بعامل ثانٍ خلال آخر خمس دقائق. سجّل الدخول مجددًا ثم كرر هذه الخطوة.",
+    "يتطلب النشر تأكيدًا بعاملك الثاني خلال آخر خمس دقائق. أكِّده ثم كرر هذه الخطوة.",
   "guard.upgrade.title": "الموافقة على مفتاح هذا الخادم",
   "guard.upgrade.pending":
     "مفتاح بالبصمة {fingerprint} ينتظر موافقتك. وافق عليه فقط إذا سجّل Guard البصمة نفسها على هذا الخادم.",
@@ -250,7 +250,7 @@ export const guardMessagesAr: Record<keyof typeof guardMessages.en, string> = {
   "guard.upgrade.approve": "الموافقة على المفتاح",
   "guard.upgrade.reject": "رفض المفتاح",
   "guard.upgrade.stepUp":
-    "تتطلب الموافقة تسجيل دخول حديثًا بعامل ثانٍ خلال آخر خمس دقائق. سجّل الدخول مجددًا ثم كرر هذه الخطوة.",
+    "تتطلب الموافقة تأكيدًا بعاملك الثاني خلال آخر خمس دقائق. أكِّده ثم كرر هذه الخطوة.",
   "guard.upgrade.done": "تمت الموافقة على مفتاح الخادم.",
 
   "guard.reach.reason.guard_key_not_bound":
@@ -381,8 +381,8 @@ export const guardMessagesAr: Record<keyof typeof guardMessages.en, string> = {
   "guard.outcomes.releasing": "جارٍ التحرير…",
   "guard.outcomes.back": "رجوع",
   "guard.outcomes.stepUp":
-    "يتطلب تحرير نتيجة تسجيل دخول حديثًا بعامل ثانٍ خلال آخر خمس دقائق. سجّل الدخول مجددًا ثم كرر هذه الخطوة. لا تُحفظ ملاحظتك.",
-  "guard.outcomes.stepUpAction": "تسجيل الدخول مجددًا",
+    "يتطلب تحرير نتيجة تأكيدًا بعاملك الثاني خلال آخر خمس دقائق. أكِّده ثم كرر هذه الخطوة. لا تُحفظ ملاحظتك.",
+  "guard.outcomes.stepUpAction": "تأكيد",
   "guard.outcomes.stale":
     "تغيّرت هذه العملية أثناء مراجعتك لها. حُدّثت القائمة؛ راجعها مجددًا.",
   "guard.outcomes.loadFailed": "تعذّر تحميل قائمة العمليات غير المحسومة.",
@@ -427,13 +427,14 @@ export const guardMessagesAr: Record<keyof typeof guardMessages.en, string> = {
   "guard.ladder.bound.awaiting": "في انتظار تشغيل أمر الإقران على الخادم.",
   "guard.ladder.bound.awaitingNext":
     "شغّل الأمر على الخادم. إن انتهت صلاحيته فأنشئ أمرًا جديدًا.",
-  "guard.updates.title": "تحديثات StackKits",
+  "guard.updates.title": "التحديثات",
   "guard.updates.runs": "يعمل بالإصدار {version}",
   "guard.updates.behavior.label": "طريقة التحديث",
-  "guard.updates.behavior.hint":
-    "تُثبَّت تصحيحات الأمان لتطبيقات هذا الخادم فورًا، مهما كان اختيارك هنا.",
-  "guard.updates.behavior.approve": "اسألني (الموافقة على كل تحديث)",
-  "guard.updates.behavior.automatic": "تثبيت التحديثات تلقائيًا",
+  "guard.updates.behavior.hint": "تُعرض إصلاحات الأمان دائمًا فورًا.",
+  "guard.updates.behavior.ask": "اسألني",
+  "guard.updates.behavior.automatic": "تلقائي",
+  "guard.updates.behavior.with_stackkits_releases": "مع إصدارات StackKits",
+  "guard.updates.behavior.automaticPending": "لا تُحدَّث التطبيقات تلقائيًا بعد.",
   "guard.updates.available": "يتوفر StackKits {version}",
   "guard.updates.forUseCase": "لـ {name} لديك",
   "guard.updates.other": "أيضًا في هذا التحديث",
@@ -465,4 +466,28 @@ export const guardMessagesAr: Record<keyof typeof guardMessages.en, string> = {
   "guard.updates.kind.fixed": "تم الإصلاح",
   "guard.updates.kind.changed": "تم التغيير",
   "guard.updates.kind.reverted": "تم التراجع",
+  "guard.power.title": "حماية UPS",
+  "guard.power.state.line": "على طاقة الشبكة",
+  "guard.power.state.on_battery": "يعمل على البطارية",
+  "guard.power.state.shutdown": "تم طلب إيقاف منظم",
+  "guard.power.state.canceled": "تم إلغاء الإيقاف",
+  "guard.power.state.unknown": "حالة الطاقة غير مثبتة",
+  "guard.power.observed": "لوحظ {when}",
+  "guard.power.charge": "البطارية {percent}%",
+  "guard.power.runtime": "متبقٍ نحو {minutes} دقيقة",
+  "guard.power.steps": "إيقاف منظم",
+  "guard.power.step.applications": "التطبيقات",
+  "guard.power.step.storage": "التخزين",
+  "guard.power.step.host": "المضيف",
+  "guard.power.outcome.pending": "قيد الانتظار",
+  "guard.power.outcome.running": "قيد التنفيذ",
+  "guard.power.outcome.succeeded": "نجح",
+  "guard.power.outcome.failed": "فشل",
+  "guard.power.outcome.skipped": "تم التخطي",
+  "guard.power.outcome.canceled": "أُلغي",
+  "guard.power.reason.line_restored": "عادت طاقة الشبكة",
+  "guard.power.reason.sequence_interrupted": "توقفت التسلسلة",
+  "guard.power.canceledBecause": "أُلغي: {reason}",
+  "guard.power.hostRequested": "تم طلب إيقاف المضيف {when}",
+  "guard.power.evidence": "تُسجَّل كل خطوة في سجل الطاقة المحلي للخادم.",
 };

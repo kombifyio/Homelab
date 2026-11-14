@@ -137,7 +137,7 @@ export async function assertConfigureInstalledWorkload(options: {
     ...changes,
   });
   const key = response.request().headers()["idempotency-key"];
-  expect(key).toBeTruthy();
+  if (!key) throw new Error("the request carried no Idempotency-Key header");
   const acceptedBody = await response.json();
   const accepted = acceptedBody.data ?? acceptedBody;
   expect(accepted.kit_deployment_id).toBe(stackId);

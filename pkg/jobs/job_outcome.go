@@ -193,6 +193,19 @@ func stackKitLifecycleFailureOutcome(job *Job, failed *StackKitLifecycleFailedEr
 			},
 		}
 	}
+	if storedPlanNeedsRollout(failed.Failure.ReasonCode) {
+		body := "The StackKits release on the server did not compile the stack's saved plan, so it cannot check or change the deployment. A new rollout on the same server compiles the plan with that release."
+		if failed.Failure.ReasonCode == StackKitReasonStoredPlanRegenerateRequired {
+			body = "The StackKits release on the server is newer than the release that compiled the stack's saved plan, so it cannot check or change the deployment, and an approved StackKits update cannot start either. A new rollout on the same server compiles and applies the plan with the server's release."
+		}
+		decision.UserGuidance = &outcome.Guidance{
+			Title: "The server needs a new rollout of this stack",
+			Body:  body,
+			NextSteps: []outcome.Step{
+				{ID: "roll-out-again", Label: "Roll the stack out again", Kind: "handoff"},
+			},
+		}
+	}
 	return decision
 }
 

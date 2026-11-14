@@ -11,6 +11,7 @@
    * from where it failed.
    */
   import { onMount } from "svelte";
+  import { MediaQuery } from "svelte/reactivity";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import {
@@ -45,14 +46,14 @@
     type EntityPresence,
   } from "@kombiverselabs/ui/entity";
   import { tr } from "#lib/i18n.svelte.js";
+  import {
+    pageBanner,
+    usePageBanner,
+  } from "#lib/stores/pageBanner.svelte.js";
   import Button from "#lib/components/ui/Button.svelte";
   import ErrorCallout from "#lib/components/ui/ErrorCallout.svelte";
   import LoadingNote from "#lib/components/ui/LoadingNote.svelte";
-  import {
-    addServerHref,
-    placeUseCasesHref,
-    serverDetailHref,
-  } from "#lib/server-links.js";
+  import { addServerHref, serverDetailHref } from "#lib/server-links.js";
   import { listCanonicalServers } from "#lib/api/registry.js";
   import { listWorkers } from "#lib/api/workers.js";
   import { getHomelab } from "#lib/api/homelab.js";
@@ -86,6 +87,22 @@
   let retryingDevices = $state(false);
   let view = $state<ServerView>("compact");
   let deviceView = $state<EntityCardSize>("row");
+
+  // The content is the same at every width. Below the shell's phone
+  // breakpoint (48rem) only the head changes: the title and "Add server" go
+  // to the top bar (pageBanner); the description stays above the content.
+  const wide = new MediaQuery("min-width: 48rem");
+  const bannerHosted = $derived(pageBanner.hosted && !wide.current);
+  usePageBanner(() => ({
+    title: tr("nav.servers"),
+    action: {
+      label: tr("servers.add"),
+      icon: Plus,
+      onSelect: addServer,
+      disabled: !addTargetResolved,
+      testId: "servers-add",
+    },
+  }));
 
   const groups = $derived(
     servers.state === "ready" ? nodesByPlacement(servers.items) : [],
@@ -297,7 +314,11 @@
     >
       <p class="text-sm text-muted-foreground">{empty}</p>
       {#if emptyAction}
-        <Button variant="primary" onclick={emptyAction}>
+        <Button
+          variant="primary"
+          onclick={emptyAction}
+          disabled={!addTargetResolved}
+        >
           <Plus class="h-4 w-4" />
           {tr("servers.add")}
         </Button>
@@ -306,40 +327,45 @@
   {/if}
 {/snippet}
 
+{#snippet headerActions()}
+  <div class="flex flex-wrap items-center gap-2">
+    <Button
+      variant="primary"
+      testId="servers-add"
+      onclick={addServer}
+      disabled={!addTargetResolved}
+    >
+      <Plus class="h-4 w-4" />
+      {tr("servers.add")}
+    </Button>
+    <SegmentedControl
+      items={VIEWS.map((value) => ({
+        value,
+        label: tr(`nodes.view.${value}`),
+      }))}
+      value={view}
+      label={tr("nodes.view.label")}
+      onchange={setView}
+    />
+  </div>
+{/snippet}
+
 <div class="space-y-8 p-4 md:p-6" data-testid="nodes-page">
-  <PageHeader title={tr("nav.servers")} description={tr("nodes.description")}>
-    {#snippet actions()}
-      <div class="flex flex-wrap items-center gap-2">
-        <Button
-          variant="primary"
-          testId="servers-add"
-          onclick={addServer}
-          disabled={!addTargetResolved}
-        >
-          <Plus class="h-4 w-4" />
-          {tr("servers.add")}
-        </Button>
-        <!-- Use cases go onto these servers first; a new one is the last option. -->
-        <Button
-          variant="secondary"
-          testId="servers-add-use-cases"
-          onclick={() => void goto(placeUseCasesHref())}
-        >
-          <Plus class="h-4 w-4" />
-          {tr("layout.addUseCases.entry")}
-        </Button>
-        <SegmentedControl
-          items={VIEWS.map((value) => ({
-            value,
-            label: tr(`nodes.view.${value}`),
-          }))}
-          value={view}
-          label={tr("nodes.view.label")}
-          onchange={setView}
-        />
-      </div>
-    {/snippet}
-  </PageHeader>
+  <!-- Adding use cases is not a server-list action: the Services screen and
+       each server's own page (with that server preselected) offer it. -->
+  {#if bannerHosted}
+    <!-- PageHeader always renders its title; with the title in the top bar
+         only its description line remains here. -->
+    <p class="text-muted-foreground" data-testid="nodes-description">
+      {tr("nodes.description")}
+    </p>
+  {:else}
+    <PageHeader
+      title={tr("nav.servers")}
+      description={tr("nodes.description")}
+      actions={headerActions}
+    />
+  {/if}
 
   {#if servers.state === "ready" && devices.state === "ready"}
     <p class="text-sm text-muted-foreground" data-testid="nodes-summary">

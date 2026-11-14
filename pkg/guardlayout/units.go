@@ -48,6 +48,14 @@ type UnitParams struct {
 	// TypeLines are the Type/notify/watchdog lines of the daemon; an older
 	// binary that cannot signal readiness keeps Type=simple.
 	NotifyReady bool
+	// PowerEnabled admits the UPS-aware ordered shutdown on the privileged
+	// executor. The owner turns it on explicitly; off keeps every power
+	// request refused.
+	PowerEnabled bool
+	// PowerServices and PowerStorageUnits are the root-owned admission lists
+	// the executor accepts from the daemon.
+	PowerServices     []string
+	PowerStorageUnits []string
 }
 
 // AgentUnitText renders the unprivileged daemon's unit. It holds the network,
@@ -190,6 +198,12 @@ InaccessiblePaths=/var/lib/techstack/guard -%[3]s
 // ExecutorEnvText is the executor's own environment: settings only root may
 // change, never taken from a request.
 func ExecutorEnvText(p UnitParams) string {
+	power := ""
+	if p.PowerEnabled {
+		power = "TECHSTACK_GUARD_EXECUTOR_POWER=1\n"
+		power += "TECHSTACK_GUARD_EXECUTOR_POWER_SERVICES=" + strings.Join(p.PowerServices, ",") + "\n"
+		power += "TECHSTACK_GUARD_EXECUTOR_POWER_STORAGE_UNITS=" + strings.Join(p.PowerStorageUnits, ",") + "\n"
+	}
 	return strings.TrimLeft(fmt.Sprintf(`
 # kombify Guard privileged executor environment. Root-owned; requests cannot change it.
 TECHSTACK_ACCESS_MANIFEST=/opt/stackkit/.stackkit/access.json,/root/my-homelab/.stackkit/access.json
@@ -198,9 +212,9 @@ TECHSTACK_STACKKIT_RELEASE_CACHE=/var/lib/techstack/.stackkit/releases
 TECHSTACK_AGENT_EXECUTABLE_PATH=%[1]s
 TECHSTACK_OPERATIONS_EXECUTABLE_PATH=%[2]s
 TECHSTACK_GUARD_USER=%[3]s
-# Unsigned local builds are refused unless an operator sets this explicitly:
+%[4]s# Unsigned local builds are refused unless an operator sets this explicitly:
 # TECHSTACK_GUARD_ALLOW_UNSIGNED_UPDATES=1
-`, p.BinaryPath, p.OperationsPath, p.GuardUser), "\n")
+`, p.BinaryPath, p.OperationsPath, p.GuardUser, power), "\n")
 }
 
 // The root-only refresh can bootstrap a previously paired host; it checks the

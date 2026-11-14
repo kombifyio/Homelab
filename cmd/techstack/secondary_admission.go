@@ -14,12 +14,11 @@ import (
 	"github.com/kombifyio/techstack/pkg/v2/auth/providers"
 )
 
-// Admission of a deployment beside stable (config.SecondaryChannel): Early
-// Access (CI-CD-PLATFORM-STANDARD §4.6). Every signed-in person it reaches
-// gets every action, and the operator UI sends people who chose Stable back
-// there. What stays on stable for every tenant are the machine routes (agents,
-// webhooks, internal service calls) and the shared work that is nobody's
-// homelab; homelab work follows its owner's channel (pkg/releasechannel).
+// Admission of a deployment beside the one channel (config.SecondaryChannel).
+// The product has one channel (D-2026-11-11-07) and config.Load refuses any
+// other value at startup, so no admitted process installs this admission. The
+// wiring stays with the boot that still branches on it; the machine routes
+// (agents, webhooks, internal service calls) are admitted by production.
 
 func secondaryAuthPath(p string) bool {
 	switch p {

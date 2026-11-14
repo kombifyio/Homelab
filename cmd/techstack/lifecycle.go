@@ -88,10 +88,9 @@ func (lifecycle *providerControlLifecycle) stopAndWait() {
 // the handles needed to stop them. It is the direct-call replacement for the
 // previously OnServe-bound lifecycle binders.
 //
-// Both release channels start the homelab work; each of those loops skips the
-// tenants the other channel owns (pkg/releasechannel). Shared work that is
-// nobody's homelab (agent connections, RIL workflows and signals, Guard reach,
-// registry sweeps, the platform projection) runs only on stable.
+// This deployment owns every tenant's homelab work (pkg/releasechannel). Shared
+// work that is nobody's homelab (agent connections, RIL workflows and signals,
+// Guard reach, registry sweeps, the platform projection) runs here too.
 func startRuntimeLifecycle(
 	ctx context.Context,
 	cfg *config.Config,
@@ -247,6 +246,9 @@ func stopRuntimeLifecycle(
 		func() {
 			if v2State.advancedIssuerCustody != nil {
 				_ = v2State.advancedIssuerCustody.Close()
+			}
+			if v2State.systemDB != nil {
+				_ = v2State.systemDB.Close()
 			}
 			if v2State.db != nil {
 				_ = v2State.db.Close()

@@ -56,9 +56,9 @@ export function clearCreatingSessionStateForStack(stackId: string): void {
   for (let index = 0; index < storage.length; index += 1) {
     const key = storage.key(index);
     if (!key) continue;
-    const match = key.match(/^creating:([^:]+):stackId$/);
-    if (match && storage.getItem(key) === normalizedStackId) {
-      jobIds.add(match[1]);
+    const jobId = key.match(/^creating:([^:]+):stackId$/)?.[1];
+    if (jobId && storage.getItem(key) === normalizedStackId) {
+      jobIds.add(jobId);
     }
   }
 

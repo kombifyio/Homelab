@@ -176,6 +176,7 @@ export function normalizeStackIdentity(
     getIdentityCharacter(identity?.characterId)?.id ??
     defaultIdentity.characterId;
   const character = getIdentityCharacter(characterId) ?? identityCharacters[0];
+  if (!character) throw new Error("identityCharacters must not be empty");
   return {
     name: identity?.name?.trim() || defaultIdentity.name,
     characterId,

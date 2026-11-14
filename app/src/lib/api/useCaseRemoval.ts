@@ -24,7 +24,7 @@ export interface UseCaseRemovalAccepted {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-function isNonEmptyStrings(value: unknown): value is string[] {
+function isNonEmptyStrings(value: unknown): value is [string, ...string[]] {
   return (
     Array.isArray(value) &&
     value.length > 0 &&

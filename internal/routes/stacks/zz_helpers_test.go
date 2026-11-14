@@ -103,7 +103,7 @@ func wizardRunTestSeed(kitSlug string) map[string]any {
 		"kit":        map[string]any{"slug": kitSlug},
 		"metadata":   map[string]any{"name": "seed-template"},
 		"generation": map[string]any{"outputRoot": "deploy", "strategy": "kit-template", "target": "compose"},
-		"network":    map[string]any{"domain": map[string]any{"base": "example.homelab"}},
+		"network":    map[string]any{"domain": map[string]any{"base": "lab.home"}},
 		"nodes": []any{map[string]any{
 			"id": "main", "roles": []any{"controller", "worker"}, "siteRef": "home", "enabled": true,
 		}},

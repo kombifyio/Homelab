@@ -300,6 +300,8 @@ export class OwnerStepState {
       this.cloudLink = await getCloudLinkStatus();
       if (this.cloudLink.linked) {
         this.cloudLinkState = "linked";
+        // A linked profile carries no link error any more.
+        this.cloudLinkError = null;
         this.stopCloudLinkPolling();
       } else if (this.cloudLinkState === "linked") {
         this.cloudLinkState = "idle";
@@ -332,19 +334,22 @@ export class OwnerStepState {
       this.startCloudLinkPolling();
       return { authorizationUrl: authorization_url, popup };
     } catch (error) {
-      const detail = error as {
-        message?: string;
-        details?: { reason_code?: string; user_guidance?: { body?: string } };
-      };
-      if (detail?.details?.reason_code === "cloud_oidc_not_configured") {
+      const failure = cloudLinkFailure(error);
+      const reasonText = cloudLinkReasonText(failure.reasonCode);
+      if (isCloudLinkUnavailableReason(failure.reasonCode)) {
+        // This instance can never link a cloud profile: say so instead of
+        // offering a retry that cannot succeed.
         this.cloudLinkState = "unavailable";
         this.cloudLinkGuidance =
-          detail.details.user_guidance?.body ??
+          reasonText ??
+          failure.guidance ??
           tr("ui.ownerState.thisInstanceHasNoKombify");
       } else {
         this.cloudLinkState = "error";
         this.cloudLinkError =
-          detail?.message ?? tr("ui.ownerState.couldNotStartTheKombify");
+          reasonText ??
+          failure.message ??
+          tr("ui.ownerState.couldNotStartTheKombify");
       }
       return null;
     }
@@ -372,14 +377,26 @@ export class OwnerStepState {
   };
 
   disconnectCloudLink = async (): Promise<void> => {
+    this.cloudLinkError = null;
     try {
       await unlinkCloud();
-    } finally {
-      this.cloudLink = { linked: false };
-      this.cloudLinkState = "idle";
-      if (this.config.owner.source === "cloud-linked") {
-        this.useCustomOwnerBootstrap();
-      }
+    } catch (error) {
+      // The server refused the removal, so the link may still exist. Keep the
+      // current link state and name the reason instead of pretending the
+      // profile was detached.
+      const failure = cloudLinkFailure(error);
+      // The profile is still linked; the state stays "linked" and the card
+      // shows the reason under the linked profile.
+      this.cloudLinkError =
+        cloudLinkReasonText(failure.reasonCode) ??
+        failure.message ??
+        tr("ui.ownerState.theCloudLinkCouldNotBeRemoved");
+      return;
+    }
+    this.cloudLink = { linked: false };
+    this.cloudLinkState = "idle";
+    if (this.config.owner.source === "cloud-linked") {
+      this.useCustomOwnerBootstrap();
     }
   };
 
@@ -410,7 +427,45 @@ export class OwnerStepState {
   }
 }
 
-export function cloudLinkReasonMessage(reason?: string): string {
+/** Reason codes that mean this instance can never link a cloud profile. */
+const CLOUD_LINK_UNAVAILABLE_REASONS = new Set([
+  "cloud_oidc_not_configured",
+  "saas_managed_identity",
+]);
+
+interface CloudLinkFailure {
+  reasonCode?: string;
+  guidance?: string;
+  message?: string;
+}
+
+/**
+ * Reads the structured error envelope the backend answers cloud-link failures
+ * with: the named reason code, the operator guidance and the plain message.
+ */
+function cloudLinkFailure(error: unknown): CloudLinkFailure {
+  const detail = error as {
+    message?: string;
+    details?: { reason_code?: string; user_guidance?: { body?: string } };
+  };
+  return {
+    reasonCode: detail?.details?.reason_code,
+    guidance: detail?.details?.user_guidance?.body,
+    message: detail?.message,
+  };
+}
+
+/** True when the reason says a retry cannot succeed on this instance. */
+function isCloudLinkUnavailableReason(reason?: string): boolean {
+  return reason !== undefined && CLOUD_LINK_UNAVAILABLE_REASONS.has(reason);
+}
+
+/**
+ * Localized message for a backend reason code, or undefined for an unknown
+ * code. Every reason the backend emits for the link flow is named here, so the
+ * wizard can explain the cause instead of showing one generic failure.
+ */
+export function cloudLinkReasonText(reason?: string): string | undefined {
   switch (reason) {
     case "email_unverified":
       return tr("ui.ownerState.theKombifyCloudEmailIs");
@@ -422,9 +477,35 @@ export function cloudLinkReasonMessage(reason?: string): string {
       return tr("ui.ownerState.finishTheConnectionInThe");
     case "provider_error":
       return tr("ui.ownerState.kombifyCloudLoginWasCancelled");
+    case "missing_code_or_state":
+      return tr("ui.ownerState.theLinkRequestIsMissingStart");
+    case "token_exchange_failed":
+      return tr("ui.ownerState.theCloudTokenExchangeFailed");
+    case "userinfo_failed":
+      return tr("ui.ownerState.theCloudProfileCouldNotBeRead");
+    case "link_persist_failed":
+      return tr("ui.ownerState.theCloudLinkCouldNotBeSaved");
     case "cloud_oidc_not_configured":
       return tr("ui.ownerState.thisInstanceHasNoKombify");
+    case "cloud_link_unavailable":
+    case "saas_managed_identity":
+      return tr("ui.ownerState.theKombifyCloudAccountIsAlready");
+    case "cloud_link_state_prepare_failed":
+      return tr("ui.ownerState.theCloudLinkCouldNotBeStarted");
+    case "cloud_link_authority_unavailable":
+      return tr("ui.ownerState.theCloudLinkIsTemporarilyUnavailable");
+    case "cloud_link_readback_unavailable":
+      return tr("ui.ownerState.theCloudLinkStatusCouldNotBeRead");
+    case "cloud_link_remove_failed":
+      return tr("ui.ownerState.theCloudLinkCouldNotBeRemoved");
     default:
-      return tr("ui.ownerState.linkingTheKombifyCloudProfile");
+      return undefined;
   }
+}
+
+export function cloudLinkReasonMessage(reason?: string): string {
+  return (
+    cloudLinkReasonText(reason) ??
+    tr("ui.ownerState.linkingTheKombifyCloudProfile")
+  );
 }

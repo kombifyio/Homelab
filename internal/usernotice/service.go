@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -86,12 +85,12 @@ func (s *Service) Report(ctx context.Context, node pkgusernotice.Node, notice pk
 	actorName := s.actorName(ctx, node)
 	noticeID := uuid.NewString()
 	subject := notice.Subject()
-	deepLink := "/stacks/" + url.PathEscape(node.StackID)
+	deepLink := "/dashboard"
 	eventKey := "usernotice." + node.StackID + "." + notice.AutomationID
 	for _, recipient := range recipients {
 		for _, channel := range []string{"in_app", "push"} {
 			event := notifications.ProductEvent{
-				Topic: Topic, Channel: channel, Auth0UserID: recipient, OrganizationID: node.TenantID,
+				Topic: Topic, Channel: channel, Auth0UserID: recipient, TenantID: node.TenantID,
 				IdempotencyKey: fmt.Sprintf("techstack:usernotice:%s:%s:%s", noticeID, recipient, channel),
 				SourceApp:      sourceApp, EventKey: eventKey,
 				SubjectRef: "home-assistant:" + node.StackID + ":" + notice.AutomationID,

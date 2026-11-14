@@ -144,6 +144,12 @@ type Node struct {
 	BindingGeneration int64
 	Created           bool
 	RevokedNow        bool
+	// AgentEnvelope is the node's agent envelope verification key from the
+	// registration answer, checked against the node id and generation; nil
+	// while the Gateway hands none. AgentEnvelopeInvalid reports a key that
+	// did not match its registration and was dropped.
+	AgentEnvelope        *AgentEnvelopeKey
+	AgentEnvelopeInvalid bool
 }
 
 // NodeUpsert registers or refreshes one server for its owner.
@@ -162,7 +168,8 @@ type nodeBody struct {
 	Guard  struct {
 		BindingGeneration int64 `json:"binding_generation"`
 	} `json:"guard"`
-	RevokedNow bool `json:"revoked_now"`
+	RevokedNow    bool              `json:"revoked_now"`
+	AgentEnvelope *AgentEnvelopeKey `json:"agent_envelope"`
 }
 
 // obo is the owner on a Connect registration token. Roles stay off the token:
@@ -187,7 +194,15 @@ func (g *Gateway) PutNode(ctx context.Context, in NodeUpsert) (*Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Node{NodeID: parsed.NodeID, Status: parsed.Status, BindingGeneration: parsed.Guard.BindingGeneration, Created: status == http.StatusCreated}, nil
+	node := &Node{NodeID: parsed.NodeID, Status: parsed.Status, BindingGeneration: parsed.Guard.BindingGeneration, Created: status == http.StatusCreated}
+	if key := parsed.AgentEnvelope; key != nil {
+		if key.Validate(parsed.NodeID, parsed.Guard.BindingGeneration) == nil {
+			node.AgentEnvelope = key
+		} else {
+			node.AgentEnvelopeInvalid = true
+		}
+	}
+	return node, nil
 }
 
 // RevokeNode detaches one server. Revoking a revoked node answers with

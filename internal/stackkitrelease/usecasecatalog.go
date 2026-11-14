@@ -382,6 +382,29 @@ func (catalog UseCaseCatalog) DefaultWorkloadBinding(workloadID string) (UseCase
 	return UseCaseAlternative{}, false
 }
 
+// UseCasesForModule lists, in catalog order, the use case slugs whose
+// alternatives or add-on alternatives are built from the catalog module id:
+// the slug `stackkit use-cases upgrade` takes for that module's application.
+func (catalog UseCaseCatalog) UseCasesForModule(moduleID string) []string {
+	var slugs []string
+	for _, useCase := range catalog.UseCases {
+		alternatives := append([]UseCaseAlternative(nil), useCase.Alternatives...)
+		for _, addOn := range useCase.AddOns {
+			alternatives = append(alternatives, addOn.Alternatives...)
+		}
+	search:
+		for _, alternative := range alternatives {
+			for _, module := range alternative.Modules {
+				if moduleID != "" && module.ID == moduleID {
+					slugs = append(slugs, useCase.ID)
+					break search
+				}
+			}
+		}
+	}
+	return slugs
+}
+
 func singleModuleAlternative(alternatives []UseCaseAlternative, id string) (UseCaseAlternative, bool) {
 	for _, alternative := range alternatives {
 		if alternative.ID == id && id != "" && len(alternative.Modules) == 1 && alternative.Modules[0].ID != "" {

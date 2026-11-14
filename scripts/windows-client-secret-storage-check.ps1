@@ -36,7 +36,7 @@ foreach ($fragment in @(
     "ClientConfig.CredentialTarget"
 )) {
     if (!$program.Contains($fragment)) {
-        throw "Local Windows client secret-custody contract missing: $fragment"
+        throw "Standalone Windows client secret-custody contract missing: $fragment"
     }
 }
 if (!$reset.Contains("Get-CredentialTargetSuffix")) {
@@ -49,7 +49,7 @@ foreach ($fragment in @("Get-StateScopedCredentialTarget", "Refusing to run inst
 }
 foreach ($forbiddenPath in @("device-token.txt", "session-secret.txt")) {
     if ($program.Contains($forbiddenPath)) {
-        throw "Local Windows client still persists a plaintext secret at $forbiddenPath"
+        throw "Standalone Windows client still persists a plaintext secret at $forbiddenPath"
     }
 }
 foreach ($target in @(

@@ -60,7 +60,7 @@ func bootGuardPosture(ctx context.Context, v2 *v2Boot, orch *orchestrator.Orches
 	if attempts, parseErr := strconv.Atoi(strings.TrimSpace(os.Getenv(guardPostureRepairMaxAttemptEnv))); parseErr == nil && attempts > 0 {
 		policy.Repair.MaxAttempts = attempts
 	}
-	cfg := guardposture.ServiceConfig{Store: store, Policy: policy, Logger: log.Logger}
+	cfg := guardposture.ServiceConfig{Store: store, Policy: policy, Logger: log.Logger, BaseContext: ctx}
 	// The StackKit commander is installed by route wiring after this boot step,
 	// so the dispatcher resolves it per request. Until then repair reports
 	// unavailable; observation and alerts run either way.
@@ -147,7 +147,7 @@ func (s guardPostureAlertSink) EnqueueAlert(ctx context.Context, tx *sql.Tx, ale
 	}
 	deepLink := "/monitoring/" + url.PathEscape(strings.TrimSpace(alert.ServerID))
 	base := productnotifications.ProductEvent{
-		Topic: topic, Auth0UserID: strings.TrimSpace(alert.OwnerSubjectID), OrganizationID: strings.TrimSpace(alert.TenantID),
+		Topic: topic, Auth0UserID: strings.TrimSpace(alert.OwnerSubjectID), TenantID: strings.TrimSpace(alert.TenantID),
 		SourceApp: notificationSourceApp, EventKey: alert.EventKey, SubjectRef: "server:" + strings.TrimSpace(alert.ServerID),
 		DeepLink: deepLink, GroupKey: "techstack:guard:" + strings.TrimSpace(alert.WorkerID) + ":" + alert.Key, Priority: priority,
 		Payload: map[string]any{

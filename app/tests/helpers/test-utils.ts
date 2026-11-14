@@ -395,6 +395,24 @@ export async function selectUseCase(page: Page, feature: string) {
 }
 
 /**
+ * Leave wizard step 1. Its first stage is the choice; Next opens the
+ * configuration of the chosen use cases (their list beside one large card),
+ * and Next there accepts the recommendations and leaves the step. A process
+ * that came for one use case starts on its configuration.
+ */
+export async function leaveGoalsStep(page: Page) {
+  const configure = page.getByTestId("creation-goals-configure");
+  if (!(await configure.isVisible().catch(() => false))) {
+    await page.getByTestId("wizard-next").click();
+    await expect(configure).toBeVisible();
+  }
+  await expect(
+    configure.locator('[data-testid^="creation-goal-card-"]'),
+  ).toBeVisible();
+  await page.getByTestId("wizard-next").click();
+}
+
+/**
  * Complete the easy wizard flow
  */
 type EasyWizardPath = {
@@ -421,7 +439,7 @@ export async function walkEasyWizardToOwnerStep(
     .getByTestId("hydrated")
     .waitFor({ state: "attached", timeout: 10000 });
   await selectUseCase(page, feature);
-  await page.getByTestId("wizard-next").click();
+  await leaveGoalsStep(page);
 
   await page
     .getByTestId(

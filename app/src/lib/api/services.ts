@@ -121,13 +121,54 @@ export interface ServiceClient {
  */
 export interface ServiceVersionInfo {
   current?: string;
-  source?: "image_tag" | "image_label" | "stackkit" | string;
+  source?: "image_tag" | "image_label" | "stackkit" | "image_digest" | string;
   image?: string;
   latest?: string;
   update_available?: boolean;
   checked_at?: string;
-  update_mode?: "stackkit_upgrade" | "adopt_required" | "unavailable" | string;
+  update_mode?:
+    | "stackkit_upgrade"
+    | "adopt_required"
+    | "unavailable"
+    | "application_update"
+    | "bundled"
+    | string;
   reason_code?: string;
+  /**
+   * Application release facts of a StackKits-managed application from the
+   * verified StackKits application release feed. `not_verified` is neither
+   * up to date nor free of known vulnerabilities.
+   */
+  evidence_status?: "verified" | "not_verified" | string;
+  evidence_reason_code?: string;
+  observed_at?: string;
+  update_setting?: "ask" | "automatic" | "with_stackkits_releases" | string;
+  latest_digest?: string;
+  /** The offered version is checked (tested) by kombify. */
+  tested?: boolean;
+  release_notes_url?: string;
+  newer_versions?: ApplicationVersionOffer[];
+  advisories?: ApplicationAdvisory[];
+  security_fix?: ApplicationVersionOffer & { advisories: string[] };
+}
+
+export interface ApplicationVersionOffer {
+  version: string;
+  digest?: string;
+  tested: boolean;
+  release_notes_url?: string;
+  published_at?: string;
+}
+
+export interface ApplicationAdvisory {
+  id: string;
+  severity: "critical" | "high" | "medium" | "low" | "unknown" | string;
+  cvss?: number;
+  fixed_version?: string;
+  url: string;
+  /** `installed` when evaluated against the running version, else `unknown`. */
+  affects: "installed" | "unknown" | string;
+  high: boolean;
 }
 
 /** Where the backend says a service runs; `serverless` is not emitted. */
@@ -140,7 +181,11 @@ export interface CanonicalService {
     release_available: boolean;
     profile_ref?: string;
     reason_code?: string;
+    /** "Stack it": rebuild this unmanaged container as an own application. */
+    stack_it?: StackItAvailability;
   };
+  /** Present on a container StackKits runs as an own application. */
+  own_application?: OwnApplicationProjection;
   id: string;
   kit_deployment_id: string;
   server_id?: string;
@@ -181,11 +226,64 @@ export interface CanonicalService {
   updated_at: string;
 }
 
+export interface StackItAvailability {
+  available: boolean;
+  reason_code?: string;
+  name?: string;
+  state?: "stacked" | "restored" | "released" | string;
+  retain_until?: string;
+  restore_available: boolean;
+  release_original_available: boolean;
+}
+
+export interface StackItPlanRow {
+  /** Stable machine code; the dialog translates by code and values. */
+  code: string;
+  values?: Record<string, string>;
+  field: string;
+  status: "kept" | "changed" | "refused" | string;
+  observed?: string;
+  adopted?: string;
+  reason?: string;
+}
+
+export interface StackItPublishedPort {
+  hostIP?: string;
+  hostPort: number;
+  containerPort: number;
+  protocol: string;
+}
+
+/** Secret-free projection of stackkit.own-application-adoption/v1. */
+export interface StackItPlan {
+  outcome: string;
+  admissible: boolean;
+  planDigest?: string;
+  name?: string;
+  containerName: string;
+  rows: StackItPlanRow[];
+  hiddenKeys: string[];
+  secretKeys: string[];
+  publishedPorts: StackItPublishedPort[];
+  data?: {
+    source: string;
+    mountPath: string;
+    measured: boolean;
+    bytes?: number;
+    freeBytes?: number;
+  };
+  downtimeSeconds?: number;
+  retainUntil?: string;
+  notice: string;
+}
+
 export interface ApplicationAdoptionPlan {
   plan_id: string;
   service_id: string;
   status: string;
   error?: string;
+  mode?: "adopt_in_place" | "stack_it";
+  stack_plan?: StackItPlan;
   assessment?: {
     planDigest: string;
     profileRef: string;
@@ -195,9 +293,145 @@ export interface ApplicationAdoptionPlan {
     admittedOperations: string[];
   };
 }
+/** A data checkpoint of an own application's tag update. */
+export interface OwnApplicationCheckpoint {
+  operation_id: string;
+  state: string;
+  retained_bytes: number;
+  /** When the update took the copy. */
+  at?: string;
+}
+
+export type OwnApplicationAction =
+  | "status"
+  | "logs"
+  | "backup"
+  | "start"
+  | "stop"
+  | "restart"
+  | "update"
+  | "rollback"
+  | "checkpoint_rollback"
+  | "checkpoint_discard";
+
+/** An application StackKits runs as an own application (adopted with Stack it). */
+export interface OwnApplicationProjection {
+  project_ref: string;
+  name?: string;
+  actions: OwnApplicationAction[];
+  reason_code?: string;
+  status?: {
+    name: string;
+    state?: string;
+    image?: string;
+    observed: boolean;
+    containers?: { service: string; state: string; health?: string }[];
+    checkpoint?: OwnApplicationCheckpoint;
+    job_id: string;
+    at: string;
+  };
+}
+
+export type OwnApplicationOperation =
+  | "status"
+  | "logs"
+  | "backup"
+  | "review"
+  | "update_review"
+  | "checkpoint_rollback_review"
+  | "checkpoint_discard_review";
+
+export interface OwnApplicationOperationRequest {
+  operation: OwnApplicationOperation;
+  action?: "start" | "stop" | "restart" | "rollback";
+  image_tag?: string;
+  allow_major?: boolean;
+  checkpoint?: string;
+  owner_approved?: boolean;
+}
+
+/** The projected node answer of one own application step. */
+export interface OwnApplicationAnswer {
+  operation?: string;
+  outcome?: string;
+  reason_code?: string;
+  review_digest?: string;
+  reviewed_action?: string;
+  state?: string;
+  image?: string;
+  logs?: string;
+  allow_major?: boolean;
+  target_check?: string;
+  prior?: { image?: string; version?: string; resolved_image?: string };
+  target?: { image?: string; version?: string; resolved_image?: string };
+  checkpoint?: OwnApplicationCheckpoint;
+  replaces_checkpoint?: OwnApplicationCheckpoint;
+  snapshot_id?: string;
+}
+
+export interface OwnApplicationJob {
+  job_id: string;
+  service_id: string;
+  operation: string;
+  status: string;
+  result?: OwnApplicationAnswer;
+  error?: string;
+}
+
+export async function startOwnApplicationOperation(
+  service: CanonicalService,
+  request: OwnApplicationOperationRequest,
+  key: string,
+) {
+  const response = await fetchApi<ManagedServiceActionResponse>(
+    `/api/v1/services/${encodeURIComponent(service.id)}/own-application/operations`,
+    {
+      method: "POST",
+      headers: { "Idempotency-Key": key },
+      body: JSON.stringify({
+        ...request,
+        expected_inventory_revision: service.inventory_revision,
+      }),
+    },
+  );
+  return response.data;
+}
+
+export async function readOwnApplicationOperation(
+  serviceId: string,
+  jobId: string,
+) {
+  const response = await fetchApi<OwnApplicationJob>(
+    `/api/v1/services/${encodeURIComponent(serviceId)}/own-application/operations/${encodeURIComponent(jobId)}`,
+  );
+  return response.data;
+}
+
+export async function executeOwnApplicationOperation(
+  service: CanonicalService,
+  reviewJobId: string,
+  reviewDigest: string,
+  key: string,
+) {
+  const response = await fetchApi<ManagedServiceActionResponse>(
+    `/api/v1/services/${encodeURIComponent(service.id)}/own-application/operations/${encodeURIComponent(reviewJobId)}/execute`,
+    {
+      method: "POST",
+      headers: { "Idempotency-Key": key },
+      body: JSON.stringify({
+        review_digest: reviewDigest,
+        owner_approved: true,
+        expected_inventory_revision: service.inventory_revision,
+      }),
+    },
+  );
+  return response.data;
+}
+
 export async function prepareApplicationAdoption(
   service: CanonicalService,
   key: string,
+  mode: "adopt_in_place" | "stack_it" = "adopt_in_place",
 ) {
   const response = await fetchApi<ManagedServiceActionResponse>(
     `/api/v1/services/${encodeURIComponent(service.id)}/adoption-plans`,
@@ -205,7 +439,7 @@ export async function prepareApplicationAdoption(
       method: "POST",
       headers: { "Idempotency-Key": key },
       body: JSON.stringify({
-        mode: "adopt_in_place",
+        mode,
         expected_inventory_revision: service.inventory_revision,
       }),
     },
@@ -232,8 +466,11 @@ export async function executeApplicationAdoption(
       method: "POST",
       headers: { "Idempotency-Key": key },
       body: JSON.stringify({
-        mode: "adopt_in_place",
-        plan_digest: plan.assessment?.planDigest,
+        mode: plan.mode ?? "adopt_in_place",
+        plan_digest:
+          plan.mode === "stack_it"
+            ? plan.stack_plan?.planDigest
+            : plan.assessment?.planDigest,
         expected_inventory_revision: service.inventory_revision,
         owner_approved: true,
       }),
@@ -251,6 +488,27 @@ export async function releaseApplicationAdoption(
       method: "POST",
       headers: { "Idempotency-Key": key },
       body: JSON.stringify({
+        expected_inventory_revision: service.inventory_revision,
+        owner_approved: true,
+      }),
+    },
+  );
+  return response.data;
+}
+
+/** Restore or remove the original container a Stack it kept. */
+export async function resolveStackedOriginal(
+  service: CanonicalService,
+  mode: "restore_original" | "release_original",
+  key: string,
+) {
+  const response = await fetchApi<ManagedServiceActionResponse>(
+    `/api/v1/services/${encodeURIComponent(service.id)}/stack-it/original`,
+    {
+      method: "POST",
+      headers: { "Idempotency-Key": key },
+      body: JSON.stringify({
+        mode,
         expected_inventory_revision: service.inventory_revision,
         owner_approved: true,
       }),
@@ -428,14 +686,90 @@ function normalizeVersionInfo(value: unknown): ServiceVersionInfo | undefined {
     checked_at: textField(record, "checked_at"),
     update_mode: textField(record, "update_mode"),
     reason_code: textField(record, "reason_code"),
+    evidence_status: textField(record, "evidence_status"),
+    evidence_reason_code: textField(record, "evidence_reason_code"),
+    observed_at: textField(record, "observed_at"),
+    update_setting: textField(record, "update_setting"),
+    latest_digest: textField(record, "latest_digest"),
+    tested: typeof record.tested === "boolean" ? record.tested : undefined,
+    release_notes_url: httpsField(record, "release_notes_url"),
+    newer_versions: offerList(record.newer_versions),
+    advisories: advisoryList(record.advisories),
+    security_fix: securityFix(record.security_fix),
   };
   // A version block with nothing measured carries no information.
   return version.current ||
     version.latest ||
     version.image ||
-    version.reason_code
+    version.reason_code ||
+    version.evidence_status
     ? version
     : undefined;
+}
+
+function httpsField(
+  record: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const value = textField(record, key);
+  return value?.startsWith("https://") ? value : undefined;
+}
+
+function offerOf(value: unknown): ApplicationVersionOffer | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as Record<string, unknown>;
+  const version = textField(record, "version");
+  if (!version) return undefined;
+  return {
+    version,
+    digest: textField(record, "digest"),
+    tested: record.tested === true,
+    release_notes_url: httpsField(record, "release_notes_url"),
+    published_at: textField(record, "published_at"),
+  };
+}
+
+function offerList(value: unknown): ApplicationVersionOffer[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const offers = value.flatMap((item) => offerOf(item) ?? []);
+  return offers.length ? offers : undefined;
+}
+
+function securityFix(
+  value: unknown,
+): (ApplicationVersionOffer & { advisories: string[] }) | undefined {
+  const offer = offerOf(value);
+  if (!offer) return undefined;
+  const ids = (value as Record<string, unknown>).advisories;
+  return {
+    ...offer,
+    advisories: Array.isArray(ids)
+      ? ids.filter((id): id is string => typeof id === "string")
+      : [],
+  };
+}
+
+function advisoryList(value: unknown): ApplicationAdvisory[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const advisories = value.flatMap((item): ApplicationAdvisory[] => {
+    if (!item || typeof item !== "object") return [];
+    const record = item as Record<string, unknown>;
+    const id = textField(record, "id");
+    const url = httpsField(record, "url");
+    if (!id) return [];
+    return [
+      {
+        id,
+        severity: textField(record, "severity") ?? "unknown",
+        cvss: typeof record.cvss === "number" ? record.cvss : undefined,
+        fixed_version: textField(record, "fixed_version"),
+        url: url ?? "",
+        affects: textField(record, "affects") ?? "unknown",
+        high: record.high === true,
+      },
+    ];
+  });
+  return advisories.length ? advisories : undefined;
 }
 
 function stringList(value: unknown): string[] {
@@ -669,10 +1003,37 @@ export async function getCanonicalService(
 }
 
 export interface ManagedServiceActionResponse {
+  /** The durable job, or the action card's execution when action_card_id is set. */
   job_id: string;
+  /** Set when a mutation (start, stop, restart, update, backup) runs as a governed RIL action card. */
+  action_card_id?: string;
   service_id: string;
   action: ManagedServiceAction;
   status: string;
+}
+
+/** The public state of one governed RIL action card. */
+export interface GovernedActionCard {
+  id: string;
+  status: string;
+  execution_id?: string;
+  error_code?: string;
+  created_at: string;
+  updated_at: string;
+  evidence?: {
+    status?: string;
+    summary_codes?: string[];
+  };
+}
+
+/** Read one governed action card of the signed-in owner. */
+export async function getGovernedActionCard(
+  cardId: string,
+): Promise<GovernedActionCard> {
+  const response = await fetchApi<GovernedActionCard>(
+    `/v1/ril/action-cards/${encodeURIComponent(cardId)}`,
+  );
+  return response.data;
 }
 
 export interface ManagedServiceLogEntry {
@@ -709,27 +1070,70 @@ function normalizeServiceLogOptions(
   return { limit, cursor: options.cursor?.trim() ?? "" };
 }
 
+/**
+ * The release one application update moves to (update fact
+ * `application_update`). The server re-checks it against a fresh fact: an
+ * unchecked version needs the owner's acknowledgement, a security fix names
+ * the advisory it closes.
+ */
+export interface ApplicationUpdateSelection {
+  version: string;
+  digest: string;
+  acknowledge_untested?: boolean;
+  advisory_id?: string;
+}
+
+/** Outcome of one application update, from its job result. */
+export interface ApplicationUpdateOutcome {
+  result: "updated" | "rolled_back" | "rollback_failed" | "refused" | string;
+  reason_code?: string;
+  prior?: { version: string; digest?: string };
+  target?: { version: string; digest?: string };
+}
+
 export async function runManagedServiceAction(
   serviceId: string,
   action: ManagedServiceAction,
   expectedInventoryRevision: number,
   idempotencyKey: string,
   logOptions?: ManagedServiceLogOptions,
+  update?: ApplicationUpdateSelection,
 ): Promise<ManagedServiceActionResponse> {
-  const normalizedLogOptions =
-    action === "logs" ? normalizeServiceLogOptions(logOptions) : undefined;
+  if (action === "logs") {
+    // A log read is its own read operation, never a service action.
+    const { limit, cursor } = normalizeServiceLogOptions(logOptions);
+    const logsResponse = await fetchApi<ManagedServiceActionResponse>(
+      `/api/v1/registry/services/${encodeURIComponent(serviceId)}/logs`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
+        body: JSON.stringify({
+          expected_inventory_revision: expectedInventoryRevision,
+          limit,
+          ...(cursor ? { cursor } : {}),
+        }),
+      },
+    );
+    return logsResponse.data;
+  }
   // The lock is not bound to a runtime observation - sending a revision would
-  // claim a guarantee the endpoint does not make, and it rejects one.
+  // claim a guarantee the endpoint does not make, and it rejects one. No
+  // request carries an approval flag: every mutation is one governed action
+  // card whose Decision the acting agent's equipment answers.
   const body: Record<string, unknown> = SERVICE_LOCK_ACTIONS.has(action)
-    ? { action, owner_approved: true }
+    ? { action }
     : {
         action,
         expected_inventory_revision: expectedInventoryRevision,
-        owner_approved: true,
       };
-  if (normalizedLogOptions) {
-    body.limit = normalizedLogOptions.limit;
-    if (normalizedLogOptions.cursor) body.cursor = normalizedLogOptions.cursor;
+  if (action === "update" && update) {
+    body.version = update.version;
+    body.digest = update.digest;
+    if (update.acknowledge_untested) body.acknowledge_untested = true;
+    if (update.advisory_id) body.advisory_id = update.advisory_id;
   }
   const response = await fetchApi<ManagedServiceActionResponse>(
     `/api/v1/registry/services/${encodeURIComponent(serviceId)}/actions`,

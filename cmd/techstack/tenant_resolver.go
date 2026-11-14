@@ -129,9 +129,7 @@ func isOwnerTenantID(tenantID, subject string) bool {
 	if tenantID == "" || subject == "" {
 		return false
 	}
-	// The naked subject is the pre-standardization browser-session form. Keep
-	// it readable while all new fallbacks converge on the Gateway namespace.
-	return tenantID == canonicalOwnerTenantID(subject) || tenantID == subject
+	return tenantID == canonicalOwnerTenantID(subject)
 }
 
 // preferredMembershipFromStore lists the user's active memberships and picks

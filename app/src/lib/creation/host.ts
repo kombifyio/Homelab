@@ -50,6 +50,27 @@ export function useCreationEntry(): CreationEntry | null {
   );
 }
 
+let keepDraft: (() => Promise<void>) | null = null;
+
+/**
+ * While set, a move to Techstack's own page first writes the frame's draft, so
+ * the page opens on the same step with the same answers.
+ */
+export function keepCreationDraftBeforeLeaving(
+  keep: () => Promise<void>,
+): () => void {
+  keepDraft = keep;
+  return () => {
+    if (keepDraft === keep) keepDraft = null;
+  };
+}
+
+/** Continues on Techstack's own page at `path` once the draft is written. */
+export async function openCreationFull(path: string): Promise<void> {
+  await keepDraft?.().catch(() => undefined);
+  emitCreationEvent({ event: "open-full", path });
+}
+
 let closeGuard: (() => Promise<boolean>) | null = null;
 
 /** While set, a close the host asks for waits for this answer. */

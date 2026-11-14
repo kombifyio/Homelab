@@ -10,6 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.20.7
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.114.1
 	github.com/aws/smithy-go v1.28.4
+	github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467
 	github.com/felixge/httpsnoop v1.1.0
 	github.com/fergusstrange/embedded-postgres v1.34.0
 	github.com/getsentry/sentry-go v0.50.0
@@ -18,13 +19,12 @@ require (
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
 	github.com/grandcat/zeroconf v1.0.0
 	github.com/jackc/pgx/v5 v5.11.0
-	github.com/kombifyio/stackkits v0.55.11
+	github.com/kombifyio/stackkits v0.57.12
 	github.com/lib/pq v1.12.3
 	github.com/miekg/dns v1.1.73
 	github.com/moby/moby/api v1.56.1
 	github.com/moby/moby/client v0.6.1
 	github.com/modelcontextprotocol/go-sdk v1.8.0
-	github.com/open-feature/go-sdk v1.19.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/prometheus/common v0.72.0
 	github.com/prometheus/prometheus v0.315.0
@@ -86,7 +86,6 @@ require (
 	github.com/cockroachdb/apd/v3 v3.2.3 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
-	github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dennwc/varint v1.0.0 // indirect
@@ -192,7 +191,6 @@ require (
 	go.opentelemetry.io/otel/metric v1.47.0 // indirect
 	go.uber.org/atomic v1.12.0 // indirect
 	go.uber.org/goleak v1.3.0 // indirect
-	go.uber.org/mock v0.6.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect

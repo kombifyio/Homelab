@@ -471,7 +471,16 @@ func shortfallReasons(demand Demand, states []*nodeState, pinned string) []Reaso
 			reasons = append(reasons, reason("missing_accelerator", merge(params, map[string]string{"vendor": demand.Accelerator.Vendor})))
 		}
 	}
-	if pinned != "" {
+	switch {
+	case pinned != "" && demand.pinReason == PinOwnerChoice:
+		name := pinned
+		for _, state := range states {
+			if state.node.ID == pinned {
+				name = state.node.Name
+			}
+		}
+		reasons = append(reasons, reason("chosen_node_lacks_room", merge(params, map[string]string{"node": name})))
+	case pinned != "":
 		reasons = append(reasons, reason("pinned_node_lacks_room", params))
 	}
 	if len(reasons) == 0 {

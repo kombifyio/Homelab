@@ -60,17 +60,23 @@ type WorkloadRelocationNode struct {
 	SpecPath           string `json:"spec_path"`
 }
 
-// WorkloadRelocationRequest is the closed input of a move. It names the
-// Wallet item holding the move's transfer secret, never a secret value. The
-// owner lists both nodes as host targets on that item.
+// WorkloadRelocationRequest is the closed input of a move. A Coolify move
+// names the Wallet item holding its transfer secret, never a secret value;
+// the owner lists both nodes as host targets on that item. A native move
+// names one installed use case or individual applications and needs no
+// secret: its archive is encrypted to the destination node itself.
 type WorkloadRelocationRequest struct {
-	TenantID         string                 `json:"tenant_id"`
-	OwnerID          string                 `json:"owner_id"`
-	Source           WorkloadRelocationNode `json:"source"`
-	Destination      WorkloadRelocationNode `json:"destination"`
-	Projects         []string               `json:"projects"`
-	ResourceUUIDs    []string               `json:"resource_uuids,omitempty"`
-	SourceAddress    string                 `json:"source_address"`
+	TenantID           string                 `json:"tenant_id"`
+	OwnerID            string                 `json:"owner_id"`
+	Engine             string                 `json:"engine,omitempty"`
+	UseCase            string                 `json:"use_case,omitempty"`
+	Workloads          []string               `json:"workloads,omitempty"`
+	DestinationAddress string                 `json:"destination_address,omitempty"`
+	Source             WorkloadRelocationNode `json:"source"`
+	Destination        WorkloadRelocationNode `json:"destination"`
+	Projects           []string               `json:"projects"`
+	ResourceUUIDs      []string               `json:"resource_uuids,omitempty"`
+	SourceAddress      string                 `json:"source_address"`
 	DomainSwitches   []string               `json:"domain_switches,omitempty"`
 	WalletItemID     string                 `json:"wallet_item_id"`
 	WalletItemRotate bool                   `json:"wallet_item_rotate,omitempty"`
@@ -105,6 +111,15 @@ func NormalizeWorkloadRelocationRequest(req WorkloadRelocationRequest, testDomai
 	}
 	if req.Source.AgentID == req.Destination.AgentID {
 		return req, fmt.Errorf("source and destination must be different servers")
+	}
+	if req.Engine == RelocationEngineNative {
+		return normalizeNativeWorkloadRelocationRequest(req)
+	}
+	if req.Engine != "" && req.Engine != RelocationEngineCoolify {
+		return req, fmt.Errorf("relocation engine %q is unsupported", req.Engine)
+	}
+	if req.UseCase != "" || len(req.Workloads) != 0 || req.DestinationAddress != "" {
+		return req, fmt.Errorf("use cases and applications move with the native engine")
 	}
 	projects := make([]string, 0, len(req.Projects))
 	for _, project := range req.Projects {
@@ -146,6 +161,38 @@ func NormalizeWorkloadRelocationRequest(req WorkloadRelocationRequest, testDomai
 	// The step requests carry the rest of the validation: projects for plan.
 	if _, err := NormalizeStackKitLifecycleRequest(req.step(req.Source, stackKitStepRelocatePlan)); err != nil {
 		return req, err
+	}
+	return req, nil
+}
+
+// normalizeNativeWorkloadRelocationRequest admits a native move: one
+// installed use case or one individual application, the exact addresses the
+// two nodes reach each other on, and no Coolify inputs.
+func normalizeNativeWorkloadRelocationRequest(req WorkloadRelocationRequest) (WorkloadRelocationRequest, error) {
+	req.UseCase = strings.TrimSpace(req.UseCase)
+	if len(req.Projects) != 0 || len(req.ResourceUUIDs) != 0 || req.WalletItemID != "" || len(req.DomainSwitches) != 0 || req.WalletItemRotate {
+		return req, fmt.Errorf("a native move takes no Coolify projects, Wallet item or domain switches")
+	}
+	if err := stackkitcommand.ValidateApplicationTransferSelection(req.UseCase, req.Workloads); err != nil {
+		return req, err
+	}
+	if len(req.Workloads) > 1 {
+		return req, fmt.Errorf("move individual applications one at a time")
+	}
+	for _, address := range []*string{&req.SourceAddress, &req.DestinationAddress} {
+		peer, err := stackkitcommand.ApplicationTransferPeer(*address)
+		if err != nil {
+			return req, err
+		}
+		*address = peer
+	}
+	for _, node := range []WorkloadRelocationNode{req.Source, req.Destination} {
+		if node.OwnerRef == "" || node.StackKitInstanceID == "" || node.NodeRef == "" {
+			return req, fmt.Errorf("both nodes need their enrolled Advanced Owner and StackKit instance")
+		}
+	}
+	if req.Source.OwnerRef == req.Destination.OwnerRef && req.Source.NodeRef == req.Destination.NodeRef && req.Source.StackKitInstanceID == req.Destination.StackKitInstanceID {
+		return req, fmt.Errorf("source and destination must be different StackKit nodes")
 	}
 	return req, nil
 }
@@ -291,6 +338,9 @@ func WorkloadRelocationHandler(cfg StackKitLifecycleConfig) JobHandler {
 		}
 		if release == nil {
 			return NewConfigError(fmt.Errorf("pinned published StackKits release is not configured"))
+		}
+		if req.Engine == RelocationEngineNative {
+			return runNativeWorkloadRelocation(ctx, cfg, job, q, req, *release)
 		}
 		return runWorkloadRelocation(ctx, cfg, job, q, req, *release)
 	}

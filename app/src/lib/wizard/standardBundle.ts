@@ -47,17 +47,6 @@ export const ADVANCED_USE_CASE_GOALS = [
   "marketplace",
 ] as const satisfies readonly CanonicalUseCaseGoalKey[];
 
-export const USE_CASE_FEATURE_FLAGS = {
-  photos: "use_case_photos",
-  media: "use_case_media",
-  vault: "use_case_vault",
-  files: "use_case_files",
-  "smart-home": "use_case_smart_home",
-  ai: "use_case_ai",
-  dev: "use_case_dev",
-  mail: "use_case_mail",
-  game: "use_case_game",
-} as const satisfies Partial<Record<CanonicalUseCaseGoalKey, string>>;
 export type AudienceConfigKey = "onlyMe" | "familyFriends" | "public";
 export type AccessModeValue = "home" | "anywhere";
 export type VpnValue = "headscale" | "wireguard" | "none";
@@ -86,7 +75,6 @@ export interface BundleQuestionDefinition<TKey extends string = string> {
   key: string;
   configKey: TKey;
   surface?: GoalSurface;
-  featureFlag?: string;
   titleKey: string;
   descriptionKey: string;
   helpKey?: string;
@@ -389,7 +377,6 @@ export const ACTIVE_STANDARD_BUNDLE: StandardBundleDefinition = {
         key: "photos",
         configKey: "photos",
         surface: "primary",
-        featureFlag: USE_CASE_FEATURE_FLAGS.photos,
         titleKey: "wizard.goals.photos.title",
         descriptionKey: "wizard.goals.photos.description",
         helpKey: "wizard.goals.photos.help",
@@ -400,7 +387,6 @@ export const ACTIVE_STANDARD_BUNDLE: StandardBundleDefinition = {
         key: "media",
         configKey: "media",
         surface: "primary",
-        featureFlag: USE_CASE_FEATURE_FLAGS.media,
         titleKey: "wizard.goals.media.title",
         descriptionKey: "wizard.goals.media.description",
         helpKey: "wizard.goals.media.help",
@@ -411,7 +397,6 @@ export const ACTIVE_STANDARD_BUNDLE: StandardBundleDefinition = {
         key: "vault",
         configKey: "vault",
         surface: "primary",
-        featureFlag: USE_CASE_FEATURE_FLAGS.vault,
         titleKey: "wizard.goals.vault.title",
         descriptionKey: "wizard.goals.vault.description",
         helpKey: "wizard.goals.vault.help",
@@ -422,7 +407,6 @@ export const ACTIVE_STANDARD_BUNDLE: StandardBundleDefinition = {
         key: "files",
         configKey: "files",
         surface: "primary",
-        featureFlag: USE_CASE_FEATURE_FLAGS.files,
         titleKey: "wizard.goals.files.title",
         descriptionKey: "wizard.goals.files.description",
         helpKey: "wizard.goals.files.help",
@@ -443,7 +427,6 @@ export const ACTIVE_STANDARD_BUNDLE: StandardBundleDefinition = {
         key: "smart-home",
         configKey: "smart-home",
         surface: "advanced",
-        featureFlag: USE_CASE_FEATURE_FLAGS["smart-home"],
         titleKey: "wizard.goals.smartHome.title",
         descriptionKey: "wizard.goals.smartHome.description",
         helpKey: "wizard.goals.smartHome.help",
@@ -454,7 +437,6 @@ export const ACTIVE_STANDARD_BUNDLE: StandardBundleDefinition = {
         key: "ai",
         configKey: "ai",
         surface: "advanced",
-        featureFlag: USE_CASE_FEATURE_FLAGS.ai,
         titleKey: "wizard.goals.ai.title",
         descriptionKey: "wizard.goals.ai.description",
         helpKey: "wizard.goals.ai.help",
@@ -465,7 +447,6 @@ export const ACTIVE_STANDARD_BUNDLE: StandardBundleDefinition = {
         key: "dev",
         configKey: "dev",
         surface: "advanced",
-        featureFlag: USE_CASE_FEATURE_FLAGS.dev,
         titleKey: "wizard.goals.dev.title",
         descriptionKey: "wizard.goals.dev.description",
         helpKey: "wizard.goals.dev.help",
@@ -476,7 +457,6 @@ export const ACTIVE_STANDARD_BUNDLE: StandardBundleDefinition = {
         key: "mail",
         configKey: "mail",
         surface: "advanced",
-        featureFlag: USE_CASE_FEATURE_FLAGS.mail,
         titleKey: "wizard.goals.mail.title",
         descriptionKey: "wizard.goals.mail.description",
         helpKey: "wizard.goals.mail.help",
@@ -487,7 +467,6 @@ export const ACTIVE_STANDARD_BUNDLE: StandardBundleDefinition = {
         key: "game",
         configKey: "game",
         surface: "advanced",
-        featureFlag: USE_CASE_FEATURE_FLAGS.game,
         titleKey: "wizard.goals.game.title",
         descriptionKey: "wizard.goals.game.description",
         helpKey: "wizard.goals.game.help",

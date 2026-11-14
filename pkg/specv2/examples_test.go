@@ -120,6 +120,11 @@ func TestProjectionExamplesValidateWithStackKitsCLI(t *testing.T) {
 				}
 				intent := foundIntent("Release Goals", "files", "photos", "vault", "smart-home")
 				intent.KitAssignment.KitSlug = kitSlug
+				// A local Basement gets lab.home; every other kit needs the
+				// owner's domain, never the seed's template address.
+				if kitSlug != KitSlugBasement {
+					intent.DomainBase = "release-goals.smoke.stackkit.cc"
+				}
 				projection, err := projector.Project(context.Background(), seed, intent, "hl-release-goals")
 				if err != nil {
 					t.Fatalf("project published goals: %v", err)
@@ -164,10 +169,13 @@ func TestWizardInstallChoicesValidateWithStackKitsCLI(t *testing.T) {
 	if err := os.Mkdir(seedDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	output, err := exec.Command(binary, "--no-log", "--chdir", seedDir, "init", KitSlugBasement, "--non-interactive",
+	author := exec.Command(binary, "--no-log", "--chdir", seedDir, "init", KitSlugBasement, "--non-interactive",
 		"--name", "techstack-spec-template", "--owner-source=local", "--owner-email", "owner@smoke.stackkit.cc",
-		"--owner-username", "owner", "--api-version", NativeSpecAPIVersion, "--catalog-defaults",
-		"--domain", "template.invalid").CombinedOutput()
+		"--owner-username", "owner", "--api-version", NativeSpecAPIVersion, "--catalog-defaults")
+	// As in the image: a template is not a host install, so Basement's
+	// placement admission must not depend on this host's public address.
+	author.Env = append(os.Environ(), "STACKKIT_NETWORK_ENV=home")
+	output, err := author.CombinedOutput()
 	if err != nil {
 		t.Fatalf("author native seed: %v: %s", err, output)
 	}

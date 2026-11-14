@@ -1,4 +1,11 @@
 export const es: Record<string, string> = {
+  "ui.homelab.firstServerHint": "Conecta un servidor que ya tengas o configura uno nuevo. Tus servidores aparecerán aquí.",
+  "ui.homelab.installedUseCases": "Casos de uso instalados",
+  "ui.homelab.transferHint": "Importa una configuración de stack o exporta el stack seleccionado.",
+  "ui.homelab.export": "Exportar",
+  "ui.homelab.importSpec": "Especificación de StackKit",
+  "ui.apps.useCaseConfigure": "Configurar",
+  "ui.apps.useCaseRemove": "Eliminar",
   "ui.clientLocal.bootstrapPassword": "Contraseña de arranque",
   "ui.clientLocal.bootstrapGuidance":
     "Ejecuta {command} en un terminal del host de esta instalación para obtener la contraseña de arranque. Si una contraseña anterior se consumió o caducó, el comando la sustituye y la contraseña anterior deja de funcionar.",
@@ -7,8 +14,8 @@ export const es: Record<string, string> = {
   "setupReplay.body":
     "Revisa cómo se conecta este dispositivo y vuelve a la introducción. Tu borrador de ajustes permanece aquí.",
   "setupReplay.edition": "Edición del instalador",
-  "setupReplay.localEdition": "Techstack Local",
-  "setupReplay.cloudEdition": "Techstack Cloud",
+  "setupReplay.localEdition": "Techstack Standalone",
+  "setupReplay.cloudEdition": "Techstack Connected",
   "setupReplay.connection": "Conexión",
   "setupReplay.address": "Dirección",
   "setupReplay.browser": "Navegador web",
@@ -17,6 +24,31 @@ export const es: Record<string, string> = {
   "setupReplay.skip": "Omitir configuración",
   "setupReplay.keep": "Mantener conexión",
   "ui.services.stackIt": "Stack it",
+  "ui.services.unmanaged": "Sin gestionar",
+  "ui.services.stackItFirst": "Primero Stack it, luego mover",
+  "ui.services.stackItHere": "Hacer Stack it de {name} aquí",
+  "ui.services.stackItPlanning": "Planificando…",
+  "ui.services.stackItRecreated": "Se recrea como un contenedor nuevo. El original se detiene y se conserva 7 días.",
+  "ui.services.stackItName": "Nombre",
+  "ui.services.stackItData": "Datos",
+  "ui.services.stackItDowntime": "Tiempo de inactividad",
+  "ui.services.stackItSeconds": "unos {seconds} s",
+  "ui.services.stackItDisk": "{size} · {free} libres",
+  "ui.services.stackItPorts": "Puertos",
+  "ui.services.stackItSecrets": "Ajustes ocultos",
+  "ui.services.stackItRow.kept": "Se mantiene",
+  "ui.services.stackItRow.changed": "Cambia",
+  "ui.services.stackItRow.refused": "Rechazado",
+  "ui.services.stackItRefused": "Este contenedor todavía no se puede apilar.",
+  "ui.services.stackItDone": "Apilado.",
+  "ui.services.originalKept": "Original conservado",
+  "ui.services.originalKeptUntil": "Original conservado hasta {date}",
+  "ui.services.restoreOriginal": "Restaurar original",
+  "ui.services.removeOriginal": "Eliminar original",
+  "ui.services.restoreOriginalBody": "Elimina la app apilada (sus datos se conservan) y vuelve a iniciar el original.",
+  "ui.services.removeOriginalBody": "Elimina el contenedor original detenido. Sus datos se conservan.",
+  "ui.services.originalRestored": "Original restaurado.",
+  "ui.services.originalRemoved": "Original eliminado.",
   "ui.services.approveStackIt": "Aprobar esta adopción",
   "ui.services.releaseBinding": "Liberar la gestión del ciclo de vida",
   "ui.services.adoptionScope": "Revisa este contenedor existente de Home Assistant para gestionar su ciclo de vida donde está. Este perfil no admite otras aplicaciones ni trasladarlas a otro servidor.",
@@ -350,7 +382,6 @@ export const es: Record<string, string> = {
   "ui.dashboard.healthy": "Correcto",
   "ui.dashboard.alerts": "Alertas",
   "ui.common.importExport": "Importar / Exportar",
-  "ui.dashboard.sections": "Secciones del homelab",
   "ui.dashboard.failureDetails": "Detalles",
   "ui.dashboard.hideFailureDetails": "Ocultar detalles",
   "ui.dashboard.inventoryUnavailable": "No se pudo leer el estado actual de tus servidores y servicios. La telemetría guardada de abajo es solo de diagnóstico y no significa que tu homelab esté vacío.",
@@ -409,9 +440,6 @@ export const es: Record<string, string> = {
     "La limpieza sigue en curso. Recrear solo se desbloquea cuando el arrendamiento, el servidor canónico, la operación del proveedor, la prueba de ausencia y la liberación de capacidad están todos en estado terminal.",
   "ui.common.close": "Cerrar",
   "ui.metric.noSamples": "No hay muestras en este intervalo",
-  "ui.relogin.localPath":
-    "Continúa por la ruta de configuración local de Techstack. Esta pantalla no recoge ninguna contraseña.",
-  "ui.relogin.continueLocal": "Continuar la configuración local",
   "ui.rotation.schedule": "Programación de rotación",
   "ui.rotation.rotateNow": "Rotar ahora",
   "ui.serverAccess.authorizeKey": "Autorizar mi clave SSH",
@@ -478,7 +506,7 @@ export const es: Record<string, string> = {
   "wizard.preview.reset": "Restablecer",
   "wizard.preview.language": "Idioma de la vista previa",
   "wizard.preview.sandboxNotice":
-    "Vista previa interactiva del diseño. Compara A y B con la misma selección. Las elecciones se quedan en esta vista; no se instala nada. Correo y Juegos muestran la experiencia Beta prevista.",
+    "Vista previa interactiva del diseño. Compara la vista redonda y la compacta con la misma selección. Las elecciones se quedan en esta vista; no se instala nada. Correo y Juegos muestran la experiencia Beta prevista.",
   "wizard.preview.files.title": "Documentos y archivos",
   "wizard.preview.files.description":
     "Tus archivos de cada día, en un lugar propio.",
@@ -534,9 +562,6 @@ export const es: Record<string, string> = {
     "Una suite de correo integrada opcional con webmail SOGo y trabajo en grupo. Elige una suite o un servidor aparte; no se necesitan ambos para los mismos buzones.",
   "wizard.preview.service.pterodactyl":
     "La plataforma seleccionada para Juegos. La integración prevista gestiona perfiles separados de Minecraft Java y Bedrock, sus recursos y mundos persistentes.",
-  "wizard.preview.compare": "Comparar los dos diseños",
-  "wizard.preview.discover": "Descubrir",
-  "wizard.preview.focus": "Enfoque",
   "wizard.preview.eyebrow": "Tu hogar digital",
   "wizard.preview.title": "Haz sitio para lo que importa.",
   "wizard.preview.subtitle":
@@ -551,8 +576,6 @@ export const es: Record<string, string> = {
   "wizard.preview.aboutUseCase": "Una mirada más de cerca",
   "wizard.preview.inside": "Herramientas de este caso de uso",
   "wizard.preview.explore": "Explorar y personalizar",
-  "wizard.preview.selectUseCase": "Seleccionar",
-  "wizard.preview.collapse": "Menos detalle",
   "wizard.preview.selected": "Seleccionado",
   "wizard.preview.optional": "Opcional",
   "wizard.preview.selectionCount": "seleccionados",
@@ -1157,6 +1180,10 @@ export const es: Record<string, string> = {
   "wizard.server.command.join.review": "Confirma este servidor",
   "wizard.server.command.join.reviewBody":
     "Elige cómo se conecta este dispositivo. El acceso a tu Homelab, las personas y el inicio de sesión se quedan como están.",
+  "wizard.focus.title": "Configura {useCase}",
+  "wizard.focus.subtitle":
+    "Elige la aplicación y cómo se configura. Los detalles están ahí cuando los necesites.",
+  "wizard.step.useCase": "Caso de uso",
   "wizard.step.inherited": "Ya definido para tu Homelab",
   "wizard.step.existingOwner":
     "El propietario de tu Homelab sigue siendo el mismo",
@@ -1355,16 +1382,6 @@ export const es: Record<string, string> = {
   "auth.email": "Correo electrónico",
   "auth.password": "Contraseña",
   "auth.username": "Nombre de usuario",
-  "auth.session.renewal.title": "Hace falta renovar la sesión",
-  "auth.session.renewal.body":
-    "No pudimos renovar automáticamente tu acceso seguro a kombify Cloud. Tu trabajo está a salvo: inicia sesión de nuevo para retomarlo donde lo dejaste.",
-  "auth.session.renewal.signIn": "Iniciar sesión de nuevo",
-  "auth.session.renewal.retry": "Reintentar",
-  "auth.session.renewal.retrying": "Reintentando…",
-  "auth.session.gatewayUnavailable":
-    "No se pudo verificar el acceso seguro a kombify Cloud. Inicia sesión de nuevo para continuar.",
-  "auth.session.tenantContextRequired":
-    "Tu sesión no incluye ninguna organización de kombify, así que no se pueden mostrar los datos del tenant. Abre Techstack desde tu portal de kombify Cloud o inicia sesión de nuevo.",
   "wizard.run.banner.inProgressTitle": "Tu homelab se está configurando",
   "wizard.run.banner.inProgressBody":
     "La configuración sigue en curso. Puedes ver el progreso o volver más tarde.",
@@ -1381,22 +1398,6 @@ export const es: Record<string, string> = {
   "wizard.run.banner.cancelFailed": "No se pudo cancelar el despliegue",
   "wizard.run.banner.dismiss": "Descartar",
   "wizard.run.banner.dismissFailed": "No se pudo descartar el aviso",
-  "auth.session.expired.default":
-    "Tu sesión ha caducado. Inicia sesión de nuevo.",
-  "auth.session.expired.title": "Sesión caducada",
-  "auth.session.expired.subtitle": "Inicia sesión de nuevo",
-  "auth.session.expired.saasBody":
-    "Tu sesión de Techstack ha caducado. Continúa con Auth0 para volver a este flujo tras iniciar sesión.",
-  "auth.session.expired.continueAuth0": "Continuar con Auth0",
-  "auth.session.expired.reconnecting": "Reconectando...",
-  "auth.session.expired.signOut": "Cerrar sesión",
-  "auth.session.expired.reopenPortal": "Volver a abrir kombify Cloud",
-  "auth.session.expired.embeddedHint":
-    "Abre kombify Cloud en una pestaña nueva, inicia sesión allí y luego vuelve a intentar aquí la renovación de la sesión.",
-  "auth.session.expired.embeddedRefreshFailed":
-    "No se pudo renovar la sesión integrada de kombify Cloud. Vuelve a abrir kombify Cloud para iniciar sesión de nuevo y luego reintenta.",
-  "auth.session.expired.dataPreserved":
-    "Tus datos están a salvo. Tras iniciar sesión, puedes continuar donde lo dejaste.",
   "nav.notifications": "Notificaciones",
   "companion.frameTitle": "kombify Companion",
   "companion.open": "Abrir el Companion",
@@ -1485,8 +1486,6 @@ export const es: Record<string, string> = {
     "Esta ventana se cierra automáticamente.",
   "ui.authCloud-link-complete.youCanCloseThisTab":
     "Puedes cerrar esta pestaña y volver al asistente.",
-  "ui.authHandler.yourSessionHasExpiredPlease":
-    "Tu sesión ha caducado. Inicia sesión de nuevo.",
   "ui.authSso.noSsoTokenProvided": "No se proporcionó ningún token SSO",
   "ui.authSso.ssoAuthenticationFailed": "Falló la autenticación SSO",
   "ui.authSso.ssoAuthenticationKombifyTechstack":
@@ -1497,13 +1496,10 @@ export const es: Record<string, string> = {
     "No se pudo restaurar tu sesión de kombify Cloud. Inténtalo de nuevo.",
   "ui.client.csrfTokenResponseMissingToken":
     "A la respuesta del token CSRF le falta el token",
-  "ui.client.gatewayAuthenticationUnavailableSignIn":
-    "Autenticación de Gateway no disponible. Inicia sesión de nuevo para verificar tus derechos de runtime gestionado.",
   "ui.client.networkError":
     "Error de red: no se pudo conectar con la API. ¿Es accesible el backend?",
   "ui.client.networkErrorAt":
     "Error de red: no se pudo conectar con la API en {base}. ¿Es accesible el backend?",
-  "ui.client.parentGatewayTokenFailed": "Falló el token del gateway padre",
   "ui.client.requestTimedOutAfterS":
     "La solicitud agotó el tiempo tras {v1} s: {url}",
   "ui.client.serverReturnedHTMLInsteadOf":
@@ -1819,7 +1815,6 @@ export const es: Record<string, string> = {
     "¿Resolver el registro de custodia obsoleto?",
   "ui.homelabDashboardPage.retry": "Reintentar",
   "ui.homelabDashboardPage.retryExactCleanup": "Reintentar la limpieza exacta",
-  "ui.homelabDashboardPage.review": "Revisar",
   "ui.homelabDashboardPage.reviewStart": "Revisar y crear",
   "ui.homelabDashboardPage.rolloutReadinessIsUnavailableRefresh":
     "La disponibilidad del despliegue no está disponible. Actualiza los datos de operaciones antes de iniciar.",
@@ -2028,6 +2023,7 @@ export const es: Record<string, string> = {
   "ui.monitoring.acrossEpisodes.other": "en {count} episodios",
   "ui.monitoring.availabilityHistoryIsUnavailableOn": "El historial de disponibilidad no está disponible en esta instalación.",
   "ui.monitoring.availabilityWindow": "Disponibilidad · {window}",
+  "ui.monitoring.availabilityWindowLabel": "Periodo de disponibilidad",
   "ui.monitoring.dailyState": "Estado diario",
   "ui.monitoring.dailyStateLabel": "{name}: estado de conexión diario",
   "ui.monitoring.downFor": "{duration} caído",
@@ -2163,12 +2159,30 @@ export const es: Record<string, string> = {
     "La frase de contraseña de recuperación debe tener al menos {MIN_RECOVERY_PASSPHRASE_LENGTH} caracteres",
   "ui.ownerState.recoveryPassphrasesDoNotMatch":
     "Las frases de contraseña de recuperación no coinciden",
+  "ui.ownerState.theCloudLinkCouldNotBeRemoved":
+    "No se pudo eliminar la vinculación con kombify Cloud. Inténtalo de nuevo.",
+  "ui.ownerState.theCloudLinkCouldNotBeSaved":
+    "No se pudo guardar la vinculación con kombify Cloud. Inténtalo de nuevo.",
+  "ui.ownerState.theCloudLinkCouldNotBeStarted":
+    "No se pudo iniciar la vinculación con kombify Cloud. Inténtalo de nuevo.",
+  "ui.ownerState.theCloudLinkIsTemporarilyUnavailable":
+    "La vinculación con kombify Cloud no está disponible por ahora. Inténtalo de nuevo en un momento.",
+  "ui.ownerState.theCloudLinkStatusCouldNotBeRead":
+    "No se pudo leer el estado de la vinculación con kombify Cloud. Inténtalo de nuevo en un momento.",
+  "ui.ownerState.theCloudProfileCouldNotBeRead":
+    "No se pudo leer el perfil de kombify Cloud. Inicia la conexión de nuevo.",
+  "ui.ownerState.theCloudTokenExchangeFailed":
+    "Falló el intercambio de tokens de kombify Cloud. Inicia la conexión de nuevo.",
+  "ui.ownerState.theKombifyCloudAccountIsAlready":
+    "Tu cuenta de kombify Cloud ya está conectada. La vinculación con Cloud solo está disponible en instalaciones autoalojadas.",
   "ui.ownerState.theKombifyCloudEmailIs":
     "El correo de kombify Cloud no está verificado. Verifícalo en tu cuenta de Cloud y vuelve a vincular.",
   "ui.ownerState.theKombifyCloudProfileHas":
     "El perfil de kombify Cloud no tiene dirección de correo electrónico.",
   "ui.ownerState.theLinkRequestExpiredStart":
     "La solicitud de vinculación caducó. Inicia la conexión de nuevo.",
+  "ui.ownerState.theLinkRequestIsMissingStart":
+    "A la solicitud de vinculación le falta el código o el estado. Inicia la conexión de nuevo.",
   "ui.ownerState.theSelectedOwnerSourceIs":
     "La fuente de propietario seleccionada ya no es compatible. Elige un propietario local o vincula tu perfil de kombify Cloud.",
   "ui.ownerState.thisInstanceHasNoKombify":
@@ -2695,7 +2709,6 @@ export const es: Record<string, string> = {
   "ui.serviceSheet.notPlaced": "sin ubicar",
   "ui.serviceSheet.ownership": "Propiedad: {value}",
   "ui.serviceSheet.stackkit": "StackKit {version}",
-  "ui.services.aboutToMove": "Vas a mover esta aplicación de {slot} a {slot}.",
   "ui.services.action.freeze": "Congelar",
   "ui.services.action.logs": "Registros",
   "ui.services.action.restart": "Reiniciar",
@@ -2716,15 +2729,10 @@ export const es: Record<string, string> = {
   "ui.services.anyRuntimeInventoryShownAbove":
     "Cualquier inventario de runtime mostrado arriba sigue siendo de solo lectura. Las acciones de catálogo, importación, verificación y migración permanecen desactivadas hasta que el registro de servicios se recupere.",
   "ui.services.application": "Aplicación",
-  "ui.services.applicationIsAlreadyMovingOr":
-    "La aplicación ya se está moviendo o está esperando verificación.",
   "ui.services.applicationManagementIsTemporarilyUnavailable":
     "La gestión de aplicaciones no está disponible temporalmente",
   "ui.services.applicationManagementIsUnavailableUntil":
     "La gestión de aplicaciones no está disponible hasta que el registro de servicios se recupere.",
-  "ui.services.applicationMove": "Mover aplicación",
-  "ui.services.applicationNeedsAStableRunning":
-    "La aplicación necesita un estado estable, en ejecución o detenida, antes de poder moverse.",
   "ui.services.applicationPlacementIsTemporarilyUnavailable":
     "La ubicación de aplicaciones no está disponible temporalmente",
   "ui.services.applications": "Aplicaciones",
@@ -2758,14 +2766,9 @@ export const es: Record<string, string> = {
   "ui.services.discoveredOn":
     "Descubierto en {name}: no gestionado por kombify",
   "ui.services.displayName": "Nombre para mostrar",
-  "ui.services.dragAndDropStaysDisabled": "Arrastrar y soltar aún no está disponible. Mover una app de forma segura requiere automatizar la instalación, la comprobación de estado, el cambio y la limpieza de la copia antigua.",
-  "ui.services.dropManagedApplicationsHere":
-    "Suelta aquí las aplicaciones gestionadas",
   "ui.services.error": "Error",
   "ui.services.failedToDeleteArchivedService":
     "No se pudo eliminar el servicio archivado.",
-  "ui.services.failedToInitiateMigration": "No se pudo iniciar la migración.",
-  "ui.services.failedToVerifyService": "No se pudo verificar el servicio.",
   "ui.services.fetchLogs": "Obtener registros",
   "ui.services.freshnessValue": "Frescura: {value}",
   "ui.services.health": "Salud",
@@ -2776,18 +2779,15 @@ export const es: Record<string, string> = {
     "Cargando el inventario canónico de servicios",
   "ui.services.localNode": "Servidor local",
   "ui.services.managedProviderTarget": "Destino de proveedor gestionado",
-  "ui.services.migrationJobIsActive": "El trabajo de migración está activo.",
+  "ui.services.moreActions": "Más acciones para los servicios",
   "ui.services.moveApplication": "Mover aplicación",
   "ui.services.moveHere": "Mover {name} aquí",
-  "ui.services.moveSteps": "Pasos del traslado:",
-  "ui.services.moveToAnotherNode": "Mover a otro servidor…",
   "ui.services.mutationsRequireOwnerApprovalA":
     "Las modificaciones requieren la aprobación del propietario; se ejecuta una verificación de StackKits antes de que cambie el estado medido.",
   "ui.services.noApplicationsDeployed": "No hay aplicaciones desplegadas",
   "ui.services.noApplicationsMatching":
     "No hay aplicaciones con estado {status}",
   "ui.services.noApplicationsReported": "No se notificaron aplicaciones",
-  "ui.services.noAvailableTargetNodeFor": "No hay ningún servidor de destino disponible para esta aplicación.",
   "ui.services.noCanonicalRuntimeObservationYet":
     "Aún no hay observación canónica del runtime: se muestra la proyección del registro.",
   "ui.services.noGovernedActionHasRun":
@@ -2801,12 +2801,10 @@ export const es: Record<string, string> = {
   "ui.services.nodeCapabilities": "Capacidades del servidor",
   "ui.services.nodeColumn": "Columna del servidor {name}",
   "ui.services.observed": "Observado",
-  "ui.services.stacked": "Stacked",
-  "ui.services.unstacked": "Unstacked",
+  "ui.services.stacked": "Apilada",
+  "ui.services.unstacked": "Sin apilar",
   "ui.services.observedTechnicalComponentsWithoutApplication":
     "Componentes técnicos observados sin controles a nivel de aplicación",
-  "ui.services.observedUnmanagedApplicationsMustBe":
-    "Las aplicaciones no gestionadas observadas deben adoptarse antes de poder moverse.",
   "ui.services.open": "Abrir",
   "ui.services.operationValue": "Operación: {value}",
   "ui.services.ownershipUnknown": "Propiedad desconocida",
@@ -2822,17 +2820,11 @@ export const es: Record<string, string> = {
   "ui.services.port": "Puerto",
   "ui.services.ramUsedOf": "{used} GB / {total} GB",
   "ui.services.refreshLogs": "Actualizar registros",
-  "ui.services.relocatingOnBackend": "Reubicando en el backend...",
   "ui.services.removeOldCopy": "Eliminar la copia antigua…",
   "ui.services.retryManagementData": "Reintentar los datos de gestión",
   "ui.services.running": "En ejecución",
   "ui.services.runtimeInventoryCouldNotBe":
     "No se pudo cargar el inventario de runtime.",
-  "ui.services.runtimeMigrationIsNotEnabled":
-    "La migración de runtime aún no está habilitada",
-  "ui.services.runtimeMigrationUnavailable":
-    "Migración de runtime no disponible",
-  "ui.services.runtimeServiceMigrationIsNot": "Mover apps entre servidores no está habilitado en esta instalación.",
   "ui.services.runtimeTarget": "Destino de runtime",
   "ui.services.selectANodeAndCatalog": "Selecciona un servidor y un servicio del catálogo.",
   "ui.services.selectANodeThenEnter": "Selecciona un servidor y luego introduce un nombre de servicio.",
@@ -2856,21 +2848,12 @@ export const es: Record<string, string> = {
     "Se muestra la última telemetría de capacidad verificada",
   "ui.services.stackkitsApplicationModel":
     "Modelo de aplicaciones de StackKits",
-  "ui.services.startMove": "Iniciar traslado",
-  "ui.services.startsControlledMove":
-    "Esto inicia un traslado controlado de {slot}.",
   "ui.services.statusValue": "Estado: {value}",
   "ui.services.storage": "Almacenamiento",
   "ui.services.storageFreeOf": "{free} GB libres / {total} GB",
   "ui.services.systemServices": "Servicios del sistema",
-  "ui.services.targetIsReadyForVerification":
-    "El destino está listo para la verificación.",
-  "ui.services.targetNode": "Servidor de destino",
   "ui.services.targetValue": "Destino: {value}",
   "ui.services.telemetryPending": "telemetría pendiente",
-  "ui.services.temporaryInstance":
-    "Se desplegará una instancia temporal en {slot}.",
-  "ui.services.theApplicationConfigWillBe": "La configuración de la aplicación se duplicará en el servidor de destino.",
   "ui.services.theLastLogPageWas":
     "La última página de registros estaba vacía.",
   "ui.services.theLastSuccessfulSnapshotRemains": "La última instantánea correcta sigue visible hasta que este homelab informe de un reemplazo o de una prueba clara de que la app está caída.",
@@ -2880,14 +2863,8 @@ export const es: Record<string, string> = {
   "ui.services.type2": "Tipo",
   "ui.services.unclassifiedRuntimeComponentsAppearHere":
     "Aquí aparecen los componentes de runtime sin clasificar.",
-  "ui.services.uponYourManualVerificationThe":
-    "Tras tu verificación manual, la instancia antigua se desactiva y se puede eliminar de forma permanente.",
   "ui.services.url": "URL",
-  "ui.services.verifyFinish": "Verificar y finalizar",
   "ui.services.verifying": "· verificando",
-  "ui.services.waitingForRuntimeDeployment": "Esperando la instalación...",
-  "ui.services.youCanTestTheNew":
-    "Puedes probar la nueva instancia mientras la antigua sigue activa.",
   "ui.servicesApplicationId.addressClass": "Clase de dirección",
   "ui.servicesApplicationId.applicationDetails": "Detalles de la aplicación",
   "ui.servicesApplicationId.applicationDetailsCouldNotBe":
@@ -3160,7 +3137,8 @@ export const es: Record<string, string> = {
     "El reintento del despliegue requiere el trabajo fallido exacto y el arrendamiento de la VM gestionada.",
   "ui.stacksCreatingCreation-controller.serviceVerification":
     "Verificación de servicios",
-  "ui.stacksCreatingCreation-controller.sessionExpired": "Sesión caducada",
+  "ui.stacksCreatingCreation-controller.sessionExpired":
+    "Esperando tu confirmación",
   "ui.stacksCreatingCreation-controller.simulationGate": "Puerta de simulación",
   "ui.stacksCreatingCreation-controller.stackkitRollout":
     "Despliegue de StackKit",
@@ -3187,7 +3165,7 @@ export const es: Record<string, string> = {
   "ui.stacksCreatingCreation-controller.yourRemoteNodeConfigurationIs":
     "La configuración de tu servidor remoto está lista para el despliegue",
   "ui.stacksCreatingCreation-controller.yourSessionIsNoLonger":
-    "Tu sesión ya no es válida, por lo que no se puede comprobar el progreso de la creación. Inicia sesión de nuevo y vuelve a abrir esta creación para seguir supervisándola.",
+    "La creación sigue ejecutándose en el servidor. Vuelve a comprobar y confirma tu sesión para seguir su progreso aquí.",
   "ui.stacksCreatingCreation-results.backendError":
     "{cleanDetails}\n\nError del backend:\n{cleanError}",
   "ui.stacksCreatingCreation-results.incidentContext":
@@ -3508,6 +3486,7 @@ export const es: Record<string, string> = {
   "ui.stacksId.monthlyRuntime": "Runtime mensual",
   "ui.stacksId.monthlyRuntimeActionFailed":
     "Error en la acción del runtime mensual",
+  "ui.stacksId.moreActions": "Más acciones para {name}",
   "ui.stacksId.noCredentialsConfiguredForThis": "No hay credenciales configuradas para este homelab.",
   "ui.stacksId.noLeaseAttached": "Sin arrendamiento asociado",
   "ui.stacksId.noStackkitDeploymentIdProvided": "No se ha proporcionado ningún ID de homelab",
@@ -3580,6 +3559,7 @@ export const es: Record<string, string> = {
     "Contexto del arrendamiento del runtime gestionado.",
   "ui.stacksIdServersServerId.memory": "Memoria",
   "ui.stacksIdServersServerId.metadata": "Metadatos",
+  "ui.stacksIdServersServerId.moreActions": "Más acciones para {name}",
   "ui.stacksIdServersServerId.noCompilerDeclaredReservationOr":
     "En la última instantánea completa del Guard no había ninguna reserva declarada por el compilador ni ningún listener del runtime enlazado.",
   "ui.stacksIdServersServerId.noDesiredListenerIsReserved":

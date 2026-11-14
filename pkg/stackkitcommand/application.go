@@ -77,7 +77,10 @@ func applicationCommandName(op agentpb.StackKitOperation) string {
 	return "stackkit " + strings.ReplaceAll(name, ".", " ")
 }
 func validateApplicationFields(c *agentpb.StackKitCommand) error {
-	if !IsApplicationOperation(c.Operation) && !IsApplicationConnectorOperation(c.Operation) && (c.ApplicationContainerId != "" || c.ApplicationPlanDigest != "" || c.ApplicationOperationId != "" || c.ApplicationAction != "") {
+	if !IsApplicationStackOperation(c.Operation) && !IsOwnApplicationOperation(c.Operation) && c.OwnApplicationName != "" {
+		return fmt.Errorf("own application name requires a Stack it operation")
+	}
+	if !IsApplicationOperation(c.Operation) && !IsApplicationStackOperation(c.Operation) && !IsApplicationConnectorOperation(c.Operation) && !IsHomeGraphSyncOperation(c.Operation) && !IsHomeGraphLoxoneImportOperation(c.Operation) && !IsHomeGraphAdoptionOperation(c.Operation) && (c.ApplicationContainerId != "" || c.ApplicationPlanDigest != "" || (c.ApplicationOperationId != "" && !IsOwnApplicationOperation(c.Operation)) || c.ApplicationAction != "") {
 		return fmt.Errorf("application fields require an application operation")
 	}
 	return nil
@@ -95,7 +98,9 @@ func validateApplicationCommand(c *agentpb.StackKitCommand) error {
 		}
 		return nil
 	}
-	if !c.OwnerApproved || !commandIDPattern.MatchString(c.ApplicationOperationId) {
+	// A RIL proof (only admitted for application control) is the approval
+	// of a governed start, stop or restart of the adopted application.
+	if (!c.OwnerApproved && c.RilExecutionProof == nil) || !commandIDPattern.MatchString(c.ApplicationOperationId) {
 		return fmt.Errorf("application mutation requires Owner approval and stable operation identity")
 	}
 	if c.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_ADOPT {

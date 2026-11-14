@@ -129,6 +129,8 @@
     for (const [index, credential] of credentials.entries()) {
       const item = importableItem(credential);
       if ("problem" in item) continue;
+      const row = rows[index];
+      if (!row) continue;
       try {
         await createItem({
           itemType: item.itemType,
@@ -138,10 +140,10 @@
           value: item.value,
           ownerSubject,
         });
-        rows[index].outcome = "created";
+        row.outcome = "created";
       } catch (failure) {
-        rows[index].outcome = "failed";
-        rows[index].message = walletErrorMessage(failure);
+        row.outcome = "failed";
+        row.message = walletErrorMessage(failure);
       }
     }
     wipe();

@@ -191,6 +191,15 @@ func openWalletMigrationStore(ctx context.Context) (walletmigration.Store, func(
 	if cfg.Backend != db.StoreBackendPostgres {
 		return nil, nil, fmt.Errorf("wallet migration reads the control-plane Postgres database: set %s", db.EnvDatabaseURL)
 	}
+	// The hosted job runs with the stable service's environment and carries no
+	// Edge-signed context, so it is system work on the system login there
+	// (platform-3r69a). A native installation keeps its single serving login.
+	hostedSystem := strings.TrimSpace(os.Getenv(db.EnvRuntimeSystemDatabaseURL)) != ""
+	if hostedSystem {
+		if cfg, err = db.RuntimeSystemConfig(cfg); err != nil {
+			return nil, nil, fmt.Errorf("wallet migration system login: %w", err)
+		}
+	}
 	database, err := db.Open(cfg)
 	if err != nil {
 		return nil, nil, fmt.Errorf("wallet migration could not open the installation database: %w", err)
@@ -199,6 +208,12 @@ func openWalletMigrationStore(ctx context.Context) (walletmigration.Store, func(
 	if err := db.VerifyExpectedDatabaseIdentity(ctx, database.DB); err != nil {
 		release()
 		return nil, nil, fmt.Errorf("wallet migration database identity was not verified: %w", err)
+	}
+	if hostedSystem {
+		if err := db.VerifyRuntimeSystemLogin(ctx, database); err != nil {
+			release()
+			return nil, nil, fmt.Errorf("wallet migration system login was not verified: %w", err)
+		}
 	}
 	return walletMigrationStoreAdapter{store: controlplane.NewPostgresStore(database.DB)}, release, nil
 }

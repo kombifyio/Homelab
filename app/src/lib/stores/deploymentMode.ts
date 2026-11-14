@@ -126,13 +126,13 @@ function createDeploymentStore() {
         embeddedSurface &&
         hostNavigationRequested(urlParams);
 
-      if (devOverride) {
+      if (backendMode === "saas" && embeddedSurface) {
+        detectedMode = "saas-embedded";
+      } else if (devOverride) {
         detectedMode =
           devOverride === "saas-embedded" && backendMode === "saas"
             ? "saas-embedded"
             : "self-hosted";
-      } else if (backendMode === "saas" && (isEmbeddedParam || isInIframe)) {
-        detectedMode = "saas-embedded";
       }
 
       if (detectedMode === "saas-embedded") {

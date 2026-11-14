@@ -14,7 +14,7 @@ import (
 )
 
 // The reviewed immutable reusable producer is the only admitted authority.
-const schemaExpandProducerSHA = "32e64c7a90ac8f8a20341950839905b0f0b402c5"
+const schemaExpandProducerSHA = "3a62c4c4c3f053d693d9d6d839fefb63991e19ba"
 const schemaExpandIssuer = "https://token.actions.githubusercontent.com"
 const schemaExpandProducer = "public-schema-producer-unavailable/.github/.github/workflows/techstack-schema-expand.yml"
 const schemaExpandRepository = "kombifyio/TechStack"
@@ -77,7 +77,7 @@ func verifySchemaExpandAuthority(ctx context.Context) (schemaExpandAuthority, er
 	want := map[string]string{
 		"repository": schemaExpandRepository, "repository_id": "1129956899", "repository_owner_id": "249091777",
 		"ref": "refs/heads/main", "run_attempt": "1",
-		"workflow_ref":     schemaExpandRepository + "/.github/workflows/local-database-migrate.yml@refs/heads/main",
+		"workflow_ref":     schemaExpandRepository + "/.github/workflows/early-access-merge.yml@refs/heads/main",
 		"job_workflow_ref": schemaExpandProducer + "@" + schemaExpandProducerSHA,
 		"job_workflow_sha": schemaExpandProducerSHA, "sha": body.ExecutionSHA, "workflow_sha": body.ExecutionSHA,
 		"run_id": body.RunID, "sub": "repo:" + schemaExpandRepository + ":environment:techstack-schema-production",

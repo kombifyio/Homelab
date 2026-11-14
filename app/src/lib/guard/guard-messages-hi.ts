@@ -256,7 +256,7 @@ export const guardMessagesHi: Record<keyof typeof guardMessages.en, string> = {
   "guard.reach.publish.disable": "प्रकाशन बंद करें",
   "guard.reach.publish.current": "प्रकाशित: {service}, पोर्ट {port} पर।",
   "guard.reach.publish.stepUp":
-    "प्रकाशित करने के लिए पिछले पाँच मिनट में दूसरे कारक के साथ नया साइन-इन चाहिए। फिर से साइन इन करें, फिर यह चरण दोहराएँ।",
+    "प्रकाशित करने के लिए पिछले पाँच मिनट के भीतर आपके दूसरे कारक से पुष्टि चाहिए। पुष्टि करें, फिर यह चरण दोहराएँ।",
   "guard.upgrade.title": "इस सर्वर की कुंजी स्वीकृत करें",
   "guard.upgrade.pending":
     "फ़िंगरप्रिंट {fingerprint} वाली एक कुंजी आपकी स्वीकृति की प्रतीक्षा में है। इसे तभी स्वीकृत करें जब Guard इस सर्वर पर वही फ़िंगरप्रिंट लॉग करे।",
@@ -265,7 +265,7 @@ export const guardMessagesHi: Record<keyof typeof guardMessages.en, string> = {
   "guard.upgrade.approve": "कुंजी स्वीकृत करें",
   "guard.upgrade.reject": "कुंजी अस्वीकार करें",
   "guard.upgrade.stepUp":
-    "स्वीकृति के लिए पिछले पाँच मिनट में दूसरे कारक के साथ नया साइन-इन चाहिए। फिर से साइन इन करें, फिर यह चरण दोहराएँ।",
+    "स्वीकृति के लिए पिछले पाँच मिनट के भीतर आपके दूसरे कारक से पुष्टि चाहिए। पुष्टि करें, फिर यह चरण दोहराएँ।",
   "guard.upgrade.done": "सर्वर की कुंजी स्वीकृत हो गई।",
 
   "guard.reach.reason.guard_key_not_bound":
@@ -401,8 +401,8 @@ export const guardMessagesHi: Record<keyof typeof guardMessages.en, string> = {
   "guard.outcomes.releasing": "मुक्त किया जा रहा है…",
   "guard.outcomes.back": "वापस",
   "guard.outcomes.stepUp":
-    "परिणाम मुक्त करने के लिए दूसरे फ़ैक्टर के साथ ताज़ा साइन-इन चाहिए, पिछले पाँच मिनट के भीतर का। फिर से साइन इन करें, फिर यह चरण दोहराएँ। आपका नोट सहेजा नहीं जाता।",
-  "guard.outcomes.stepUpAction": "फिर से साइन इन करें",
+    "परिणाम मुक्त करने के लिए पिछले पाँच मिनट के भीतर आपके दूसरे फ़ैक्टर से पुष्टि चाहिए। पुष्टि करें, फिर यह चरण दोहराएँ। आपका नोट सहेजा नहीं जाता।",
+  "guard.outcomes.stepUpAction": "पुष्टि करें",
   "guard.outcomes.stale":
     "आपकी समीक्षा के दौरान यह ऑपरेशन बदल गया। सूची अपडेट हो गई है; इसे फिर से देखें।",
   "guard.outcomes.loadFailed": "अनसुलझे ऑपरेशनों की सूची लोड नहीं हो सकी।",
@@ -447,13 +447,14 @@ export const guardMessagesHi: Record<keyof typeof guardMessages.en, string> = {
   "guard.ladder.bound.awaiting": "सर्वर पर पेयरिंग कमांड चलने की प्रतीक्षा है।",
   "guard.ladder.bound.awaitingNext":
     "सर्वर पर कमांड चलाएँ। समय समाप्त हो गया हो तो नया बनाएँ।",
-  "guard.updates.title": "StackKits अपडेट",
+  "guard.updates.title": "अपडेट",
   "guard.updates.runs": "{version} चल रहा है",
   "guard.updates.behavior.label": "अपडेट का तरीका",
-  "guard.updates.behavior.hint":
-    "आप यहाँ जो भी चुनें, इस सर्वर के ऐप्स के सुरक्षा पैच तुरंत इंस्टॉल होते हैं।",
-  "guard.updates.behavior.approve": "मुझसे पूछें (हर अपडेट को मंज़ूरी दें)",
-  "guard.updates.behavior.automatic": "अपडेट अपने आप इंस्टॉल करें",
+  "guard.updates.behavior.hint": "सुरक्षा सुधार हमेशा तुरंत पेश किए जाते हैं।",
+  "guard.updates.behavior.ask": "मुझसे पूछें",
+  "guard.updates.behavior.automatic": "अपने आप",
+  "guard.updates.behavior.with_stackkits_releases": "StackKits रिलीज़ के साथ",
+  "guard.updates.behavior.automaticPending": "ऐप्स अभी अपने आप अपडेट नहीं होते।",
   "guard.updates.available": "StackKits {version} उपलब्ध है",
   "guard.updates.forUseCase": "आपके {name} के लिए",
   "guard.updates.other": "इस अपडेट में यह भी",
@@ -485,4 +486,29 @@ export const guardMessagesHi: Record<keyof typeof guardMessages.en, string> = {
   "guard.updates.kind.fixed": "ठीक किया गया",
   "guard.updates.kind.changed": "बदला गया",
   "guard.updates.kind.reverted": "वापस लिया गया",
+  "guard.power.title": "यूपीएस सुरक्षा",
+  "guard.power.state.line": "लाइन पावर पर",
+  "guard.power.state.on_battery": "बैटरी पर चल रहा है",
+  "guard.power.state.shutdown": "क्रमबद्ध शटडाउन का अनुरोध",
+  "guard.power.state.canceled": "शटडाउन रद्द",
+  "guard.power.state.unknown": "पावर स्थिति का प्रमाण नहीं",
+  "guard.power.observed": "देखा गया {when}",
+  "guard.power.charge": "बैटरी {percent}%",
+  "guard.power.runtime": "लगभग {minutes} मिनट शेष",
+  "guard.power.steps": "क्रमबद्ध शटडाउन",
+  "guard.power.step.applications": "एप्लिकेशन",
+  "guard.power.step.storage": "स्टोरेज",
+  "guard.power.step.host": "होस्ट",
+  "guard.power.outcome.pending": "लंबित",
+  "guard.power.outcome.running": "चल रहा है",
+  "guard.power.outcome.succeeded": "सफल",
+  "guard.power.outcome.failed": "विफल",
+  "guard.power.outcome.skipped": "छोड़ा गया",
+  "guard.power.outcome.canceled": "रद्द",
+  "guard.power.reason.line_restored": "लाइन पावर लौटी",
+  "guard.power.reason.sequence_interrupted": "क्रम बाधित हुआ",
+  "guard.power.canceledBecause": "रद्द: {reason}",
+  "guard.power.hostRequested": "होस्ट शटडाउन का अनुरोध {when}",
+  "guard.power.evidence":
+    "प्रत्येक चरण सर्वर के स्थानीय पावर जर्नल में दर्ज होता है।",
 };

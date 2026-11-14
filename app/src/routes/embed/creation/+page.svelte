@@ -17,10 +17,14 @@
   import {
     emitCreationEvent,
     markCreationHosted,
+    openCreationFull,
     provideCreationEntry,
   } from "#lib/creation/host.js";
   import { authStore } from "#lib/stores/auth.svelte.js";
-  import { creationUseCaseWizardConfig } from "#lib/wizard/self-disclosure-handoff.js";
+  import {
+    creationUseCaseHandoffKey,
+    creationUseCaseWizardConfig,
+  } from "#lib/wizard/self-disclosure-handoff.js";
 
   const params = $derived(page.url.searchParams);
   const entry = $derived(parseCreationEntry(params));
@@ -35,7 +39,6 @@
           entry.frame,
           entry.frame === "step" ? entry.step : "",
           entry.useCase,
-          entry.setup,
           entry.stack,
           entry.server,
         ].join("|")
@@ -67,9 +70,9 @@
     return () => observer.disconnect();
   });
 
+  // The page continues the frame's draft: same step, same answers.
   function openFull() {
-    if (entry)
-      emitCreationEvent({ event: "open-full", path: creationFullPath(entry) });
+    if (entry) void openCreationFull(creationFullPath(entry));
   }
 </script>
 
@@ -77,9 +80,11 @@
   <title>{tr("layout.addUseCases.pageTitle")}</title>
 </svelte:head>
 
+<!-- The module fills the host's frame, so the wizard fits one screen and its
+     step scrolls inside, never the frame. -->
 <div
   bind:this={root}
-  class="min-w-0"
+  class="flex h-dvh min-w-0 flex-col"
   data-testid="creation-embed"
   data-process={entry?.process ?? "idle"}
 >
@@ -94,6 +99,7 @@
           <UseCasePlacement
             {initialConfig}
             preferredServerId={entry.server ?? ""}
+            focusGoal={creationUseCaseHandoffKey(params)}
           />
         {:else if entry.process === "add-server" && entry.stack}
           <ManagedCreationFlow stackId={entry.stack} embedded />
@@ -107,10 +113,10 @@
           <ConfigurationFlow {initialConfig} embedded />
         {/if}
       {/key}
-      <div class="px-6 pb-6">
+      <div class="shrink-0 px-5 pb-2">
         <button
           type="button"
-          class="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
+          class="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
           data-testid="creation-embed-open-full"
           onclick={openFull}
         >

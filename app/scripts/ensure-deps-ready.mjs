@@ -12,6 +12,19 @@ function sameFile(left, right) {
   return readFileSync(left).equals(readFileSync(right));
 }
 
+// pnpm 12 writes the environment document of pnpm-lock.yaml (configDependencies, packageManagerDependencies)
+// only into the committed file; the installed copy holds the project document alone.
+function projectDocument(file) {
+  const text = readFileSync(file, "utf8").replaceAll("\r\n", "\n");
+  const split = text.startsWith("---\n") ? text.lastIndexOf("\n---\n") : -1;
+  return split < 0 ? text : text.slice(split + 5);
+}
+
+function sameLockfile(committed, installed) {
+  if (!existsSync(committed) || !existsSync(installed)) return false;
+  return sameFile(committed, installed) || projectDocument(committed) === projectDocument(installed);
+}
+
 function executableReady(binRoot, name) {
   for (const candidate of [
     resolve(binRoot, name),
@@ -37,7 +50,7 @@ function pnpmInvocation(args) {
   );
   return existsSync(corepackCLI)
     ? { command: process.execPath, args: [corepackCLI, "pnpm", ...args] }
-    : { command: "corepack", args: ["pnpm", ...args] };
+    : { command: "pnpm", args, shell: process.platform === "win32" }; // Node 25+ ships no corepack; mise provides pnpm
 }
 
 export function frozenManifestReady(appRoot = defaultAppRoot, run = spawnSync) {
@@ -54,6 +67,7 @@ export function frozenManifestReady(appRoot = defaultAppRoot, run = spawnSync) {
     cwd: appRoot,
     stdio: "ignore",
     env: process.env,
+    shell: invocation.shell,
   });
   return !result.error && result.status === 0;
 }
@@ -64,7 +78,7 @@ export function dependenciesReady(
 ) {
   const modulesRoot = resolve(appRoot, "node_modules");
   return (
-    sameFile(
+    sameLockfile(
       resolve(appRoot, "pnpm-lock.yaml"),
       resolve(modulesRoot, ".pnpm", "lock.yaml"),
     ) &&

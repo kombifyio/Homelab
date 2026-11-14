@@ -19,3 +19,11 @@ func composeProviderControl(database *sql.DB, edition config.Edition, log *logge
 ) (*providercontrol.Runtime, jobs.RuntimeActions, error) {
 	return composeNativeProviderControl(database, edition, log, nil, onParkedOperation, nil)
 }
+
+// composeProviderControlForRetenant composes the same provider control for the
+// managed-runtime retenant command. No worker starts and no notification
+// observer is attached. Selfhost links no managed provider, so a
+// managed lease cannot be re-admitted here.
+func composeProviderControlForRetenant(database *sql.DB, edition config.Edition, log *logger.Logger) (nativeProviderControl, error) {
+	return composeNativeProviderControlParts(database, edition, log, nil, nil, nil)
+}

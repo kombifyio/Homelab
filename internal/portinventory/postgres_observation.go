@@ -28,12 +28,12 @@ func (a *PostgresAuthority) RecordGuardPorts(ctx context.Context, input GuardObs
 	facts, parsedComplete := parseAgentPortFacts(input.OpenPorts)
 	listenersComplete := input.ListenersComplete && parsedComplete
 
-	tx, err := a.db.BeginTx(ctx, nil)
+	tx, err := tenantcontext.Database(ctx, a.db).BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-	if _, err = tx.ExecContext(ctx, "SELECT set_config('app.tenant_id', $1, true)", input.TenantID); err != nil {
+	if err = tenantcontext.ApplyTenant(ctx, tx, input.TenantID); err != nil {
 		return err
 	}
 	var ref ServerRef
@@ -104,7 +104,7 @@ func (a *PostgresAuthority) ReadCurrent(ctx context.Context, request InventoryRe
 	} else {
 		now = now.UTC()
 	}
-	tx, err := a.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true, Isolation: sql.LevelRepeatableRead})
+	tx, err := tenantcontext.Database(ctx, a.db).BeginTx(ctx, &sql.TxOptions{ReadOnly: true, Isolation: sql.LevelRepeatableRead})
 	if err != nil {
 		return Inventory{}, err
 	}

@@ -2,6 +2,7 @@ package hostidentity_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/kombifyio/techstack/pkg/agent/hostidentity"
+	"github.com/kombifyio/techstack/pkg/guardidentity"
 )
 
 func TestEnrollmentDiscardsRejectedCapabilityButRetainsTransientRecovery(t *testing.T) {
@@ -130,5 +132,125 @@ func TestEnrollmentRefusedAtConfirmationDiscardsTheCapability(t *testing.T) {
 	remaining, err := os.ReadFile(residue)
 	if err != nil || strings.Contains(string(remaining), capability) {
 		t.Fatalf("the refused capability survived in cloud-init residue: %v", err)
+	}
+}
+
+// tenantRebindFixture is a Guard of the bare-subject legacy tenant
+// google-oauth2|1 whose enrollment names the subject as owner and pins a
+// binding key, with the same enrollment in the configured path and the state
+// directory copy.
+func tenantRebindFixture(t *testing.T, extra map[string]any) (*hostidentity.Manager, string, guardidentity.TenantRebindOffer) {
+	t.Helper()
+	stateDir := filepath.Join(t.TempDir(), "guard")
+	manager, err := hostidentity.Open(stateDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	enrollment := map[string]any{
+		"runtime_agent_id": "worker_1", "tenant_id": "google-oauth2|1", "owner_id": "google-oauth2|1",
+		"agent_token":          "tsra.opaque.legacy",
+		"heartbeat_url":        "https://techstack.example/api/v1/workers/worker_1/heartbeat",
+		"binding_signing_keys": []any{map[string]any{"key_id": "aaaaaaaaaaaaaaaa", "public_key": "legacy"}},
+		"channel_bootstrap":    map[string]any{"tenant_id": "google-oauth2|1", "owner_id": "google-oauth2|1"},
+	}
+	for key, value := range extra {
+		enrollment[key] = value
+	}
+	raw, err := json.Marshal(enrollment)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "agent-enrollment.json")
+	for _, target := range []string{path, filepath.Join(stateDir, hostidentity.EnrollmentFileName)} {
+		if err := os.WriteFile(target, raw, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	id, err := guardidentity.NewTenantRebindDirectiveID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	offer := guardidentity.TenantRebindOffer{
+		Directive: guardidentity.TenantRebindDirective{
+			ContractVersion: guardidentity.TenantRebindContractVersion, DirectiveID: id,
+			FromTenantID: "google-oauth2|1", ToTenantID: "usr:google-oauth2|1", SubjectID: "google-oauth2|1",
+			RuntimeAgentID: "worker_1", ServerID: "server_1", CredentialGeneration: 1,
+			IssuedAt: now.Add(-time.Minute), NotAfter: now.Add(time.Hour),
+		},
+		AgentToken:         "tsra.opaque.canonical",
+		BindingSigningKeys: []guardidentity.TenantRebindPinnedKey{{KeyID: "bbbbbbbbbbbbbbbb", PublicKey: "canonical"}},
+	}
+	return manager, path, offer
+}
+
+func TestTenantRebindAppliesOnlyAfterProofAndMovesEveryEnrollmentCopyAndJournal(t *testing.T) {
+	manager, path, offer := tenantRebindFixture(t, nil)
+	if err := manager.StageTenantRebind(offer, "auth0|someone", "worker_1"); err == nil {
+		t.Fatal("an offer for another tenant was stored")
+	}
+	if err := manager.StageTenantRebind(offer, "google-oauth2|1", "worker_1"); err != nil {
+		t.Fatalf("stage: %v", err)
+	}
+	if manager.StagedTenantRebindID() != offer.Directive.DirectiveID {
+		t.Fatal("the stored offer is not acknowledged")
+	}
+	if receipt, err := manager.ApplyReadyTenantRebind(path, nil); err != nil || receipt != nil {
+		t.Fatalf("an offer was applied before it was proven: %v %v", receipt, err)
+	}
+	if err := manager.MarkTenantRebindReady(offer.Directive.DirectiveID); err != nil || !manager.TenantRebindReady() {
+		t.Fatalf("a proven offer did not become ready: %v", err)
+	}
+	select {
+	case <-manager.TenantRebindReadyNotify():
+	default:
+		t.Fatal("readiness was not signalled")
+	}
+	var relabeled [2]string
+	receipt, err := manager.ApplyReadyTenantRebind(path, func(from, to string) (int, error) {
+		relabeled = [2]string{from, to}
+		return 3, nil
+	})
+	if err != nil || receipt == nil || receipt.JournalEntries != 3 {
+		t.Fatalf("apply: %v %v", receipt, err)
+	}
+	if relabeled != [2]string{"google-oauth2|1", "usr:google-oauth2|1"} {
+		t.Fatalf("journal relabel = %v", relabeled)
+	}
+	for _, copy := range []string{path, filepath.Join(manager.Dir(), hostidentity.EnrollmentFileName)} {
+		raw, err := os.ReadFile(copy)
+		if err != nil {
+			t.Fatal(err)
+		}
+		view, err := hostidentity.ParseEnrollment(raw)
+		if err != nil || view.TenantID != "usr:google-oauth2|1" || view.AgentToken != "tsra.opaque.canonical" {
+			t.Fatalf("%s: rewritten enrollment = %+v, %v", copy, view, err)
+		}
+		var document map[string]any
+		_ = json.Unmarshal(raw, &document)
+		if document["owner_id"] != "google-oauth2|1" || strings.Contains(string(raw), `"legacy"`) ||
+			!strings.Contains(string(raw), `"canonical"`) {
+			t.Fatalf("%s: owner or binding keys were not carried over: %s", copy, raw)
+		}
+	}
+	if manager.StagedTenantRebindID() != "" {
+		t.Fatal("the applied offer was kept")
+	}
+}
+
+func TestTenantRebindRefusesAnEnrollmentWithAnotherLegacyTenantBinding(t *testing.T) {
+	manager, path, offer := tenantRebindFixture(t, map[string]any{"household_tenant_id": "google-oauth2|1"})
+	if err := manager.StageTenantRebind(offer, "google-oauth2|1", "worker_1"); err != nil {
+		t.Fatalf("stage: %v", err)
+	}
+	if err := manager.MarkTenantRebindReady(offer.Directive.DirectiveID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := manager.ApplyReadyTenantRebind(path, nil); !errors.Is(err, guardidentity.ErrTenantRebindRefused) {
+		t.Fatalf("apply err = %v, want ErrTenantRebindRefused", err)
+	}
+	raw, _ := os.ReadFile(path)
+	if view, _ := hostidentity.ParseEnrollment(raw); view.TenantID != "google-oauth2|1" {
+		t.Fatal("a refused rewrite changed the enrollment")
 	}
 }

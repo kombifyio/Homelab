@@ -40,14 +40,17 @@ const (
 // Advanced operation identifiers accepted by the StackKits verifier. A new
 // capability-gated StackKitCommand operation binds to one of these.
 const (
-	OperationApplicationTransferRetire = wire.OperationApplicationTransferRetire
-	OperationDriftReconcileAdvanced    = wire.OperationDriftReconcileAdvanced
-	OperationOriginCertificateInstall  = wire.OperationOriginCertificateInstall
-	OperationOriginCertificateRequest  = wire.OperationOriginCertificateRequest
-	OperationRestoreDrill              = wire.OperationRestoreDrill
-	OperationRollbackCoordinated       = wire.OperationRollbackCoordinated
-	OperationTerramateChangeSetApply   = wire.OperationTerramateChangeSetApply
-	OperationTerramateChangeSetCreate  = wire.OperationTerramateChangeSetCreate
+	OperationApplicationReleaseUpdate   = wire.OperationApplicationReleaseUpdate
+	OperationApplicationTransferReceive = wire.OperationApplicationTransferReceive
+	OperationApplicationTransferRetire  = wire.OperationApplicationTransferRetire
+	OperationDriftReconcileAdvanced     = wire.OperationDriftReconcileAdvanced
+	OperationOwnApplicationLifecycle    = wire.OperationOwnApplicationLifecycle
+	OperationOriginCertificateInstall   = wire.OperationOriginCertificateInstall
+	OperationOriginCertificateRequest   = wire.OperationOriginCertificateRequest
+	OperationRestoreDrill               = wire.OperationRestoreDrill
+	OperationRollbackCoordinated        = wire.OperationRollbackCoordinated
+	OperationTerramateChangeSetApply    = wire.OperationTerramateChangeSetApply
+	OperationTerramateChangeSetCreate   = wire.OperationTerramateChangeSetCreate
 )
 
 var (
@@ -161,11 +164,23 @@ func (issuer *Issuer) TrustBundleSHA256() string { return issuer.bundleSHA }
 
 // Request scopes one capability to one managed deployment.
 type Request struct {
+	// TransferReceive comes from the admitted destination of a native transfer
+	// job; the canonical wire binds one receiving step to the exact receiving
+	// desired intent and the one source Owner. It stays absent from a request
+	// that grants something else, so the remote issue body is unchanged there.
+	TransferReceive *wire.TransferReceive `json:"TransferReceive,omitempty"`
 	// TransferRetirement comes from the admitted existing transfer job and its
 	// signed node result; the canonical wire binds the exact retirement scope.
 	TransferRetirement *wire.TransferRetirement
 	BackupRenewal      *wire.BackupRenewal
-	TenantID           string
+	// ApplicationRelease scopes one application-release.update to the exact
+	// use case, release tag, digest and tested or untested kind the Owner
+	// approved; OwnApplicationLifecycle scopes one own-application.lifecycle
+	// to the exact application, action, operation and review digest. Each
+	// stands alone in a capability that allows only its own operation.
+	ApplicationRelease      *wire.ApplicationRelease      `json:"ApplicationRelease,omitempty"`
+	OwnApplicationLifecycle *wire.OwnApplicationLifecycle `json:"OwnApplicationLifecycle,omitempty"`
+	TenantID                string
 	// DeploymentID is the Techstack stack (managed deployment) id.
 	DeploymentID string
 	// StackID is the StackKits StackSpec/ResolvedPlan stackId on the host.
@@ -199,6 +214,17 @@ func (issuer *Issuer) Issue(ctx context.Context, request Request) (Capability, e
 		return Capability{}, fmt.Errorf("allocate advanced capability id: %w", err)
 	}
 	return issuer.issue(ctx, request, id)
+}
+
+// IssueTransferReceive signs the application-transfer.receive capability of one
+// receiving step. The request already names the receiving deployment; the scope
+// is the exact candidate, source Owner and step the destination admitted.
+func (issuer *Issuer) IssueTransferReceive(ctx context.Context, request Request, scope wire.TransferReceive) (Capability, error) {
+	request.TransferReceive = &scope
+	if len(request.Operations) == 0 {
+		request.Operations = []string{OperationApplicationTransferReceive}
+	}
+	return issuer.Issue(ctx, request)
 }
 
 // IssueBoundRequest binds durable issuance to an already authenticated caller
@@ -250,6 +276,15 @@ func (issuer *Issuer) issue(ctx context.Context, request Request, id uuid.UUID) 
 			return Capability{}, err
 		}
 	}
+	if request.TransferReceive != nil || slices.Contains(operations, OperationApplicationTransferReceive) {
+		if request.TransferReceive == nil || request.TransferRetirement != nil || request.BackupRenewal != nil ||
+			len(operations) != 1 || operations[0] != OperationApplicationTransferReceive || ttl > wire.TransferReceiveMaxLifetimeSeconds*time.Second {
+			return Capability{}, errors.New("transfer receive must match one approved receiving step")
+		}
+	}
+	if err := admitScopedOperation(request, operations, ttl); err != nil {
+		return Capability{}, err
+	}
 	document := wire.Capability{
 		BackupRenewal:     request.BackupRenewal,
 		AllowedOperations: operations,
@@ -270,6 +305,18 @@ func (issuer *Issuer) issue(ctx context.Context, request Request, id uuid.UUID) 
 	if request.TransferRetirement != nil {
 		scope := *request.TransferRetirement
 		document.TransferRetirement = &scope
+	}
+	if request.TransferReceive != nil {
+		scope := *request.TransferReceive
+		document.TransferReceive = &scope
+	}
+	if request.ApplicationRelease != nil {
+		scope := *request.ApplicationRelease
+		document.ApplicationRelease = &scope
+	}
+	if request.OwnApplicationLifecycle != nil {
+		scope := *request.OwnApplicationLifecycle
+		document.OwnApplicationLifecycle = &scope
 	}
 	if err := document.ValidateClaims(); err != nil {
 		return Capability{}, err
@@ -324,6 +371,31 @@ func (issuer *Issuer) TrustBindingFor(ctx context.Context, tenantID, deploymentI
 		return TrustBinding{}, ErrUnavailable
 	}
 	return issuer.recorder.LookupTrustBinding(ctx, tenantID, deploymentID)
+}
+
+// admitScopedOperation keeps each scoped grant alone: an
+// application-release.update or own-application.lifecycle capability allows
+// exactly its one operation with its one scope, for at most 15 minutes, and a
+// scope never rides on another operation.
+func admitScopedOperation(request Request, operations []string, ttl time.Duration) error {
+	release := request.ApplicationRelease != nil || slices.Contains(operations, OperationApplicationReleaseUpdate)
+	lifecycle := request.OwnApplicationLifecycle != nil || slices.Contains(operations, OperationOwnApplicationLifecycle)
+	if !release && !lifecycle {
+		return nil
+	}
+	scopes := 0
+	for _, present := range []bool{request.ApplicationRelease != nil, request.OwnApplicationLifecycle != nil, request.TransferReceive != nil, request.TransferRetirement != nil, request.BackupRenewal != nil} {
+		if present {
+			scopes++
+		}
+	}
+	if release && (request.ApplicationRelease == nil || scopes != 1 || len(operations) != 1 || operations[0] != OperationApplicationReleaseUpdate || ttl > wire.ApplicationReleaseMaxLifetimeSeconds*time.Second) {
+		return errors.New("application release update must match one approved release")
+	}
+	if lifecycle && (request.OwnApplicationLifecycle == nil || scopes != 1 || len(operations) != 1 || operations[0] != OperationOwnApplicationLifecycle || ttl > wire.OwnApplicationLifecycleMaxLifetimeSeconds*time.Second) {
+		return errors.New("own application lifecycle must match one reviewed action")
+	}
+	return nil
 }
 
 func normalizeOperations(operations []string) ([]string, error) {

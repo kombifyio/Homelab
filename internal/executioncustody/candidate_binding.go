@@ -49,5 +49,5 @@ func (p *Provider) candidateInstallBinding(ctx context.Context, grant CallerGran
 	if err != nil || digest != requested.PayloadDigest {
 		return nil, deny
 	}
-	return &guardbinding.Binding{CommandID: requested.CommandID, TenantID: grant.TenantID, WorkerID: worker.ID, ServerID: server.ID, Operation: "runtime.install", PayloadDigest: digest, WorkerGeneration: generation, CurrentGeneration: generation, AuthorityExpiresAt: requested.AuthorityExpiresAt.UTC(), ContractVersion: guardbinding.ContractVersion}, nil
+	return &guardbinding.Binding{CommandID: requested.CommandID, TenantID: grant.TenantID, WorkerID: worker.ID, ServerID: server.ID, Operation: guardbinding.RuntimeInstallOperation, PayloadDigest: digest, WorkerGeneration: generation, CurrentGeneration: generation, AuthorityExpiresAt: requested.AuthorityExpiresAt.UTC(), ContractVersion: guardbinding.ContractVersion}, nil
 }

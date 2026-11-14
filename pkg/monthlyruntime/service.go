@@ -80,6 +80,8 @@ var (
 
 type FeatureDisabledError struct {
 	FeatureKey string
+	// ProviderID is the provider of the lease whose feature is disabled.
+	ProviderID string
 }
 
 func (e *FeatureDisabledError) Error() string {
@@ -245,6 +247,10 @@ type ActionRequest struct {
 	// Force, on a Decommission action, cancels the lease and reconciles the
 	// provider resource out-of-band without contacting an unreachable runtime.
 	Force bool
+	// governed replaces the owner-visibility check for the decommission of an
+	// erased subject's lease. Only DecommissionErasedSubjectLeases sets it,
+	// after its admission.
+	governed *governedAdmission
 }
 
 type OperationsRequest struct {
@@ -395,6 +401,11 @@ func (s *Service) Action(ctx context.Context, req ActionRequest) (*RuntimeRespon
 	if err != nil {
 		return nil, err
 	}
+	if req.governed != nil {
+		if err = s.recordGovernedAdmission(ctx, prepared.tenantID, req.LeaseID, req.governed, prepared.confirmedDecommissionDigest); err != nil {
+			return nil, err
+		}
+	}
 	if resp, handled, day2Err := s.day2Action(ctx, req, prepared); handled {
 		return resp, day2Err
 	}
@@ -402,7 +413,7 @@ func (s *Service) Action(ctx context.Context, req ActionRequest) (*RuntimeRespon
 		return resp, replayErr
 	}
 	if resp, handled, shortCircuitErr := s.decommissionShortCircuit(ctx, prepared.tenantID, prepared.lease, prepared.offeringID, req); handled {
-		return resp, shortCircuitErr
+		return resp, leaseDecommissionError(prepared.lease, shortCircuitErr)
 	}
 	if resp, handled, shortCircuitErr := s.persistedSSHInfoShortCircuit(ctx, req, prepared); handled {
 		return resp, shortCircuitErr
@@ -411,7 +422,7 @@ func (s *Service) Action(ctx context.Context, req ActionRequest) (*RuntimeRespon
 	if err == nil && req.Action == serverruntime.RuntimeActionStatus {
 		s.attachLatestPower(ctx, prepared.tenantID, resp)
 	}
-	return resp, err
+	return resp, leaseDecommissionError(prepared.lease, err)
 }
 
 type preparedRuntimeAction struct {
@@ -511,7 +522,11 @@ func (s *Service) loadAuthorizedActionLease(ctx context.Context, req ActionReque
 		return "", nil, "", err
 	}
 	lease := &record.Lease
-	if !canAccessLease(*lease, strings.TrimSpace(req.UserID), tenantID) {
+	if req.governed != nil {
+		if err = req.governed.authorize(*lease, req, tenantID); err != nil {
+			return "", nil, "", err
+		}
+	} else if !canAccessLease(*lease, strings.TrimSpace(req.UserID), tenantID) {
 		return "", nil, "", ErrForbidden
 	}
 	if !record.NativeActive() &&
@@ -528,7 +543,7 @@ func (s *Service) loadAuthorizedActionLease(ctx context.Context, req ActionReque
 		return "", nil, "", err
 	}
 	if guardErr := demoGuardForAction(*lease, req); guardErr != nil {
-		return "", nil, "", guardErr
+		return "", nil, "", leaseDecommissionError(lease, guardErr)
 	}
 	return tenantID, lease, offeringID, nil
 }
@@ -620,14 +635,20 @@ func (s *Service) confirmedDecommissionReplayShortCircuit(ctx context.Context, r
 	if !confirmed {
 		return nil, false, nil
 	}
+	metadata := map[string]string{
+		"runtime_last_action":    string(serverruntime.RuntimeActionDecommission),
+		"runtime_lease_state":    leaseStateCancelled,
+		"runtime_observed_state": runtimeObservedStateNotFound,
+	}
+	if req.governed != nil {
+		for key, value := range req.governed.metadata(prepared.lease.Metadata) {
+			metadata[key] = value
+		}
+	}
 	lease, err := s.Leases.Patch(ctx, prepared.tenantID, req.LeaseID, vmleases.PatchRequest{
 		Cancel:                           true,
 		ExpectedResourceGenerationDigest: prepared.confirmedDecommissionDigest,
-		Metadata: map[string]string{
-			"runtime_last_action":    string(serverruntime.RuntimeActionDecommission),
-			"runtime_lease_state":    leaseStateCancelled,
-			"runtime_observed_state": runtimeObservedStateNotFound,
-		},
+		Metadata:                         metadata,
 	})
 	if err != nil {
 		return nil, true, err
@@ -946,7 +967,7 @@ func (s *Service) ensureFeatures(ctx context.Context, userID string, lease vmlea
 			return err
 		}
 		if !enabled {
-			return &FeatureDisabledError{FeatureKey: featureKey}
+			return &FeatureDisabledError{FeatureKey: featureKey, ProviderID: providerID}
 		}
 	}
 	return nil

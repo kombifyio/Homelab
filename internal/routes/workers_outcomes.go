@@ -97,18 +97,17 @@ func (h workerRouteHandlers) listUnresolvedOutcomes(e *httpx.Event) error {
 
 // resolveOutcome releases the fence of an unresolved outcome_unknown with an
 // explicit operator disposition. The actor is the authenticated subject, the
-// step-up must be fresh and the revision the operator saw must still be the
-// current one.
+// person's step-up must be fresh (an agent acting for the person needs none)
+// and the revision the operator saw must still be the current one.
 func (h workerRouteHandlers) resolveOutcome(e *httpx.Event) error {
 	ownerID, tenantID, workerID, control, err := h.ownedWorkerForOutcomes(e, "techstack.workers.outcomes.resolve")
 	if err != nil || ownerID == "" {
 		return err
 	}
-	if !entitlementGateOrHosted(h.entitlements).FreshMultiFactor(e.Request.Context(), time.Now().UTC(), outcomeResolutionStepUpMaxAge) {
-		return httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden, "A fresh multi-factor sign-in is required to release an unresolved outcome", map[string]any{
-			"reason": "outcome_resolution_step_up_required", "retryable": true,
-			"guidance": "Sign in again with a second factor and repeat the request within five minutes.",
-		})
+	agentID, admitted := freshPersonOrActingAgent(e.Request.Context(), h.entitlements, time.Now().UTC(), outcomeResolutionStepUpMaxAge)
+	if !admitted {
+		message, details := stepUpRefusal(e.Request.Context(), "A fresh multi-factor sign-in is required to release an unresolved outcome", "outcome_resolution_step_up_required")
+		return httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden, message, details)
 	}
 	raw, readErr := io.ReadAll(io.LimitReader(e.Request.Body, 4097))
 	if readErr != nil || len(raw) > 4096 || !exactJSONObjectKeys(raw, resolveOutcomeRequestFields) {
@@ -141,7 +140,7 @@ func (h workerRouteHandlers) resolveOutcome(e *httpx.Event) error {
 		}
 	}
 	slog.Warn("guard_outcome_operator_resolution", "tenant_id", tenantID, "worker_id", workerID, "command_id", commandID,
-		"revision", report.Revision, "disposition", report.Resolution, "actor", ownerID)
+		"revision", report.Revision, "disposition", report.Resolution, "actor", ownerID, "agent_id", agentID)
 	return httpx.Success(e, http.StatusOK, resolveOutcomeResponse{
 		CommandID: commandID, Revision: report.Revision, Disposition: report.Resolution, Actor: ownerID, Released: true,
 	})

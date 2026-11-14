@@ -1,12 +1,836 @@
 {
-  "schemaVersion": "techstack.stackkits-release-notes/v1",
-  "source": {
-    "version": "v0.55.11",
-    "changelog": "CHANGELOG.md",
-    "sourceCommit": "362e3785b96c64cc9e7abaf2a7c440284ef16948"
-  },
+  "schemaVersion": "stackkits.release-notes/v1",
+  "version": "v0.57.12",
   "changelogUrl": "https://stackkit.cc/changelog",
   "releases": [
+    {
+      "version": "v0.57.12",
+      "date": "2026-11-13",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "appliance",
+          "text": "assemble a mini-PC installer with first-boot pairing"
+        },
+        {
+          "kind": "added",
+          "scope": "home-graph",
+          "text": "publish a private voice routing snapshot on the node"
+        },
+        {
+          "kind": "added",
+          "scope": "install",
+          "text": "install the recommended release, computed from the slot's recorded lanes"
+        },
+        {
+          "kind": "fixed",
+          "scope": "golden-image",
+          "text": "the bake takes Guard releases, which are published as prereleases"
+        }
+      ]
+    },
+    {
+      "version": "v0.57.11",
+      "date": "2026-11-13",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "golden-image",
+          "text": "bake per kit release on rack-kvm and ship a Proxmox template"
+        },
+        {
+          "kind": "added",
+          "scope": "marketplace",
+          "text": "update Coolify as one application with database and custody rollback ( P4)"
+        }
+      ]
+    },
+    {
+      "version": "v0.57.10",
+      "date": "2026-11-12",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "decision-receipt",
+          "text": "verify and spend the platform's signed decision receipt against node custody"
+        },
+        {
+          "kind": "added",
+          "scope": "marketplace",
+          "text": "Coolify 4.7.5, least-privilege rolled API token, owner-only Pocket ID sign-in"
+        },
+        {
+          "kind": "added",
+          "scope": "own-application",
+          "text": "a person's own Compose project under sign-in, routing and backup"
+        },
+        {
+          "kind": "added",
+          "scope": "own-app",
+          "text": "published ports without outbound through an ingress-only firewall; restore unit review nits"
+        },
+        {
+          "kind": "added",
+          "scope": "own-app",
+          "text": "Stack it adopts any existing single container as an own application"
+        },
+        {
+          "kind": "added",
+          "scope": "own-app",
+          "text": "start, restart, tag update with rollback and catalog operations for own applications; Stack it row codes"
+        },
+        {
+          "kind": "added",
+          "scope": "use-cases",
+          "text": "admit the application release update on a Techstack-managed node under an exact application-release.update capability"
+        },
+        {
+          "kind": "added",
+          "scope": "use-cases",
+          "text": "release override of the entry image for every catalog application"
+        },
+        {
+          "kind": "added",
+          "scope": "use-cases",
+          "text": "update one application to an untested in-track release with --apply and automatic rollback"
+        },
+        {
+          "kind": "added",
+          "scope": "watch",
+          "text": "daily application releases and advisories feed"
+        },
+        {
+          "kind": "added",
+          "scope": "watch",
+          "text": "release notes, paired affected ranges, Docker Hub reuse and repair path"
+        },
+        {
+          "kind": "fixed",
+          "scope": "access",
+          "text": "repair the local application audience round after review"
+        },
+        {
+          "kind": "fixed",
+          "scope": "host-security",
+          "text": "the fail2ban sshd jail loads on Debian 12"
+        },
+        {
+          "kind": "fixed",
+          "scope": "own-app",
+          "text": "outbound own applications come back after a host reboot, fail closed"
+        },
+        {
+          "kind": "fixed",
+          "scope": "slot",
+          "text": "the package-run importer downloads the dash-keyed artifact"
+        },
+        {
+          "kind": "fixed",
+          "scope": "slot",
+          "text": "the public package slot reads the newest published release without gh"
+        }
+      ]
+    },
+    {
+      "version": "v0.57.9",
+      "date": "2026-11-12",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "homegraph",
+          "text": "complete existing Home Assistant adoption and CLI reference"
+        },
+        {
+          "kind": "added",
+          "scope": "homegraph",
+          "text": "node command to import the Loxone structure file read-only"
+        },
+        {
+          "kind": "added",
+          "scope": "os-compat",
+          "text": "the KVM matrix runs once per published release and records every cell"
+        },
+        {
+          "kind": "added",
+          "scope": "stackkits",
+          "text": "optional outbound Internet for own applications, only behind a managed host rule set"
+        },
+        {
+          "kind": "fixed",
+          "scope": "installer-smoke",
+          "text": "assert the current guided non-TTY contract"
+        },
+        {
+          "kind": "fixed",
+          "scope": "runtime",
+          "text": "preserve rollout bootstrap and pair Debian 12 Engine with Compose"
+        }
+      ]
+    },
+    {
+      "version": "v0.57.8",
+      "date": "2026-11-11",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "",
+          "text": "add reviewed own application lifecycle on Direct Compose"
+        },
+        {
+          "kind": "added",
+          "scope": "cli",
+          "text": "stackkit connect binds a server that runs the public package to a kombify account"
+        },
+        {
+          "kind": "added",
+          "scope": "connect",
+          "text": "pair an own server through a hidden terminal prompt"
+        },
+        {
+          "kind": "added",
+          "scope": "dev",
+          "text": "add optional pinned headless Workbench host"
+        },
+        {
+          "kind": "added",
+          "scope": "installer",
+          "text": "take defaults and localize the questions that remain"
+        },
+        {
+          "kind": "added",
+          "scope": "mcp",
+          "text": "local operation descriptions say when to use the tool (AP16.3)"
+        },
+        {
+          "kind": "added",
+          "scope": "mcp",
+          "text": "stackkit-mcp tool descriptions say when to use the tool; registry listing file (AP16.3)"
+        },
+        {
+          "kind": "added",
+          "scope": "privacy",
+          "text": "report qualified Techstack processor effects"
+        },
+        {
+          "kind": "added",
+          "scope": "security",
+          "text": "cut over StackKits authority producers and consumers"
+        },
+        {
+          "kind": "fixed",
+          "scope": "core",
+          "text": "confine Home router diagnostics to container loopback"
+        },
+        {
+          "kind": "fixed",
+          "scope": "",
+          "text": "derive public kit support from version-bound package proof"
+        },
+        {
+          "kind": "fixed",
+          "scope": "dev",
+          "text": "repair the Techstack and StackKits website local loops"
+        },
+        {
+          "kind": "fixed",
+          "scope": "",
+          "text": "guide second-device access and default public connect origin"
+        },
+        {
+          "kind": "fixed",
+          "scope": "install",
+          "text": "one public path source; init, Apply hint and proof agree; compat rows need current-release evidence"
+        },
+        {
+          "kind": "fixed",
+          "scope": "stackkits",
+          "text": "green the three red repository gates on main"
+        },
+        {
+          "kind": "fixed",
+          "scope": "stackkits",
+          "text": "validate append-only slot package ledger imports"
+        },
+        {
+          "kind": "fixed",
+          "scope": "workbench",
+          "text": "align host renderer contract identity"
+        }
+      ]
+    },
+    {
+      "version": "v0.57.7",
+      "date": "2026-11-10",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "guard",
+          "text": "restore the G10 IONOS image qualification lane"
+        },
+        {
+          "kind": "added",
+          "scope": "stackkit",
+          "text": "sync the kombify home graph to Home Assistant on the node"
+        },
+        {
+          "kind": "fixed",
+          "scope": "mcp",
+          "text": "pass the owner email through stackkit_init and the install plan"
+        },
+        {
+          "kind": "fixed",
+          "scope": "test",
+          "text": "copy the contract bundle into the bundlegen drift test's export"
+        }
+      ]
+    },
+    {
+      "version": "v0.57.6",
+      "date": "2026-11-09",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "guard",
+          "text": "publish authenticated StackKits update metadata"
+        },
+        {
+          "kind": "added",
+          "scope": "transfer",
+          "text": "carry portable application configuration into the receiving candidate"
+        },
+        {
+          "kind": "fixed",
+          "scope": "",
+          "text": "select Techstack release artifacts by changed inputs"
+        }
+      ]
+    },
+    {
+      "version": "v0.57.5",
+      "date": "2026-11-09",
+      "entries": []
+    },
+    {
+      "version": "v0.57.4",
+      "date": "2026-11-09",
+      "entries": []
+    },
+    {
+      "version": "v0.57.3",
+      "date": "2026-11-09",
+      "entries": []
+    },
+    {
+      "version": "v0.57.2",
+      "date": "2026-11-08",
+      "entries": [
+        {
+          "kind": "fixed",
+          "scope": "security",
+          "text": "build OSV with the supported repository Go compiler"
+        }
+      ]
+    },
+    {
+      "version": "v0.57.1",
+      "date": "2026-11-08",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "installer",
+          "text": "serve install.ps1 from private R2"
+        },
+        {
+          "kind": "fixed",
+          "scope": "integration",
+          "text": "remove the integration-lane hold model"
+        }
+      ]
+    },
+    {
+      "version": "v0.57.0",
+      "date": "2026-11-07",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "household",
+          "text": "member removal ends homelab access on every server"
+        },
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "one Authority across servers: Owner-approved join, constrained intermediate CA and the joined verification state"
+        },
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "public-name certificates for public identity origins and recovery re-evaluation after a domain move"
+        },
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "signer-held Owner-device pin for recovery and DBSC browser-native device-bound sessions"
+        },
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "strip edge headers at the remote listener, idempotent household removal, kombify app callback, owner setup order (igti.7)"
+        },
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "the bootstrap carries the LAN listener and root in an Owner-signed enrollment statement"
+        },
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "the LAN enrollment certificate names the site address and the bootstrap carries the root PEM"
+        },
+        {
+          "kind": "added",
+          "scope": "lab",
+          "text": "two-guest native application transfer mode for proxmox-lab"
+        },
+        {
+          "kind": "added",
+          "scope": "reach",
+          "text": "kombify.me tunnel mode, own Cloudflare Tunnels and LAN-name certificates on home servers"
+        },
+        {
+          "kind": "added",
+          "scope": "reach",
+          "text": "the private-remote-access runtime owner for standalone Home cores (igti.9, igti.10)"
+        },
+        {
+          "kind": "added",
+          "scope": "test-window",
+          "text": "cleanup proof for a failed managed Cloud Advanced window run"
+        },
+        {
+          "kind": "added",
+          "scope": "upgrade",
+          "text": "Cloud Kit public upgrade preview with owner approval, snapshot and rollback anchors"
+        },
+        {
+          "kind": "fixed",
+          "scope": "",
+          "text": "issue tracker: project bounded authenticated context reads"
+        },
+        {
+          "kind": "fixed",
+          "scope": "company",
+          "text": "preserve structural diagnostics in Techstack custody receipts"
+        },
+        {
+          "kind": "fixed",
+          "scope": "hub",
+          "text": "a confirmed away device receives its first credential (igti.10)"
+        },
+        {
+          "kind": "fixed",
+          "scope": "identity",
+          "text": "address the igti.12 review"
+        },
+        {
+          "kind": "fixed",
+          "scope": "security",
+          "text": "build Go scanners with each scanned module toolchain"
+        },
+        {
+          "kind": "fixed",
+          "scope": "test-window",
+          "text": "retain recheck causes and migrated authority"
+        },
+        {
+          "kind": "fixed",
+          "scope": "test-window",
+          "text": "route the managed Cloud Advanced Core's Stage database through the fixed egress"
+        }
+      ]
+    },
+    {
+      "version": "v0.56.4",
+      "date": "2026-11-07",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "household",
+          "text": "member removal ends homelab access on every server"
+        },
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "one Authority across servers: Owner-approved join, constrained intermediate CA and the joined verification state"
+        },
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "signer-held Owner-device pin for recovery and DBSC browser-native device-bound sessions"
+        },
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "strip edge headers at the remote listener, idempotent household removal, kombify app callback, owner setup order (igti.7)"
+        },
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "the LAN enrollment certificate names the site address and the bootstrap carries the root PEM"
+        },
+        {
+          "kind": "added",
+          "scope": "reach",
+          "text": "kombify.me tunnel mode, own Cloudflare Tunnels and LAN-name certificates on home servers"
+        },
+        {
+          "kind": "fixed",
+          "scope": "company",
+          "text": "preserve structural diagnostics in Techstack custody receipts"
+        }
+      ]
+    },
+    {
+      "version": "v0.56.3",
+      "date": "2026-11-07",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "upgrade",
+          "text": "Cloud Kit public upgrade preview with owner approval, snapshot and rollback anchors"
+        }
+      ]
+    },
+    {
+      "version": "v0.56.2",
+      "date": "2026-11-06",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "lab",
+          "text": "two-guest native application transfer mode for proxmox-lab"
+        },
+        {
+          "kind": "fixed",
+          "scope": "test-window",
+          "text": "route the managed Cloud Advanced Core's Stage database through the fixed egress"
+        }
+      ]
+    },
+    {
+      "version": "v0.56.1",
+      "date": "2026-11-06",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "test-window",
+          "text": "cleanup proof for a failed managed Cloud Advanced window run"
+        }
+      ]
+    },
+    {
+      "version": "v0.56.0",
+      "date": "2026-11-06",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "access contracts for the homelab identity target; WireGuard overlay out of the default"
+        },
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "enrollment by the person with LAN-listener home, step-up classes and the local removal chain"
+        },
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "homelab identity and access P0 (..igti.7)"
+        },
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "host-side identity signer, browser sessions, app passes and away confirmation"
+        },
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "key-bound device credential with DPoP renewal and verifier rework; retire the X.509 device certificate"
+        },
+        {
+          "kind": "added",
+          "scope": "lifecycle",
+          "text": "scoped application release change with retained-data rollback"
+        },
+        {
+          "kind": "added",
+          "scope": "mcp",
+          "text": "use-case add, configure and scoped release change tools"
+        },
+        {
+          "kind": "added",
+          "scope": "paas",
+          "text": "Coolify restore activation, removal and drift; Files on Runtipi"
+        },
+        {
+          "kind": "added",
+          "scope": "paas",
+          "text": "Dokploy Layer-2 platform on Basement with bootstrap, login, data operations and removal"
+        },
+        {
+          "kind": "added",
+          "scope": "rack-android",
+          "text": "ephemeral Android emulator runner VM 9001 on rack-pve"
+        },
+        {
+          "kind": "added",
+          "scope": "runtipi",
+          "text": "shared backup, restore and removal for Runtipi workloads and the Runtipi Marketplace"
+        },
+        {
+          "kind": "added",
+          "scope": "speechkit",
+          "text": "Parakeet STT, LAN listener and mDNS announcer for the homelab speech module"
+        },
+        {
+          "kind": "added",
+          "scope": "speechkit",
+          "text": "the module describes the real homelab voice runtime and listens on 18080"
+        },
+        {
+          "kind": "added",
+          "scope": "transfer",
+          "text": "managed native application move with Techstack receive grants and verified destination readback"
+        },
+        {
+          "kind": "added",
+          "scope": "vpn",
+          "text": "optional VPN add-on with WireGuard, Headscale, Tailscale and Pangolin; peers at enrollment, removed on revocation"
+        },
+        {
+          "kind": "added",
+          "scope": "window-lanes",
+          "text": "lane runs the Workbench M06 performance proof on the EliteDesk G6"
+        },
+        {
+          "kind": "fixed",
+          "scope": "b3",
+          "text": "the cleanup proof proves a retired Techstack run and accepts the owner's product readback after a refused removal"
+        },
+        {
+          "kind": "fixed",
+          "scope": "cli",
+          "text": "name generate+apply when the stored plan is older than the CLI"
+        },
+        {
+          "kind": "fixed",
+          "scope": "coolify",
+          "text": "workloads fail fast when the Marketplace fails; released Vault lanes leave main"
+        },
+        {
+          "kind": "fixed",
+          "scope": "dokploy",
+          "text": "quiesce backup writers through the Compose process contract"
+        },
+        {
+          "kind": "fixed",
+          "scope": "dokploy",
+          "text": "UI route behind TinyAuth, bound for verify through the Dokploy service control"
+        },
+        {
+          "kind": "fixed",
+          "scope": "generator",
+          "text": "preserve custom module journeys"
+        },
+        {
+          "kind": "fixed",
+          "scope": "guard-qualification",
+          "text": "read the durable outcome_unknown revision behind the operator escalation"
+        },
+        {
+          "kind": "fixed",
+          "scope": "guard",
+          "text": "adopt an update trial whose supervisor a reboot or failure ended"
+        },
+        {
+          "kind": "fixed",
+          "scope": "guard",
+          "text": "back off a persistent server fault on result redelivery to 5 min"
+        },
+        {
+          "kind": "fixed",
+          "scope": "",
+          "text": "include the native window proof import in sparse checkout"
+        },
+        {
+          "kind": "fixed",
+          "scope": "lifecycle",
+          "text": "selected Vaultwarden release in the executor and a non-nested release checkpoint lock"
+        },
+        {
+          "kind": "fixed",
+          "scope": "localowner",
+          "text": "refuse either admin group and re-judge the CAS snapshot before a legacy delete"
+        },
+        {
+          "kind": "fixed",
+          "scope": "localowner",
+          "text": "the legacy replacement lists household custody through the transaction walk"
+        },
+        {
+          "kind": "fixed",
+          "scope": "release-guard",
+          "text": "admit the release volume probe in the closed Compose runner"
+        },
+        {
+          "kind": "fixed",
+          "scope": "remove",
+          "text": "keep a Techstack-managed workspace's intent so every destroy removal resolves the applied plan"
+        },
+        {
+          "kind": "fixed",
+          "scope": "speechkit",
+          "text": "keep the hosted origin out of the public CLI"
+        },
+        {
+          "kind": "fixed",
+          "scope": "upgrade",
+          "text": "an upgrade interrupted after target Apply recovers: claimant proof and owner-approved forward completion"
+        },
+        {
+          "kind": "fixed",
+          "scope": "upgrade",
+          "text": "an upgrade stopped at prepared is released by explicit recovery without replaying the prior Apply"
+        },
+        {
+          "kind": "fixed",
+          "scope": "upgrade",
+          "text": "forward recovery can finish with a newer verified release when the signed target cannot"
+        }
+      ]
+    },
+    {
+      "version": "v0.55.19",
+      "date": "2026-11-05",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "rack-android",
+          "text": "ephemeral Android emulator runner VM 9001 on rack-pve"
+        }
+      ]
+    },
+    {
+      "version": "v0.55.18",
+      "date": "2026-11-05",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "speechkit",
+          "text": "the module describes the real homelab voice runtime and listens on 18080"
+        }
+      ]
+    },
+    {
+      "version": "v0.55.17",
+      "date": "2026-11-04",
+      "entries": [
+        {
+          "kind": "fixed",
+          "scope": "generator",
+          "text": "preserve custom module journeys"
+        },
+        {
+          "kind": "fixed",
+          "scope": "speechkit",
+          "text": "keep the hosted origin out of the public CLI"
+        }
+      ]
+    },
+    {
+      "version": "v0.55.16",
+      "date": "2026-11-04",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "window-lanes",
+          "text": "lane runs the Workbench M06 performance proof on the EliteDesk G6"
+        },
+        {
+          "kind": "fixed",
+          "scope": "guard",
+          "text": "back off a persistent server fault on result redelivery to 5 min"
+        }
+      ]
+    },
+    {
+      "version": "v0.55.15",
+      "date": "2026-11-04",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "host-side identity signer, browser sessions, app passes and away confirmation"
+        }
+      ]
+    },
+    {
+      "version": "v0.55.14",
+      "date": "2026-11-04",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "transfer",
+          "text": "managed native application move with Techstack receive grants and verified destination readback"
+        },
+        {
+          "kind": "added",
+          "scope": "vpn",
+          "text": "optional VPN add-on with WireGuard, Headscale, Tailscale and Pangolin; peers at enrollment, removed on revocation"
+        },
+        {
+          "kind": "fixed",
+          "scope": "remove",
+          "text": "keep a Techstack-managed workspace's intent so every destroy removal resolves the applied plan"
+        }
+      ]
+    },
+    {
+      "version": "v0.55.13",
+      "date": "2026-11-04",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "homelab identity and access P0 (..igti.7)"
+        }
+      ]
+    },
+    {
+      "version": "v0.55.12",
+      "date": "2026-11-03",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "access contracts for the homelab identity target; WireGuard overlay out of the default"
+        },
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "enrollment by the person with LAN-listener home, step-up classes and the local removal chain"
+        },
+        {
+          "kind": "added",
+          "scope": "identity",
+          "text": "key-bound device credential with DPoP renewal and verifier rework; retire the X.509 device certificate"
+        },
+        {
+          "kind": "added",
+          "scope": "speechkit",
+          "text": "Parakeet STT, LAN listener and mDNS announcer for the homelab speech module"
+        }
+      ]
+    },
     {
       "version": "v0.55.11",
       "date": "2026-11-02",
@@ -627,1489 +1451,6 @@
           "kind": "fixed",
           "scope": "restore",
           "text": "reuse the lock-fenced Apply authority in Coolify restore custody checks (platform-rwacb.4)"
-        }
-      ]
-    },
-    {
-      "version": "v0.54.14",
-      "date": "2026-10-31",
-      "entries": [
-        {
-          "kind": "fixed",
-          "scope": "backup",
-          "text": "accept a clean stop after an earlier in-container OOM kill and name the failed snapshot-run step (platform-1ax58.2)"
-        },
-        {
-          "kind": "fixed",
-          "scope": "restore",
-          "text": "speak Docker exec API 1.44 so Coolify restore activation can quiesce (2ujh.3.7)"
-        }
-      ]
-    },
-    {
-      "version": "v0.54.13",
-      "date": "2026-10-31",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "advancedcapability",
-          "text": "bind held transfer retirement to exact evidence"
-        },
-        {
-          "kind": "added",
-          "scope": "",
-          "text": "align public Go release preflight"
-        },
-        {
-          "kind": "added",
-          "scope": "",
-          "text": "bootstrap runtime contract authority"
-        },
-        {
-          "kind": "added",
-          "scope": "contracts",
-          "text": "fail check when StackAction CUE drifts"
-        },
-        {
-          "kind": "added",
-          "scope": "contracts",
-          "text": "relocate runtimeexecutor, runtimeapply and applyevidence and add generated advancedcapability"
-        },
-        {
-          "kind": "added",
-          "scope": "contracts",
-          "text": "the runtime contracts are part of the StackKits module (platform-nisyi)"
-        },
-        {
-          "kind": "added",
-          "scope": "datasubject",
-          "text": "account export and erasure wire contract"
-        },
-        {
-          "kind": "added",
-          "scope": "",
-          "text": "define canonical public runtime-contract mirror"
-        },
-        {
-          "kind": "added",
-          "scope": "",
-          "text": "define runtime consumer compatibility evidence"
-        },
-        {
-          "kind": "added",
-          "scope": "",
-          "text": "harden public runtime-contract export handoff"
-        },
-        {
-          "kind": "added",
-          "scope": "providerexecutor",
-          "text": "bind customer worker submit and observe envelopes"
-        },
-        {
-          "kind": "added",
-          "scope": "",
-          "text": "publish managed service control contracts"
-        },
-        {
-          "kind": "added",
-          "scope": "runtimeinventory",
-          "text": "bind generated Techstack lineage"
-        },
-        {
-          "kind": "added",
-          "scope": "runtimeinventory",
-          "text": "freshness-qualified resource metrics on server and health"
-        },
-        {
-          "kind": "added",
-          "scope": "runtimeinventory",
-          "text": "preserve service definition ownership"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "authenticate portable Agent Home Git refresh"
-        },
-        {
-          "kind": "fixed",
-          "scope": "bootstrap",
-          "text": "GitHub Actions is no longer a bootstrap gap"
-        },
-        {
-          "kind": "fixed",
-          "scope": "context",
-          "text": "refresh canonical standalone session projections"
-        },
-        {
-          "kind": "fixed",
-          "scope": "contracts",
-          "text": "restore local architecture gate"
-        },
-        {
-          "kind": "fixed",
-          "scope": "contracts",
-          "text": "verify inventory generation in fast gates"
-        },
-        {
-          "kind": "fixed",
-          "scope": "export",
-          "text": "make the private-dependency test module cache removable"
-        },
-        {
-          "kind": "fixed",
-          "scope": "export",
-          "text": "verify private generation lineage"
-        },
-        {
-          "kind": "fixed",
-          "scope": "photos",
-          "text": "admit fresh Immich and Jellyfin installs under the OpenTofu target (platform-1ax58.2)"
-        },
-        {
-          "kind": "fixed",
-          "scope": "releases",
-          "text": "verify the authenticated private candidate version"
-        },
-        {
-          "kind": "fixed",
-          "scope": "ssh",
-          "text": "report foreign CA trust after managed trust is removed"
-        },
-        {
-          "kind": "fixed",
-          "scope": "stackaction",
-          "text": "restore reviewed bundle parity pin"
-        }
-      ]
-    },
-    {
-      "version": "v0.54.12",
-      "date": "2026-10-30",
-      "entries": []
-    },
-    {
-      "version": "v0.54.11",
-      "date": "2026-10-30",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "failures",
-          "text": "offline failure resolution snapshot and lookup (P5 slice 3)"
-        },
-        {
-          "kind": "fixed",
-          "scope": "pocketid",
-          "text": "qualify native frontend and bound builder cleanup"
-        }
-      ]
-    },
-    {
-      "version": "v0.54.10",
-      "date": "2026-10-26",
-      "entries": [
-        {
-          "kind": "fixed",
-          "scope": "terramatehost",
-          "text": "give the Day 2 encrypted-state fixture its owner root marker"
-        }
-      ]
-    },
-    {
-      "version": "v0.54.9",
-      "date": "2026-10-26",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "ai",
-          "text": "add Qdrant as Private AI vector store"
-        },
-        {
-          "kind": "added",
-          "scope": "authoring",
-          "text": "expose typed installed configuration contracts"
-        },
-        {
-          "kind": "added",
-          "scope": "backup",
-          "text": "transfer selected native applications with retained source custody"
-        },
-        {
-          "kind": "added",
-          "scope": "",
-          "text": "bind retained removal candidates to native baseline"
-        },
-        {
-          "kind": "added",
-          "scope": "",
-          "text": "configure retained use cases and foundation capabilities"
-        },
-        {
-          "kind": "added",
-          "scope": "coolify",
-          "text": "admit imported Files provider workloads"
-        },
-        {
-          "kind": "added",
-          "scope": "full-local",
-          "text": "install authenticated offline bundles with LAN-only runtimes"
-        },
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "publish qualified PocketID CAS image and enforce managed writer drain"
-        },
-        {
-          "kind": "added",
-          "scope": "komodo",
-          "text": "bind imported Files to guarded provider lifecycle"
-        },
-        {
-          "kind": "added",
-          "scope": "komodo",
-          "text": "execute guarded provider lifecycle and exact-ID recovery"
-        },
-        {
-          "kind": "added",
-          "scope": "lifecycle",
-          "text": "record native Apply executable provenance"
-        },
-        {
-          "kind": "added",
-          "scope": "lifecycle",
-          "text": "remove selected applications and use cases safely"
-        },
-        {
-          "kind": "added",
-          "scope": "lifecycle",
-          "text": "retain and verify selected workload transfers"
-        },
-        {
-          "kind": "added",
-          "scope": "marketplace",
-          "text": "admit Runtipi as an explicit non-default alternative"
-        },
-        {
-          "kind": "added",
-          "scope": "plan",
-          "text": "expose verified native Owner binding"
-        },
-        {
-          "kind": "added",
-          "scope": "runtime",
-          "text": "add guarded Coolify and Dokploy Vault provider execution"
-        },
-        {
-          "kind": "added",
-          "scope": "runtipi",
-          "text": "journal app-group backup and restore custody"
-        },
-        {
-          "kind": "added",
-          "scope": "runtipi",
-          "text": "order native API workload execution through OpenTofu"
-        },
-        {
-          "kind": "added",
-          "scope": "tofu",
-          "text": "bundle Coolify and Dokploy providers offline"
-        },
-        {
-          "kind": "added",
-          "scope": "tofu",
-          "text": "guard platform plans and preserve action process leases"
-        },
-        {
-          "kind": "fixed",
-          "scope": "ai",
-          "text": "require storage-data-policy and backup-core on the Qdrant provider"
-        },
-        {
-          "kind": "fixed",
-          "scope": "apply",
-          "text": "run Coolify workload owners after the Marketplace installation"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "authenticate complete retained Apply artifact snapshots"
-        },
-        {
-          "kind": "fixed",
-          "scope": "backup",
-          "text": "back up Coolify workloads with digit-led service identities and database components"
-        },
-        {
-          "kind": "fixed",
-          "scope": "cli",
-          "text": "report apply completion after finalization"
-        },
-        {
-          "kind": "fixed",
-          "scope": "coolify",
-          "text": "deliver workload secret variables through an owner-only env file"
-        },
-        {
-          "kind": "fixed",
-          "scope": "host",
-          "text": "match privileged listener probes to the planned address"
-        },
-        {
-          "kind": "fixed",
-          "scope": "lifecycle",
-          "text": "claim under the state lock and reap only token-proven leftovers"
-        },
-        {
-          "kind": "fixed",
-          "scope": "lifecycle",
-          "text": "recover operations whose owning process died"
-        },
-        {
-          "kind": "fixed",
-          "scope": "marketplace",
-          "text": "link the Coolify root admin to the signed Pocket ID owner"
-        },
-        {
-          "kind": "fixed",
-          "scope": "marketplace",
-          "text": "reach the Basement issuer and verify native Marketplace"
-        },
-        {
-          "kind": "fixed",
-          "scope": "marketplace",
-          "text": "revoke foreign root-team access on every Coolify bootstrap"
-        },
-        {
-          "kind": "fixed",
-          "scope": "marketplace",
-          "text": "revoke pending team-0 invitations on every Coolify bootstrap"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "realize Komodo bootstrap for Standard OpenTofu generation"
-        },
-        {
-          "kind": "fixed",
-          "scope": "runtime",
-          "text": "diagnose the deficient host capacity"
-        },
-        {
-          "kind": "fixed",
-          "scope": "runtipi",
-          "text": "activate custom revisions through installed recipes"
-        },
-        {
-          "kind": "fixed",
-          "scope": "runtipi",
-          "text": "bind bootstrap to the node Docker daemon"
-        },
-        {
-          "kind": "fixed",
-          "scope": "runtipi",
-          "text": "verify actual removal and retained data volumes"
-        },
-        {
-          "kind": "fixed",
-          "scope": "tenantdb",
-          "text": "adopt released verified-context Common in StackKits"
-        },
-        {
-          "kind": "fixed",
-          "scope": "tofu",
-          "text": "admit selected runtime roots before apply and recovery"
-        },
-        {
-          "kind": "fixed",
-          "scope": "verify",
-          "text": "keep OpenTofu state roots for every non-Marketplace workload"
-        },
-        {
-          "kind": "fixed",
-          "scope": "verify",
-          "text": "name the actual adapter in applied-workload errors"
-        },
-        {
-          "kind": "fixed",
-          "scope": "verify",
-          "text": "verify Coolify API workloads through their owner observation"
-        }
-      ]
-    },
-    {
-      "version": "v0.54.8",
-      "date": "2026-10-22",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "community",
-          "text": "render the community kit into the public mirror surface"
-        }
-      ]
-    },
-    {
-      "version": "v0.54.7",
-      "date": "2026-10-22",
-      "entries": [
-        {
-          "kind": "fixed",
-          "scope": "coolify-mirror",
-          "text": "return bubbles to v1 so public archives build"
-        },
-        {
-          "kind": "fixed",
-          "scope": "remove",
-          "text": "remove the Basement core workload through the native Owner-signed path"
-        }
-      ]
-    },
-    {
-      "version": "v0.54.6",
-      "date": "2026-10-22",
-      "entries": [
-        {
-          "kind": "fixed",
-          "scope": "public-tls",
-          "text": "serve managed kombify.me standalone Cloud core from the origin certificate"
-        }
-      ]
-    },
-    {
-      "version": "v0.54.5",
-      "date": "2026-10-22",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "auth",
-          "text": "verify per-caller Ed25519 service tokens on StackActions"
-        },
-        {
-          "kind": "added",
-          "scope": "photos",
-          "text": "move Immich to v3.3.4 with a fail-closed v2 major hold"
-        },
-        {
-          "kind": "added",
-          "scope": "server",
-          "text": "Owner passkey page to approve or deny agent write requests"
-        },
-        {
-          "kind": "fixed",
-          "scope": "basement",
-          "text": "multi-arch LAN DNS resolver for arm64 hosts"
-        },
-        {
-          "kind": "fixed",
-          "scope": "files",
-          "text": "keep Cloudreve Files behind forward-auth until patched runtime"
-        },
-        {
-          "kind": "fixed",
-          "scope": "files",
-          "text": "restrict Cloudreve share access to owners until upstream fixes shares"
-        },
-        {
-          "kind": "fixed",
-          "scope": "overlay",
-          "text": "bring the kit-owned WireGuard interface up and keep it up after reboot"
-        },
-        {
-          "kind": "fixed",
-          "scope": "registry",
-          "text": "keep per-application facts for apps sharing a URL slot"
-        },
-        {
-          "kind": "fixed",
-          "scope": "upgrade",
-          "text": "recover prior release on its own archived OpenTofu"
-        },
-        {
-          "kind": "fixed",
-          "scope": "upgrade",
-          "text": "run each release on a provider mirror that carries its own manifest"
-        }
-      ]
-    },
-    {
-      "version": "v0.54.4",
-      "date": "2026-10-21",
-      "entries": [
-        {
-          "kind": "fixed",
-          "scope": "advanced",
-          "text": "consume central capabilities and reuse CLI build"
-        },
-        {
-          "kind": "fixed",
-          "scope": "security",
-          "text": "Go 1.27.3, MCP app dependency bumps, reviewed OSV ignores, verified-only history scan"
-        }
-      ]
-    },
-    {
-      "version": "v0.54.3",
-      "date": "2026-10-20",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "hostpreflight",
-          "text": "run Local AI on Windows through WSL2 GPU paravirtualization"
-        },
-        {
-          "kind": "fixed",
-          "scope": "upgrade",
-          "text": "run release children on their verified OpenTofu and the installation's provider mirror"
-        }
-      ]
-    },
-    {
-      "version": "v0.54.2",
-      "date": "2026-10-20",
-      "entries": []
-    },
-    {
-      "version": "v0.54.1",
-      "date": "2026-10-20",
-      "entries": [
-        {
-          "kind": "fixed",
-          "scope": "hostpreflight",
-          "text": "read systemd socket continuation and vsock lines"
-        }
-      ]
-    },
-    {
-      "version": "v0.54.0",
-      "date": "2026-10-20",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "",
-          "text": "add layout feasibility operation, resident-load policy and add-on placement check (platform-wig6t.1)"
-        },
-        {
-          "kind": "added",
-          "scope": "advanced",
-          "text": "carry Home and federation bindings into change-set create/apply"
-        },
-        {
-          "kind": "added",
-          "scope": "ai",
-          "text": "add the LiteLLM model router as the AI API access module"
-        },
-        {
-          "kind": "added",
-          "scope": "ai",
-          "text": "add the Private AI model manager setup action"
-        },
-        {
-          "kind": "added",
-          "scope": "ai",
-          "text": "install the NVIDIA driver on Ubuntu guests and prove the GPU under CUDA load"
-        },
-        {
-          "kind": "added",
-          "scope": "ai",
-          "text": "name the private chat bundle My private Chat"
-        },
-        {
-          "kind": "added",
-          "scope": "ai",
-          "text": "Private AI bundles by user goal; ComfyUI without a GPU condition"
-        },
-        {
-          "kind": "added",
-          "scope": "ai",
-          "text": "rename the own-AI bundle to My local AI"
-        },
-        {
-          "kind": "added",
-          "scope": "backup",
-          "text": "recover explicitly selected Marketplace service data"
-        },
-        {
-          "kind": "added",
-          "scope": "",
-          "text": "bind Mosquitto resource variants to native compute profiles"
-        },
-        {
-          "kind": "added",
-          "scope": "",
-          "text": "bind observed complete Guacamole module demand"
-        },
-        {
-          "kind": "added",
-          "scope": "catalog",
-          "text": "enforce use-case prohibitions, safe defaults and allocated backup volumes"
-        },
-        {
-          "kind": "added",
-          "scope": "catalog",
-          "text": "group use-case capability modules into bundles"
-        },
-        {
-          "kind": "added",
-          "scope": "catalog",
-          "text": "memory and GPU fit per choice option; Private AI model size"
-        },
-        {
-          "kind": "added",
-          "scope": "cli",
-          "text": "preview kit selection footprints and capacity"
-        },
-        {
-          "kind": "added",
-          "scope": "cloud",
-          "text": "retain PocketID across resumable session route repair"
-        },
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "device enrollment ceremony on a LAN listener"
-        },
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "enroll household devices through step-ca with stackkit device enroll|list|revoke"
-        },
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "per-app household access groups on the node (platform-zkutf)"
-        },
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "register the kombify account-link PKCE client on connected nodes (platform-xtnpe)"
-        },
-        {
-          "kind": "added",
-          "scope": "init",
-          "text": "declare an ntfy owner channel during stackkit init"
-        },
-        {
-          "kind": "added",
-          "scope": "",
-          "text": "install explicit ntfy live notifications with native delivery check"
-        },
-        {
-          "kind": "added",
-          "scope": "mcp",
-          "text": "harden MCP, per-agent credentials with per-call write approval, host-execution ADR"
-        },
-        {
-          "kind": "added",
-          "scope": "mcp",
-          "text": "per-agent credentials and per-call approval for stdio attachments"
-        },
-        {
-          "kind": "added",
-          "scope": "media",
-          "text": "add receipted Jellyfin file import"
-        },
-        {
-          "kind": "added",
-          "scope": "media",
-          "text": "complete native Audiobookshelf owner and library setup"
-        },
-        {
-          "kind": "added",
-          "scope": "media",
-          "text": "complete native Navidrome owner setup"
-        },
-        {
-          "kind": "added",
-          "scope": "network",
-          "text": "bind measured native compute envelopes"
-        },
-        {
-          "kind": "added",
-          "scope": "network",
-          "text": "claim AdGuard Home backup/restore and declare the Network, Remote and ntfy data contracts"
-        },
-        {
-          "kind": "added",
-          "scope": "notifications",
-          "text": "owner notification intent and backup digest recipe"
-        },
-        {
-          "kind": "added",
-          "scope": "notify",
-          "text": "owner lifecycle events (apply-failed, drift-detected, upgrade-available, certificate-expiring)"
-        },
-        {
-          "kind": "added",
-          "scope": "overlay",
-          "text": "kit-owned WireGuard overlay contract, key custody and peer rendering for enrolled devices"
-        },
-        {
-          "kind": "added",
-          "scope": "ownernotify",
-          "text": "PagerDuty delivery adapter"
-        },
-        {
-          "kind": "added",
-          "scope": "paas",
-          "text": "restore Photos, Files and Vault through Coolify and Komodo (2ujh.3.7)"
-        },
-        {
-          "kind": "added",
-          "scope": "",
-          "text": "read back restored volume content during live restore activation"
-        },
-        {
-          "kind": "added",
-          "scope": "relocate",
-          "text": "drain before the final send, JSON results and receive --wait"
-        },
-        {
-          "kind": "added",
-          "scope": "relocate",
-          "text": "plan and check Coolify workload moves with a pinned coolify-mirror fork"
-        },
-        {
-          "kind": "added",
-          "scope": "relocate",
-          "text": "send and receive Coolify workloads with a Wallet-delivered transfer secret"
-        },
-        {
-          "kind": "added",
-          "scope": "remote",
-          "text": "bind measured Guacamole compute envelopes"
-        },
-        {
-          "kind": "added",
-          "scope": "resolvedplan",
-          "text": "hand the home-access overlay to the private-remote-access executor"
-        },
-        {
-          "kind": "added",
-          "scope": "resolvedplan",
-          "text": "re-issue Home backup target and federation link bindings for a successor spec"
-        },
-        {
-          "kind": "added",
-          "scope": "resolvedplan",
-          "text": "Standard Mode private remote access is realized by the kit-owned WireGuard overlay"
-        },
-        {
-          "kind": "added",
-          "scope": "",
-          "text": "restart retained Coolify workload services"
-        },
-        {
-          "kind": "added",
-          "scope": "",
-          "text": "restore signed Coolify application data"
-        },
-        {
-          "kind": "added",
-          "scope": "service",
-          "text": "transfer registered workload managers under shared custody"
-        },
-        {
-          "kind": "added",
-          "scope": "",
-          "text": "show bound capacity guidance in native plan inspection"
-        },
-        {
-          "kind": "added",
-          "scope": "smart-home",
-          "text": "configure plan-bound Home Assistant MQTT"
-        },
-        {
-          "kind": "added",
-          "scope": "smart-home",
-          "text": "pin Home Assistant 2026.9.4 for the reviewed MCP adapter"
-        },
-        {
-          "kind": "added",
-          "scope": "",
-          "text": "verify installed Network policy and reactivate declared configuration"
-        },
-        {
-          "kind": "added",
-          "scope": "verify",
-          "text": "add --notify owner delivery check (y5d6)"
-        },
-        {
-          "kind": "added",
-          "scope": "wave11",
-          "text": "agent mcp-config remote HTTP entry; delete demos/ carry"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "align canonical MQTT profile facts with shared delivery"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "align legacy PaaS guidance with Marketplace ownership"
-        },
-        {
-          "kind": "fixed",
-          "scope": "architecture-v2",
-          "text": "register the Cloud standalone OpenTofu and Terramate hashes after #2195"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "avoid replaying uncertain manager attachment"
-        },
-        {
-          "kind": "fixed",
-          "scope": "backup",
-          "text": "journal change-set backup custody move so recovery restores it"
-        },
-        {
-          "kind": "fixed",
-          "scope": "backup",
-          "text": "restore Files through retained Komodo custody"
-        },
-        {
-          "kind": "fixed",
-          "scope": "bootstrap",
-          "text": "project portable Agent Home context readiness"
-        },
-        {
-          "kind": "fixed",
-          "scope": "bootstrap",
-          "text": "reuse host Git authentication for Agent Home"
-        },
-        {
-          "kind": "fixed",
-          "scope": "catalog",
-          "text": "apply the use-case standard to maturity, kit roles, data contracts and restore"
-        },
-        {
-          "kind": "fixed",
-          "scope": "catalog",
-          "text": "option-level realization; Private AI local inference installs"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "complete Marketplace service observation and control"
-        },
-        {
-          "kind": "fixed",
-          "scope": "cue",
-          "text": "evaluate OTLP transport, pi backends and provider owner guard under CUE 0.17"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "diagnose PocketID TinyAuth policy mismatches precisely"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "diagnose rejected stored plans with source recovery guidance"
-        },
-        {
-          "kind": "fixed",
-          "scope": "feasibility",
-          "text": "an undeclared data budget is an advisory"
-        },
-        {
-          "kind": "fixed",
-          "scope": "hostcustody",
-          "text": "require the pinned authority signature on every delivery"
-        },
-        {
-          "kind": "fixed",
-          "scope": "hostdelivery",
-          "text": "each server reports a unique, stable node reference to the Wallet (platform-qujge)"
-        },
-        {
-          "kind": "fixed",
-          "scope": "identity",
-          "text": "a re-sent household invite re-issues the setup link of a pending member (platform-usggv)"
-        },
-        {
-          "kind": "fixed",
-          "scope": "identity",
-          "text": "configure Audiobookshelf Pocket ID sign-in"
-        },
-        {
-          "kind": "fixed",
-          "scope": "identity",
-          "text": "reconcile legacy TinyAuth PKCE without replacing custody"
-        },
-        {
-          "kind": "fixed",
-          "scope": "init",
-          "text": "refuse unusable shared Cloud identity cookie scope"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "inspect signed Cloud session history with its attested source"
-        },
-        {
-          "kind": "fixed",
-          "scope": "installers",
-          "text": "preserve invoking owner journal custody across sudo"
-        },
-        {
-          "kind": "fixed",
-          "scope": "installers",
-          "text": "preserve sealed smoke inputs and real verify refusal"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "keep normal workload controls after signed manager transfer"
-        },
-        {
-          "kind": "fixed",
-          "scope": "komodo",
-          "text": "select native Core and refresh its CA consumers"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "layout feasibility review findings and unpinned add-on placement (platform-wig6t.1)"
-        },
-        {
-          "kind": "fixed",
-          "scope": "lifecycle",
-          "text": "back up plans with stateless Remote/ntfy and init ntfy behind an admin route (platform-em8dm.17, .18)"
-        },
-        {
-          "kind": "fixed",
-          "scope": "marketplace",
-          "text": "repair retained Coolify service configuration"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "migrate retained Cloud TinyAuth with verified data rollback"
-        },
-        {
-          "kind": "fixed",
-          "scope": "network",
-          "text": "back up the AdGuard Home configuration"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "non-root install path and actionable RAM refusal"
-        },
-        {
-          "kind": "fixed",
-          "scope": "platform",
-          "text": "restore Coolify and Dokploy as Layer-2 PaaS platforms"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "prepare attested sources from explicit development readers"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "preserve MQTT offline delivery across compute allocations"
-        },
-        {
-          "kind": "fixed",
-          "scope": "productruntime",
-          "text": "align external consumer runtime contracts"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "recover interrupted Coolify application restores"
-        },
-        {
-          "kind": "fixed",
-          "scope": "remote",
-          "text": "size CPU demand from measured cold startup"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "report actual Komodo manager before backup data effects"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "restore,cue: name pre-service restore activation steps; CUE v0.17-safe edge verifier binding; Home pairing core"
-        },
-        {
-          "kind": "fixed",
-          "scope": "restore",
-          "text": "activate exactly the volumes the restore staged under its backup coverage"
-        },
-        {
-          "kind": "fixed",
-          "scope": "restore",
-          "text": "name the step of a failed restore activation"
-        },
-        {
-          "kind": "fixed",
-          "scope": "runtime",
-          "text": "align the external consumer contracts dependency"
-        },
-        {
-          "kind": "fixed",
-          "scope": "security",
-          "text": "validate stackkit_log_get run IDs and bind unpinned retired generations to the current pin"
-        },
-        {
-          "kind": "fixed",
-          "scope": "service",
-          "text": "deny Compose control of platform-owned workloads"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "sign native Komodo workload manager custody"
-        },
-        {
-          "kind": "fixed",
-          "scope": "stackkits",
-          "text": "retain Dokploy identity and render Coolify bootstrap"
-        },
-        {
-          "kind": "fixed",
-          "scope": "status",
-          "text": "distinguish Komodo platform and Files recovery"
-        },
-        {
-          "kind": "fixed",
-          "scope": "status",
-          "text": "report a plan from an older compiler as stale instead of failing"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "stop the legacy v1 bridge from defaulting to Coolify (ADR-0049)"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "transfer retained Files to native Komodo Core"
-        },
-        {
-          "kind": "fixed",
-          "scope": "usecasecatalog",
-          "text": "stateless alternatives no longer claim backup restore"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "withhold sizing from incomplete workload samples"
-        }
-      ]
-    },
-    {
-      "version": "v0.53.19",
-      "date": "2026-10-20",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "smart-home",
-          "text": "pin Home Assistant 2026.9.4 for the reviewed MCP adapter"
-        },
-        {
-          "kind": "fixed",
-          "scope": "hostdelivery",
-          "text": "each server reports a unique, stable node reference to the Wallet (platform-qujge)"
-        }
-      ]
-    },
-    {
-      "version": "v0.53.18",
-      "date": "2026-10-20",
-      "entries": [
-        {
-          "kind": "fixed",
-          "scope": "feasibility",
-          "text": "an undeclared data budget is an advisory"
-        }
-      ]
-    },
-    {
-      "version": "v0.53.17",
-      "date": "2026-10-20",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "",
-          "text": "add layout feasibility operation, resident-load policy and add-on placement check (platform-wig6t.1)"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "layout feasibility review findings and unpinned add-on placement (platform-wig6t.1)"
-        }
-      ]
-    },
-    {
-      "version": "v0.53.16",
-      "date": "2026-10-19",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "ai",
-          "text": "install the NVIDIA driver on Ubuntu guests and prove the GPU under CUDA load"
-        },
-        {
-          "kind": "fixed",
-          "scope": "runtime",
-          "text": "align the external consumer contracts dependency"
-        },
-        {
-          "kind": "fixed",
-          "scope": "security",
-          "text": "validate stackkit_log_get run IDs and bind unpinned retired generations to the current pin"
-        }
-      ]
-    },
-    {
-      "version": "v0.53.15",
-      "date": "2026-10-19",
-      "entries": [
-        {
-          "kind": "fixed",
-          "scope": "lifecycle",
-          "text": "back up plans with stateless Remote/ntfy and init ntfy behind an admin route (platform-em8dm.17, .18)"
-        }
-      ]
-    },
-    {
-      "version": "v0.53.14",
-      "date": "2026-10-19",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "device enrollment ceremony on a LAN listener"
-        },
-        {
-          "kind": "added",
-          "scope": "resolvedplan",
-          "text": "hand the home-access overlay to the private-remote-access executor"
-        },
-        {
-          "kind": "added",
-          "scope": "resolvedplan",
-          "text": "Standard Mode private remote access is realized by the kit-owned WireGuard overlay"
-        },
-        {
-          "kind": "fixed",
-          "scope": "identity",
-          "text": "a re-sent household invite re-issues the setup link of a pending member (platform-usggv)"
-        },
-        {
-          "kind": "fixed",
-          "scope": "productruntime",
-          "text": "align external consumer runtime contracts"
-        }
-      ]
-    },
-    {
-      "version": "v0.53.13",
-      "date": "2026-10-18",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "backup",
-          "text": "recover explicitly selected Marketplace service data"
-        },
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "enroll household devices through step-ca with stackkit device enroll|list|revoke"
-        },
-        {
-          "kind": "added",
-          "scope": "mcp",
-          "text": "per-agent credentials and per-call approval for stdio attachments"
-        },
-        {
-          "kind": "added",
-          "scope": "overlay",
-          "text": "kit-owned WireGuard overlay contract, key custody and peer rendering for enrolled devices"
-        },
-        {
-          "kind": "fixed",
-          "scope": "identity",
-          "text": "configure Audiobookshelf Pocket ID sign-in"
-        },
-        {
-          "kind": "fixed",
-          "scope": "usecasecatalog",
-          "text": "stateless alternatives no longer claim backup restore"
-        }
-      ]
-    },
-    {
-      "version": "v0.53.12",
-      "date": "2026-10-17",
-      "entries": []
-    },
-    {
-      "version": "v0.53.11",
-      "date": "2026-10-17",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "init",
-          "text": "declare an ntfy owner channel during stackkit init"
-        },
-        {
-          "kind": "added",
-          "scope": "network",
-          "text": "claim AdGuard Home backup/restore and declare the Network, Remote and ntfy data contracts"
-        },
-        {
-          "kind": "added",
-          "scope": "paas",
-          "text": "restore Photos, Files and Vault through Coolify and Komodo (2ujh.3.7)"
-        },
-        {
-          "kind": "added",
-          "scope": "verify",
-          "text": "add --notify owner delivery check (y5d6)"
-        },
-        {
-          "kind": "fixed",
-          "scope": "architecture-v2",
-          "text": "register the Cloud standalone OpenTofu and Terramate hashes after #2195"
-        },
-        {
-          "kind": "fixed",
-          "scope": "cue",
-          "text": "evaluate OTLP transport, pi backends and provider owner guard under CUE 0.17"
-        },
-        {
-          "kind": "fixed",
-          "scope": "restore",
-          "text": "activate exactly the volumes the restore staged under its backup coverage"
-        }
-      ]
-    },
-    {
-      "version": "v0.53.10",
-      "date": "2026-10-17",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "advanced",
-          "text": "carry Home and federation bindings into change-set create/apply"
-        },
-        {
-          "kind": "added",
-          "scope": "mcp",
-          "text": "harden MCP, per-agent credentials with per-call write approval, host-execution ADR"
-        },
-        {
-          "kind": "added",
-          "scope": "media",
-          "text": "add receipted Jellyfin file import"
-        },
-        {
-          "kind": "added",
-          "scope": "notifications",
-          "text": "owner notification intent and backup digest recipe"
-        },
-        {
-          "kind": "added",
-          "scope": "notify",
-          "text": "owner lifecycle events (apply-failed, drift-detected, upgrade-available, certificate-expiring)"
-        },
-        {
-          "kind": "added",
-          "scope": "ownernotify",
-          "text": "PagerDuty delivery adapter"
-        },
-        {
-          "kind": "added",
-          "scope": "resolvedplan",
-          "text": "re-issue Home backup target and federation link bindings for a successor spec"
-        },
-        {
-          "kind": "added",
-          "scope": "wave11",
-          "text": "agent mcp-config remote HTTP entry; delete demos/ carry"
-        },
-        {
-          "kind": "fixed",
-          "scope": "backup",
-          "text": "journal change-set backup custody move so recovery restores it"
-        },
-        {
-          "kind": "fixed",
-          "scope": "backup",
-          "text": "restore Files through retained Komodo custody"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "prepare attested sources from explicit development readers"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "restore,cue: name pre-service restore activation steps; CUE v0.17-safe edge verifier binding; Home pairing core"
-        },
-        {
-          "kind": "fixed",
-          "scope": "restore",
-          "text": "name the step of a failed restore activation"
-        },
-        {
-          "kind": "fixed",
-          "scope": "status",
-          "text": "distinguish Komodo platform and Files recovery"
-        },
-        {
-          "kind": "fixed",
-          "scope": "status",
-          "text": "report a plan from an older compiler as stale instead of failing"
-        }
-      ]
-    },
-    {
-      "version": "v0.53.9",
-      "date": "2026-10-16",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "cli",
-          "text": "preview kit selection footprints and capacity"
-        },
-        {
-          "kind": "added",
-          "scope": "cloud",
-          "text": "retain PocketID across resumable session route repair"
-        },
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "per-app household access groups on the node (platform-zkutf)"
-        },
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "register the kombify account-link PKCE client on connected nodes (platform-xtnpe)"
-        },
-        {
-          "kind": "added",
-          "scope": "media",
-          "text": "complete native Audiobookshelf owner and library setup"
-        },
-        {
-          "kind": "added",
-          "scope": "media",
-          "text": "complete native Navidrome owner setup"
-        },
-        {
-          "kind": "added",
-          "scope": "relocate",
-          "text": "drain before the final send, JSON results and receive --wait"
-        },
-        {
-          "kind": "added",
-          "scope": "relocate",
-          "text": "plan and check Coolify workload moves with a pinned coolify-mirror fork"
-        },
-        {
-          "kind": "added",
-          "scope": "relocate",
-          "text": "send and receive Coolify workloads with a Wallet-delivered transfer secret"
-        },
-        {
-          "kind": "added",
-          "scope": "",
-          "text": "restart retained Coolify workload services"
-        },
-        {
-          "kind": "added",
-          "scope": "smart-home",
-          "text": "configure plan-bound Home Assistant MQTT"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "align legacy PaaS guidance with Marketplace ownership"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "avoid replaying uncertain manager attachment"
-        },
-        {
-          "kind": "fixed",
-          "scope": "bootstrap",
-          "text": "project portable Agent Home context readiness"
-        },
-        {
-          "kind": "fixed",
-          "scope": "bootstrap",
-          "text": "reuse host Git authentication for Agent Home"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "complete Marketplace service observation and control"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "diagnose rejected stored plans with source recovery guidance"
-        },
-        {
-          "kind": "fixed",
-          "scope": "identity",
-          "text": "reconcile legacy TinyAuth PKCE without replacing custody"
-        },
-        {
-          "kind": "fixed",
-          "scope": "init",
-          "text": "refuse unusable shared Cloud identity cookie scope"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "inspect signed Cloud session history with its attested source"
-        },
-        {
-          "kind": "fixed",
-          "scope": "komodo",
-          "text": "select native Core and refresh its CA consumers"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "migrate retained Cloud TinyAuth with verified data rollback"
-        },
-        {
-          "kind": "fixed",
-          "scope": "platform",
-          "text": "restore Coolify and Dokploy as Layer-2 PaaS platforms"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "recover interrupted Coolify application restores"
-        },
-        {
-          "kind": "fixed",
-          "scope": "remote",
-          "text": "size CPU demand from measured cold startup"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "sign native Komodo workload manager custody"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "transfer retained Files to native Komodo Core"
         }
       ]
     }

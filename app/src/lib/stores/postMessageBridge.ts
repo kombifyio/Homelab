@@ -440,10 +440,15 @@ export function requestAuthToken(
 
 export function requestGatewayToken(
   audience: string = GATEWAY_AUDIENCE,
+  options: { fresh?: boolean } = {},
 ): Promise<string> {
   if (!browser || window.parent === window) {
     return Promise.reject(new Error("Embedded gateway bridge unavailable"));
   }
+
+  // Session renewal: the cached token was just refused upstream, so ask the
+  // host to mint a new one instead of re-sending it.
+  if (options.fresh) cachedGatewayToken = null;
 
   const now = Date.now();
   if (

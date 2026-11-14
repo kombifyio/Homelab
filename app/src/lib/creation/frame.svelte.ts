@@ -5,7 +5,10 @@
  * effects live as long as that frame.
  */
 import { untrack, type Snippet } from "svelte";
-import type { LayoutRecommendationView } from "#lib/api/layout.js";
+import {
+  layoutRunTarget,
+  type LayoutRecommendationView,
+} from "#lib/api/layout.js";
 import {
   loadUseCaseCatalog,
   type UseCaseCatalogView,
@@ -13,14 +16,20 @@ import {
 import {
   LayoutPreviewController,
   acceptedLayoutFromPreview,
+  layoutPreviewView,
   type LayoutPreviewState,
 } from "#lib/wizard/LayoutPreviewController.js";
-import { creationGoals } from "#lib/wizard/creationGoals.js";
+import {
+  creationGoals,
+  type CreationStage,
+} from "#lib/wizard/creationGoals.js";
 import {
   clearWizardDraft,
   loadWizardDraft,
   mergeOverDefaults,
   saveWizardDraft,
+  wizardDraftWritten,
+  type WizardDraft,
 } from "#lib/wizard/draft-storage.js";
 import type {
   HouseholdPersonDraft,
@@ -41,7 +50,6 @@ import {
   WizardPreviewController,
   type AccessModeValue,
   type AudienceConfigKey,
-  type BundleQuestionDefinition,
   type CanonicalUseCaseGoalKey,
   type GoalConfigKey,
   type ManagedProviderID,
@@ -57,11 +65,13 @@ import {
   managedCreationScope,
 } from "./creation-pause.svelte";
 import type { CreationContext } from "./context";
+import { USE_CASE_ACCESS_FLAG } from "./use-case-access";
 import {
   createCreationSession,
   creationStepIssues,
-  creationStepKey,
+  creationShownSteps,
   creationStepNumber,
+  creationStepOrder,
   isCreationStepComplete,
   type CreationFacts,
   type CreationIssueField,
@@ -77,8 +87,9 @@ export interface CreationFrameOptions {
   initialConfig?: StackConfig;
   isDeploying: boolean;
   /**
-   * Keeps the entered answers across a reload under this name. Without it
-   * nothing is stored (surfaces that join an existing homelab).
+   * Keeps the entered answers and the step under this name, per owner, for
+   * every frame and device (a process and its target). Without it nothing is
+   * kept.
    */
   draftKey?: string;
   /** The deployment the flow adds to; with a layout flow it asks for the distribution. */
@@ -118,6 +129,11 @@ export class CreationFrame {
   config = $state<StackConfig>(createDefaultConfig());
   nav = $state<CreationSessionState>(null as unknown as CreationSessionState);
   draftRestored = $state(false);
+  /**
+   * The kept draft is still being read. The steps wait for it, so a creation
+   * continued from another frame opens on its step, not on the first one.
+   */
+  draftLoading = $state(false);
   /** Show validation only after interaction so initial rendering stays calm. */
   attempted = $state(false);
   /** Set by anything the person changes; ends once the submission is accepted. */
@@ -129,9 +145,19 @@ export class CreationFrame {
   interacted = false;
   /** The Server step reports its own readiness; the value stays when it is left. */
   serverSelectionReady = $state(true);
+  /**
+   * Step 1 has two stages: the choice of use cases, then the configuration of
+   * the chosen ones. Forward on the choice opens the configuration, Back there
+   * returns to the choice; a process that comes for one use case has no choice.
+   */
+  goalsStage = $state<CreationStage>("pick");
 
   recommendationState = $state<WizardPreviewState>({ phase: "idle" });
   layoutState = $state<LayoutPreviewState>({ phase: "idle" });
+  /** The owner's own server per use case ("Choose another server"). */
+  layoutPins = $state<Record<string, string>>({});
+  /** The choices before the last change, for undoing a refused one. */
+  #previousLayoutPins: Record<string, string> = {};
   /**
    * Which products each use case is built from, straight from the StackKits
    * catalog. Cards render immediately, but only become selectable when this
@@ -159,17 +185,12 @@ export class CreationFrame {
       draftKey: options.draftKey,
       initialConfig: options.initialConfig,
     }));
-    // A reload restores the answers of this tab (secrets excluded).
-    const restored = initial.draftKey
-      ? loadWizardDraft(initial.draftKey)
-      : null;
-    this.draftRestored = Boolean(restored);
-    this.config = this.#initialConfig(restored?.config, initial.initialConfig);
+    this.draftLoading = Boolean(initial.draftKey);
+    this.#initialApplied = Boolean(initial.initialConfig);
+    this.config = this.#initialConfig(undefined, initial.initialConfig);
 
     this.session = createCreationSession({
       process: initial.process,
-      current: creationStepKey(restored?.step),
-      furthest: creationStepKey(restored?.furthest ?? restored?.step),
       isComplete: (key) => isCreationStepComplete(key, this.facts),
     });
     this.#startStep = this.session.activeSteps()[0] ?? "goals";
@@ -193,12 +214,13 @@ export class CreationFrame {
       untrack(() => this.session.setProcess(process));
     });
 
-    this.#keepDraft(Boolean(restored));
-    this.#adoptLateInitialConfig(Boolean(restored));
+    this.#restoreDraft();
+    this.#keepDraft();
+    this.#adoptLateInitialConfig();
     this.#followRecommendations();
     this.#followLayout();
     this.#followOwner();
-    this.#applyLaneDefaults(Boolean(restored));
+    this.#applyLaneDefaults();
     this.#followEverythingGoal();
     this.#followCreationPause();
     this.#loadCatalog();
@@ -234,8 +256,32 @@ export class CreationFrame {
   get current(): CreationStepKey {
     return this.nav.current;
   }
+  /**
+   * The Goals step shows its choice and something is chosen: forward opens the
+   * configuration. An empty choice has nothing to configure and leaves the
+   * step through the usual validation.
+   */
+  get goalsPicking(): boolean {
+    return (
+      this.nav.current === "goals" &&
+      this.goalsStage === "pick" &&
+      !this.process.focusGoal &&
+      selectedCanonicalUseCasesFromGoals(this.config.goals).length > 0
+    );
+  }
+  /** The Goals step shows its configuration; back returns to the choice. */
+  get goalsConfiguring(): boolean {
+    return (
+      this.nav.current === "goals" &&
+      this.goalsStage === "configure" &&
+      !this.process.focusGoal
+    );
+  }
   get stepNumber(): number {
-    return creationStepNumber(this.nav.current);
+    return creationStepNumber(
+      this.nav.current,
+      creationShownSteps(this.process),
+    );
   }
   get lastStep(): CreationStepKey {
     void this.nav;
@@ -249,12 +295,12 @@ export class CreationFrame {
   readonly primaryGoalQuestions = $derived.by(() =>
     this.#goalQuestions.filter(
       (goal) =>
-        this.#isGoalEnabled(goal) && (goal.surface ?? "primary") === "primary",
+        (goal.surface ?? "primary") === "primary",
     ),
   );
   readonly advancedGoalQuestions = $derived.by(() =>
     this.#goalQuestions.filter(
-      (goal) => this.#isGoalEnabled(goal) && goal.surface === "advanced",
+      (goal) => goal.surface === "advanced",
     ),
   );
   readonly #availableGoals = $derived.by(() =>
@@ -266,12 +312,6 @@ export class CreationFrame {
       .flatMap((card) => (card.question ? [card.question.configKey] : []))
       .filter((goal): goal is CanonicalUseCaseGoalKey => goal !== "everything"),
   );
-
-  #isGoalEnabled(goal: BundleQuestionDefinition<GoalConfigKey>): boolean {
-    return (
-      !goal.featureFlag || this.context.features.isEnabled(goal.featureFlag)
-    );
-  }
 
   // Read at the moment a step or a move asks, so each fact tracks only itself.
   readonly facts: CreationFacts = (() => {
@@ -372,6 +412,7 @@ export class CreationFrame {
       this.nav.current === this.lastStep &&
       !this.earlierStepIncomplete &&
       this.canGoNext &&
+      !this.layoutChoiceUnaccepted &&
       !managedCreationPauses.holds(this.creationScope) &&
       (this.facts.existingServer ||
         server.mode !== "hypervisor" ||
@@ -384,6 +425,8 @@ export class CreationFrame {
     if (onLast ? this.canDeploy : this.canGoNext) return "";
     if (onLast && this.earlierStepIncomplete)
       return tr("wizard.stepper.locked");
+    if (onLast && this.canGoNext && this.layoutChoiceUnaccepted)
+      return tr("layout.pin.blocked");
     const pause = this.creationPause;
     if (onLast && pause && pause.state !== "ready")
       return tr("wizard.server.managed.pause.blocked", {
@@ -397,9 +440,9 @@ export class CreationFrame {
   });
   /**
    * Protect entered answers against accidental departure. The config carries
-   * SSH passwords and recovery material, so only its non-secret part is kept
-   * (draftKey); protection ends once the submission is accepted and stays in
-   * place after a failed one.
+   * SSH passwords and recovery material, which the draft never keeps (draftKey);
+   * protection ends once the submission is accepted and stays in place after a
+   * failed one.
    */
   readonly hasUnsavedAnswers = $derived.by(
     () =>
@@ -422,12 +465,32 @@ export class CreationFrame {
           this.config,
           this.options.layoutStackId,
           this.process.layoutFlow,
+          this.layoutPins,
         )
       : null,
   );
   readonly layoutAcceptance = $derived.by(() =>
     this.#layoutEnabled
       ? acceptedLayoutFromPreview(this.layoutState, this.layoutSelection)
+      : undefined,
+  );
+  /** The choices the current question carries (selected use cases only). */
+  readonly activeLayoutPins = $derived.by(
+    () => this.layoutSelection?.pins ?? {},
+  );
+  /**
+   * An owner's server choice that is not (yet) a verified recommendation: the
+   * run would ignore it, so it cannot be submitted until it is confirmed,
+   * changed or dropped.
+   */
+  readonly layoutChoiceUnaccepted = $derived.by(
+    () =>
+      Object.keys(this.activeLayoutPins).length > 0 && !this.layoutAcceptance,
+  );
+  /** The deployment the accepted recommendation adds to; it may be another one of the homelab. */
+  readonly layoutTarget = $derived.by(() =>
+    this.layoutAcceptance
+      ? layoutRunTarget(layoutPreviewView(this.layoutState))
       : undefined,
   );
   get showsLayoutSummary(): boolean {
@@ -440,6 +503,26 @@ export class CreationFrame {
   }
 
   retryLayout = () => this.#layouts.retry(this.layoutSelection);
+  /**
+   * Pin a use case to a server, or drop the pin (null). The changed question
+   * is re-solved and re-verified; only that answer can be accepted.
+   */
+  setLayoutPin = (goal: string, serverId: string | null) => {
+    const next = { ...this.layoutPins };
+    if (serverId) next[goal] = serverId;
+    else delete next[goal];
+    this.#previousLayoutPins = this.layoutPins;
+    this.layoutPins = next;
+  };
+  /** Restores the choices before the last change (a refused choice). */
+  undoLayoutPin = () => {
+    this.layoutPins = this.#previousLayoutPins;
+    this.#previousLayoutPins = {};
+  };
+  clearLayoutPins = () => {
+    this.#previousLayoutPins = this.layoutPins;
+    this.layoutPins = {};
+  };
   reloadCatalog = () => {
     this.#catalogAttempt += 1;
   };
@@ -536,8 +619,16 @@ export class CreationFrame {
   }
 
   /** The answers as they go into the run; the owner's secrets are ready by now. */
+  /** Access per use case is offered only behind its feature flag. */
+  get useCaseAccessEnabled(): boolean {
+    return this.context.features.isEnabled(USE_CASE_ACCESS_FLAG);
+  }
+
   finalizedConfig(): StackConfig {
     const config = this.config;
+    // Without the flag no access decision leaves the wizard, also none a
+    // kept draft still carries.
+    if (!this.useCaseAccessEnabled) delete config.useCaseAccess;
     config.wizardType = "easy";
     const existingOverlay = config.services.headscale;
     deriveServicesFromGoals(config);
@@ -548,42 +639,155 @@ export class CreationFrame {
     return config;
   }
 
+  /**
+   * Ends the draft together with a save still pending from the last change:
+   * the wizard stays on screen while the next page loads, and that save would
+   * otherwise write the answers back for the next creation in this tab.
+   */
   forgetDraft() {
+    this.#forgotten = true;
+    clearTimeout(this.#pendingSave);
+    this.#pendingSave = undefined;
     const key = this.options.draftKey;
-    if (key) clearWizardDraft(key);
+    if (key) void clearWizardDraft(key);
+  }
+
+  /**
+   * Writes a change still waiting for its debounce now, for a move to another
+   * frame ("Continue in Techstack") right after the last answer.
+   */
+  async flushDraft(): Promise<void> {
+    const key = this.options.draftKey;
+    if (!key) return;
+    const pending = this.#pendingSave;
+    if (pending !== undefined) {
+      clearTimeout(pending);
+      this.#pendingSave = undefined;
+      void this.#writeDraft();
+    }
+    await wizardDraftWritten(key);
+  }
+  #pendingSave: ReturnType<typeof setTimeout> | undefined;
+  /** The person left; nothing writes the ended draft back. */
+  #forgotten = false;
+  /** A draft was found, or the person started; from then on every change is kept. */
+  #keeping = false;
+  /** The step the last write carried; a new step is written at once. */
+  #writtenStep: CreationStepKey | undefined;
+  #initialApplied = false;
+  #laneApplied = false;
+
+  #writeDraft(
+    config = $state.snapshot(this.config) as StackConfig,
+  ): Promise<void> {
+    const { draftKey, isDeploying } = this.options;
+    if (!draftKey || isDeploying || this.#forgotten) return Promise.resolve();
+    const draft: WizardDraft = {
+      step: this.nav.current,
+      furthest: this.nav.furthest,
+      config,
+    };
+    this.#writtenStep = draft.step;
+    return saveWizardDraft(
+      draftKey,
+      this.process.key,
+      draft,
+      creationStepOrder(this.process),
+    );
   }
 
   // -- what follows the answers ----------------------------------------------
 
-  #keepDraft(restored: boolean) {
-    // Keep the non-secret answers for this tab while the person works.
+  /**
+   * Reads the draft another frame or device left for this process. It applies
+   * only while the person has not started here; otherwise their own answers
+   * win and overwrite it with the next change. A link that asks for a use case
+   * the draft does not hold starts over: it names a new creation, not this one.
+   */
+  #restoreDraft() {
+    let started = false;
+    $effect(() => {
+      const key = this.options.draftKey;
+      if (!key || started) return;
+      const { isAuthenticated, modeDetected } = this.context.auth;
+      if (!isAuthenticated) {
+        // Without a session there is no owner to keep a draft for.
+        if (modeDetected) this.draftLoading = false;
+        return;
+      }
+      // The server choice decides the process and so which kept steps exist:
+      // the draft waits until the person's servers were read and one chosen.
+      if (this.options.homelab?.loading) return;
+      started = true;
+      void loadWizardDraft(key, creationStepOrder(this.process)).then(
+        (draft) => {
+          if (
+            draft &&
+            !this.userEdited &&
+            this.nav.current === this.#startStep &&
+            this.#linkFitsDraft(draft)
+          )
+            this.#applyDraft(draft);
+          this.draftLoading = false;
+        },
+      );
+    });
+  }
+
+  #linkFitsDraft(draft: WizardDraft): boolean {
+    const kept = new Set(
+      selectedCanonicalUseCasesFromGoals(draft.config.goals),
+    );
+    const linked = untrack(() => this.options.initialConfig)?.goals;
+    return selectedCanonicalUseCasesFromGoals(linked).every((goal) =>
+      kept.has(goal),
+    );
+  }
+
+  #applyDraft(draft: WizardDraft) {
+    this.config = this.#initialConfig(draft.config);
+    this.#initialApplied = true;
+    this.#laneApplied = true;
+    const active = this.session.activeSteps();
+    // A frame without the kept step (one step alone) only writes once the
+    // person changes something, so opening it never moves the draft back.
+    this.#keeping = active.includes(draft.step);
+    if (active.includes(draft.furthest)) this.session.open(draft.furthest);
+    if (active.includes(draft.step)) this.session.open(draft.step);
+    this.draftRestored = true;
+  }
+
+  #keepDraft() {
+    // Keep the non-secret answers while the person works. Nothing is written
+    // before the kept draft was read, so opening a frame never replaces it.
     $effect(() => {
       const { draftKey, isDeploying } = this.options;
-      if (!draftKey || isDeploying) return;
-      if (!this.userEdited && this.nav.current === "goals" && !restored) return;
+      if (!draftKey || isDeploying || this.draftLoading) return;
       const answers = $state.snapshot(this.config) as StackConfig;
-      const step = creationStepNumber(this.nav.current);
-      const furthest = creationStepNumber(this.nav.furthest);
-      const timer = setTimeout(
-        () => saveWizardDraft(draftKey, { step, furthest, config: answers }),
-        300,
-      );
-      return () => clearTimeout(timer);
+      const step = this.nav.current;
+      if (!this.userEdited && step === this.#startStep && !this.#keeping)
+        return;
+      this.#keeping = true;
+      untrack(() => {
+        // A step change is kept at once, so another frame or a reload right
+        // after it opens the same step; typed answers follow after a pause.
+        if (step !== this.#writtenStep) {
+          this.#pendingSave = undefined;
+          void this.#writeDraft(answers);
+          return;
+        }
+        const timer = setTimeout(() => {
+          this.#pendingSave = undefined;
+          void this.#writeDraft(answers);
+        }, 600);
+        this.#pendingSave = timer;
+      });
+      return () => clearTimeout(this.#pendingSave);
     });
 
-    // A step change is kept at once, so a reload right after it opens the
-    // same step; typed answers follow with the debounce above.
-    $effect(() => {
-      const step = creationStepNumber(this.nav.current);
-      const furthest = creationStepNumber(this.nav.furthest);
-      const { draftKey, isDeploying } = this.options;
-      if (!draftKey || isDeploying) return;
-      if (step === 1 && furthest === 1 && !restored) return;
-      saveWizardDraft(draftKey, {
-        step,
-        furthest,
-        config: untrack(() => $state.snapshot(this.config)) as StackConfig,
-      });
+    // Leaving the frame keeps a change still waiting for its pause.
+    $effect(() => () => {
+      if (this.#pendingSave !== undefined) void this.#writeDraft();
     });
 
     // An accepted submission ends the draft; a failed one keeps it.
@@ -592,13 +796,11 @@ export class CreationFrame {
     });
   }
 
-  #adoptLateInitialConfig(restored: boolean) {
-    let applied =
-      restored || Boolean(untrack(() => this.options.initialConfig));
+  #adoptLateInitialConfig() {
     $effect(() => {
       const initial = this.options.initialConfig;
-      if (!initial || applied) return;
-      applied = true;
+      if (!initial || this.#initialApplied) return;
+      this.#initialApplied = true;
       this.config = cloneConfig(initial) ?? createDefaultConfig();
       applyPasskeyFirstOwnerLogin(this.config);
     });
@@ -701,17 +903,16 @@ export class CreationFrame {
     });
   }
 
-  #applyLaneDefaults(restored: boolean) {
-    let applied = restored;
+  #applyLaneDefaults() {
     $effect(() => {
       if (
-        applied ||
+        this.#laneApplied ||
         !this.process.appliesLaneDefaults ||
         !this.context.auth.modeDetected
       )
         return;
       applyWizardDeploymentLane(this.config, this.context.auth.lane);
-      applied = true;
+      this.#laneApplied = true;
     });
   }
 

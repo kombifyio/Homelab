@@ -6,10 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -34,6 +36,9 @@ const (
 	agentBinaryMaxConcurrent       = 2
 	agentBinaryMaxTrackedTokens    = 2048
 	agentBinaryWriteTimeout        = 5 * time.Minute
+	// agentBinaryBusyRetryAfter is the pause a caller is asked for while every
+	// transfer slot is taken.
+	agentBinaryBusyRetryAfter = 30 * time.Second
 )
 
 type agentBinaryArtifact struct {
@@ -84,23 +89,52 @@ func newAgentBinaryDownloadGuard() *agentBinaryDownloadGuard {
 	}
 }
 
-// acquire admits one transfer when the token still has budget left. budgetBytes
-// is the artifact size; the window allows agentBinaryMaxAttemptsPerToken times
-// that many bytes, so a single-response download and a sliced one cost the
-// same. Served bytes are booked afterwards through record, because how much a
-// response actually carries is only known once it has been written.
-func (g *agentBinaryDownloadGuard) acquire(tokenHash string, tokenExpiresAt, now time.Time, budgetBytes int64) (func(), bool) {
+// agentBinaryRefusal says why a transfer was not admitted and when the caller
+// may ask again. busy means every transfer slot of this process is taken: that
+// is load, not the caller's budget, and is answered 503 rather than 429.
+type agentBinaryRefusal struct {
+	busy       bool
+	retryAfter time.Duration
+}
+
+// acquire admits one streamed transfer when a slot is free and the token still
+// has budget left. budgetBytes is the artifact size; the window allows
+// agentBinaryMaxAttemptsPerToken times that many bytes, so a single-response
+// download and a sliced one cost the same. Served bytes are booked afterwards
+// through record, because how much a response actually carries is only known
+// once it has been written.
+func (g *agentBinaryDownloadGuard) acquire(tokenHash string, tokenExpiresAt, now time.Time, budgetBytes int64) (func(), *agentBinaryRefusal) {
 	if g == nil || tokenHash == "" || budgetBytes <= 0 {
-		return nil, false
+		return nil, &agentBinaryRefusal{busy: true, retryAfter: agentBinaryBusyRetryAfter}
 	}
 
 	select {
 	case g.slots <- struct{}{}:
 	default:
-		return nil, false
+		return nil, &agentBinaryRefusal{busy: true, retryAfter: agentBinaryBusyRetryAfter}
+	}
+	if refusal := g.charge(tokenHash, tokenExpiresAt, now, budgetBytes, 0); refusal != nil {
+		<-g.slots
+		return nil, refusal
 	}
 
+	var once sync.Once
+	return func() {
+		once.Do(func() { <-g.slots })
+	}, nil
+}
+
+// charge checks the token's byte budget and books bytes against it in one
+// step. A metadata admission (the bytes come from R2, not from this process)
+// charges its full range here and takes no transfer slot: a slot only bounds
+// concurrent streams this process writes itself. The refusal's retryAfter is
+// the end of the token's window, not a fixed guess.
+func (g *agentBinaryDownloadGuard) charge(tokenHash string, tokenExpiresAt, now time.Time, budgetBytes, bytes int64) *agentBinaryRefusal {
+	if g == nil || tokenHash == "" || budgetBytes <= 0 {
+		return &agentBinaryRefusal{busy: true, retryAfter: agentBinaryBusyRetryAfter}
+	}
 	g.mu.Lock()
+	defer g.mu.Unlock()
 	for key, candidate := range g.attempts {
 		if !now.Before(candidate.resetAt) {
 			delete(g.attempts, key)
@@ -117,17 +151,23 @@ func (g *agentBinaryDownloadGuard) acquire(tokenHash string, tokenExpiresAt, now
 		attempt = agentBinaryDownloadAttempt{resetAt: tokenExpiresAt}
 	}
 	if attempt.bytesServed >= budgetBytes*agentBinaryMaxAttemptsPerToken {
-		g.mu.Unlock()
-		<-g.slots
-		return nil, false
+		return &agentBinaryRefusal{retryAfter: attempt.resetAt.Sub(now)}
 	}
+	attempt.bytesServed += max(bytes, 0)
 	g.attempts[tokenHash] = attempt
-	g.mu.Unlock()
+	return nil
+}
 
-	var once sync.Once
-	return func() {
-		once.Do(func() { <-g.slots })
-	}, true
+// writeAgentBinaryRefusal answers a refused transfer with the time the caller
+// may ask again: 429 only for an exhausted per-token budget, 503 for a busy
+// control plane.
+func writeAgentBinaryRefusal(e *httpx.Event, refusal *agentBinaryRefusal, message string) error {
+	seconds := int64(math.Ceil(refusal.retryAfter.Seconds()))
+	e.Response.Header().Set("Retry-After", strconv.FormatInt(max(seconds, 1), 10))
+	if refusal.busy {
+		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, message+" is busy", nil)
+	}
+	return httpx.Error(e, http.StatusTooManyRequests, ksapi.ErrCodeRateLimited, message+" is rate limited", nil)
 }
 
 // record books the bytes a completed transfer actually served. A truncated
@@ -168,6 +208,10 @@ func evictNextExpiringAgentBinaryDownloadAttempt(attempts map[string]agentBinary
 // verifies every downloaded byte against the returned SHA-256.
 func currentAgentBinaryArtifact() (agentBinaryArtifact, error) {
 	runningAgentBinaryOnce.Do(func() {
+		if servesOwnGuardBinary() {
+			runningAgentBinaryArtifact, runningAgentBinaryErr = selfHostedAgentBinaryArtifact(managedRuntimeOSLinux, "amd64")
+			return
+		}
 		if dir := guardReleaseDir(); dir != "" {
 			runningAgentBinaryArtifact, runningAgentBinaryErr = indexedGuardBinaryArtifact(managedRuntimeOSLinux, "amd64")
 			return
@@ -351,14 +395,16 @@ func (h workerRouteHandlers) serveSelfHostedAgentBinary(e *httpx.Event) error {
 		e.Response.WriteHeader(http.StatusNotModified)
 		return nil
 	}
+	if h.guardBinaryUpdateRefusal(e, authorization, artifact.sha256, guardReleaseDir() != "", now) {
+		return nil
+	}
 	if h.binaryDownloadGuard == nil {
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Agent binary download guard is unavailable", nil)
 	}
 	budgetKey := "guard_binary:" + authorization.tokenHash
-	release, allowed := h.binaryDownloadGuard.acquire(budgetKey, authorization.resetAt, now, artifact.size)
-	if !allowed {
-		e.Response.Header().Set("Retry-After", "900")
-		return httpx.Error(e, http.StatusTooManyRequests, ksapi.ErrCodeRateLimited, "Agent binary download is rate limited", nil)
+	release, refusal := h.binaryDownloadGuard.acquire(budgetKey, authorization.resetAt, now, artifact.size)
+	if refusal != nil {
+		return writeAgentBinaryRefusal(e, refusal, "Agent binary download")
 	}
 	defer release()
 	file, err := os.Open(artifact.path)
@@ -387,6 +433,9 @@ func (h workerRouteHandlers) serveSelfHostedAgentBinary(e *httpx.Event) error {
 	// ServeContent honours Range, so an interrupted transfer can resume.
 	http.ServeContent(counter, e.Request, filename, artifact.modTime, file)
 	h.binaryDownloadGuard.record(budgetKey, counter.written)
+	if counter.written > 0 {
+		h.recordGuardTransfer(e.Request, authorization, artifact.sha256, artifact.size, time.Now().UTC())
+	}
 	logAgentBinaryTransfer(e, artifact, counter, started, deadlineErr)
 	return nil
 }

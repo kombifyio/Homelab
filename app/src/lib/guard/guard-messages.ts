@@ -268,7 +268,7 @@ export const guardMessages = {
     "guard.reach.publish.disable": "Stop publishing",
     "guard.reach.publish.current": "Published: {service} on port {port}.",
     "guard.reach.publish.stepUp":
-      "Publishing needs a fresh sign-in with a second factor, within the last five minutes. Sign in again, then repeat this step.",
+      "Publishing needs a confirmation with your second factor from the last five minutes. Confirm it, then repeat this step.",
     "guard.upgrade.title": "Approve this server's key",
     "guard.upgrade.pending":
       "A key with fingerprint {fingerprint} is waiting for your approval. Approve it only if Guard logs the same fingerprint on this server.",
@@ -277,7 +277,7 @@ export const guardMessages = {
     "guard.upgrade.approve": "Approve key",
     "guard.upgrade.reject": "Reject key",
     "guard.upgrade.stepUp":
-      "Approving needs a fresh sign-in with a second factor, within the last five minutes. Sign in again, then repeat this step.",
+      "Approving needs a confirmation with your second factor from the last five minutes. Confirm it, then repeat this step.",
     "guard.upgrade.done": "The server key was approved.",
 
     "guard.reach.reason.guard_key_not_bound":
@@ -414,8 +414,8 @@ export const guardMessages = {
     "guard.outcomes.releasing": "Releasing…",
     "guard.outcomes.back": "Back",
     "guard.outcomes.stepUp":
-      "Releasing an outcome needs a fresh sign-in with a second factor, within the last five minutes. Sign in again, then repeat this step. Your note is not kept.",
-    "guard.outcomes.stepUpAction": "Sign in again",
+      "Releasing an outcome needs a confirmation with your second factor from the last five minutes. Confirm it, then repeat this step. Your note is not kept.",
+    "guard.outcomes.stepUpAction": "Confirm",
     "guard.outcomes.stale":
       "This operation changed while you were reviewing it. The list is updated; review it again.",
     "guard.outcomes.loadFailed":
@@ -462,13 +462,14 @@ export const guardMessages = {
       "Waiting for the pairing command to run on the server.",
     "guard.ladder.bound.awaitingNext":
       "Run the command on the server. If it has expired, generate a new one.",
-    "guard.updates.title": "StackKits updates",
+    "guard.updates.title": "Updates",
     "guard.updates.runs": "Runs {version}",
     "guard.updates.behavior.label": "Update behavior",
-    "guard.updates.behavior.hint":
-      "Security patches for apps on this server install right away, whatever you choose here.",
-    "guard.updates.behavior.approve": "Ask me (approve each update)",
-    "guard.updates.behavior.automatic": "Install updates automatically",
+    "guard.updates.behavior.hint": "Security fixes are always offered immediately.",
+    "guard.updates.behavior.ask": "Ask me",
+    "guard.updates.behavior.automatic": "Automatic",
+    "guard.updates.behavior.with_stackkits_releases": "With StackKits releases",
+    "guard.updates.behavior.automaticPending": "Applications are not updated automatically yet.",
     "guard.updates.available": "StackKits {version} is available",
     "guard.updates.forUseCase": "For your {name}",
     "guard.updates.other": "Also in this update",
@@ -501,6 +502,31 @@ export const guardMessages = {
     "guard.updates.kind.fixed": "Fixed",
     "guard.updates.kind.changed": "Changed",
     "guard.updates.kind.reverted": "Reverted",
+    "guard.power.title": "UPS protection",
+    "guard.power.state.line": "On line power",
+    "guard.power.state.on_battery": "Running on battery",
+    "guard.power.state.shutdown": "Ordered shutdown requested",
+    "guard.power.state.canceled": "Shutdown canceled",
+    "guard.power.state.unknown": "Power state not evidenced",
+    "guard.power.observed": "Observed {when}",
+    "guard.power.charge": "Battery {percent}%",
+    "guard.power.runtime": "about {minutes} min left",
+    "guard.power.steps": "Ordered shutdown",
+    "guard.power.step.applications": "Applications",
+    "guard.power.step.storage": "Storage",
+    "guard.power.step.host": "Host",
+    "guard.power.outcome.pending": "pending",
+    "guard.power.outcome.running": "running",
+    "guard.power.outcome.succeeded": "succeeded",
+    "guard.power.outcome.failed": "failed",
+    "guard.power.outcome.skipped": "skipped",
+    "guard.power.outcome.canceled": "canceled",
+    "guard.power.reason.line_restored": "line power returned",
+    "guard.power.reason.sequence_interrupted": "the sequence was interrupted",
+    "guard.power.canceledBecause": "Canceled: {reason}",
+    "guard.power.hostRequested": "Host shutdown requested {when}",
+    "guard.power.evidence":
+      "Each step is recorded in the server's local power journal.",
   },
 
   de: {
@@ -776,7 +802,7 @@ export const guardMessages = {
     "guard.reach.publish.disable": "Veröffentlichung beenden",
     "guard.reach.publish.current": "Veröffentlicht: {service} auf Port {port}.",
     "guard.reach.publish.stepUp":
-      "Das Veröffentlichen braucht eine frische Anmeldung mit zweitem Faktor innerhalb der letzten fünf Minuten. Melde dich erneut an und wiederhole diesen Schritt.",
+      "Das Veröffentlichen braucht eine Bestätigung mit deinem zweiten Faktor aus den letzten fünf Minuten. Bestätige sie und wiederhole diesen Schritt.",
     "guard.upgrade.title": "Schlüssel dieses Servers freigeben",
     "guard.upgrade.pending":
       "Ein Schlüssel mit dem Fingerabdruck {fingerprint} wartet auf deine Freigabe. Gib ihn nur frei, wenn Guard auf diesem Server denselben Fingerabdruck protokolliert.",
@@ -785,7 +811,7 @@ export const guardMessages = {
     "guard.upgrade.approve": "Schlüssel freigeben",
     "guard.upgrade.reject": "Schlüssel ablehnen",
     "guard.upgrade.stepUp":
-      "Die Freigabe braucht eine frische Anmeldung mit zweitem Faktor innerhalb der letzten fünf Minuten. Melde dich erneut an und wiederhole diesen Schritt.",
+      "Die Freigabe braucht eine Bestätigung mit deinem zweiten Faktor aus den letzten fünf Minuten. Bestätige sie und wiederhole diesen Schritt.",
     "guard.upgrade.done": "Der Serverschlüssel wurde freigegeben.",
 
     "guard.reach.reason.guard_key_not_bound":
@@ -924,8 +950,8 @@ export const guardMessages = {
     "guard.outcomes.releasing": "Freigabe läuft…",
     "guard.outcomes.back": "Zurück",
     "guard.outcomes.stepUp":
-      "Zum Freigeben eines Ausgangs ist eine frische Anmeldung mit zweitem Faktor nötig, nicht älter als fünf Minuten. Melde dich erneut an und wiederhole dann diesen Schritt. Deine Notiz bleibt nicht erhalten.",
-    "guard.outcomes.stepUpAction": "Erneut anmelden",
+      "Zum Freigeben eines Ausgangs ist eine Bestätigung mit deinem zweiten Faktor nötig, nicht älter als fünf Minuten. Bestätige sie und wiederhole dann diesen Schritt. Deine Notiz bleibt nicht erhalten.",
+    "guard.outcomes.stepUpAction": "Bestätigen",
     "guard.outcomes.stale":
       "Dieser Vorgang hat sich geändert, während du ihn geprüft hast. Die Liste ist aktualisiert; prüfe ihn erneut.",
     "guard.outcomes.loadFailed":
@@ -977,13 +1003,14 @@ export const guardMessages = {
       "Warte darauf, dass der Kopplungsbefehl auf dem Server ausgeführt wird.",
     "guard.ladder.bound.awaitingNext":
       "Führe den Befehl auf dem Server aus. Ist er abgelaufen, erzeuge einen neuen.",
-    "guard.updates.title": "StackKits-Updates",
+    "guard.updates.title": "Updates",
     "guard.updates.runs": "Läuft mit {version}",
     "guard.updates.behavior.label": "Update-Verhalten",
-    "guard.updates.behavior.hint":
-      "Sicherheitspatches für Apps auf diesem Server werden sofort installiert, egal was du hier wählst.",
-    "guard.updates.behavior.approve": "Mich fragen (jedes Update freigeben)",
-    "guard.updates.behavior.automatic": "Updates automatisch installieren",
+    "guard.updates.behavior.hint": "Sicherheitskorrekturen werden immer sofort angeboten.",
+    "guard.updates.behavior.ask": "Mich fragen",
+    "guard.updates.behavior.automatic": "Automatisch",
+    "guard.updates.behavior.with_stackkits_releases": "Mit StackKits-Releases",
+    "guard.updates.behavior.automaticPending": "Apps werden noch nicht automatisch aktualisiert.",
     "guard.updates.available": "StackKits {version} ist verfügbar",
     "guard.updates.forUseCase": "Für deine {name}",
     "guard.updates.other": "Außerdem in diesem Update",
@@ -1019,5 +1046,31 @@ export const guardMessages = {
     "guard.updates.kind.fixed": "Behoben",
     "guard.updates.kind.changed": "Geändert",
     "guard.updates.kind.reverted": "Zurückgenommen",
+    "guard.power.title": "USV-Schutz",
+    "guard.power.state.line": "Am Netzstrom",
+    "guard.power.state.on_battery": "Im Batteriebetrieb",
+    "guard.power.state.shutdown": "Geordnetes Herunterfahren angefordert",
+    "guard.power.state.canceled": "Herunterfahren abgebrochen",
+    "guard.power.state.unknown": "Stromzustand nicht belegt",
+    "guard.power.observed": "Beobachtet {when}",
+    "guard.power.charge": "Batterie {percent} %",
+    "guard.power.runtime": "noch etwa {minutes} Min.",
+    "guard.power.steps": "Geordnetes Herunterfahren",
+    "guard.power.step.applications": "Anwendungen",
+    "guard.power.step.storage": "Speicher",
+    "guard.power.step.host": "Host",
+    "guard.power.outcome.pending": "ausstehend",
+    "guard.power.outcome.running": "läuft",
+    "guard.power.outcome.succeeded": "erfolgreich",
+    "guard.power.outcome.failed": "fehlgeschlagen",
+    "guard.power.outcome.skipped": "übersprungen",
+    "guard.power.outcome.canceled": "abgebrochen",
+    "guard.power.reason.line_restored": "Netzstrom ist zurück",
+    "guard.power.reason.sequence_interrupted":
+      "die Reihenfolge wurde unterbrochen",
+    "guard.power.canceledBecause": "Abgebrochen: {reason}",
+    "guard.power.hostRequested": "Herunterfahren des Hosts angefordert {when}",
+    "guard.power.evidence":
+      "Jeder Schritt wird im lokalen Strom-Journal des Servers aufgezeichnet.",
   },
 } as const;

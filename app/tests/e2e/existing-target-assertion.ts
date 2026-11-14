@@ -19,7 +19,6 @@ export async function assertExistingTargetExtension(options: {
   stackId: string;
   serverId?: string;
   expectedRevision: string;
-  earlyAccessOnly?: boolean;
   /** Canonical use case to add (default vault) and the service it installs. */
   goal?: string;
   serviceKey?: string;
@@ -36,13 +35,17 @@ export async function assertExistingTargetExtension(options: {
   if (!/^[a-f0-9]{40}$/.test(options.expectedRevision))
     throw new Error("existing_target_exact_source_revision_required");
   async function request(path: string, body?: unknown, key?: string) {
+    const call = `${body ? "POST" : "GET"} ${path.split("?")[0]}`;
+    // The timeout covers the body read too; either way the call names itself.
+    const unanswered = (error: unknown): never => {
+      throw new Error(`existing_target_api_unanswered:${call}: ${String(error)}`, { cause: error });
+    };
     const response = await authorizedFetch(token, url(path), {
       ...(body
         ? {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "x-kombify-release-channel": "early-access",
               ...(key ? { "X-Idempotency-Key": key } : {}),
             },
             body: JSON.stringify(body),
@@ -50,16 +53,15 @@ export async function assertExistingTargetExtension(options: {
         : {
             headers: {
               "Cache-Control": "no-store",
-              "x-kombify-release-channel": "early-access",
             },
           }),
       signal: AbortSignal.timeout(30_000),
-    });
+    }).catch(unanswered);
     if (!response.ok)
       throw new Error(
         `existing_target_api_${response.status}:${path.split("?")[0]}`,
       );
-    const parsed = await response.json();
+    const parsed = await response.json().catch(unanswered);
     return parsed.data ?? parsed;
   }
   async function sourceBinding() {
@@ -68,12 +70,7 @@ export async function assertExistingTargetExtension(options: {
     expect(health.revision, "existing_target_product_source_mismatch").toBe(
       options.expectedRevision,
     );
-    if (options.earlyAccessOnly)
-      expect(
-        health.release_channel,
-        "existing_target_requires_early_access",
-      ).toBe("early-access");
-    return { revision: health.revision, channel: health.release_channel };
+    return { revision: health.revision };
   }
   // Inventory accepts server_id, cursor and limit, not stack_id. Each next_cursor
   // is bound to the authenticated scope and the selected server.

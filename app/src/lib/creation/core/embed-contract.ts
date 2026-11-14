@@ -25,8 +25,6 @@ export interface CreationEntry {
   frame: CreationEntryFrame;
   step?: CreationStepKey;
   useCase?: string;
-  /** Guided-setup answers as `<question>:<choice>,…`. */
-  setup?: string;
   /** The deployment to add to. */
   stack?: string;
   /** The enrolled server the owner started from. */
@@ -34,7 +32,6 @@ export interface CreationEntry {
 }
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/;
-const SETUP = /^[a-z0-9:,-]{1,2048}$/;
 
 const matching = (value: string | null, pattern: RegExp) =>
   value && pattern.test(value) ? value : undefined;
@@ -55,7 +52,6 @@ export function parseCreationEntry(params: {
     frame: params.get("frame") === "step" ? "step" : "sheet",
     step: stepOf(params.get("step")),
     useCase: matching(params.get("use-case"), ID),
-    setup: matching(params.get("setup"), SETUP),
     stack: matching(params.get("stack"), ID),
     server: matching(params.get("server"), ID),
   };
@@ -68,7 +64,6 @@ export function creationEntryPath(entry: CreationEntry): string {
   });
   if (entry.step) params.set("step", entry.step);
   if (entry.useCase) params.set("use-case", entry.useCase);
-  if (entry.setup) params.set("setup", entry.setup);
   if (entry.stack) params.set("stack", entry.stack);
   if (entry.server) params.set("server", entry.server);
   return `${CREATION_EMBED_PATH}?${params.toString()}`;
@@ -78,7 +73,6 @@ export function creationEntryPath(entry: CreationEntry): string {
 export function creationFullPath(entry: CreationEntry): string {
   const params = new URLSearchParams();
   if (entry.useCase) params.set("use-case", entry.useCase);
-  if (entry.setup) params.set("setup", entry.setup);
   if (entry.server) params.set("server", entry.server);
   const stack = entry.stack ? encodeURIComponent(entry.stack) : "";
   let path = "/use-cases/new";

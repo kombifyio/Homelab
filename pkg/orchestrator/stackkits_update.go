@@ -78,7 +78,7 @@ func (o *Orchestrator) StackKitsUpdate(ctx context.Context, tenantID, ownerID, w
 // SetStackKitsUpdateBehavior stores the owner's update setting of a node and
 // evaluates the pending update at once, so "install automatically" starts it.
 func (o *Orchestrator) SetStackKitsUpdateBehavior(ctx context.Context, tenantID, ownerID, workerID, behavior string) (StackKitsUpdateView, error) {
-	if behavior != controlplane.StackKitsUpdateApprove && behavior != controlplane.StackKitsUpdateAutomatic {
+	if !controlplane.ValidStackKitsUpdateBehavior(behavior) {
 		return StackKitsUpdateView{}, fmt.Errorf("unknown update behavior %q", behavior)
 	}
 	store, err := o.stackKitsUpdateStore()
@@ -108,7 +108,7 @@ func (o *Orchestrator) stackKitsUpdateView(ctx context.Context, worker *controlp
 	if attempt, ok := controlplane.WorkerStackKitsUpdateAttemptOf(worker); ok {
 		view.Started = &attempt
 	}
-	if target, ok := controlplane.WorkerStackKitsTargetOf(worker); ok {
+	if target, ok := controlplane.WorkerStackKitsTargetOf(worker); ok && target.Source == "" {
 		view.LastUpgrade = &target
 	}
 	if notes, err := stackkitrelease.PinnedReleaseNotes(); err == nil {
@@ -139,7 +139,15 @@ func (o *Orchestrator) stackKitsProposal(ctx context.Context, worker *controlpla
 			activated = stackkitsupdate.ActivatedUseCases(catalog, spec)
 		}
 	}
-	return stackkitsupdate.Propose(notes, activated, installed, available), resolved && err == nil
+	// A Guard observation never authorizes an update beyond the release Techstack
+	// actually serves, or a release whose notes are from another pin.
+	target, targetErr := jobs.CachedTargetStackKitRelease()
+	releaseMatches := targetErr == nil && target != nil && stackKitsReleaseTag(target.Receipt().Version) == stackKitsReleaseTag(available)
+	notesFound := false
+	for _, release := range notes.Releases {
+		notesFound = notesFound || release.Version == stackKitsReleaseTag(available)
+	}
+	return stackkitsupdate.Propose(notes, activated, installed, available), resolved && err == nil && releaseMatches && notesFound
 }
 
 // nodeStackKitsReleases reads the installed and the pending release the
@@ -218,9 +226,7 @@ func (o *Orchestrator) EvaluateStackKitsUpdate(ctx context.Context, tenantID, wo
 	attempt := controlplane.WorkerStackKitsUpdateAttempt{Version: available, Trigger: string(start), StartedAt: time.Now().UTC()}
 	if start == stackkitsupdate.StartSecurity {
 		for _, change := range proposal.Security.Changes {
-			if len(attempt.Patched) < 8 {
-				attempt.Patched = append(attempt.Patched, controlplane.StackKitsPatchNote{App: change.Scope, Text: change.Text})
-			}
+			attempt.Patched = append(attempt.Patched, controlplane.StackKitsPatchNote{App: change.Scope, Text: change.Text})
 		}
 	}
 	claimed, err := store.ClaimWorkerStackKitsUpdateAttempt(ctx, tenantID, workerID, attempt)

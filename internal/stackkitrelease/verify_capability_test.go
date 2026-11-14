@@ -48,24 +48,31 @@ func TestVerifyCapabilityBoundToBinaryDigest(t *testing.T) {
 	}
 }
 
-func TestRILPrimitiveCapabilityRequiresUniqueDigestBoundMarker(t *testing.T) {
-	const hash = "sha256:a745b4b217392a05de34b757b98ee04ff66d3c9ad6debb68dc2425f79e240df0"
-	marker := "stackkit.ril-primitive-contract/v1:" + hash + ":end-stackkit.ril-primitive-contract"
+func TestRILPrimitiveCapabilityRequiresUniqueDigestBoundMarkers(t *testing.T) {
+	const verifyHash = "sha256:8d38857c71ceec1b2558aa842dd04f31ec116e3dd0e7dd48eec3e592bccefabe"
+	const restartHash = "sha256:2867f83c897822c1eacb127cfe850ab5f8d610bf38078aa0dab2ad4105634693"
+	marker := func(id, hash string) string {
+		return "stackkit.ril-primitive-contract/v2:" + id + ":" + hash + ":end-stackkit.ril-primitive-contract"
+	}
 	scanner := &capabilityScanner{}
-	raw := []byte(rilPrimitiveManifest + marker)
+	raw := []byte(rilPrimitiveManifest + marker("verify-stackkit-state", verifyHash) + "\x00" + marker("restart-service", restartHash) + marker("apply-stackkit-change", verifyHash))
 	for _, b := range raw {
 		_, _ = scanner.Write([]byte{b})
 	}
-	if scanner.rilMatches != 1 || scanner.qualifiedHash() != hash {
-		t.Fatal("split signed capability was not retained")
+	release := Release{rilPrimitiveHashes: scanner.qualifiedRILHashes()}
+	if release.RILPrimitiveHash("verify-stackkit-state") != verifyHash || release.RILPrimitiveHash("restart-service") != restartHash || !release.RILPrimitiveSupported("restart-service") {
+		t.Fatal("split signed per-primitive capability was not retained")
 	}
-	_, _ = scanner.Write([]byte(marker))
-	if scanner.qualifiedHash() != "" {
+	if release.RILPrimitiveSupported("update-service") || release.RILPrimitiveSupported("apply-stackkit-change") {
+		t.Fatal("a primitive without its own executor-bound marker became supported")
+	}
+	_, _ = scanner.Write([]byte(marker("restart-service", restartHash)))
+	if scanner.qualifiedRILHashes() != nil {
 		t.Fatal("duplicate primitive authority was admitted")
 	}
-	old := strings.NewReader(verifyPlanManifest)
+	old := strings.NewReader(verifyPlanManifest + "stackkit.ril-primitive-contract/v1:" + verifyHash + ":end-stackkit.ril-primitive-contract")
 	digest, err := digestArchiveReader(old, int64(old.Len()))
-	if err != nil || digest.verifyRILPrimitive || digest.rilPrimitiveHash != "" {
+	if err != nil || digest.rilPrimitiveHashes != nil {
 		t.Fatal("old binary gained RIL primitive capability")
 	}
 }

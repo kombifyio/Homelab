@@ -13,6 +13,7 @@ import (
 	"github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 	"github.com/google/uuid"
 
+	"github.com/kombifyio/techstack/internal/providercatalog"
 	"github.com/kombifyio/techstack/pkg/monthlyruntime"
 )
 
@@ -906,8 +907,7 @@ func canonicalProviderID(value string) bool {
 	if !canonicalCatalogIdentifier(value) {
 		return false
 	}
-	_, disallowed := disallowedCompositeProviderIDs[value]
-	return !disallowed
+	return !providercatalog.IsCompositeProviderAlias(value)
 }
 
 func unavailableProfile(reason string, err error) error {

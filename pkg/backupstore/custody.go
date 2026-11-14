@@ -256,7 +256,7 @@ func (s *PostgresCustodyStore) decryptRow(row custodyRow) (Credentials, error) {
 }
 
 func (s *PostgresCustodyStore) withTenant(ctx context.Context, tenantID string, fn func(*sql.Tx) error) error {
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := tenantcontext.Database(ctx, s.db).BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}

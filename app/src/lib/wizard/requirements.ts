@@ -196,12 +196,25 @@ export function calculateRequirements(config: {
 
 const binaryPinPattern = /^[a-z0-9]+=[a-f0-9]{64}(,[a-z0-9]+=[a-f0-9]{64})*$/;
 
+/** Keep the LAN installer's certificate and binary pins; read its secret off history. */
+export function generatePinnedConnectCommand(
+  serverUrl: string,
+  lanPin: string,
+  binaryPin: string,
+): string {
+  if (!lanPin || !binaryPinPattern.test(binaryPin)) return "";
+  const baseUrl = new URL(normalizeWorkerInstallBaseUrl(serverUrl)).origin;
+  if (!/^sha256\/\/[A-Za-z0-9+/]{43}=$/.test(lanPin)) return "";
+  const script = `IFS= read -r -s -p "Pairing (hidden): " KOMBI_TOKEN </dev/tty || exit 1; printf "\\n"; export KOMBI_TOKEN; ${linuxInstallCommand(baseUrl, "${KOMBI_TOKEN}", lanPin, binaryPin)}`;
+  return `sudo bash -c '${script.replaceAll("'", "'\"'\"'")}'`;
+}
+
 /**
  * Generate worker installation command. binaryPin is the Guard binary pin set
  * from getGuardBinaryPins; without a valid one there is no command, so the
  * installer never runs unpinned.
  */
-export function generateInstallCommand(
+export function generateGuardRepairInstallCommand(
   serverUrl: string,
   registrationToken: string,
   lanPin: string,
@@ -240,38 +253,4 @@ export function normalizeWorkerInstallBaseUrl(serverUrl: string): string {
     // Best-effort fallback for non-URL strings.
     return trimmed.replace(":5261", ":5260");
   }
-}
-
-/**
- * Generate alternative installation commands for different platforms
- */
-export function generateInstallCommands(
-  serverUrl: string,
-  registrationToken: string,
-  lanPin: string,
-  binaryPin: string,
-): { platform: string; command: string; description: string }[] {
-  if (!binaryPinPattern.test(binaryPin)) return [];
-  const baseUrl = normalizeWorkerInstallBaseUrl(serverUrl);
-  const linux = {
-    platform: "linux",
-    command: linuxInstallCommand(baseUrl, registrationToken, lanPin, binaryPin),
-    description: tr("ui.requirements.linuxRecommendedInstallsThePersistent"),
-  };
-  // The other paths cannot pin the bridge key, so a LAN bridge offers none.
-  if (lanPin) return [linux];
-
-  return [
-    linux,
-    {
-      platform: "docker",
-      command: `docker run -d --name techstack-agent -e KOMBI_SERVER="${baseUrl}" -e KOMBI_TOKEN="${registrationToken}" techstack/agent:latest`,
-      description: tr("ui.requirements.dockerContainer"),
-    },
-    {
-      platform: "manual",
-      command: `techstack agent register --server "${baseUrl}" --token "${registrationToken}"`,
-      description: tr("ui.requirements.manualInstallationAfterBinaryDownload"),
-    },
-  ];
 }

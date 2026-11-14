@@ -44,7 +44,10 @@ const (
 
 // HouseholdRouteConfig wires the household routes.
 type HouseholdRouteConfig struct {
-	Service           *household.Service
+	Service *household.Service
+	// HomeGraphs and HomeGraphSync serve the home graph route; without them it answers 503.
+	HomeGraphs        controlplane.HomeGraphStore
+	HomeGraphSync     HomeGraphSyncer
 	ServiceAuthSecret string
 	ServiceAuthNext   string
 }
@@ -56,16 +59,24 @@ var householdSurface = cloudReadSurface{
 
 type householdHandlers struct {
 	svc          *household.Service
+	graphs       controlplane.HomeGraphStore
+	sync         HomeGraphSyncer
 	secret, next string
 }
 
 // RegisterHouseholdInternalRoutes mounts the projection and link routes.
 func RegisterHouseholdInternalRoutes(r *httpx.Router, cfg HouseholdRouteConfig) {
-	h := householdHandlers{svc: cfg.Service, secret: cfg.ServiceAuthSecret, next: cfg.ServiceAuthNext}
+	h := householdHandlers{svc: cfg.Service, graphs: cfg.HomeGraphs, sync: cfg.HomeGraphSync, secret: cfg.ServiceAuthSecret, next: cfg.ServiceAuthNext}
 	r.POST(householdProjectionPath, h.projection)
 	r.POST(householdLinkBeginPath, h.linkBegin)
 	r.POST(householdLinkDonePath, h.linkComplete)
 	r.GET(householdLinksPath, h.links)
+	r.POST(householdHomeGraphPath, h.homeGraphPut)
+	r.GET(householdHomeGraphPath, h.homeGraphGet)
+	r.POST(householdHomeGraphAdoptionPath, h.homeGraphAdoptionStart)
+	r.GET(householdHomeGraphAdoptionPath, h.homeGraphAdoptionGet)
+	r.POST(householdHomeGraphLoxoneImportPath, h.homeGraphLoxoneImportStart)
+	r.GET(householdHomeGraphLoxoneImportPath, h.homeGraphLoxoneImportGet)
 }
 
 // serve verifies the Cloud service token and its scope before any body is read,

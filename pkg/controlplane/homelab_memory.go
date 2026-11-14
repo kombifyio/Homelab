@@ -39,7 +39,7 @@ func (s *MemoryStore) GetHomelabByOwner(_ context.Context, tenantID, ownerSubjec
 	if homelab == nil {
 		return nil, ErrNotFound
 	}
-	return cloneHomelab(*homelab), nil
+	return s.memoryHomelabViewLocked(*homelab), nil
 }
 
 func (s *MemoryStore) GetOrCreateHomelabForOwner(_ context.Context, req CreateHomelabRequest) (*Homelab, error) {
@@ -237,6 +237,7 @@ func cloneHomelab(homelab Homelab) *Homelab {
 	clone.DeletedAt = cloneTime(homelab.DeletedAt)
 	clone.NamedAt = cloneTime(homelab.NamedAt)
 	clone.Identity.Presentation = clonePresentation(homelab.Identity.Presentation)
+	clone.IdentityAuthority = cloneHomelabIdentityAuthority(homelab.IdentityAuthority)
 	return &clone
 }
 

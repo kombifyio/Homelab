@@ -534,6 +534,16 @@ func stackStatusForJob(job jobs.JobSnapshot) string {
 	case jobs.JobStateCompleted:
 		return completedStackStatusForJobType(job.Type)
 	case jobs.JobStateFailed:
+		// A failed observation (a drift check, a verify) says the check could
+		// not answer, not that the stack broke, and a StackKits refusal before
+		// any change leaves the deployment as it was. Projecting "error" from
+		// either took a healthy stack out of the drift schedule, which checks
+		// only running stacks, so one transient release-download 502 kept it
+		// in error (platform-j0ap6). The job and its drift result carry the
+		// failure.
+		if jobLeftStackUnchanged(job) {
+			return ""
+		}
 		return "error"
 	case jobs.JobStateCancelled:
 		// Cancellation stops a job, not the stack. In particular an enrollment
@@ -542,6 +552,23 @@ func stackStatusForJob(job jobs.JobSnapshot) string {
 		return ""
 	default:
 		return ""
+	}
+}
+
+// jobLeftStackUnchanged reports a failed job that did not change the
+// deployment: a drift check, a read-only or dry-run StackKits lifecycle
+// operation, or a lifecycle operation StackKits refused before it changed the
+// node (the reason code the failed job's outcome recorded).
+func jobLeftStackUnchanged(job jobs.JobSnapshot) bool {
+	switch job.Type {
+	case jobs.JobTypeDriftCheck:
+		return true
+	case jobs.JobTypeStackKitLifecycle:
+		return jobs.IsStackKitObservationOperation(stringResult(job.Payload["operation"])) ||
+			boolResult(job.Payload["dry_run"]) ||
+			jobs.StackKitRefusedBeforeChange(stringResult(job.Result["reason_code"]))
+	default:
+		return false
 	}
 }
 

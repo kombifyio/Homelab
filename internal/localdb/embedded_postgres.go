@@ -40,6 +40,8 @@ type EmbeddedPostgres struct {
 	adminDSN string
 	dsn      string
 	custody  *operatorCustody
+	port     uint32
+	tls      loopbackTLS
 }
 
 func EnabledFromEnv() bool {
@@ -90,6 +92,10 @@ func StartEmbeddedPostgresWithAdoption(dataDir, adoptIdentity string) (*Embedded
 	if err != nil {
 		return nil, err
 	}
+	loopback, err := loopbackTLSFromEnv()
+	if err != nil {
+		return nil, err
+	}
 
 	// #nosec G703 -- baseDir is an explicit local-operator storage setting.
 	if err := os.MkdirAll(baseDir, 0o700); err != nil {
@@ -136,7 +142,7 @@ func StartEmbeddedPostgresWithAdoption(dataDir, adoptIdentity string) (*Embedded
 		RuntimePath(filepath.Join(baseDir, "runtime")).
 		DataPath(filepath.Join(baseDir, "data")).
 		StartTimeout(embeddedPostgresStartTimeout()).
-		StartParameters(map[string]string{"cluster_name": custody.startupNonce}).
+		StartParameters(loopback.startParameters(custody.startupNonce)).
 		Logger(logFile)
 
 	if repoURL := strings.TrimSpace(os.Getenv(EnvEmbeddedPostgresRepositoryURL)); repoURL != "" {
@@ -152,6 +158,8 @@ func StartEmbeddedPostgresWithAdoption(dataDir, adoptIdentity string) (*Embedded
 		logFile:  logFile,
 		adminDSN: fmt.Sprintf("postgres://%s:%s@127.0.0.1:%d/%s?sslmode=disable", embeddedUsername, custody.record.Password, port, embeddedDatabase),
 		custody:  custody,
+		port:     port,
+		tls:      loopback,
 	}
 	legacyDSN := fmt.Sprintf("postgres://%s:%s@127.0.0.1:%d/%s?sslmode=disable", embeddedUsername, embeddedPassword, port, embeddedDatabase)
 	// The pinned library authenticates its configured credential before Start

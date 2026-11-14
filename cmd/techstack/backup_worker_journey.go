@@ -21,6 +21,7 @@ import (
 	"github.com/kombifyio/techstack/pkg/api/agentpb"
 	"github.com/kombifyio/techstack/pkg/auth/testidentity"
 	"github.com/kombifyio/techstack/pkg/config"
+	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/db"
 	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
 	"github.com/kombifyio/techstack/pkg/stackkitcommand"
@@ -256,11 +257,15 @@ func runBackupWorkerJourney(parent context.Context) (returnErr error) {
 		}
 		if state == "completed" {
 			var commandJSON, resultJSON []byte
+			// Generation 0 is a key-bound Guard that was never rotated; it counts
+			// only while the worker still reads generation 0 and its bound host
+			// key is its last proven identity (kombify-StackKits-4czp).
 			e = read.QueryRowContext(ctx, `SELECT c.command_json,c.result_json,c.result_digest FROM typed_agent_commands c
 			 JOIN typed_agent_command_revisions r ON r.command_id=c.command_id AND r.tenant_id=c.tenant_id AND r.revision=c.result_revision
 			 WHERE c.tenant_id=$1 AND c.command_id=$2 AND c.agent_id=$3 AND c.state='completed' AND c.command_family='stackkit'
 			 AND c.created_at >= $4 AND c.dispatched_at IS NOT NULL AND c.acked_at IS NOT NULL
-			 AND c.worker_generation>0 AND c.result_generation=c.worker_generation AND r.worker_generation=c.worker_generation
+			 AND (c.worker_generation>0 OR (c.worker_generation=0 AND `+controlplane.GenerationZeroKeyBoundSQL("c.tenant_id", "c.agent_id")+`))
+			 AND c.result_generation=c.worker_generation AND r.worker_generation=c.worker_generation
 			 AND r.state='terminal' AND NOT r.truncated AND r.digest=c.result_digest AND r.result_json=c.result_json`, grant.TenantID, jobID, agent, slot).Scan(&commandJSON, &resultJSON, &resultDigest)
 			read.Rollback()
 			command, result := new(agentpb.StackKitCommand), new(agentpb.StackKitResult)

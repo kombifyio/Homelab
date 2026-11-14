@@ -41,11 +41,13 @@ const (
 )
 
 // serviceActionVocabulary is the closed request vocabulary of the service
-// action endpoint. Whether a given service accepts a given action is decided
-// against serviceRuntimeAllowedActions, not here.
+// action endpoint: changes only. `logs` stays an allowed action of a service
+// but is requested through the separate log read (requestLogs). Whether a
+// given service accepts a given action is decided against
+// serviceRuntimeAllowedActions, not here.
 var serviceActionVocabulary = map[string]bool{
 	serviceActionStart: true, serviceActionStop: true, serviceActionRestart: true,
-	serviceActionLogs: true, serviceActionFreeze: true, serviceActionUnfreeze: true,
+	serviceActionFreeze: true, serviceActionUnfreeze: true,
 	serviceActionUpdate: true, serviceActionBackup: true,
 }
 

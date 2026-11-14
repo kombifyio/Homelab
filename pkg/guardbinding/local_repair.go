@@ -199,7 +199,7 @@ func (g LocalRepairGrant) verify(pins []PinnedKey) *Denial {
 	switch {
 	case g.ContractVersion != LocalRepairContractVersion:
 		return Denyf(CodeContractUnsupported, "local repair contract %q is not supported", g.ContractVersion)
-	case !localPolicyIDPattern.MatchString(g.PolicyID) || g.PolicyVersion < 1 || g.Generation < 1:
+	case !localPolicyIDPattern.MatchString(g.PolicyID) || g.PolicyVersion < 1 || g.Generation < 0:
 		return Denyf(CodeBindingMismatch, "the local repair grant names no complete policy binding")
 	case g.TenantID == "" || g.WorkerID == "":
 		return Denyf(CodeBindingMismatch, "the local repair grant names no worker")

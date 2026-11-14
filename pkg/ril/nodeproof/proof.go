@@ -20,11 +20,22 @@ import (
 	"time"
 
 	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	rilaction "github.com/kombifyio/techstack/pkg/ril/actioncontract"
+	"github.com/kombifyio/techstack/pkg/ril/primitives"
+	"github.com/kombifyio/techstack/pkg/stackkitcommand"
 	jcs "github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
 )
 
 var stableID = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,191}$`)
 var shaDigest = regexp.MustCompile(`^sha256:[a-f0-9]{64}$`)
+
+// Input values after their opaque-reference prefix: the managed service key,
+// the exact StackKits release version and the stack id.
+var serviceKeyValue = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,63}$`)
+var releaseValue = regexp.MustCompile(`^v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:beta|edge)\.[0-9]+)?$`)
+
+// containerValue is an adopted application's full immutable container id.
+var containerValue = regexp.MustCompile(`^[a-f0-9]{64}$`)
 
 type Identity struct{ TenantID, OwnerID, ServerID, StackID string }
 type identityKey struct{}
@@ -135,6 +146,14 @@ type effect struct {
 		ExecutionChannelRef string `json:"executionChannelRef,omitempty"`
 	} `json:"target"`
 	Inputs []json.RawMessage `json:"inputs"`
+}
+
+// effectInput is one catalog input of the effect: always a required opaque
+// reference (kombify.ril-effect.v1 camelCase wire form).
+type effectInput struct {
+	ID        string `json:"id"`
+	Type      string `json:"type"`
+	OpaqueRef string `json:"opaqueRef"`
 }
 type receipt struct {
 	ReceiptID    string    `json:"receiptId"`
@@ -369,7 +388,7 @@ func verifyReceipt(raw []byte, keys keySet) (receipt, []byte, error) {
 // Verify checks signatures, exact effect and locally enrolled identity. The
 // caller must enforce the returned absolute deadline through process exit.
 func Verify(ctx context.Context, command *agentpb.StackKitCommand, keyPath string, now time.Time) (time.Time, error) {
-	if command == nil || command.RilExecutionProof == nil || command.Operation != agentpb.StackKitOperation_STACKKIT_OPERATION_VERIFY {
+	if command == nil || command.RilExecutionProof == nil {
 		return time.Time{}, fmt.Errorf("RIL proof required")
 	}
 	id, ok := ctx.Value(identityKey{}).(Identity)
@@ -408,7 +427,14 @@ func Verify(ctx context.Context, command *agentpb.StackKitCommand, keyPath strin
 	rh := hash(rc)
 	lh := hash([]byte(proof.LeaseJws))
 	n := now.Unix()
-	if l.SchemaVersion != "kombify.ril-execution-lease.v1" || l.Iss != "kombify-gateway" || l.Aud != "stackkits" || l.Purpose != "ril-execution" || l.Executor != "techstack" || l.PrimitiveID != "verify-stackkit-state" || l.Scope != "stackkit-verify" || l.Iat <= 0 || l.Nbf < l.Iat || l.Nbf > n || l.Exp <= n || l.Exp-l.Iat > 900 || l.CardRevision < 1 || l.LifecycleRevision < 1 || !stableID.MatchString(l.LeaseID) || !stableID.MatchString(l.OperationID) || !stableID.MatchString(l.DecisionID) || !stableID.MatchString(l.CardID) || !shaDigest.MatchString(l.EffectDigest) || !shaDigest.MatchString(l.ReceiptDigest) || l.Requester.ID == "" || (l.Requester.Kind != "service" && l.Requester.Kind != "agent_instance") {
+	// The lease names exactly one executor-bound primitive with its own grant
+	// scope; only that primitive's Guard operations are admitted (the effect
+	// selects the exact one below).
+	profile, known := primitives.Lookup(l.PrimitiveID)
+	if !known || l.Scope != profile.GrantScope || !profile.AdmitsGuardOperation(command.Operation) {
+		return time.Time{}, fmt.Errorf("lease authority invalid")
+	}
+	if l.SchemaVersion != "kombify.ril-execution-lease.v1" || l.Iss != "kombify-gateway" || l.Aud != "stackkits" || l.Purpose != "ril-execution" || l.Executor != "techstack" || l.Iat <= 0 || l.Nbf < l.Iat || l.Nbf > n || l.Exp <= n || l.Exp-l.Iat > 900 || l.CardRevision < 1 || l.LifecycleRevision < 1 || !stableID.MatchString(l.LeaseID) || !stableID.MatchString(l.OperationID) || !stableID.MatchString(l.DecisionID) || !stableID.MatchString(l.CardID) || !shaDigest.MatchString(l.EffectDigest) || !shaDigest.MatchString(l.ReceiptDigest) || l.Requester.ID == "" || (l.Requester.Kind != "service" && l.Requester.Kind != "agent_instance") {
 		return time.Time{}, fmt.Errorf("lease authority invalid")
 	}
 	if err := validateClaim(c, l, command.CommandId, c.Fence, lh, n); err != nil {
@@ -419,16 +445,162 @@ func Verify(ctx context.Context, command *agentpb.StackKitCommand, keyPath strin
 	}
 
 	issuedAt, issuedErr := time.Parse(time.RFC3339Nano, r.IssuedAt)
-	if issuedErr != nil || issuedAt.After(now) || !stableID.MatchString(r.ReceiptID) || l.EffectDigest != eh || l.ReceiptDigest != rh || r.DecisionID != l.DecisionID || r.OperationID != l.OperationID || r.Outcome != "allowed" || r.OptionKind != "allow_once" || r.Lifetime.Scope != "once" || r.AnsweredBy.Kind != "person" || r.AnsweredBy.ID != l.OwnerSubject || r.Assurance != "L2" || !shaDigest.MatchString(r.IntentDigest) {
+	if issuedErr != nil || issuedAt.After(now) || !stableID.MatchString(r.ReceiptID) || l.EffectDigest != eh || l.ReceiptDigest != rh || r.DecisionID != l.DecisionID || r.OperationID != l.OperationID || r.Outcome != "allowed" || r.OptionKind != "allow_once" || r.Lifetime.Scope != "once" || !equipmentAnswer(r, profile) || !shaDigest.MatchString(r.IntentDigest) {
 		return time.Time{}, fmt.Errorf("decision binding invalid")
 	}
-	if f.SchemaVersion != "kombify.ril-effect.v1" || f.Audience != "stackkits" || f.OperationID != l.OperationID || f.CardID != l.CardID || f.CardRevision != l.CardRevision || f.Primitive.ID != "verify-stackkit-state" || f.Primitive.OperationClass != "product-verify" || f.Target.Scope != "stack" || f.Target.SiteRef != "" || f.Target.NodeRef != "" || f.Target.ModuleInstanceRef != "" || f.Target.RuntimeInstanceRef != "" || f.Target.ExecutionChannelRef != "" || f.Inputs == nil || len(f.Inputs) != 0 || !shaDigest.MatchString(f.Primitive.ContractHash) || !shaDigest.MatchString(f.ResolvedPlanHash) || f.ResolvedPlanHash != command.ExpectedPlanHash {
+	if f.SchemaVersion != "kombify.ril-effect.v1" || f.Audience != "stackkits" || f.OperationID != l.OperationID || f.CardID != l.CardID || f.CardRevision != l.CardRevision || f.Primitive.ID != profile.ID || f.Primitive.OperationClass != profile.OperationClass || !shaDigest.MatchString(f.Primitive.ContractHash) || !shaDigest.MatchString(f.ResolvedPlanHash) {
 		return time.Time{}, fmt.Errorf("effect binding invalid")
+	}
+	if err := bindEffectToCommand(profile, f, command, id); err != nil {
+		return time.Time{}, err
 	}
 	if l.TenantID != id.TenantID || l.ServerID != id.ServerID || l.OwnerSubject == "" || l.StackID == "" || (id.OwnerID != "" && l.OwnerSubject != id.OwnerID) || (id.StackID != "" && l.StackID != id.StackID) || c.TenantID != l.TenantID || c.OwnerSubject != l.OwnerSubject || c.ServerID != l.ServerID || c.StackID != l.StackID || f.TenantID != l.TenantID || f.OwnerSubject != l.OwnerSubject || f.ServerID != l.ServerID || f.StackID != l.StackID {
 		return time.Time{}, fmt.Errorf("local identity mismatch")
 	}
 	return time.Unix(c.Exp, 0).UTC(), nil
+}
+
+// equipmentAnswer is the one admitted Decision answer for an executor-bound
+// primitive: the acting agent's equipment policy for exactly this primitive's
+// grant scope (D-2026-10-23-06). A person answer is not accepted.
+func equipmentAnswer(r receipt, profile primitives.Profile) bool {
+	return r.AnsweredBy.Kind == "policy" && r.AnsweredBy.ID == profile.EquipmentPolicyID() && r.Assurance == "L0" && r.Surface == "equipment"
+}
+
+// effectInputs decodes the effect inputs strictly into the shared contract
+// shape; every input must be a required opaque reference.
+func effectInputs(raw []json.RawMessage) ([]rilaction.Input, error) {
+	if raw == nil {
+		return nil, fmt.Errorf("effect binding invalid")
+	}
+	out := make([]rilaction.Input, 0, len(raw))
+	for _, item := range raw {
+		var in effectInput
+		if strict(item, &in) != nil {
+			return nil, fmt.Errorf("effect binding invalid")
+		}
+		out = append(out, rilaction.Input{ID: in.ID, Type: rilaction.InputType(in.Type), OpaqueRef: in.OpaqueRef})
+	}
+	return out, nil
+}
+
+// bindEffectToCommand checks the effect target and inputs exactly against
+// the primitive profile and binds them to the typed command and the locally
+// enrolled identity, so one primitive's proof never admits another command.
+func bindEffectToCommand(profile primitives.Profile, f effect, command *agentpb.StackKitCommand, id Identity) error {
+	inputs, err := effectInputs(f.Inputs)
+	if err != nil {
+		return err
+	}
+	target := rilaction.TargetBinding{Scope: rilaction.TargetScope(f.Target.Scope), SiteRef: f.Target.SiteRef, NodeRef: f.Target.NodeRef, ModuleInstanceRef: f.Target.ModuleInstanceRef, RuntimeInstanceRef: f.Target.RuntimeInstanceRef, ExecutionChannelRef: f.Target.ExecutionChannelRef}
+	if !profile.Admits(target, inputs) {
+		return fmt.Errorf("effect binding invalid")
+	}
+	t := f.Target
+	switch profile.TargetScope {
+	case rilaction.TargetScopeStack:
+		if t.SiteRef != "" || t.NodeRef != "" || t.ModuleInstanceRef != "" || t.RuntimeInstanceRef != "" || t.ExecutionChannelRef != "" {
+			return fmt.Errorf("effect binding invalid")
+		}
+	case rilaction.TargetScopeRuntimeInstance:
+		// The node ref is the one the typed service command addresses; the
+		// worker id (runtime instance == execution channel) is admitted by
+		// Techstack against its current inventory.
+		if !stableID.MatchString(t.SiteRef) || !stableID.MatchString(t.NodeRef) || !stableID.MatchString(t.RuntimeInstanceRef) || !stableID.MatchString(t.ExecutionChannelRef) || t.ModuleInstanceRef != "" ||
+			t.RuntimeInstanceRef != t.ExecutionChannelRef || t.SiteRef != f.ServerID || t.NodeRef != command.LocalNodeRef {
+			return fmt.Errorf("effect target invalid")
+		}
+	case rilaction.TargetScopeModuleInstance:
+		if !stableID.MatchString(t.SiteRef) || !stableID.MatchString(t.ModuleInstanceRef) || t.NodeRef != "" || t.RuntimeInstanceRef != "" || t.ExecutionChannelRef != "" ||
+			t.SiteRef != f.ServerID {
+			return fmt.Errorf("effect target invalid")
+		}
+	default:
+		return fmt.Errorf("effect target invalid")
+	}
+	// The effect selects the one typed command: application control for an
+	// adopted application (application-ref), otherwise the profile's Guard
+	// operation.
+	if command.Operation != profile.GuardOperationFor(inputs) {
+		return fmt.Errorf("command binding invalid")
+	}
+	switch command.Operation {
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_VERIFY:
+		if f.ResolvedPlanHash != command.ExpectedPlanHash {
+			return fmt.Errorf("command binding invalid")
+		}
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_SERVICE_START, agentpb.StackKitOperation_STACKKIT_OPERATION_SERVICE_STOP,
+		agentpb.StackKitOperation_STACKKIT_OPERATION_SERVICE_RESTART:
+		service := primitives.InputValue(inputs, primitives.InputRuntimeInstanceRef)
+		if !serviceKeyValue.MatchString(service) || command.ServiceKey != service {
+			return fmt.Errorf("command binding invalid")
+		}
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_CONTROL:
+		// The adopted application's exact container and the primitive's
+		// own power action. The runtime-instance-ref is Techstack's
+		// inventory reference of that application, which no node command
+		// field carries.
+		container := primitives.InputValue(inputs, primitives.InputApplicationRef)
+		if !containerValue.MatchString(container) || command.ApplicationContainerId != container ||
+			profile.ApplicationAction == "" || command.ApplicationAction != profile.ApplicationAction {
+			return fmt.Errorf("command binding invalid")
+		}
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_UPGRADE:
+		service := primitives.InputValue(inputs, primitives.InputRuntimeInstanceRef)
+		release := primitives.InputValue(inputs, primitives.InputTargetReleaseRef)
+		if !serviceKeyValue.MatchString(service) || !releaseValue.MatchString(release) || command.TargetRelease != release || command.DryRun {
+			return fmt.Errorf("command binding invalid")
+		}
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_CONTAINER_ACTION, agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_SYSTEMD_ACTION:
+		// A host primitive binds exactly one verb and one object: the
+		// command's host target is the effect's host-container-ref or
+		// host-unit-ref value and its action the primitive's own verb. A
+		// protected unit or container is refused here as well as by the
+		// control plane and again by the Guard before it acts.
+		object := primitives.InputValue(inputs, profile.HostInput())
+		valid := stackkitcommand.ValidHostContainerRef(object) && !stackkitcommand.ProtectedHostContainer(object)
+		if profile.HostObject == "unit" {
+			valid = stackkitcommand.ValidHostUnit(object) && !stackkitcommand.ProtectedHostUnit(object)
+		}
+		if !profile.IsHost() || !valid || command.HostTarget != object || command.HostAction != profile.HostAction || command.OwnerApproved {
+			return fmt.Errorf("command binding invalid")
+		}
+	case agentpb.StackKitOperation_STACKKIT_OPERATION_BACKUP_STATUS, agentpb.StackKitOperation_STACKKIT_OPERATION_BACKUP_RUN:
+		stack := primitives.InputValue(inputs, primitives.InputBackupContractRef)
+		if !stableID.MatchString(stack) || id.StackID == "" || stack != id.StackID || stack != f.StackID || t.ModuleInstanceRef != "backup."+stack {
+			return fmt.Errorf("command binding invalid")
+		}
+	default:
+		return fmt.Errorf("command binding invalid")
+	}
+	return nil
+}
+
+// PrimitiveContract returns the executor-bound primitive and contract hash
+// the proof's effect names, only when that primitive's Guard operation is the
+// command's operation. Verify authenticates the effect; this only selects the
+// pinned CLI's --expected-ril-primitive-hash argument.
+func PrimitiveContract(command *agentpb.StackKitCommand) (primitives.Profile, string, error) {
+	if command == nil || command.RilExecutionProof == nil {
+		return primitives.Profile{}, "", fmt.Errorf("RIL proof required")
+	}
+	ec, err := canonical(command.RilExecutionProof.EffectJson)
+	if err != nil {
+		return primitives.Profile{}, "", fmt.Errorf("RIL primitive contract invalid")
+	}
+	var f effect
+	if strict(ec, &f) != nil {
+		return primitives.Profile{}, "", fmt.Errorf("RIL primitive contract invalid")
+	}
+	profile, ok := primitives.Lookup(f.Primitive.ID)
+	if !ok || profile.OperationClass != f.Primitive.OperationClass || !shaDigest.MatchString(f.Primitive.ContractHash) {
+		return primitives.Profile{}, "", fmt.Errorf("RIL primitive contract invalid")
+	}
+	inputs, err := effectInputs(f.Inputs)
+	if err != nil || profile.GuardOperationFor(inputs) != command.Operation {
+		return primitives.Profile{}, "", fmt.Errorf("RIL primitive contract invalid")
+	}
+	return profile, f.Primitive.ContractHash, nil
 }
 
 func validateClaim(c claim, l lease, executionID, fence, leaseDigest string, now int64) error {

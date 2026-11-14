@@ -71,15 +71,17 @@ const rowColumns = `tenant_id, worker_id, server_id, stack_id, owner_subject_id,
 	connect_state, connect_generation, connect_node_id, connect_reason, connect_updated_at, connect_retry_at,
 	relay_state, relay_reason, relay_generation, relay_reported_at,
 	revoke_reason, attempts, next_attempt_at, last_error, created_at, updated_at,
-	public_enabled, public_service, public_scheme, public_port, public_enabled_by, public_enabled_at`
+	public_enabled, public_service, public_scheme, public_port, public_enabled_by, public_enabled_at,
+	agent_envelope_key, agent_link_state, agent_link_generation, agent_link_digest, agent_link_reason,
+	agent_link_updated_at, agent_link_retry_at, agent_link_pinned`
 
 type rowScanner interface{ Scan(dest ...any) error }
 
 func scanRow(scanner rowScanner) (*Row, error) {
 	var r Row
-	var desired, meState, connectState string
+	var desired, meState, connectState, agentLinkState string
 	var roles string
-	var meAt, connectAt, connectRetry, relayAt, publicAt sql.NullTime
+	var meAt, connectAt, connectRetry, relayAt, publicAt, agentLinkAt, agentLinkRetry sql.NullTime
 	if err := scanner.Scan(
 		&r.TenantID, &r.WorkerID, &r.ServerID, &r.StackID, &r.OwnerSubjectID, &r.DisplayName, &r.Placement,
 		&r.ConnectTenantID, &roles, &desired, &r.KeyThumbprint, &r.CredentialEpoch, &r.Generation,
@@ -88,6 +90,8 @@ func scanRow(scanner rowScanner) (*Row, error) {
 		&r.Relay.State, &r.Relay.ReasonCode, &r.Relay.Generation, &relayAt,
 		&r.RevokeReason, &r.Attempts, &r.NextAttemptAt, &r.LastError, &r.CreatedAt, &r.UpdatedAt,
 		&r.Public.Enabled, &r.Public.Service, &r.Public.Scheme, &r.Public.Port, &r.Public.EnabledBy, &publicAt,
+		&r.AgentKey, &agentLinkState, &r.AgentLink.Generation, &r.AgentLink.Ref, &r.AgentLink.ReasonCode,
+		&agentLinkAt, &agentLinkRetry, &r.AgentLinkPinned,
 	); err != nil {
 		return nil, err
 	}
@@ -110,11 +114,18 @@ func scanRow(scanner rowScanner) (*Row, error) {
 	if publicAt.Valid {
 		r.Public.EnabledAt = &publicAt.Time
 	}
+	r.AgentLink.State = TargetState(agentLinkState)
+	if agentLinkAt.Valid {
+		r.AgentLink.UpdatedAt = &agentLinkAt.Time
+	}
+	if agentLinkRetry.Valid {
+		r.AgentLink.RetryAt = &agentLinkRetry.Time
+	}
 	return &r, nil
 }
 
 func (s *PostgresStore) withTenant(ctx context.Context, tenantID string, fn func(*sql.Tx) error) error {
-	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	tx, err := tenantcontext.Database(ctx, s.db).BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return err
 	}
@@ -260,7 +271,9 @@ func (s *PostgresStore) Update(ctx context.Context, tenantID, workerID string, f
 				relay_state = $18, relay_reason = $19, relay_generation = $20, relay_reported_at = $21,
 				attempts = $22, next_attempt_at = $23, last_error = $24, revoke_reason = $27,
 				public_enabled = $28, public_service = $29, public_scheme = $30, public_port = $31,
-				public_enabled_by = $32, public_enabled_at = $33
+				public_enabled_by = $32, public_enabled_at = $33,
+				agent_envelope_key = $34, agent_link_state = $35, agent_link_generation = $36, agent_link_digest = $37,
+				agent_link_reason = $38, agent_link_updated_at = $39, agent_link_retry_at = $40, agent_link_pinned = $41
 			WHERE tenant_id = $1 AND worker_id = $2
 		`, tenantID, workerID, string(row.Desired), row.KeyThumbprint, row.CredentialEpoch, row.Generation,
 			row.ConnectTenantID,
@@ -269,7 +282,9 @@ func (s *PostgresStore) Update(ctx context.Context, tenantID, workerID string, f
 			row.Relay.State, clampReason(row.Relay.ReasonCode), row.Relay.Generation, row.Relay.ReportedAt,
 			row.Attempts, row.NextAttemptAt.UTC(), clampReason(row.LastError), strings.Join(row.OwnerRoles, ","),
 			row.Connect.RetryAt, row.RevokeReason,
-			row.Public.Enabled, row.Public.Service, row.Public.Scheme, row.Public.Port, row.Public.EnabledBy, row.Public.EnabledAt)
+			row.Public.Enabled, row.Public.Service, row.Public.Scheme, row.Public.Port, row.Public.EnabledBy, row.Public.EnabledAt,
+			row.AgentKey, string(row.AgentLink.State), row.AgentLink.Generation, row.AgentLink.Ref,
+			clampReason(row.AgentLink.ReasonCode), row.AgentLink.UpdatedAt, row.AgentLink.RetryAt, row.AgentLinkPinned)
 		return execErr
 	})
 	return out, err

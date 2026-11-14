@@ -36,6 +36,7 @@ import {
 
 import { tr } from "#lib/i18n.svelte.js";
 import { remoteSshKeyLabel } from "./remote-credential";
+import { useCaseTitle } from "./creationGoalText";
 /**
  * An answer that cannot become a run. Its message is already written for the
  * person (catalog text), unlike an unexpected error, so the creation screen
@@ -81,6 +82,41 @@ function runUseCaseCapabilities(
     const values = all[slug];
     if (!values || Object.keys(values).length === 0) continue;
     out[slug] = { ...values };
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/**
+ * Access decisions for selected goals only, each whole: a mode with its
+ * audience, or an explicit inherit that withdraws a saved decision. A goal
+ * without a deliberate change is omitted, so its saved decision stays.
+ */
+function runUseCaseAccess(
+  config: StackConfig,
+  goals: string[],
+): WizardIntent["use_case_access"] {
+  const out: NonNullable<WizardIntent["use_case_access"]> = {};
+  for (const slug of goals) {
+    const choice = config.useCaseAccess?.[slug];
+    if (!choice) continue;
+    if (choice.mode === "inherit") {
+      out[slug] = { mode: "inherit" };
+      continue;
+    }
+    const audience = choice.audience ?? "owner";
+    if (audience !== "selected") {
+      out[slug] = { mode: choice.mode, audience };
+      continue;
+    }
+    const [first, ...rest] = [...new Set(choice.person_refs ?? [])];
+    if (!first) {
+      throw new WizardInputError(
+        tr("layout.addUseCases.access.choosePeople", {
+          useCase: useCaseTitle(slug),
+        }),
+      );
+    }
+    out[slug] = { mode: choice.mode, audience, person_refs: [first, ...rest] };
   }
   return Object.keys(out).length > 0 ? out : undefined;
 }
@@ -352,6 +388,8 @@ export function buildFoundRunRequest(
   if (foundSettings) intent.use_case_settings = foundSettings;
   const foundCapabilities = runUseCaseCapabilities(config, intent.goals ?? []);
   if (foundCapabilities) intent.use_case_capabilities = foundCapabilities;
+  const foundAccess = runUseCaseAccess(config, intent.goals ?? []);
+  if (foundAccess) intent.use_case_access = foundAccess;
   const request: WizardRunRequest = { intent };
   // An enrolled target already has a governed Guard identity. Installation
   // never provisions, reconnects, or bootstraps another server or owner.
@@ -373,6 +411,8 @@ export function buildFoundRunRequest(
  * expansions, but sending it would make the idempotency fingerprint depend on
  * blanked owner state). Services use the StackConfig keys — the same
  * vocabulary the legacy pairing request sent; the backend normalizes both.
+ * With `existingServerId` an enrolled, connected server becomes the new Node:
+ * nothing is provisioned, reconnected or paired.
  */
 export function buildJoinRunRequest(
   config: StackConfig,
@@ -380,6 +420,7 @@ export function buildJoinRunRequest(
   deploymentName: string,
   services: string[],
   layoutRecommendation?: LayoutRecommendationAcceptance,
+  existingServerId?: string,
 ): WizardRunRequest {
   const intent: WizardIntent = {
     schema: WIZARD_INTENT_SCHEMA,
@@ -392,7 +433,9 @@ export function buildJoinRunRequest(
     // the first-run default (vault) used to ride along here and fail CLI
     // validate as a "service conflict", which is why this was once [].
     goals: selectedCanonicalUseCasesFromGoals(config.goals),
-    server: joinServer(config),
+    server: existingServerId
+      ? { existing_server_id: existingServerId }
+      : joinServer(config),
     kit_assignment: {
       mode: "join",
       kit_deployment_id: deploymentId,
@@ -410,8 +453,11 @@ export function buildJoinRunRequest(
   if (joinSettings) intent.use_case_settings = joinSettings;
   const joinCapabilities = runUseCaseCapabilities(config, intent.goals ?? []);
   if (joinCapabilities) intent.use_case_capabilities = joinCapabilities;
+  const joinAccess = runUseCaseAccess(config, intent.goals ?? []);
+  if (joinAccess) intent.use_case_access = joinAccess;
   applyLayoutAcceptance(intent, layoutRecommendation);
   const request: WizardRunRequest = { intent, services };
+  if (existingServerId) return request;
   const substrate = buildRunSubstrateParams(config);
   if (substrate) request.substrate = substrate;
   const managed = buildRunManagedParams(config);
@@ -450,6 +496,8 @@ export function buildExtendRunRequest(
   if (settings) intent.use_case_settings = settings;
   const capabilities = runUseCaseCapabilities(config, goals);
   if (capabilities) intent.use_case_capabilities = capabilities;
+  const access = runUseCaseAccess(config, goals);
+  if (access) intent.use_case_access = access;
   applyLayoutAcceptance(intent, layoutRecommendation);
   return { intent };
 }
@@ -487,12 +535,16 @@ function plannedGuestNode(config: StackConfig): LayoutPlannedNode | undefined {
  * The question for the layout recommendation: the selection the run would
  * send, or null while nothing is selected (nothing to distribute). An
  * add-server run with a hypervisor guest names the guest's sizing as the
- * planned node; every other server is distributed as it enrolls.
+ * planned node; every other server is distributed as it enrolls. An
+ * add-use-case question carries the owner's server choices ("Choose another
+ * server") for the selected use cases; the run itself sends only the accepted
+ * recommendation, whose nodeRefs the server writes into the StackSpec.
  */
 export function buildLayoutSelection(
   config: StackConfig,
   stackId: string,
   flow: LayoutFlow,
+  pins: Record<string, string> = {},
 ): LayoutSelection | null {
   const goals = selectedCanonicalUseCasesFromGoals(config.goals);
   const id = stackId.trim();
@@ -505,6 +557,15 @@ export function buildLayoutSelection(
   if (flow === "add-server") {
     const planned = plannedGuestNode(config);
     if (planned) selection.planned_node = planned;
+  }
+  if (flow === "add-use-case") {
+    const chosen = Object.fromEntries(
+      Object.entries(pins).filter(
+        ([goal, server]) =>
+          (goals as readonly string[]).includes(goal) && server.trim() !== "",
+      ),
+    );
+    if (Object.keys(chosen).length > 0) selection.pins = chosen;
   }
   return selection;
 }

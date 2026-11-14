@@ -7,10 +7,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	jsoncanonicalizer "github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
-	"github.com/google/uuid"
 	"strings"
 	"time"
+
+	"github.com/kombifyio/techstack/pkg/ril/primitives"
+	jsoncanonicalizer "github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
+	"github.com/google/uuid"
 )
 
 type DecisionRequester struct {
@@ -27,7 +29,11 @@ type DecisionProposal struct {
 	ServerRevision     int64             `json:"serverRevision"`
 }
 
-// PrepareDecision freezes a server-derived effect and current lifecycle heads before an owner decision.
+// PrepareDecision freezes a server-derived effect and the current lifecycle
+// authority heads (LifecycleAuthority) before the card's one Gateway Decision.
+// An owner-operated server's lifecycle window is bounded, not a lease, so a
+// re-prepared proposal of an unchanged server and generation carries the
+// fresh bound; a VM lease's window is the lease's and stays frozen.
 func (s *PostgresAuthority) PrepareDecision(ctx context.Context, tenant, owner, cardID string, requester DecisionRequester) (*DecisionProposal, error) {
 	if tenant == "" || owner == "" || cardID == "" || requester.ID == "" || (requester.Kind != "service" && requester.Kind != "agent_instance") {
 		return nil, ErrExecutionAdmission
@@ -38,26 +44,37 @@ func (s *PostgresAuthority) PrepareDecision(ctx context.Context, tenant, owner, 
 		if err != nil {
 			return err
 		}
-		if card.Status != "awaiting_approval" || card.Template.Primitive.ID != "verify-stackkit-state" || card.Template.Primitive.OperationClass != "product-verify" || len(card.Template.Inputs) != 0 {
+		profile, ok := primitives.For(card.Template.Primitive)
+		if card.Status != "awaiting_approval" || !ok || !profile.Admits(card.Template.Target, card.Template.Inputs) {
 			return ErrExecutionAdmission
 		}
-		var revision, serverRevision, leaseRevision int64
+		var revision int64
 		var stored string
-		var leaseExpires time.Time
-		err = tx.QueryRowContext(ctx, `SELECT c.decision_card_revision, COALESCE(c.decision_proposal_json::text,''), s.revision, l.lease_revision, l.valid_until FROM ril_action_cards c JOIN servers s ON s.tenant_id=c.tenant_id AND s.id=c.server_id AND s.owner_subject_id=c.owner_subject_id AND s.stack_id=c.stack_id JOIN techstack_vm_leases l ON l.tenant_id=s.tenant_id AND l.id=s.lease_id AND l.server_id=s.id AND l.owner_subject_id=c.owner_subject_id WHERE c.tenant_id=$1 AND c.owner_subject_id=$2 AND c.id=$3 AND s.lifecycle_state='active' AND s.desired_state='running' AND s.connection_state='connected' AND l.desired_state='running' AND l.cancelled_at IS NULL AND l.valid_from<=now() AND l.valid_until>now() FOR UPDATE OF s,l`, tenant, owner, cardID).Scan(&revision, &stored, &serverRevision, &leaseRevision, &leaseExpires)
-		if err != nil || revision < 1 || serverRevision < 1 || leaseRevision < 1 {
+		if err = tx.QueryRowContext(ctx, `SELECT decision_card_revision, COALESCE(decision_proposal_json::text,'') FROM ril_action_cards WHERE tenant_id=$1 AND owner_subject_id=$2 AND id=$3`, tenant, owner, cardID).Scan(&revision, &stored); err != nil {
+			return err
+		}
+		authority, err := LockLifecycleAuthorityTx(ctx, tx, tenant, owner, card.ServerID, card.Template.StackID, time.Now().UTC())
+		if err != nil || revision < 1 {
 			return fmt.Errorf("%w: current lifecycle unavailable", ErrExecutionAdmission)
 		}
+		expires := authority.ValidUntil.Unix()
 		if stored != "" {
 			var existing DecisionProposal
-			if json.Unmarshal([]byte(stored), &existing) != nil || existing.Requester != requester || existing.LifecycleRevision != leaseRevision || existing.ServerRevision != serverRevision || existing.LifecycleExpiresAt > leaseExpires.Unix() {
+			if json.Unmarshal([]byte(stored), &existing) != nil || existing.Requester != requester || existing.LifecycleRevision != authority.Revision || existing.ServerRevision != authority.ServerRevision || existing.LifecycleExpiresAt > expires {
 				return ErrCardConflict
+			}
+			if authority.Kind == LifecycleAuthorityOwnerServer && existing.LifecycleExpiresAt != expires {
+				existing.LifecycleExpiresAt = expires
+				raw, err := json.Marshal(existing)
+				if err != nil {
+					return err
+				}
+				if _, err = tx.ExecContext(ctx, `UPDATE ril_action_cards SET decision_proposal_json=$4::jsonb WHERE tenant_id=$1 AND owner_subject_id=$2 AND id=$3 AND status='awaiting_approval'`, tenant, owner, cardID, raw); err != nil {
+					return err
+				}
 			}
 			result = &existing
 			return nil
-		}
-		if card.Status != "awaiting_approval" {
-			return ErrExecutionAdmission
 		}
 		targetRaw, err := json.Marshal(card.Template.Target)
 		if err != nil {
@@ -73,8 +90,13 @@ func (s *PostgresAuthority) PrepareDecision(ctx context.Context, tenant, owner, 
 				target[to] = v
 			}
 		}
-		op := "op_" + strings.ReplaceAll(uuid.NewString(), "-", "")
-		effect := map[string]any{"schemaVersion": "kombify.ril-effect.v1", "operationId": op, "audience": "stackkits", "tenantId": tenant, "ownerSubject": owner, "cardId": card.ID, "cardRevision": revision, "serverId": card.ServerID, "stackId": card.Template.StackID, "primitive": map[string]any{"id": card.Template.Primitive.ID, "contractHash": card.Template.Primitive.ContractHash, "operationClass": card.Template.Primitive.OperationClass}, "resolvedPlanHash": card.Template.ResolvedPlanHash, "target": target, "inputs": []any{}}
+		// Inputs are exactly the profile's sorted, required opaque references.
+		inputs := make([]any, 0, len(card.Template.Inputs))
+		for _, input := range card.Template.Inputs {
+			inputs = append(inputs, map[string]any{"id": input.ID, "type": string(input.Type), "opaqueRef": input.OpaqueRef})
+		}
+		op := "op-" + strings.ReplaceAll(uuid.NewString(), "-", "")
+		effect := map[string]any{"schemaVersion": "kombify.ril-effect.v1", "operationId": op, "audience": "stackkits", "tenantId": tenant, "ownerSubject": owner, "cardId": card.ID, "cardRevision": revision, "serverId": card.ServerID, "stackId": card.Template.StackID, "primitive": map[string]any{"id": card.Template.Primitive.ID, "contractHash": card.Template.Primitive.ContractHash, "operationClass": card.Template.Primitive.OperationClass}, "resolvedPlanHash": card.Template.ResolvedPlanHash, "target": target, "inputs": inputs}
 		raw, err := json.Marshal(effect)
 		if err != nil {
 			return err
@@ -84,7 +106,7 @@ func (s *PostgresAuthority) PrepareDecision(ctx context.Context, tenant, owner, 
 			return err
 		}
 		digest := sha256.Sum256(append(append([]byte("kombify.ril-effect.v1\n"), canonical...), '\n'))
-		proposal := DecisionProposal{OperationID: op, Requester: requester, Effect: effect, EffectDigest: "sha256:" + hex.EncodeToString(digest[:]), LifecycleRevision: leaseRevision, LifecycleExpiresAt: leaseExpires.Unix(), ServerRevision: serverRevision}
+		proposal := DecisionProposal{OperationID: op, Requester: requester, Effect: effect, EffectDigest: "sha256:" + hex.EncodeToString(digest[:]), LifecycleRevision: authority.Revision, LifecycleExpiresAt: expires, ServerRevision: authority.ServerRevision}
 		raw, err = json.Marshal(proposal)
 		if err != nil {
 			return err

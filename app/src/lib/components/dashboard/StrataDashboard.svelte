@@ -55,7 +55,6 @@
     };
     rollout: Rollout | null;
     deploymentName: (deploymentId: string) => string;
-    deploymentHref: (deploymentId: string) => string;
     nodeHref: (node: NodeView) => string;
     onOpenService: (serviceId: string) => void;
     people: SectionState<PersonEntry>;
@@ -75,7 +74,6 @@
     stats,
     rollout,
     deploymentName,
-    deploymentHref,
     nodeHref,
     onOpenService,
     people,
@@ -316,46 +314,9 @@
       </div>
     </header>
 
-    <div
-      class="grid shrink-0 grid-cols-2 border-y border-border md:grid-cols-4"
-      data-testid="strata-stats"
-    >
-      {#each statCells as stat (stat.label)}
-        <a
-          href={stat.href}
-          class="flex items-baseline gap-2.5 border-l border-border py-1.5 pl-4 text-foreground no-underline first:border-l-0 hover:bg-muted/20 md:first:border-l"
-        >
-          <span
-            class="strata-title text-2xl font-medium tabular-nums"
-            >{stat.value}</span
-          >
-          <span class="flex min-w-0 items-baseline gap-2">
-            <span class="text-sm font-medium">{stat.label}</span>
-            {#if stat.lamps.length > 0}
-              <span
-                class="flex items-center gap-1 self-center"
-                aria-hidden="true"
-                data-testid="strata-stat-lamps"
-              >
-                {#each stat.lamps.slice(0, 8) as lamp, index (index)}
-                  <span
-                    class="strata-lamp h-2 w-2 rounded-full"
-                    style={`--lamp:${lamp}`}
-                  ></span>
-                {/each}
-              </span>
-            {/if}
-            <span class="truncate font-mono text-[11px] text-muted-foreground"
-              >{stat.note}</span
-            >
-          </span>
-        </a>
-      {/each}
-    </div>
-
     <section
       aria-label={tr("ui.dashboard.nodes")}
-      class="strata-scroll flex min-h-[9rem] flex-1 basis-0 flex-col overflow-y-auto"
+      class="strata-scroll flex flex-col md:min-h-[9rem] md:flex-1 md:basis-0 md:overflow-y-auto"
       data-testid="strata-node-list"
     >
       {#each groups as group (group.key)}
@@ -377,9 +338,9 @@
                 vector-effect="non-scaling-stroke"
               />
             </svg>
-            <a
+            <span
               class="strata-bracket-label font-mono text-[10px] tracking-[0.22em] uppercase"
-              href={deploymentHref(group.deploymentId)}>{group.label}</a
+              >{group.label}</span
             >
           {/if}
           {#each group.nodes as node (node.key)}
@@ -618,6 +579,44 @@
         </div>
       {/each}
     </section>
+
+    <!-- The figures follow the servers. -->
+    <div
+      class="grid shrink-0 grid-cols-2 border-y border-border md:grid-cols-4"
+      data-testid="strata-stats"
+    >
+      {#each statCells as stat (stat.label)}
+        <a
+          href={stat.href}
+          class="flex items-baseline gap-2.5 border-l border-border py-1.5 pl-4 text-foreground no-underline first:border-l-0 hover:bg-muted/20 md:first:border-l"
+        >
+          <span
+            class="strata-title text-2xl font-medium tabular-nums"
+            >{stat.value}</span
+          >
+          <span class="flex min-w-0 items-baseline gap-2">
+            <span class="text-sm font-medium">{stat.label}</span>
+            {#if stat.lamps.length > 0}
+              <span
+                class="flex items-center gap-1 self-center"
+                aria-hidden="true"
+                data-testid="strata-stat-lamps"
+              >
+                {#each stat.lamps.slice(0, 8) as lamp, index (index)}
+                  <span
+                    class="strata-lamp h-2 w-2 rounded-full"
+                    style={`--lamp:${lamp}`}
+                  ></span>
+                {/each}
+              </span>
+            {/if}
+            <span class="truncate font-mono text-[11px] text-muted-foreground"
+              >{stat.note}</span
+            >
+          </span>
+        </a>
+      {/each}
+    </div>
 
     <TrademarkNotice class="-mt-2 shrink-0" />
 

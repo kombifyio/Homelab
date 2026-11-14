@@ -69,7 +69,7 @@ type OfflineRemovalEvidence struct {
 func DestroyWorkspaceStateRetiresProjection(state string) bool {
 	state = strings.TrimSpace(state)
 	return strings.EqualFold(state, DestroyWorkspaceStateAbsent) || strings.EqualFold(state, DestroyWorkspaceStateOfflineRemoval) ||
-		strings.EqualFold(state, DestroyWorkspaceStateNoApplyRemoval)
+		strings.EqualFold(state, DestroyWorkspaceStateNoApplyRemoval) || strings.EqualFold(state, DestroyWorkspaceStateRemoved)
 }
 
 // OfflineServerRetireRequest names one server whose custody ends with the

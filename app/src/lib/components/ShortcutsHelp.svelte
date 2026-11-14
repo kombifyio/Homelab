@@ -31,7 +31,7 @@
     };
 
     for (const shortcut of SHORTCUTS) {
-      grouped[shortcut.category].push(shortcut);
+      (grouped[shortcut.category] ??= []).push(shortcut);
     }
 
     return grouped;

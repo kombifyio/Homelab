@@ -5,7 +5,6 @@ import (
 	"archive/zip"
 	"compress/gzip"
 	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -258,7 +257,7 @@ func digestArchiveReader(reader io.Reader, size int64) (fileDigest, error) {
 	if written != size {
 		return fileDigest{}, fmt.Errorf("canonical executable changed or was truncated while read")
 	}
-	return fileDigest{sha256: hex.EncodeToString(digest.Sum(nil)), size: written, verifyExpectedPlan: scanner.matches == 1, verifyRILPrimitive: scanner.rilMatches == 1, rilPrimitiveHash: scanner.qualifiedHash()}, nil
+	return scanner.fileDigest(digest.Sum(nil), written), nil
 }
 
 func executableName(platform Platform) string {

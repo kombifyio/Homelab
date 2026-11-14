@@ -3,6 +3,7 @@ package providercatalog
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 const (
@@ -21,7 +22,40 @@ const (
 	// LegacySimulateProviderIDField is retained only to identify and reject the
 	// old Simulate-coupled write field. It is never a provider identity source.
 	LegacySimulateProviderIDField = "simulate_provider_id"
+
+	// CompositeProviderSuffix marks the retired "<provider>-managed" aliases.
+	// They are never an executable provider identity.
+	CompositeProviderSuffix = "-managed"
 )
+
+// managedProviderIDs is the one list of provider identities this build
+// accepts. Adding a provider adds its identity here; everything else about it
+// is its adapter's AdapterDescriptor (internal/providercontrol) and its
+// catalog rows. This order is also the provider-name fallback scan order.
+var managedProviderIDs = []string{ProviderCentron, ProviderIONOS}
+
+// ManagedProviderIDs returns the accepted provider identities in their stable
+// order.
+func ManagedProviderIDs() []string {
+	return append([]string(nil), managedProviderIDs...)
+}
+
+// IsCompositeProviderAlias reports whether raw is the retired
+// "<provider>-managed" alias of an accepted provider. Other names ending in
+// "-managed" (for example the unmanaged digitalocean-managed stack provider)
+// are not aliases.
+func IsCompositeProviderAlias(raw string) bool {
+	base, found := strings.CutSuffix(raw, CompositeProviderSuffix)
+	if !found {
+		return false
+	}
+	for _, providerID := range managedProviderIDs {
+		if base == providerID {
+			return true
+		}
+	}
+	return false
+}
 
 var (
 	ErrProviderIDRequired       = errors.New("provider_id is required")
@@ -34,16 +68,18 @@ var (
 // CanonicalProviderID validates one required, exact provider identity. It does
 // not normalize composite aliases, case, or whitespace.
 func CanonicalProviderID(raw string) (string, error) {
-	switch raw {
-	case ProviderCentron, ProviderIONOS:
-		return raw, nil
-	case "":
+	if raw == "" {
 		return "", ErrProviderIDRequired
-	case "centron-managed", "ionos-managed":
-		return "", fmt.Errorf("%w: %q", ErrCompositeProviderID, raw)
-	default:
-		return "", fmt.Errorf("%w: %q", ErrUnsupportedProviderID, raw)
 	}
+	for _, providerID := range managedProviderIDs {
+		if raw == providerID {
+			return raw, nil
+		}
+	}
+	if IsCompositeProviderAlias(raw) {
+		return "", fmt.Errorf("%w: %q", ErrCompositeProviderID, raw)
+	}
+	return "", fmt.Errorf("%w: %q", ErrUnsupportedProviderID, raw)
 }
 
 // OptionalCanonicalProviderID validates an optional provider identity. Empty

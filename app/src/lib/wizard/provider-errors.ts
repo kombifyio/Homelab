@@ -10,10 +10,13 @@ import { tr } from "#lib/i18n.svelte.js";
 /**
  * Error troubleshooting guide for common Unifier errors
  */
-export const ERROR_TROUBLESHOOTING: Record<
-  string,
-  { message: string; details: string; steps: string[] }
-> = {
+interface TroubleshootingEntry {
+  message: string;
+  details: string;
+  steps: string[];
+}
+
+export const ERROR_TROUBLESHOOTING = {
   validation_failed: {
     get message() {
       return tr("ui.providerErrors.configurationCouldNotBeValidated");
@@ -309,7 +312,7 @@ export const ERROR_TROUBLESHOOTING: Record<
       ];
     },
   },
-};
+} satisfies Record<string, TroubleshootingEntry>;
 
 export interface ManagedRuntimeProviderErrorInfo {
   provider?: string;
@@ -743,11 +746,9 @@ function troubleshootingRuleMatches(
 /**
  * Map error messages to troubleshooting categories
  */
-export function getTroubleshootingForError(error: string): {
-  message: string;
-  details: string;
-  steps: string[];
-} {
+export function getTroubleshootingForError(
+  error: string,
+): TroubleshootingEntry {
   const lowerError = error.toLowerCase();
   for (const rule of TROUBLESHOOTING_RULES) {
     if (troubleshootingRuleMatches(rule, error, lowerError)) {

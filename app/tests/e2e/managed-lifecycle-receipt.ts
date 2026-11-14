@@ -63,6 +63,13 @@ export interface ManagedLifecycleEvidence {
     inventory_observed_after_refusal?: string;
     services?: number;
     services_unchanged?: boolean;
+    // "upgraded" under a preview or supported policy: the support level
+    // StackKits admitted and the transaction's recovery anchors.
+    stackkit_support?: string;
+    operation_id?: string;
+    kopia_anchor_id?: string;
+    executor_state_snapshot_id?: string;
+    transaction_status?: string;
   };
   bounded_retry?: {
     http_status: number;

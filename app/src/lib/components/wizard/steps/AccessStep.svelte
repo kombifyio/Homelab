@@ -85,7 +85,9 @@
           ? tabs.length - 1
           : (current + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) %
             tabs.length;
-    activeTab = tabs[next];
+    const nextTab = tabs[next];
+    if (!nextTab) return;
+    activeTab = nextTab;
     requestAnimationFrame(() =>
       document.getElementById(`access-tab-${activeTab}`)?.focus(),
     );

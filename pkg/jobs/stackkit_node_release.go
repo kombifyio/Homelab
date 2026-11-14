@@ -37,12 +37,28 @@ func SetNodeStackKitReleaseReader(reader NodeStackKitReleaseReader) {
 	nodeStackKitReleaseReader.Store(&reader)
 }
 
+// ReadNodeStackKitRelease returns what the agent's node reports about its
+// StackKits runtime through the installed node state source. ok is false when
+// no source is installed, the read fails or the node withholds no update.
+func ReadNodeStackKitRelease(ctx context.Context, tenantID, agentID string) (NodeStackKitRelease, bool) {
+	reader := nodeStackKitReleaseReader.Load()
+	if reader == nil || strings.TrimSpace(tenantID) == "" || strings.TrimSpace(agentID) == "" {
+		return NodeStackKitRelease{}, false
+	}
+	node, err := (*reader)(ctx, tenantID, agentID)
+	if err != nil || node.Installed == nil || strings.TrimSpace(node.UpdateAvailable) == "" {
+		return NodeStackKitRelease{}, false
+	}
+	return node, true
+}
+
 // AddressNodeStackKitRelease points a command at the release its node runs
 // while that node reports exactly the command's release as available.
 // Techstack serves a deployed node a newer runtime only after the approved
 // governed upgrade, so the node keeps the CLI that compiled its stored plan,
-// and the upgrade itself runs on that CLI. Any other mismatch keeps the target
-// pin, which the node refuses.
+// and the upgrade itself runs on that CLI. A release the worker's recorded
+// target serves is not reported as withheld and keeps the command's pin. Any
+// other mismatch keeps the target pin, which the node refuses.
 func AddressNodeStackKitRelease(ctx context.Context, tenantID, agentID string, command *agentpb.StackKitCommand) {
 	reader := nodeStackKitReleaseReader.Load()
 	if reader == nil || command == nil || command.Release == nil {
@@ -64,6 +80,51 @@ func AddressNodeStackKitRelease(ctx context.Context, tenantID, agentID string, c
 
 func stackKitReleaseTag(version string) string {
 	return "v" + strings.TrimPrefix(strings.TrimSpace(version), "v")
+}
+
+// FirstRolloutStackKitsRequest names the first rollout of a stack and the
+// release that authored its INIT candidate.
+type FirstRolloutStackKitsRequest struct {
+	TenantID string
+	OwnerID  string
+	StackID  string
+	AgentID  string
+	JobID    string
+	Release  string
+}
+
+// FirstRolloutStackKitsAdmission records, for a node whose stack never applied
+// anything, the rollout's release as the target the runtime endpoint serves.
+// It changes nothing for a node it cannot prove that for.
+type FirstRolloutStackKitsAdmission func(ctx context.Context, request FirstRolloutStackKitsRequest) error
+
+var firstRolloutStackKitsAdmission atomic.Pointer[FirstRolloutStackKitsAdmission]
+
+// SetFirstRolloutStackKitsAdmission installs the admission; nil removes it.
+func SetFirstRolloutStackKitsAdmission(admit FirstRolloutStackKitsAdmission) {
+	if admit == nil {
+		firstRolloutStackKitsAdmission.Store(nil)
+		return
+	}
+	firstRolloutStackKitsAdmission.Store(&admit)
+}
+
+// admitFirstRolloutStackKitsRelease runs before the INIT of a rollout that has
+// no current node intent. The control plane authors the INIT candidate with its
+// pinned release, and an older CLI refuses a candidate of a newer schema (B3
+// window m04-20261105-b3c: v0.55.19 `deviceEnrollment.mode: "person"` on the
+// node's withheld v0.54.18). Withholding protects a plan an older CLI compiled;
+// a stack that never applied anything has none, so its node is served the
+// rollout's release and installs it before the INIT runs.
+func admitFirstRolloutStackKitsRelease(ctx context.Context, jobID string, req StackKitLifecycleRequest, release stackkitrelease.Release) error {
+	admit := firstRolloutStackKitsAdmission.Load()
+	if admit == nil {
+		return nil
+	}
+	return (*admit)(ctx, FirstRolloutStackKitsRequest{
+		TenantID: req.TenantID, OwnerID: req.OwnerID, StackID: req.StackID, AgentID: req.AgentID,
+		JobID: jobID, Release: stackKitReleaseTag(release.Receipt().Version),
+	})
 }
 
 // StackKitsTargetResultField records, on an owner-approved upgrade job, the

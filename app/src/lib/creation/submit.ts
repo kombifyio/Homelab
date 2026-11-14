@@ -36,7 +36,7 @@ export interface CreationRunTarget {
   /** The deployment the process adds to. */
   stackId?: string;
   stackName?: string;
-  /** Already enrolled server a new deployment starts on. */
+  /** Already enrolled server a new deployment starts on, or that joins one. */
   existingServerId?: string;
   layoutRecommendation?: LayoutRecommendationAcceptance;
 }
@@ -60,6 +60,7 @@ function requestFor(
         target.stackName ?? "",
         selectedServiceKeys(config),
         target.layoutRecommendation,
+        process.key === "join-on-server" ? target.existingServerId : undefined,
       );
     case "extend":
       return buildExtendRunRequest(
@@ -86,6 +87,12 @@ function attemptKey(
       return mintJoinWizardIdempotencyKey(stackId, "join");
     case "add-server-found":
       return mintJoinWizardIdempotencyKey(stackId, "found");
+    case "join-on-server":
+      // One attempt per server and deployment: a retry rejoins the same node.
+      return mintJoinWizardIdempotencyKey(
+        stackId,
+        `existing:${target.existingServerId ?? ""}`,
+      );
     case "add-use-case":
       // The same request keeps its key (a retry replays the attempt); a changed
       // selection or recommendation gets a new one.
@@ -107,6 +114,7 @@ export function forgetCreationAttempt(
       clearJoinWizardIdempotencyKeys(stackId);
       break;
     case "add-server-found":
+    case "join-on-server":
       if (submittedKey) clearSubmittedJoinWizardIdempotencyKey(submittedKey);
       else clearJoinWizardIdempotencyKeys(stackId);
       break;

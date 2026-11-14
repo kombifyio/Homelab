@@ -172,8 +172,28 @@ func (s *PostgresStore) SoftDeleteStack(ctx context.Context, tenantID, stackID s
 		if affected == 0 {
 			return ErrNotFound
 		}
-		return nil
+		return releaseDeletedStackBindingsTx(ctx, tx, tenantID, stackID)
 	})
+}
+
+// releaseDeletedStackBindingsTx leaves the servers and workers of a destroyed
+// stack owned and stackless (not detached): tenant, owner and worker stay. The
+// stack's routing and domain-monitoring rows reference the server by its stack
+// id and go first. Guard enrollment and host custody remain intact.
+func releaseDeletedStackBindingsTx(ctx context.Context, tx *sql.Tx, tenantID, stackID string) error {
+	for _, statement := range []string{
+		`DELETE FROM stack_routing_desired WHERE tenant_id = $1 AND stack_id = $2`,
+		`DELETE FROM stack_domain_monitoring WHERE tenant_id = $1 AND stack_id = $2`,
+		`UPDATE servers SET stack_id = NULL, revision = revision + 1, metadata_json = metadata_json - 'spec_node_id', updated_at = now()
+			WHERE tenant_id = $1 AND stack_id = $2`,
+		`UPDATE workers SET stack_id = NULL WHERE tenant_id = $1 AND stack_id = $2`,
+		`UPDATE nodes SET stack_id = NULL, updated_at = now() WHERE tenant_id = $1 AND stack_id = $2`,
+	} {
+		if _, err := tx.ExecContext(ctx, statement, tenantID, stackID); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *PostgresStore) UpdateStackRuntime(ctx context.Context, tenantID, stackID string, runtime RuntimeUpdate) (*Stack, error) {

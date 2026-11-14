@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
 	"math"
 	"sort"
 	"strings"
@@ -47,12 +48,12 @@ func (a *PostgresAuthority) EvaluateCurrent(ctx context.Context, request Current
 	if a == nil || a.db == nil {
 		return CurrentAdmission{}, fmt.Errorf("%w: database not configured", ErrInvalidRequest)
 	}
-	tx, err := a.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true, Isolation: sql.LevelRepeatableRead})
+	tx, err := tenantcontext.Database(ctx, a.db).BeginTx(ctx, &sql.TxOptions{ReadOnly: true, Isolation: sql.LevelRepeatableRead})
 	if err != nil {
 		return CurrentAdmission{}, err
 	}
 	defer tx.Rollback()
-	if _, err = tx.ExecContext(ctx, "SELECT set_config('app.tenant_id', $1, true)", request.TenantID); err != nil {
+	if err = tenantcontext.ApplyTenant(ctx, tx, request.TenantID); err != nil {
 		return CurrentAdmission{}, err
 	}
 	serverRef, err := currentServerRef(ctx, tx, request, false)
@@ -91,7 +92,7 @@ func (a *PostgresAuthority) AdmitCurrent(ctx context.Context, request CurrentAdm
 	if a == nil || a.db == nil {
 		return CurrentAdmission{}, fmt.Errorf("%w: database not configured", ErrInvalidRequest)
 	}
-	tx, err := a.db.BeginTx(ctx, nil)
+	tx, err := tenantcontext.Database(ctx, a.db).BeginTx(ctx, nil)
 	if err != nil {
 		return CurrentAdmission{}, err
 	}
@@ -99,7 +100,7 @@ func (a *PostgresAuthority) AdmitCurrent(ctx context.Context, request CurrentAdm
 	if err = lockTechstack(ctx, tx, request.TenantID, request.StackID); err != nil {
 		return CurrentAdmission{}, err
 	}
-	if _, err = tx.ExecContext(ctx, "SELECT set_config('app.tenant_id', $1, true)", request.TenantID); err != nil {
+	if err = tenantcontext.ApplyTenant(ctx, tx, request.TenantID); err != nil {
 		return CurrentAdmission{}, err
 	}
 	if _, err = tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, postgresCurrentServerLockKey(request)); err != nil {
@@ -170,7 +171,7 @@ func (a *PostgresAuthority) SnapshotForTeardown(ctx context.Context, request Tea
 	if a == nil || a.db == nil {
 		return TeardownSnapshot{}, fmt.Errorf("%w: database not configured", ErrInvalidRequest)
 	}
-	tx, err := a.db.BeginTx(ctx, nil)
+	tx, err := tenantcontext.Database(ctx, a.db).BeginTx(ctx, nil)
 	if err != nil {
 		return TeardownSnapshot{}, err
 	}
@@ -178,7 +179,7 @@ func (a *PostgresAuthority) SnapshotForTeardown(ctx context.Context, request Tea
 	if err = lockTechstack(ctx, tx, request.TenantID, request.TechstackID); err != nil {
 		return TeardownSnapshot{}, err
 	}
-	if _, err = tx.ExecContext(ctx, "SELECT set_config('app.tenant_id', $1, true)", request.TenantID); err != nil {
+	if err = tenantcontext.ApplyTenant(ctx, tx, request.TenantID); err != nil {
 		return TeardownSnapshot{}, err
 	}
 	owned, err := ownsTechstack(ctx, tx, request)
@@ -264,7 +265,7 @@ func (a *PostgresAuthority) ReleaseTeardownSnapshot(ctx context.Context, snapsho
 	if a == nil || a.db == nil {
 		return fmt.Errorf("%w: database not configured", ErrInvalidRequest)
 	}
-	tx, err := a.db.BeginTx(ctx, nil)
+	tx, err := tenantcontext.Database(ctx, a.db).BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -272,7 +273,7 @@ func (a *PostgresAuthority) ReleaseTeardownSnapshot(ctx context.Context, snapsho
 	if err = lockTechstack(ctx, tx, snapshot.TenantID, snapshot.TechstackID); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, "SELECT set_config('app.tenant_id', $1, true)", snapshot.TenantID); err != nil {
+	if err = tenantcontext.ApplyTenant(ctx, tx, snapshot.TenantID); err != nil {
 		return err
 	}
 	owned, err := ownsTechstack(ctx, tx, TeardownSnapshotRequest{
@@ -880,7 +881,7 @@ func (a *PostgresAuthority) withServerGeneration(
 	if a == nil || a.db == nil {
 		return fmt.Errorf("%w: database not configured", ErrInvalidRequest)
 	}
-	tx, err := a.db.BeginTx(ctx, nil)
+	tx, err := tenantcontext.Database(ctx, a.db).BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -890,7 +891,7 @@ func (a *PostgresAuthority) withServerGeneration(
 			return err
 		}
 	}
-	if _, err = tx.ExecContext(ctx, "SELECT set_config('app.tenant_id', $1, true)", ref.TenantID); err != nil {
+	if err = tenantcontext.ApplyTenant(ctx, tx, ref.TenantID); err != nil {
 		return err
 	}
 	if _, err = tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, postgresServerLockKey(ref)); err != nil {

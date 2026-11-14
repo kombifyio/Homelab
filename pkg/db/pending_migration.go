@@ -18,6 +18,19 @@ func RILQueueAdapterEvidence() map[string]any {
 		"effective_sql_sha256": "57ca78d44175b5e0f73fed5c8a69a7d35cf6a9bd4266a558fdb32e155717e093"}
 }
 
+// SubstrateAbsenceAdapterEvidence identifies the exact bounded pending-190
+// correction. The shipped migration patches the insert validator by exact text
+// match, but production created that function from a CRLF migration file, so
+// its stored body carries \r\n and no LF target matched (Techstack 0.48.3,
+// 2026-11-10: "failed-head admission patch target is not at the expected
+// version"). The correction folds the read definition to LF before patching.
+func SubstrateAbsenceAdapterEvidence() map[string]any {
+	return map[string]any{"id": "substrate-190-crlf-function-definition", "version": 1,
+		"migration":            "190_substrate_failed_provision_guest_absence.sql",
+		"original_sha256":      "363a8b3c19990a54e0ffdd04c1f5713bae8670951982b8e3db0ccd4f616e2128",
+		"effective_sql_sha256": "0a9571d38c70c70b01edfa56aa6ca5c403ce3f4241061048a98bce50cf71ddf4"}
+}
+
 // executePendingMigration is shared by the normal and exact forward-batch
 // engines. The caller has already excluded committed ledger entries and owns
 // the migration transaction; denial rolls back without recording this version.
@@ -64,6 +77,35 @@ func executePendingMigration(ctx context.Context, tx *sql.Tx, version string, bo
 			return fmt.Errorf("RIL queue effective migration binding differs")
 		}
 	}
+	if version == "190_substrate_failed_provision_guest_absence.sql" {
+		corrected, err := substrateAbsenceEffectiveBody(body)
+		if err != nil {
+			return err
+		}
+		body = corrected
+	}
 	_, err := tx.ExecContext(ctx, string(body))
 	return err
+}
+
+// substrateAbsenceEffectiveBody keeps the shipped 190 SQL and forward manifest
+// immutable and corrects only the line ending of the function text it
+// patches: the read definition is folded to LF, so the four exact patch
+// targets match a CRLF-created function as well as an LF one and still refuse
+// any other definition.
+func substrateAbsenceEffectiveBody(body []byte) ([]byte, error) {
+	canonical := bytes.ReplaceAll(body, []byte("\r\n"), []byte("\n"))
+	if fmt.Sprintf("%x", sha256.Sum256(canonical)) != "363a8b3c19990a54e0ffdd04c1f5713bae8670951982b8e3db0ccd4f616e2128" {
+		return nil, fmt.Errorf("substrate absence migration source binding differs")
+	}
+	const original = "    ) INTO function_definition;\n"
+	const corrected = original + "    function_definition := pg_catalog.replace(function_definition, E'\\r\\n', E'\\n');\n"
+	if bytes.Count(canonical, []byte(original)) != 1 {
+		return nil, fmt.Errorf("substrate absence migration definition read differs")
+	}
+	effective := bytes.Replace(canonical, []byte(original), []byte(corrected), 1)
+	if fmt.Sprintf("%x", sha256.Sum256(effective)) != "0a9571d38c70c70b01edfa56aa6ca5c403ce3f4241061048a98bce50cf71ddf4" {
+		return nil, fmt.Errorf("substrate absence effective migration binding differs")
+	}
+	return effective, nil
 }

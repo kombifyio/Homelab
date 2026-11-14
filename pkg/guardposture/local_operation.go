@@ -178,7 +178,7 @@ func (p Policy) AcceptLocalOperation(in LocalSubmission, state LocalState, now t
 		return nil, false, guardbinding.Denyf(guardbinding.CodeBindingMismatch, "evidence names another tenant")
 	case e.WorkerID != in.Identity.WorkerID:
 		return nil, false, guardbinding.Denyf(guardbinding.CodeBindingMismatch, "evidence names another worker")
-	case e.Generation < 1 || e.Generation > in.Generation:
+	case e.Generation < 0 || e.Generation > in.Generation:
 		return nil, false, guardbinding.Denyf(guardbinding.CodeStaleGeneration, "evidence generation %d is not admissible under credential generation %d", e.Generation, in.Generation)
 	}
 	stored := guardbinding.Committed{State: "dispatched"}

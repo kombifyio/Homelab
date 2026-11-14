@@ -22,6 +22,22 @@ import (
 const StackKitLifecycleApplicationConnector = "application_connector"
 const StackKitLifecycleApplicationConnectorVerify = "application_connector_verify"
 
+// StackKitLifecycleApplicationHomeGraphSync projects the owner's stored home
+// graph onto the node's Home Assistant through the original connector binding.
+const StackKitLifecycleApplicationHomeGraphSync = "application_home_graph_sync"
+
+// StackKitLifecycleApplicationHomeGraphLoxoneImport reads the Loxone
+// Miniserver structure file read-only on the node of the home graph sync and
+// merges its rooms and controls into the owner's stored home graph as a
+// proposal (application.home-graph.loxone-import).
+const StackKitLifecycleApplicationHomeGraphLoxoneImport = "application_home_graph_loxone_import"
+
+const StackKitLifecycleApplicationHomeGraphAdopt = "application_home_graph_adopt"
+
+func isHomeGraphLifecycleOperation(op string) bool {
+	return op == StackKitLifecycleApplicationHomeGraphAdopt || op == StackKitLifecycleApplicationHomeGraphSync || op == StackKitLifecycleApplicationHomeGraphLoxoneImport
+}
+
 // This is correlation metadata, not local signedApply or credential authority.
 type ApplicationConnectorBinding struct {
 	ReleasePin             *agentpb.StackKitReleasePin      `json:"release_pin"`
@@ -37,18 +53,35 @@ type ApplicationConnectorBinding struct {
 	OriginalReceiptBase64  string                           `json:"original_receipt_base64,omitempty"`
 	OriginalPlanHash       string                           `json:"original_plan_hash,omitempty"`
 	ExpectedConnectorJobID string                           `json:"expected_connector_job_id,omitempty"`
+	// HomeGraphSpaceID names the stored home graph a StackKitLifecycleApplicationHomeGraphSync
+	// run sends; the graph itself is read at run time, never carried in the job.
+	HomeGraphSpaceID  string          `json:"home_graph_space_id,omitempty"`
+	HomeGraphAdoption json.RawMessage `json:"home_graph_adoption,omitempty"`
 }
 
 func IsApplicationConnectorLifecycleOperation(op string) bool {
-	return op == StackKitLifecycleApplicationConnector || op == StackKitLifecycleApplicationConnectorVerify
+	return op == StackKitLifecycleApplicationConnector || op == StackKitLifecycleApplicationConnectorVerify || isHomeGraphLifecycleOperation(op)
 }
 
 func validateApplicationConnectorLifecycleRequest(req *StackKitLifecycleRequest) error {
 	if req.Connector == nil || req.Application != nil || req.Connector.ServerID == "" || req.Connector.ServerGeneration <= 0 || req.ServiceID == "" || req.ServiceKey != "smart-home" || req.StackKitInstanceID == "" || req.DurableJobID == "" || req.DryRun || req.Offline {
 		return fmt.Errorf("connector requires exact retained service and node authority")
 	}
-	if b := req.Connector; (b.OriginalOperationID != "" || b.OriginalReceiptBase64 != "" || b.OriginalPlanHash != "") && (b.OriginalOperationID == "" || len(b.OriginalReceiptBase64) > 87384 || req.Operation != StackKitLifecycleApplicationConnectorVerify || b.OriginalOperationID == req.DurableJobID || b.OriginalReceiptBase64 == "" || b.OriginalPlanHash == "") {
+	if b := req.Connector; (b.OriginalOperationID != "" || b.OriginalReceiptBase64 != "" || b.OriginalPlanHash != "") && (b.OriginalOperationID == "" || len(b.OriginalReceiptBase64) > 87384 || (req.Operation != StackKitLifecycleApplicationConnectorVerify && !isHomeGraphLifecycleOperation(req.Operation)) || b.OriginalOperationID == req.DurableJobID || b.OriginalReceiptBase64 == "" || b.OriginalPlanHash == "") {
 		return fmt.Errorf("connector refresh requires retained original proof and distinct read identity")
+	}
+	if homeGraph := isHomeGraphLifecycleOperation(req.Operation); homeGraph != (req.Connector.HomeGraphSpaceID != "") ||
+		(homeGraph && (req.Connector.OriginalOperationID == "" || req.OwnerApproved || !homeGraphSpacePattern.MatchString(req.Connector.HomeGraphSpaceID))) {
+		return fmt.Errorf("home graph sync requires the original connector proof, a graph space and no mutation approval")
+	}
+	if (req.Operation == StackKitLifecycleApplicationHomeGraphAdopt) != (len(req.Connector.HomeGraphAdoption) != 0) {
+		return fmt.Errorf("adoption document requires adoption operation")
+	}
+	if req.Operation == StackKitLifecycleApplicationHomeGraphAdopt {
+		_, header, err := stackkitcommand.DecodeHomeGraphAdoptionRequest(req.Connector.HomeGraphAdoption)
+		if err != nil || header.SpaceID != req.Connector.HomeGraphSpaceID {
+			return fmt.Errorf("adoption document differs from space")
+		}
 	}
 	candidate := req.Connector.Request
 	if candidate.Connector.Binding.Node == (stackkitcommand.ConnectorNode{}) {
@@ -351,7 +384,7 @@ func runApplicationConnectorJob(ctx context.Context, cfg StackKitLifecycleConfig
 		metadata := head.Service.Metadata
 		metadata["application_connector_job_id"] = connectorOperationID(req)
 		metadata["application_connector_projection_revision"] = head.Revision + 1
-		metadata["application_connector"] = map[string]any{"status": receipt.Result.HomeAssistantConnector.Issuer.Status, "receipt_digest": evidence.ReceiptDigest, "operation_id": connectorOperationID(req), "verification_job_id": job.ID, "application_version": receipt.Result.ApplicationVersion, "container_id": req.Connector.Request.Connector.Binding.ContainerID, "image_digest": req.Connector.Request.Connector.Binding.ImageDigest, "verified_at": time.Unix(result.FinishedAtUnix, 0).UTC(), "server_generation": req.Connector.ServerGeneration, "worker_generation": req.Connector.WorkerGeneration, "node_id": req.Connector.NodeID, "lease_id": req.Connector.LeaseID, "provider_ref": req.Connector.ProviderRef, "expires_at": receipt.Result.HomeAssistantConnector.Issuer.ExpiresAt}
+		metadata["application_connector"] = map[string]any{"status": receipt.Result.HomeAssistantConnector.Issuer.Status, "receipt_digest": evidence.ReceiptDigest, "operation_id": connectorOperationID(req), "verification_job_id": job.ID, "application_version": receipt.Result.ApplicationVersion, "container_id": req.Connector.Request.Connector.Binding.ContainerID, "image_digest": req.Connector.Request.Connector.Binding.ImageDigest, "verified_at": time.Unix(result.FinishedAtUnix, 0).UTC(), "server_generation": req.Connector.ServerGeneration, "worker_generation": req.Connector.WorkerGeneration, "node_id": req.Connector.NodeID, "lease_id": req.Connector.LeaseID, "provider_ref": req.Connector.ProviderRef, "expires_at": connectorCurrentExpiry(evidence, receipt), "guard_identity": receipt.Result.HomeAssistantConnector.Issuer.GuardIdentity}
 		_, err = cfg.Services.ApplyServiceEvent(ctx, controlplane.ServiceEvent{TenantID: req.TenantID, ServiceID: req.ServiceID, ExpectedRevision: &head.Revision, Authority: controlplane.ServiceEventAuthorityControlPlane, Source: "stackkit-application-connector", ReasonCode: req.Operation, EnforceIdentityBinding: true, Runtime: controlplane.ServiceRuntime{Metadata: metadata}, Evidence: map[string]any{"job_id": job.ID, "receipt_digest": evidence.ReceiptDigest}})
 		if err != nil {
 			return connectorWait(err)
@@ -492,4 +525,13 @@ func applicationConnectorRefreshRequest(original *controlplane.Job, service *con
 	fingerprint := sha256.Sum256([]byte(fmt.Sprintf("%s:%s:%d", original.ID, evidence.ReceiptDigest, intent)))
 	req.ServiceActionDigest = hex.EncodeToString(fingerprint[:])
 	return NormalizeStackKitLifecycleRequest(req)
+}
+
+// connectorCurrentExpiry is the expiry of the rotating credential the node
+// holds now, or the receipt's for a revoked connector.
+func connectorCurrentExpiry(evidence stackkitcommand.ApplicationConnectorEvidence, receipt stackkitcommand.ConnectorSignedReceipt) time.Time {
+	if evidence.CurrentIssuer != nil {
+		return evidence.CurrentIssuer.ExpiresAt.UTC()
+	}
+	return receipt.Result.HomeAssistantConnector.Issuer.ExpiresAt
 }

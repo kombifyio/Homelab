@@ -12,6 +12,7 @@ import UsersStep from "#lib/components/wizard/steps/UsersStep.svelte";
 import { tr, trn } from "#lib/i18n.svelte.js";
 import { selectedCanonicalUseCasesFromGoals } from "#lib/wizard/index.js";
 import type { StackConfig } from "#lib/wizard/types.js";
+import type { CreationStage } from "#lib/wizard/creationGoals.js";
 import type { CreationStepKey } from "./core/index";
 import type { CreationFrame } from "./frame.svelte";
 
@@ -73,6 +74,22 @@ export const CREATION_MODULES: Record<CreationStepKey, CreationStepModule> = {
         onCatalogReload: frame.reloadCatalog,
         layoutState: frame.layoutState,
         onLayoutRetry: frame.retryLayout,
+        layoutPins: frame.activeLayoutPins,
+        onLayoutPin: frame.setLayoutPin,
+        onLayoutPinUndo: frame.undoLayoutPin,
+        onLayoutPinsClear: frame.clearLayoutPins,
+        focusGoal: frame.process.focusGoal,
+        // One use case on a homelab whose access it inherits: its own reach
+        // and people are decided here.
+        asksUseCaseAccess: Boolean(
+          frame.useCaseAccessEnabled &&
+            frame.process.focusGoal &&
+            frame.process.inactive.access,
+        ),
+        goalsStage: frame.goalsStage,
+        onGoalsStage: (stage: CreationStage) => {
+          frame.goalsStage = stage;
+        },
       }),
   },
   server: {
@@ -95,6 +112,7 @@ export const CREATION_MODULES: Record<CreationStepKey, CreationStepModule> = {
     Component: ServerStep,
     props: (frame) =>
       withBoundConfig(frame, {
+        stepNumber: frame.stepNumber,
         onselectionchange: (ready: boolean) => {
           frame.serverSelectionReady = ready;
         },

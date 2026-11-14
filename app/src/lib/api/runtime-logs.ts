@@ -44,6 +44,8 @@ export function streamRuntimeLogs(
   scope: RuntimeLogScope,
   onEntries: (entries: RuntimeLogEntry[]) => void,
   onError: () => void,
+  /** The stream is connected (again); until the next error it delivers. */
+  onOpen?: () => void,
 ): () => void {
   let source: EventSource | null = null;
   try {
@@ -69,6 +71,7 @@ export function streamRuntimeLogs(
   source.addEventListener("history", read);
   source.addEventListener("log", read);
   source.onerror = onError;
+  if (onOpen) source.onopen = onOpen;
   return () => {
     source?.close();
     source = null;

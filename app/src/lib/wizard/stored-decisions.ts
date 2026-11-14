@@ -1,6 +1,10 @@
 import type { HomelabSummary } from "#lib/api/homelab.js";
 import { CANONICAL_USE_CASE_GOALS } from "./standardBundle.js";
-import { createDefaultConfig, type StackConfig } from "./types.js";
+import {
+  createDefaultConfig,
+  type StackConfig,
+  type UseCaseAccessChoice,
+} from "./types.js";
 
 function record(value: unknown): Record<string, unknown> | undefined {
   return value !== null && typeof value === "object" && !Array.isArray(value)
@@ -22,6 +26,52 @@ function decisions<T>(
     result[slug] = entries;
   }
   return result;
+}
+
+/**
+ * The saved access decisions per use case. A decision the closed shape does
+ * not allow is left out, so it can never be sent back as the person's choice.
+ */
+export function storedUseCaseAccess(
+  homelab: HomelabSummary | null | undefined,
+): Record<string, UseCaseAccessChoice> {
+  const stored = record(record(homelab?.intent.wizard)?.use_case_access);
+  const result: Record<string, UseCaseAccessChoice> = {};
+  for (const [slug, value] of Object.entries(stored ?? {})) {
+    const decision = record(value);
+    const mode = decision?.mode;
+    const audience = decision?.audience;
+    if (mode !== "local" && mode !== "remote-private") continue;
+    if (audience === "owner" || audience === "household") {
+      result[slug] = { mode, audience };
+      continue;
+    }
+    const refs = Array.isArray(decision?.person_refs)
+      ? decision.person_refs.filter(
+          (ref): ref is string => typeof ref === "string" && ref !== "",
+        )
+      : [];
+    if (audience === "selected" && refs.length > 0)
+      result[slug] = { mode, audience, person_refs: refs };
+  }
+  return result;
+}
+
+/** The homelab-wide reach and audience a use case inherits. */
+export function storedHomelabAccess(
+  homelab: HomelabSummary | null | undefined,
+): {
+  mode?: "local" | "remote-private";
+  audience?: "owner" | "household";
+} {
+  const wizard = record(homelab?.intent.wizard);
+  const mode = record(wizard?.access)?.mode;
+  const profile = record(wizard?.household)?.profile;
+  return {
+    mode: mode === "local" || mode === "remote-private" ? mode : undefined,
+    audience:
+      profile === "solo" ? "owner" : profile === "shared" ? "household" : undefined,
+  };
 }
 
 /** Reopen the canonical saved wishes; executable defaults remain catalog-owned. */
@@ -54,6 +104,8 @@ export function storedBlockedWizardConfig(
         ? value.filter((answer): answer is string => typeof answer === "string")
         : undefined,
   );
+  const access = storedUseCaseAccess(homelab);
+  if (Object.keys(access).length > 0) config.useCaseAccess = access;
   const mode = record(wizard.access)?.mode;
   if (mode === "local" || mode === "remote-private") {
     config.network.accessMode = mode === "local" ? "home" : "anywhere";

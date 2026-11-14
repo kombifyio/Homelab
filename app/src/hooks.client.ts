@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/sveltekit";
+import { errorBudget } from "@kombiverselabs/observability/error-budget";
 import { loadClientBootstrap } from "#lib/client/bootstrap.js";
 import { scrubSentryEvent } from "#lib/observability/sentry-scrub.js";
 
@@ -27,7 +28,9 @@ export const init = async () => {
       environment === "prod" || environment === "production" ? 0.1 : 1.0,
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 0,
-    beforeSend: scrubSentryEvent,
+    // OBSERVABILITY-STANDARD §4.1: one event per subject and failure per hour;
+    // repeats are counted on the next allowed event. The scrubber runs first.
+    beforeSend: errorBudget({}, (event: any) => scrubSentryEvent(event)),
   });
 
   Sentry.setTag("service", "kombify-techstack-frontend");

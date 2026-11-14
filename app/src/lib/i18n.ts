@@ -1,3 +1,4 @@
+import { connectMessages } from "./connect-messages";
 /**
  * kombify-TechStack Internationalization (i18n)
  *
@@ -28,14 +29,19 @@ import { nodesMessages } from "./nodes/nodes-messages";
 import { shellMessages } from "./shell-messages";
 import { dataProfileMessages } from "./data-profile/data-profile-messages";
 import { creationTemplateMessages } from "./wizard/creation-template-messages";
+import { creationStageMessages } from "./wizard/creation-stage-messages";
 import { marketplaceMessages } from "./wizard/marketplace-messages";
 import { useCaseConfigureMessages } from "./wizard/use-case-configure-messages";
 import { useCaseRemoveMessages } from "./wizard/use-case-remove-messages";
+import { applicationMoveMessages } from "./services/application-move-messages";
+import { ownApplicationMessages } from "./services/own-application-messages";
 import { useCaseRunMessages } from "./wizard/use-case-run-messages";
+import { builderHandoffMessages } from "./wizard/builder-handoff-messages";
 import { creationFlowMessages } from "./wizard/creation-flow-messages";
 import { layoutMessages } from "./wizard/layout-messages";
 import { boxMessages } from "./dashboard/box-messages";
 import { appLogoMessages } from "./app-logo-messages";
+import { sessionRenewalMessages } from "./auth/session-renewal-messages";
 import { connectDevicesMessages } from "./dashboard/connect-devices-messages";
 import { es } from "./locales/es";
 import { zhHans } from "./locales/zh-Hans";
@@ -67,15 +73,21 @@ export const translations: Record<Locale, Record<string, string>> = {
     ...shellMessages.en,
     ...dataProfileMessages.en,
     ...creationTemplateMessages.en,
+    ...creationStageMessages.en,
     ...marketplaceMessages.en,
     ...creationFlowMessages.en,
+    ...connectMessages.en,
+    ...builderHandoffMessages.en,
     ...useCaseRunMessages.en,
     ...useCaseRemoveMessages.en,
+    ...applicationMoveMessages.en,
+    ...ownApplicationMessages.en,
     ...useCaseConfigureMessages.en,
     ...layoutMessages.en,
     ...connectDevicesMessages.en,
     ...boxMessages.en,
     ...appLogoMessages.en,
+    ...sessionRenewalMessages.en,
     "wizard.creation.preferenceOnly":
       "Preference saved. This release installs the suggested service; the alternative is not applied yet.",
     "wizard.preview.mail.title": "Mail",
@@ -88,7 +100,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "wizard.preview.reset": "Reset",
     "wizard.preview.language": "Preview language",
     "wizard.preview.sandboxNotice":
-      "Interactive design preview. Compare A and B with the same selection. Choices stay in this view; nothing is installed. Mail and Games show the planned Beta experience.",
+      "Interactive design preview. Compare the round and the compact view with the same selection. Choices stay in this view; nothing is installed. Mail and Games show the planned Beta experience.",
     "wizard.preview.files.title": "Documents & Files",
     "wizard.preview.files.description":
       "Your everyday files, in a place of your own.",
@@ -145,9 +157,6 @@ export const translations: Record<Locale, Record<string, string>> = {
       "An optional integrated mail suite with SOGo webmail and groupware. Choose a suite or a separate server; they are not both required for the same mailboxes.",
     "wizard.preview.service.pterodactyl":
       "The selected platform for Games. The planned integration manages separate Minecraft Java and Bedrock profiles, their resources and persistent worlds.",
-    "wizard.preview.compare": "Compare the two designs",
-    "wizard.preview.discover": "Discover",
-    "wizard.preview.focus": "Focus",
     "wizard.preview.eyebrow": "Your digital home",
     "wizard.preview.title": "Make room for what matters.",
     "wizard.preview.subtitle":
@@ -162,8 +171,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "wizard.preview.aboutUseCase": "A closer look",
     "wizard.preview.inside": "Tools in this use case",
     "wizard.preview.explore": "Explore & customize",
-    "wizard.preview.selectUseCase": "Select",
-    "wizard.preview.collapse": "Less detail",
     "wizard.preview.selected": "Selected",
     "wizard.preview.optional": "Optional",
     "wizard.preview.selectionCount": "selected",
@@ -791,6 +798,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "wizard.server.command.join.reviewBody":
       "Choose how this device connects. Your Homelab access, people and sign-in stay as they are.",
     "wizard.leave.confirm": "The answers you entered will be lost.",
+    "wizard.focus.title": "Set up {useCase}",
+    "wizard.focus.subtitle":
+      "Choose the app and how it is set up. The details are there when you need them.",
+    "wizard.step.useCase": "Use case",
     "wizard.step.inherited": "Already set for your Homelab",
     "wizard.step.existingOwner": "Your Homelab owner stays the same",
     "wizard.settings.title": "Homelab settings",
@@ -1000,18 +1011,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "auth.password": "Password",
     "auth.username": "Username",
 
-    // Session recovery (inline panel)
-    "auth.session.renewal.title": "Session refresh needed",
-    "auth.session.renewal.body":
-      "We could not renew your secure access to kombify Cloud automatically. Your work is safe — sign in again to pick up right where you left off.",
-    "auth.session.renewal.signIn": "Sign in again",
-    "auth.session.renewal.retry": "Retry",
-    "auth.session.renewal.retrying": "Retrying…",
-    "auth.session.gatewayUnavailable":
-      "Secure access to kombify Cloud could not be verified. Sign in again to continue.",
-    "auth.session.tenantContextRequired":
-      "Your session carries no kombify organization, so tenant data cannot be shown. Open Techstack from your kombify Cloud portal or sign in again.",
-
     // Wizard-run resume banner (dashboard, plan D6)
     "wizard.run.banner.inProgressTitle": "Your homelab is being set up",
     "wizard.run.banner.inProgressBody":
@@ -1030,24 +1029,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "wizard.run.banner.cancelFailed": "The rollout could not be cancelled",
     "wizard.run.banner.dismiss": "Dismiss",
     "wizard.run.banner.dismissFailed": "The notice could not be dismissed",
-
-    // Session expiry (modal)
-    "auth.session.expired.default":
-      "Your session has expired. Please sign in again.",
-    "auth.session.expired.title": "Session Expired",
-    "auth.session.expired.subtitle": "Please log in again",
-    "auth.session.expired.saasBody":
-      "Your Techstack session expired. Continue with Auth0 to return to this workflow after sign-in.",
-    "auth.session.expired.continueAuth0": "Continue with Auth0",
-    "auth.session.expired.reconnecting": "Reconnecting...",
-    "auth.session.expired.signOut": "Sign out",
-    "auth.session.expired.reopenPortal": "Re-open kombify Cloud",
-    "auth.session.expired.embeddedHint":
-      "Open kombify Cloud in a new tab, sign in there, then retry the session refresh here.",
-    "auth.session.expired.embeddedRefreshFailed":
-      "Could not refresh the embedded kombify Cloud session. Re-open kombify Cloud to sign in again, then retry.",
-    "auth.session.expired.dataPreserved":
-      "Your data is preserved. After logging in, you can continue where you left off.",
 
     // Companion. The panel itself is served centrally and localizes its own
     // interior; these are the host's launcher strings, which the SDK never
@@ -1075,15 +1056,21 @@ export const translations: Record<Locale, Record<string, string>> = {
     ...shellMessages.de,
     ...dataProfileMessages.de,
     ...creationTemplateMessages.de,
+    ...creationStageMessages.de,
     ...marketplaceMessages.de,
     ...creationFlowMessages.de,
+    ...connectMessages.de,
+    ...builderHandoffMessages.de,
     ...useCaseRunMessages.de,
     ...useCaseRemoveMessages.de,
+    ...applicationMoveMessages.de,
+    ...ownApplicationMessages.de,
     ...useCaseConfigureMessages.de,
     ...layoutMessages.de,
     ...connectDevicesMessages.de,
     ...boxMessages.de,
     ...appLogoMessages.de,
+    ...sessionRenewalMessages.de,
     ...loginMessages.de,
     ...accessUsersMessages.de,
     ...nodeGuidanceMessages.de,
@@ -1099,7 +1086,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "wizard.preview.reset": "Zurücksetzen",
     "wizard.preview.language": "Sprache der Vorschau",
     "wizard.preview.sandboxNotice":
-      "Interaktive Designvorschau. Vergleiche A und B mit derselben Auswahl. Deine Auswahl bleibt in dieser Ansicht; es wird nichts installiert. Mail und Games zeigen das geplante Beta-Erlebnis.",
+      "Interaktive Designvorschau. Vergleiche die runde und die kompakte Ansicht mit derselben Auswahl. Deine Auswahl bleibt in dieser Ansicht; es wird nichts installiert. Mail und Games zeigen das geplante Beta-Erlebnis.",
     "wizard.preview.files.title": "Documents & Files",
     "wizard.preview.files.description":
       "Deine Dateien des Alltags, an deinem eigenen Ort.",
@@ -1156,9 +1143,6 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Eine optionale integrierte Mail-Suite mit SOGo-Webmail und Groupware. Suite und separater Server sind alternative Wege für dieselben Postfächer.",
     "wizard.preview.service.pterodactyl":
       "Die gewählte Plattform für Games. Die geplante Integration verwaltet getrennte Minecraft-Java- und Bedrock-Profile, ihre Ressourcen und dauerhaften Welten.",
-    "wizard.preview.compare": "Die beiden Entwürfe vergleichen",
-    "wizard.preview.discover": "Entdecken",
-    "wizard.preview.focus": "Fokus",
     "wizard.preview.eyebrow": "Dein digitales Zuhause",
     "wizard.preview.title": "Platz für das, was dir wichtig ist.",
     "wizard.preview.subtitle":
@@ -1173,8 +1157,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "wizard.preview.aboutUseCase": "Genauer ansehen",
     "wizard.preview.inside": "Die Tools dahinter",
     "wizard.preview.explore": "Entdecken & anpassen",
-    "wizard.preview.selectUseCase": "Auswählen",
-    "wizard.preview.collapse": "Weniger Details",
     "wizard.preview.selected": "Ausgewählt",
     "wizard.preview.optional": "Optional",
     "wizard.preview.selectionCount": "ausgewählt",
@@ -1812,6 +1794,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "wizard.server.command.join.reviewBody":
       "Wähle, wie sich das Gerät verbindet. Zugriff, Personen und Anmeldung deines Homelabs bleiben bestehen.",
     "wizard.leave.confirm": "Deine Eingaben gehen verloren.",
+    "wizard.focus.title": "{useCase} einrichten",
+    "wizard.focus.subtitle":
+      "Wähle die App und wie sie eingerichtet wird. Die Details öffnest du, wenn du sie brauchst.",
+    "wizard.step.useCase": "Use Case",
     "wizard.step.inherited": "Für dein Homelab bereits festgelegt",
     "wizard.step.existingOwner": "Der Owner deines Homelabs bleibt gleich",
     "wizard.settings.title": "Homelab-Einstellungen",
@@ -2024,18 +2010,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "auth.password": "Passwort",
     "auth.username": "Benutzername",
 
-    // Session recovery (inline panel)
-    "auth.session.renewal.title": "Sitzung muss aufgefrischt werden",
-    "auth.session.renewal.body":
-      "Dein sicherer Zugriff auf kombify Cloud konnte nicht automatisch erneuert werden. Deine Arbeit bleibt erhalten – melde dich erneut an, um genau dort weiterzumachen.",
-    "auth.session.renewal.signIn": "Erneut anmelden",
-    "auth.session.renewal.retry": "Erneut versuchen",
-    "auth.session.renewal.retrying": "Wird erneut versucht…",
-    "auth.session.gatewayUnavailable":
-      "Der sichere Zugriff auf kombify Cloud konnte nicht bestätigt werden. Melde dich erneut an, um fortzufahren.",
-    "auth.session.tenantContextRequired":
-      "Deine Sitzung trägt keine kombify-Organisation, daher können keine Organisationsdaten angezeigt werden. Öffne Techstack über dein kombify-Cloud-Portal oder melde dich erneut an.",
-
     // Wizard-run resume banner (dashboard, plan D6)
     "wizard.run.banner.inProgressTitle": "Dein Homelab wird eingerichtet",
     "wizard.run.banner.inProgressBody":
@@ -2057,24 +2031,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "wizard.run.banner.dismiss": "Ausblenden",
     "wizard.run.banner.dismissFailed":
       "Der Hinweis konnte nicht ausgeblendet werden",
-
-    // Session expiry (modal)
-    "auth.session.expired.default":
-      "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.",
-    "auth.session.expired.title": "Sitzung abgelaufen",
-    "auth.session.expired.subtitle": "Bitte melde dich erneut an",
-    "auth.session.expired.saasBody":
-      "Deine Techstack-Sitzung ist abgelaufen. Fahre mit Auth0 fort, um nach der Anmeldung zu diesem Arbeitsschritt zurückzukehren.",
-    "auth.session.expired.continueAuth0": "Mit Auth0 fortfahren",
-    "auth.session.expired.reconnecting": "Verbindung wird wiederhergestellt...",
-    "auth.session.expired.signOut": "Abmelden",
-    "auth.session.expired.reopenPortal": "kombify Cloud erneut öffnen",
-    "auth.session.expired.embeddedHint":
-      "Öffne kombify Cloud in einem neuen Tab, melde dich dort an und versuche die Sitzungsaktualisierung hier erneut.",
-    "auth.session.expired.embeddedRefreshFailed":
-      "Die eingebettete kombify-Cloud-Sitzung konnte nicht aktualisiert werden. Öffne kombify Cloud erneut, melde dich an und versuche es dann noch einmal.",
-    "auth.session.expired.dataPreserved":
-      "Deine Daten bleiben erhalten. Nach der Anmeldung kannst du dort weitermachen, wo du aufgehört hast.",
 
     // Companion
     "nav.notifications": "Benachrichtigungen",
@@ -2099,15 +2055,21 @@ export const translations: Record<Locale, Record<string, string>> = {
     ...shellMessages.es,
     ...dataProfileMessages.es,
     ...creationTemplateMessages.es,
+    ...creationStageMessages.es,
     ...marketplaceMessages.es,
     ...creationFlowMessages.es,
+    ...connectMessages.es,
+    ...builderHandoffMessages.es,
     ...useCaseRunMessages.es,
     ...useCaseRemoveMessages.es,
+    ...applicationMoveMessages.es,
+    ...ownApplicationMessages.es,
     ...useCaseConfigureMessages.es,
     ...layoutMessages.es,
     ...connectDevicesMessages.es,
     ...boxMessages.es,
     ...appLogoMessages.es,
+    ...sessionRenewalMessages.es,
   },
   "zh-Hans": {
     ...zhHans,
@@ -2124,15 +2086,21 @@ export const translations: Record<Locale, Record<string, string>> = {
     ...shellMessages["zh-Hans"],
     ...dataProfileMessages["zh-Hans"],
     ...creationTemplateMessages["zh-Hans"],
+    ...creationStageMessages["zh-Hans"],
     ...marketplaceMessages["zh-Hans"],
     ...creationFlowMessages["zh-Hans"],
+    ...connectMessages["zh-Hans"],
+    ...builderHandoffMessages["zh-Hans"],
     ...useCaseRunMessages["zh-Hans"],
     ...useCaseRemoveMessages["zh-Hans"],
+    ...applicationMoveMessages["zh-Hans"],
+    ...ownApplicationMessages["zh-Hans"],
     ...useCaseConfigureMessages["zh-Hans"],
     ...layoutMessages["zh-Hans"],
     ...connectDevicesMessages["zh-Hans"],
     ...boxMessages["zh-Hans"],
     ...appLogoMessages["zh-Hans"],
+    ...sessionRenewalMessages["zh-Hans"],
   },
   hi: {
     ...hi,
@@ -2149,15 +2117,21 @@ export const translations: Record<Locale, Record<string, string>> = {
     ...shellMessages.hi,
     ...dataProfileMessages.hi,
     ...creationTemplateMessages.hi,
+    ...creationStageMessages.hi,
     ...marketplaceMessages.hi,
     ...creationFlowMessages.hi,
+    ...connectMessages.hi,
+    ...builderHandoffMessages.hi,
     ...useCaseRunMessages.hi,
     ...useCaseRemoveMessages.hi,
+    ...applicationMoveMessages.hi,
+    ...ownApplicationMessages.hi,
     ...useCaseConfigureMessages.hi,
     ...layoutMessages.hi,
     ...connectDevicesMessages.hi,
     ...boxMessages.hi,
     ...appLogoMessages.hi,
+    ...sessionRenewalMessages.hi,
   },
   ar: {
     ...ar,
@@ -2174,15 +2148,21 @@ export const translations: Record<Locale, Record<string, string>> = {
     ...shellMessages.ar,
     ...dataProfileMessages.ar,
     ...creationTemplateMessages.ar,
+    ...creationStageMessages.ar,
     ...marketplaceMessages.ar,
     ...creationFlowMessages.ar,
+    ...connectMessages.ar,
+    ...builderHandoffMessages.ar,
     ...useCaseRunMessages.ar,
     ...useCaseRemoveMessages.ar,
+    ...applicationMoveMessages.ar,
+    ...ownApplicationMessages.ar,
     ...useCaseConfigureMessages.ar,
     ...layoutMessages.ar,
     ...connectDevicesMessages.ar,
     ...boxMessages.ar,
     ...appLogoMessages.ar,
+    ...sessionRenewalMessages.ar,
   },
 };
 

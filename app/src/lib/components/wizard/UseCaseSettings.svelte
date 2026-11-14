@@ -169,13 +169,12 @@
             />
           </label>
         {:else if setting.kind === "choice" && setting.options?.length === 1}
+          {@const only = setting.options[0]}
           <div class="fixed-choice">
-            <Check size={16} aria-hidden="true" /><span
-              >{setting.options[0].name}</span
-            >
+            <Check size={16} aria-hidden="true" /><span>{only?.name}</span>
           </div>
-          {#if setting.options[0].note}<p class="setting-note">
-              {setting.options[0].note}
+          {#if only?.note}<p class="setting-note">
+              {only.note}
             </p>{/if}
         {:else if setting.kind === "choice" && (setting.options?.length ?? 0) <= 3}
           <div

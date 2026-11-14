@@ -1,7 +1,7 @@
 // Package notifications proxies a Techstack user's notification center to the
 // kombify-Notifications engine. Techstack's SvelteKit layer has no server-side
 // identity, so the Go backend resolves the authenticated user and signs the
-// engine call itself (HS256 service JWT, iss kombify-techstack, aud
+// engine call itself (EdDSA service JWT, iss kombify-techstack, aud
 // kombify-notifications, scope notifications:*), forwarding the recipient as the
 // auth0_user_id query param the engine expects (desk parity).
 package notifications
@@ -9,6 +9,7 @@ package notifications
 import (
 	"bytes"
 	"context"
+	"crypto/ed25519"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -40,10 +41,19 @@ var ErrNotConfigured = errors.New("notifications engine not configured")
 
 // Engine is a thin, signed HTTP client for the notifications engine.
 type Engine struct {
-	baseURL string
-	secret  string
-	http    *http.Client
+	baseURL       string
+	secret        string
+	signingKey    ed25519.PrivateKey
+	signingKeyID  string
+	signingKeyErr error
+	http          *http.Client
 }
+
+// SigningKeyEnv holds the Ed25519 service key ("<kid>=<seed>") this client
+// signs with when a deployment withholds the process-wide
+// SERVICE_AUTH_ED25519_PRIVATE_KEY so no other client signs as techstack there.
+// No admitted deployment withholds it; the name stays with the engine.
+const SigningKeyEnv = "TECHSTACK_NOTIFICATIONS_ED25519_PRIVATE_KEY"
 
 // NewEngineFromEnv builds an Engine from NOTIFICATIONS_ENGINE_URL and
 // SERVICE_AUTH_SECRET. Hosted editions default to the live origin; self-hosted
@@ -58,16 +68,28 @@ func NewEngineFromEnv() *Engine {
 	}
 	base = strings.TrimRight(base, "/")
 	base = strings.TrimSuffix(base, "/v1")
-	return &Engine{
+	e := &Engine{
 		baseURL: base,
 		secret:  strings.TrimSpace(os.Getenv("SERVICE_AUTH_SECRET")),
 		http:    &http.Client{Timeout: requestTimeout},
 	}
+	if raw := strings.TrimSpace(os.Getenv(SigningKeyEnv)); raw != "" {
+		e.signingKeyID, e.signingKey, e.signingKeyErr = servicecall.ParseSigningKey(raw)
+		if e.signingKeyErr != nil {
+			e.signingKeyErr = fmt.Errorf("%s: %w", SigningKeyEnv, e.signingKeyErr)
+		}
+	}
+	return e
 }
 
-// Configured reports whether a signing secret or Ed25519 key is present.
+// Configured reports whether a signing secret or Ed25519 key is present. A
+// malformed engine key counts as configured so every call fails with its
+// parse error instead of a silent 503.
 func (e *Engine) Configured() bool {
-	return e != nil && serviceauth.CanSign(e.secret) && e.baseURL != ""
+	if e == nil || e.baseURL == "" {
+		return false
+	}
+	return e.signingKey != nil || e.signingKeyErr != nil || serviceauth.CanSign(e.secret)
 }
 
 // Result is a passthrough of the engine's HTTP response.
@@ -78,18 +100,24 @@ type Result struct {
 
 // signToken mints the service JWT the engine accepts on the Authorization
 // header: iss/aud in its allowlists, exp required, scope enforced per route.
-// It is HS256 with the shared secret until the process holds an Ed25519
-// service key, then EdDSA under that key.
+// It is EdDSA under the engine key (SigningKeyEnv) when one is set, otherwise
+// under the process Ed25519 service key, and HS256 with the shared secret only
+// when neither exists.
 func (e *Engine) signToken(scope string) (string, error) {
-	if !serviceauth.CanSign(e.secret) {
+	if e.signingKeyErr != nil {
+		return "", e.signingKeyErr
+	}
+	if e.signingKey == nil && !serviceauth.CanSign(e.secret) {
 		return "", ErrNotConfigured
 	}
 	cfg, err := serviceauth.Apply(servicecall.Config{
-		ServiceName: "techstack",
-		Target:      "notifications",
-		Scope:       scope,
-		Secret:      e.secret,
-		TokenTTL:    tokenTTL,
+		ServiceName:  "techstack",
+		Target:       "notifications",
+		Scope:        scope,
+		Secret:       e.secret,
+		TokenTTL:     tokenTTL,
+		SigningKey:   e.signingKey,
+		SigningKeyID: e.signingKeyID,
 	})
 	if err != nil {
 		return "", err
@@ -187,13 +215,16 @@ func (e *Engine) DispatchProduct(ctx context.Context, event ProductEvent) (*Disp
 	if channel == "" {
 		channel = "in_app"
 	}
+	// Cloud resolves the tenant namespace to its organization identity.
 	dispatch := map[string]any{
-		"organization_id": nullableString(event.OrganizationID),
 		"topic_slug":      event.Topic,
 		"channel":         channel,
 		"recipient":       map[string]string{"auth0_user_id": event.Auth0UserID},
 		"payload":         event.Payload,
 		"idempotency_key": event.IdempotencyKey,
+	}
+	if event.TenantID != "" {
+		dispatch["tenant_id"] = event.TenantID
 	}
 	if sourceApp := strings.TrimSpace(event.SourceApp); sourceApp != "" {
 		dispatch["source_app"] = sourceApp
@@ -245,12 +276,4 @@ func (e *Engine) DispatchProduct(ctx context.Context, event ProductEvent) (*Disp
 		return nil, fmt.Errorf("notifications: decode dispatch response: %w", err)
 	}
 	return &out, nil
-}
-
-func nullableString(value string) any {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return nil
-	}
-	return value
 }

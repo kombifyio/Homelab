@@ -11,8 +11,9 @@ import (
 	"github.com/kombifyio/techstack/pkg/orchestrator"
 )
 
-// NewWizardExistingServers connects first installation to the same canonical
-// CAS assignment used by the operations route. It never enrolls a new host.
+// NewWizardExistingServers connects first installation, and a join of an
+// enrolled host as a new node, to the same canonical CAS assignment used by
+// the operations route. It never enrolls a new host.
 func NewWizardExistingServers(stores StackOperationsRouteStores) stacks.WizardExistingServers {
 	return wizardExistingServers{stackOperationsRouteHandlers{
 		stackStore: stores.Stacks, serverStore: stores.Servers, workerStore: stores.Workers,
@@ -41,6 +42,14 @@ func (a wizardExistingServers) resolve(ctx context.Context, req stacks.WizardExi
 	if server.TenantID != req.TenantID || server.OwnerSubjectID != req.OwnerID {
 		return nil, controlplane.ErrNotFound
 	}
+	// A join takes a bare server: never one that already serves this or
+	// another deployment, except the node this same join already bound.
+	if req.SpecNodeID != "" && strings.TrimSpace(server.StackID) != "" {
+		if bound, err := runtimeBoundToNode(*server, req.StackID, req.SpecNodeID); err != nil || !bound ||
+			stringFromAnyMap(server.Metadata, "spec_node_id") != req.SpecNodeID {
+			return nil, controlplane.ErrConflict
+		}
+	}
 	// Managed leased machines retain provider custody; this lane binds an
 	// existing self-owned server, never reassigns a provider lease.
 	if server.LeaseID != "" || strings.TrimSpace(server.WorkerID) == "" ||
@@ -54,6 +63,11 @@ func (a wizardExistingServers) resolve(ctx context.Context, req stacks.WizardExi
 	if worker.Type == "substrate" || !worker.Approved || !workerAssignmentStatusAllowed(worker.Status) ||
 		(worker.StackID != "" && worker.StackID != req.StackID) ||
 		!orchestrator.GuardRuntimeDeployEligible(*server, time.Now().UTC()) {
+		return nil, controlplane.ErrConflict
+	}
+	// The worker row is a projection of the same binding: a join refuses a
+	// worker some deployment already claims, unless this join bound it.
+	if req.SpecNodeID != "" && strings.TrimSpace(worker.StackID) != "" && strings.TrimSpace(server.StackID) != req.StackID {
 		return nil, controlplane.ErrConflict
 	}
 	if err := validateWorkerRuntimeAssignment(*server, *worker, req.TenantID, req.OwnerID, req.StackID); err != nil {
@@ -78,6 +92,6 @@ func (a wizardExistingServers) Assign(ctx context.Context, req stacks.WizardExis
 	if stack.OwnerSubjectID != req.OwnerID || stack.TenantID != req.TenantID {
 		return controlplane.ErrNotFound
 	}
-	_, err = a.operations.assignCanonicalWorker(ctx, req.TenantID, req.OwnerID, req.StackID, *worker)
+	_, err = a.operations.assignCanonicalWorker(ctx, req.TenantID, req.OwnerID, req.StackID, req.SpecNodeID, *worker)
 	return err
 }

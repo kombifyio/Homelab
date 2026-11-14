@@ -18,7 +18,6 @@ import (
 
 	commonauthflow "github.com/kombifyio/techstack/internal/gocommon/authflow"
 	"github.com/kombifyio/techstack/internal/gocommon/authsession"
-	commonedgeauth "github.com/kombifyio/techstack/internal/gocommon/edgeauth"
 	commonobservability "github.com/kombifyio/techstack/internal/gocommon/observability"
 	"github.com/kombifyio/techstack/internal/gocommon/oidcclient"
 	commonrole "github.com/kombifyio/techstack/internal/gocommon/role"
@@ -39,6 +38,7 @@ import (
 	"github.com/kombifyio/techstack/pkg/config"
 	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/db"
+	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
 	"github.com/kombifyio/techstack/pkg/demoguard"
 	"github.com/kombifyio/techstack/pkg/diskcustody"
 	"github.com/kombifyio/techstack/pkg/enrollment"
@@ -77,7 +77,11 @@ type startupContext struct {
 }
 
 type v2Boot struct {
-	db                    *db.DB
+	db *db.DB
+	// systemDB is the hosted techstack_runtime_system pool. Work without an
+	// Edge-signed context reaches it only through systemContext; native Local
+	// and Guard have none and keep their single product-native login.
+	systemDB              *db.DB
 	advancedIssuerCustody *db.DB
 	server                *v2.Server
 	session               *session.Manager
@@ -143,6 +147,9 @@ type routeDeps struct {
 	wallet             *kombifywallet.Client
 	walletSource       kombifywallet.Source
 	secondaryExecution *config.SecondaryExecution
+	// governedDecommission hands the monthly-runtime service to the
+	// data-subject participant, which is registered before the service exists.
+	governedDecommission *governedDecommissionBinding
 }
 
 func providerControlSQL(database *db.DB) *sql.DB {
@@ -203,6 +210,9 @@ func runTechstack(ctx context.Context) error {
 	dataProfile, err := fulllocal.Boot()
 	if err != nil {
 		return err
+	}
+	if len(os.Args) > 1 && os.Args[1] == "own-app" {
+		return runOwnApplicationDraft(ctx, os.Args[2:])
 	}
 	if isStackKitOperationsProcessMode(os.Args) {
 		return runStackKitOperationsProcess(ctx)
@@ -324,6 +334,14 @@ func runTechstack(ctx context.Context) error {
 	if v2Boot.db == nil || v2Boot.db.DB == nil {
 		return fmt.Errorf("control-plane database is required: set %s with a Postgres DSN (PocketBase control-plane fallback removed)", db.EnvDatabaseURL)
 	}
+	if err := bootRuntimeSystemDatabase(ctx, startup.cfg, v2Boot); err != nil {
+		log.Error("runtime_system_database_refused", "error", err)
+		return fmt.Errorf("runtime system database: %w", err)
+	}
+	// Boot, background loops, the orchestrator and its jobs carry no
+	// Edge-signed context: from here they run as system work. HTTP requests
+	// derive from their own base context and never inherit this route.
+	ctx = v2Boot.systemContext(ctx)
 	tenantErr := ensureDefaultControlPlaneTenant(ctx, startup.cfg, v2Boot)
 	if tenantErr != nil {
 		return fmt.Errorf("bootstrap control-plane tenant: %w", tenantErr)
@@ -331,6 +349,7 @@ func runTechstack(ctx context.Context) error {
 
 	controlStores := stackControlPlaneStores(v2Boot)
 	orchCfg := orchestrator.DefaultConfig()
+	orchCfg.BaseContext = ctx
 	if scheduledBackupOwner(startup.cfg) == backupOwnerPrivateWorker {
 		orchCfg.JobTypeFilter = func(kind jobs.JobType) bool { return kind != jobs.JobTypeBackup }
 	}
@@ -348,7 +367,8 @@ func runTechstack(ctx context.Context) error {
 	orchCfg.ActivityStore = controlStores.Activity
 	orchCfg.RegistryStore = registryControlPlaneStore(v2Boot)
 	orchCfg.RoutingStore = controlStores.Routing
-	orchCfg.SpecFiles = diskcustody.SpecFiles{DB: v2Boot.db.DB}
+	// Spec-file custody runs detached from any request: it is system work.
+	orchCfg.SpecFiles = diskcustody.SpecFiles{DB: tenantcontext.Database(ctx, v2Boot.db.DB)}
 	startDiskCustodyImport(ctx, v2Boot.db.DB, log)
 	portInventory := portinventory.NewPostgresAuthority(v2Boot.db.DB)
 	orchCfg.PortInventory = portInventory
@@ -423,7 +443,7 @@ func runTechstack(ctx context.Context) error {
 		orch.AddTerminalJobObserver(guardHeartbeatTimeoutProjector{store: store})
 	}
 	rilSignalOutbox, rilSignalWorker := bootRILSignalRuntime(v2Boot, startup.cfg.Edition, buildRevision, log)
-	guardReach := bootGuardReach(v2Boot, startup.cfg.Edition, log)
+	guardReach := bootGuardReach(v2Boot, startup.cfg.Edition, orch, log)
 	guardPosture := stableBootComponent(func() *guardposture.Service { return bootGuardPosture(ctx, v2Boot, orch, notificationOutbox, log) })
 	if config.RunsSharedWork() {
 		routes.StartGuardReleaseRefresher(ctx)
@@ -526,6 +546,9 @@ func runTechstack(ctx context.Context) error {
 	handles := startRuntimeLifecycle(ctx, startup.cfg, orch, grpcState, monitorState, workflowEngine, rilSignalWorker, guardReach, providerState.runner, registrySweeper, jobReclaimer, backupScanner, backupRetention, serverMaintenance, driftScheduler, log, secondaryExecution)
 	if config.RunsSharedWork() && v2Boot.db != nil && v2Boot.db.DB != nil {
 		handles.background.run(func(ctx context.Context) { actions.RunIssuedLeaseReaper(ctx, v2Boot.db.DB) })
+		handles.background.run(func(ctx context.Context) {
+			runDeletedStackBindingReconciliation(ctx, controlPlanePostgresStore(v2Boot), log)
+		})
 	}
 	if feed != nil && feed.digest != nil {
 		handles.background.run(feed.digest.Run)
@@ -629,6 +652,10 @@ func handleEarlyCommand(ctx context.Context, args []string) (bool, error) {
 		}
 		fmt.Println("provider-control runtime authority installed and verified")
 		return true, nil
+	case "guard-tenant-rebind":
+		return true, runGuardTenantRebind(ctx, args[2:])
+	case "managed-runtime-retenant":
+		return true, runManagedRuntimeRetenant(ctx, args[2:])
 	case "wallet-migration":
 		return true, runWalletMigration(ctx, args[2:])
 	case "wallet":
@@ -1068,6 +1095,7 @@ func bootAgentGRPC(cfg *config.Config, boot *v2Boot, log *logger.Logger) (*grpcB
 		QueueWarningThreshold: cfg.Server.GRPCQueueWarningThreshold,
 		RuntimeLogPath:        cfg.Server.RuntimeLogPath,
 		RuntimeLogMaxEntries:  cfg.Server.RuntimeLogMaxEntries,
+		RequestContext:        boot.systemContext,
 	}, log)
 	if err != nil {
 		if requireMTLS {
@@ -1146,6 +1174,7 @@ func buildRouter(deps routeDeps) (*httpx.Router, error) {
 		return nil, fmt.Errorf("initialize inventory authorization: %w", err)
 	}
 	router := httpx.NewRouter()
+	deps.governedDecommission = &governedDecommissionBinding{}
 	bindGlobalMiddleware(router, deps)
 	deps.sharedFeatureService()
 	state, err := registerVMLeaseRoutes(router, deps)
@@ -1154,8 +1183,8 @@ func buildRouter(deps routeDeps) (*httpx.Router, error) {
 	}
 	metrics := registerCoreRoutes(router, deps, state.runtimeActions.LeaseManager)
 	deps.workflowEngine.SetObserver(metrics)
-	state.managedRuntimeExpansion = registerRuntimeInventoryRoutes(router, deps, state, inventoryPolicy)
-	registerRILRoutes(router, deps, inventoryPolicy)
+	actionCards := registerRILRoutes(router, deps, inventoryPolicy)
+	state.managedRuntimeExpansion = registerRuntimeInventoryRoutes(router, deps, state, inventoryPolicy, actionCards)
 	registerNetworkRoutes(router, deps)
 	registerFeatureRoutes(router, deps, state)
 	registerV2Routes(router, deps)
@@ -1224,6 +1253,7 @@ func bindGlobalMiddleware(router *httpx.Router, deps routeDeps) {
 	router.BindFunc(middleware.RequestIDMiddleware)
 	bindCORS(router, cfg)
 	router.BindFunc(middleware.EdgeIdentityMiddlewareFromConfig(cfg))
+	router.BindFunc(runtimeSystemRouteAdmission(deps.v2))
 	router.BindFunc(secondaryTransportAdmission)
 	router.BindFunc(v2SessionIdentityMiddleware(deps.v2))
 	router.BindFunc(testIdentityAdmission)
@@ -1260,7 +1290,6 @@ func v2SessionIdentityMiddleware(boot *v2Boot) func(*httpx.Event) error {
 				logger.Default().Error("tenant_identity_projection_failed", "error", projectionErr, "tenant_id", id.OrgID)
 				return sessionreauth.Denial(e, id.OrgID, projectionErr)
 			}
-			projectLegacyDemoOwner(id)
 			ctx := identity.NewContext(e.Request.Context(), id)
 			ctx = contextWithMembershipAuthorization(ctx, membership)
 			e.Request = e.Request.WithContext(ctx)
@@ -1272,6 +1301,13 @@ func v2SessionIdentityMiddleware(boot *v2Boot) func(*httpx.Event) error {
 		}
 		claims, err := boot.session.Verify(token)
 		if err != nil {
+			// A session cookie that no longer yields a session is a session
+			// that needs renewal, never a sign-in error: any 401 this request
+			// earns becomes the renewal signal (AUTHENTICATION.md §6). A
+			// rejected Authorization bearer keeps its ordinary 401.
+			if v2SessionTokenFromCookie(e.Request) {
+				e.Request = e.Request.WithContext(httpx.WithSessionRenewalReason(e.Request.Context(), httpx.SessionRenewalReasonSessionExpired))
+			}
 			return e.Next()
 		}
 		id := identityFromV2SessionClaims(claims)
@@ -1288,7 +1324,6 @@ func v2SessionIdentityMiddleware(boot *v2Boot) func(*httpx.Event) error {
 			return sessionreauth.Denial(e, id.OrgID, err)
 		}
 		hydrateIdentityTenantFromMembership(id, membership)
-		projectLegacyDemoOwner(id)
 		boot.browserSessions.Renew(e.Response, e.Request)
 		ctx := identity.NewContext(e.Request.Context(), id)
 		ctx = authsession.WithClaims(ctx, claims)
@@ -1296,24 +1331,6 @@ func v2SessionIdentityMiddleware(boot *v2Boot) func(*httpx.Event) error {
 		e.Request = e.Request.WithContext(ctx)
 		return e.Next()
 	}
-}
-
-// projectLegacyDemoOwner is the single compatibility boundary between the
-// current Universal Login demo principal and the original public-demo data
-// owner. The demo tenant predates the dedicated Auth0 demo connection, so its
-// homelab rows are intentionally owned by the stable demo tenant id while the
-// authenticated principal is now oauth2|kombify-demo|.... Authentication,
-// membership projection, and Edge/FGA authorization all complete against the
-// real principal before this adapter changes only the owner id consumed by the
-// Techstack inventory and lifecycle routes.
-//
-// Remove this adapter only through a complete owner-subject data migration;
-// never add endpoint-specific aliases or a second read path.
-func projectLegacyDemoOwner(id *identity.Identity) {
-	if id == nil || !demoguard.IsDemoTenant(id.OrgID) || !demoguard.IsDemoUser(id.UserID) {
-		return
-	}
-	id.UserID = demoguard.DemoTenantID()
 }
 
 // resolveIdentityTenantProjection is the shared middleware seam that turns a
@@ -1469,6 +1486,17 @@ func bootstrapIdentityTenantProjection(
 		return nil, fmt.Errorf("bootstrap membership: %w", err)
 	}
 	return membership, nil
+}
+
+// v2SessionTokenFromCookie reports whether v2SessionTokenFromRequest took the
+// token from the browser session cookie rather than an Authorization bearer.
+func v2SessionTokenFromCookie(r *http.Request) bool {
+	if r == nil {
+		return false
+	}
+	h := strings.TrimSpace(r.Header.Get("Authorization"))
+	parts := strings.SplitN(h, " ", 2)
+	return len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") || strings.TrimSpace(parts[1]) == ""
 }
 
 func v2SessionTokenFromRequest(r *http.Request, cookieName string) (string, bool) {
@@ -1749,11 +1777,8 @@ func v2CloudUserUpsert(authStore controlplane.AuthStore, saasMode bool, entitlem
 	}
 }
 
-// contextWithMembershipAuthorization projects server-owned membership grants
-// into both product feature flags and the authorization context used by
-// Inventory. Existing Edge-signed grants always win; the membership fallback
-// is only used for a verified TechStack session whose grants were persisted
-// server-side during the Auth0 callback.
+// contextWithMembershipAuthorization retains server-owned membership grants
+// for Inventory authorization. Membership metadata is never a flag decision.
 func contextWithMembershipAuthorization(ctx context.Context, membership *controlplane.Membership) context.Context {
 	if ctx == nil || membership == nil {
 		return ctx
@@ -1762,18 +1787,7 @@ func contextWithMembershipAuthorization(ctx context.Context, membership *control
 	if len(entitlements) == 0 {
 		return ctx
 	}
-	if _, ok := commonedgeauth.FlagsFromContext(ctx); !ok {
-		flags := make(map[string]bool, len(entitlements))
-		for _, entitlement := range entitlements {
-			if entitlement = strings.TrimSpace(entitlement); entitlement != "" {
-				flags[entitlement] = true
-			}
-		}
-		if len(flags) > 0 {
-			ctx = commonedgeauth.FlagsToContext(ctx, commonedgeauth.FlagSet{Flags: flags})
-		}
-	}
-	// Membership grants are claim-derived, not Edge-signed: they go into their
+	// Membership grants are persisted, not Edge-signed: they go into their
 	// own bucket so provider-mutating consumers (capacity policy, job authority
 	// snapshots) keep failing closed without a verified v2 envelope, while
 	// Inventory reads may accept the fallback explicitly.
@@ -1879,7 +1893,7 @@ func bindCORS(router *httpx.Router, cfg *config.Config) {
 		AllowMethods:     []string{"GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"},
 		AllowHeaders:     []string{"Accept", "Accept-Language", "Content-Type", "Authorization", "X-CSRF-Token", "X-SSH-Fingerprint", localDeviceSessionHeader, localDeviceProofHeader},
 		AllowCredentials: !hasWildcardOrigin(corsOrigins),
-		ExposeHeaders:    []string{"X-CSRF-Token", "X-Request-ID", "X-Correlation-ID", "X-Trace-ID"},
+		ExposeHeaders:    []string{"X-CSRF-Token", "X-Request-ID", "X-Correlation-ID", "X-Trace-ID", httpx.SessionRenewalHeader},
 		MaxAge:           600,
 	}))
 }
@@ -1945,6 +1959,13 @@ func bindRateLimiter(router *httpx.Router, cfg *config.Config) {
 	readBurst := max(cfg.Server.RateLimitBurst*4, 80)
 	readRate, readBurst = middleware.ReplicaBudget(readRate, readBurst, replicas)
 	readLimiter := middleware.NewRateLimiter(readRate, readBurst)
+	// A service bucket that names no principal carries every user that service
+	// acts for (Cloud, the Gateway): it is sized for platform load, ten times a
+	// person's budget, so one busy hour of the platform never reads as abuse.
+	serviceMutationRate, serviceMutationBurst := middleware.ReplicaBudget(max(cfg.Server.RateLimitRPS*10, 100), max(cfg.Server.RateLimitBurst*10, 200), replicas)
+	serviceMutationLimiter := middleware.NewRateLimiter(serviceMutationRate, serviceMutationBurst)
+	serviceReadRate, serviceReadBurst := middleware.ReplicaBudget(max(cfg.Server.RateLimitRPS*40, 400), max(cfg.Server.RateLimitBurst*40, 800), replicas)
+	serviceReadLimiter := middleware.NewRateLimiter(serviceReadRate, serviceReadBurst)
 	portalRate := cfg.Server.RateLimitRPS
 	if portalRate < 2 {
 		portalRate = 2
@@ -1966,14 +1987,22 @@ func bindRateLimiter(router *httpx.Router, cfg *config.Config) {
 		if rateLimitBypassEligible(e.Request) {
 			return e.Next()
 		}
+		key := middleware.RequestRateLimitKey(e.Request)
+		shared := middleware.IsSharedServiceRateLimitKey(key)
 		limiter := mutationLimiter
+		if shared {
+			limiter = serviceMutationLimiter
+		}
 		if e.Request.Method == http.MethodGet || e.Request.Method == http.MethodHead {
 			// Dashboard projections intentionally fan out across owner-scoped stacks,
 			// servers, services, and operations. Keep those reads rate-limited, but do
 			// not let a valid page refresh consume the stricter mutation budget.
 			limiter = readLimiter
+			if shared {
+				limiter = serviceReadLimiter
+			}
 		}
-		if !limiter.Allow(middleware.RequestRateLimitKey(e.Request)) {
+		if !limiter.Allow(key) {
 			e.Response.Header().Set("Retry-After", "1")
 			return httpx.Error(e, 429, ksapi.ErrCodeRateLimited, "Too many requests. Please slow down and try again.", nil)
 		}

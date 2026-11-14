@@ -1,9 +1,8 @@
-// Package releasechannel decides which deployment runs a homelab's work
-// (CI-CD-PLATFORM-STANDARD §4.6 "Channel model").
+// Package releasechannel decides which deployment runs a homelab's work.
 //
-// Stable runs the work of every tenant. Early Access is the same product at
-// the Stable address with production configuration and database; it runs no
-// shared or background work, so it owns no tenant here.
+// Techstack has one channel (D-2026-11-11-07), so every admitted deployment is
+// production and owns every tenant. The predicates remain because the queue and
+// provider-control paths still call them; they are constant true.
 package releasechannel
 
 import (

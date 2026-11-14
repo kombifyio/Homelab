@@ -22,9 +22,11 @@ import (
 // The control-plane files of the data directory that hold no tenant data.
 // Monitoring history and runtime logs are history only and are not copied;
 // the agent CA is unused while agent gRPC is off and its private key never
-// leaves the disk.
+// leaves the disk. accountForRemainder covers the rest: stacks no tenant owns,
+// legacy directories and entries this import does not know.
 const (
 	hostKeyFile    = "runtime-host-keys.json"
+	knownHostsFile = "known_hosts"
 	stacksDir      = "stacks"
 	instanceFile   = "instance.json"
 	enrollmentFile = "enrollment.json"
@@ -62,6 +64,25 @@ type ImportReport struct {
 	ArchiveBytes    int64
 	ArchiveMatching int
 
+	// StacksUnownedWithFiles names the unresolved and orphaned stacks that hold
+	// any file but provider plugins (UnownedFiles, UnownedBytes): a live stack
+	// may hide there, and only a tenant-scoped row is restored. Their managed
+	// spec files are copied into the tenant-free archive (UnownedSpecFiles,
+	// read back as UnownedSpecMatching).
+	StacksUnownedWithFiles []string
+	UnownedFiles           int
+	UnownedBytes           int64
+	UnownedSpecFiles       int
+	UnownedSpecMatching    int
+
+	// LegacyFiles and LegacyBytes count what the legacy directories still hold
+	// (not copied; LegacyListing names path:size). UnknownEntries are
+	// top-level entries this import does not account for.
+	LegacyFiles    int
+	LegacyBytes    int64
+	LegacyListing  string
+	UnknownEntries []string
+
 	Errors int
 }
 
@@ -91,6 +112,9 @@ func Import(ctx context.Context, pool *sql.DB, dataDir string, log *slog.Logger)
 	if err := importStacks(ctx, pool, dataDir, &report); err != nil {
 		errs = append(errs, fmt.Errorf("stacks: %w", err))
 	}
+	if err := accountForRemainder(ctx, pool, dataDir, &report); err != nil {
+		errs = append(errs, fmt.Errorf("remainder: %w", err))
+	}
 	report.Errors = len(errs)
 	log.Info("disk_custody_import",
 		"data_dir", dataDir,
@@ -108,11 +132,23 @@ func Import(ctx context.Context, pool *sql.DB, dataDir string, log *slog.Logger)
 		"stack_archive_files", report.StackArchiveFiles,
 		"stack_archive_bytes", report.StackArchiveBytes,
 		"stack_archive_matching", report.StackArchiveMatch,
-		"stacks_orphaned", strings.Join(report.StacksOrphaned, ","),
-		"stacks_unresolved", strings.Join(report.StacksUnresolved, ","),
+		"stacks_orphaned_n", len(report.StacksOrphaned),
+		"stacks_orphaned", strings.Join(capNames(report.StacksOrphaned), ","),
+		"stacks_unresolved_n", len(report.StacksUnresolved),
+		"stacks_unresolved", strings.Join(capNames(report.StacksUnresolved), ","),
 		"archive_files", report.ArchiveFiles,
 		"archive_bytes", report.ArchiveBytes,
 		"archive_matching", report.ArchiveMatching,
+		"unowned_spec_files", report.UnownedSpecFiles,
+		"unowned_spec_matching", report.UnownedSpecMatching,
+		"stacks_unowned_with_files_n", len(report.StacksUnownedWithFiles),
+		"stacks_unowned_with_files", strings.Join(capNames(report.StacksUnownedWithFiles), ","),
+		"unowned_files", report.UnownedFiles,
+		"unowned_bytes", report.UnownedBytes,
+		"legacy_files", report.LegacyFiles,
+		"legacy_bytes", report.LegacyBytes,
+		"legacy_listing", report.LegacyListing,
+		"unknown_entries", strings.Join(capNames(report.UnknownEntries), ","),
 		"errors", report.Errors,
 		"complete", report.Complete(),
 	)
@@ -122,12 +158,23 @@ func Import(ctx context.Context, pool *sql.DB, dataDir string, log *slog.Logger)
 // Complete reports whether the database holds every durable item of the disk
 // byte for byte: every pin it has not retired, every managed spec file and an archive copy of
 // every file of each stack the database knows, and an archive copy of the
-// control-plane files. A stack without a confirmed tenant leaves it false; a
-// stack whose row is gone under its recorded tenant (orphaned) does not.
+// control-plane files. It stays false while an unowned stack (unresolved or
+// orphaned) holds any file but provider plugins, while a legacy directory still
+// holds a file or the disk holds an entry the import does not know: each is the
+// owner's decision before the disk is removed.
 func (r ImportReport) Complete() bool {
 	return r.Errors == 0 && len(r.HostKeyConflicts) == 0 && r.HostKeyMatching+r.HostKeyRetired == r.HostKeyPins &&
 		r.StackFilesMatching == r.StackFilesOnDisk && r.StackArchiveMatch == r.StackArchiveFiles &&
-		len(r.StacksUnresolved) == 0 && r.ArchiveMatching == r.ArchiveFiles
+		r.ArchiveMatching == r.ArchiveFiles && r.UnownedSpecMatching == r.UnownedSpecFiles &&
+		len(r.StacksUnownedWithFiles) == 0 && r.LegacyFiles == 0 && len(r.UnknownEntries) == 0
+}
+
+// capNames bounds a name list written to one log line.
+func capNames(names []string) []string {
+	if len(names) <= legacyListLimit {
+		return names
+	}
+	return append(append([]string{}, names[:legacyListLimit]...), fmt.Sprintf("...+%d", len(names)-legacyListLimit))
 }
 
 func logInventory(dataDir string, log *slog.Logger) {
@@ -211,7 +258,7 @@ func importHostKeys(ctx context.Context, pool *sql.DB, dataDir string, report *I
 
 // archiveControlPlaneFiles copies the tenant-free control-plane files.
 func archiveControlPlaneFiles(ctx context.Context, pool *sql.DB, dataDir string, report *ImportReport) error {
-	for _, name := range []string{enrollmentFile, instanceFile, hostKeyFile} {
+	for _, name := range []string{enrollmentFile, instanceFile, hostKeyFile, knownHostsFile} {
 		info, err := os.Lstat(filepath.Join(dataDir, name))
 		if errors.Is(err, os.ErrNotExist) {
 			continue
@@ -226,19 +273,13 @@ func archiveControlPlaneFiles(ctx context.Context, pool *sql.DB, dataDir string,
 		if err != nil {
 			return err
 		}
-		digest := sha256Hex(data)
 		report.ArchiveFiles++
 		report.ArchiveBytes += int64(len(data))
-		if _, err := pool.ExecContext(ctx, `INSERT INTO control_plane_disk_archive (source_path, sha256, byte_size, content)
-			VALUES ($1, $2, $3, $4) ON CONFLICT (source_path, sha256) DO NOTHING`, name, digest, len(data), data); err != nil {
+		matched, err := archiveVersioned(ctx, pool, name, data)
+		if err != nil {
 			return err
 		}
-		var stored []byte
-		if err := pool.QueryRowContext(ctx, `SELECT content FROM control_plane_disk_archive WHERE source_path = $1 AND sha256 = $2`,
-			name, digest).Scan(&stored); err != nil {
-			return err
-		}
-		if sha256Hex(stored) == digest {
+		if matched {
 			report.ArchiveMatching++
 		}
 	}

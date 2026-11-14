@@ -309,20 +309,6 @@ ON CONFLICT (feature_key) DO UPDATE SET
     metadata_json = EXCLUDED.metadata_json
 RETURNING *;
 
--- name: UpsertFeaturePreference :one
-INSERT INTO feature_preferences (
-    id,
-    tenant_id,
-    subject_id,
-    feature_key,
-    enabled
-) VALUES (
-    $1, $2, $3, $4, $5
-)
-ON CONFLICT (tenant_id, subject_id, feature_key) DO UPDATE SET
-    enabled = EXCLUDED.enabled
-RETURNING *;
-
 -- name: GetIdentityProviderByKey :one
 SELECT *
 FROM identity_providers

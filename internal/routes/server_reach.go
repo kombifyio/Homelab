@@ -40,10 +40,11 @@ type serverReachRequest struct {
 }
 
 // reachSetPublic publishes or withdraws one server. Nothing is published unless
-// the owner enables it here with an explicit service name and port: the relay
-// authenticates the Guard, not the visitor, so the owner decides what answers on
-// that port. Enabling needs the maintenance entitlement and a fresh second
-// factor; withdrawing is never gated. Ownership of the server in the tenant
+// the owner, or an agent acting for the owner, enables it here with an explicit
+// service name and port: the relay authenticates the Guard, not the visitor, so
+// that decision is what answers on that port. Enabling needs the maintenance
+// entitlement and the person's fresh second factor, or an agent acting for the
+// person (section 5e); withdrawing is never gated. Ownership of the server in the tenant
 // (ownedServer) plus the signed entitlement is the whole authorization, as for
 // owner maintenance: no inventory FGA `caller` tuple is required, because no
 // writer provisions one for an owner's own server (live 2026-10-18: every
@@ -78,16 +79,16 @@ func (h serverRuntimeHandlers) reachSetPublic(e *httpx.Event) error {
 			"guidance": "Name the service (lowercase letters, digits and hyphens, up to 14 characters) and the port it listens on.",
 		})
 	}
+	agentID := ""
 	if request.Enabled {
 		gate := entitlementGateOrHosted(h.postureEntitlements)
 		if !gate.SignedGrant(e.Request.Context(), ServerMaintenanceEntitlement) {
 			return writeEntitlementDenial(e, "techstack.servers.reach.set", ServerMaintenanceEntitlement)
 		}
-		if !gate.FreshMultiFactor(e.Request.Context(), h.now().UTC(), serverReachStepUpMaxAge) {
-			return httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden, "A fresh multi-factor sign-in is required to publish a server at a public address", map[string]any{
-				"reason": reachReasonStepUp, "retryable": true,
-				"guidance": "Sign in again with a second factor and repeat the request within five minutes.",
-			})
+		var admitted bool
+		if agentID, admitted = freshPersonOrActingAgent(e.Request.Context(), gate, h.now().UTC(), serverReachStepUpMaxAge); !admitted {
+			message, details := stepUpRefusal(e.Request.Context(), "A fresh multi-factor sign-in is required to publish a server at a public address", reachReasonStepUp)
+			return httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden, message, details)
 		}
 	}
 	row, setErr := control.SetPublic(e.Request.Context(), server.TenantID, strings.TrimSpace(server.WorkerID), ownerID, want)
@@ -100,6 +101,6 @@ func (h serverRuntimeHandlers) reachSetPublic(e *httpx.Event) error {
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Guard reach is unavailable", map[string]any{"reason": reachReasonUnavailable})
 	}
 	slog.Warn("guard_reach_public_set", "tenant_id", server.TenantID, "worker_id", server.WorkerID, "enabled", request.Enabled,
-		"service", want.Service, "target_port", want.Port, "actor", ownerID)
+		"service", want.Service, "target_port", want.Port, "actor", ownerID, "agent_id", agentID)
 	return httpx.Success(e, http.StatusOK, guardreach.ViewOf(*row))
 }

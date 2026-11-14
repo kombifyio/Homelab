@@ -142,7 +142,7 @@ func (s *Service) document(row Row, now time.Time) *Document {
 			TargetPort: row.Public.Port,
 		}
 	}
-	if row.ProofWanted(now) {
+	if row.ProofWanted(now) || (s.cfg.AgentLinks != nil && row.agentKeyRefreshWanted(now)) {
 		doc.ProofRequests = []ProofRequest{{
 			Audience: guardidentity.AudienceConnect, TenantID: row.ConnectTenantID, ServerID: row.ServerID,
 			WorkerID: row.WorkerID, Generation: row.Generation,

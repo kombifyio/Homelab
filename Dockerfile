@@ -45,14 +45,14 @@ COPY --from=backend /out/guard-release-tool /usr/local/bin/guard-release-tool
 COPY scripts/new-linux-stackkit-spec-templates.sh ./scripts/new-linux-stackkit-spec-templates.sh
 COPY docs/examples/seeds ./docs/examples/seeds
 COPY Dockerfile ./Dockerfile
-ARG STACKKIT_RELEASE_TAG="v0.55.11"
+ARG STACKKIT_RELEASE_TAG="v0.57.12"
 ARG STACKKIT_RELEASE_KIT="cloud-kit"
 ARG STACKKIT_RELEASE_BOOTSTRAP_KIT="basement-kit"
 ARG STACKKIT_RELEASE_REPO="kombifyio/StackKits"
-ARG STACKKIT_RELEASE_ARCHIVE_SHA256="cf83b95689a1871889a0a7c90c442bf0097ebbaa491816e68eb16f02a1a5e149"
-ARG STACKKIT_RELEASE_INDEX_SHA256="0a6d7faf1520f326789d3366f71a22a24afaafd4eec897aa8890156e0709e543"
-ARG STACKKIT_RELEASE_COMPATIBILITY_SHA256="cf22ba572794faf699299ed677b9189ec290f083e7be25f8b10926bc6e30a1f4"
-ARG STACKKIT_RELEASE_USE_CASE_CATALOG_SHA256="878798aae76d33dd4bbe43d2bbcbdac1e7d3f59fd08581705bc931cf2345ab02"
+ARG STACKKIT_RELEASE_ARCHIVE_SHA256="fd95e416a84a9536e111b1576729fc2c54f8852bc81e8a8b3cd176dca3801dfd"
+ARG STACKKIT_RELEASE_INDEX_SHA256="3ca1be88604fd56be2822a233508111824c53a524f25825ec19d766055760c4b"
+ARG STACKKIT_RELEASE_COMPATIBILITY_SHA256="001f1c0aa50b12e8148fbbba9edda7f664155adb20460e1499ea301edc12c075"
+ARG STACKKIT_RELEASE_USE_CASE_CATALOG_SHA256="40e8f85279aa61883d51728ed3606031c9f0fbd3a3795e32f835e0b43fa49195"
 ARG GIT_COMMIT=""
 ARG TECHSTACK_PRODUCT_VERSION=""
 RUN set -eu; \
@@ -103,6 +103,8 @@ LABEL org.opencontainers.image.revision="${GIT_COMMIT}" \
 RUN apk upgrade --no-cache && apk add --no-cache ca-certificates curl docker-cli docker-cli-compose git jq openssh-client
 RUN addgroup -S techstack && adduser -S -G techstack techstack && mkdir -p /data && chown techstack:techstack /data
 COPY --from=backend /out/techstack /app/techstack
+COPY install.sh /app/install.sh
+COPY install.ps1 /app/install.ps1
 COPY --from=signed-runtime /app/.stackkit /app/.stackkit
 COPY --from=signed-runtime /app/stackkits /app/stackkits
 COPY --from=signed-runtime /app/guard-release /app/guard-release

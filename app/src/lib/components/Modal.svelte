@@ -31,7 +31,8 @@
     /** Accessible name when there is no visible title. */
     ariaLabel?: string;
     testId?: string;
-    children: Snippet;
+    /** Body content; a confirmation that is only its description has none. */
+    children?: Snippet;
     footer?: Snippet;
   }
 
@@ -187,7 +188,9 @@
     <!-- Header -->
     {#if title || showClose}
       <div
-        class="flex items-start justify-between p-4 sm:p-6 border-b border-border"
+        class="flex items-start justify-between p-4 sm:p-6 {children
+          ? 'border-b border-border'
+          : ''}"
       >
         <div class="flex-1 min-w-0 pr-4">
           {#if title}
@@ -201,7 +204,10 @@
             </h2>
           {/if}
           {#if description}
-            <p id={descriptionId} class="text-sm text-muted-foreground mt-1">
+            <p
+              id={descriptionId}
+              class="text-sm text-muted-foreground mt-1 whitespace-pre-line"
+            >
               {description}
             </p>
           {/if}
@@ -220,12 +226,14 @@
     {/if}
 
     <!-- Content -->
-    <div
-      data-modal-content
-      class="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6"
-    >
-      {@render children()}
-    </div>
+    {#if children}
+      <div
+        data-modal-content
+        class="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6"
+      >
+        {@render children()}
+      </div>
+    {/if}
 
     <!-- Footer (optional) -->
     {#if footer}

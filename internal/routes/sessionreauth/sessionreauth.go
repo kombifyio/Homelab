@@ -1,15 +1,17 @@
 // Package sessionreauth is the single response classifier for the
 // "signature-valid session whose identity/tenant projection cannot resolve"
 // class (owner rule 2026-08-12: tools recover sessions themselves, users are
-// never asked to re-login manually).
+// never asked to sign in again).
 //
 // When server-side re-projection (claims re-derivation, owner-tenant
 // fallback, owner/demo bootstrap) cannot recover the session, every surface
-// answers with ONE signal: 401 + reason_code=session_reprojection_required +
-// retryable=true + user_guidance (ENTITLEMENTS-ARCHITECTURE.md §13 envelope)
-// and clears the v2 session cookie so the client's central interceptor can
-// silently re-enter SSO. No route may hand-roll its own dead-end 500/403 for
-// this class.
+// answers with the platform session renewal signal (workspace
+// platform/standards/AUTHENTICATION.md §6, "Session renewal, never a sign-in
+// error"): 401, header x-kombify-session-renewal: required, error_code
+// session_renewal_required with reason session_reprojection and renew_url. It
+// also clears the v2 session cookie, so the client's shared renewal layer
+// re-mints the session and replays the request once. No route may hand-roll
+// its own dead-end 500/403 for this class.
 package sessionreauth
 
 import (
@@ -18,14 +20,13 @@ import (
 
 	"github.com/kombifyio/techstack/internal/gocommon/authsession"
 
-	"github.com/kombifyio/techstack/pkg/api"
 	"github.com/kombifyio/techstack/pkg/httpx"
 	"github.com/kombifyio/techstack/pkg/logger"
 )
 
-// ReasonCode is the wire signal for the session-recovery class. The client
-// fetch-core interceptor keys its silent re-auth flow off this exact value.
-const ReasonCode = "session_reprojection_required"
+// ReasonCode is the renewal reason this class carries on the platform
+// session renewal signal (and the telemetry reason_code).
+const ReasonCode = httpx.SessionRenewalReasonSessionReprojection
 
 // RecoveredMessage is the structured-log message emitted when server-side
 // re-projection repaired the session without any client involvement.
@@ -88,7 +89,7 @@ func RecordRecovered(e *httpx.Event, fromTenant, toTenant, rung string) {
 // Denial is the terminal classifier response: the session is signature-valid
 // but unrecoverable server-side. It clears the v2 session cookie, emits the
 // structured log + tenant-labeled counter + warning-level Sentry event, and
-// returns the retryable 401 envelope the central client interceptor consumes.
+// returns the session renewal signal the shared client layer renews on.
 func Denial(e *httpx.Event, tenantID string, cause error) *httpx.APIError {
 	cookieName, secure, counter := snapshot()
 	if e != nil && e.Response != nil && cookieName != "" {
@@ -111,19 +112,16 @@ func Denial(e *httpx.Event, tenantID string, cause error) *httpx.APIError {
 		"reason_code": ReasonCode,
 		"tenant_id":   tenantLabel(tenantID),
 	})
-	return httpx.NewAPIError(401, api.ErrCodeUnauthorized, "Session requires re-authentication", map[string]any{
-		"error_code":  ReasonCode,
+	return httpx.NewSessionRenewalError(ReasonCode, map[string]any{
 		"reason_code": ReasonCode,
-		"retryable":   true,
 		"user_guidance": map[string]any{
-			"title": "Session refresh required",
-			"body":  "Your session could not be re-linked to its workspace, likely after a platform update. TechStack renews it automatically; no data was lost.",
+			"title": "Renewing your session",
+			"body":  "Your session is being renewed after a platform update. Nothing was changed and no data was lost; your action continues once the renewal completes.",
 			"next_steps": []string{
-				"Wait a moment - the session renews automatically",
-				"If it does not recover, use the renew-session action to sign in again",
+				"Wait a moment while the session renews",
 			},
 		},
-		"remediation":     "The client must re-enter SSO (/auth/sso or /api/v2/auth/login) to re-mint the session from the upstream identity; the projection is rebuilt at login time.",
+		"remediation":     "The client renews through renew_url (SSO re-entry re-mints the projection) and replays the request once.",
 		"support_context": map[string]any{"feature_source": "v2-session/tenant-projection", "cost_bearing": false},
 	})
 }

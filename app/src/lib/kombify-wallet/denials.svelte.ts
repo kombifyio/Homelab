@@ -85,7 +85,7 @@ export function walletDenialOf(refusal: Refusal): WalletDenial | null {
 export function walletDenialMessage(denial: WalletDenial): string {
   if (denial.reason === WALLET_RIGHT_MISSING && denial.requiredRight === "use")
     return tr("kwallet.api.wallet_right_missing_use");
-  return tr(MESSAGES[denial.reason]);
+  return tr(MESSAGES[denial.reason] ?? denial.reason);
 }
 
 export type WalletPromptRequest =

@@ -52,6 +52,9 @@ type Heartbeat struct {
 	// GuardPosture says how this Guard is isolated and how its latest update
 	// went.
 	GuardPosture *guardbinding.Posture `json:"guard_posture,omitempty"`
+	// GuardTenantRebindStaged acknowledges the tenant rebind offer this Guard
+	// stored, by directive id.
+	GuardTenantRebindStaged string `json:"guard_tenant_rebind_staged,omitempty"`
 	HostMaintenanceFacts
 }
 

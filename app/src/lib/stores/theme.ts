@@ -307,7 +307,8 @@ function createThemeStore() {
     },
     cycle: () => {
       const order: Theme[] = ["dark", "light", "system"];
-      chooseTheme(order[(order.indexOf(get(themeStore)) + 1) % order.length]);
+      const next = order[(order.indexOf(get(themeStore)) + 1) % order.length];
+      if (next) chooseTheme(next);
     },
     init: () => {
       if (browser) {

@@ -17,6 +17,7 @@ import type {
 } from "./types";
 
 import { tr } from "#lib/i18n.svelte.js";
+import { fetchWithSessionRenewal } from "#lib/auth/session-renewal.svelte.js";
 const API_BASE =
   import.meta.env.VITE_API_URL ||
   (typeof process !== "undefined" && process.env
@@ -58,18 +59,26 @@ async function fetchDiscovery<T>(
   const prefix = API_BASE ? `${API_BASE}` : "";
   const url = `${prefix}/api/v1/discovery${endpoint}`;
 
-  let response: Response;
-  try {
-    response = await fetch(url, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-    });
-  } catch (err) {
-    throw new DiscoveryApiError(tr("ui.api.networkErrorCouldNotConnect"));
-  }
+  // Through the shared session renewal layer: renew once, replay once.
+  const send = async (): Promise<Response> => {
+    try {
+      return await fetch(url, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers,
+        },
+      });
+    } catch {
+      throw new DiscoveryApiError(tr("ui.api.networkErrorCouldNotConnect"));
+    }
+  };
+  const response = await fetchWithSessionRenewal(send, {
+    viaGateway: false,
+    url,
+    method: options.method ?? "GET",
+    pendingMessage: tr("sessionRenewal.pending"),
+  });
 
   if (!response.ok) {
     let errorMessage = `HTTP ${response.status}`;

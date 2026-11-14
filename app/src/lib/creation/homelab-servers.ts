@@ -9,6 +9,8 @@ import {
   isCurrentCanonicalServer,
   type CanonicalServer,
 } from "#lib/api/registry.js";
+import type { KitDeployment } from "#lib/api/stacks.js";
+import type { StackKitInfo } from "#lib/api/unifier.js";
 
 export type HomelabServerState =
   /** Can take new use cases now. */
@@ -30,6 +32,12 @@ export interface HomelabServerChoice {
   state: HomelabServerState;
 }
 
+/** A deployment a connected server without a StackKit can join as a node. */
+export interface HomelabJoinTarget {
+  id: string;
+  name: string;
+}
+
 /** What the Server step needs to offer the person's existing servers. */
 export interface HomelabServerSelection {
   readonly servers: readonly HomelabServerChoice[];
@@ -41,6 +49,56 @@ export interface HomelabServerSelection {
   readonly selected: string;
   select(id: string): void;
   retry(): void;
+  /** Deployments the chosen server without a StackKit can join instead. */
+  readonly joinTargets: readonly HomelabJoinTarget[];
+  /** The deployment it joins; empty while it gets its own StackKit. */
+  readonly joinTarget: string;
+  selectJoin(deploymentId: string): void;
+}
+
+/** The catalog's kit name for a deployment's `stackkit_id` (the backend's aliases). */
+const KIT_ALIASES: Record<string, string> = {
+  basement: "basement-kit",
+  basementkit: "basement-kit",
+  "homelab-starter": "basement-kit",
+  "homelab-basic": "basement-kit",
+  "base-homelab": "basement-kit",
+  "minimal-arm": "basement-kit",
+  cloud: "cloud-kit",
+  cloudkit: "cloud-kit",
+  "kombify-cloud-kit": "cloud-kit",
+  "modern-kit": "modern-homelab",
+  "homelab-advanced": "modern-homelab",
+};
+
+function kitName(id: string): string {
+  const name = id.trim().toLowerCase();
+  return KIT_ALIASES[name] ?? name;
+}
+
+/**
+ * The running deployments a bare server can join: the pinned release must
+ * declare multi-node join (feature `multiNode`) for the deployment's kit.
+ * The run checks the same gate again; this only keeps the choice honest.
+ */
+export function homelabJoinTargets(
+  deployments: readonly KitDeployment[],
+  kits: readonly StackKitInfo[],
+): HomelabJoinTarget[] {
+  const joinable = new Set(
+    kits
+      .filter((kit) => kit.features?.includes("multiNode"))
+      .map((kit) => kit.name),
+  );
+  return deployments
+    .filter(
+      (deployment) =>
+        (deployment.status ?? deployment.state) === "running" &&
+        Boolean(deployment.stackkit_id) &&
+        joinable.has(kitName(deployment.stackkit_id ?? "")),
+    )
+    .map((deployment) => ({ id: deployment.id, name: deployment.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function stateOf(server: CanonicalServer): HomelabServerState {

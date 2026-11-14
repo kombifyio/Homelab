@@ -10,6 +10,7 @@ import {
   resetStackViaApi,
   listWorkersViaApi,
   waitForPageLoad,
+  leaveGoalsStep,
 } from "../helpers/test-utils";
 
 /**
@@ -95,7 +96,7 @@ async function completeEasyWizard(page: Page) {
 
   const nextBtn = page.getByTestId("wizard-next");
   await expect(nextBtn).toBeVisible();
-  await nextBtn.click();
+  await leaveGoalsStep(page);
 
   await expect(page.getByTestId("easy-step-2")).toBeVisible();
   await page.getByTestId("server-branch-owned").click();

@@ -177,7 +177,14 @@ func (h workerRouteHandlers) agentReleaseEvidence(e *httpx.Event) error {
 	}
 	if manifest.StackKits != nil && manifest.StackKits.Candidate != nil {
 		auth := authorization.runtime
-		if auth == nil || auth.Worker == nil || auth.IdentityBinding != controlplane.IdentityBindingHostKey || credentialGeneration(*auth) <= 0 {
+		// The request proved the host key, so generation 0 (a key-bound Guard
+		// that was never rotated) is admitted; unreadable credential state is not
+		// (kombify-StackKits-4czp).
+		generation := int64(-1)
+		if auth != nil {
+			generation = knownCredentialGeneration(*auth)
+		}
+		if auth == nil || auth.Worker == nil || auth.IdentityBinding != controlplane.IdentityBindingHostKey || generation < 0 {
 			return unavailable("candidate_worker_authority", fmt.Errorf("candidate requires an enrolled host-key worker"))
 		}
 		resolver, configured, err := jobs.StageCandidateForStack(e.Request.Context(), auth.TenantID, auth.StackID)
@@ -201,7 +208,7 @@ func (h workerRouteHandlers) agentReleaseEvidence(e *httpx.Event) error {
 		if authorization.resetAt.Before(expiry) {
 			expiry = authorization.resetAt
 		}
-		binding := &guardbinding.Binding{CommandID: "runtime-install-" + uuid.NewString(), TenantID: auth.TenantID, WorkerID: auth.RuntimeAgentID, ServerID: auth.ServerID, Operation: "runtime.install", PayloadDigest: digest, WorkerGeneration: credentialGeneration(*auth), CurrentGeneration: credentialGeneration(*auth), AuthorityExpiresAt: expiry, ContractVersion: guardbinding.ContractVersion}
+		binding := &guardbinding.Binding{CommandID: "runtime-install-" + uuid.NewString(), TenantID: auth.TenantID, WorkerID: auth.RuntimeAgentID, ServerID: auth.ServerID, Operation: guardbinding.RuntimeInstallOperation, PayloadDigest: digest, WorkerGeneration: generation, CurrentGeneration: generation, AuthorityExpiresAt: expiry, ContractVersion: guardbinding.ContractVersion}
 		signer, err := h.bindingSignerFor(e.Request.Context(), auth.TenantID, auth.RuntimeAgentID)
 		if err != nil || signer == nil {
 			return unavailable("candidate_signer", err)

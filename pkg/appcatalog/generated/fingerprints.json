@@ -4,7 +4,7 @@
     {
       "id": "nuclei-templates",
       "repository": "https://github.com/projectdiscovery/nuclei-templates",
-      "commit": "eddca9090fdc52959015729e8018d82b6f42e5c0",
+      "commit": "0aee9e90725104501985724bc68e45cbc82bc38e",
       "license": "MIT",
       "path": "http/technologies, http/exposed-panels"
     }
@@ -1046,6 +1046,31 @@
       ]
     },
     {
+      "app": "cakephp",
+      "template": "default-cakephp-page",
+      "paths": [
+        "/"
+      ],
+      "condition": "and",
+      "matchers": [
+        {
+          "type": "word",
+          "part": "body",
+          "values": [
+            "Welcome to CakePHP",
+            "CakePHP Issues"
+          ],
+          "condition": "and"
+        },
+        {
+          "type": "status",
+          "status": [
+            200
+          ]
+        }
+      ]
+    },
+    {
       "app": "caldera",
       "template": "caldera-c2",
       "paths": [
@@ -1636,6 +1661,32 @@
             "%22%2C%22CONSUL_COPYRIGHT_URL%22%3A%22https%3A%2F%2Fwww.hashicorp.com%22"
           ],
           "condition": "or"
+        }
+      ]
+    },
+    {
+      "app": "coolify",
+      "template": "coolify-panel",
+      "paths": [
+        "/",
+        "/login"
+      ],
+      "condition": "and",
+      "matchers": [
+        {
+          "type": "word",
+          "part": "body",
+          "values": [
+            "Coolify",
+            "Sign in to manage your applications and infrastructure"
+          ],
+          "condition": "and"
+        },
+        {
+          "type": "status",
+          "status": [
+            200
+          ]
         }
       ]
     },
@@ -10792,6 +10843,10 @@
     {
       "app": "buddy",
       "hash": -850502287
+    },
+    {
+      "app": "cakephp",
+      "hash": 980692677
     },
     {
       "app": "caprover",

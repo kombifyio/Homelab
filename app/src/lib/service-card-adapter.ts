@@ -1,5 +1,6 @@
 import type {
   ServiceCardAction,
+  ServiceLabels,
   ServicePlacement,
   ServiceStatusKind,
   ServiceUpdate,
@@ -49,7 +50,6 @@ export type TechStackServiceCardSource = {
    * NOT "not managed". Go through `serviceManagementState`.
    */
   management_state?: string;
-  move_blocked_reason?: string;
   /**
    * An explicit placement supplied by a canonical read model.  Prefer this to
    * inferring a location from a service name: a service on a Cloud VPS is
@@ -68,8 +68,6 @@ export type TechStackServiceCardSource = {
    */
   operation_state?: string;
   migration_status?: string;
-  /** Whether the backend has a real migration executor for this projection. */
-  migration_available?: boolean;
 };
 
 /**
@@ -274,10 +272,7 @@ export function serviceCardStatusMessage(
     service.status === "failed" ||
     service.status === "unhealthy"
   ) {
-    return (
-      service.move_blocked_reason ||
-      tr("ui.serviceCardAdapter.serviceReportedAnError")
-    );
+    return tr("ui.serviceCardAdapter.serviceReportedAnError");
   }
   if (service.status === "starting") {
     return tr("ui.serviceCardAdapter.waitingForADockerHealth");
@@ -504,7 +499,146 @@ export function serviceCardUpdate(
   return {
     from: version.current?.trim() || tr("ui.serviceCards.versionUnknown"),
     to,
+    message: serviceCardUpdateNote(version),
   };
+}
+
+/**
+ * The short qualifier of an update on the card strip, so "1.119.1 available ·
+ * checked" fits a phone card: a security fix first, then a version arriving
+ * with a StackKits release, then whether kombify checked it.
+ */
+export function serviceCardUpdateNote(
+  version: ServiceVersionInfo,
+): string | undefined {
+  if (version.security_fix) return tr("ui.serviceCards.update.short.security");
+  if (version.update_mode === "bundled") {
+    return tr("ui.serviceCards.update.short.bundled");
+  }
+  if (version.update_mode === "application_update") {
+    return version.tested
+      ? tr("ui.serviceCards.update.short.checked")
+      : tr("ui.serviceCards.update.short.unchecked");
+  }
+  return undefined;
+}
+
+/** The strip tone: a security fix is not an ordinary update. */
+export function serviceCardUpdateTone(
+  version?: ServiceVersionInfo | null,
+): "security" | undefined {
+  return version?.update_available && version.security_fix
+    ? "security"
+    : undefined;
+}
+
+/** Card class carrying the strip tone (see app.css `.kf-update-security`). */
+export function serviceCardUpdateClass(
+  version?: ServiceVersionInfo | null,
+): string | undefined {
+  return serviceCardUpdateTone(version) ? "kf-update-security" : undefined;
+}
+
+/**
+ * Localized overrides of the shared card labels: statuses, actions,
+ * placement stations and the update strip ("{to} available · {note}").
+ */
+export function serviceCardLabels(): Partial<ServiceLabels> {
+  const statuses = ["running", "degraded", "stopped", "pending", "unknown", "migrating", "update", "frozen", "error"] as const;
+  const actions = ["open", "logs", "start", "stop", "restart", "freeze", "unfreeze", "update", "adopt", "details"] as const;
+  return {
+    statuses: Object.fromEntries(
+      statuses.map((s) => [s, tr(`ui.serviceCards.status.${s}`)]),
+    ) as ServiceLabels["statuses"],
+    actions: Object.fromEntries(
+      actions.map((a) => [a, tr(`ui.serviceCards.action.${a}`)]),
+    ) as ServiceLabels["actions"],
+    placements: {
+      local: tr("ui.serviceCards.placement.local"),
+      cloud: tr("ui.serviceCards.placement.cloud"),
+      managed: tr("ui.serviceCards.placement.managed"),
+      unknown: tr("ui.serviceCards.placement.unknown"),
+    },
+    updateAvailable: (from: string, to: string, message?: string) =>
+      message
+        ? tr("ui.serviceCards.update.strip", { to, note: message })
+        : tr("ui.serviceCards.update.stripPlain", { from, to }),
+  };
+}
+
+/**
+ * The full explanation of an application update for the detail page: a
+ * security fix with its highest severity, whether kombify checked the
+ * version, or that it arrives with a StackKits release.
+ */
+export function serviceCardUpdateDetail(
+  version: ServiceVersionInfo,
+): string | undefined {
+  const parts: string[] = [];
+  if (version.security_fix) {
+    const severity = highestAdvisorySeverity(version.advisories);
+    parts.push(
+      severity
+        ? tr("ui.serviceCards.update.securityFixSeverity", {
+            severity: advisorySeverityLabel(severity),
+          })
+        : tr("ui.serviceCards.update.securityFix"),
+    );
+  }
+  if (version.update_mode === "bundled") {
+    parts.push(tr("ui.serviceCards.update.withStackKitsRelease"));
+  } else if (version.update_mode === "application_update") {
+    parts.push(
+      version.tested
+        ? tr("ui.serviceCards.update.checked")
+        : tr("ui.serviceCards.update.unchecked"),
+    );
+  }
+  return parts.length ? parts.join(" · ") : undefined;
+}
+
+/**
+ * The card's neutral note when application facts exist but no update strip
+ * does: an advisory without an offered fix, or facts that are not verified.
+ */
+export function serviceCardVersionNotice(
+  version?: ServiceVersionInfo | null,
+): string | undefined {
+  if (!version || version.update_available) return undefined;
+  const affecting = version.advisories?.filter(
+    (advisory) => advisory.affects === "installed",
+  );
+  const severity = highestAdvisorySeverity(affecting);
+  if (severity) {
+    return tr("ui.serviceCards.update.advisory", {
+      severity: advisorySeverityLabel(severity),
+    });
+  }
+  if (version.evidence_status === "not_verified") {
+    return tr("ui.serviceCards.update.notVerified");
+  }
+  return undefined;
+}
+
+const SEVERITY_ORDER = ["critical", "high", "medium", "low", "unknown"];
+
+export function highestAdvisorySeverity(
+  advisories?: ServiceVersionInfo["advisories"],
+): string | undefined {
+  if (!advisories?.length) return undefined;
+  const rank = (severity: string) => {
+    const index = SEVERITY_ORDER.indexOf(severity);
+    return index < 0 ? SEVERITY_ORDER.length : index;
+  };
+  return advisories
+    .map((advisory) => advisory.severity)
+    .sort((a, b) => rank(a) - rank(b))[0];
+}
+
+export function advisorySeverityLabel(severity: string): string {
+  const key = `ui.serviceCards.severity.${severity}`;
+  const label = tr(key);
+  return label === key ? tr("ui.serviceCards.severity.unknown") : label;
 }
 
 /** Vendor domain for the logo: the backend catalog first, then the name map. */

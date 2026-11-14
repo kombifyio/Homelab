@@ -174,6 +174,9 @@ func (b *pinBoundaryBackend) RuntimeInstall(context.Context, RuntimeInstallParam
 }
 func (b *pinBoundaryBackend) ProbeDocker(context.Context, string) ([]byte, error) { return nil, nil }
 func (b *pinBoundaryBackend) ProbeFile(context.Context, string) ([]byte, error)   { return nil, nil }
+func (b *pinBoundaryBackend) UpdatePreflight(context.Context, UpdatePreflightParams) error {
+	return nil
+}
 func (b *pinBoundaryBackend) UpdateStage(context.Context, StageParams) (StageResult, error) {
 	return StageResult{}, nil
 }

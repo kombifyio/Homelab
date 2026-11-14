@@ -1,4 +1,5 @@
 <script lang="ts">
+  import OwnServerConnect from "#lib/components/OwnServerConnect.svelte";
   import { tr } from "#lib/i18n.svelte.js";
   import { Surface } from "@kombiverselabs/ui/primitives";
   import Button from "#lib/components/ui/Button.svelte";
@@ -17,8 +18,11 @@
     registryMode: string;
     registryUrlError: string | null;
     installCommand: string;
-    /** Why no install command is offered (no trusted Guard binary digest). */
-    installCommandError?: string;
+    pairing: string;
+    expiresAt: string;
+    busy: boolean;
+    error: string;
+    onRenew: () => void;
     canRollout: boolean;
     rolloutLoading: boolean;
     onDeploy: () => void;
@@ -33,20 +37,17 @@
     registryMode,
     registryUrlError,
     installCommand,
-    installCommandError = "",
+    pairing,
+    expiresAt,
+    busy,
+    error,
+    onRenew,
     canRollout,
     rolloutLoading,
     onDeploy,
   }: Props = $props();
 
-  let copiedInstallCommand = $state(false);
   let copiedRegistryUrl = $state(false);
-
-  function copyInstallCommand() {
-    navigator.clipboard.writeText(installCommand);
-    copiedInstallCommand = true;
-    setTimeout(() => (copiedInstallCommand = false), 2000);
-  }
 
   function copyRegistryUrl() {
     if (!serverUrl) return;
@@ -83,7 +84,9 @@
               {tr("ui.worker.statusUnavailable")}
             </h2>
             <p class="text-sm text-muted-foreground">
-              {tr("ui.workerRegistrationCard.operationsEvidenceIsRequiredBefore")}
+              {tr(
+                "ui.workerRegistrationCard.operationsEvidenceIsRequiredBefore",
+              )}
             </p>
           </div>
         </div>
@@ -92,7 +95,9 @@
           data-status="warn"
           class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
           data-testid="worker-connected-count"
-          >{tr("ui.worker.verifiedConnected", { count: connectedWorkers })}</span
+          >{tr("ui.worker.verifiedConnected", {
+            count: connectedWorkers,
+          })}</span
         >
       </div>
 
@@ -101,10 +106,14 @@
         <div class="rounded-lg bg-muted/50 p-4 mb-4">
           <div class="flex items-center justify-between gap-3 mb-2">
             <span class="text-sm text-muted-foreground">
-              {tr("ui.worker.registryLink")}{registryMode ? ` (${registryMode})` : ""}:
+              {tr("ui.worker.registryLink")}{registryMode
+                ? ` (${registryMode})`
+                : ""}:
             </span>
             <Button variant="ghost" size="sm" onclick={copyRegistryUrl}>
-              {copiedRegistryUrl ? tr("ui.common.copiedCheck") : tr("ui.common.copy")}
+              {copiedRegistryUrl
+                ? tr("ui.common.copiedCheck")
+                : tr("ui.common.copy")}
             </Button>
           </div>
           <a
@@ -125,22 +134,14 @@
       {/if}
 
       <!-- Install command for running stack -->
-      {#if installCommand}
-        <div class="rounded-lg bg-muted/50 p-4">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm text-muted-foreground"
-              >{tr("ui.workerRegistrationCard.installCommandForNewWorkers")}</span
-            >
-            <Button variant="ghost" size="sm" onclick={copyInstallCommand}>
-              {copiedInstallCommand ? tr("ui.common.copiedCheck") : tr("ui.common.copy")}
-            </Button>
-          </div>
-          <pre
-            class="text-sm font-mono text-primary overflow-x-auto whitespace-pre-wrap break-all">{installCommand}</pre>
-        </div>
-      {:else if installCommandError}
-        <p role="alert" class="mb-4 text-sm text-destructive">{installCommandError}</p>
-      {/if}
+      <OwnServerConnect
+        command={installCommand}
+        {pairing}
+        {expiresAt}
+        {busy}
+        {error}
+        {onRenew}
+      />
     </div>
   </Surface>
 {:else}
@@ -219,9 +220,7 @@
               class="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2"
             >
               <div class="flex items-center gap-3">
-                <div
-                  class="h-2.5 w-2.5 rounded-full bg-muted-foreground"
-                ></div>
+                <div class="h-2.5 w-2.5 rounded-full bg-muted-foreground"></div>
                 <div class="min-w-0">
                   <div class="text-sm text-foreground truncate">
                     {w.hostname || w.id}
@@ -248,10 +247,14 @@
         <div class="rounded-lg bg-muted/50 p-4 mb-4">
           <div class="flex items-center justify-between gap-3 mb-2">
             <span class="text-sm text-muted-foreground">
-              {tr("ui.worker.registryLink")}{registryMode ? ` (${registryMode})` : ""}:
+              {tr("ui.worker.registryLink")}{registryMode
+                ? ` (${registryMode})`
+                : ""}:
             </span>
             <Button variant="ghost" size="sm" onclick={copyRegistryUrl}>
-              {copiedRegistryUrl ? tr("ui.common.copiedCheck") : tr("ui.common.copy")}
+              {copiedRegistryUrl
+                ? tr("ui.common.copiedCheck")
+                : tr("ui.common.copy")}
             </Button>
           </div>
           <a
@@ -272,21 +275,14 @@
       {/if}
 
       <!-- Install command -->
-      {#if installCommand}
-        <div class="rounded-lg bg-muted/50 p-4 mb-4">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm text-muted-foreground">{tr("ui.workerRegistrationCard.installCommand")}</span
-            >
-            <Button variant="ghost" size="sm" onclick={copyInstallCommand}>
-              {copiedInstallCommand ? tr("ui.common.copiedCheck") : tr("ui.common.copy")}
-            </Button>
-          </div>
-          <pre
-            class="text-sm font-mono text-primary overflow-x-auto whitespace-pre-wrap break-all">{installCommand}</pre>
-        </div>
-      {:else if installCommandError}
-        <p role="alert" class="mb-4 text-sm text-destructive">{installCommandError}</p>
-      {/if}
+      <OwnServerConnect
+        command={installCommand}
+        {pairing}
+        {expiresAt}
+        {busy}
+        {error}
+        {onRenew}
+      />
 
       <!-- Actions -->
       <div class="flex flex-wrap gap-3">
@@ -301,7 +297,10 @@
           {:else if canRollout}
             {tr("ui.worker.deployHomelab")}
           {:else}
-            {tr("ui.worker.waitingVerified", { connected: connectedWorkers, required: requirements?.minTotalServers || 1 })}
+            {tr("ui.worker.waitingVerified", {
+              connected: connectedWorkers,
+              required: requirements?.minTotalServers || 1,
+            })}
           {/if}
         </Button>
       </div>
@@ -372,7 +371,9 @@
                 <span>
                   <strong>{tr("ui.workerRegistrationCard.nextStep")}</strong>
                   {requirements.minTotalServers > 1
-                    ? tr("ui.worker.runInstallMany", { count: requirements.minTotalServers })
+                    ? tr("ui.worker.runInstallMany", {
+                        count: requirements.minTotalServers,
+                      })
                     : tr("ui.worker.runInstallOne")}
                 </span>
               </p>
@@ -396,7 +397,8 @@
                   />
                 </svg>
                 <span>
-                  <strong>{tr("ui.worker.readyLead")}</strong> {tr("ui.worker.readyBody")}
+                  <strong>{tr("ui.worker.readyLead")}</strong>
+                  {tr("ui.worker.readyBody")}
                 </span>
               </p>
             </div>

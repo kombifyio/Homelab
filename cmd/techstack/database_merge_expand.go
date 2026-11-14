@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/kombifyio/techstack/pkg/config"
 	"github.com/kombifyio/techstack/pkg/db"
 )
 
@@ -22,7 +23,7 @@ func runDatabaseMergeExpand(ctx context.Context) error {
 		os.Getenv("TECHSTACK_SCHEMA_MANIFEST_SHA256") != db.DeliveryForwardManifestDigest() ||
 		!digest.MatchString(os.Getenv("TECHSTACK_LOCAL_RECEIPT_SHA256")) ||
 		os.Getenv(db.EnvDatabaseMigrationMode) != "apply" || os.Getenv(db.EnvAllowDBGenesis) != "false" ||
-		db.ReleaseChannel() != "stable" ||
+		config.RejectRetiredReleaseChannel() != nil ||
 		os.Getenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN") != "" || os.Getenv("ACTIONS_ID_TOKEN_REQUEST_URL") != "" ||
 		os.Getenv("TECHSTACK_DB_CONTEXT_KEY") != "" || os.Getenv("TECHSTACK_DB_CONTEXT_KEY_ID") != "" ||
 		os.Getenv("TECHSTACK_ADVANCED_ISSUER_DATABASE_URL") != "" || "" != "" ||

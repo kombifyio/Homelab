@@ -236,7 +236,10 @@ export async function getMonitoringCockpit(
   const { servers, ...payload } = res.data;
   return {
     ...payload,
-    servers: servers.map(normalizeStackOperationServer),
+    // A cockpit without a server list reads as no servers, never a crash.
+    servers: (Array.isArray(servers) ? servers : []).map(
+      normalizeStackOperationServer,
+    ),
   };
 }
 

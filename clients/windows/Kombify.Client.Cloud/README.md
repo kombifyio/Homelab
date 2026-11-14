@@ -5,7 +5,7 @@ and the Connect API adapter. It is separate from the neutral
 `Kombify.Client.Shell` project. Existing public types retain that namespace for
 source compatibility.
 
-The Local build neither references nor bundles this adapter. Build the Local
+The Standalone build neither references nor bundles this adapter. Build the Standalone
 client from the included source with:
 
 ```powershell

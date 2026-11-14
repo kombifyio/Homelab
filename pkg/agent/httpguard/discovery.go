@@ -426,16 +426,43 @@ func (d *hostDiscovery) discoverSystemdUnitsCoverage(ctx context.Context) ([]Ser
 		services = append(services, systemdUnitService(unit, name))
 		seen[key] = true
 	}
+	var unlisted []string
 	for name := range installed {
 		// A bare template is not runnable; only its enumerated instances run.
-		if strings.Contains(name, "@.service") {
-			continue
-		}
-		if !seen[name] {
-			complete = false
+		if !strings.Contains(name, "@.service") && !seen[name] {
+			unlisted = append(unlisted, name)
 		}
 	}
+	if len(unlisted) > 0 && !d.systemdUnitsInactive(ctx, unlisted) {
+		complete = false
+	}
 	return services, true, complete
+}
+
+// systemdUnitsInactive reports whether systemd itself reads every named unit
+// as not running. list-units --all omits a unit it never loaded (one enabled
+// under a masked or inactive target, or a file nothing references); such a
+// unit runs nothing a reboot or update could interrupt. An alias of a running
+// unit reads active, and an unreadable answer is missing coverage.
+func (d *hostDiscovery) systemdUnitsInactive(ctx context.Context, units []string) bool {
+	sort.Strings(units)
+	args := append([]string{"show", "--property=ActiveState", "--no-pager", "--"}, units...)
+	output, err := d.cfg.run(ctx, "systemctl", args...)
+	if err != nil {
+		return false
+	}
+	// One block per unit, in argument order, separated by blank lines.
+	blocks := strings.Split(strings.TrimSpace(string(output)), "\n\n")
+	if len(blocks) != len(units) {
+		return false
+	}
+	for _, block := range blocks {
+		state := strings.TrimPrefix(strings.TrimSpace(block), "ActiveState=")
+		if state != "inactive" && state != "failed" {
+			return false
+		}
+	}
+	return true
 }
 
 func systemdTemplateName(name string) string {

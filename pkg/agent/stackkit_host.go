@@ -101,17 +101,23 @@ func HostSecurityWorkspace() string {
 // NoNewPrivileges=no; the hardened packaging/techstack-agent.service runs as
 // User=techstack with NoNewPrivileges=yes and therefore never advertises it.
 func (executor *StackKitExecutor) HostMaintenanceCapabilities() []string {
+	// The Guard host operations run in the Guard itself and need no release.
+	capabilities := hostOperationCapabilities()
 	if !executor.Available() {
-		return nil
+		return capabilities
 	}
 	pin, err := stackkitrelease.LoadPin(executor.pinPath)
 	if err != nil {
-		return nil
+		return capabilities
 	}
-	var capabilities []string
 	// The home network move commands act on the workspace and need no root.
 	if stackkitcommand.ReleaseAtLeast(pin.Version, stackkitcommand.MinNetworkRelease) {
 		capabilities = append(capabilities, stackkitcommand.NetworkCapability)
+	}
+	// The agent link pins a public key in the identity workspace; it needs the
+	// release that ships `stackkit identity agent-link`, not root.
+	if stackkitcommand.ReleaseAtLeast(pin.Version, stackkitcommand.MinAgentLinkRelease) {
+		capabilities = append(capabilities, stackkitcommand.AgentLinkCapability)
 	}
 	if hostMaintenancePrivileged() && stackkitcommand.ReleaseAtLeast(pin.Version, minHostMaintenanceStackKitsVersion) {
 		capabilities = append(capabilities, stackkitcommand.HostMaintenanceCapability)

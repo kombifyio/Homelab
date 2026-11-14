@@ -13,6 +13,8 @@ export type LayoutPreviewFailure =
   | "noSetup"
   /** The selection cannot be distributed (yet). */
   | "invalid"
+  /** A server the owner chose cannot take the use case here. */
+  | "pinRefused"
   /** The service, the network or the check itself is unavailable. */
   | "unavailable";
 
@@ -48,7 +50,8 @@ export function acceptedLayoutFromPreview(
   if (state.phase !== "resolved") return undefined;
   // Until the controller has seen an edit, the resolved answer may still
   // belong to the previous selection.
-  if (selection && state.key !== layoutSelectionKey(selection)) return undefined;
+  if (selection && state.key !== layoutSelectionKey(selection))
+    return undefined;
   return acceptableLayoutRecommendation(state.view);
 }
 
@@ -59,11 +62,16 @@ export function layoutSelectionKey(selection: LayoutSelection): string {
     goals: [...new Set(selection.goals.map((goal) => goal.trim()))]
       .filter(Boolean)
       .sort(),
+    pins: selection.pins
+      ? Object.entries(selection.pins).sort(([a], [b]) => a.localeCompare(b))
+      : undefined,
   });
 }
 
 function failureOf(error: unknown): LayoutPreviewFailure {
   const status = (error as { status?: unknown } | null)?.status;
+  if (status === 422 && layoutErrorReasonCode(error)?.startsWith("layout_pin_"))
+    return "pinRefused";
   if (status === 422) return "invalid";
   if (
     status === 409 &&

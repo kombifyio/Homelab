@@ -11,9 +11,7 @@
   const CACHE_WORKERS = "stacks:workers";
   const CACHE_HOMELAB = "stacks:homelab";
   const CACHE_OPERATIONS = "stacks:operations";
-  import { getClientBootstrap } from "#lib/client/bootstrap.js";
   import { isCancelledRequestError, parseApiError } from "#lib/api/errors.js";
-  import { getBestPublicServerUrl } from "#lib/api/client.js";
   import { onHostRefresh } from "#lib/stores/postMessageBridge.js";
   import { useViewContextOverlay } from "#lib/stores/viewContext.svelte.js";
   import type { ViewContextDetails } from "#lib/view-context.js";
@@ -24,17 +22,11 @@
   import { page } from "$app/state";
   import {
     type DeploymentRequirements,
-    generateInstallCommand,
+    generatePinnedConnectCommand,
   } from "#lib/wizard/index.js";
   import { authHandler } from "#lib/stores/authHandler.svelte.js";
   import { authStore } from "#lib/stores/auth.svelte.js";
   import SessionRenewalPanel from "#lib/components/SessionRenewalPanel.svelte";
-  import { appVersion } from "#lib/config.js";
-  import {
-    createPostHogClient,
-    toTechstackAnalyticsUser,
-  } from "#lib/analytics/posthog.js";
-  import StackImportExportModal from "#lib/components/StackImportExportModal.svelte";
   import {
     assignStackWorker,
     decommissionMonthlyRuntime,
@@ -51,13 +43,19 @@
     type StackCustodyLease,
     type StackOperationsPayload,
   } from "#lib/api/stacks.js";
-  import { getLatestKitDeploymentProvisionJob } from "#lib/api/jobs.js";
+  import { renewNodePairing } from "#lib/api/pairing.js";
+  import { listJobs, getLatestKitDeploymentProvisionJob } from "#lib/api/jobs.js";
   import {
     getHomelab,
     chosenHomelabName,
     type HomelabView,
   } from "#lib/api/homelab.js";
   import { stackIdentity } from "#lib/stores/stackIdentity.js";
+  import { MediaQuery } from "svelte/reactivity";
+  import {
+    pageBanner,
+    usePageBanner,
+  } from "#lib/stores/pageBanner.svelte.js";
   import HomelabTitle from "#lib/components/dashboard/HomelabTitle.svelte";
   import {
     getActiveWizardRun,
@@ -99,16 +97,12 @@
   } from "#lib/dashboard/people.js";
   import type { StatusFacts } from "#lib/dashboard/strata.js";
   import { dashboardPreset } from "#lib/stores/dashboardPreset.svelte.js";
-  import { Surface } from "@kombiverselabs/ui/primitives";
+  import { EmptyState } from "@kombiverselabs/ui/states";
   import Button from "#lib/components/ui/Button.svelte";
   import ErrorCallout from "#lib/components/ui/ErrorCallout.svelte";
   import { SERVERS_HREF } from "#lib/navigation.js";
   import {
     addServerHref as addServerRoute,
-    addUseCasesHref,
-    placeUseCasesHref,
-    configureUseCasesHref,
-    removeUseCasesHref,
     serverDetailHref,
   } from "#lib/server-links.js";
   import {
@@ -183,8 +177,6 @@
   });
   let sessionRenewalRequired = $state(false);
   let sessionRenewalBodyKey = $state<string | undefined>(undefined);
-  let showImportExport = $state(false);
-  let importExportMode = $state<"import" | "export">("import");
   type DashboardFailure = NonNullable<
     StackOperationsPayload["latestFailure"]
   > & {
@@ -223,7 +215,6 @@
   let canonicalInventoryUnavailable = $state(false);
   let canonicalInventoryResolved = $state(false);
   let operationsError = $state<string | null>(null);
-  let reviewPhase = $state(false);
   let assigningWorkerId = $state<string | null>(null);
   let cleaningCustodyLeaseId = $state<string | null>(null);
   let reconnectingLeaseId = $state<string | null>(null);
@@ -240,7 +231,6 @@
   let resolvingCustodyLeaseId = $state<string | null>(null);
   let decommissionError = $state<string | null>(null);
   let retryingOperations = $state(false);
-  let capturedConnectedHomelab = false;
 
   type StackDashboardItem = KitDeployment & {
     nodes: number;
@@ -263,7 +253,7 @@
   // Stack-scoped mutation flows are available only when there is exactly one
   // deployment. Read-only inventory below always aggregates every deployment.
   let singleDeployment = $derived<StackDashboardItem | null>(
-    deployments.length === 1 ? deployments[0] : null,
+    deployments.length === 1 ? (deployments[0] ?? null) : null,
   );
   let deploymentIds = $derived(new Set(deployments.map((item) => item.id)));
   // The homelab's user-facing name: the saved Stack Identity is the one
@@ -278,10 +268,61 @@
     homelabResolved ? homelabName || tr("ui.homelabDashboardPage.yourHomelab") : "",
   );
 
+  // At phone width the top bar carries the homelab's name and the screen's
+  // one action, "Add server"; the page body starts with the server list.
+  // Shells without that top bar (embedded) keep the title block below.
+  const wideViewport = new MediaQuery("min-width: 48rem");
+  let bannerHosted = $derived(pageBanner.hosted && !wideViewport.current);
+  usePageBanner(() => ({
+    title: homelabTitle,
+    action:
+      deployments.length > 0 && homelabResolved
+        ? {
+            label: tr("ui.homelab.newNode"),
+            icon: Plus,
+            onSelect: () => void goto(addServerHref()),
+            testId: "add-server-button",
+            anchor: "techstack-add-server",
+          }
+        : undefined,
+  }));
+
   // Worker registration state
   let workers = $state<Worker[]>([]);
   let requirements = $state<DeploymentRequirements | null>(null);
   let registrationToken = $state("");
+  let pairingExpiresAt = $state("");
+  let pairingDeploymentId = "";
+  let pairingBusy = $state(false);
+  let pairingError = $state("");
+  let registryConnectCommand = $state("");
+
+  async function renewDashboardPairing() {
+    if (!singleDeployment || pairingBusy) return;
+    const deploymentId = singleDeployment.id;
+    pairingBusy = true;
+    pairingError = "";
+    try {
+      const [jobs] = await Promise.all([
+        listJobs({ kitDeploymentId: deploymentId, perPage: 100 }),
+        refreshWorkerRegistryUrl(),
+      ]);
+      const metadata = jobs.items.map(job => job.result).find(result =>
+        result && typeof result === "object" &&
+        (result.server_provisioning_mode === "install-command" || result.server_provisioning_mode === "connect-remote") &&
+        typeof result.server_node_role === "string" && typeof result.stackkit_foundation === "string",
+      );
+      if (!metadata || typeof metadata !== "object") throw new Error("Missing node configuration");
+      const pairing = await renewNodePairing(deploymentId, metadata);
+      if (singleDeployment?.id !== deploymentId) return;
+      registrationToken = pairing.token;
+      pairingExpiresAt = pairing.expires_at;
+    } catch {
+      pairingError = tr("connect.unavailable");
+    } finally {
+      pairingBusy = false;
+    }
+  }
   let serverUrl = $state("");
   let registryMode = $state<string>("");
   // The private-LAN bridge pin applies only while serverUrl is that bridge.
@@ -292,19 +333,9 @@
   let binaryPin = $state("");
   let binaryPinResolved = $state(false);
   let installCommand = $derived(
-    registrationToken && serverUrl
-      ? generateInstallCommand(
-          serverUrl,
-          registrationToken,
-          lanBridge && lanBridge.url === serverUrl ? lanBridge.pin : "",
-          binaryPin,
-        )
-      : "",
-  );
-  let installCommandError = $derived(
-    registrationToken && serverUrl && binaryPinResolved && !installCommand
-      ? tr("ui.substrateEnrollment.aConnectionCommandCouldNot")
-      : "",
+    lanBridge && lanBridge.url === serverUrl
+      ? generatePinnedConnectCommand(serverUrl, lanBridge.pin, binaryPin)
+      : registryConnectCommand,
   );
   // Connection and rollout authority comes exclusively from the canonical
   // operations readiness projection. Approval is admission, not a heartbeat.
@@ -552,51 +583,27 @@
   async function loadStackContext(currentStack: StackDashboardItem | null) {
     if (!currentStack) {
       registrationToken = "";
+      pairingExpiresAt = "";
+      pairingDeploymentId = "";
       requirements = null;
       return;
     }
 
-    // Compute into locals and assign only after the async job lookup resolves.
-    // Resetting registrationToken/requirements up front made the worker
-    // registration card blink out on every manual refresh.
-    let nextToken = "";
-    let nextRequirements: DeploymentRequirements | null = null;
-
-    // Registration token can come from:
-    // - latest provision job result (current backend)
-    // - stack.techstack.options.registration_token (unified output)
-    // - legacy stack.metadata.options.registration_token (older schema)
-    const unified = (currentStack as any).techstack;
-    if (unified?.options?.registration_token) {
-      nextToken = String(unified.options.registration_token);
+    if (pairingDeploymentId !== currentStack.id) {
+      pairingDeploymentId = currentStack.id;
+      registrationToken = "";
+      pairingExpiresAt = "";
     }
-
-    if (!nextToken) {
-      const legacyMeta = (currentStack as any).metadata;
-      const legacyToken = legacyMeta?.options?.registration_token;
-      if (legacyToken) nextToken = String(legacyToken);
+    // Pairings are minted only by the explicit renewal action; job projections
+    // supply node configuration and requirements, never a reusable secret.
+    try {
+      const job = await getLatestKitDeploymentProvisionJob(currentStack.id);
+      const result = job?.result;
+      const req = result && typeof result === "object" ? result.requirements : null;
+      requirements = req ? req as DeploymentRequirements : null;
+    } catch {
+      requirements = null;
     }
-
-    if (!nextToken) {
-      try {
-        const job = await getLatestKitDeploymentProvisionJob(currentStack.id);
-        const token = (job as any)?.result?.registration_token;
-        if (token) nextToken = String(token);
-
-        // If the job provides requirements, prefer them.
-        const req = (job as any)?.result?.requirements;
-        if (req) {
-          nextRequirements = req as DeploymentRequirements;
-        }
-      } catch {
-        // ignore (no job yet, or API unavailable)
-      }
-    }
-
-    // Do not synthesize frontend requirements here. The operations screen must
-    // show only persisted backend/job data.
-    registrationToken = nextToken;
-    requirements = nextRequirements;
   }
 
   // Callers pass fields straight off the wire, so an absent status has to be
@@ -616,7 +623,7 @@
     ) {
       return "degraded";
     }
-    return normalized[0];
+    return normalized[0] ?? "unknown";
   }
 
   function uniqueMessages(values: Array<string | undefined>): string {
@@ -870,7 +877,6 @@
       rejected.length > 0
         ? trn("ui.homelab.operationsNotLoaded", rejected.length)
         : null;
-    captureConnectedOnce(operations);
   }
 
   async function loadCanonicalInventoryContext() {
@@ -894,35 +900,6 @@
     if (serviceResult.status === "fulfilled") {
       canonicalServices = serviceResult.value;
     }
-  }
-
-  function captureConnectedOnce(snapshot: DashboardOperations) {
-    if (typeof window === "undefined") return;
-    if (capturedConnectedHomelab) return;
-    if ((snapshot.readiness.connected_servers ?? 0) < 1) return;
-    const user = toTechstackAnalyticsUser(authStore.cloudUser);
-    if (!user?.authSubject) return;
-    capturedConnectedHomelab = true;
-    const bootstrap = getClientBootstrap();
-    void createPostHogClient({
-      apiKey: bootstrap.telemetry.posthog.key || undefined,
-      host: bootstrap.telemetry.posthog.host || undefined,
-      environment: bootstrap.telemetry.posthog.environment || undefined,
-      edition:
-        bootstrap.kombifyEdition ||
-        (authStore.deploymentMode === "saas"
-          ? "saas-embedded"
-          : "selfhost-oss"),
-      appVersion,
-      location: window.location,
-    }).capture("techstack:connected", {
-      user,
-      properties: {
-        connection_class: isManagedOperationsStack
-          ? "managed_vps"
-          : "self_hosted",
-      },
-    });
   }
 
   // Structured guidance for the operations surface: prefer the already-plumbed
@@ -1268,11 +1245,12 @@
     // update while the first deployment has no stack row yet.
     if (workers.length > 0 || deployments.length > 0 || activeWizardRun) {
       // A rollout started elsewhere (API, Companion agent) is queued or
-      // running: follow it closely, one overlap-guarded refresh at a time and
-      // never while the tab is hidden. Otherwise the slow cadence applies.
+      // running: follow it closely, one overlap-guarded refresh at a time.
+      // Otherwise the slow cadence applies. A hidden tab never polls; it
+      // re-reads once when it becomes visible again (below).
       const period = showRuntimeProgress ? 5_000 : 15_000;
       refreshInterval = setInterval(() => {
-        if (showRuntimeProgress && document.visibilityState === "hidden") return;
+        if (document.visibilityState === "hidden") return;
         void refreshDashboardContext();
       }, period);
     }
@@ -1397,7 +1375,7 @@
       );
       if (tenantDenied) {
         sessionRenewalRequired = true;
-        sessionRenewalBodyKey = "auth.session.tenantContextRequired";
+        sessionRenewalBodyKey = "sessionRenewal.tenantContextMissing";
         return;
       }
 
@@ -1506,6 +1484,7 @@
       const res = await getWorkerRegistryUrl();
       if (res?.url) {
         serverUrl = res.url;
+        registryConnectCommand = res.connect_command;
         registryMode = String(res.mode || "");
         lanBridge = res.lan_pin ? { url: res.url, pin: res.lan_pin } : null;
       }
@@ -1519,11 +1498,8 @@
   onMount(startQuickActions);
 
   onMount(() => {
-    const params = new URLSearchParams(window.location.search);
-    reviewPhase = params.get("phase") === "review";
-
     // Best-effort fallback (must be in onMount for SSR)
-    serverUrl = getBestPublicServerUrl() || window.location.origin;
+    serverUrl = "";
 
     // Try to resolve a worker-reachable URL (LAN IP / tunnel / tailscale / custom).
     void refreshWorkerRegistryUrl();
@@ -1893,7 +1869,7 @@
         (candidate) => candidate.deploymentId === run.kit_deployment_id,
       ) ||
       nodeViews[0];
-    return node.key;
+    return node?.key ?? null;
   });
 
   // Top placement is only for a homelab whose Node list is settled and empty:
@@ -2075,10 +2051,6 @@
     );
   }
 
-  function deploymentHref(deploymentId: string): string {
-    return deploymentId ? `/stacks/${encodeURIComponent(deploymentId)}` : "#";
-  }
-
   function nodeHref(node: NodeView): string {
     return node.server
       ? serverDetailsHref(node.server.id, node.server.kit_deployment_id)
@@ -2192,14 +2164,15 @@
   }
 </script>
 
-<!-- With a Node inventory the dashboard is bound to the viewport: header,
-     KPI strip and footer stay put and only the Node and device lists scroll.
+<!-- From 48rem up, with a Node inventory, the dashboard is bound to the
+     viewport: header, KPI strip and footer stay put and only the Node and
+     device lists scroll. On a phone the page scrolls as one, servers first.
      `contain: size` keeps the content from stretching the shell's content
      slot, so `h-full` resolves to the height left beside the footer; on a
      screen too short for even the bounded lists the page area scrolls itself. -->
 <div
   class="mx-auto max-w-[90rem] p-4 md:p-6 {hasServerInventory && operations
-    ? 'flex h-full min-h-0 flex-col overflow-y-auto [contain:size] md:py-4'
+    ? 'flex flex-col md:h-full md:min-h-0 md:overflow-y-auto md:py-4 md:[contain:size]'
     : ''}"
   data-testid="stacks-dashboard"
 >
@@ -2373,15 +2346,19 @@
             <p class="mt-1 font-mono break-words">{operationsError}</p>
           </details>
         {/if}
+        {@render retryButton()}
       </div>
     {:else if message.kind === "reconfirming"}
       <p class="text-sm text-foreground/90" data-testid="operations-evidence-reconfirming">
         {tr("ui.homelab.reconfirming")}
       </p>
     {:else if message.kind === "stale"}
-      <p class="text-sm text-foreground/90" data-testid="stacks-stale-notice">
-        {tr("ui.homelabDashboardPage.lastVerifiedStateRetainedThe")}
-      </p>
+      <div class="space-y-2" data-testid="stacks-stale-notice">
+        <p class="text-sm text-foreground/90">
+          {tr("ui.homelabDashboardPage.lastVerifiedStateRetainedThe")}
+        </p>
+        {@render retryButton()}
+      </div>
     {:else if message.kind === "operations-unavailable" && operationsUnavailableOutcome}
       <GuidancePanel
         outcome={operationsUnavailableOutcome}
@@ -2392,9 +2369,12 @@
         retrying={retryingOperations}
       />
     {:else if message.kind === "rollout-ready"}
-      <p class="text-sm text-foreground/90" data-testid="stackkit-rollout-guidance">
-        {tr("ui.homelab.reviewHint")}
-      </p>
+      <div class="space-y-2" data-testid="stackkit-rollout-guidance">
+        <p class="text-sm text-foreground/90">
+          {tr("ui.homelab.reviewHint")}
+        </p>
+        {@render reviewStartButton()}
+      </div>
     {:else if message.kind === "reconnect-outcome" && reconnectOutcome}
       <p class="text-sm text-foreground/90" data-testid="reconnect-outcome">
         {reconnectOutcome.body}
@@ -2405,12 +2385,15 @@
   {/snippet}
 
   {#snippet headerActions()}
-    {#if (deployments.length > 0 && homelabResolved) || error || dataStale}
+    <!-- The overview offers one action of its own: another server. Use-case
+         changes live on Apps and on each server, transfer in the homelab
+         settings, review + start in the rollout notice, and a retry only
+         where loading failed or the data is stale. -->
+    {#if deployments.length > 0 && homelabResolved && !bannerHosted}
       <div
         class="flex flex-wrap items-center gap-2"
         data-testid="stack-action-bar"
       >
-        {#if deployments.length > 0 && homelabResolved}
         <Button
           variant="primary"
           testId="add-server-button"
@@ -2420,67 +2403,34 @@
           <Plus class="h-4 w-4" />
           {tr("ui.homelab.newNode")}
         </Button>
-        <!-- With several StackKits the owner first picks where the use
-             cases run; one StackKit goes straight to its Goals step. -->
-        <Button
-          variant="secondary"
-          testId="add-use-cases-button"
-          onclick={() =>
-            goto(
-              singleDeployment
-                ? addUseCasesHref(singleDeployment.id)
-                : placeUseCasesHref(),
-            )}
-        >
-          <Plus class="h-4 w-4" />
-          {tr("layout.addUseCases.entry")}
-        </Button>
-        {#if singleDeployment}
-          <Button
-            variant="secondary"
-            testId="configure-use-cases-button"
-            onclick={() => singleDeployment && goto(configureUseCasesHref(singleDeployment.id))}
-          >
-            {tr("configure.entry")}
-          </Button>
-          <Button variant="secondary" testId="remove-use-cases-button" onclick={() => singleDeployment && goto(removeUseCasesHref(singleDeployment.id))}>{tr("removeUseCase.entry")}</Button>
-        {/if}
-        {/if}
-        {#if deployments.length > 0 && showReviewStart}
-          <Button
-            variant="primary"
-            testId="review-start-button"
-            onclick={() => startRollout()}
-            disabled={!canRollout || rolloutLoading}
-          >
-            <Play class="h-4 w-4" />
-            {rolloutLoading ? tr("ui.homelabDashboardPage.starting") : tr("ui.homelabDashboardPage.reviewStart")}
-          </Button>
-        {/if}
-        {#if singleDeployment && homelabResolved}
-          <Button
-            variant="secondary"
-            onclick={() => {
-              importExportMode = "export";
-              showImportExport = true;
-            }}
-          >
-            {tr("ui.common.importExport")}
-          </Button>
-        {/if}
-        <!-- Not tied to the deployment list: it is exactly the control a
-             failed load needs, and a failed load leaves that list empty. -->
-        <Button
-          variant="secondary"
-          testId="dashboard-refresh-button"
-          onclick={load}
-          disabled={loading}
-          ariaLabel={tr("ui.homelabDashboardPage.refresh")}
-        >
-          <RefreshCw class="h-4 w-4 {loading ? 'animate-spin' : ''}" />
-        </Button>
       </div>
     {/if}
+  {/snippet}
+
+  {#snippet reviewStartButton()}
+    <Button
+      variant="primary"
+      size="sm"
+      testId="review-start-button"
+      onclick={() => startRollout()}
+      disabled={!canRollout || rolloutLoading}
+    >
+      <Play class="h-4 w-4" />
+      {rolloutLoading ? tr("ui.homelabDashboardPage.starting") : tr("ui.homelabDashboardPage.reviewStart")}
+    </Button>
+  {/snippet}
+
+  {#snippet retryButton()}
+    <Button
+      variant="secondary"
+      size="sm"
+      testId="dashboard-refresh-button"
+      onclick={() => void load()}
+      disabled={loading}
+    >
+      <RefreshCw class="h-4 w-4 {loading ? 'animate-spin' : ''}" />
+      {loading ? tr("errorCallout.retrying") : tr("errorCallout.retry")}
+    </Button>
   {/snippet}
 
   {#snippet nodeControls(node: NodeView)}
@@ -2511,14 +2461,14 @@
     />
   {/snippet}
 
-  {#if !showStrata}
+  {#if !showStrata && !bannerHosted}
     <div
       class={hasServerInventory ? "mb-3" : "mb-6"}
       data-testid="homelab-header"
     >
       <!-- The Stack Identity is the title; no second badge beside the actions. -->
       <header
-        class="flex flex-col items-start justify-between gap-4 py-4 sm:flex-row"
+        class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 py-4"
       >
         <div class="min-w-0">
           {#if homelabName}
@@ -2534,98 +2484,19 @@
             class="text-[clamp(1.35rem,2.5vw,2rem)] leading-tight font-bold text-foreground"
           />
         </div>
-        <div class="flex flex-wrap gap-2">
-          {@render headerActions()}
-        </div>
+        {@render headerActions()}
       </header>
     </div>
   {/if}
 
-  <!-- Health first: the KPI strip sits directly under the title, with any
-       rollout or failure that no Node card can hold. -->
-  {#if deployments.length > 0 && operations && (hasServerInventory || (showRuntimeProgress && !runtimeJobServer) || (showLatestFailurePanel && latestFailureOutcome && !failureServer))}
+  <!-- Under the title only what no server card can hold: a rollout or a
+       failure without a server. The servers come next; the figures follow
+       them (stack-kpi-strip below the list). -->
+  {#if deployments.length > 0 && operations && ((showRuntimeProgress && !runtimeJobServer) || (showLatestFailurePanel && latestFailureOutcome && !failureServer))}
     <div
       class="{hasServerInventory ? 'mb-3' : 'mb-6'} space-y-3"
       data-testid="homelab-health"
     >
-      {#if hasServerInventory && !showStrata}
-        <div
-          data-kx="plate"
-          class="grid grid-cols-2 overflow-hidden text-sm sm:flex sm:divide-x sm:divide-border"
-          data-testid="stack-kpi-strip"
-        >
-          <a
-            class="flex min-w-0 flex-1 items-center gap-1.5 px-3 py-2 transition-colors hover:bg-muted/30"
-            href={tileHref("servers")}
-          >
-            <Server class="h-4 w-4 shrink-0 text-primary" />
-            <span class="truncate text-xs text-muted-foreground">{tr("ui.dashboard.nodes")}</span>
-            <span class="font-semibold text-foreground">
-              {dashboardServerCount}
-            </span>
-            <span
-              class="truncate text-xs text-muted-foreground"
-              data-testid="worker-connected-count"
-              >{tr("ui.homelab.connectedOfTotal", { connected: dashboardConnectedServerCount, total: dashboardServerCount })}</span
-            >
-          </a>
-          <a
-            class="flex min-w-0 flex-1 items-center gap-1.5 px-3 py-2 transition-colors hover:bg-muted/30"
-            href={tileHref("health")}
-            title={tr("ui.homelab.heartbeat")}
-          >
-            <HeartPulse class="h-4 w-4 shrink-0 text-success" />
-            <span class="truncate text-xs text-muted-foreground">{tr("ui.dashboard.healthy")}</span>
-            <span class="font-semibold text-foreground">
-              {dashboardHealthyServerCount}
-            </span>
-          </a>
-          <a
-            class="flex min-w-0 flex-1 items-center gap-1.5 px-3 py-2 transition-colors hover:bg-muted/30"
-            href={tileHref("services")}
-            data-testid="stack-running-services-kpi"
-          >
-            <Waypoints class="h-4 w-4 shrink-0 text-info" />
-            <span class="truncate text-xs text-muted-foreground">{tr("ui.dashboard.services")}</span>
-            <span
-              class="font-semibold text-foreground"
-              data-testid="metric-card-value"
-            >
-              {dashboardRunningServiceCount}
-            </span>
-            <span class="truncate text-xs text-muted-foreground">
-              {tr("ui.homelab.recorded", { count: dashboardServiceCount })}
-            </span>
-          </a>
-          {#if devicesState.state === "ready"}
-            <a
-              class="flex min-w-0 flex-1 items-center gap-1.5 px-3 py-2 transition-colors hover:bg-muted/30"
-              href="#dashboard-people-title"
-              data-testid="stack-devices-kpi"
-            >
-              <MonitorSmartphone class="h-4 w-4 shrink-0 text-primary" />
-              <span class="truncate text-xs text-muted-foreground">{tr("ui.dashboard.devices")}</span>
-              <span class="font-semibold text-foreground">
-                {devicesState.items.length}
-              </span>
-              <span class="truncate text-xs text-muted-foreground">
-                {tr("ui.homelab.onlineCount", { count: devicesState.items.filter((item) => item.online).length })}
-              </span>
-            </a>
-          {/if}
-          <a
-            class="flex min-w-0 flex-1 items-center gap-1.5 px-3 py-2 transition-colors hover:bg-muted/30"
-            href={tileHref("alerts")}
-            title={statusLabel(operations.monitoring.status)}
-          >
-            <AlertTriangle class="h-4 w-4 shrink-0 text-warning" />
-            <span class="truncate text-xs text-muted-foreground">{tr("ui.dashboard.alerts")}</span>
-            <span class="font-semibold text-foreground">
-              {operations.kpis.active_alerts}
-            </span>
-          </a>
-        </div>
-      {/if}
       {#if showRuntimeProgress && !runtimeJobServer}
         {@render runtimeProgressCard()}
       {/if}
@@ -2643,7 +2514,10 @@
 
   {#if sessionRenewalRequired}
     <div class="mb-6">
-      <SessionRenewalPanel bodyKey={sessionRenewalBodyKey} />
+      <SessionRenewalPanel
+        bodyKey={sessionRenewalBodyKey}
+        onRenewed={() => load()}
+      />
     </div>
   {:else if error}
     <div class="mb-6" data-testid="stacks-error-panel">
@@ -2749,23 +2623,17 @@
           <p class="mt-1 text-sm text-muted-foreground">
             {tr("ui.homelab.reviewHint")}
           </p>
+          <div class="mt-3">{@render reviewStartButton()}</div>
         </section>
       {/if}
 
       <!-- Review/waiting guidance can sit under the title. A failed job must
            not: that belongs in history and on the Node or service card. -->
-      {#if !showStrata && showHomepageReadinessLine}
+      {#if !showStrata && showHomepageReadinessLine && (operations.readiness.message || !hasServerInventory)}
         <div
           class="flex min-w-0 flex-wrap items-center gap-2 text-sm"
           data-testid="stack-readiness-line"
         >
-          <span
-            data-kx="status"
-            data-status={statusKind(operations.readiness.status)}
-            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-          >
-            {reviewPhase ? tr("ui.homelabDashboardPage.review") : statusLabel(operations.readiness.status)}
-          </span>
           {#if operations.readiness.message}
             <span class="text-muted-foreground"
               >{operations.readiness.message}</span
@@ -2802,7 +2670,6 @@
             }}
             rollout={strataRollout}
             {deploymentName}
-            {deploymentHref}
             {nodeHref}
             onOpenService={openServiceSheet}
             people={peopleState}
@@ -2823,7 +2690,6 @@
           <CompleteDashboard
             nodes={nodeViews}
             {deploymentName}
-            {deploymentHref}
             {nodeHref}
             onOpenService={openServiceSheet}
             people={peopleState}
@@ -2842,6 +2708,83 @@
               {@render listMessageDetail(message)}
             {/snippet}
           </CompleteDashboard>
+          <!-- The figures follow the servers; each one links on to its page. -->
+          <div
+            data-kx="plate"
+            class="grid shrink-0 grid-cols-2 overflow-hidden text-sm sm:flex sm:divide-x sm:divide-border"
+            data-testid="stack-kpi-strip"
+          >
+            <a
+              class="flex min-w-0 flex-1 items-center gap-1.5 px-3 py-2 transition-colors hover:bg-muted/30"
+              href={tileHref("servers")}
+            >
+              <Server class="h-4 w-4 shrink-0 text-primary" />
+              <span class="truncate text-xs text-muted-foreground">{tr("ui.dashboard.nodes")}</span>
+              <span class="font-semibold text-foreground">
+                {dashboardServerCount}
+              </span>
+              <span
+                class="truncate text-xs text-muted-foreground"
+                data-testid="worker-connected-count"
+                >{tr("ui.homelab.connectedOfTotal", { connected: dashboardConnectedServerCount, total: dashboardServerCount })}</span
+              >
+            </a>
+            <a
+              class="flex min-w-0 flex-1 items-center gap-1.5 px-3 py-2 transition-colors hover:bg-muted/30"
+              href={tileHref("health")}
+              title={tr("ui.homelab.heartbeat")}
+            >
+              <HeartPulse class="h-4 w-4 shrink-0 text-success" />
+              <span class="truncate text-xs text-muted-foreground">{tr("ui.dashboard.healthy")}</span>
+              <span class="font-semibold text-foreground">
+                {dashboardHealthyServerCount}
+              </span>
+            </a>
+            <a
+              class="flex min-w-0 flex-1 items-center gap-1.5 px-3 py-2 transition-colors hover:bg-muted/30"
+              href={tileHref("services")}
+              data-testid="stack-running-services-kpi"
+            >
+              <Waypoints class="h-4 w-4 shrink-0 text-info" />
+              <span class="truncate text-xs text-muted-foreground">{tr("ui.dashboard.services")}</span>
+              <span
+                class="font-semibold text-foreground"
+                data-testid="metric-card-value"
+              >
+                {dashboardRunningServiceCount}
+              </span>
+              <span class="truncate text-xs text-muted-foreground">
+                {tr("ui.homelab.recorded", { count: dashboardServiceCount })}
+              </span>
+            </a>
+            {#if devicesState.state === "ready"}
+              <a
+                class="flex min-w-0 flex-1 items-center gap-1.5 px-3 py-2 transition-colors hover:bg-muted/30"
+                href="#dashboard-people-title"
+                data-testid="stack-devices-kpi"
+              >
+                <MonitorSmartphone class="h-4 w-4 shrink-0 text-primary" />
+                <span class="truncate text-xs text-muted-foreground">{tr("ui.dashboard.devices")}</span>
+                <span class="font-semibold text-foreground">
+                  {devicesState.items.length}
+                </span>
+                <span class="truncate text-xs text-muted-foreground">
+                  {tr("ui.homelab.onlineCount", { count: devicesState.items.filter((item) => item.online).length })}
+                </span>
+              </a>
+            {/if}
+            <a
+              class="flex min-w-0 flex-1 items-center gap-1.5 px-3 py-2 transition-colors hover:bg-muted/30"
+              href={tileHref("alerts")}
+              title={statusLabel(operations.monitoring.status)}
+            >
+              <AlertTriangle class="h-4 w-4 shrink-0 text-warning" />
+              <span class="truncate text-xs text-muted-foreground">{tr("ui.dashboard.alerts")}</span>
+              <span class="font-semibold text-foreground">
+                {operations.kpis.active_alerts}
+              </span>
+            </a>
+          </div>
         {/if}
         {#if showStrata}
           {@render reconnectOutcomeBanner()}
@@ -2989,7 +2932,7 @@
 
   <!-- Legacy registration: a single deployment with a registration token
        and no operations evidence yet. -->
-  {#if operationsResolved && stackContextResolved && singleDeployment && !operations && !operationsError && registrationToken}
+  {#if operationsResolved && stackContextResolved && singleDeployment && !operations && !operationsError}
     <div class={singleDeployment.state === "running" ? "mb-6" : "mb-8"}>
       <WorkerRegistrationCard
         variant={singleDeployment.state === "running" ? "running" : "connect"}
@@ -3000,7 +2943,11 @@
         {registryMode}
         {registryUrlError}
         {installCommand}
-        {installCommandError}
+        pairing={registrationToken}
+        expiresAt={pairingExpiresAt}
+        busy={pairingBusy}
+        error={pairingError}
+        onRenew={renewDashboardPairing}
         {canRollout}
         {rolloutLoading}
         onDeploy={() => startRollout()}
@@ -3010,20 +2957,13 @@
 
   {#if !loading && homelabResolved && deployments.length === 0}
     <!-- First Start Section -->
-    <Surface class="mb-8 p-6" ariaLabel={tr("ui.homelab.start")}>
-      <div
-        class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
-        data-testid="legacy-stacks-empty-state"
+    <div data-testid="legacy-stacks-empty-state">
+      <EmptyState
+        class="mb-8"
+        title={tr("ui.homelab.start")}
+        description={tr("ui.homelab.firstServerHint")}
       >
-        <div>
-          <h2 class="text-lg font-semibold text-foreground">
-            {tr("ui.homelab.start")}
-          </h2>
-          <p class="text-sm text-muted-foreground">
-            {tr("ui.homelab.startHint")}
-          </p>
-        </div>
-        <div class="flex flex-wrap gap-2">
+        {#snippet actions()}
           <Button
             variant="primary"
             onclick={() => goto("/stacks/new")}
@@ -3031,18 +2971,9 @@
           >
             {tr("ui.homelab.getStarted")}
           </Button>
-          <Button
-            variant="secondary"
-            onclick={() => {
-              importExportMode = "import";
-              showImportExport = true;
-            }}
-          >
-            {tr("ui.common.importExport")}
-          </Button>
-        </div>
-      </div>
-    </Surface>
+        {/snippet}
+      </EmptyState>
+    </div>
   {/if}
 </div>
 
@@ -3051,18 +2982,3 @@
   nodeName={detailNodeName}
   onclose={closeServiceSheet}
 />
-
-<!-- Import/Export Modal -->
-{#if showImportExport}
-  <StackImportExportModal
-    mode={importExportMode}
-    kitDeploymentId={singleDeployment?.id}
-    onClose={() => (showImportExport = false)}
-    onSuccess={(result) => {
-      showImportExport = false;
-      goto(
-        `/stacks/creating?job_id=${encodeURIComponent(result.jobId)}&stack_id=${encodeURIComponent(result.kitDeploymentId)}`,
-      );
-    }}
-  />
-{/if}

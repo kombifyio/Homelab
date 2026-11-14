@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/kombifyio/techstack/internal/providercatalog"
 	"github.com/kombifyio/techstack/pkg/config"
 	"github.com/kombifyio/techstack/pkg/monthlyruntime"
 )
@@ -103,7 +104,7 @@ func managedRuntimeAvailability(ctx context.Context, features FeatureChecker, us
 	ctx, cancel := context.WithTimeout(ctx, availabilityTimeout)
 	defer cancel()
 	var denial monthlyruntime.ManagedRuntimeEntitlementDecision
-	for _, providerID := range []string{monthlyruntime.ProviderCentron, monthlyruntime.ProviderIONOS} {
+	for _, providerID := range providercatalog.ManagedProviderIDs() {
 		decision := monthlyruntime.EvaluateManagedRuntimeEntitlement(ctx, features, userID, providerID)
 		if !decision.Denied {
 			return nil

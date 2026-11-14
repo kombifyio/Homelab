@@ -17,7 +17,7 @@ if (args.Contains("--cloud-updater-only", StringComparer.Ordinal))
 
 if (args.Contains("--wallet-live-probe", StringComparer.Ordinal))
 {
-    if (!DesktopEdition.IsLocal) throw new InvalidOperationException("Wallet device proof belongs to the Local installer.");
+    if (!DesktopEdition.IsLocal) throw new InvalidOperationException("Wallet device proof belongs to the Standalone installer.");
     await WindowsLocalWalletDeviceRevealBoundary(args);
     return 0;
 }
@@ -30,7 +30,7 @@ if (args.Contains("--handoff-live-probe", StringComparer.Ordinal))
 
 if (args.Contains("--rollback-only", StringComparer.Ordinal))
 {
-    if (!DesktopEdition.IsLocal) throw new InvalidOperationException("Rollback belongs to the Local installer.");
+    if (!DesktopEdition.IsLocal) throw new InvalidOperationException("Rollback belongs to the Standalone installer.");
     AssertLegacyRollbackResumesWithVerifierEvidence();
     AssertFailedUpdatePreservesRecovery();
     AssertPendingRollbackResumesBeforeStartup();
@@ -144,7 +144,7 @@ var tests = new (string Name, Action Execute)[]
     ("mismatched base URL rejected", () => MustFail(() => Parse(ValidSelfHosted, "https://other.example.net/"))),
     ("unknown token field rejected", () => MustFail(() => Parse(ValidSelfHosted.Replace("\"sync\":", "\"access_token\":\"secret\",\"sync\":"), "https://home.example.net/"))),
     ("cloud device flow rejected", () => MustFail(() => Parse(ValidSelfHosted.Replace("\"self_hosted\"", "\"cloud\""), "https://home.example.net/"))),
-    ("Local edition rejects Cloud discovery", AssertLocalEditionRejectsCloudProfile),
+    ("Standalone edition rejects Cloud discovery", AssertLocalEditionRejectsCloudProfile),
     ("default credential target remains stable", AssertDefaultCredentialTarget),
     ("isolated state receives stable credential namespace", AssertIsolatedCredentialNamespace),
     ("state root override falls back to product state", () => AssertRejectedStateOverride("")),
@@ -789,7 +789,7 @@ static void MustRejectLocalCloud(string[] arguments)
 {
     try { ClientConfig.Load(arguments); }
     catch (InvalidOperationException) { return; }
-    throw new InvalidOperationException("The Local client accepted a Cloud or Connect entry point.");
+    throw new InvalidOperationException("The Standalone client accepted a Cloud or Connect entry point.");
 }
 
 static void AssertLocalEditionRejectsCloudProfile()

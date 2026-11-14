@@ -222,6 +222,11 @@ func Load(configPath string) (*Config, error) {
 		return nil, err
 	}
 
+	// One channel: a deployment still naming another one never reaches boot.
+	if err := RejectRetiredReleaseChannel(); err != nil {
+		return nil, err
+	}
+
 	return cfg, nil
 }
 

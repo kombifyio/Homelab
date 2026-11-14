@@ -53,14 +53,15 @@
 
   function start() {
     stopTimers();
-    if (texts.length === 0) return;
+    const firstText = texts[0];
+    if (firstText === undefined) return;
     if (reducedMotion) {
       currentIndex = 0;
-      displayText = texts[0];
+      displayText = firstText;
       return;
     }
     // Start with first word
-    typeText(texts[0], () => {
+    typeText(firstText, () => {
       // Begin cycling after first word is typed
       if (texts.length > 1) {
         animationTimer = setInterval(cycleToNextWord, interval);
@@ -109,7 +110,8 @@
   function cycleToNextWord() {
     deleteText(() => {
       currentIndex = (currentIndex + 1) % texts.length;
-      typeText(texts[currentIndex], () => {});
+      const nextText = texts[currentIndex];
+      if (nextText !== undefined) typeText(nextText, () => {});
     });
   }
 

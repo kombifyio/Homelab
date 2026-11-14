@@ -50,7 +50,7 @@
     showDeploy={false}
     onprev={session.prev}
     onnext={session.next}
-    reachableSteps={session.activeSteps().map(creationStepNumber)}
+    reachableSteps={session.activeSteps().map((key) => creationStepNumber(key))}
     onselect={(id) => {
       const key = creationStepKey(id);
       if (key) session.open(key);
@@ -59,7 +59,7 @@
 
   <ul class="mb-6 grid gap-2 text-sm sm:grid-cols-3" data-testid="homelab-settings-inactive">
     <li class="rounded-lg border border-border/70 bg-muted/20 p-3">
-      <p class="font-medium text-foreground">{steps[0].label}</p>
+      <p class="font-medium text-foreground">{steps[0]?.label}</p>
       <p class="mt-1 text-muted-foreground">{inactiveReasons[1]}</p>
       <a class="mt-2 inline-flex items-center gap-1 text-primary" href="/services"
         >{tr("wizard.settings.openAddApplication")}<ArrowUpRight
@@ -69,7 +69,7 @@
       >
     </li>
     <li class="rounded-lg border border-border/70 bg-muted/20 p-3">
-      <p class="font-medium text-foreground">{steps[1].label}</p>
+      <p class="font-medium text-foreground">{steps[1]?.label}</p>
       <p class="mt-1 text-muted-foreground">{inactiveReasons[2]}</p>
       <a
         class="mt-2 inline-flex items-center gap-1 text-primary"
@@ -82,7 +82,7 @@
       >
     </li>
     <li class="rounded-lg border border-border/70 bg-muted/20 p-3">
-      <p class="font-medium text-foreground">{steps[2].label}</p>
+      <p class="font-medium text-foreground">{steps[2]?.label}</p>
       <p class="mt-1 text-muted-foreground">{inactiveReasons[3]}</p>
     </li>
   </ul>

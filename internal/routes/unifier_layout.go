@@ -184,6 +184,12 @@ func layoutAdviceError(e *httpx.Event, err error) error {
 		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "The recommendation changed; reload it", map[string]any{"reason_code": "layout_recommendation_changed", "retryable": true})
 	case errors.Is(err, layoutadvice.ErrUnavailable):
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Layout recommendations are unavailable", map[string]any{"reason_code": "layout_recommendations_unavailable", "retryable": true})
+	case errors.Is(err, layoutadvice.ErrPinServer):
+		// One answer for a foreign, unknown or bare server: nothing tells
+		// whether a server id exists outside the owner's deployments.
+		return httpx.Error(e, http.StatusUnprocessableEntity, ksapi.ErrCodeValidation, "The chosen server is not one of your StackKit deployments' servers", map[string]any{"reason_code": "layout_pin_server_unavailable", "retryable": false})
+	case errors.Is(err, layoutadvice.ErrPinInvalid):
+		return httpx.Error(e, http.StatusUnprocessableEntity, ksapi.ErrCodeValidation, "The chosen server does not fit this selection", map[string]any{"reason_code": "layout_pin_invalid", "retryable": false})
 	case errors.Is(err, layoutadvice.ErrSelectionMismatch):
 		return httpx.Error(e, http.StatusUnprocessableEntity, ksapi.ErrCodeValidation, "The selection cannot be distributed", map[string]any{"reason_code": "layout_selection_invalid", "retryable": false})
 	default:

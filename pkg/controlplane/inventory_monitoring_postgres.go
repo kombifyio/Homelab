@@ -313,15 +313,19 @@ func (s *PostgresStore) ListInventoryBackupFacts(ctx context.Context, scope Inve
 }
 
 // backupRunsByStackTx reads the finished backup jobs of the visible servers'
-// stacks inside the window of the day summary. The stack set is the same
+// stacks inside the window of the day summary: scheduled backups (`backup`
+// jobs) and owner-started ones (the service `backup` action, a StackKits
+// lifecycle `backup_run` job). The stack set is the same
 // scope-bound derived table as the facts query, so no stack outside the policy
 // scope can contribute a run.
 func backupRunsByStackTx(ctx context.Context, tx *sql.Tx, tenantID, ownerID string, now time.Time) (map[string][]BackupRunFact, error) {
 	runs := map[string][]BackupRunFact{}
 	rows, err := tx.QueryContext(ctx, `
-		SELECT j.stack_id, j.state, j.completed_at
+		SELECT j.stack_id, j.state, j.completed_at, j.id, COALESCE(j.step, ''), COALESCE(j.error, '')
 		FROM jobs j
-		WHERE j.tenant_id = $1 AND j.type = 'backup' AND j.state IN ('completed', 'failed')
+		WHERE j.tenant_id = $1
+			AND (j.type = 'backup' OR (j.type = 'stackkit_lifecycle' AND j.payload_json->>'operation' = 'backup_run'))
+			AND j.state IN ('completed', 'failed')
 			AND j.completed_at IS NOT NULL AND j.completed_at >= $4
 			AND j.stack_id IN (
 				SELECT v.stack_id FROM (`+monitoringVisibleServers+` ORDER BY servers.created_at, servers.id LIMIT $3) v
@@ -335,12 +339,12 @@ func backupRunsByStackTx(ctx context.Context, tx *sql.Tx, tenantID, ownerID stri
 	}
 	defer func() { _ = rows.Close() }()
 	for rows.Next() {
-		var stackID, state string
+		var stackID, state, jobID, step, jobError string
 		var completedAt time.Time
-		if scanErr := rows.Scan(&stackID, &state, &completedAt); scanErr != nil {
+		if scanErr := rows.Scan(&stackID, &state, &completedAt, &jobID, &step, &jobError); scanErr != nil {
 			return nil, scanErr
 		}
-		runs[stackID] = append(runs[stackID], BackupRunFact{At: completedAt.UTC(), State: state})
+		runs[stackID] = append(runs[stackID], BackupRunFact{At: completedAt.UTC(), State: state, JobID: jobID, Step: step, Error: jobError})
 	}
 	return runs, rows.Err()
 }

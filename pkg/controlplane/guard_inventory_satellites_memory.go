@@ -16,6 +16,7 @@ func (s *MemoryStore) ApplyGuardInventorySatellites(_ context.Context, command G
 	}
 
 	worker := prepared.Worker
+	worker.InstanceID, worker.StackID = head.InstanceID, head.StackID
 	now := s.now()
 	workerIdentity := workerKey(prepared.TenantID, worker.ID)
 	if existing, exists := s.worker[workerIdentity]; exists {
@@ -47,6 +48,7 @@ func (s *MemoryStore) ApplyGuardInventorySatellites(_ context.Context, command G
 	s.worker[workerIdentity] = worker
 
 	ril := prepared.RILServer
+	ril.InstanceID, ril.StackID = head.InstanceID, head.StackID
 	if existing, exists := s.rilSrv[ril.ID]; exists {
 		ril.CreatedAt = existing.CreatedAt
 	} else {
@@ -60,6 +62,9 @@ func (s *MemoryStore) ApplyGuardInventorySatellites(_ context.Context, command G
 	ril.Inventory = cloneMap(ril.Inventory)
 	ril.LastSeenAt = cloneTime(ril.LastSeenAt)
 	s.rilSrv[ril.ID] = ril
+	if prepared.Identity != nil {
+		s.projectHomelabIdentityAuthorityLocked(prepared.TenantID, prepared.ServerID, *prepared.Identity, prepared.SourceObservedAt)
+	}
 
 	return &GuardInventorySatelliteResult{Worker: cloneWorker(worker), Applied: true}, nil
 }

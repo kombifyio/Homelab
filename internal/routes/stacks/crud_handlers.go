@@ -433,7 +433,7 @@ func (h crudRouteHandlers) enqueueManagedRuntimeCapacityNotification(
 	for _, channel := range []string{"in_app", "email"} {
 		err := h.notificationOutbox.Enqueue(ctx, productnotifications.ProductEvent{
 			Topic: managedRuntimeCapacityTopic, Channel: channel,
-			Auth0UserID: ownerID, OrganizationID: tenantID,
+			Auth0UserID: ownerID, TenantID: tenantID,
 			IdempotencyKey: key + ":" + channel, Payload: payload,
 		})
 		if err != nil {

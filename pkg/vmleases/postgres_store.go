@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
 	"strings"
 	"time"
 
@@ -486,7 +487,7 @@ func (s *PostgresStore) HasConfirmedDecommission(ctx context.Context, tenantID s
 }
 
 func (s *PostgresStore) withTenant(ctx context.Context, tenantID string, fn func(*sql.Tx) error) error {
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := tenantcontext.Database(ctx, s.db).BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -496,7 +497,7 @@ func (s *PostgresStore) withTenant(ctx context.Context, tenantID string, fn func
 			_ = tx.Rollback()
 		}
 	}()
-	if _, err := tx.ExecContext(ctx, `SELECT set_config('app.tenant_id', $1, true)`, tenantID); err != nil {
+	if err := tenantcontext.ApplyTenant(ctx, tx, tenantID); err != nil {
 		return err
 	}
 	if err := fn(tx); err != nil {

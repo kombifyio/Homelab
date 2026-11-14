@@ -14,6 +14,7 @@ import (
 	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/guardidentity"
 	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/techstack/pkg/middleware"
 	"github.com/kombifyio/techstack/pkg/pairingtoken"
 	"github.com/kombifyio/techstack/pkg/workerauth"
 )
@@ -310,7 +311,7 @@ func TestGuardRepeatedRedemptionNeverActivatesTwoCredentials(t *testing.T) {
 	}
 }
 
-func TestLegacyBearerWorkerKeyIsBoundOnlyWhenTheOwnerApprovesIt(t *testing.T) {
+func TestLegacyBearerWorkerKeyIsBoundOnlyWhenTheOwnerOrTheirAgentApprovesIt(t *testing.T) {
 	g := newGuardHarness(t)
 	const id = "legacy-worker"
 	bearer, tokenErr := workerauth.OpaqueToken()
@@ -376,15 +377,24 @@ func TestLegacyBearerWorkerKeyIsBoundOnlyWhenTheOwnerApprovesIt(t *testing.T) {
 		t.Fatalf("a second key while one is pending = %d %+v", reply.Code, reply.Err)
 	}
 
-	owner := func(ownerID string, fresh bool, thumbprint string) int {
+	approve := func(ownerID string, fresh bool, thumbprint string, principal *middleware.StepUpClaims) int {
 		h := g.handler
 		h.entitlements = stepUpGate{EntitlementGate: selfHostedEntitlementGate{}, fresh: fresh}
 		event, recorder := registryRouteStoreTestEvent(http.MethodPost, "/api/v1/workers/"+id+"/identity/upgrade/approve", ownerID, "tenant-1",
 			map[string]any{"key_thumbprint": thumbprint})
+		if principal != nil {
+			event.Request = event.Request.WithContext(middleware.WithVerifiedStepUp(event.Request.Context(), *principal))
+		}
 		event.Request.SetPathValue("id", id)
 		_ = h.identityUpgradeApprove(event)
 		return recorder.Code
 	}
+	owner := func(ownerID string, fresh bool, thumbprint string) int {
+		return approve(ownerID, fresh, thumbprint, nil)
+	}
+	// The person's own session presents a fresh second factor; an agent the
+	// Gateway attested as acting for the person needs none (section 5e).
+	agent := &middleware.StepUpClaims{PrincipalType: middleware.PrincipalTypeAgent, AgentID: "companion-1"}
 	jwk, _ := guardidentity.ParseJWK(mustJSON(t, guardidentity.PublicJWK(key)))
 	thumbprint, _ := jwk.Thumbprint()
 	attackerJWK, _ := guardidentity.ParseJWK(mustJSON(t, guardidentity.PublicJWK(attacker)))
@@ -395,14 +405,30 @@ func TestLegacyBearerWorkerKeyIsBoundOnlyWhenTheOwnerApprovesIt(t *testing.T) {
 	if code := owner("owner-1", false, thumbprint); code != http.StatusForbidden {
 		t.Fatalf("approval without a fresh second factor got %d", code)
 	}
+	// The person's fresh second factor passes the gate and reaches the exact-key
+	// check; the key itself is bound below by the agent, because a key binds once.
 	if code := owner("owner-1", true, attackerThumbprint); code != http.StatusConflict {
 		t.Fatalf("approving a key that is not the pending one got %d", code)
+	}
+	for _, refused := range []middleware.StepUpClaims{
+		{PrincipalType: middleware.PrincipalTypeAgent}, {PrincipalType: "demo", AgentID: "companion-1"},
+		{PrincipalType: "machine", AgentID: "companion-1"},
+	} {
+		if code := approve("owner-1", false, thumbprint, &refused); code != http.StatusForbidden {
+			t.Fatalf("%+v approved without a fresh second factor: %d", refused, code)
+		}
+	}
+	if code := approve("owner-2", false, thumbprint, agent); code != http.StatusNotFound {
+		t.Fatalf("an agent of another owner got %d", code)
+	}
+	if code := approve("owner-1", false, attackerThumbprint, agent); code != http.StatusConflict {
+		t.Fatalf("an agent approving a key that is not the pending one got %d", code)
 	}
 	if reply := g.exchange(id, bearer, key, time.Now()); reply.Err.Code != guardidentity.CodeIdentityUpgradePending {
 		t.Fatalf("a refused approval bound the key: %d %+v", reply.Code, reply.Err)
 	}
-	if code := owner("owner-1", true, thumbprint); code != http.StatusOK {
-		t.Fatalf("owner approval got %d", code)
+	if code := approve("owner-1", false, thumbprint, agent); code != http.StatusOK {
+		t.Fatalf("agent approval for the owner got %d", code)
 	}
 
 	// Bearer-only requests are denied from now on; a second key cannot bind.

@@ -78,6 +78,10 @@ type Config struct {
 	Connect    Connect
 	Identities Identities
 	Access     AccessRevoker
+	// AgentLinks delivers the Gateway agent envelope key and the D10
+	// references to each registered node (optional; nil keeps the agent link
+	// off and the node's /mcp reachable by its native token only).
+	AgentLinks AgentLinkDelivery
 	// RelayURL is the kombify.me relay WebSocket URL handed to Guards.
 	RelayURL string
 
@@ -301,7 +305,13 @@ func (s *Service) reconcile(ctx context.Context, snapshot Row) error {
 			r.LastError = ReasonKeyNotBound
 		})
 	}
-	return s.register(ctx, snapshot, subject)
+	if err := s.register(ctx, snapshot, subject); err != nil {
+		return err
+	}
+	// The registered node gets the current agent link: the key of its
+	// Connect registration and the members linked now (a D10 change reaches
+	// it within one settled recheck).
+	return s.deliverAgentLink(ctx, snapshot.TenantID, snapshot.WorkerID)
 }
 
 // settle applies a guarded outcome: it is discarded when the row moved to
@@ -342,6 +352,11 @@ func (s *Service) register(ctx context.Context, snapshot Row, subject Subject) e
 			// still has the old binding's route withdrawn.
 			r.Me, r.Connect = Target{State: TargetPending, Ref: r.Me.Ref}, Target{State: TargetPending}
 			r.Relay = RelayReport{}
+			// The Gateway derives another key for the new generation; the old
+			// one is never delivered for it. The node's pin is replaced when
+			// the new registration's key is delivered.
+			r.AgentKey = ""
+			r.AgentLink = Target{State: r.AgentLink.State, Generation: r.AgentLink.Generation, Ref: r.AgentLink.Ref}
 			r.Attempts = 0
 		}
 		return true
@@ -477,6 +492,13 @@ func (s *Service) revoke(ctx context.Context, snapshot Row) error {
 		return err
 	}
 	current := *row
+	// The node's agent link goes first, while its Guard may still answer.
+	if target, tried := s.removeAgentLink(ctx, current); tried {
+		if err := s.recordAgentLinkRemoval(ctx, current, target); err != nil {
+			return err
+		}
+		current.AgentLink = target
+	}
 	var failure string
 	if current.Me.State != TargetRevoked {
 		if err := s.cfg.Me.RevokeServer(ctx, current.TenantID, current.ServerID, current.RevokeReason); err != nil {
@@ -503,6 +525,7 @@ func (s *Service) revoke(ctx context.Context, snapshot Row) error {
 			return false
 		}
 		r.Me, r.Connect = current.Me, current.Connect
+		r.AgentKey = ""
 		if failure != "" {
 			s.fail(r, failure)
 		} else {
@@ -576,6 +599,14 @@ func (s *Service) applyRevocation(ctx context.Context, event Revocation) error {
 			// recorded the revocation before calling Gateway.
 			continue
 		}
+		// The node's agent link goes while the Guard still answers (the node
+		// deletes its pin on techstack-node.revoked); the Gateway already
+		// issues no envelope for the revoked node.
+		if target, tried := s.removeAgentLink(ctx, *row); tried {
+			if err := s.recordAgentLinkRemoval(ctx, *row, target); err != nil {
+				return err
+			}
+		}
 		// Same effect as the owner detaching the key binding: credential,
 		// worker and host-key binding end in one transaction, so the Guard
 		// stops authenticating before anything else happens.
@@ -587,7 +618,7 @@ func (s *Service) applyRevocation(ctx context.Context, event Revocation) error {
 			if event.BindingGeneration < r.Generation {
 				return false
 			}
-			r.Desired = DesiredRevoked
+			r.Desired, r.AgentKey = DesiredRevoked, ""
 			r.RevokeReason = firstNonEmpty(r.RevokeReason, revokeReasonFor(event))
 			r.Connect = Target{State: TargetRevoked, Generation: r.Generation, UpdatedAt: &now}
 			r.NextAttemptAt = now
@@ -617,7 +648,10 @@ func (s *Service) registerConnect(ctx context.Context, tenantID, workerID, proof
 	if err != nil {
 		return err
 	}
-	if !row.ProofWanted(now) {
+	// A registered server repeats the registration once a day to read the
+	// Gateway's current agent envelope key (a new master key id rotates it).
+	refresh := s.cfg.AgentLinks != nil && row.agentKeyRefreshWanted(now)
+	if !row.ProofWanted(now) && !refresh {
 		return nil
 	}
 	verified, verifyErr := guardidentity.VerifyHostProof(proof, guardidentity.HostProofExpectation{
@@ -630,8 +664,17 @@ func (s *Service) registerConnect(ctx context.Context, tenantID, workerID, proof
 	if verifyErr != nil {
 		s.log.Warn("guard_reach_host_proof_rejected", "worker_id", row.WorkerID, "error", verifyErr.Error())
 		_, err := s.cfg.Store.Update(ctx, tenantID, workerID, func(r *Row) bool {
-			if r.Generation != row.Generation || r.Connect.registeredAt(r.Generation) {
+			if r.Generation != row.Generation {
 				return false
+			}
+			if r.Connect.registeredAt(r.Generation) {
+				if !refresh {
+					return false
+				}
+				// A refused refresh proof keeps the registration and waits.
+				retry := now.Add(connectPermanent)
+				r.Connect.RetryAt = &retry
+				return true
 			}
 			r.Connect.ReasonCode, r.Connect.UpdatedAt = ReasonProofRejected, &now
 			return true
@@ -656,6 +699,11 @@ func (s *Service) registerConnect(ctx context.Context, tenantID, workerID, proof
 			if retryable {
 				retry = now.Add(connectRetryable)
 			}
+			if refresh && r.Connect.registeredAt(r.Generation) {
+				// A failed key refresh keeps the registration; it is retried.
+				r.Connect.RetryAt = &retry
+				return true
+			}
 			r.Connect = Target{State: TargetFailed, Generation: r.Generation, ReasonCode: reason, UpdatedAt: &now, RetryAt: &retry}
 			return true
 		}
@@ -665,6 +713,10 @@ func (s *Service) registerConnect(ctx context.Context, tenantID, workerID, proof
 			return false
 		}
 		r.Connect = Target{State: TargetRegistered, Generation: r.Generation, Ref: node.NodeID, UpdatedAt: &now}
+		if storeAgentKey(r, node, now) {
+			// Deliver the new key now rather than at the next settled recheck.
+			r.NextAttemptAt = now
+		}
 		return true
 	})
 	if err != nil {

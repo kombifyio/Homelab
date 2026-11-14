@@ -48,7 +48,7 @@ func errorDetails(t *testing.T, body []byte) map[string]any {
 
 func kombifyWizardHandler(fake *walletfake.Fake, tester *fakeWizardRemoteSSHTester) wizardRouteHandlers {
 	return wizardRouteHandlers{cfg: WizardRouteConfig{
-		Features: fakeWizardFeatureChecker{enabled: true}, RemoteSSHTester: tester, KombifyWallet: fake.Client(),
+		RemoteSSHTester: tester, KombifyWallet: fake.Client(),
 	}}
 }
 

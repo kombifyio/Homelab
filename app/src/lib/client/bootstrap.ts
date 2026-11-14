@@ -30,7 +30,7 @@ export interface ClientBootstrap {
   kombifyEdition: string;
   version: string;
   publicOrigin: string;
-  /** "early-access" on the Early Access deployment, otherwise "stable". */
+  /** The constant channel value the service reports; the app refuses an unknown one. */
   releaseChannel: string;
   telemetry: {
     sentry: SentryBootstrap;

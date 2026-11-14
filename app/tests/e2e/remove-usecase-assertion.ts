@@ -153,7 +153,7 @@ export async function assertRemoveInstalledUseCase(options: {
   };
   expect(response.request().postDataJSON()).toEqual(request);
   const key = response.request().headers()["idempotency-key"];
-  expect(key).toBeTruthy();
+  if (!key) throw new Error("the request carried no Idempotency-Key header");
   const body = await response.json();
   const accepted = body.data ?? body;
   expect(accepted.operation).toBe("use_case_remove");

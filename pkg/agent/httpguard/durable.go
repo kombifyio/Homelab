@@ -26,6 +26,7 @@ const (
 	exclusionTimeout         = 15 * time.Second
 	redeliveryTick           = time.Second
 	redeliveryCap            = time.Minute
+	serverFaultRedeliveryCap = 5 * time.Minute
 	compactEvery             = 10 * time.Minute
 	reconcileRetryEvery      = 10 * time.Minute
 	ephemeralDeliveryRetries = 6
@@ -314,7 +315,7 @@ func (c *Client) runDurableControlLoop(ctx context.Context) {
 		d.recoverInterrupted()
 		offered, err := c.pollDurable(ctx, d.knownCommands(), d.heldPredecessorCommands())
 		if err != nil {
-			delay := backoff.Next()
+			delay := max(backoff.Next(), retryAfterOf(err))
 			c.log.Warn("guard_control_poll_failed", "error", err.Error(), "retry_in", delay.String())
 			_ = waitContext(ctx, delay)
 			continue
@@ -352,7 +353,7 @@ func (d *durableOps) knownCommands() []string {
 
 func (c *Client) pollDurable(ctx context.Context, known []string, held []guardbinding.PredecessorCommand) (*offeredCommand, error) {
 	request := durableRequest{controlRequest: c.durableIdentity(), KnownCommands: known, HeldPredecessorCommands: held}
-	status, body, err := c.postJSONResponseLimit(ctx, c.cfg.CommandURL, request, maxCommandResponseBody)
+	status, body, retryAfter, err := c.postJSONExchange(ctx, c.cfg.CommandURL, request, maxCommandResponseBody)
 	if err != nil {
 		return nil, err
 	}
@@ -360,21 +361,28 @@ func (c *Client) pollDurable(ctx context.Context, known []string, held []guardbi
 		return nil, nil
 	}
 	if status != http.StatusOK {
-		return nil, unexpectedStatusError(status, body)
+		return nil, withRetryAfter(unexpectedStatusError(status, body), retryAfter)
 	}
 	var response struct {
 		Data struct {
-			Command     json.RawMessage                         `json:"command"`
-			Binding     *guardbinding.Binding                   `json:"binding"`
-			Resolutions []guardbinding.OperatorResolutionNotice `json:"resolutions"`
-			Predecessor *guardbinding.PredecessorRecovery       `json:"predecessor_recovery"`
+			Command          json.RawMessage                         `json:"command"`
+			InventoryRefresh string                                  `json:"inventory_refresh"`
+			Binding          *guardbinding.Binding                   `json:"binding"`
+			Resolutions      []guardbinding.OperatorResolutionNotice `json:"resolutions"`
+			Predecessor      *guardbinding.PredecessorRecovery       `json:"predecessor_recovery"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(body, &response); err != nil {
 		return nil, fmt.Errorf("decode typed command: %w", err)
 	}
+	if response.Data.InventoryRefresh != "" {
+		c.requestInventoryRefresh(response.Data.InventoryRefresh)
+	}
 	if len(response.Data.Command) == 0 && (len(response.Data.Resolutions) > 0 || response.Data.Predecessor != nil) {
 		return &offeredCommand{resolutions: response.Data.Resolutions, predecessor: response.Data.Predecessor}, nil
+	}
+	if len(response.Data.Command) == 0 && response.Data.InventoryRefresh != "" {
+		return nil, nil
 	}
 	command := &agentpb.StackKitCommand{}
 	if len(response.Data.Command) == 0 || json.Unmarshal(response.Data.Command, command) != nil || strings.TrimSpace(command.GetCommandId()) == "" {
@@ -707,12 +715,17 @@ const (
 	deliveryRetry deliveryOutcome = iota
 	deliveryAcked
 	deliveryPermanent
+	// deliveryServerFault is a server error that is not an unavailable gateway:
+	// retried like deliveryRetry, but at serverFaultRedeliveryCap, so a server
+	// that keeps failing a result costs each Guard a few requests and error
+	// reports an hour instead of one a minute (kombify-StackKits-ej6j).
+	deliveryServerFault
 )
 
 func (d *durableOps) deliverEphemeral(ctx context.Context, id string, report guardbinding.ResultReport, result *agentpb.StackKitResult) {
 	for attempt := 0; attempt < ephemeralDeliveryRetries && ctx.Err() == nil; attempt++ {
 		if attempt > 0 {
-			if waitContext(ctx, time.Duration(1<<uint(attempt))*500*time.Millisecond) != nil {
+			if waitContext(ctx, max(time.Duration(1<<uint(attempt))*500*time.Millisecond, d.c.resultPause())) != nil {
 				return
 			}
 		}
@@ -744,11 +757,13 @@ func (c *Client) postReportRequest(ctx context.Context, request durableRequest, 
 			request.Result = result
 		}
 	}
-	status, body, err := c.postJSONResponse(ctx, c.cfg.CommandResultURL, request)
+	status, body, retryAfter, err := c.postJSONExchange(ctx, c.cfg.CommandResultURL, request, maxResponseBody)
 	if err != nil {
 		c.log.Warn("guard_control_result_failed", "command_id", id, "revision", report.Revision, "error", err.Error())
 		return deliveryRetry
 	}
+	// Every result delivery waits out a pause the control plane asked for.
+	c.pauseResults(retryAfter)
 	if status >= http.StatusOK && status < http.StatusMultipleChoices {
 		if legacy {
 			return deliveryAcked
@@ -768,6 +783,13 @@ func (c *Client) postReportRequest(ctx context.Context, request durableRequest, 
 		return deliveryPermanent
 	}
 	c.log.Warn("guard_control_result_failed", "command_id", id, "revision", report.Revision, "error", unexpectedStatusError(status, body).Error())
+	switch status {
+	case http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+		return deliveryRetry
+	}
+	if status >= http.StatusInternalServerError {
+		return deliveryServerFault
+	}
 	return deliveryRetry
 }
 
@@ -1023,9 +1045,13 @@ func (d *durableOps) redeliverDue(ctx context.Context) {
 		outcome := d.deliver(ctx, e, record)
 		d.mu.Lock()
 		switch outcome {
-		case deliveryRetry:
+		case deliveryRetry, deliveryServerFault:
+			limit := redeliveryCap
+			if outcome == deliveryServerFault {
+				limit = serverFaultRedeliveryCap
+			}
 			state.attempt++
-			state.next = time.Now().Add(jittered(min(time.Second<<min(state.attempt, 8), redeliveryCap)))
+			state.next = time.Now().Add(max(jittered(min(time.Second<<min(state.attempt, 9), limit)), d.c.resultPause()))
 		default:
 			delete(d.backoff, id)
 			if record.Revision >= int64(len(e.Results)) {

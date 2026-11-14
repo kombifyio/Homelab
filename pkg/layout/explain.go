@@ -22,6 +22,7 @@ var reasonTemplates = map[string]string{
 	"only_fitting_node":    "{node} is the only server that meets what {title} needs.",
 	"profile_not_measured": "kombify has not measured {title} yet, so it stays on your main server {node}.",
 	"pinned":               "{title} stays on {node}.",
+	"owner_choice":         "You chose {node} for {title}.",
 	"with_use_case":        "{title} adds to the use case that already runs on {node}, so it runs there too.",
 	"repacked":             "{title} runs on {node} so that every selected app fits.",
 	"uses_accelerator":     "{title} needs a {vendor} graphics card, which {node} has.",
@@ -40,6 +41,7 @@ var reasonTemplates = map[string]string{
 	"needs_more_storage":         "{title} needs {need} GB of storage; the most any server has free is {largest} GB.",
 	"missing_accelerator":        "{title} needs a {vendor} graphics card; no server has one.",
 	"pinned_node_lacks_room":     "The server {title} is bound to has no room for it.",
+	"chosen_node_lacks_room":     "{node}, the server you chose for {title}, cannot run it.",
 	"no_node_meets_requirements": "No server meets what {title} needs.",
 	"selection_exceeds_free_ram": "The selected apps reserve {need} GB of memory; your servers have {free} GB free.",
 	"no_combination_fits":        "No way of distributing the selected apps fits all of them.",
@@ -88,6 +90,8 @@ func explainPlacement(placed placement, state *nodeState, states []*nodeState) [
 	switch {
 	case placed.pinned && demand.pinReason == "with_use_case":
 		reasons = append(reasons, reason("with_use_case", params))
+	case placed.pinned && demand.pinReason == PinOwnerChoice:
+		reasons = append(reasons, reason(PinOwnerChoice, params))
 	case placed.pinned && demand.Provenance != "measured":
 		reasons = append(reasons, reason("profile_not_measured", params))
 	case placed.pinned:
@@ -119,7 +123,7 @@ func explainPlacement(placed placement, state *nodeState, states []*nodeState) [
 	if demand.Accelerator != nil {
 		reasons = append(reasons, reason("uses_accelerator", merge(params, map[string]string{"vendor": demand.Accelerator.Vendor})))
 	}
-	if demand.Provenance != "measured" && (!placed.pinned || demand.pinReason == "with_use_case") {
+	if demand.Provenance != "measured" && (!placed.pinned || demand.pinReason == "with_use_case" || demand.pinReason == PinOwnerChoice) {
 		reasons = append(reasons, reason("estimated_profile", params))
 	}
 	if demand.Provenance == "measured" && demand.Reservation.RAMGB > 0 {

@@ -51,7 +51,8 @@ var (
 
 // Manifest is the signed release metadata of one Guard release.
 type Manifest struct {
-	SchemaVersion string `json:"schemaVersion"`
+	BuildProvenance *BuildProvenance `json:"buildProvenance,omitempty"`
+	SchemaVersion   string           `json:"schemaVersion"`
 	// Version is the exact release every artifact in the manifest belongs to.
 	Version string `json:"version"`
 	// MinimumAdmittedVersion is the lowest version that may run or be installed.
@@ -133,6 +134,9 @@ func ParseManifest(raw []byte) (*Manifest, error) {
 	if len(raw) == 0 || len(raw) > MaxManifestBytes {
 		return nil, errors.New("release manifest is empty or exceeds its size bound")
 	}
+	if err := uniqueManifestKeys(raw); err != nil {
+		return nil, err
+	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.DisallowUnknownFields()
 	var manifest Manifest
@@ -149,6 +153,11 @@ func ParseManifest(raw []byte) (*Manifest, error) {
 }
 
 func (m *Manifest) validateShape() error {
+	if m.BuildProvenance != nil {
+		if err := m.BuildProvenance.Validate(); err != nil {
+			return err
+		}
+	}
 	if m.SchemaVersion != ManifestSchema {
 		return fmt.Errorf("release manifest schema %q is not %s", m.SchemaVersion, ManifestSchema)
 	}
@@ -312,4 +321,58 @@ func DecodeDigest(digest string) ([]byte, error) {
 		return nil, errors.New("digest is not a lowercase sha256")
 	}
 	return hex.DecodeString(digest)
+}
+
+// Reject ambiguous signed objects before decoding them into typed fields.
+func uniqueManifestKeys(raw []byte) error {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	var walk func(int) error
+	walk = func(depth int) error {
+		if depth > 64 {
+			return errors.New("release manifest nesting exceeds its bound")
+		}
+		token, err := decoder.Token()
+		if err != nil {
+			return err
+		}
+		delimiter, ok := token.(json.Delim)
+		if !ok {
+			return nil
+		}
+		switch delimiter {
+		case '{':
+			seen := map[string]bool{}
+			for decoder.More() {
+				token, err := decoder.Token()
+				if err != nil {
+					return err
+				}
+				key, ok := token.(string)
+				if !ok || seen[key] {
+					return errors.New("release manifest has duplicate object keys")
+				}
+				seen[key] = true
+				if err := walk(depth + 1); err != nil {
+					return err
+				}
+			}
+		case '[':
+			for decoder.More() {
+				if err := walk(depth + 1); err != nil {
+					return err
+				}
+			}
+		default:
+			return errors.New("release manifest has an unexpected delimiter")
+		}
+		_, err = decoder.Token()
+		return err
+	}
+	if err := walk(0); err != nil {
+		return err
+	}
+	if _, err := decoder.Token(); !errors.Is(err, io.EOF) {
+		return errors.New("release manifest has trailing data")
+	}
+	return nil
 }

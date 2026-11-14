@@ -5,11 +5,19 @@ package stacks
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
+	"strings"
+
+	"github.com/kombifyio/techstack/internal/providercatalog"
 
 	"gopkg.in/yaml.v3"
 )
 
-const stackSupportedProvidersReadable = "local, hetzner, docker, aws, gcp, azure, digitalocean, digitalocean-managed, centron, ionos"
+const stackNonManagedProviders = "local, hetzner, docker, aws, gcp, azure, digitalocean, digitalocean-managed"
+
+func stackSupportedProviders() []string {
+	return append(strings.Split(stackNonManagedProviders, ", "), providercatalog.ManagedProviderIDs()...)
+}
 
 // YAMLParseError is a custom error type for YAML parsing errors.
 type YAMLParseError struct {
@@ -140,12 +148,12 @@ func ValidateNodeFormat(node map[string]interface{}, index int) []map[string]str
 
 	// Validate provider IF provided
 	if provider, ok := node["provider"].(string); ok && provider != "" {
-		validProviders := map[string]bool{"local": true, "hetzner": true, "docker": true, "aws": true, "gcp": true, "azure": true, "digitalocean": true, "digitalocean-managed": true, "centron": true, "ionos": true}
-		if !validProviders[provider] {
+		validProviders := stackSupportedProviders()
+		if !slices.Contains(validProviders, provider) {
 			errors = append(errors, map[string]string{
 				"path":    basePath + ".provider",
 				"code":    "INVALID_VALUE",
-				"message": "Ungültiger Provider. Erlaubt: " + stackSupportedProvidersReadable,
+				"message": "Ungültiger Provider. Erlaubt: " + strings.Join(validProviders, ", "),
 			})
 		}
 	}

@@ -165,3 +165,44 @@ func digestCharacter(character string) string {
 	}
 	return out
 }
+
+// Generation 0 carries command authority only for a key-bound Guard that last
+// proved its bound host key; unreadable state never does (kombify-StackKits-4czp).
+func TestCommandAuthorityGenerationAdmitsGenerationZeroOnlyWithBoundHostKey(t *testing.T) {
+	worker := func(binding string, generation any) Worker {
+		resources := map[string]any{}
+		if generation != nil {
+			resources[WorkerCredentialGenerationResourceKey] = generation
+		}
+		return Worker{ID: "w", TenantID: "t", Capabilities: map[string]any{"identity_binding": binding}, Resources: resources}
+	}
+	identity := func(state string) func() (*WorkerIdentity, error) {
+		return func() (*WorkerIdentity, error) { return &WorkerIdentity{TenantID: "t", WorkerID: "w", State: state}, nil }
+	}
+	foreign := func() (*WorkerIdentity, error) {
+		return &WorkerIdentity{TenantID: "other", WorkerID: "w", State: WorkerIdentityBound}, nil
+	}
+	for _, tc := range []struct {
+		name     string
+		worker   Worker
+		identity func() (*WorkerIdentity, error)
+		want     int64
+		admitted bool
+	}{
+		{"key-bound, never rotated", worker(IdentityBindingHostKey, nil), identity(WorkerIdentityBound), 0, true},
+		{"key-bound, explicit zero", worker(IdentityBindingHostKey, "0"), identity(WorkerIdentityBound), 0, true},
+		{"legacy bearer at zero", worker(IdentityBindingLegacyBearer, nil), identity(WorkerIdentityBound), 0, false},
+		{"revoked identity", worker(IdentityBindingHostKey, nil), identity(WorkerIdentityRevoked), 0, false},
+		{"upgrade pending", worker(IdentityBindingHostKey, nil), identity(WorkerIdentityUpgradePending), 0, false},
+		{"unconfirmed key", worker(IdentityBindingHostKey, nil), identity(WorkerIdentityIssuedUnconfirmed), 0, false},
+		{"identity of another tenant", worker(IdentityBindingHostKey, nil), foreign, 0, false},
+		{"no identity reader", worker(IdentityBindingHostKey, nil), nil, 0, false},
+		{"opaque credential", worker(IdentityBindingLegacyBearer, 3), nil, 3, true},
+		{"unreadable state", worker(IdentityBindingHostKey, -1), identity(WorkerIdentityBound), -1, false},
+	} {
+		generation, admitted := CommandAuthorityGeneration(tc.worker, tc.identity)
+		if generation != tc.want || admitted != tc.admitted {
+			t.Errorf("%s: got (%d, %v), want (%d, %v)", tc.name, generation, admitted, tc.want, tc.admitted)
+		}
+	}
+}

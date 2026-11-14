@@ -160,5 +160,32 @@ func homelabItem(homelab *controlplane.Homelab) map[string]any {
 	if homelab.NamedAt != nil {
 		item["named_at"] = formatAPITime(*homelab.NamedAt)
 	}
+	item["identity_authority"] = homelabIdentityAuthorityItem(homelab.IdentityAuthority)
 	return item
+}
+
+// homelabIdentityAuthorityItem is the authority pointer (ADR-036): the server
+// that runs the homelab's Pocket ID, its StackKit deployment and the identity
+// origin. Null until an Authority server's Guard reported it; state departed
+// once that server left the homelab.
+func homelabIdentityAuthorityItem(authority *controlplane.HomelabIdentityAuthority) map[string]any {
+	if authority == nil {
+		return nil
+	}
+	state := "current"
+	if authority.Departed {
+		state = "departed"
+	}
+	return map[string]any{
+		"state":             state,
+		"server_id":         authority.ServerID,
+		"kit_deployment_id": authority.StackID,
+		"identity_origin": map[string]any{
+			"name":         authority.Origin.Name,
+			"host":         authority.Origin.Host(),
+			"source":       authority.Origin.Source,
+			"certificates": authority.Origin.Certificates(),
+		},
+		"observed_at": formatAPITime(authority.ObservedAt),
+	}
 }

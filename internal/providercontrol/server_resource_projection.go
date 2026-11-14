@@ -11,18 +11,20 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
+	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
 	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/serverregistry"
+	"github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 )
 
 const (
-	providerReceiptFinalizerSource          = "provider-control-finalizer"
-	providerResourceFreeTeardownSource      = "provider-control-resource-free-teardown"
-	resourceFreeNoDispatchAuthority         = "no_dispatch_custody"
-	resourceFreeNoCandidateAuthority        = "no_candidate_observed"
-	resourceFreeCapacityReleaseAuthority    = "resource_free_teardown"
-	providerAbsenceCapacityReleaseAuthority = "provider_absence"
+	providerReceiptFinalizerSource            = "provider-control-finalizer"
+	providerResourceFreeTeardownSource        = "provider-control-resource-free-teardown"
+	resourceFreeNoDispatchAuthority           = "no_dispatch_custody"
+	resourceFreeNoCandidateAuthority          = "no_candidate_observed"
+	resourceFreeSubstrateGuestAbsentAuthority = "substrate_guest_absent"
+	resourceFreeCapacityReleaseAuthority      = "resource_free_teardown"
+	providerAbsenceCapacityReleaseAuthority   = "provider_absence"
 	// Managed runtime adapters keep provider-native Kind values for custody,
 	// but these graph-stable BindingIDs are the executable receipt roles used
 	// by the provider-neutral enrollment projection. Each present receipt must
@@ -359,23 +361,28 @@ func prepareAbsentProviderReceiptProjectionTx(
 		)
 	}
 	databaseNow = databaseNow.UTC()
-	if err := lockManagedRuntimeCapacityReservationTx(
-		ctx,
-		tx,
-		record.Command.TenantID,
-		record.Command.LeaseID,
-		record.Command.ResourceGenerationID,
-	); err != nil {
+	custody, err := loadDecommissionReleaseCustodyTx(ctx, tx, record)
+	if err != nil {
 		return preparedProviderReceiptRuntimeProjection{}, err
 	}
-	prepared := preparedProviderReceiptRuntimeProjection{
-		capacityRelease: &managedRuntimeCapacityReleaseFact{
+	var prepared preparedProviderReceiptRuntimeProjection
+	if custody == decommissionReleaseManagedCapacity {
+		if err := lockManagedRuntimeCapacityReservationTx(
+			ctx,
+			tx,
+			record.Command.TenantID,
+			record.Command.LeaseID,
+			record.Command.ResourceGenerationID,
+		); err != nil {
+			return preparedProviderReceiptRuntimeProjection{}, err
+		}
+		prepared.capacityRelease = &managedRuntimeCapacityReleaseFact{
 			TenantID: record.Command.TenantID, LeaseID: record.Command.LeaseID,
 			ResourceGenerationID: record.Command.ResourceGenerationID,
 			ServerID:             record.Command.RuntimeServerID, ServerGeneration: record.RuntimeServerGeneration,
 			OperationID: record.Command.OperationID, Authority: providerAbsenceCapacityReleaseAuthority, ReceiptSequence: next.Sequence,
 			ReceiptDigest: next.ReceiptDigest, ReleasedAt: databaseNow,
-		},
+		}
 	}
 	if projectServerEvent {
 		prepared.serverEvent = providerReceiptServerEvent(
@@ -386,9 +393,9 @@ func prepareAbsentProviderReceiptProjectionTx(
 			"provider_absent",
 			&databaseNow,
 		)
-		// The same transaction holds the definitive absence observation and the
-		// capacity release, so the server records verified cleanup the owner
-		// can see instead of an unverified tombstone.
+		// The same transaction holds the definitive absence observation and,
+		// for commercial capacity, its release, so the server records verified
+		// cleanup the owner can see instead of an unverified tombstone.
 		prepared.serverEvent.Runtime.Metadata = map[string]any{
 			"cleanup_state":                "absent",
 			"provider_absence_verified":    true,
@@ -397,6 +404,67 @@ func prepareAbsentProviderReceiptProjectionTx(
 		}
 	}
 	return prepared, nil
+}
+
+type decommissionReleaseCustody int
+
+const (
+	decommissionReleaseManagedCapacity decommissionReleaseCustody = iota + 1
+	decommissionReleaseCustomerSubstrate
+)
+
+// loadDecommissionReleaseCustodyTx decides which release authority closes a
+// definitive absence or, for the provision record itself, a resource-free
+// teardown. Commercial leases hold a managed-runtime capacity reservation and
+// release it. Customer-owned hypervisor guests never enter commercial capacity
+// (migration 107): their exact substrate_guest_leases custody is the
+// authority, and nothing is released (migration 189 admits that for
+// resource-free teardown). Anything else, including a lease that claims both
+// or neither, fails closed.
+func loadDecommissionReleaseCustodyTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	record OperationRecord,
+) (decommissionReleaseCustody, error) {
+	var reserved, guestCustody bool
+	var custodyClass string
+	err := tx.QueryRowContext(ctx, `
+		SELECT
+		    EXISTS (
+		        SELECT 1 FROM managed_runtime_capacity_reservations
+		        WHERE tenant_id = $1 AND lease_id = $2 AND resource_generation_id::text = $3
+		    ),
+		    COALESCE((
+		        SELECT lease_json->>'custody_class' FROM techstack_vm_leases
+		        WHERE tenant_id = $1 AND id = $2
+		    ), ''),
+		    COALESCE(substrate_guest_custody_valid($1, $2, $3, $4), false)
+	`, record.Command.TenantID, record.Command.LeaseID,
+		record.Command.ResourceGenerationID, record.Command.OperationID).Scan(
+		&reserved, &custodyClass, &guestCustody,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("providercontrol: load decommission release custody: %w", err)
+	}
+	substrateClass := custodyClass == string(vmlease.CustodyCustomerSubstrate)
+	switch {
+	case reserved && !substrateClass && !guestCustody:
+		return decommissionReleaseManagedCapacity, nil
+	case !reserved && substrateClass && guestCustody &&
+		record.Command.ProviderID == "proxmox" &&
+		record.ExecutionProfile.CredentialMode == CredentialModeWorkerHeld:
+		return decommissionReleaseCustomerSubstrate, nil
+	case !reserved && !substrateClass:
+		return 0, fmt.Errorf(
+			"%w: generation has no managed runtime capacity reservation",
+			ErrLeaseFence,
+		)
+	default:
+		return 0, fmt.Errorf(
+			"%w: generation has ambiguous release custody (capacity reservation %t, custody class %q, substrate guest custody %t)",
+			ErrLeaseFence, reserved, custodyClass, guestCustody,
+		)
+	}
 }
 
 func decommissionFinalizationServerEventRequired(head receiptRuntimeServerHead) (bool, error) {
@@ -449,7 +517,7 @@ func (l *PostgresLedger) FinalizeResourceFreeTeardown(
 		projectionRecord := prepared.projectionRecord
 		projector := prepared.projector
 
-		replayed, replayErr := loadResourceFreeTeardownReplayTx(ctx, tx, command)
+		replayed, replayErr := loadResourceFreeTeardownReplayTx(ctx, tx, command, projectionRecord)
 		if replayErr != nil {
 			return replayErr
 		}
@@ -457,6 +525,19 @@ func (l *PostgresLedger) FinalizeResourceFreeTeardown(
 			handled = true
 			return nil
 		}
+		// A failed customer-substrate head proves its authority first: until
+		// its reserved guest is observed absent, its dispatch guard is still
+		// unsettled custody and the teardown is not admitted yet (migration
+		// 190).
+		var authority resourceFreeTeardownAuthority
+		if prepared.failedSubstrate {
+			proven, authorized, authorityErr := proveSubstrateGuestAbsenceAuthorityTx(ctx, tx, command, head)
+			if authorityErr != nil || !authorized {
+				return authorityErr
+			}
+			authority = proven
+		}
+
 		if quiescenceErr := requireResourceFreeGenerationQuiescenceTx(
 			ctx,
 			tx,
@@ -469,19 +550,31 @@ func (l *PostgresLedger) FinalizeResourceFreeTeardown(
 			return lifecycleErr
 		}
 
-		authority, authorized, authorityErr := proveResourceFreeTeardownAuthorityTx(ctx, tx, command, head)
-		if authorityErr != nil || !authorized {
-			return authorityErr
+		if !prepared.failedSubstrate {
+			proven, authorized, authorityErr := proveResourceFreeTeardownAuthorityTx(ctx, tx, command, head)
+			if authorityErr != nil || !authorized {
+				return authorityErr
+			}
+			authority = proven
 		}
 
-		if capacityErr := lockManagedRuntimeCapacityReservationTx(
-			ctx,
-			tx,
-			command.TenantID,
-			command.LeaseID,
-			command.ResourceGenerationID,
-		); capacityErr != nil {
-			return capacityErr
+		// A customer substrate guest holds no capacity reservation, so there is
+		// nothing to lock or release; its exact guest custody is the authority
+		// the commit fence checks instead.
+		custody, custodyErr := loadDecommissionReleaseCustodyTx(ctx, tx, projectionRecord)
+		if custodyErr != nil {
+			return custodyErr
+		}
+		if custody == decommissionReleaseManagedCapacity {
+			if capacityErr := lockManagedRuntimeCapacityReservationTx(
+				ctx,
+				tx,
+				command.TenantID,
+				command.LeaseID,
+				command.ResourceGenerationID,
+			); capacityErr != nil {
+				return capacityErr
+			}
 		}
 
 		terminalizedAt, terminalizeErr := persistResourceFreeTerminalizationTx(
@@ -491,7 +584,7 @@ func (l *PostgresLedger) FinalizeResourceFreeTeardown(
 			return terminalizeErr
 		}
 		if projectErr := projectResourceFreeTeardownTx(
-			ctx, tx, command, head, projectionRecord, serverHead, projector, authority.name, terminalizedAt,
+			ctx, tx, command, head, projectionRecord, serverHead, projector, authority.name, custody, terminalizedAt,
 		); projectErr != nil {
 			return projectErr
 		}
@@ -516,12 +609,17 @@ type resourceFreeTeardownContext struct {
 	terminalGeneration int64
 	projectionRecord   OperationRecord
 	projector          *postgresProviderReceiptRuntimeProjector
+	// failedSubstrate marks a failed, resource-free customer-substrate
+	// provision. Only a definitive absence observation of its reserved guest
+	// can close it.
+	failedSubstrate bool
 }
 
 type resourceFreeTeardownAuthority struct {
 	name               string
 	resolutionRevision sql.NullInt64
 	decisionDigest     sql.NullString
+	absenceEvidenceRef sql.NullString
 }
 
 func (l *PostgresLedger) prepareResourceFreeTeardownTx(
@@ -545,9 +643,14 @@ func (l *PostgresLedger) prepareResourceFreeTeardownTx(
 	if err != nil {
 		return resourceFreeTeardownContext{}, false, err
 	}
-	eligible, err := admitResourceFreeTeardownOperation(current, command, head)
+	eligible, failed, err := admitResourceFreeTeardownOperation(current, command, head)
 	if err != nil || !eligible {
 		return resourceFreeTeardownContext{}, eligible, err
+	}
+	// A failed commercial or AMO head keeps its existing path (Operator
+	// Reconcile). Only a customer-substrate guest is admitted below.
+	if failed && current.Command.ProviderID != "proxmox" {
+		return resourceFreeTeardownContext{}, false, nil
 	}
 	leaseHead, err := loadReceiptRuntimeLeaseHeadTx(ctx, tx, command)
 	if err != nil {
@@ -569,6 +672,18 @@ func (l *PostgresLedger) prepareResourceFreeTeardownTx(
 	if !teardownRequested {
 		return resourceFreeTeardownContext{}, false, nil
 	}
+	if failed {
+		// Only an exact customer-substrate guest is admitted. Ambiguous
+		// custody is not admitted rather than failing every Advance of a
+		// terminal head; the insert validator refuses it in any case.
+		custody, custodyErr := loadDecommissionReleaseCustodyTx(ctx, tx, current)
+		if custodyErr != nil && !errors.Is(custodyErr, ErrLeaseFence) {
+			return resourceFreeTeardownContext{}, false, custodyErr
+		}
+		if custodyErr != nil || custody != decommissionReleaseCustomerSubstrate {
+			return resourceFreeTeardownContext{}, false, nil
+		}
+	}
 	terminalGeneration, err := resourceFreeTeardownServerGeneration(
 		current.RuntimeServerGeneration, serverHead.Generation, teardownRequested,
 	)
@@ -587,17 +702,20 @@ func (l *PostgresLedger) prepareResourceFreeTeardownTx(
 	return resourceFreeTeardownContext{
 		serverHead:         serverHead,
 		terminalGeneration: terminalGeneration, projectionRecord: projectionRecord,
-		projector: projector,
+		projector: projector, failedSubstrate: failed,
 	}, true, nil
 }
 
+// admitResourceFreeTeardownOperation admits a resource-free provision head:
+// pending before dispatch, or failed. failed reports the latter, which the
+// caller admits only for customer substrate.
 func admitResourceFreeTeardownOperation(
 	current OperationRecord,
 	command providerexecutor.Command,
 	head providerexecutor.Receipt,
-) (bool, error) {
+) (bool, bool, error) {
 	if err := providerexecutor.ValidateReplay(current.Command, command); err != nil {
-		return false, err
+		return false, false, err
 	}
 	if current.Head.Sequence != head.Sequence || current.Head.ReceiptDigest != head.ReceiptDigest {
 		// Another worker may advance the exact same provision between the
@@ -606,32 +724,52 @@ func admitResourceFreeTeardownOperation(
 		// convergence: leave the newer head for the next cycle instead of
 		// terminally failing cleanup with a stale-read conflict.
 		if head.Sequence < current.Head.Sequence {
-			return false, nil
+			return false, false, nil
 		}
-		return false, fmt.Errorf("%w: resource-free teardown head changed", ErrLedgerConflict)
+		return false, false, fmt.Errorf("%w: resource-free teardown head changed", ErrLedgerConflict)
 	}
 	if current.Command.Operation != providerexecutor.OperationProvision ||
-		current.Head.Status != providerexecutor.StatusPending ||
-		(current.Head.Phase != providerexecutor.PhaseRequested &&
-			current.Head.Phase != providerexecutor.PhaseAccepted) ||
 		len(current.Head.Resources) != 0 {
-		return false, nil
+		return false, false, nil
 	}
-	return true, nil
+	switch {
+	case current.Head.Status == providerexecutor.StatusPending &&
+		(current.Head.Phase == providerexecutor.PhaseRequested ||
+			current.Head.Phase == providerexecutor.PhaseAccepted):
+		return true, false, nil
+	case current.Head.Status == providerexecutor.StatusFailed &&
+		current.Head.Phase == providerexecutor.PhaseFailed:
+		return true, true, nil
+	default:
+		return false, false, nil
+	}
 }
 
 func loadResourceFreeTeardownReplayTx(
 	ctx context.Context,
 	tx *sql.Tx,
 	command providerexecutor.Command,
+	record OperationRecord,
 ) (bool, error) {
 	var existingAuthority, existingDigest string
 	var existingRevision sql.NullInt64
-	var existingComplete bool
+	var existingTombstone, existingRelease bool
 	err := tx.QueryRowContext(ctx, `
 		SELECT terminalization.authority,
 		       terminalization.resolution_revision,
 		       COALESCE(terminalization.decision_digest, ''),
+		       EXISTS (
+		           SELECT 1
+		           FROM servers AS server
+		           WHERE server.tenant_id = terminalization.tenant_id
+		             AND server.id = terminalization.server_id
+		             AND server.lease_id = terminalization.lease_id
+		             AND server.generation =
+		                 terminalization.server_generation
+		             AND server.desired_state = 'absent'
+		             AND server.lifecycle_state = 'decommissioned'
+		             AND server.decommissioned_at IS NOT NULL
+		       ),
 		       EXISTS (
 		           SELECT 1
 		           FROM servers AS server
@@ -667,16 +805,28 @@ func loadResourceFreeTeardownReplayTx(
 		&existingAuthority,
 		&existingRevision,
 		&existingDigest,
-		&existingComplete,
+		&existingTombstone,
+		&existingRelease,
 	)
 	if err == nil {
-		if !existingComplete {
-			return false, fmt.Errorf(
-				"%w: resource-free teardown fact lacks its exact RuntimeServer tombstone and capacity release",
-				ErrLedgerConflict,
-			)
+		if existingTombstone && existingRelease {
+			return true, nil
 		}
-		return true, nil
+		if existingTombstone {
+			// A customer substrate guest commits its terminalization without a
+			// release fact; its exact guest custody completes the replay.
+			custody, custodyErr := loadDecommissionReleaseCustodyTx(ctx, tx, record)
+			if custodyErr != nil {
+				return false, custodyErr
+			}
+			if custody == decommissionReleaseCustomerSubstrate {
+				return true, nil
+			}
+		}
+		return false, fmt.Errorf(
+			"%w: resource-free teardown fact lacks its exact RuntimeServer tombstone and release custody",
+			ErrLedgerConflict,
+		)
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
 		return false, fmt.Errorf("providercontrol: load resource-free teardown fact: %w", err)
@@ -735,6 +885,96 @@ func proveResourceFreeTeardownAuthorityTx(
 		if err != nil || !noDispatchCustody {
 			return resourceFreeTeardownAuthority{}, noDispatchCustody, err
 		}
+	}
+	return authority, true, nil
+}
+
+// proveSubstrateGuestAbsenceAuthorityTx finds the authority that closes a
+// failed customer-substrate provision: a definitive Proxmox absence
+// observation of its exact reserved guest, recorded under an operation of the
+// same lease and resource generation after the failure. A failed provision
+// alone proves nothing, because the adapter may have started creating that
+// guest. Without the observation the teardown is not admitted yet. The insert
+// validator of migration 190 re-proves the same set.
+func proveSubstrateGuestAbsenceAuthorityTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	command providerexecutor.Command,
+	head providerexecutor.Receipt,
+) (resourceFreeTeardownAuthority, bool, error) {
+	authority := resourceFreeTeardownAuthority{name: resourceFreeSubstrateGuestAbsentAuthority}
+	err := tx.QueryRowContext(ctx, `
+		SELECT observation.evidence_ref
+		FROM provider_operations AS operation
+		JOIN substrate_guest_leases AS guest
+		  ON guest.tenant_id = operation.tenant_id
+		 AND guest.lease_id = operation.lease_id
+		 AND guest.operation_id = operation.operation_id
+		 AND guest.resource_generation_id::text =
+		     operation.command_json #>> '{command,resource_generation_id}'
+		 AND guest.server_id = operation.command_json #>> '{command,runtime_server_id}'
+		JOIN provider_operation_receipts AS failed_receipt
+		  ON failed_receipt.tenant_id = operation.tenant_id
+		 AND failed_receipt.operation_id = operation.operation_id
+		 AND failed_receipt.sequence = operation.head_sequence
+		 AND failed_receipt.receipt_digest = operation.head_receipt_digest
+		JOIN provider_operations AS observer
+		  ON observer.tenant_id = operation.tenant_id
+		 AND observer.lease_id = operation.lease_id
+		 AND observer.command_json #>> '{command,resource_generation_id}' =
+		     operation.command_json #>> '{command,resource_generation_id}'
+		JOIN provider_absence_observations AS observation
+		  ON observation.tenant_id = observer.tenant_id
+		 AND observation.operation_id = observer.operation_id
+		WHERE operation.tenant_id = $1
+		  AND operation.operation_id = $2
+		  AND operation.head_sequence = $3
+		  AND operation.head_receipt_digest = $4
+		  AND operation.status = 'failed'
+		  AND operation.phase = 'failed'
+		  AND observation.provider_id = 'proxmox'
+		  AND observation.observation = 'absent'
+		  AND observation.source = 'provider_api'
+		  AND observation.binding_id = 'guest-' || guest.resource_generation_id::text
+		  AND observation.native_ref_hash = 'sha256:' || encode(
+		      sha256(convert_to(guest.substrate_server_id || '/' || guest.guest_id::text, 'UTF8')),
+		      'hex'
+		  )
+		  AND observation.document_json @> jsonb_build_array(jsonb_build_array(
+		      'authoritative_list_absent',
+		      guest.substrate_server_id || '/' || guest.guest_id::text
+		  ))
+		  AND observation.collected_at > failed_receipt.issued_at
+		ORDER BY observation.collected_at, observation.evidence_ref
+		LIMIT 1
+	`, command.TenantID, command.OperationID,
+		int64(head.Sequence), head.ReceiptDigest).Scan( // #nosec G115 -- FinalizeResourceFreeTeardown validates the sealed receipt.
+		&authority.absenceEvidenceRef,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return resourceFreeTeardownAuthority{}, false, nil
+	}
+	if err != nil {
+		return resourceFreeTeardownAuthority{}, false,
+			fmt.Errorf("providercontrol: load substrate guest absence authority: %w", err)
+	}
+	var liveClaim bool
+	if err := tx.QueryRowContext(ctx, `
+		SELECT EXISTS (
+			SELECT 1
+			FROM provider_operation_execution_claims AS claim
+			WHERE claim.tenant_id = $1
+			  AND claim.operation_id = $2
+			  AND claim.state = 'active'
+			  AND claim.lease_expires_at > clock_timestamp()
+		)
+	`, command.TenantID, command.OperationID).Scan(&liveClaim); err != nil {
+		return resourceFreeTeardownAuthority{}, false,
+			fmt.Errorf("providercontrol: inspect substrate guest absence claim quiescence: %w", err)
+	}
+	if liveClaim {
+		// Not quiescent yet; a later cycle re-proves the authority.
+		return resourceFreeTeardownAuthority{}, false, nil
 	}
 	return authority, true, nil
 }
@@ -819,16 +1059,17 @@ func persistResourceFreeTerminalizationTx(
 			tenant_id, operation_id, lease_id, lease_revision,
 			server_id, server_generation, resource_generation_id,
 			head_sequence, head_receipt_digest, authority,
-			resolution_revision, decision_digest, terminalized_at
+			resolution_revision, decision_digest, absence_evidence_ref, terminalized_at
 		) VALUES (
-			$1,$2,$3,$4,$5,$6,$7::uuid,$8,$9,$10,$11,$12,clock_timestamp()
+			$1,$2,$3,$4,$5,$6,$7::uuid,$8,$9,$10,$11,$12,$13,clock_timestamp()
 		)
 		RETURNING terminalized_at
 	`, command.TenantID, command.OperationID, command.LeaseID,
 		int64(command.LeaseRevision), command.RuntimeServerID, // #nosec G115 -- FinalizeResourceFreeTeardown validates the sealed command.
 		terminalGeneration, command.ResourceGenerationID,
 		int64(head.Sequence), head.ReceiptDigest, authority.name, // #nosec G115 -- FinalizeResourceFreeTeardown validates the sealed receipt.
-		authority.resolutionRevision, authority.decisionDigest).Scan(&terminalizedAt); err != nil {
+		authority.resolutionRevision, authority.decisionDigest,
+		authority.absenceEvidenceRef).Scan(&terminalizedAt); err != nil {
 		return time.Time{}, fmt.Errorf("providercontrol: persist resource-free teardown fact: %w", err)
 	}
 	return terminalizedAt.UTC(), nil
@@ -843,11 +1084,15 @@ func projectResourceFreeTeardownTx(
 	serverHead receiptRuntimeServerHead,
 	projector *postgresProviderReceiptRuntimeProjector,
 	authority string,
+	custody decommissionReleaseCustody,
 	terminalizedAt time.Time,
 ) error {
 	reason := "provider_dispatch_not_started"
-	if authority == resourceFreeNoCandidateAuthority {
+	switch authority {
+	case resourceFreeNoCandidateAuthority:
 		reason = "provider_no_candidate"
+	case resourceFreeSubstrateGuestAbsentAuthority:
+		reason = "provider_guest_absent"
 	}
 	if serverHead.LifecycleState != string(serverregistry.LifecycleDecommissioning) {
 		decommissioning, err := projector.servers.ApplyServerEventTx(
@@ -892,6 +1137,14 @@ func projectResourceFreeTeardownTx(
 	if decommissioned == nil || !decommissioned.Applied || decommissioned.Server == nil ||
 		decommissioned.Server.LifecycleState != string(serverregistry.LifecycleDecommissioned) {
 		return fmt.Errorf("%w: resource-free tombstone projection was not applied", ErrLedgerConflict)
+	}
+	switch custody {
+	case decommissionReleaseCustomerSubstrate:
+		// Nothing was reserved, so nothing is released (migration 189).
+		return nil
+	case decommissionReleaseManagedCapacity:
+	default:
+		return fmt.Errorf("%w: resource-free teardown has no release custody", ErrLeaseFence)
 	}
 	return insertManagedRuntimeCapacityReleaseTx(
 		ctx,

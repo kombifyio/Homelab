@@ -55,13 +55,9 @@ func BeginTenantTransaction(ctx context.Context, pool *sql.DB, tenantID string) 
 	if pool == nil {
 		return nil, errors.New("db: handle is nil")
 	}
-	tx, err := pool.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	tx, err := tenantcontext.Begin(ctx, pool, &sql.TxOptions{Isolation: sql.LevelReadCommitted}, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("begin tenant tx: %w", err)
-	}
-	if err = tenantcontext.ApplyTenant(ctx, tx, tenantID); err != nil {
-		_ = tx.Rollback()
-		return nil, err
 	}
 	return tx, nil
 }

@@ -278,6 +278,11 @@ func (c *Client) classify(err error) error {
 		apiErr.Code == guardidentity.CodeProofInvalid && apiErr.Reason == guardidentity.ReasonKeyMismatch:
 		_ = manager.SetState(StateRecoveryNeeded, "bound_to_another_key")
 		return fmt.Errorf("%w: the control plane holds a different key for this server", ErrRecoveryNeeded)
+	case apiErr.Code == "" && apiErr.Status == http.StatusUnauthorized && c.tenantRebindAcceptedAfterRefusal():
+		// The operator moved this server to its canonical tenant and the
+		// control plane accepts the offered credential: the stored offer is
+		// applied on restart instead of asking for a new pairing.
+		return ErrTenantRebindReady
 	case apiErr.Code == "" && apiErr.Status == http.StatusUnauthorized:
 		_ = manager.SetState(StateRecoveryNeeded, reasonCredentialRejected)
 		return fmt.Errorf("%w: the worker credential was rejected", ErrRecoveryNeeded)
@@ -301,6 +306,52 @@ func (c *Client) exchangeAndStore(ctx context.Context) error {
 }
 
 func (c *Client) newRequest(ctx context.Context, endpoint string, body []byte, key ed25519.PrivateKey) (*http.Request, error) {
+	return c.newRequestAs(ctx, endpoint, body, key, c.cfg.AgentToken, c.cfg.TenantID)
+}
+
+// tenantRebindProbeTimeout bounds the one proof of an offered credential.
+const tenantRebindProbeTimeout = 15 * time.Second
+
+// ProbeTenantRebind is called after the control plane refused the legacy
+// credential. With a stored offer it asks the control plane, once, to exchange
+// the offered credential under the canonical tenant with this host key. Only an
+// answer that authenticated the offered credential (an access token, or an
+// identity answer the credential check precedes) marks the offer ready; any
+// other answer keeps the Guard on its legacy binding and normal recovery.
+func (c *Client) ProbeTenantRebind(ctx context.Context) bool {
+	manager := c.cfg.Manager
+	offer, ok := manager.PendingTenantRebind()
+	if !ok || manager.Key() == nil || c.cfg.Endpoints.TokenURL == "" {
+		return false
+	}
+	ctx, cancel := context.WithTimeout(ctx, tenantRebindProbeTimeout)
+	defer cancel()
+	req, err := c.newRequestAs(ctx, c.cfg.Endpoints.TokenURL, nil, manager.Key(), offer.AgentToken, offer.Directive.ToTenantID)
+	if err != nil {
+		return false
+	}
+	_, err = c.do(req)
+	var apiErr *APIError
+	accepted := err == nil || (errors.As(err, &apiErr) &&
+		(apiErr.Code == guardidentity.CodeIdentityUpgradePending ||
+			(apiErr.Code == guardidentity.CodeProofInvalid && apiErr.Reason == guardidentity.ReasonIdentityUnbound)))
+	if !accepted {
+		c.log.Warn("guard_tenant_rebind_probe_refused", "directive_id", offer.Directive.DirectiveID)
+		return false
+	}
+	if markErr := manager.MarkTenantRebindReady(offer.Directive.DirectiveID); markErr != nil {
+		return false
+	}
+	c.log.Warn("guard_tenant_rebind_ready", "directive_id", offer.Directive.DirectiveID,
+		"from_tenant", offer.Directive.FromTenantID, "to_tenant", offer.Directive.ToTenantID)
+	return true
+}
+
+func (c *Client) tenantRebindAcceptedAfterRefusal() bool {
+	return c.ProbeTenantRebind(context.Background())
+}
+
+func (c *Client) newRequestAs(ctx context.Context, endpoint string, body []byte, key ed25519.PrivateKey, agentToken, tenantID string) (*http.Request, error) {
 	proof, err := guardidentity.SignProof(key, guardidentity.ProofInput{Method: http.MethodPost, URL: endpoint, Now: c.cfg.Now()})
 	if err != nil {
 		return nil, err
@@ -313,13 +364,13 @@ func (c *Client) newRequest(ctx context.Context, endpoint string, body []byte, k
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(c.cfg.AgentToken))
+	req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(agentToken))
 	req.Header.Set(guardidentity.ProofHeader, proof)
 	req.Header.Set("Accept", "application/json")
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	if tenant := strings.TrimSpace(c.cfg.TenantID); tenant != "" {
+	if tenant := strings.TrimSpace(tenantID); tenant != "" {
 		req.Header.Set("X-Kombify-Tenant-ID", tenant)
 	}
 	return req, nil

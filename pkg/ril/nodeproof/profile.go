@@ -15,6 +15,11 @@ import (
 
 const ProfileAuthorityFile = "ril-applied-profile.json"
 
+// ErrHostedProfileNotApplied reports that no hosted profile authority was ever
+// written in the trusted directory: RIL does not apply to this host yet. It is
+// still a refusal; every other admission failure keeps its own error.
+var ErrHostedProfileNotApplied = errors.New("RIL hosted profile not applied")
+
 var profileDigest = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
 
 type profileEvidence struct {
@@ -86,6 +91,9 @@ func admitHostedProfile(dir string) error {
 	}
 	raw, err := privatefs.ReadFile(root, ProfileAuthorityFile)
 	root.Close()
+	if errors.Is(err, os.ErrNotExist) {
+		return ErrHostedProfileNotApplied
+	}
 	if err != nil {
 		return err
 	}

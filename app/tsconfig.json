@@ -1,9 +1,8 @@
 {
-  "extends": "$app/tsconfig",
+  "extends": ["$app/tsconfig", "@kombify/tsconfig/base.json"],
   "compilerOptions": {
     "rewriteRelativeImportExtensions": true,
-    "sourceMap": true,
-    "strict": true
+    "sourceMap": true
   },
   // The SvelteKit 3 codemod narrows this to ["src"]; Techstack type-checked
   // its Playwright specs and Vitest mocks before the migration, so the

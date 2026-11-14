@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kombifyio/techstack/internal/providercatalog"
 	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
 	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/runtimeidentity"
@@ -152,14 +153,11 @@ func normalizeNativeRuntimeProvider(providerRef string) string {
 	if index := strings.IndexByte(providerRef, ':'); index >= 0 {
 		providerRef = providerRef[:index]
 	}
-	switch providerRef {
-	case "ionos", "ionos-managed":
-		return "ionos"
-	case "centron", "centron-managed":
-		return "centron"
-	default:
+	providerRef = strings.TrimSuffix(providerRef, providercatalog.CompositeProviderSuffix)
+	if !providercatalog.IsCanonicalProviderID(providerRef) {
 		return ""
 	}
+	return providerRef
 }
 
 func nativeObservedState(server controlplane.ServerRuntime) (string, string) {

@@ -32,6 +32,10 @@ func (s *fakeSystemd) Show(context.Context, string, ...string) (map[string]strin
 	return s.props, nil
 }
 
+func (s *fakeSystemd) StopNoBlock(context.Context, string) error { return nil }
+
+func (s *fakeSystemd) DaemonReload(context.Context) error { return nil }
+
 func (s *fakeSystemd) RunTransient(_ context.Context, unit string, _ []string) error {
 	s.mu.Lock()
 	s.started = append(s.started, unit)

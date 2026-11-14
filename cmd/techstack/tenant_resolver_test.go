@@ -149,7 +149,7 @@ func TestV2CloudTenantResolverRejectsIdentityWithoutSubject(t *testing.T) {
 	}
 }
 
-func TestOwnerTenantIDUsesGatewayNamespaceAndKeepsLegacyReadCompatibility(t *testing.T) {
+func TestOwnerTenantIDUsesOnlyGatewayNamespace(t *testing.T) {
 	const subject = "auth0|user-1"
 	if got := canonicalOwnerTenantID(subject); got != "usr:auth0|user-1" {
 		t.Fatalf("canonicalOwnerTenantID() = %q", got)
@@ -157,8 +157,8 @@ func TestOwnerTenantIDUsesGatewayNamespaceAndKeepsLegacyReadCompatibility(t *tes
 	if !isOwnerTenantID("usr:auth0|user-1", subject) {
 		t.Fatal("Gateway owner tenant must be accepted")
 	}
-	if !isOwnerTenantID(subject, subject) {
-		t.Fatal("legacy naked owner tenant must remain readable")
+	if isOwnerTenantID(subject, subject) {
+		t.Fatal("naked subject is not an owner tenant")
 	}
 	if isOwnerTenantID("usr:auth0|other-user", subject) {
 		t.Fatal("foreign personal tenant must be rejected")

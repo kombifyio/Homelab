@@ -51,7 +51,7 @@ func (h wizardRunHandlers) runWizardRunningExtend(e *httpx.Event, run *wizardRun
 				intent.Name = name
 			}
 		}
-		projection, handled := h.projectAndValidate(e, base, intent, run.homelabID, h.layoutAcceptanceHook(e, run, stack.ID))
+		projection, handled := h.projectAndValidate(e, base, intent, run, h.layoutAcceptanceHook(e, run, stack.ID))
 		if handled {
 			return nil
 		}

@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -195,6 +196,73 @@ func (catalog AdvancedOperationsCatalog) RenderArgv(operation string, values map
 		argv = append(argv, words...)
 	}
 	return argv, nil
+}
+
+// RenderRequiredArgv renders only the required argv of operation, without any
+// optional group. A literal optional flag (one without placeholders) would
+// otherwise always render, so a caller that selects no option uses this.
+func (catalog AdvancedOperationsCatalog) RenderRequiredArgv(operation string, values map[string]string) ([]string, error) {
+	if err := catalog.Dispatchable(operation); err != nil {
+		return nil, err
+	}
+	entry, _ := catalog.Lookup(operation)
+	argv, err := catalog.renderWords(entry.Argv, values, true)
+	if err != nil {
+		return nil, fmt.Errorf("render Advanced operation %s: %w", operation, err)
+	}
+	return argv, nil
+}
+
+// RenderSelectedArgv renders the required argv of operation and the optional
+// groups the caller selects from the catalog: a group with placeholders
+// renders when every one of them has a value, and a literal-only group (for
+// example --allow-major) only when the caller names each of its words in
+// literals. Nothing outside the catalog entry is ever rendered.
+func (catalog AdvancedOperationsCatalog) RenderSelectedArgv(operation string, values map[string]string, literals ...string) ([]string, error) {
+	argv, err := catalog.RenderRequiredArgv(operation, values)
+	if err != nil {
+		return nil, err
+	}
+	entry, _ := catalog.Lookup(operation)
+	for _, optional := range entry.OptionalArgs {
+		literal := true
+		for _, word := range optional.Argv {
+			if advancedPlaceholderPattern.MatchString(word) {
+				literal = false
+			}
+		}
+		if literal {
+			selected := len(optional.Argv) != 0
+			for _, word := range optional.Argv {
+				selected = selected && slices.Contains(literals, word)
+			}
+			if selected {
+				argv = append(argv, optional.Argv...)
+			}
+			continue
+		}
+		words, optionalErr := catalog.renderWords(optional.Argv, values, false)
+		if optionalErr != nil {
+			return nil, fmt.Errorf("render Advanced operation %s: %w", operation, optionalErr)
+		}
+		argv = append(argv, words...)
+	}
+	return argv, nil
+}
+
+// DeclaresOptional reports whether operation lists the literal-only optional
+// group made of exactly words.
+func (catalog AdvancedOperationsCatalog) DeclaresOptional(operation string, words ...string) bool {
+	entry, ok := catalog.Lookup(operation)
+	if !ok {
+		return false
+	}
+	for _, optional := range entry.OptionalArgs {
+		if slices.Equal(optional.Argv, words) {
+			return true
+		}
+	}
+	return false
 }
 
 // renderWords renders one argv group. With required false a group whose

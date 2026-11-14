@@ -24,8 +24,8 @@ func (h *Hub) WorkerBootstrap(ctx context.Context, tenant, worker, invocation st
 	if err != nil {
 		return nil, err
 	}
-	var execution providerexecutor.WorkerExecution
-	if json.Unmarshal(raw, &execution) != nil || execution.Validate(time.Now()) != nil || execution.WorkerID != worker || execution.Command.TenantID != tenant || execution.Phase != providerexecutor.WorkerPhaseSubmit || execution.Stage != "create" || execution.Command.Operation != providerexecutor.OperationProvision {
+	execution, decodeErr := decodeRetainedWorkerExecution(raw)
+	if decodeErr != nil || execution.Validate(time.Now()) != nil || execution.WorkerID != worker || execution.Command.TenantID != tenant || execution.Phase != providerexecutor.WorkerPhaseSubmit || execution.Stage != "create" || execution.Command.Operation != providerexecutor.OperationProvision {
 		return nil, errors.New("bootstrap dispatch invalid")
 	}
 	if err = validateWorkerFence(ctx, tx, execution); err != nil {

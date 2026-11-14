@@ -24,12 +24,42 @@ import { serviceCardPlacement, serviceIsLocked } from "../service-card-adapter";
 export const FANOUT_ACTIONS = ["start", "stop", "restart"] as const;
 export type FanoutAction = (typeof FANOUT_ACTIONS)[number];
 
+/**
+ * Card actions an app StackKits runs as an own application grants through
+ * its own lifecycle (own_application.actions), not the generic service action.
+ */
+const OWN_APPLICATION_CARD_ACTIONS = ["start", "stop", "restart", "update", "logs"];
+
+/** Whether a component can run an action now (generic or own-application). */
+export function componentGrants(
+  component: Pick<CanonicalService, "allowed_actions" | "own_application">,
+  action: string,
+): boolean {
+  if (component.own_application && OWN_APPLICATION_CARD_ACTIONS.includes(action)) {
+    return (component.own_application.actions as string[]).includes(action);
+  }
+  return component.allowed_actions.includes(action);
+}
+
+/** Every action a component grants now, own-application ones included. */
+export function grantedActions(
+  component: Pick<CanonicalService, "allowed_actions" | "own_application">,
+): string[] {
+  const own = component.own_application
+    ? (component.own_application.actions as string[]).filter((action) => OWN_APPLICATION_CARD_ACTIONS.includes(action))
+    : [];
+  const generic = component.own_application
+    ? component.allowed_actions.filter((action) => !OWN_APPLICATION_CARD_ACTIONS.includes(action))
+    : component.allowed_actions;
+  return [...new Set([...generic, ...own])];
+}
+
 export function componentsGranting(
   application: Pick<ServiceApplication, "components">,
   action: string,
 ): CanonicalService[] {
   return application.components.filter((component) =>
-    component.allowed_actions.includes(action),
+    componentGrants(component, action),
   );
 }
 

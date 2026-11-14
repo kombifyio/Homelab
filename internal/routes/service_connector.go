@@ -23,7 +23,6 @@ import (
 type serviceConnectorRequest struct {
 	ExpectedInventoryRevision int64  `json:"expected_inventory_revision"`
 	Action                    string `json:"action"`
-	LifespanDays              int    `json:"lifespan_days"`
 	OwnerApproved             bool   `json:"owner_approved"`
 }
 
@@ -66,7 +65,13 @@ func (h *serviceRuntimeHandlers) readConnector(e *httpx.Event) error {
 	if authority, ok := h.orch.(interface {
 		AuthorizeApplicationConnectorRead(context.Context, jobs.StackKitLifecycleRequest) error
 	}); ok {
-		binding := &jobs.ApplicationConnectorBinding{ServerID: t.server.ID, ServerGeneration: metadataInt64(retained, "server_generation"), WorkerGeneration: metadataInt64(retained, "worker_generation"), NodeID: stringFromAny(retained["node_id"]), LeaseID: stringFromAny(retained["lease_id"]), ProviderRef: stringFromAny(retained["provider_ref"])}
+		// Generation 0 is a real worker generation (kombify-StackKits-4czp), so a
+		// retained record that names none must not read as 0.
+		workerGeneration := int64(-1)
+		if _, recorded := retained["worker_generation"]; recorded {
+			workerGeneration = metadataInt64(retained, "worker_generation")
+		}
+		binding := &jobs.ApplicationConnectorBinding{ServerID: t.server.ID, ServerGeneration: metadataInt64(retained, "server_generation"), WorkerGeneration: workerGeneration, NodeID: stringFromAny(retained["node_id"]), LeaseID: stringFromAny(retained["lease_id"]), ProviderRef: stringFromAny(retained["provider_ref"])}
 		nodeCurrent = authority.AuthorizeApplicationConnectorRead(e.Request.Context(), jobs.StackKitLifecycleRequest{TenantID: t.tenant, OwnerID: t.owner, StackID: t.stack.ID, StackKitInstanceID: t.stack.StackKitInstanceID, AgentID: t.server.WorkerID, NodeID: binding.NodeID, Connector: binding}) == nil
 	}
 	intentCurrent := jobs.ApplicationIntentRevision(t.service) > 0 && jobs.ApplicationIntentRevision(t.service) == metadataInt64(t.service.Metadata, "application_connector_projection_revision")
@@ -96,8 +101,8 @@ func (h *serviceRuntimeHandlers) setupConnector(e *httpx.Event) error {
 	var r serviceConnectorRequest
 	d := json.NewDecoder(io.LimitReader(e.Request.Body, 4097))
 	d.DisallowUnknownFields()
-	if d.Decode(&r) != nil || d.Decode(&struct{}{}) != io.EOF || !r.OwnerApproved || r.ExpectedInventoryRevision <= 0 || (r.Action != "ensure" && r.Action != "revoke") || r.LifespanDays < 1 || r.LifespanDays > 365 {
-		return httpx.BadRequest(e, "Connector requires one closed ensure or revoke request, lifespan, current inventory revision and Owner approval", nil)
+	if d.Decode(&r) != nil || d.Decode(&struct{}{}) != io.EOF || !r.OwnerApproved || r.ExpectedInventoryRevision <= 0 || (r.Action != "ensure" && r.Action != "revoke") {
+		return httpx.BadRequest(e, "Connector requires one closed ensure or revoke request, current inventory revision and Owner approval", nil)
 	}
 	// The route never accepts a container, node, image, token, Owner key or URL
 	// from the public caller. All dispatch metadata comes from canonical stores.
@@ -118,15 +123,13 @@ func (h *serviceRuntimeHandlers) setupConnector(e *httpx.Event) error {
 	request := stackkitcommand.ConnectorRequest{SchemaVersion: stackkitcommand.ApplicationConnectorRequestSchema}
 	request.Connector.Binding = stackkitcommand.ConnectorSource{ResourceID: t.service.ID, ContainerID: jobs.ApplicationContainerIdentity(t.service), ImageDigest: image, ServiceRevision: t.head.Revision}
 	request.Connector.Action = r.Action
-	request.Connector.LifespanDays = r.LifespanDays
 	previous, _ := t.service.Metadata["application_connector_job_id"].(string)
 	binding := &jobs.ApplicationConnectorBinding{ReleasePin: pin, Request: request, ServerID: t.server.ID, ServerGeneration: t.server.Generation, LeaseID: t.server.LeaseID, ProviderRef: t.server.ProviderRef, NodeID: t.server.NodeID, ExpectedIntentRevision: jobs.ApplicationIntentRevision(t.head.Service), ExpectedConnectorJobID: previous}
 	// The fingerprint excludes volatile inventory observations, but includes
 	// exact source and semantic action so a key cannot be reused for another one.
 	fingerprint, _ := json.Marshal(struct {
 		Service, Container, Image, Action string
-		Lifespan                          int
-	}{t.service.ID, request.Connector.Binding.ContainerID, image, r.Action, r.LifespanDays})
+	}{t.service.ID, request.Connector.Binding.ContainerID, image, r.Action})
 	digest := sha256.Sum256(fingerprint)
 	req := jobs.StackKitLifecycleRequest{StackID: t.stack.ID, StackKitInstanceID: t.stack.StackKitInstanceID, TenantID: t.tenant, OwnerID: t.owner, AgentID: t.server.WorkerID, Operation: jobs.StackKitLifecycleApplicationConnector, OwnerApproved: true, ServiceID: t.service.ID, ServiceKey: "smart-home", DurableJobID: jobs.StackKitServiceActionJobID(t.tenant, t.owner, key), ServiceActionDigest: hex.EncodeToString(digest[:]), Connector: binding}
 	if h.orch == nil || h.jobs == nil {

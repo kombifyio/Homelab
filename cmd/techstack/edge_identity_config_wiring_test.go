@@ -16,8 +16,11 @@ import (
 	commonedgeauth "github.com/kombifyio/techstack/internal/gocommon/edgeauth"
 	"github.com/kombifyio/techstack/internal/gocommon/edgeauth/edgeauthtest"
 	"github.com/kombifyio/techstack/pkg/config"
+	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/techstack/pkg/features"
 	"github.com/kombifyio/techstack/pkg/httpx"
 	"github.com/kombifyio/techstack/pkg/identity"
+	"github.com/kombifyio/techstack/pkg/middleware"
 )
 
 func TestSignedEdgeDemoFirstLoginBootstrapsEmptyAuthProjection(t *testing.T) {
@@ -54,7 +57,10 @@ func TestSignedEdgeDemoFirstLoginBootstrapsEmptyAuthProjection(t *testing.T) {
 	})
 	router.GET("/api/v1/stacks", func(e *httpx.Event) error {
 		id := identity.FromContext(e.Request.Context())
-		if id == nil || id.UserID != demoTenant || id.OrgID != demoTenant {
+		// The retired legacy demo-owner adapter no longer rewrites a demo
+		// subject onto the demo tenant id (#3037): the signed edge subject is
+		// preserved, the configured demo tenant is the organization.
+		if id == nil || id.UserID != demoUser || id.OrgID != demoTenant {
 			http.Error(e.Response, "demo edge identity missing", http.StatusUnauthorized)
 			return nil
 		}
@@ -334,5 +340,21 @@ func TestSignedEdgeRequestsKeepTestIdentitiesInTestTenants(t *testing.T) {
 		if tc.want == http.StatusForbidden && !strings.Contains(recorder.Body.String(), "test_identity_tenant_refused") {
 			t.Fatalf("%s: refusal body = %q, want test_identity_tenant_refused", tc.name, recorder.Body.String())
 		}
+	}
+}
+
+func TestMembershipEntitlementsDoNotBecomeFeatureFlags(t *testing.T) {
+	ctx := contextWithMembershipAuthorization(t.Context(), &controlplane.Membership{Metadata: map[string]any{"entitlements": []string{"self.healing.enabled"}}})
+	svc, err := features.NewService(nil, features.ServiceConfig{Edition: config.EditionSaaSStandalone})
+	if err != nil {
+		t.Fatal(err)
+	}
+	enabled, err := svc.IsEnabled(ctx, "self_healing", "synthetic-owner")
+	if err != nil || enabled {
+		t.Fatalf("membership metadata granted feature: enabled=%v err=%v", enabled, err)
+	}
+	entitlements, ok := middleware.MembershipEntitlementsFromContext(ctx)
+	if !ok || !entitlements.Has("self.healing.enabled") {
+		t.Fatal("membership authorization was lost")
 	}
 }

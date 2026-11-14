@@ -200,6 +200,11 @@ func runEnrolledHTTPAgentMode(runCtx context.Context, stop context.CancelFunc, c
 		return fmt.Errorf("retain Guard custody: %w", err)
 	}
 	defer custodyRoot.Close()
+	// A tenant rebind that became ready before the last stop moves the
+	// enrollment and the journal before either is read.
+	if err := applyReadyGuardTenantRebind(manager, custodyRoot, cfg.enrollmentFile, log); err != nil {
+		return err
+	}
 	enrollment, err := resolveHTTPAgentEnrollmentWithIdentity(cfg, manager)
 	if err != nil {
 		return err
@@ -215,12 +220,15 @@ func runEnrolledHTTPAgentMode(runCtx context.Context, stop context.CancelFunc, c
 		if runCtx.Err() != nil {
 			return nil
 		}
+		if guardTenantRebindRestart(manager, identity.held) {
+			return hostidentity.ErrTenantRebindReady
+		}
 		if errors.Is(identity.held, hostidentity.ErrRevoked) {
 			decommissionRevokedGuard(manager, cfg, log)
 		}
 		return holdUntilStopped(runCtx, identity.held, log, cfg.progress)
 	}
-	if identity.client != nil {
+	if identity.client != nil && !identity.offline {
 		go identity.client.Maintain(runCtx, identityMaintenanceInterval)
 	}
 	// A revocation observed while running stops every loop and any command in
@@ -229,12 +237,36 @@ func runEnrolledHTTPAgentMode(runCtx context.Context, stop context.CancelFunc, c
 	defer cancelExec()
 	if manager != nil {
 		go watchIdentityRevocation(execCtx, manager, cancelExec)
+		go watchGuardTenantRebind(execCtx, manager, cancelExec)
+	}
+	// An identity started offline that the control plane then refuses holds
+	// the Guard like a refusal at start.
+	offlineHeld := make(chan error, 1)
+	if identity.offline {
+		go settleOfflineIdentity(execCtx, identity.client, log, func(err error) {
+			offlineHeld <- err
+			cancelExec()
+		})
 	}
 	defer func() {
 		if revoked := guardIdentityRevoked(manager); revoked && runCtx.Err() == nil {
 			log.Error("guard_identity_revoked_stopping_execution")
 			decommissionRevokedGuard(manager, cfg, log)
 			result = holdUntilStopped(runCtx, hostidentity.ErrRevoked, log, cfg.progress)
+			return
+		}
+		// A ready tenant rebind stops the service; its restart applies it.
+		if runCtx.Err() == nil && manager.TenantRebindReady() {
+			log.Warn("guard_tenant_rebind_restarting")
+			result = hostidentity.ErrTenantRebindReady
+			return
+		}
+		select {
+		case held := <-offlineHeld:
+			if runCtx.Err() == nil {
+				result = holdUntilStopped(runCtx, held, log, cfg.progress)
+			}
+		default:
 		}
 	}()
 	guardHTTP := identity.httpClient(15 * time.Second)
@@ -261,6 +293,7 @@ func runEnrolledHTTPAgentMode(runCtx context.Context, stop context.CancelFunc, c
 			AgentVersion: version, Interval: cfg.heartbeatInterval, Logger: log,
 			Collector:  httpguard.NewSystemCollector(httpguard.SystemCollectorConfig{HostHardware: (&localHardwareCache{observe: devicereadiness.ObserveLocalHardware}).current}),
 			HTTPClient: guardHTTP, OnProgress: cfg.progress,
+			TenantRebind: guardTenantRebindCustody{manager: manager, identity: identity.client, tenantID: enrollment.TenantID, runtimeAgentID: enrollment.RuntimeAgentID},
 			Posture: func() *guardbinding.Posture {
 				status := guardexec.ReadUpdateStatus(selfUpdate.HandoffDir())
 				return &guardbinding.Posture{Mode: guardbinding.PostureLegacyRoot, UpdateState: status.State, UpdateVersion: status.Version, UpdateReason: status.Reason}
@@ -307,6 +340,10 @@ func runEnrolledHTTPAgentMode(runCtx context.Context, stop context.CancelFunc, c
 		return errors.New("Proxmox requires an explicit substrate enrollment")
 	}
 	execution := selectGuardExecution(runCtx, log)
+	// After a tenant rebind the privileged executor adopts the canonical
+	// tenant's binding keys from the signed rotation, or it would refuse every
+	// binding signed after the move.
+	rotateExecutorBindingPins(runCtx, execution, manager, log)
 	tryMigration := func(ctx context.Context) bool {
 		return execution.mode == guardModeLegacyRoot && guardLayoutMigrationEligible("") &&
 			signedGuardReleaseAvailable(ctx, downloadHTTP, enrollment, log) && migrateGuardLayout(ctx, log)
@@ -408,16 +445,16 @@ func runEnrolledHTTPAgentMode(runCtx context.Context, stop context.CancelFunc, c
 			confirmGuardUpdateTrial(execution, log)
 			relay.Start()
 			startGuardReach(execCtx, cfg, enrollment, identity, manager, log)
-			startGuardPosture(execCtx, custodyRoot, enrollment, identity, manager, execution, log)
 			startGuardTelemetry(execCtx, cfg, custodyRoot, enrollment, identity, execution, log)
 			if forwarder := newHTTPSNoticeForwarder(enrollment, identity); forwarder != nil {
 				startUserNotificationListener(execCtx, cfg, forwarder, log)
 			}
 			go convergeRuntimePackages(execCtx, stop, stackKitExecutor, techstackRuntimeConfig, stackKitRuntimeConfig, stackKitRuntimeConvergenceInterval, runtimeReady.Store, log, tryMigration, runtimeConvergence.Set)
 		},
-		Logger:     log,
-		HTTPClient: guardHTTP,
-		OnProgress: cfg.progress,
+		Logger:       log,
+		HTTPClient:   guardHTTP,
+		OnProgress:   cfg.progress,
+		TenantRebind: guardTenantRebindCustody{manager: manager, identity: identity.client, tenantID: enrollment.TenantID, runtimeAgentID: enrollment.RuntimeAgentID},
 	})
 	if err != nil {
 		return fmt.Errorf("configure HTTPS guard: %w", err)
@@ -434,6 +471,11 @@ func runEnrolledHTTPAgentMode(runCtx context.Context, stop context.CancelFunc, c
 	enableGuardDurableOperations(custodyRoot, client, stackKitReconciler{executor: currentStackKitCommandExecutor{
 		runtime: stackKitExecutor, cfg: stackKitRuntimeConfig, ready: runtimeReady.Load,
 	}, household: execution.householdObserver()}, log)
+	// Posture does not wait for a first heartbeat: a Guard that boots while the
+	// control plane is unreachable still observes the host and, without a held
+	// grant, records that it only observes (G07).
+	startGuardPosture(execCtx, custodyRoot, enrollment, identity, manager, execution, log)
+	startGuardPower(execCtx, custodyRoot, enrollment, identity, execution, log)
 	log.Info("agent_mode_starting", "transport", httpsScheme, "agent_id", enrollment.RuntimeAgentID)
 	if err := client.Run(execCtx); err != nil {
 		return err
@@ -554,7 +596,7 @@ func convergeSubstrateGuard(ctx context.Context, stop context.CancelFunc, selfUp
 			log.Warn("guard_update_denied", "code", denied.Code, "reason", denied.Message)
 		default:
 			failures++
-			delay = runtimePackageConvergenceRetryDelay(failures)
+			delay = max(runtimePackageConvergenceRetryDelay(failures), artifactRetryAfter(err))
 			log.Warn("techstack_runtime_convergence_failed", "error", err.Error(), "attempt", failures, "delay", delay.String())
 		}
 		select {
@@ -563,6 +605,16 @@ func convergeSubstrateGuard(ctx context.Context, stop context.CancelFunc, selfUp
 		case <-time.After(delay):
 		}
 	}
+}
+
+// artifactRetryAfter is the wait a control-plane answer (429 or 503 with
+// Retry-After) asked for; zero for every other error.
+func artifactRetryAfter(err error) time.Duration {
+	var status *agentpkg.ArtifactHTTPError
+	if errors.As(err, &status) {
+		return status.RetryAfter
+	}
+	return 0
 }
 
 func convergeRuntimePackages(
@@ -605,6 +657,9 @@ func convergeRuntimePackages(
 			delay = runtimePackageConvergenceRetryDelay(failures)
 			log.Info("runtime_convergence_retry_scheduled", "attempt", failures, "delay", delay.String())
 		}
+		// A control plane that asked for a pause (429 or 503 with Retry-After)
+		// is not asked again before it.
+		delay = max(delay, status.retryAfter)
 		timer := time.NewTimer(delay)
 		select {
 		case <-ctx.Done():
@@ -621,6 +676,9 @@ type runtimePackageConvergenceStatus struct {
 	keepRunning bool
 	converged   bool
 	snapshot    runtimeconvergence.Snapshot
+	// retryAfter is the pause the control plane asked for when it refused the
+	// Guard binary download or its release evidence.
+	retryAfter time.Duration
 }
 
 func convergeRuntimePackagesOnceStatus(
@@ -723,7 +781,7 @@ func convergeRuntimePackagesOnceStatus(
 			UpdateAvailable: stackKitUpdateAvailable(stackKitResult, stackKitErr),
 		},
 	)
-	return runtimePackageConvergenceStatus{keepRunning: true, converged: techstackReady && stackKitErr == nil, snapshot: state}
+	return runtimePackageConvergenceStatus{keepRunning: true, converged: techstackReady && stackKitErr == nil, snapshot: state, retryAfter: artifactRetryAfter(err)}
 }
 
 // stackKitInstalledRelease reports the installed release pin, which the

@@ -8,7 +8,7 @@ import {
   clearGatewayAuth,
   completeGatewayRedirectIfPresent,
   getGatewayToken,
-  renewGatewaySession,
+  renewGatewayTokenInWindow,
   startGatewayLogin,
 } from "./gateway-auth";
 
@@ -44,28 +44,33 @@ describe("getGatewayToken", () => {
     expect(loginWithRedirect).not.toHaveBeenCalled();
   });
 
-  // platform-jx5m6: "Sign in again" forced prompt=login/max_age=0, so a live
-  // Auth0 session still demanded credentials (one login per device rule).
-  it("renews silently first and never forces a credential login", async () => {
-    const getTokenSilently = vi
+  // Session renewal (AUTHENTICATION.md §6) renews in a window and never
+  // forces a credential login: a live Auth0 session completes it silently.
+  it("renews in a window without forcing a credential login", async () => {
+    const getTokenSilently = vi.fn().mockResolvedValue("tok_new");
+    const loginWithPopup = vi.fn().mockResolvedValue(undefined);
+    __setAuth0ClientForTest(fakeClient({ getTokenSilently, loginWithPopup }));
+
+    await expect(renewGatewayTokenInWindow()).resolves.toBe("renewed");
+
+    expect(loginWithPopup).toHaveBeenCalledTimes(1);
+    const params = loginWithPopup.mock.calls[0]?.[0]?.authorizationParams;
+    expect(params.prompt).toBeUndefined();
+    expect(params.max_age).toBeUndefined();
+    expect(params.acr_values).toBeUndefined();
+  });
+
+  it("reports a blocked renewal window instead of failing", async () => {
+    const loginWithPopup = vi
       .fn()
-      .mockRejectedValue(new Error("login_required"));
-    const loginWithRedirect = vi.fn().mockResolvedValue(undefined);
-    __setAuth0ClientForTest(
-      fakeClient({ getTokenSilently, loginWithRedirect }),
-    );
+      .mockRejectedValue(
+        new Error(
+          "Unable to open a popup for loginWithPopup - window.open returned `null`",
+        ),
+      );
+    __setAuth0ClientForTest(fakeClient({ loginWithPopup }));
 
-    await expect(renewGatewaySession({ returnTo: "/dashboard" })).resolves.toBe(
-      "redirecting",
-    );
-
-    expect(getTokenSilently).toHaveBeenCalledTimes(1);
-    expect(loginWithRedirect).toHaveBeenCalledTimes(1);
-    const { authorizationParams, appState } =
-      loginWithRedirect.mock.calls[0][0];
-    expect(authorizationParams.prompt).toBeUndefined();
-    expect(authorizationParams.max_age).toBeUndefined();
-    expect(appState).toEqual({ returnTo: "/dashboard" });
+    await expect(renewGatewayTokenInWindow()).resolves.toBe("blocked");
   });
 
   it("claims an SPA callback on the app origin", async () => {
@@ -129,20 +134,22 @@ describe("getGatewayToken", () => {
       getGatewayToken(),
       getGatewayToken(),
     ]);
-    // Auth init, the recovery ladder and the renewal panel may all ask.
+    // Auth init and the boot login may both ask.
     await startGatewayLogin({ returnTo: "/dashboard" });
-    await renewGatewaySession({ returnTo: "/dashboard" });
+    await startGatewayLogin({ returnTo: "/dashboard" });
     await expect(getGatewayToken()).rejects.toBe(refusal);
 
     expect(concurrent.every((r) => r.status === "rejected")).toBe(true);
     expect(getTokenSilently).toHaveBeenCalledTimes(1);
     expect(loginWithRedirect).toHaveBeenCalledTimes(1);
-    const params = loginWithRedirect.mock.calls[0][0].authorizationParams;
+    const loginArgs = loginWithRedirect.mock.calls[0]?.[0];
+    if (!loginArgs) throw new Error("loginWithRedirect was not called");
+    const params = loginArgs.authorizationParams;
     expect(params.acr_values).toBe(
       "http://schemas.openid.net/pape/policies/2007/06/multi-factor",
     );
     expect(params.prompt).toBeUndefined();
-    expect(loginWithRedirect.mock.calls[0][0].appState).toEqual({
+    expect(loginArgs.appState).toEqual({
       returnTo: "/dashboard",
     });
   });

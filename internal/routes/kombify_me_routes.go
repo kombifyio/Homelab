@@ -93,6 +93,11 @@ func forwardKombifyMe(e *httpx.Event, client *kombifyme.Client, method, upstream
 	if err != nil {
 		var upstreamErr *kombifyme.UpstreamError
 		if errors.As(err, &upstreamErr) {
+			// The registry refused the user bearer this request forwarded:
+			// the session needs renewal, not a sign-in (AUTHENTICATION.md §6).
+			if upstreamErr.Status == http.StatusUnauthorized {
+				return httpx.NewSessionRenewalError(httpx.SessionRenewalReasonUpstreamBearerRejected, nil)
+			}
 			return httpx.Error(e, upstreamErr.Status, errorCodeForStatus(upstreamErr.Status), "kombify.me registry request failed", upstreamErr.Body)
 		}
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, err.Error(), nil)

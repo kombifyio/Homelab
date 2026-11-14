@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/techstack/internal/providercatalog"
 	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/jobs"
 )
@@ -24,8 +25,7 @@ var (
 const noWorkspaceDestroyReconcileRetryAfter = 2 * time.Second
 
 // reconcileNoWorkspaceDestroy archives only the exact control-plane stack
-// requested by a destroy job after the handler proved there is no local
-// workspace. It reads the current tenant-scoped lease inventory immediately
+// requested by a destroy job after the handler proved teardown complete. It reads the current tenant-scoped lease inventory immediately
 // before archive so a delayed provider allocation cannot be hidden by an old
 // no-lease classification. It deliberately never invokes provider control or
 // writes a secondary projection.
@@ -106,8 +106,8 @@ func managedProviderIntent(fields map[string]any) bool {
 		return true
 	}
 	for _, key := range []string{runtimeFieldLeaseProvider, "provider_id", runtimeFieldSimProviderID} {
-		switch strings.ToLower(strings.TrimSpace(stringFromAny(fields[key]))) {
-		case "centron-managed", "ionos-managed", "managed-cloud":
+		value := strings.ToLower(strings.TrimSpace(stringFromAny(fields[key])))
+		if value == "managed-cloud" || providercatalog.IsCompositeProviderAlias(value) {
 			return true
 		}
 	}

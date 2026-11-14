@@ -14,9 +14,11 @@ import (
 	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/guardreach"
 	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/techstack/pkg/jobs"
 	"github.com/kombifyio/techstack/pkg/middleware"
 	"github.com/kombifyio/techstack/pkg/ril/actioncontract"
 	"github.com/kombifyio/techstack/pkg/ril/actions"
+	"github.com/kombifyio/techstack/pkg/ril/primitives"
 )
 
 type GovernedActionWorkflow interface {
@@ -42,6 +44,11 @@ type GovernedActionRouteConfig struct {
 		GetServerRuntime(ctx context.Context, tenantID, serverID string) (*controlplane.ServerRuntime, error)
 	}
 	Now func() time.Time
+	// Background turns the request's context into Techstack system work, so
+	// an executor-bound execution outlives a cancelled request (an update runs
+	// up to its rollback budget) instead of recording a false failure while
+	// the node completes it.
+	Background func(context.Context) context.Context
 }
 
 type governedActionHandler struct{ config GovernedActionRouteConfig }
@@ -57,6 +64,7 @@ func RegisterGovernedActionRoutes(r *httpx.Router, config GovernedActionRouteCon
 	r.POST("/v1/ril/action-cards", h.create)
 	r.GET("/v1/ril/action-cards", h.list)
 	r.GET("/v1/ril/action-cards/{cardId}", h.get)
+	r.GET("/v1/ril/action-cards/{cardId}/receipt", h.receipt)
 	r.POST("/v1/ril/action-cards/{cardId}/decision", h.requestDecision)
 	r.POST("/v1/ril/action-cards/{cardId}/approve", h.approve)
 	r.POST("/v1/ril/action-cards/{cardId}/deny", h.deny)
@@ -79,6 +87,16 @@ func (h governedActionHandler) create(e *httpx.Event) error {
 	var body createGovernedActionRequest
 	if decodeErr := decodeGovernedActionJSON(e, &body); decodeErr != nil {
 		return writeGovernedActionError(e, decodeErr)
+	}
+	// An agent creates an executor-bound card through its exact connector
+	// binding for this card (execute requires that binding to carry the
+	// primitive's grant scope); the managed service route creates its cards
+	// without one. Either way the caller names only the target scope and the
+	// input that selects the target: Create derives every target ref and the
+	// derived inputs from fresh inventory and refuses a supplied one that
+	// differs.
+	if primitives.IsExecutorBound(body.Action.Primitive.ID) && body.Action.ConnectorBinding == nil {
+		return writeGovernedActionError(e, actions.ErrExecutionAdmission)
 	}
 	card, err := h.config.Authority.Create(e.Request.Context(), actions.CreateGovernedCard{ID: body.ID, TenantID: scope.tenantID, OwnerSubjectID: scope.ownerID, ServerID: body.ServerID, Title: body.Title, Severity: body.Severity, Template: body.Action})
 	if err != nil {
@@ -111,10 +129,35 @@ func (h governedActionHandler) get(e *httpx.Event) error {
 	if err != nil {
 		return writeGovernedActionError(e, err)
 	}
-	return httpx.Success(e, http.StatusOK, card)
+	return httpx.Success(e, http.StatusOK, cardView(card))
 }
 
-// requestDecision files the canonical owner card through Gateway. It never
+// receipt returns the typed step receipt of a terminal card: exactly one
+// execution and its verification readback, cross-linked to the AI Platform
+// approval receipt and Decision id. The Journey D evidence task reads it.
+func (h governedActionHandler) receipt(e *httpx.Event) error {
+	if len(e.Request.URL.Query()) != 0 {
+		return writeGovernedActionError(e, errGovernedActionRequest)
+	}
+	scope, err := inventoryScopeFromEvent(e)
+	if err != nil {
+		return writeGovernedActionError(e, err)
+	}
+	reader, ok := h.config.Authority.(actions.StepReceiptReader)
+	if !ok {
+		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Action receipt unavailable", nil)
+	}
+	receipt, err := reader.StepReceipt(e.Request.Context(), scope.tenantID, scope.ownerID, e.Request.PathValue("cardId"))
+	if err != nil {
+		return writeGovernedActionError(e, err)
+	}
+	e.Response.Header().Set("Cache-Control", "private, no-store")
+	return httpx.Success(e, http.StatusOK, receipt)
+}
+
+// requestDecision files the card's one Gateway Decision ahead of execution;
+// the Gateway answers it at once by the acting agent's equipment. Execute
+// files the same Decision itself, so this call is never required. It never
 // interprets request-body approval or identity as authority.
 func (h governedActionHandler) requestDecision(e *httpx.Event) error {
 	scope, err := inventoryScopeFromEvent(e)
@@ -202,12 +245,39 @@ func (h governedActionHandler) execute(e *httpx.Event) error {
 		if body.CompensationCardID != "" {
 			return writeGovernedActionError(e, errGovernedActionRequest)
 		}
-		card, err = h.config.Workflow.Execute(e.Request.Context(), input)
+		card, err = h.executeDetached(e.Request.Context(), card, input)
 	}
 	if err != nil {
 		return writeGovernedActionError(e, err)
 	}
-	return httpx.Success(e, http.StatusOK, card)
+	return httpx.Success(e, http.StatusOK, cardView(card))
+}
+
+// executeDetached runs an executor-bound card as system work bounded by the
+// card run budget: the request waits for the result, but its cancellation
+// never cancels the admitted execution, whose durable result stays on the card.
+func (h governedActionHandler) executeDetached(ctx context.Context, card *actions.GovernedCard, input actions.BeginExecution) (*actions.GovernedCard, error) {
+	if _, executorBound := primitives.For(card.Template.Primitive); !executorBound || h.config.Background == nil {
+		return h.config.Workflow.Execute(ctx, input)
+	}
+	type result struct {
+		card *actions.GovernedCard
+		err  error
+	}
+	done := make(chan result, 1)
+	run := h.config.Background(context.WithoutCancel(ctx))
+	go func() {
+		runCtx, cancel := context.WithTimeout(run, serviceActionCardRunBudget)
+		defer cancel()
+		executed, err := h.config.Workflow.Execute(runCtx, input)
+		done <- result{card: executed, err: err}
+	}()
+	select {
+	case out := <-done:
+		return out.card, out.err
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
 
 var errGovernedActionRequest = errors.New("invalid governed action request")
@@ -226,11 +296,14 @@ func decodeGovernedActionJSON(e *httpx.Event, destination any) error {
 }
 
 func writeGovernedActionError(e *httpx.Event, err error) error {
+	var notReadable *jobs.BackupNotReadableError
 	switch {
 	case errors.Is(err, actions.ErrCardNotFound):
 		return httpx.NotFound(e, "Action card not found")
 	case errors.Is(err, actions.ErrGrantRequired), errors.Is(err, actions.ErrConnectorBindingRequired), errors.Is(err, actions.ErrConnectorGrantInsufficient):
 		return writeGovernedActionEntitlementDenial(e, err)
+	case errors.As(err, &notReadable):
+		return backupNotReadableError(e, notReadable)
 	case errors.Is(err, actions.ErrApprovalRequired), errors.Is(err, actions.ErrExecutionAdmission), errors.Is(err, actions.ErrCardConflict), errors.Is(err, actions.ErrExecutionInProgress):
 		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "Action cannot transition", map[string]any{inventoryReasonCodeField: governedActionReason(err)})
 	case errors.Is(err, errGovernedActionRequest):
@@ -241,6 +314,35 @@ func writeGovernedActionError(e *httpx.Event, err error) error {
 		}
 		return httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Governed action unavailable", map[string]any{inventoryReasonCodeField: "governed_action_unavailable"})
 	}
+}
+
+// governedCardView is a card read with the person-facing guidance of a failed
+// backup check (what is missing and how to set it up). The guidance is derived
+// from the closed codes of the card's public evidence on every read; it is not
+// stored and takes no part in any decision.
+type governedCardView struct {
+	*actions.GovernedCard
+	UserGuidance *actions.UserGuidance `json:"user_guidance,omitempty"`
+}
+
+func cardView(card *actions.GovernedCard) any {
+	if guidance := actions.GuidanceForCard(card); guidance != nil {
+		return governedCardView{GovernedCard: card, UserGuidance: guidance}
+	}
+	return card
+}
+
+// backupNotReadableError refuses a backup check addressed to a server that
+// makes no backup of its own, before any Decision, lease or claim exists. It
+// names the server that does.
+func backupNotReadableError(e *httpx.Event, refusal *jobs.BackupNotReadableError) error {
+	title, body, nextSteps := refusal.Guidance()
+	return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "This server keeps no backup to check",
+		map[string]any{
+			inventoryReasonCodeField: refusal.ReasonCode(),
+			"retryable":              false,
+			"user_guidance":          map[string]any{"title": title, "body": body, "next_steps": nextSteps},
+		})
 }
 
 func writeGovernedActionEntitlementDenial(e *httpx.Event, err error) error {

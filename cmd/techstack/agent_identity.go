@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -233,7 +234,14 @@ type guardIdentityRuntime struct {
 	// held is set when the identity is revoked or needs recovery: the Guard
 	// executes nothing until it is paired again.
 	held error
+	// offline is set when a key-bound Guard started without an answer from the
+	// control plane; settleOfflineIdentity finishes establishing it.
+	offline bool
 }
+
+// identityNotUsableGuidance is the owner guidance for a revoked identity or one
+// that needs recovery.
+const identityNotUsableGuidance = "this server no longer has a valid kombify Guard identity; pair it again from the kombify dashboard"
 
 // establishGuardIdentity brings the host identity up before any work starts. A
 // control plane without host identity, or a server whose state directory cannot
@@ -280,16 +288,65 @@ func establishGuardIdentity(
 		case err == nil:
 			log.Info("guard_identity_established", "mode", modeName(mode), "state", string(manager.Record().State))
 			return guardIdentityRuntime{client: client}
+		case errors.Is(err, hostidentity.ErrTenantRebindReady):
+			log.Warn("guard_tenant_rebind_ready", "guidance", "the control plane moved this server to its canonical tenant; the Guard restarts and applies the stored tenant rebind")
+			return guardIdentityRuntime{client: client, held: err}
 		case errors.Is(err, hostidentity.ErrRevoked), errors.Is(err, hostidentity.ErrRecoveryNeeded):
 			log.Error("guard_identity_not_usable", "state", string(manager.Record().State), "reason", manager.Record().Reason,
-				"guidance", "this server no longer has a valid kombify Guard identity; pair it again from the kombify dashboard")
+				"guidance", identityNotUsableGuidance)
 			return guardIdentityRuntime{client: client, held: err}
 		case ctx.Err() != nil:
 			return guardIdentityRuntime{client: client, held: ctx.Err()}
+		case offlineBoundIdentity(manager, err):
+			// A key-bound Guard that starts while the control plane is unreachable
+			// runs on: every request stays key-bound and exchanges its token
+			// lazily, so nothing is admitted until the control plane answers, and
+			// the Guard still observes the host meanwhile (G07). Establishing
+			// continues in the background.
+			if useErr := client.UseHostKey(); useErr == nil {
+				log.Warn("guard_identity_offline_bound", "error", err.Error(), "state", string(manager.Record().State))
+				return guardIdentityRuntime{client: client, offline: true}
+			}
 		}
 		log.Warn("guard_identity_establish_failed", "error", err.Error(), "retry_in", delay.String())
 		if !waitWithProgress(ctx, delay, progress) {
 			return guardIdentityRuntime{client: client, held: ctx.Err()}
+		}
+		if delay *= 2; delay > identityRetryCap {
+			delay = identityRetryCap
+		}
+	}
+}
+
+// offlineBoundIdentity reports an exchange that got no answer at all (no
+// connection, no TLS, no HTTP response) for an identity already bound to its
+// key with no key rotation staged. Any answer of the control plane, a local key
+// problem or a staged rotation keeps the Guard establishing.
+func offlineBoundIdentity(manager *hostidentity.Manager, err error) bool {
+	var noAnswer *url.Error
+	return errors.As(err, &noAnswer) && manager.Record().State == hostidentity.StateBound && manager.PendingRotation() == nil
+}
+
+// settleOfflineIdentity keeps establishing an identity the Guard started
+// offline until the control plane answers. Established, it maintains the key
+// from then on; no rotation is staged before that. Revoked or needing recovery,
+// it hands the error to hold, which stops execution as a start with the control
+// plane reachable would have.
+func settleOfflineIdentity(ctx context.Context, client *hostidentity.Client, log *slog.Logger, hold func(error)) {
+	delay := time.Second
+	for waitWithProgress(ctx, delay, nil) {
+		mode, err := client.Establish(ctx)
+		switch {
+		case err == nil:
+			log.Info("guard_identity_established", "mode", modeName(mode), "after", "offline_start")
+			client.Maintain(ctx, identityMaintenanceInterval)
+			return
+		case errors.Is(err, hostidentity.ErrRevoked), errors.Is(err, hostidentity.ErrRecoveryNeeded):
+			log.Error("guard_identity_not_usable", "error", err.Error(), "guidance", identityNotUsableGuidance)
+			hold(err)
+			return
+		case ctx.Err() != nil:
+			return
 		}
 		if delay *= 2; delay > identityRetryCap {
 			delay = identityRetryCap

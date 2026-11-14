@@ -123,6 +123,24 @@ func NewNoApplyRemovalEvidence(techstackID, tenantID, ownerID string, snapshot p
 	return evidence, nil
 }
 
+// ProveNoApplyBeforeRollout applies the same job-history proof to a rollout in
+// flight: apart from the running rollout itself, no job of the stack applied,
+// dispatched an Apply or is still running.
+func ProveNoApplyBeforeRollout(history []controlplane.Job, rolloutJobID string) error {
+	if len(history) >= NoApplyJobScanLimit {
+		return fmt.Errorf("the job history of the stack is too long to prove that no Apply ran (%d jobs read)", len(history))
+	}
+	for index := range history {
+		if history[index].ID == rolloutJobID {
+			continue
+		}
+		if _, err := classifyNoApplyJob(&history[index]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func classifyNoApplyJob(job *controlplane.Job) (NoApplyJobRecord, error) {
 	record := NoApplyJobRecord{JobID: job.ID, Type: job.Type, State: strings.ToLower(strings.TrimSpace(job.State)), Step: strings.TrimSpace(job.Step)}
 	refuse := func(reason string) (NoApplyJobRecord, error) {

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"strings"
 	"time"
 
@@ -36,9 +35,11 @@ func (n destroyJobFailureNotifier) ObserveTerminalJob(ctx context.Context, job j
 		return nil
 	}
 	stackID := strings.TrimSpace(job.TargetID)
-	deepLink := "/dashboard"
+	// A failure without a stack has no deployment thread: it stands alone
+	// instead of folding into every other unbound failure of the recipient.
+	deepLink, groupKey := "/dashboard", ""
 	if stackID != "" {
-		deepLink = "/stacks/" + url.PathEscape(stackID)
+		groupKey = "kit_deployment:" + stackID
 	}
 	body := strings.TrimSpace(job.Error)
 	if body == "" {
@@ -65,14 +66,14 @@ func (n destroyJobFailureNotifier) ObserveTerminalJob(ctx context.Context, job j
 			Topic:          "jobs.completed",
 			Channel:        channel,
 			Auth0UserID:    ownerID,
-			OrganizationID: tenantID,
+			TenantID:       tenantID,
 			IdempotencyKey: fmt.Sprintf("techstack:destroy:%s:%s", job.ID, channel),
 			Payload:        payload,
 			SourceApp:      notificationSourceApp,
 			EventKey:       "runtime.destroy.failed",
 			SubjectRef:     "job:" + job.ID,
 			DeepLink:       deepLink,
-			GroupKey:       "kit_deployment:" + stackID,
+			GroupKey:       groupKey,
 			Priority:       "high",
 		}); err != nil {
 			return err

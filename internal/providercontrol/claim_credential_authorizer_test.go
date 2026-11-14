@@ -139,3 +139,40 @@ func claimCredentialRows() *sqlmock.Rows {
 		"custody_hash", "connection_hash", "valid_from", "valid_until", "revoked_at",
 	})
 }
+
+// Image selection and optional-capability admission share the adapter contract.
+func TestAdapterImageCapabilityAdmission(t *testing.T) {
+	tests := []struct {
+		name    string
+		imports bool
+		named   bool
+		want    ImageStrategy
+	}{
+		{"import and named image", true, true, ImageStrategyPrebaked},
+		{"import without image", true, false, ImageStrategyCatalogueFirstBoot},
+		{"no import with named image", false, true, ImageStrategyCatalogueFirstBoot},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			descriptor := AdapterDescriptor{ProviderID: "test-provider"}
+			if tt.imports {
+				descriptor.Capabilities = []AdapterCapability{CapabilityPrivateImageImport}
+			}
+			if got := SelectImageStrategy(descriptor, tt.named); got != tt.want {
+				t.Fatalf("SelectImageStrategy = %q, want %q", got, tt.want)
+			}
+			err := RequireCapability(descriptor, CapabilityPrivateImageImport)
+			if tt.imports {
+				if err != nil {
+					t.Fatalf("declared capability denied: %v", err)
+				}
+			} else {
+				var unavailable *CapabilityUnavailableError
+				if !errors.Is(err, ErrCapabilityUnavailable) || !errors.As(err, &unavailable) ||
+					unavailable.ProviderID != descriptor.ProviderID || unavailable.Capability != CapabilityPrivateImageImport {
+					t.Fatalf("missing capability did not return the provider-bound denial: %v", err)
+				}
+			}
+		})
+	}
+}

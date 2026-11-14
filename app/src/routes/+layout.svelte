@@ -6,7 +6,7 @@
   import { getInfo } from "#lib/api/health.js";
   import { getInstance } from "#lib/api/instance.js";
   import { appDeployLabel, productIdentityLabel } from "#lib/config.js";
-  import ReloginModal from "#lib/components/ReloginModal.svelte";
+  import SessionRenewalPrompt from "#lib/components/SessionRenewalPrompt.svelte";
   import InAppDialogHost from "#lib/components/InAppDialogHost.svelte";
   import WalletPromptHost from "#lib/kombify-wallet/components/WalletPromptHost.svelte";
   import TechstackAnalytics from "#lib/components/TechstackAnalytics.svelte";
@@ -36,6 +36,7 @@
   } from "#lib/stores/deploymentMode.js";
   import { withHostNavigation } from "#lib/embedded-navigation.js";
   import { STEP_UP_COMPLETE_PATH } from "#lib/auth/step-up.js";
+  import { SESSION_RENEWAL_ROUTE } from "#lib/auth/session-renewal.svelte.js";
   import { CONTENT_PANE_ID } from "#lib/navigation.js";
   import {
     loadRailPreference,
@@ -51,10 +52,24 @@
     hydrateStackIdentityFromBackend,
     initStackIdentity,
   } from "#lib/stores/stackIdentity.js";
-  import { Menu, X } from "@lucide/svelte";
+  import { Menu, Plus, X } from "@lucide/svelte";
   import TechstackBrandLogo from "#lib/components/TechstackBrandLogo.svelte";
+  import Button from "#lib/components/ui/Button.svelte";
+  import {
+    pageBanner,
+    setPageBannerHosted,
+  } from "#lib/stores/pageBanner.svelte.js";
 
   let { children } = $props();
+  // Only the sidebar shell has the phone top bar that shows a page banner.
+  $effect(() => {
+    setPageBannerHosted($showSidebar);
+  });
+  const banner = $derived(pageBanner.current);
+  // Read with optional chaining: a page that ends clears its banner while
+  // the button's own effects may still run once.
+  const bannerAction = $derived(banner?.action ?? null);
+  const ActionIcon = $derived(bannerAction?.icon ?? Plus);
   let productIdentity = $state("");
   let instanceId = $state("");
   // Start with sidebar closed by default to avoid mobile overlay blocking clicks
@@ -70,6 +85,7 @@
       viewportWidth < COMPACT_RAIL_BREAKPOINT,
   );
   let authInitialized = $state(false);
+  let framed = $state(true);
   let authSyncVersion = 0;
 
   $effect(() => {
@@ -140,6 +156,7 @@
 
   // Initialize i18n and deployment mode on mount
   onMount(() => {
+    framed = window.parent !== window;
     // Initialize bridge early when in iframe to receive theme messages ASAP
     if (window.parent !== window) {
       initBridge();
@@ -153,10 +170,14 @@
     void (async () => {
       try {
         // The step-up completion page only reports to the frame that opened
-        // its window and closes. It must not start a sign-in of its own: a
-        // standalone SaaS load would, and could navigate the window away
-        // before it closes.
-        if (page.url.pathname !== STEP_UP_COMPLETE_PATH) {
+        // its window and closes, and the session renewal route only hands
+        // its window to Universal Login. Neither may start a sign-in of its
+        // own: a standalone SaaS load would, and could navigate the window
+        // away before it finishes.
+        if (
+          page.url.pathname !== STEP_UP_COMPLETE_PATH &&
+          page.url.pathname !== SESSION_RENEWAL_ROUTE
+        ) {
           await authStore.init({ embedded: window.parent !== window });
           await deploymentMode.init(authStore.deploymentMode);
           await refreshEmbeddedSessionIfNeeded();
@@ -326,7 +347,7 @@
           type="button"
           data-kx="control"
           onclick={toggleSidebar}
-          class="rounded-lg border border-border bg-card p-2 text-foreground transition-colors hover:bg-accent"
+          class="rounded-lg border border-border bg-card p-2.5 text-foreground transition-colors hover:bg-accent"
           aria-label={tr("ui.layout.toggleMenu")}
           aria-expanded={sidebarOpen}
           aria-controls="app-navigation"
@@ -339,7 +360,7 @@
         </button>
         <a
           href="/dashboard"
-          class="flex items-center"
+          class="-m-1.5 flex shrink-0 items-center p-1.5"
           aria-label={tr("shell.homeLink")}
         >
           <TechstackBrandLogo
@@ -347,6 +368,33 @@
             class="h-8 w-8 shrink-0 object-contain"
           />
         </a>
+        <!-- A page may put its title and its one action up here instead of a
+             title block of its own (pageBanner). A long title truncates; the
+             full text stays in the heading for assistive technology. -->
+        {#if banner?.title}
+          <h1
+            class="min-w-0 flex-1 truncate text-base font-semibold text-foreground"
+            title={banner.title}
+            data-testid="mobile-top-bar-title"
+          >
+            {banner.title}
+          </h1>
+        {/if}
+        {#if bannerAction}
+          <span class="ml-auto shrink-0">
+            <Button
+              variant="primary"
+              class="size-11! min-h-11! justify-center p-0!"
+              ariaLabel={bannerAction?.label}
+              disabled={bannerAction?.disabled}
+              testId={bannerAction?.testId}
+              anchor={bannerAction?.anchor}
+              onclick={() => bannerAction?.onSelect()}
+            >
+              <ActionIcon class="size-5" />
+            </Button>
+          </span>
+        {/if}
       </header>
 
       <!-- Sidebar overlay for mobile -->
@@ -392,7 +440,7 @@
         inert={isMobileViewport && sidebarOpen}
         class="flex-1 min-h-0 min-w-0 overflow-auto overflow-x-hidden flex flex-col outline-none"
       >
-        <ReloginModal />
+        <SessionRenewalPrompt />
         <IntroductionHost />
         <div class="flex-1 min-w-0">
           {@render children()}
@@ -424,7 +472,7 @@
         tabindex="-1"
         class="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto overflow-x-hidden outline-none"
       >
-        <ReloginModal />
+        <SessionRenewalPrompt />
         <div class="min-w-0 flex-1">
           {@render children()}
         </div>
@@ -444,7 +492,7 @@
         tabindex="-1"
         class="flex-1 min-w-0 overflow-auto overflow-x-hidden flex flex-col outline-none"
       >
-        <ReloginModal />
+        <SessionRenewalPrompt />
         <IntroductionHost />
         <div class="flex-1 min-w-0">
           {@render children()}
@@ -454,7 +502,7 @@
   {:else}
     <!-- Fallback: Simple layout without navigation -->
     <div data-kx="app" class="min-h-screen">
-      <ReloginModal />
+      <SessionRenewalPrompt />
       {@render children()}
     </div>
   {/if}
@@ -473,7 +521,7 @@
   a second in-iframe launcher is the duplicate the Workbench embed already
   retired (owner report 2026-08-26). `ready.chrome.companion: host`.
 -->
-{#if authStore.isAuthenticated && $deploymentMode.mode !== "saas-embedded"}
+{#if authInitialized && !framed && authStore.isAuthenticated && $deploymentMode.mode !== "saas-embedded"}
   <CompanionHost />
 {/if}
 

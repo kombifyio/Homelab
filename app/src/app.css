@@ -39,3 +39,13 @@
 @import "@kombiverselabs/design/index.css";
 
 @import "./techstack-bindings.css";
+
+/*
+ * A security fix on the shared ServiceCard update strip takes the danger tone
+ * instead of the ordinary update's warning tone. The strip colours itself from
+ * --kf-msg; a shared security strip variant is a Brand follow-up.
+ */
+.kf-update-security .kf-msg-update.kf-msg-warning {
+  --kf-msg: var(--destructive);
+  font-weight: 600;
+}

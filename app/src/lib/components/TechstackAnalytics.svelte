@@ -2,7 +2,7 @@
   import { afterNavigate } from "$app/navigation";
   import * as Sentry from "@sentry/sveltekit";
   import { getClientBootstrap } from "#lib/client/bootstrap.js";
-  import { appVersion } from "#lib/config.js";
+  import { analyticsRelease } from "#lib/config.js";
   import {
     classifyRoute,
     createPostHogClient,
@@ -15,6 +15,8 @@
 
   let lastIdentityKey = $state("");
   let lastRouteKey = $state("");
+  // Not reactive: the identity effect must not re-run when it changes.
+  let identifiedSubject = "";
 
   afterNavigate(({ to, shallow }) => {
     if (shallow) return;
@@ -35,12 +37,7 @@
       lastIdentityKey = identityKey;
       Sentry.setUser({ id: user.authSubject });
       Sentry.setTag("organization_id", user.organizationId ?? "unscoped");
-      void createClient().capture("auth:session_identified", {
-        user,
-        properties: {
-          deployment_mode: authStore.deploymentMode,
-        },
-      });
+      identify(user);
       captureRoute(new URL(window.location.href));
       return;
     }
@@ -48,10 +45,30 @@
     if (!user?.authSubject && lastIdentityKey) {
       lastIdentityKey = "";
       lastRouteKey = "";
+      identifiedSubject = "";
       Sentry.setUser(null);
       Sentry.setTag("organization_id", "unscoped");
     }
   });
+
+  // One identification per subject and document: the Cloud user fills in
+  // organization and role after the handover, which is no new session. A
+  // refused capture (no consent yet) is tried again on the next page.
+  function identify(user: AnalyticsUser): void {
+    const subject = user.authSubject;
+    if (!subject || identifiedSubject === subject) return;
+    identifiedSubject = subject;
+    void createClient()
+      .capture("auth:session_identified", {
+        user,
+        properties: {
+          deployment_mode: authStore.deploymentMode,
+        },
+      })
+      .then((sent) => {
+        if (!sent && identifiedSubject === subject) identifiedSubject = "";
+      });
+  }
 
   function createClient() {
     const bootstrap = getClientBootstrap();
@@ -64,7 +81,7 @@
         (authStore.deploymentMode === "saas"
           ? "saas-embedded"
           : "selfhost-oss"),
-      appVersion,
+      appVersion: analyticsRelease,
       location: window.location,
     });
   }
@@ -85,6 +102,7 @@
     }
 
     lastRouteKey = routeKey;
+    identify(user);
     const routeGroup = classifyRoute(url.pathname);
     void createClient().capture("techstack:page_viewed", {
       user,

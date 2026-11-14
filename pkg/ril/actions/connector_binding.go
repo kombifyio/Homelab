@@ -5,7 +5,11 @@ import (
 	"encoding/hex"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
+
+	rilaction "github.com/kombifyio/techstack/pkg/ril/actioncontract"
+	"github.com/kombifyio/techstack/pkg/ril/primitives"
 )
 
 var (
@@ -66,10 +70,25 @@ func validateConnectorBinding(card *GovernedCard, input BeginExecution) error {
 	if projection.BindingHash != computed {
 		return ErrConnectorBindingRequired
 	}
-	if connectorMutationOperation(card.Template.Primitive.OperationClass) && !connectorProjectionCanMutate(projection.Scopes) {
+	if !connectorGrantSufficient(card.Template.Primitive, projection.Scopes) {
 		return ErrConnectorGrantInsufficient
 	}
 	return nil
+}
+
+// connectorGrantSufficient reports whether a binding's scopes authorize the
+// card's primitive. An executor-bound primitive requires exactly its own grant
+// scope (a binding for another scope never drives restart or update); that
+// grant scope is also the mutation right of a mutating primitive. Any other
+// mutating operation class needs a generic write scope.
+func connectorGrantSufficient(primitive rilaction.PrimitiveBinding, scopes []string) bool {
+	if profile, ok := primitives.For(primitive); ok {
+		return slices.Contains(scopes, profile.GrantScope)
+	}
+	if primitives.IsExecutorBound(primitive.ID) {
+		return false
+	}
+	return !connectorMutationOperation(primitive.OperationClass) || connectorProjectionCanMutate(scopes)
 }
 
 func connectorBindingDigest(tenantID, subjectID string, projection ConnectorBindingProjection) string {
@@ -103,7 +122,7 @@ func strictSortedConnectorScopes(scopes []string) bool {
 
 func connectorMutationOperation(operationClass string) bool {
 	switch operationClass {
-	case "product-apply", "product-upgrade", "product-rollback", "mutation":
+	case "product-apply", "product-upgrade", "product-rollback", "mutation", "runtime-service-action", "runtime-service-update":
 		return true
 	default:
 		return false

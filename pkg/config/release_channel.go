@@ -3,48 +3,53 @@ package config
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"os"
 	"strings"
 	"sync"
 )
 
+// EnvReleaseChannel is the retired selector of a serving channel beside
+// production. Techstack has one channel (D-2026-11-11-07): a process that still
+// names another one refuses to start (RejectRetiredReleaseChannel) instead of
+// running as production.
 const EnvReleaseChannel = "TECHSTACK_RELEASE_CHANNEL"
 
-// ReleaseChannel is shared by database startup, HTTP admission and runtime
-// lifecycle: "early-access" or, by default, "stable". The retired value
-// "preview" is read as Early Access, never as stable: a leftover setting must
-// not start shared work (platform-uv4ut).
-func ReleaseChannel() string {
-	switch strings.ToLower(strings.TrimSpace(os.Getenv(EnvReleaseChannel))) {
-	case "early-access", "preview":
-		return "early-access"
+// StableReleaseChannel is the one channel this product serves, and the constant
+// value /api/v1/health and the client bootstrap keep reporting.
+const StableReleaseChannel = "stable"
+
+// RejectRetiredReleaseChannel refuses a deployment that still names a channel
+// other than stable. Early Access and its retired predecessor "preview" are
+// deleted rather than carried over, and a service left holding either value
+// would otherwise start production work on a deployment that must not exist.
+func RejectRetiredReleaseChannel() error {
+	value := strings.ToLower(strings.TrimSpace(os.Getenv(EnvReleaseChannel)))
+	if value == "" || value == StableReleaseChannel {
+		return nil
 	}
-	return "stable"
+	return fmt.Errorf("%s=%q is retired: this product serves one channel and refuses to start with another", EnvReleaseChannel, value)
 }
 
-// SecondaryChannel reports a deployment beside stable: Early Access, served by
-// the edge under the same links to the people who opted in
-// (CI-CD-PLATFORM-STANDARD §4.6 "Channel model"). It serves signed-in people
-// over HTTP only; shared, homelab, machine and migration work stays on stable.
-func SecondaryChannel() bool { return ReleaseChannel() != "stable" }
+// ReleaseChannel reports the one channel this deployment serves. The health and
+// bootstrap answers keep their release_channel field at this constant value.
+func ReleaseChannel() string { return StableReleaseChannel }
+
+// SecondaryChannel reports a deployment beside the one channel. There is none:
+// RejectRetiredReleaseChannel refuses one at boot, so this is false on every
+// admitted process. It remains for the boot paths that still branch on it
+// (cmd/techstack/startup.go and its admission wiring), and goes with them.
+func SecondaryChannel() bool { return false }
 
 // RunsSharedWork reports whether this deployment runs the work that is
 // nobody's homelab: agent connections, monitoring, posture, outboxes, global
-// boot writes. Only stable runs it (pkg/releasechannel).
-func RunsSharedWork() bool { return !SecondaryChannel() }
+// boot writes. Every admitted deployment runs it.
+func RunsSharedWork() bool { return true }
 
-// AgentOriginOverride is the origin Guards and runtime agents call when it is
-// not this deployment's own: a deployment beside stable runs no agent routes, so
-// agents of every tenant talk to stable. Empty on stable.
-func AgentOriginOverride() string {
-	if !SecondaryChannel() {
-		return ""
-	}
-	return strings.TrimRight(strings.TrimSpace(os.Getenv("TECHSTACK_STABLE_ORIGIN")), "/")
-}
-
-// SecondaryExecution records installed boundaries on this boot. Environment
-// configuration alone never supplies a qualified health receipt.
+// SecondaryExecution records installed boundaries on a boot beside the one
+// channel. Environment configuration alone never supplies a qualified health
+// receipt. No admitted process has one, so NewSecondaryExecution returns nil
+// and every method ignores a nil receiver.
 type SecondaryExecution struct {
 	mu                                                      sync.RWMutex
 	httpInstalled, startupSuppressed, backgroundPartitioned bool
@@ -73,7 +78,7 @@ func (s *SecondaryExecution) StartupSuppressed() {
 }
 
 // BackgroundPartitioned records that homelab work runs only for tenants
-// that this deployment owns (the Stage owner).
+// that this deployment owns.
 func (s *SecondaryExecution) BackgroundPartitioned() {
 	if s != nil {
 		s.mu.Lock()

@@ -819,6 +819,38 @@ func (s *Store) HandOff(tenantID string) (removed int, err error) {
 	return removed, zeroFile(old, info.Size())
 }
 
+// RelabelTenant moves every entry of from to to after an operator-staged
+// same-subject tenant rebind (guardidentity.TenantRebindDirective): the
+// person is the same, only the tenant label of their binding changed, so the
+// entries, outcomes and fences continue under the canonical tenant instead of
+// being held as a predecessor's. It never applies between two people; that is
+// HandOff. The log is rewritten; it returns how many entries moved.
+func (s *Store) RelabelTenant(from, to string) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.denied != nil {
+		return 0, s.denied
+	}
+	from, to = strings.TrimSpace(from), strings.TrimSpace(to)
+	if from == "" || to == "" || from == to {
+		return 0, errors.New("a tenant relabel names two different tenants")
+	}
+	moved := 0
+	for _, e := range s.entries {
+		if e.Intent.TenantID == from {
+			e.Intent.TenantID = to
+			moved++
+		}
+	}
+	if moved == 0 {
+		return 0, nil
+	}
+	if s.file == nil {
+		return moved, errors.New("journal is closed")
+	}
+	return moved, s.compactLocked()
+}
+
 func zeroFile(handle *os.File, size int64) error {
 	zeros := make([]byte, 1<<20)
 	for offset := int64(0); offset < size; {

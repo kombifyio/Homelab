@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
 	"log/slog"
 	"strings"
 	"time"
@@ -23,11 +24,14 @@ const deliveryChannelPayloadKey = "_delivery_channel"
 
 const activityEnvelopePayloadKey = "_activity_envelope"
 
+// ProductEvent is one durable product notification. TenantID is the Techstack
+// tenant it belongs to: the engine resolves tenant_id centrally. It is never
+// an organizations.id UUID or sent as organization_id.
 type ProductEvent struct {
 	Topic          string
 	Channel        string
 	Auth0UserID    string
-	OrganizationID string
+	TenantID       string
 	Payload        map[string]any
 	IdempotencyKey string
 	SourceApp      string
@@ -118,7 +122,7 @@ type productEventExecutor interface {
 
 func enqueueProductEvent(ctx context.Context, executor productEventExecutor, event ProductEvent) error {
 	event.Auth0UserID = strings.TrimSpace(event.Auth0UserID)
-	event.OrganizationID = strings.TrimSpace(event.OrganizationID)
+	event.TenantID = strings.TrimSpace(event.TenantID)
 	event.IdempotencyKey = strings.TrimSpace(event.IdempotencyKey)
 	if event.Auth0UserID == "" {
 		return ErrRecipientRequired
@@ -168,7 +172,7 @@ func enqueueProductEvent(ctx context.Context, executor productEventExecutor, eve
 			idempotency_key, tenant_id, auth0_user_id, topic_slug, payload_json
 		) VALUES ($1, NULLIF($2, ''), $3, $4, $5::jsonb)
 		ON CONFLICT (idempotency_key) DO NOTHING
-	`, event.IdempotencyKey, event.OrganizationID, event.Auth0UserID, string(event.Topic), payload)
+	`, event.IdempotencyKey, event.TenantID, event.Auth0UserID, string(event.Topic), payload)
 	return err
 }
 
@@ -183,12 +187,12 @@ func (o *Outbox) ResolveWorkerRecipient(ctx context.Context, tenantID, agentID s
 	if tenantID == "" || agentID == "" {
 		return "", ErrRecipientRequired
 	}
-	tx, err := o.db.BeginTx(ctx, nil)
+	tx, err := tenantcontext.Database(ctx, o.db).BeginTx(ctx, nil)
 	if err != nil {
 		return "", err
 	}
 	defer func() { _ = tx.Rollback() }()
-	if _, err := tx.ExecContext(ctx, `SELECT set_config('app.tenant_id', $1, true)`, tenantID); err != nil {
+	if err := tenantcontext.ApplyTenant(ctx, tx, tenantID); err != nil {
 		return "", err
 	}
 	var recipient string
@@ -222,12 +226,12 @@ func (o *Outbox) ResolveManagedLeaseRecipient(ctx context.Context, tenantID, lea
 	if tenantID == "" || leaseID == "" {
 		return "", ErrRecipientRequired
 	}
-	tx, err := o.db.BeginTx(ctx, nil)
+	tx, err := tenantcontext.Database(ctx, o.db).BeginTx(ctx, nil)
 	if err != nil {
 		return "", err
 	}
 	defer func() { _ = tx.Rollback() }()
-	if _, err := tx.ExecContext(ctx, `SELECT set_config('app.tenant_id', $1, true)`, tenantID); err != nil {
+	if err := tenantcontext.ApplyTenant(ctx, tx, tenantID); err != nil {
 		return "", err
 	}
 	var recipient string
@@ -323,7 +327,7 @@ func (o *Outbox) claim(ctx context.Context, now time.Time) (*outboxItem, error) 
 		WHERE status IN ('pending','retrying') AND next_attempt_at <= $1
 		ORDER BY next_attempt_at, created_at
 		LIMIT 1 FOR UPDATE SKIP LOCKED
-	`, now).Scan(&item.IdempotencyKey, &item.OrganizationID, &item.Auth0UserID, &item.Topic, &payload, &item.Attempts)
+	`, now).Scan(&item.IdempotencyKey, &item.TenantID, &item.Auth0UserID, &item.Topic, &payload, &item.Attempts)
 	if err != nil {
 		return nil, err
 	}

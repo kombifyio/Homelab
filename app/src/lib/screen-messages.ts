@@ -2,6 +2,13 @@
 // Merged into the main dictionary by i18n.ts (en, de) and locales/*.ts.
 export const screenMessages = {
   en: {
+    "ui.homelab.firstServerHint": "Connect a server you already have, or set up a new one. Your servers will appear here.",
+    "ui.homelab.installedUseCases": "Installed use cases",
+    "ui.homelab.transferHint": "Import a stack configuration or export the selected stack.",
+    "ui.homelab.export": "Export",
+    "ui.homelab.importSpec": "StackKit specification",
+    "ui.apps.useCaseConfigure": "Configure",
+    "ui.apps.useCaseRemove": "Remove",
     "ui.clientLocal.bootstrapPassword": "Bootstrap password",
     "ui.clientLocal.bootstrapGuidance":
       "Run {command} in a terminal on this installation's host to obtain the bootstrap password. If an earlier password was consumed or expired, the command replaces it and the old password stops working.",
@@ -84,8 +91,6 @@ export const screenMessages = {
       "This window closes automatically.",
     "ui.authCloud-link-complete.youCanCloseThisTab":
       "You can close this tab and return to the wizard.",
-    "ui.authHandler.yourSessionHasExpiredPlease":
-      "Your session has expired. Please sign in again.",
     "ui.authSso.noSsoTokenProvided": "No SSO token provided",
     "ui.authSso.ssoAuthenticationFailed": "SSO authentication failed",
     "ui.authSso.ssoAuthenticationKombifyTechstack":
@@ -96,13 +101,10 @@ export const screenMessages = {
       "Your kombify Cloud session could not be restored. Please try again.",
     "ui.client.csrfTokenResponseMissingToken":
       "CSRF token response missing token",
-    "ui.client.gatewayAuthenticationUnavailableSignIn":
-      "Gateway authentication unavailable. Sign in again to verify your managed runtime entitlements.",
     "ui.client.networkError":
       "Network error: Could not connect to API. Is the backend reachable?",
     "ui.client.networkErrorAt":
       "Network error: Could not connect to API at {base}. Is the backend reachable?",
-    "ui.client.parentGatewayTokenFailed": "parent gateway token failed",
     "ui.client.requestTimedOutAfterS": "Request timed out after {v1}s: {url}",
     "ui.client.serverReturnedHTMLInsteadOf":
       "{basePrefix}Server returned HTML instead of JSON ({status}). Is the backend reachable and are you authenticated?",
@@ -418,7 +420,6 @@ export const screenMessages = {
       "Resolve stale custody record?",
     "ui.homelabDashboardPage.retry": "Retry",
     "ui.homelabDashboardPage.retryExactCleanup": "Retry exact cleanup",
-    "ui.homelabDashboardPage.review": "Review",
     "ui.homelabDashboardPage.reviewStart": "Review and create",
     "ui.homelabDashboardPage.rolloutReadinessIsUnavailableRefresh":
       "Rollout readiness is unavailable. Refresh the operations data before starting.",
@@ -626,6 +627,7 @@ export const screenMessages = {
     "ui.monitoring.availabilityHistoryIsUnavailableOn":
       "Availability history is unavailable on this installation.",
     "ui.monitoring.availabilityWindow": "Availability · {window}",
+    "ui.monitoring.availabilityWindowLabel": "Availability window",
     "ui.monitoring.dailyState": "Daily state",
     "ui.monitoring.dailyStateLabel": "{name}: daily connection state",
     "ui.monitoring.downFor": "{duration} down",
@@ -765,12 +767,30 @@ export const screenMessages = {
       "Recovery passphrase must be at least {MIN_RECOVERY_PASSPHRASE_LENGTH} characters",
     "ui.ownerState.recoveryPassphrasesDoNotMatch":
       "Recovery passphrases do not match",
+    "ui.ownerState.theCloudLinkCouldNotBeRemoved":
+      "The kombify Cloud link could not be removed. Try again.",
+    "ui.ownerState.theCloudLinkCouldNotBeSaved":
+      "The kombify Cloud link could not be saved. Try again.",
+    "ui.ownerState.theCloudLinkCouldNotBeStarted":
+      "The kombify Cloud link could not be started. Try again.",
+    "ui.ownerState.theCloudLinkIsTemporarilyUnavailable":
+      "The kombify Cloud link is temporarily unavailable. Try again in a moment.",
+    "ui.ownerState.theCloudLinkStatusCouldNotBeRead":
+      "The kombify Cloud link status could not be read. Try again in a moment.",
+    "ui.ownerState.theCloudProfileCouldNotBeRead":
+      "The kombify Cloud profile could not be read. Start the connection again.",
+    "ui.ownerState.theCloudTokenExchangeFailed":
+      "The kombify Cloud token exchange failed. Start the connection again.",
+    "ui.ownerState.theKombifyCloudAccountIsAlready":
+      "Your kombify Cloud account is already connected. Cloud link is only available on self-hosted installs.",
     "ui.ownerState.theKombifyCloudEmailIs":
       "The kombify Cloud email is not verified. Verify it in your Cloud account, then link again.",
     "ui.ownerState.theKombifyCloudProfileHas":
       "The kombify Cloud profile has no email address.",
     "ui.ownerState.theLinkRequestExpiredStart":
       "The link request expired. Start the connection again.",
+    "ui.ownerState.theLinkRequestIsMissingStart":
+      "The link request is missing its code or state. Start the connection again.",
     "ui.ownerState.theSelectedOwnerSourceIs":
       "The selected owner source is no longer supported. Choose a local owner or link your kombify Cloud profile.",
     "ui.ownerState.thisInstanceHasNoKombify":
@@ -1295,8 +1315,6 @@ export const screenMessages = {
     "ui.serviceSheet.notPlaced": "not placed",
     "ui.serviceSheet.ownership": "Ownership: {value}",
     "ui.serviceSheet.stackkit": "StackKit {version}",
-    "ui.services.aboutToMove":
-      "You are about to move this application from {slot} to {slot}.",
     "ui.services.action.freeze": "Freeze",
     "ui.services.action.logs": "Logs",
     "ui.services.action.restart": "Restart",
@@ -1318,15 +1336,10 @@ export const screenMessages = {
     "ui.services.anyRuntimeInventoryShownAbove":
       "Any runtime inventory shown above remains read-only. Catalog, import, verification, and migration actions stay disabled until the service registry recovers.",
     "ui.services.application": "Application",
-    "ui.services.applicationIsAlreadyMovingOr":
-      "Application is already moving or waiting for verification.",
     "ui.services.applicationManagementIsTemporarilyUnavailable":
       "Application management is temporarily unavailable",
     "ui.services.applicationManagementIsUnavailableUntil":
       "Application management is unavailable until the service registry recovers.",
-    "ui.services.applicationMove": "Application Move",
-    "ui.services.applicationNeedsAStableRunning":
-      "Application needs a stable running or stopped state before it can be moved.",
     "ui.services.applicationPlacementIsTemporarilyUnavailable":
       "Application placement is temporarily unavailable",
     "ui.services.applications": "Applications",
@@ -1360,14 +1373,9 @@ export const screenMessages = {
     "ui.services.desiredObserved": "Desired {desired} · Observed {observed}",
     "ui.services.discoveredOn": "Discovered on {name} — not managed by kombify",
     "ui.services.displayName": "Display name",
-    "ui.services.dragAndDropStaysDisabled":
-      "Drag and drop is not available yet. Moving an app safely needs the install, the health check, the switch-over and the cleanup of the old copy to be automated.",
-    "ui.services.dropManagedApplicationsHere": "Drop managed applications here",
     "ui.services.error": "Error",
     "ui.services.failedToDeleteArchivedService":
       "Failed to delete archived service.",
-    "ui.services.failedToInitiateMigration": "Failed to initiate migration.",
-    "ui.services.failedToVerifyService": "Failed to verify service.",
     "ui.services.fetchLogs": "Fetch logs",
     "ui.services.freshnessValue": "Freshness: {value}",
     "ui.services.health": "Health",
@@ -1379,18 +1387,14 @@ export const screenMessages = {
       "Loading canonical service inventory",
     "ui.services.localNode": "Local server",
     "ui.services.managedProviderTarget": "Managed provider target",
-    "ui.services.migrationJobIsActive": "Migration job is active.",
+    "ui.services.moreActions": "More actions for services",
     "ui.services.moveApplication": "Move Application",
     "ui.services.moveHere": "Move {name} here",
-    "ui.services.moveSteps": "Move Steps:",
-    "ui.services.moveToAnotherNode": "Move to another server…",
     "ui.services.mutationsRequireOwnerApprovalA":
       "Mutations require owner approval; a StackKits verify pass runs before measured state changes.",
     "ui.services.noApplicationsDeployed": "No applications deployed",
     "ui.services.noApplicationsMatching": "No applications matching {status}",
     "ui.services.noApplicationsReported": "No applications reported",
-    "ui.services.noAvailableTargetNodeFor":
-      "No available target server for this application.",
     "ui.services.noCanonicalRuntimeObservationYet":
       "No canonical runtime observation yet — registry projection shown.",
     "ui.services.noGovernedActionHasRun":
@@ -1408,8 +1412,6 @@ export const screenMessages = {
     "ui.services.unstacked": "Unstacked",
     "ui.services.observedTechnicalComponentsWithoutApplication":
       "Observed technical components without application-level controls",
-    "ui.services.observedUnmanagedApplicationsMustBe":
-      "Observed unmanaged applications must be adopted before they can be moved.",
     "ui.services.open": "Open",
     "ui.services.operationValue": "Operation: {value}",
     "ui.services.ownershipUnknown": "Ownership unknown",
@@ -1425,17 +1427,11 @@ export const screenMessages = {
     "ui.services.port": "Port",
     "ui.services.ramUsedOf": "{used} GB / {total} GB",
     "ui.services.refreshLogs": "Refresh logs",
-    "ui.services.relocatingOnBackend": "Relocating on backend...",
     "ui.services.removeOldCopy": "Remove old copy…",
     "ui.services.retryManagementData": "Retry management data",
     "ui.services.running": "Running",
     "ui.services.runtimeInventoryCouldNotBe":
       "Runtime inventory could not be loaded.",
-    "ui.services.runtimeMigrationIsNotEnabled":
-      "Runtime migration is not enabled yet",
-    "ui.services.runtimeMigrationUnavailable": "Runtime migration unavailable",
-    "ui.services.runtimeServiceMigrationIsNot":
-      "Moving apps between servers is not enabled on this installation.",
     "ui.services.runtimeTarget": "Runtime target",
     "ui.services.selectANodeAndCatalog": "Select a server and catalog service.",
     "ui.services.selectANodeThenEnter":
@@ -1458,22 +1454,12 @@ export const screenMessages = {
     "ui.services.showingLastVerifiedCapacityTelemetry":
       "Showing last verified capacity telemetry",
     "ui.services.stackkitsApplicationModel": "StackKits application model",
-    "ui.services.startMove": "Start Move",
-    "ui.services.startsControlledMove":
-      "This starts a controlled move of {slot}.",
     "ui.services.statusValue": "Status: {value}",
     "ui.services.storage": "Storage",
     "ui.services.storageFreeOf": "{free} GB free / {total} GB",
     "ui.services.systemServices": "System Services",
-    "ui.services.targetIsReadyForVerification":
-      "Target is ready for verification.",
-    "ui.services.targetNode": "Target server",
     "ui.services.targetValue": "Target: {value}",
     "ui.services.telemetryPending": "telemetry pending",
-    "ui.services.temporaryInstance":
-      "A temporary instance will be deployed on {slot}.",
-    "ui.services.theApplicationConfigWillBe":
-      "The application config will be duplicated on the target server.",
     "ui.services.theLastLogPageWas": "The last log page was empty.",
     "ui.services.theLastSuccessfulSnapshotRemains":
       "The last successful snapshot stays visible until this homelab reports a replacement or clear evidence that the app is down.",
@@ -1484,15 +1470,8 @@ export const screenMessages = {
     "ui.services.type2": "Type",
     "ui.services.unclassifiedRuntimeComponentsAppearHere":
       "Unclassified runtime components appear here.",
-    "ui.services.uponYourManualVerificationThe":
-      "Upon your manual verification, the old instance is deactivated and can be permanently removed.",
     "ui.services.url": "URL",
-    "ui.services.verifyFinish": "Verify & Finish",
     "ui.services.verifying": "· verifying",
-    "ui.services.waitingForRuntimeDeployment":
-      "Waiting for the installation...",
-    "ui.services.youCanTestTheNew":
-      "You can test the new instance while the old one remains active.",
     "ui.servicesApplicationId.addressClass": "Address class",
     "ui.servicesApplicationId.applicationDetails": "Application details",
     "ui.servicesApplicationId.applicationDetailsCouldNotBe":
@@ -1764,7 +1743,8 @@ export const screenMessages = {
       "Rollout retry requires the exact failed job and managed VM lease.",
     "ui.stacksCreatingCreation-controller.serviceVerification":
       "Service verification",
-    "ui.stacksCreatingCreation-controller.sessionExpired": "Session expired",
+    "ui.stacksCreatingCreation-controller.sessionExpired":
+      "Waiting for your confirmation",
     "ui.stacksCreatingCreation-controller.simulationGate": "Simulation gate",
     "ui.stacksCreatingCreation-controller.stackkitRollout": "StackKit rollout",
     "ui.stacksCreatingCreation-controller.stackkitRuntimeVerificationMissing":
@@ -1790,7 +1770,7 @@ export const screenMessages = {
     "ui.stacksCreatingCreation-controller.yourRemoteNodeConfigurationIs":
       "Your remote server configuration is ready for rollout",
     "ui.stacksCreatingCreation-controller.yourSessionIsNoLonger":
-      "Your session is no longer valid, so the creation progress cannot be checked. Sign in again and reopen this creation to continue monitoring it.",
+      "The creation keeps running on the server. Check again and confirm your session to keep following its progress here.",
     "ui.stacksCreatingCreation-results.backendError":
       "{cleanDetails}\n\nBackend error:\n{cleanError}",
     "ui.stacksCreatingCreation-results.incidentContext": "Incident context:",
@@ -2099,6 +2079,7 @@ export const screenMessages = {
     "ui.stacksId.monitoringEvidence": "Monitoring Evidence",
     "ui.stacksId.monthlyRuntime": "Monthly Runtime",
     "ui.stacksId.monthlyRuntimeActionFailed": "Monthly Runtime action failed",
+    "ui.stacksId.moreActions": "More actions for {name}",
     "ui.stacksId.noCredentialsConfiguredForThis":
       "No credentials configured for this homelab.",
     "ui.stacksId.noLeaseAttached": "No lease attached",
@@ -2174,6 +2155,7 @@ export const screenMessages = {
       "Managed runtime lease context.",
     "ui.stacksIdServersServerId.memory": "Memory",
     "ui.stacksIdServersServerId.metadata": "Metadata",
+    "ui.stacksIdServersServerId.moreActions": "More actions for {name}",
     "ui.stacksIdServersServerId.noCompilerDeclaredReservationOr":
       "No compiler-declared reservation or bound runtime listener was present in the latest complete Guard snapshot.",
     "ui.stacksIdServersServerId.noDesiredListenerIsReserved":
@@ -2698,6 +2680,13 @@ export const screenMessages = {
       "Servers connected (verified)",
   },
   de: {
+    "ui.homelab.firstServerHint": "Verbinde einen vorhandenen Server oder richte einen neuen ein. Hier siehst du danach deine Server.",
+    "ui.homelab.installedUseCases": "Installierte Use Cases",
+    "ui.homelab.transferHint": "Importiere eine Stack-Konfiguration oder exportiere den ausgewählten Stack.",
+    "ui.homelab.export": "Exportieren",
+    "ui.homelab.importSpec": "StackKit-Spezifikation",
+    "ui.apps.useCaseConfigure": "Konfigurieren",
+    "ui.apps.useCaseRemove": "Entfernen",
     "ui.clientLocal.bootstrapPassword": "Bootstrap-Passwort",
     "ui.clientLocal.bootstrapGuidance":
       "Führe {command} im Terminal auf dem Host dieser Installation aus, um das Bootstrap-Passwort zu erhalten. Wurde ein früheres Passwort verbraucht oder ist es abgelaufen, ersetzt der Befehl es und das alte Passwort funktioniert nicht mehr.",
@@ -2782,8 +2771,6 @@ export const screenMessages = {
       "Dieses Fenster schließt sich automatisch.",
     "ui.authCloud-link-complete.youCanCloseThisTab":
       "Du kannst diesen Tab schließen und zum Assistenten zurückkehren.",
-    "ui.authHandler.yourSessionHasExpiredPlease":
-      "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.",
     "ui.authSso.noSsoTokenProvided": "Kein SSO-Token angegeben",
     "ui.authSso.ssoAuthenticationFailed":
       "SSO-Authentifizierung fehlgeschlagen",
@@ -2795,14 +2782,10 @@ export const screenMessages = {
       "Deine kombify-Cloud-Sitzung konnte nicht wiederhergestellt werden. Bitte versuche es erneut.",
     "ui.client.csrfTokenResponseMissingToken":
       "Der CSRF-Token-Antwort fehlt das Token",
-    "ui.client.gatewayAuthenticationUnavailableSignIn":
-      "Gateway-Authentifizierung nicht verfügbar. Melde dich erneut an, um deine Berechtigungen für die verwaltete Runtime zu verifizieren.",
     "ui.client.networkError":
       "Netzwerkfehler: Verbindung zur API nicht möglich. Ist das Backend erreichbar?",
     "ui.client.networkErrorAt":
       "Netzwerkfehler: Verbindung zur API unter {base} nicht möglich. Ist das Backend erreichbar?",
-    "ui.client.parentGatewayTokenFailed":
-      "Token des übergeordneten Gateways fehlgeschlagen",
     "ui.client.requestTimedOutAfterS":
       "Zeitüberschreitung der Anfrage nach {v1} s: {url}",
     "ui.client.serverReturnedHTMLInsteadOf":
@@ -3134,7 +3117,6 @@ export const screenMessages = {
     "ui.homelabDashboardPage.retry": "Erneut versuchen",
     "ui.homelabDashboardPage.retryExactCleanup":
       "Genaue Bereinigung wiederholen",
-    "ui.homelabDashboardPage.review": "Prüfen",
     "ui.homelabDashboardPage.reviewStart": "Prüfen und erstellen",
     "ui.homelabDashboardPage.rolloutReadinessIsUnavailableRefresh":
       "Die Rollout-Bereitschaft ist nicht verfügbar. Aktualisiere die Betriebsdaten, bevor du startest.",
@@ -3349,6 +3331,7 @@ export const screenMessages = {
     "ui.monitoring.availabilityHistoryIsUnavailableOn":
       "Der Verfügbarkeitsverlauf ist in dieser Installation nicht verfügbar.",
     "ui.monitoring.availabilityWindow": "Verfügbarkeit · {window}",
+    "ui.monitoring.availabilityWindowLabel": "Verfügbarkeitszeitraum",
     "ui.monitoring.dailyState": "Tagesstatus",
     "ui.monitoring.dailyStateLabel": "{name}: täglicher Verbindungsstatus",
     "ui.monitoring.downFor": "{duration} ausgefallen",
@@ -3491,12 +3474,30 @@ export const screenMessages = {
       "Die Wiederherstellungs-Passphrase muss mindestens {MIN_RECOVERY_PASSPHRASE_LENGTH} Zeichen lang sein",
     "ui.ownerState.recoveryPassphrasesDoNotMatch":
       "Die Wiederherstellungs-Passphrasen stimmen nicht überein",
+    "ui.ownerState.theCloudLinkCouldNotBeRemoved":
+      "Die kombify-Cloud-Verknüpfung konnte nicht entfernt werden. Versuche es erneut.",
+    "ui.ownerState.theCloudLinkCouldNotBeSaved":
+      "Die kombify-Cloud-Verknüpfung konnte nicht gespeichert werden. Versuche es erneut.",
+    "ui.ownerState.theCloudLinkCouldNotBeStarted":
+      "Die kombify-Cloud-Verknüpfung konnte nicht gestartet werden. Versuche es erneut.",
+    "ui.ownerState.theCloudLinkIsTemporarilyUnavailable":
+      "Die kombify-Cloud-Verknüpfung ist vorübergehend nicht verfügbar. Versuche es gleich noch einmal.",
+    "ui.ownerState.theCloudLinkStatusCouldNotBeRead":
+      "Der Status der kombify-Cloud-Verknüpfung konnte nicht gelesen werden. Versuche es gleich noch einmal.",
+    "ui.ownerState.theCloudProfileCouldNotBeRead":
+      "Das kombify-Cloud-Profil konnte nicht gelesen werden. Starte die Verbindung erneut.",
+    "ui.ownerState.theCloudTokenExchangeFailed":
+      "Der Token-Austausch mit kombify Cloud ist fehlgeschlagen. Starte die Verbindung erneut.",
+    "ui.ownerState.theKombifyCloudAccountIsAlready":
+      "Dein kombify-Cloud-Konto ist bereits verbunden. Die Cloud-Verknüpfung ist nur auf selbst gehosteten Installationen verfügbar.",
     "ui.ownerState.theKombifyCloudEmailIs":
       "Die E-Mail-Adresse bei kombify Cloud ist nicht verifiziert. Verifiziere sie in deinem Cloud-Konto und verknüpfe dann erneut.",
     "ui.ownerState.theKombifyCloudProfileHas":
       "Das kombify-Cloud-Profil hat keine E-Mail-Adresse.",
     "ui.ownerState.theLinkRequestExpiredStart":
       "Die Verknüpfungsanfrage ist abgelaufen. Starte die Verbindung erneut.",
+    "ui.ownerState.theLinkRequestIsMissingStart":
+      "Der Verknüpfungsanfrage fehlen der Code oder der Status. Starte die Verbindung erneut.",
     "ui.ownerState.theSelectedOwnerSourceIs":
       "Die gewählte Owner-Quelle wird nicht mehr unterstützt. Wähle einen lokalen Owner oder verknüpfe dein kombify-Cloud-Profil.",
     "ui.ownerState.thisInstanceHasNoKombify":
@@ -4043,8 +4044,6 @@ export const screenMessages = {
     "ui.serviceSheet.notPlaced": "nicht platziert",
     "ui.serviceSheet.ownership": "Eigentümer: {value}",
     "ui.serviceSheet.stackkit": "StackKit {version}",
-    "ui.services.aboutToMove":
-      "Du bist dabei, diese Anwendung von {slot} nach {slot} zu verschieben.",
     "ui.services.action.freeze": "Einfrieren",
     "ui.services.action.logs": "Logs",
     "ui.services.action.restart": "Neustarten",
@@ -4057,7 +4056,7 @@ export const screenMessages = {
       "Aktion abgeschlossen, aber innerhalb des Aktualitätsfensters des Services ist keine neuere Inventarbeobachtung eingegangen.",
     "ui.services.actionCompletedInventoryIsRefreshing":
       "Aktion abgeschlossen; das Inventar wird aktualisiert.",
-    "ui.services.actionTitle": "{action} {name}",
+    "ui.services.actionTitle": "{name}: {action}",
     "ui.services.addACatalogApplicationOr":
       "Füge eine Katalog-Anwendung hinzu oder importiere nicht verwaltetes Serverinventar.",
     "ui.services.addService": "Service hinzufügen",
@@ -4066,15 +4065,10 @@ export const screenMessages = {
     "ui.services.anyRuntimeInventoryShownAbove":
       "Das oben angezeigte Runtime-Inventar bleibt schreibgeschützt. Katalog-, Import-, Verifizierungs- und Migrationsaktionen bleiben deaktiviert, bis sich die Service-Registry erholt.",
     "ui.services.application": "Anwendung",
-    "ui.services.applicationIsAlreadyMovingOr":
-      "Die Anwendung wird bereits verschoben oder wartet auf Verifizierung.",
     "ui.services.applicationManagementIsTemporarilyUnavailable":
       "Anwendungsverwaltung vorübergehend nicht verfügbar",
     "ui.services.applicationManagementIsUnavailableUntil":
       "Die Anwendungsverwaltung ist nicht verfügbar, bis sich die Service-Registry erholt.",
-    "ui.services.applicationMove": "Anwendung verschieben",
-    "ui.services.applicationNeedsAStableRunning":
-      "Die Anwendung benötigt einen stabilen laufenden oder gestoppten Zustand, bevor sie verschoben werden kann.",
     "ui.services.applicationPlacementIsTemporarilyUnavailable":
       "Anwendungsplatzierung vorübergehend nicht verfügbar",
     "ui.services.applications": "Anwendungen",
@@ -4110,17 +4104,9 @@ export const screenMessages = {
     "ui.services.discoveredOn":
       "Auf {name} erkannt — nicht von kombify verwaltet",
     "ui.services.displayName": "Anzeigename",
-    "ui.services.dragAndDropStaysDisabled":
-      "Drag-and-drop ist noch nicht verfügbar. Eine App sicher zu verschieben setzt voraus, dass Installation, Gesundheitsprüfung, Umschaltung und Aufräumen der alten Kopie automatisiert ablaufen.",
-    "ui.services.dropManagedApplicationsHere":
-      "Verwaltete Anwendungen hier ablegen",
     "ui.services.error": "Fehler",
     "ui.services.failedToDeleteArchivedService":
       "Archivierter Service konnte nicht gelöscht werden.",
-    "ui.services.failedToInitiateMigration":
-      "Migration konnte nicht gestartet werden.",
-    "ui.services.failedToVerifyService":
-      "Service konnte nicht verifiziert werden.",
     "ui.services.fetchLogs": "Logs abrufen",
     "ui.services.freshnessValue": "Aktualität: {value}",
     "ui.services.health": "Health",
@@ -4132,19 +4118,15 @@ export const screenMessages = {
       "Kanonisches Service-Inventar wird geladen",
     "ui.services.localNode": "Lokaler Server",
     "ui.services.managedProviderTarget": "Verwaltetes Anbieterziel",
-    "ui.services.migrationJobIsActive": "Der Migrations-Job ist aktiv.",
+    "ui.services.moreActions": "Weitere Aktionen für Services",
     "ui.services.moveApplication": "Anwendung verschieben",
     "ui.services.moveHere": "{name} hierher verschieben",
-    "ui.services.moveSteps": "Schritte des Verschiebens:",
-    "ui.services.moveToAnotherNode": "Auf anderen Server verschieben…",
     "ui.services.mutationsRequireOwnerApprovalA":
       "Änderungen erfordern die Freigabe des Owners; vor jeder Änderung des gemessenen Zustands läuft ein StackKits-Verifizierungsdurchlauf.",
     "ui.services.noApplicationsDeployed": "Keine Anwendungen deployt",
     "ui.services.noApplicationsMatching":
       "Keine Anwendungen mit Status {status}",
     "ui.services.noApplicationsReported": "Keine Anwendungen gemeldet",
-    "ui.services.noAvailableTargetNodeFor":
-      "Kein verfügbarer Ziel-Server für diese Anwendung.",
     "ui.services.noCanonicalRuntimeObservationYet":
       "Noch keine kanonische Runtime-Beobachtung — Registry-Projektion wird angezeigt.",
     "ui.services.noGovernedActionHasRun":
@@ -4159,12 +4141,10 @@ export const screenMessages = {
     "ui.services.nodeCapabilities": "Serverfähigkeiten",
     "ui.services.nodeColumn": "Spalte für Server {name}",
     "ui.services.observed": "Beobachtet",
-    "ui.services.stacked": "Stacked",
-    "ui.services.unstacked": "Unstacked",
+    "ui.services.stacked": "Gestackt",
+    "ui.services.unstacked": "Nicht gestackt",
     "ui.services.observedTechnicalComponentsWithoutApplication":
       "Beobachtete technische Komponenten ohne Steuerung auf Anwendungsebene",
-    "ui.services.observedUnmanagedApplicationsMustBe":
-      "Beobachtete, nicht verwaltete Anwendungen müssen übernommen werden, bevor sie verschoben werden können.",
     "ui.services.open": "Öffnen",
     "ui.services.operationValue": "Vorgang: {value}",
     "ui.services.ownershipUnknown": "Eigentümer unbekannt",
@@ -4180,18 +4160,11 @@ export const screenMessages = {
     "ui.services.port": "Port",
     "ui.services.ramUsedOf": "{used} GB / {total} GB",
     "ui.services.refreshLogs": "Logs aktualisieren",
-    "ui.services.relocatingOnBackend": "Verlagerung im Backend läuft...",
     "ui.services.removeOldCopy": "Alte Kopie entfernen…",
     "ui.services.retryManagementData": "Verwaltungsdaten erneut laden",
     "ui.services.running": "Läuft",
     "ui.services.runtimeInventoryCouldNotBe":
       "Runtime-Inventar konnte nicht geladen werden.",
-    "ui.services.runtimeMigrationIsNotEnabled":
-      "Runtime-Migration ist noch nicht aktiviert",
-    "ui.services.runtimeMigrationUnavailable":
-      "Runtime-Migration nicht verfügbar",
-    "ui.services.runtimeServiceMigrationIsNot":
-      "Das Verschieben von Apps zwischen Servern ist in dieser Installation nicht aktiviert.",
     "ui.services.runtimeTarget": "Runtime-Ziel",
     "ui.services.selectANodeAndCatalog":
       "Wähle einen Server und einen Katalog-Service aus.",
@@ -4216,22 +4189,12 @@ export const screenMessages = {
     "ui.services.showingLastVerifiedCapacityTelemetry":
       "Zeigt die zuletzt verifizierte Kapazitäts-Telemetrie",
     "ui.services.stackkitsApplicationModel": "StackKits-Anwendungsmodell",
-    "ui.services.startMove": "Verschieben starten",
-    "ui.services.startsControlledMove":
-      "Dadurch wird ein kontrolliertes Verschieben von {slot} gestartet.",
     "ui.services.statusValue": "Status: {value}",
     "ui.services.storage": "Speicher",
     "ui.services.storageFreeOf": "{free} GB frei / {total} GB",
     "ui.services.systemServices": "System-Services",
-    "ui.services.targetIsReadyForVerification":
-      "Das Ziel ist bereit zur Verifizierung.",
-    "ui.services.targetNode": "Ziel-Server",
     "ui.services.targetValue": "Ziel: {value}",
     "ui.services.telemetryPending": "Telemetrie ausstehend",
-    "ui.services.temporaryInstance":
-      "Auf {slot} wird eine temporäre Instanz deployt.",
-    "ui.services.theApplicationConfigWillBe":
-      "Die Anwendungskonfiguration wird auf den Ziel-Server dupliziert.",
     "ui.services.theLastLogPageWas": "Die letzte Log-Seite war leer.",
     "ui.services.theLastSuccessfulSnapshotRemains":
       "Der letzte erfolgreiche Stand bleibt sichtbar, bis dieses Homelab einen Ersatz oder einen klaren Nachweis meldet, dass die App ausgefallen ist.",
@@ -4242,14 +4205,8 @@ export const screenMessages = {
     "ui.services.type2": "Typ",
     "ui.services.unclassifiedRuntimeComponentsAppearHere":
       "Nicht klassifizierte Runtime-Komponenten erscheinen hier.",
-    "ui.services.uponYourManualVerificationThe":
-      "Nach deiner manuellen Verifizierung wird die alte Instanz deaktiviert und kann dauerhaft entfernt werden.",
     "ui.services.url": "URL",
-    "ui.services.verifyFinish": "Verifizieren & Abschließen",
     "ui.services.verifying": "· wird verifiziert",
-    "ui.services.waitingForRuntimeDeployment": "Warte auf die Installation...",
-    "ui.services.youCanTestTheNew":
-      "Du kannst die neue Instanz testen, während die alte aktiv bleibt.",
     "ui.servicesApplicationId.addressClass": "Adressklasse",
     "ui.servicesApplicationId.applicationDetails": "Anwendungsdetails",
     "ui.servicesApplicationId.applicationDetailsCouldNotBe":
@@ -4537,7 +4494,8 @@ export const screenMessages = {
       "Für den erneuten Rollout-Versuch werden der exakte fehlgeschlagene Job und der Lease der verwalteten VM benötigt.",
     "ui.stacksCreatingCreation-controller.serviceVerification":
       "Dienstverifizierung",
-    "ui.stacksCreatingCreation-controller.sessionExpired": "Sitzung abgelaufen",
+    "ui.stacksCreatingCreation-controller.sessionExpired":
+      "Wartet auf deine Bestätigung",
     "ui.stacksCreatingCreation-controller.simulationGate":
       "Simulationsschranke",
     "ui.stacksCreatingCreation-controller.stackkitRollout": "StackKit-Rollout",
@@ -4564,7 +4522,7 @@ export const screenMessages = {
     "ui.stacksCreatingCreation-controller.yourRemoteNodeConfigurationIs":
       "Deine Remote-Server-Konfiguration ist bereit für den Rollout",
     "ui.stacksCreatingCreation-controller.yourSessionIsNoLonger":
-      "Deine Sitzung ist nicht mehr gültig, daher kann der Erstellungsfortschritt nicht geprüft werden. Melde dich erneut an und öffne diese Erstellung noch einmal, um sie weiter zu verfolgen.",
+      "Die Erstellung läuft auf dem Server weiter. Prüfe erneut und bestätige deine Sitzung, um ihren Fortschritt hier weiter zu verfolgen.",
     "ui.stacksCreatingCreation-results.backendError":
       "{cleanDetails}\n\nBackend-Fehler:\n{cleanError}",
     "ui.stacksCreatingCreation-results.incidentContext": "Vorfallkontext:",
@@ -4890,6 +4848,7 @@ export const screenMessages = {
     "ui.stacksId.monthlyRuntime": "Monatliche Runtime",
     "ui.stacksId.monthlyRuntimeActionFailed":
       "Aktion für die monatliche Runtime fehlgeschlagen",
+    "ui.stacksId.moreActions": "Weitere Aktionen für {name}",
     "ui.stacksId.noCredentialsConfiguredForThis":
       "Für dieses Homelab sind keine Zugangsdaten konfiguriert.",
     "ui.stacksId.noLeaseAttached": "Kein Lease verknüpft",
@@ -4967,6 +4926,7 @@ export const screenMessages = {
       "Kontext des Leases der verwalteten Runtime.",
     "ui.stacksIdServersServerId.memory": "Arbeitsspeicher",
     "ui.stacksIdServersServerId.metadata": "Metadaten",
+    "ui.stacksIdServersServerId.moreActions": "Weitere Aktionen für {name}",
     "ui.stacksIdServersServerId.noCompilerDeclaredReservationOr":
       "Im neuesten vollständigen Guard-Snapshot war weder eine vom Compiler deklarierte Reservierung noch ein gebundener Runtime-Listener vorhanden.",
     "ui.stacksIdServersServerId.noDesiredListenerIsReserved":

@@ -92,11 +92,11 @@ func (o *Orchestrator) ReconcileApplicationConnectors(ctx context.Context, tenan
 		case string:
 			verified, _ = time.Parse(time.RFC3339Nano, stamp)
 		}
-		if !verified.IsZero() && !verified.After(time.Now().Add(time.Minute)) && time.Since(verified) <= runtimehealth.FreshHeartbeatWindow {
-			continue
+		if verified.IsZero() || verified.After(time.Now().Add(time.Minute)) || time.Since(verified) > runtimehealth.FreshHeartbeatWindow {
+			if _, err = o.RefreshApplicationConnector(ctx, tenantID, ownerID, service.ID); err != nil {
+				o.log.Warn("application_connector_refresh_not_admitted", "service_id", service.ID)
+			}
 		}
-		if _, err = o.RefreshApplicationConnector(ctx, tenantID, ownerID, service.ID); err != nil {
-			o.log.Warn("application_connector_refresh_not_admitted", "service_id", service.ID)
-		}
+		o.reconcileHomeGraphs(ctx, tenantID, ownerID, service)
 	}
 }

@@ -84,6 +84,9 @@ func (p *ReleaseProjector) Project(ctx context.Context, seed map[string]any, int
 	if err := intent.Validate(); err != nil {
 		return nil, err
 	}
+	if len(intent.PendingUseCaseAccess()) > 0 {
+		return nil, blockedUseCaseAccess(intent, intent.PendingUseCaseAccess(), "the pinned release supports only local owner or household access for Photos and Documents")
+	}
 	if len(intent.Access.Publications) > 0 {
 		return nil, fmt.Errorf("specv2: explicit public service publication is unavailable in the pinned StackKits release")
 	}
@@ -145,6 +148,9 @@ func (p *ReleaseProjector) Project(ctx context.Context, seed map[string]any, int
 			return nil, err
 		}
 	}
+	if err := projectUseCaseAccess(spec, intent); err != nil {
+		return nil, err
+	}
 	if intent.Backup.Offsite {
 		enableCapability(spec, OffsiteBackupCapability)
 	}
@@ -163,7 +169,9 @@ func (p *ReleaseProjector) Project(ctx context.Context, seed map[string]any, int
 	return result, nil
 }
 
-// A build-time template address is not customer intent. Resolve the address
+// A build-time template address is not customer intent, so a new deployment
+// never inherits the seed's base: the release authors Cloud and Modern seeds
+// with a placeholder because their init requires a domain. Resolve the address
 // before authoring workloads so their routes use the same domain as the core.
 // Joining an existing deployment preserves its already-owned address.
 func projectFoundDomain(spec map[string]any, intent WizardIntent) error {
@@ -183,24 +191,35 @@ func projectFoundDomain(spec map[string]any, intent WizardIntent) error {
 		domain["base"] = "kombify.me"
 		return projectFoundDomainConsumers(spec, intent.KitAssignment.KitSlug, "kombify.me")
 	}
+	return ApplySeedDeploymentDomain(spec, intent.KitAssignment.KitSlug, requested,
+		intent.Access.Mode == "" || intent.Access.Mode == AccessModeLocal)
+}
+
+// ApplySeedDeploymentDomain gives a spec materialized from a kit seed its
+// deployment address and rewrites the seed endpoints derived from it. It
+// never keeps the seed's template address: without a domain only a local
+// Basement gets its canonical LAN domain, and every other spec is refused.
+func ApplySeedDeploymentDomain(spec map[string]any, kitSlug, domainBase string, localAccess bool) error {
+	network, _ := spec["network"].(map[string]any)
+	domain, _ := network["domain"].(map[string]any)
+	if domain == nil {
+		return fmt.Errorf("specv2: kit seed has no network domain")
+	}
+	requested := strings.TrimSuffix(strings.ToLower(strings.TrimSpace(domainBase)), ".")
 	if reservedDomain(requested) {
 		return fmt.Errorf("specv2: choose a usable domain; .invalid addresses cannot serve an installed StackKit")
 	}
 	if requested == "" {
-		requested, _ = domain["base"].(string)
-		requested = strings.TrimSuffix(strings.ToLower(strings.TrimSpace(requested)), ".")
-		if requested == "" || reservedDomain(requested) {
-			if intent.KitAssignment.KitSlug != KitSlugBasement ||
-				(intent.Access.Mode != "" && intent.Access.Mode != AccessModeLocal) {
-				return fmt.Errorf("specv2: choose a domain for remote access before creating this StackKit")
-			}
-			// StackKits Basement's canonical LAN domain (stackfile.cue).
-			// Its existing internal TLS and LAN DNS owners implement this path.
-			requested = "lab.home"
+		if kitSlug != KitSlugBasement || !localAccess {
+			return fmt.Errorf("specv2: choose a domain for remote access before creating this StackKit")
 		}
+		// StackKits Basement's canonical LAN domain (stackfile.cue), the
+		// local-only identity origin. Its internal TLS and LAN DNS owners
+		// implement this path.
+		requested = "lab.home"
 	}
 	domain["base"] = requested
-	return projectFoundDomainConsumers(spec, intent.KitAssignment.KitSlug, requested)
+	return projectFoundDomainConsumers(spec, kitSlug, requested)
 }
 
 // These concrete seed endpoints cannot be re-evaluated by CUE after authoring.

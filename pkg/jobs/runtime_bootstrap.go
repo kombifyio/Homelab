@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	_ "embed"
 	"errors"
 	"fmt"
 	"net"
@@ -691,6 +692,10 @@ const runtimeTargetEnrolledAgentConvergenceScript = `converge_enrolled_agent() {
 }
 `
 
+//go:generate python3 ../../scripts/sync-runtime-compose.py
+//go:embed runtime-compose.sh
+var runtimeComposePrerequisiteScript string
+
 func runtimeTargetBootstrapScript() string {
 	return `set -u
 log() { printf '%s\n' "$*"; }
@@ -944,7 +949,7 @@ if ! stackkit_ready; then
     exit 1
   fi
 fi
-if docker_ready; then
+if docker_ready && $SUDO docker compose version --short >/dev/null 2>&1; then
   converge_enrolled_agent || exit 1
   log "phase=docker_ready status=already"
   log "docker_ready=already"
@@ -1012,6 +1017,13 @@ else
     apt_get 240 install -y ca-certificates curl docker.io || true
   fi
 fi
+if ! $SUDO docker compose version --short >/dev/null 2>&1; then
+  log "phase=compose_install status=begin"
+  if run_bounded 600 $SUDO env KOMBIFY_RUNTIME_APT_FORCE_IPV4=1 KOMBIFY_RUNTIME_APT_UPDATED=1 sh -s <<'KOMBIFY_RUNTIME_COMPOSE'
+` + runtimeComposePrerequisiteScript + `KOMBIFY_RUNTIME_COMPOSE
+  then log "phase=compose_install status=done"
+  else log "phase=compose_install status=failed"; fi
+fi
 if ! command -v docker >/dev/null 2>&1; then
   if ! command -v curl >/dev/null 2>&1; then
     log "curl=missing"
@@ -1027,7 +1039,7 @@ fi
 $SUDO systemctl enable --now docker >/dev/null 2>&1 || true
 log "phase=docker_ready status=wait_begin"
 for i in $(seq 1 60); do
-  if docker_ready; then
+  if docker_ready && $SUDO docker compose version --short >/dev/null 2>&1; then
     converge_enrolled_agent || exit 1
     log "phase=docker_ready status=ready"
     log "docker_ready=installed"
@@ -1039,7 +1051,7 @@ for i in $(seq 1 60); do
 done
 log "phase=docker_status status=failed"
 $SUDO systemctl status docker --no-pager -l 2>&1 || true
-if ! $SUDO docker info; then
+if ! $SUDO docker info || ! $SUDO docker compose version --short; then
   log "docker_ready=failed"
   exit 1
 fi

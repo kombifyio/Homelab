@@ -20,7 +20,7 @@ func (s *PostgresStore) ReadStackIdentitySnapshot(ctx context.Context, tenantID,
 		return nil, 0, fmt.Errorf("controlplane: tenant and owner required")
 	}
 	tenantID, ownerSubjectID = strings.TrimSpace(tenantID), strings.TrimSpace(ownerSubjectID)
-	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
+	tx, err := tenantcontext.Database(ctx, s.db).BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	if err != nil {
 		return nil, 0, err
 	}

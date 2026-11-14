@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/kombifyio/techstack/pkg/identity"
 	"github.com/kombifyio/techstack/pkg/secrets"
 	"github.com/getsentry/sentry-go"
 )
@@ -45,6 +46,10 @@ func captureInternalServerError(e *Event, message string, details any) {
 		// The caller left before the answer; there is no server fault to report.
 		return
 	}
+	if status, ok := capturedStatus(details); ok && expectedUnavailableStatus(status) {
+		// Expected, retryable state: not an error event.
+		return
+	}
 	hub := sentry.GetHubFromContext(e.Request.Context())
 	if hub == nil {
 		hub = sentry.CurrentHub()
@@ -58,6 +63,14 @@ func captureInternalServerError(e *Event, message string, details any) {
 		scope.SetTag("capture_source", "httpx_internal_error")
 		scope.SetTag("route", e.Request.URL.Path)
 		scope.SetTag("method", e.Request.Method)
+		// The shared error budget reports one event per subject, failure and
+		// hour; the subject is the user id, else the tenant. Never email or IP.
+		if id := identity.FromContext(e.Request.Context()); id != nil && id.IsAuthenticated() {
+			scope.SetUser(sentry.User{ID: id.UserID})
+			if id.OrgID != "" {
+				scope.SetTag("tenant_id", id.OrgID)
+			}
+		}
 		if requestID := e.Request.Header.Get("X-Request-ID"); requestID != "" {
 			scope.SetTag("request_id", requestID)
 		}
@@ -70,6 +83,15 @@ func captureInternalServerError(e *Event, message string, details any) {
 	})
 	MarkSentryCaptured(e)
 	hub.Flush(sentryServerErrorFlushTimeout)
+}
+
+func capturedStatus(details any) (int, bool) {
+	m, ok := details.(map[string]any)
+	if !ok {
+		return 0, false
+	}
+	status, ok := m["status"].(int)
+	return status, ok
 }
 
 // AttachDependencyFailure adds the recorded dependency failure to a Sentry

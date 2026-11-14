@@ -2,11 +2,15 @@
   // Adding use cases anywhere in the homelab: the owner picks one of the
   // existing StackKits or enrolled servers (or a new server), then the use
   // cases on that target's Goals step. `?server=` preselects a server or the
-  // StackKit it runs; `?use-case=` and `?setup=` carry a chosen use case.
+  // StackKit it runs; `?use-case=` carries a chosen use case, which then
+  // comes after the server and alone.
   import { page } from "$app/state";
   import { tr } from "#lib/i18n.svelte.js";
   import UseCasePlacement from "#lib/components/hub/UseCasePlacement.svelte";
-  import { creationUseCaseWizardConfig } from "#lib/wizard/self-disclosure-handoff.js";
+  import {
+    creationUseCaseHandoffKey,
+    creationUseCaseWizardConfig,
+  } from "#lib/wizard/self-disclosure-handoff.js";
 
   const initialConfig = $derived(
     creationUseCaseWizardConfig(page.url.searchParams),
@@ -18,6 +22,10 @@
   <title>{tr("layout.addUseCases.pageTitle")}</title>
 </svelte:head>
 
-{#key `${page.url.searchParams.get("use-case") ?? ""}:${page.url.searchParams.get("setup") ?? ""}:${preferredServerId}`}
-  <UseCasePlacement {initialConfig} {preferredServerId} />
+{#key `${page.url.searchParams.get("use-case") ?? ""}:${preferredServerId}`}
+  <UseCasePlacement
+    {initialConfig}
+    {preferredServerId}
+    focusGoal={creationUseCaseHandoffKey(page.url.searchParams)}
+  />
 {/key}

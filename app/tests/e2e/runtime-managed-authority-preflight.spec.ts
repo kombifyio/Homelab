@@ -64,7 +64,7 @@ function decodeGatewayTokenClaims(token: string): Record<string, unknown> {
   }
   try {
     const decoded = JSON.parse(
-      Buffer.from(parts[1], "base64url").toString("utf8"),
+      Buffer.from(parts[1] ?? "", "base64url").toString("utf8"),
     ) as unknown;
     if (!decoded || typeof decoded !== "object" || Array.isArray(decoded)) {
       throw new Error("invalid JWT claim object");

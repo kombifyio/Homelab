@@ -114,17 +114,17 @@ type identityUpgradeApproveRequest struct {
 // identityUpgradeApprove binds the pending key the owner names. The owner
 // compares the fingerprint with the one the Guard logs on the server, so a key
 // proposed by someone who merely holds a copy of the bearer credential is not
-// bound by accident.
+// bound by accident. The person presents a fresh second factor; an agent acting
+// for the person names the same exact fingerprint and needs none.
 func (h workerRouteHandlers) identityUpgradeApprove(e *httpx.Event) error {
 	ownerID, tenantID, workerID, ok := h.ownedWorkerForIdentity(e, "techstack.workers.identity.upgrade.approve")
 	if !ok {
 		return nil
 	}
-	if !entitlementGateOrHosted(h.entitlements).FreshMultiFactor(e.Request.Context(), time.Now().UTC(), identityUpgradeStepUpMaxAge) {
-		return httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden, "A fresh multi-factor sign-in is required to approve a server key", map[string]any{
-			"reason": "identity_upgrade_step_up_required", "retryable": true,
-			"guidance": "Sign in again with a second factor and repeat the request within five minutes.",
-		})
+	agentID, admitted := freshPersonOrActingAgent(e.Request.Context(), h.entitlements, time.Now().UTC(), identityUpgradeStepUpMaxAge)
+	if !admitted {
+		message, details := stepUpRefusal(e.Request.Context(), "A fresh multi-factor sign-in is required to approve a server key", "identity_upgrade_step_up_required")
+		return httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden, message, details)
 	}
 	raw, readErr := io.ReadAll(io.LimitReader(e.Request.Body, 4097))
 	var request identityUpgradeApproveRequest
@@ -145,7 +145,7 @@ func (h workerRouteHandlers) identityUpgradeApprove(e *httpx.Event) error {
 		return httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to approve the server key", nil)
 	}
 	slog.Warn("guard_identity_upgrade_approved", "tenant_id", tenantID, "worker_id", workerID,
-		"key_thumbprint", identity.Thumbprint, "actor", ownerID)
+		"key_thumbprint", identity.Thumbprint, "actor", ownerID, "agent_id", agentID)
 	return httpx.Success(e, http.StatusOK, identityUpgradeViewOf(workerID, identity))
 }
 
@@ -170,8 +170,8 @@ func (h workerRouteHandlers) identityUpgradeReject(e *httpx.Event) error {
 
 // identityUpgradeList is the owner's one-step view of every server of theirs
 // that waits for a key approval, so an approval card can be built without
-// knowing the worker ids. Approving still goes through identityUpgradeApprove
-// and its fresh second factor; a listing grants nothing.
+// knowing the worker ids. Approving still goes through identityUpgradeApprove;
+// a listing grants nothing.
 func (h workerRouteHandlers) identityUpgradeList(e *httpx.Event) error {
 	ownerID, authErr := requireWorkerOwner(e)
 	if authErr != nil || ownerID == "" {

@@ -246,6 +246,7 @@ func (h workerRouteHandlers) inventory(e *httpx.Event) error {
 	if move := detectNetworkMove(previousHostFacts(authCtx.Worker), req.Host, observedAt); move != nil {
 		h.queueNetworkRebind(e.Request.Context(), committed.worker, move)
 	}
+	h.notifyApplicationVulnerabilities(e.Request.Context(), committed.worker, nodeID, req.Services)
 	if h.connectorReconciler != nil && committed.worker.Capabilities["identity_binding"] == controlplane.IdentityBindingHostKey {
 		h.connectorReconciler.ReconcileApplicationConnectors(e.Request.Context(), committed.worker.TenantID, committed.worker.OwnerSubjectID, committed.worker.StackID, nodeID)
 	}
@@ -314,6 +315,7 @@ func (h workerRouteHandlers) commitWorkerInventory(
 		SourceID: canonical.SourceID, SourceEpoch: canonical.SourceEpoch, SourceSequence: canonical.SourceSequence,
 		SourceObservedAt: *canonical.SourceObservedAt, InventoryRevision: inventoryRevision,
 		Worker: *worker, RILServer: inventoryRILServer(*worker, nodeID, req, *canonical.SourceObservedAt),
+		Identity: inventoryIdentityObservation(authCtx, req),
 	})
 	if satelliteErr != nil {
 		return committedWorkerInventory{}, false, httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to update fenced inventory satellites", nil)
@@ -1022,6 +1024,40 @@ func inventoryServiceSource(svc workerInventoryService) string {
 		return stackKitsInventorySource
 	}
 	return serviceregistry.CanonicalSource(svc.Source)
+}
+
+// inventoryIdentityObservation reads the identity facts of the reporting
+// server from its inventory (homelab authority pointer, ADR-036): the applied
+// StackKit's access manifest declares the managed Pocket ID, and the manifest's
+// domain is the homelab name its identity origin id.<name> derives from
+// (#IdentityOriginV1). A manifest that declares services without Pocket ID is
+// the evidence that the server no longer runs it; no manifest, or one that
+// declares nothing, is no evidence either way. Discovered containers never
+// count, and only a host-key-bound Guard reports identity facts; the store
+// takes the server, deployment and homelab bindings from Techstack's own
+// records.
+func inventoryIdentityObservation(authCtx runtimeAgentAuthContext, req workerInventoryRequest) *controlplane.HomelabIdentityObservation {
+	if authCtx.IdentityBinding != controlplane.IdentityBindingHostKey || !req.ManifestObserved {
+		return nil
+	}
+	declared := false
+	for _, svc := range req.Services {
+		if inventoryServiceSource(svc) != stackKitsInventorySource {
+			continue
+		}
+		declared = true
+		if controlplane.IsPocketIDServiceName(svc.Key) || controlplane.IsPocketIDServiceName(svc.Name) {
+			origin, ok := controlplane.HomelabIdentityOriginOf(req.Domain)
+			if !ok {
+				return nil
+			}
+			return &controlplane.HomelabIdentityObservation{RunsPocketID: true, Origin: origin}
+		}
+	}
+	if declared && req.ManifestServiceCount > 0 {
+		return &controlplane.HomelabIdentityObservation{}
+	}
+	return nil
 }
 
 // inventoryServiceDesiredSeed returns the desired state a Guard observation may

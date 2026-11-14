@@ -113,6 +113,15 @@ func (s *Service) projectRevision(ctx context.Context, tenantID, owner string, r
 	if req.Action == ActionAdd && invitation.Username != binding.Username {
 		return ProjectionResult{}, fmt.Errorf("%w: projection identity mismatch", ErrNodeUnreachable)
 	}
+	// A removal ends the access on every server that can hold the person before
+	// the D10 link ends: any server still pending keeps the whole removal
+	// pending, and every command is idempotent under the same revision.
+	var others []string
+	if req.Action == ActionRemove {
+		if others, err = s.removeOnOtherServers(ctx, tenantID, owner, *binding, req.Revision); err != nil {
+			return ProjectionResult{}, err
+		}
+	}
 	// The generation check and D10 reference mutation are one transaction. A
 	// late add response cannot resurrect a reference after a newer removal.
 	ref, err := store.CompleteHouseholdProjection(ctx, *binding, member.Email, member.DisplayName)
@@ -120,7 +129,7 @@ func (s *Service) projectRevision(ctx context.Context, tenantID, owner string, r
 		return ProjectionResult{}, err
 	}
 	if req.Action == ActionRemove {
-		return ProjectionResult{Status: StatusProjected, RemovedStacks: []string{binding.StackID}}, nil
+		return ProjectionResult{Status: StatusProjected, RemovedStacks: append([]string{binding.StackID}, others...)}, nil
 	}
 	return ProjectionResult{Status: StatusProjected, StackID: binding.StackID, Username: ref.Username, LinkStatus: ref.Status,
 		ActivationURL: invitation.ActivationURL, ExpiresAt: invitation.ExpiresAt}, nil

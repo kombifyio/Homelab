@@ -1,9 +1,9 @@
 // Package guardbootstrap renders the first-boot payload that installs and
 // enrols the kombify Guard on a freshly provisioned managed node.
 //
-// It is deliberately provider-neutral: IONOS and Centron both accept a
-// base64 cloud-init document on volume create, and both must produce the same
-// node-side result. The payload only invokes the installer that the control
+// It is deliberately provider-neutral: it is the first-boot convergence of the
+// standard image path, so every provider that accepts cloud-init user data on
+// create reaches the same node-side result from a catalogue OS image. The payload only invokes the installer that the control
 // plane already serves at /install.sh, so the install logic itself has exactly
 // one home.
 package guardbootstrap
@@ -61,8 +61,8 @@ type CloudInitInput struct {
 	HostPrepProfile HostPrepProfile
 	// AuthorizedKeys are installed by cloud-init for root and the image's
 	// default user. Only a Golden Image profile accepts them: a provider's own
-	// key injection works for its public images alone (IONOS sshKeys), so a
-	// private image receives the execution-channel key here instead.
+	// key injection may work for its catalogue images alone, so a private
+	// image receives the execution-channel key here instead.
 	AuthorizedKeys []string
 }
 
@@ -70,11 +70,6 @@ type HostPrepProfile string
 
 const (
 	HostPrepProfileStackKitReadyUbuntu2604V1 HostPrepProfile = "stackkit-ready-" + guardcompat.ProfileReleaseID + "-v1"
-	// HostPrepProfileIONOSUbuntu2404DockerV1 is the IONOS Ubuntu image
-	// contract. It now prepares the same StackKit-ready host as
-	// HostPrepProfileStackKitReadyUbuntu2404V1 so Cloud host-security can
-	// enable nftables, fail2ban, and unattended-upgrades.
-	HostPrepProfileIONOSUbuntu2404DockerV1 HostPrepProfile = "ionos-" + guardcompat.ProfileCompatibilityReleaseID + "-docker-v1"
 	// HostPrepProfileStackKitReadyUbuntu2404V1 is the provider-neutral
 	// compatibility contract used by existing explicit image choices
 	// so apply does not start without host-security packages.
@@ -94,7 +89,7 @@ const (
 const goldenImageGuardPath = "/usr/local/bin/techstack"
 
 func (p HostPrepProfile) stackKitReady() bool {
-	return p == HostPrepProfileIONOSUbuntu2404DockerV1 || p == HostPrepProfileStackKitReadyUbuntu2404V1 || p == HostPrepProfileStackKitReadyUbuntu2604V1 ||
+	return p == HostPrepProfileStackKitReadyUbuntu2404V1 || p == HostPrepProfileStackKitReadyUbuntu2604V1 ||
 		p.goldenImage()
 }
 

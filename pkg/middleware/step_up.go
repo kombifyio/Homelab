@@ -36,7 +36,17 @@ type StepUpClaims struct {
 	// human token ("user") can present its own step-up; agent, on-behalf-of
 	// and machine tokens never can.
 	PrincipalType string
+	// AgentID is the v7-signed X-Kombify-Agent-ID the Gateway attested for an
+	// agent principal; empty for a person.
+	AgentID string
 }
+
+// Signed principal types of an agent acting for the person whose subject the
+// envelope carries: an agent token and an on-behalf-of exchange.
+const (
+	PrincipalTypeAgent         = "agent"
+	PrincipalTypeDelegatedUser = "delegated_user"
+)
 
 type stepUpContextKey struct{}
 
@@ -74,4 +84,21 @@ func (c StepUpClaims) FreshMultiFactor(now time.Time, maxAge time.Duration) bool
 	}
 	age := now.Sub(c.AuthTime)
 	return age >= -time.Minute && age <= maxAge
+}
+
+// ActingAgent returns the Gateway-attested agent of a verified agent or
+// on-behalf-of principal. A fresh second factor proves a person's own
+// sign-in, which no agent can present; owner routes that an agent acting for
+// the person may use without asking (workspace
+// AI-CAPABILITY-PROVISIONING-TARGET.md section 5e) admit it through this
+// instead. Demo, anonymous, machine and service principals and an agent
+// without a signed identity never qualify.
+func (c StepUpClaims) ActingAgent() (string, bool) {
+	agentID := strings.TrimSpace(c.AgentID)
+	switch strings.TrimSpace(c.PrincipalType) {
+	case PrincipalTypeAgent, PrincipalTypeDelegatedUser:
+		return agentID, agentID != ""
+	default:
+		return "", false
+	}
 }

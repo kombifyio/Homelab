@@ -61,8 +61,9 @@ func terminalJobChangesLists(job jobs.JobSnapshot) bool {
 		return true
 	case jobs.JobTypeStackKitLifecycle:
 		switch strings.ToLower(stackKitNotificationString(job, "operation")) {
+		// Service start, stop and restart run as governed action cards, never
+		// as jobs (run_managed_service_action has one write path).
 		case jobs.StackKitLifecycleApply, jobs.StackKitLifecycleUpgrade, jobs.StackKitLifecycleDriftReconcile,
-			jobs.StackKitLifecycleServiceStart, jobs.StackKitLifecycleServiceStop, jobs.StackKitLifecycleServiceRestart,
 			jobs.StackKitLifecycleRemove, jobs.StackKitLifecycleAddressBind, jobs.StackKitLifecycleNetworkRebind,
 			jobs.StackKitLifecycleAdvancedChangeSet, jobs.StackKitLifecycleRollback,
 			jobs.StackKitLifecycleBackupRestoreActivate, jobs.StackKitLifecycleBackupRestoreRecover,

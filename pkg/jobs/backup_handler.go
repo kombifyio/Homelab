@@ -3,10 +3,12 @@ package jobs
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
 	agentpb "github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/techstack/pkg/secrets"
 )
 
 // BackupAgentResolver resolves the enrolled agent that currently owns a
@@ -154,9 +156,40 @@ func dispatchBackupCommand(ctx context.Context, cfg *ProvisionConfig, job *Job, 
 		if result != nil {
 			exit = result.ExitCode
 		}
+		if cause := backupFailureCause(result); cause != "" {
+			return fmt.Errorf("backup run for stack %s failed with exit code %d: %s", payload.StackID, exit, cause)
+		}
 		return fmt.Errorf("backup run for stack %s failed with exit code %d", payload.StackID, exit)
 	}
 	return nil
+}
+
+// processExitLine is the process error the Guard appends to stderr last
+// ("exit status 1"); the cause is the line the CLI wrote before it.
+var processExitLine = regexp.MustCompile(`^(?:exit status -?\d+|signal: [\w ]+)$`)
+
+// backupFailureCause is the cause a failed node backup reported, recorded in
+// the job error so an owner (and the backup read) can say why a backup fails:
+// the typed StackKits reason code, otherwise the last line the node wrote to
+// stderr, redacted and bounded. The Guard redacts stderr already; this
+// redacts again so no stored job error can carry secret material.
+func backupFailureCause(result *agentpb.StackKitResult) string {
+	if result == nil {
+		return ""
+	}
+	if failure := typedStackKitFailureFromResult(result); failure.ReasonCode != "" {
+		return failure.ReasonCode
+	}
+	lines := strings.Split(strings.TrimSpace(result.Stderr), "\n")
+	for i := len(lines) - 1; i >= 0; i-- {
+		if line := strings.TrimSpace(secrets.Redact(lines[i])); line != "" && !processExitLine.MatchString(line) {
+			if len(line) > 300 {
+				line = strings.ToValidUTF8(line[:300], "")
+			}
+			return line
+		}
+	}
+	return ""
 }
 
 // backupCommandTimeoutSeconds bounds one snapshot on the node. A first seed of

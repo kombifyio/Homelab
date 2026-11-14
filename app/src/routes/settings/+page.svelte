@@ -38,6 +38,7 @@
     type Finish,
   } from "@kombiverselabs/design/contract";
   import {
+    RecipeSwatch,
     SettingsRow,
     SettingsSection,
     SettingsShell,
@@ -53,6 +54,7 @@
   import Modal from "#lib/components/Modal.svelte";
   import Switch from "#lib/components/ui/Switch.svelte";
   import HomelabSettingsPanel from "#lib/components/settings/HomelabSettingsPanel.svelte";
+  import StackImportExportModal from "#lib/components/StackImportExportModal.svelte";
   import { toast } from "#lib/stores/toast.js";
   import {
     shortcutsStore,
@@ -133,6 +135,8 @@
   // deployments (pre-backfill lanes, PocketBase-only self-host).
 
   let deployments = $state<KitDeployment[]>([]);
+  /** Import or export of a stack specification, opened from its settings row. */
+  let transfer = $state<{ mode: "import" | "export"; deploymentId?: string } | null>(null);
   let deploymentsLoading = $state(false);
   let deploymentsError = $state<string | null>(null);
   let deleteCandidate = $state<KitDeployment | null>(null);
@@ -404,14 +408,11 @@
       </SettingsRow>
     </SettingsSection>
       {:else if activeTab === "identity"}
-    <section>
+    <SettingsSection
+      id="identity"
+      title={tr("ui.settings.homelabIdentity")}
+    >
       <div>
-        <div class="mb-4">
-          <h2 class="text-lg font-semibold text-foreground">
-            {tr("ui.settings.homelabIdentity")}
-          </h2>
-        </div>
-
         {#if stackIdentityLoading}
           <p class="text-sm text-muted-foreground">{tr("ui.login.loading")}</p>
         {:else if stackIdentityEditable && stackIdentityLoaded}
@@ -436,21 +437,17 @@
           <ErrorCallout class="mt-3" message={stackIdentityError} />
         {/if}
       </div>
-    </section>
+    </SettingsSection>
 
       {:else if activeTab === "design"}
-    <section
+    <SettingsSection
       id="appearance"
       class="scroll-mt-6"
-     
-      data-testid="settings-appearance-card"
+      title={tr("ui.settings.appearance")}
+      lead={tr("ui.settings.lightOrDarkAndThe")}
     >
-      <div>
-        <h2 class="text-lg font-semibold text-foreground">{tr("ui.settings.appearance")}</h2>
-        <p class="mt-1 text-sm text-muted-foreground">
-          {tr("ui.settings.lightOrDarkAndThe")}
-        </p>
-        <div class="mt-4 flex flex-col gap-4">
+      <div data-testid="settings-appearance-card">
+        <div class="flex flex-col gap-4">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <span class="text-sm font-medium text-foreground">{tr("ui.settings.mode")}</span>
             <div
@@ -526,22 +523,12 @@
                        the package's real plate and selection recipes render at a
                        quarter scale — nothing here draws a second version of a
                        design (KOMBIFY-DESIGN-SYSTEM-STANDARD §6). -->
-                  <span
-                    class="finish-swatch"
-                    aria-hidden="true"
-                    data-finish={finishOption}
-                    data-appearance={swatchAppearance}
-                  >
-                    <span class="finish-swatch-scene"></span>
-                    <span class="finish-swatch-frame">
-                      <span class="finish-swatch-plate">
-                        <span
-                          class="finish-swatch-pill"
-                          data-kx="control selection"
-                        ></span>
-                      </span>
-                    </span>
-                  </span>
+                  <RecipeSwatch
+                    finish={finishOption}
+                    appearance={swatchAppearance}
+                    size="sm"
+                    class="shrink-0"
+                  />
                   {finishOption}
                 </button>
               {/each}
@@ -607,7 +594,7 @@
           </div>
         </div>
       </div>
-    </section>
+    </SettingsSection>
 
       {:else if activeTab === "notifications"}
     <section id="notification-preferences">
@@ -626,6 +613,35 @@
       lead={tr("wizard.settings.intro")}
     >
       <HomelabSettingsPanel />
+    </SettingsSection>
+
+    <SettingsSection
+      id="homelab-transfer"
+      title={tr("ui.common.importExport")}
+      lead={tr("ui.homelab.transferHint")}
+    >
+      <div data-testid="stack-transfer-settings">
+        {#each deployments as deployment (deployment.id)}
+          <SettingsRow label={deployment.name}>
+            <Button
+              variant="secondary"
+              testId="stack-export-button"
+              onclick={() => (transfer = { mode: "export", deploymentId: deployment.id })}
+            >
+              {tr("ui.homelab.export")}
+            </Button>
+          </SettingsRow>
+        {/each}
+        <SettingsRow label={tr("ui.homelab.importSpec")}>
+          <Button
+            variant="secondary"
+            testId="stack-import-button"
+            onclick={() => (transfer = { mode: "import" })}
+          >
+            {tr("ui.importExportModal.import")}
+          </Button>
+        </SettingsRow>
+      </div>
     </SettingsSection>
 
     <SettingsSection
@@ -731,6 +747,20 @@
     </div>
   </SettingsShell>
 </div>
+
+{#if transfer}
+  <StackImportExportModal
+    mode={transfer.mode}
+    kitDeploymentId={transfer.deploymentId}
+    onClose={() => (transfer = null)}
+    onSuccess={(result) => {
+      transfer = null;
+      goto(
+        `/stacks/creating?job_id=${encodeURIComponent(result.jobId)}&stack_id=${encodeURIComponent(result.kitDeploymentId)}`,
+      );
+    }}
+  />
+{/if}
 
 {#if deleteCandidate}
   <Modal
@@ -862,55 +892,3 @@
     {/snippet}
   </Modal>
 {/if}
-
-<style>
-  /* Finish swatch geometry (product-owned). The frame renders the package's
-     real plate and selection recipes at a quarter scale; the scene behind it
-     exists so a glass finish has colour to bend, derived from the product
-     accent exactly as the app-role scene derives its own hues. No material
-     value is authored here. */
-  .finish-swatch {
-    position: relative;
-    display: inline-block;
-    flex: none;
-    width: 2.25rem;
-    height: 1.375rem;
-    overflow: hidden;
-    border-radius: 0.3rem;
-    isolation: isolate;
-  }
-  .finish-swatch-scene {
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(
-        60% 80% at 20% 30%,
-        oklch(from var(--primary) 0.6 0.19 h),
-        transparent 70%
-      ),
-      radial-gradient(
-        60% 80% at 85% 80%,
-        oklch(from var(--primary) 0.66 0.18 calc(h + 70)),
-        transparent 70%
-      ),
-      var(--kx-bg, var(--background));
-  }
-  .finish-swatch-frame {
-    position: absolute;
-    inset: 3px;
-  }
-  .finish-swatch-plate {
-    display: block;
-    width: 120px;
-    height: 64px;
-    zoom: 0.25;
-  }
-  .finish-swatch-pill {
-    position: absolute;
-    left: 12px;
-    top: 18px;
-    display: block;
-    width: 52px;
-    height: 28px;
-  }
-</style>

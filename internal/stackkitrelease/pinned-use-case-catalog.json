@@ -1,14 +1,14 @@
 {
   "schemaVersion": "stackkits-use-case-catalog/v1",
   "release": {
-    "tag": "v0.55.11",
-    "version": "0.55.11",
-    "sourceSha": "362e3785b96c64cc9e7abaf2a7c440284ef16948",
-    "publicSourceSha": "e3bb34771d2dc613e53e102360c353af2a04c096",
-    "releaseUrl": "https://github.com/kombifyio/StackKits/releases/tag/v0.55.11"
+    "tag": "v0.57.12",
+    "version": "0.57.12",
+    "sourceSha": "55bc4d27120795a72f53104665c117aac12e2c76",
+    "publicSourceSha": "04ce859c2d59ea013beb713c2a89679b63612699",
+    "releaseUrl": "https://github.com/kombifyio/StackKits/releases/tag/v0.57.12"
   },
-  "generatedAt": "2026-11-02T10:26:10Z",
-  "generatorVersion": "0.55.11",
+  "generatedAt": "2026-11-13T18:52:11Z",
+  "generatorVersion": "0.57.12",
   "catalog": {
     "authoring": {
       "retainedRemovalCandidates": true
@@ -1666,11 +1666,11 @@
         "workloadRef": "automation",
         "id": "automation",
         "title": "Automation",
-        "description": "Scheduled and event-driven automations on your own node through kombify Workpaths, a headless engine with a private owner-token API. Runs without a kombify plan.",
+        "description": "Scheduled and event-driven automations on your own node through kombify Autopilot, a headless engine with a private owner-token API. Runs without a kombify plan.",
         "components": [
           {
             "id": "workpaths",
-            "name": "kombify Workpaths",
+            "name": "kombify Autopilot",
             "role": "primary",
             "kind": "application"
           }
@@ -1896,6 +1896,12 @@
             "name": "Gitea",
             "role": "primary",
             "kind": "application"
+          },
+          {
+            "id": "workbench-host",
+            "name": "Workbench host",
+            "role": "supporting",
+            "kind": "application"
           }
         ],
         "mainUseCase": {
@@ -1943,6 +1949,17 @@
           }
         },
         "settings": [
+          {
+            "id": "workbench-host",
+            "name": "Workbench host",
+            "kind": "toggle",
+            "group": "features",
+            "depth": "summary",
+            "help": "Run agent work through Connect with the Desktop switched off.",
+            "default": false,
+            "realization": "install",
+            "workloadRef": "dev-workbench"
+          },
           {
             "id": "ci-runners",
             "name": "CI runners",
@@ -2088,6 +2105,60 @@
                     }
                   }
                 }
+              }
+            ]
+          }
+        ],
+        "addOns": [
+          {
+            "id": "dev-workbench",
+            "defaultAlternative": "workbench-host",
+            "alternatives": [
+              {
+                "configuration": {
+                  "settings": [],
+                  "secretRefs": [
+                    "release-token"
+                  ]
+                },
+                "id": "workbench-host",
+                "name": "workbench-host",
+                "modules": [
+                  {
+                    "id": "stackkits-workbench-host-runtime",
+                    "computeProfiles": [
+                      "standard"
+                    ],
+                    "computeProfileFacts": {
+                      "standard": {
+                        "maturity": "experimental",
+                        "executable": true,
+                        "realization": "apply-ready",
+                        "hostFloor": {
+                          "minCpuCores": 2,
+                          "minRamGB": 4,
+                          "minStorageGB": 20,
+                          "allowedArchitectures": [
+                            "amd64"
+                          ]
+                        },
+                        "reservation": {
+                          "ramGB": 0.5
+                        },
+                        "provenance": {
+                          "hostFloor": {
+                            "ref": "Kombify host floor support policy",
+                            "source": "policy"
+                          },
+                          "reservation": {
+                            "ref": "Kombify reservation policy; declared, not a sum of component limits",
+                            "source": "policy"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
               }
             ]
           }
@@ -5834,13 +5905,7 @@
           },
           {
             "configuration": {
-              "settings": [
-                {
-                  "key": "release",
-                  "type": "string",
-                  "label": "Release"
-                }
-              ],
+              "settings": [],
               "secretRefs": [
                 "admin-token"
               ]
@@ -6371,5 +6436,5 @@
       }
     ]
   },
-  "contentDigest": "sha256:3bd58774078c88175252b90f62ebac163d4b16c508abd2781b4f499441f4dbf8"
+  "contentDigest": "sha256:dd129d4d24d53afc7fe6106352db765ed03e03e6a914f359844ba5773cc8ce3d"
 }

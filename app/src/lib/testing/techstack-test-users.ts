@@ -209,7 +209,8 @@ function candidateUsers(
   }));
   // Explicit canonical custody must be complete. Never silently select a
   // different identity when only half of that pair reached the consumer.
-  if (role === "cloud" && (users[0].email || users[0].password)) {
+  const [first] = users;
+  if (role === "cloud" && first && (first.email || first.password)) {
     return users.slice(0, 1);
   }
   return users;

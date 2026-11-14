@@ -168,7 +168,7 @@ function idAsWords(id: string): string {
     .split(/[-_\s]+/)
     .filter(Boolean)
     .join(" ");
-  return words ? words[0].toUpperCase() + words.slice(1) : id;
+  return words ? words.charAt(0).toUpperCase() + words.slice(1) : id;
 }
 
 export interface FactoryGroup {

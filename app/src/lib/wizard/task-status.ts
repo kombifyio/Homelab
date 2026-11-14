@@ -756,22 +756,27 @@ function listedSteps(memberTasks: Task[], visibleIds?: string[]): Task[] {
   if (!visibleIds) return memberTasks;
   const spans: Task[][] = [];
   for (const task of memberTasks) {
-    if (visibleIds.includes(task.id) || spans.length === 0) {
+    const lastSpan = spans.at(-1);
+    if (visibleIds.includes(task.id) || !lastSpan) {
       spans.push([task]);
     } else {
-      spans[spans.length - 1].push(task);
+      lastSpan.push(task);
     }
   }
-  return spans.map((span) => {
+  return spans.flatMap((span) => {
+    const [first] = span;
+    if (!first) return [];
     const active = span.find(
       (t) => t.status === "running" || t.status === "failed",
     );
-    return {
-      ...span[0],
-      status: aggregateStatus(span),
-      message: active?.message,
-      errorMessage: active?.errorMessage,
-    };
+    return [
+      {
+        ...first,
+        status: aggregateStatus(span),
+        message: active?.message,
+        errorMessage: active?.errorMessage,
+      },
+    ];
   });
 }
 

@@ -9,13 +9,18 @@ export const CREATION_STEP_KEYS = [
 
 export type CreationStepKey = (typeof CREATION_STEP_KEYS)[number];
 
-export function creationStepNumber(key: CreationStepKey): number {
-  return CREATION_STEP_KEYS.indexOf(key) + 1;
+/** A process that starts elsewhere names its own order of the same steps. */
+export function creationStepNumber(
+  key: CreationStepKey,
+  steps: readonly CreationStepKey[] = CREATION_STEP_KEYS,
+): number {
+  return steps.indexOf(key) + 1;
 }
 
 export function creationStepKey(
   value: number | string | null | undefined,
+  steps: readonly CreationStepKey[] = CREATION_STEP_KEYS,
 ): CreationStepKey | undefined {
-  if (typeof value === "number") return CREATION_STEP_KEYS[value - 1];
+  if (typeof value === "number") return steps[value - 1];
   return CREATION_STEP_KEYS.find((key) => key === value);
 }

@@ -48,7 +48,10 @@ type serverCommandRoundTrip struct {
 	State          string     `json:"state"`
 	ReasonCode     string     `json:"reason_code,omitempty"`
 	AcknowledgedAt *time.Time `json:"acknowledged_at,omitempty"`
-	Generation     int64      `json:"generation,omitempty"`
+	// Always present. HTTPS: the credential generation the Guard answered under, 0 for a
+	// key-bound Guard that never rotated. mTLS and an absent trip read 0; Transport and
+	// State tell them apart.
+	Generation int64 `json:"generation"`
 	// Transport is https (bound HTTPS hub) or mtls (gRPC listener).
 	Transport string `json:"transport,omitempty"`
 }
@@ -66,7 +69,7 @@ func commandRoundTripEvidence(trip *agentcontrol.CommandRoundTrip, currentGenera
 	switch {
 	case trip.Transport == agentcontrol.RoundTripTransportMTLS && (currentMTLSSerial == "" || trip.CredentialRef != currentMTLSSerial):
 		out.State, out.ReasonCode = serverRoundTripSuperseded, "mtls_identity_changed"
-	case trip.Transport != agentcontrol.RoundTripTransportMTLS && (currentGeneration <= 0 || trip.Generation != currentGeneration):
+	case trip.Transport != agentcontrol.RoundTripTransportMTLS && (currentGeneration < 0 || trip.Generation != currentGeneration):
 		out.State, out.ReasonCode = serverRoundTripSuperseded, "credential_generation_changed"
 	case acknowledged.After(now.Add(guardcompat.ResultClockMargin)):
 		out.State, out.ReasonCode = serverRoundTripStale, "round_trip_time_invalid"

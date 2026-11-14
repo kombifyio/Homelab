@@ -8,6 +8,7 @@ import (
 
 	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/guardbinding"
+	"github.com/kombifyio/techstack/pkg/serverregistry"
 )
 
 // Predecessor result recovery (Guard G04). After a server is bound to a new
@@ -17,8 +18,10 @@ import (
 // lived signed statement. It is issued and admitted only when:
 //   - the current request proved the host key (a bearer-only worker gets none);
 //   - the current worker has a control-plane server identity;
-//   - each earlier worker belongs to the same tenant, served that same server,
-//     and was revoked or rejected, so its own credential can never deliver;
+//   - each earlier worker belongs to the same tenant, served that same server
+//     (or, after a detach, was the detached server's worker on the very host
+//     key this request proved), and was revoked or rejected, so its own
+//     credential can never deliver;
 //   - each command is still awaiting an outcome under the binding contract.
 //
 // A command of another tenant is never covered: the tenant-scoped lookups
@@ -110,8 +113,8 @@ func (h workerRouteHandlers) admitPredecessorDelivery(ctx context.Context, authC
 }
 
 // retiredPredecessorOfServer reports whether workerID is another worker of the
-// authenticated tenant and owner that served the same server and can no longer
-// authenticate on its own.
+// authenticated tenant and owner that served the same server, or the detached
+// server of the same host, and can no longer authenticate on its own.
 func (h workerRouteHandlers) retiredPredecessorOfServer(ctx context.Context, authCtx runtimeAgentAuthContext, workerID string) bool {
 	if h.wst == nil || workerID == "" || workerID == authCtx.RuntimeAgentID || strings.TrimSpace(authCtx.ServerID) == "" {
 		return false
@@ -120,7 +123,7 @@ func (h workerRouteHandlers) retiredPredecessorOfServer(ctx context.Context, aut
 	if err != nil || worker == nil || worker.TenantID != authCtx.TenantID {
 		return false
 	}
-	if strings.TrimSpace(stringFromAny(worker.Capabilities[workerFieldServerID])) != authCtx.ServerID {
+	if strings.TrimSpace(stringFromAny(worker.Capabilities[workerFieldServerID])) != authCtx.ServerID && !h.detachedPredecessorOfHost(ctx, authCtx, *worker) {
 		return false
 	}
 	owner := authCtx.OwnerID
@@ -131,4 +134,26 @@ func (h workerRouteHandlers) retiredPredecessorOfServer(ctx context.Context, aut
 		return false
 	}
 	return strings.EqualFold(worker.Status, workerStatusRevoked) || strings.EqualFold(worker.Status, managedRuntimeStatusRejected)
+}
+
+// detachedPredecessorOfHost: a detach leaves an immutable tombstone, so pairing
+// the same host again binds a new server of the stack. The earlier worker still
+// qualifies when it was the tombstone's own worker in the same stack and its
+// retained identity is the host key this request proved.
+func (h workerRouteHandlers) detachedPredecessorOfHost(ctx context.Context, authCtx runtimeAgentAuthContext, worker controlplane.Worker) bool {
+	if h.identityStore == nil || h.serverStore == nil || authCtx.ProofThumbprint == "" || authCtx.Worker == nil ||
+		strings.TrimSpace(worker.StackID) == "" || worker.StackID != authCtx.Worker.StackID {
+		return false
+	}
+	identity, err := h.identityStore.GetWorkerIdentity(ctx, authCtx.TenantID, worker.ID)
+	if err != nil || identity == nil || identity.Thumbprint != authCtx.ProofThumbprint {
+		return false
+	}
+	serverID := strings.TrimSpace(stringFromAny(worker.Capabilities[workerFieldServerID]))
+	if serverID == "" {
+		return false
+	}
+	server, err := h.serverStore.GetServerRuntime(ctx, authCtx.TenantID, serverID)
+	return err == nil && server != nil && server.LifecycleState == string(serverregistry.LifecycleDecommissioned) &&
+		strings.TrimSpace(server.WorkerID) == worker.ID
 }

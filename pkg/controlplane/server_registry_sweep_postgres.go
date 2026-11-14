@@ -101,8 +101,8 @@ func (s *PostgresStore) ListOutboxPruneTenants(ctx context.Context, afterTenantI
 	return scanTenantIDPage(rows, limit)
 }
 
-// ListServerProjectionTenants pages every tenant the registry has ever emitted
-// an event for. The platform projector needs the whole set, not just the
+// ListServerProjectionTenants pages tenants with servers or retained registry
+// events. The platform projector needs the whole set, not just the
 // retention-due slice ListOutboxPruneTenants returns, because it republishes
 // current aggregate state rather than replaying outbox history (the resync
 // bootstrap this table's own prune comment describes).
@@ -167,7 +167,7 @@ func (s *PostgresStore) PruneServerRegistryOutbox(ctx context.Context, tenantID 
 }
 
 // CompactOutboxPruneTenant recomputes the tenant's oldest remaining outbox row
-// and retires the wake-up entry when the tenant holds no outbox history.
+// and retains a dormant directory entry while the tenant still owns servers.
 func (s *PostgresStore) CompactOutboxPruneTenant(ctx context.Context, tenantID string) error {
 	if s == nil || s.db == nil {
 		return fmt.Errorf("controlplane: database not configured")
@@ -184,8 +184,16 @@ func (s *PostgresStore) CompactOutboxPruneTenant(ctx context.Context, tenantID s
 			return fmt.Errorf("controlplane: compact outbox prune tenant: %w", err)
 		}
 		if !oldest.Valid {
+			// Infinity retains tenant discovery without scheduling empty pruning.
+			if _, err := tx.ExecContext(ctx, `
+				UPDATE server_registry_outbox_prune_tenants SET oldest_created_at = 'infinity', refreshed_at = clock_timestamp()
+				WHERE tenant_id = $1 AND EXISTS (SELECT 1 FROM servers WHERE tenant_id = $1)
+			`, tenantID); err != nil {
+				return fmt.Errorf("controlplane: retain registry tenant directory: %w", err)
+			}
 			_, err := tx.ExecContext(ctx, `
 				DELETE FROM server_registry_outbox_prune_tenants WHERE tenant_id = $1
+				AND NOT EXISTS (SELECT 1 FROM servers WHERE tenant_id = $1)
 			`, tenantID)
 			return err
 		}
@@ -221,6 +229,7 @@ func (s *PostgresStore) ServerRegistryOutboxStats(ctx context.Context) (serverre
 	var oldest sql.NullTime
 	if err := s.db.QueryRowContext(ctx, `
 		SELECT MIN(oldest_created_at) FROM server_registry_outbox_prune_tenants
+		WHERE oldest_created_at < 'infinity'::timestamptz
 	`).Scan(&oldest); err != nil {
 		return stats, fmt.Errorf("controlplane: read oldest outbox row: %w", err)
 	}

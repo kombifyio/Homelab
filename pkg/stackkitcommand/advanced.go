@@ -95,6 +95,12 @@ func validateAdvancedFields(command *agentpb.StackKitCommand) error {
 }
 
 func validateAdvancedCapability(command *agentpb.StackKitCommand) error {
+	if command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_TRANSFER {
+		return nil // ValidateApplicationTransferFields admits the step's receive or retire capability.
+	}
+	if command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_USE_CASE_UPGRADE || command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_OWN_APPLICATION {
+		return nil // Their own validators admit the scoped release or lifecycle capability.
+	}
 	advanced := IsAdvancedOperation(command.Operation)
 	if !advanced && len(command.AdvancedCapability) != 0 {
 		return fmt.Errorf("StackKit advanced_capability is only valid for the Advanced operations")
@@ -212,6 +218,9 @@ type AdvancedOperationResult struct {
 	// ChangeSetID and ChangeSetSHA256 name the change set a create stored.
 	ChangeSetID     string
 	ChangeSetSHA256 string
+	// WorkspaceRevision is the Agent's sha256 of the workspace StackSpec the
+	// create ran against: the revision a decision receipt for the apply binds.
+	WorkspaceRevision string
 	// Status is the operation's own status: the change-set result, the
 	// post-reconcile drift report, the drill report or the rollback result.
 	Status string
@@ -277,6 +286,7 @@ func admitChangeSetCreate(operation string, data advancedData, raw json.RawMessa
 	admitted := AdvancedOperationResult{
 		Operation: operation, ChangeSetID: strings.TrimSpace(data.ChangeSetID),
 		ChangeSetSHA256: strings.TrimSpace(result.AdvancedChangeSetSha256), Status: "created", Report: raw,
+		WorkspaceRevision: strings.TrimSpace(result.WorkspaceRevision),
 	}
 	if data.SchemaVersion != advancedChangeSetVersion || !specHashPattern.MatchString(admitted.ChangeSetID) ||
 		!specHashPattern.MatchString(admitted.ChangeSetSHA256) {

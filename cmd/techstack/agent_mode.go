@@ -169,6 +169,9 @@ func envDefault(key, fallback string) string {
 
 // runAgentMode runs the node-side agent daemon until SIGINT/SIGTERM.
 func runAgentMode(ctx context.Context, args []string) error {
+	if len(args) > 0 && args[0] == "pair" {
+		return runAgentPair(ctx, args[1:], os.Stdout)
+	}
 	if isAgentEnroll(args) {
 		return runAgentEnroll(ctx, args[1:], os.Stdout)
 	}

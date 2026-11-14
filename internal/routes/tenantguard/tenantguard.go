@@ -86,8 +86,8 @@ func Denial(capability string) *httpx.APIError {
 			"title": "Organization context required",
 			"body":  "Your session carries no kombify organization, so tenant data cannot be shown. This protects you from seeing different data here than in kombify Cloud.",
 			"next_steps": []string{
-				"Sign in again at techstack.kombify.io",
-				"Or open TechStack from your kombify Cloud portal",
+				"Open Techstack from your kombify Cloud portal",
+				"Choose an organization in kombify Cloud, then return here",
 			},
 		},
 		"remediation":     "Verify the SPA requests an organization-scoped gateway token and the user has an organization membership; check the login tenant-resolver logs.",

@@ -28,22 +28,28 @@ func ActivatedUseCases(catalog stackkitrelease.UseCaseCatalog, spec map[string]a
 	var out []UseCase
 	for _, candidate := range catalog.UseCases {
 		activated := UseCase{ID: candidate.ID, Title: candidate.Title}
-		add := func(workload string, alternatives []stackkitrelease.UseCaseAlternative) {
+		add := func(workload, defaultAlternative string, alternatives []stackkitrelease.UseCaseAlternative) {
 			entry, ok := workloads[workload].(map[string]any)
 			if workload == "" || !ok {
 				return
 			}
 			activated.refs = append(activated.refs, workload)
 			selected, _ := entry["alternative"].(string)
+			if selected == "" {
+				selected = defaultAlternative
+			}
 			for _, alternative := range alternatives {
 				if alternative.ID == selected {
 					activated.refs = append(activated.refs, alternative.ID)
+					for _, module := range alternative.Modules {
+						activated.refs = append(activated.refs, module.ID)
+					}
 				}
 			}
 		}
-		add(candidate.WorkloadRef, candidate.Alternatives)
+		add(candidate.WorkloadRef, candidate.DefaultAlternative, candidate.Alternatives)
 		for _, addOn := range candidate.AddOns {
-			add(addOn.ID, addOn.Alternatives)
+			add(addOn.ID, addOn.DefaultAlternative, addOn.Alternatives)
 		}
 		if len(activated.refs) > 0 {
 			activated.refs = append(activated.refs, candidate.ID)
@@ -118,7 +124,7 @@ func Propose(notes stackkitrelease.ReleaseNotes, activated []UseCase, installed,
 		for _, entry := range release.Entries {
 			change := Change{Version: release.Version, Kind: entry.Kind, Scope: entry.Scope, Text: entry.Text}
 			index, mine := owner[entry.Scope]
-			if entry.Kind == stackkitrelease.ReleaseNoteSecurity {
+			if entry.Kind == stackkitrelease.ReleaseNoteSecurity && (mine || entry.Scope == SecurityScopeAll) {
 				security.Changes = append(security.Changes, change)
 				if entry.Scope != "" && entry.Scope != SecurityScopeAll && !affected[entry.Scope] {
 					affected[entry.Scope] = true
@@ -129,7 +135,7 @@ func Propose(notes stackkitrelease.ReleaseNotes, activated []UseCase, installed,
 			switch {
 			case mine:
 				proposal.Highlights[index].Changes = append(proposal.Highlights[index].Changes, change)
-			case entry.Kind != stackkitrelease.ReleaseNoteSecurity:
+			case entry.Kind != stackkitrelease.ReleaseNoteSecurity || (!mine && entry.Scope != SecurityScopeAll):
 				proposal.OtherChangesTotal++
 				if len(proposal.OtherChanges) < otherChangesShown {
 					proposal.OtherChanges = append(proposal.OtherChanges, change)
@@ -172,7 +178,7 @@ const (
 func Decide(behavior string, proposal Proposal, attempt *controlplane.WorkerStackKitsUpdateAttempt, target *controlplane.WorkerStackKitsTarget) Start {
 	available := releaseTag(proposal.Available)
 	switch {
-	case proposal.Available == "":
+	case !newerRelease(proposal.Installed, proposal.Available):
 		return StartNone
 	case attempt != nil && releaseTag(attempt.Version) == available:
 		return StartNone
@@ -189,4 +195,10 @@ func Decide(behavior string, proposal Proposal, attempt *controlplane.WorkerStac
 
 func releaseTag(version string) string {
 	return "v" + strings.TrimPrefix(strings.TrimSpace(version), "v")
+}
+
+func newerRelease(installed, available string) bool {
+	from, fromOK := stackkitrelease.ParseReleaseVersion(installed)
+	to, toOK := stackkitrelease.ParseReleaseVersion(available)
+	return fromOK && toOK && stackkitrelease.CompareReleaseVersions(to, from) > 0
 }

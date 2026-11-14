@@ -44,10 +44,11 @@ type CommandRoundTrip struct {
 
 // recordRoundTrip stores the round trip inside the transaction that commits
 // the terminal revision, so an acknowledged result always leaves its evidence.
-// A result authenticated without a credential generation proves no binding and
-// leaves none.
+// Generation 0 is the credential of a key-bound Guard that was never rotated;
+// only a result authenticated without readable credential state proves no
+// binding and leaves none.
 func recordRoundTrip(ctx context.Context, tx *sql.Tx, req ReportRequest) error {
-	if req.Generation <= 0 {
+	if req.GenerationUnknown || req.Generation < 0 {
 		return nil
 	}
 	return upsertRoundTrip(ctx, tx, req.TenantID, req.AgentID, RoundTripTransportHTTPS, req.CommandID, req.Generation, "", req.Report.Revision, req.Report.Digest)

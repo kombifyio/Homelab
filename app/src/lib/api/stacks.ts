@@ -7,6 +7,8 @@
  */
 
 import { ApiRequestError, fetchApi, parseApiErrorResponse } from "./client";
+import { fetchWithSessionRenewal } from "#lib/auth/session-renewal.svelte.js";
+import { tr } from "#lib/i18n.svelte.js";
 import { clearCreatingSessionState } from "#lib/logout-cleanup.js";
 import {
   normalizeServerOutcome,
@@ -89,14 +91,24 @@ async function postYamlSpec<T>(
   path: string,
   content: string,
 ): Promise<T> {
-  const response = await fetch(path, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/yaml",
+  // Through the shared session renewal layer: renew once, replay once.
+  const response = await fetchWithSessionRenewal(
+    () =>
+      fetch(path, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/yaml",
+        },
+        body: content,
+      }),
+    {
+      viaGateway: false,
+      url: path,
+      method: "POST",
+      pendingMessage: tr("sessionRenewal.pending"),
     },
-    body: content,
-  });
+  );
 
   if (!response.ok) {
     throw await parseApiErrorResponse(response, { action, method: "POST" });
@@ -423,7 +435,9 @@ function sameRestoreExecutionGeneration(
       /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/,
     );
     if (!parts) return;
-    const seconds = Date.parse(parts[1] + parts[3]);
+    const [, base, , zone] = parts;
+    if (base === undefined || zone === undefined) return;
+    const seconds = Date.parse(base + zone);
     if (!Number.isFinite(seconds)) return;
     return (
       BigInt(seconds) * 1000n +
@@ -688,16 +702,6 @@ export interface MonthlyRuntimeStatus {
     agent_restarted: boolean;
     connection_state?: string;
   } | null;
-}
-
-export interface MonthlyRuntimeOperation {
-  tenant_id: string;
-  lease_id: string;
-  event_type: string;
-  status: string;
-  actor?: string;
-  error?: string;
-  created_at: string;
 }
 
 export interface MonthlyRuntimeActionOptions {
@@ -1440,18 +1444,15 @@ function monthlyRuntimePath(
 }
 
 /**
- * Status-returning monthly-runtime endpoints (status / start / stop /
- * enable-ssh / disable-ssh / decommission / reconnect / ssh-info). They share a single
+ * Status-returning monthly-runtime endpoints (start / stop / decommission /
+ * reconnect / ssh-info). They share a single
  * `(leaseId, tenantId?)` signature and a {@link MonthlyRuntimeStatus} payload,
  * so the public functions below are generated from this table rather than
  * hand-duplicated. Each entry pins the exact HTTP method + path suffix.
  */
 const MONTHLY_RUNTIME_STATUS_ACTIONS = {
-  getMonthlyRuntimeStatus: ["GET", ""],
   startMonthlyRuntime: ["POST", "/start"],
   stopMonthlyRuntime: ["POST", "/stop"],
-  enableMonthlyRuntimeSSH: ["POST", "/enable-ssh"],
-  disableMonthlyRuntimeSSH: ["POST", "/disable-ssh"],
   decommissionMonthlyRuntime: ["POST", "/decommission", 190_000],
   reconnectMonthlyRuntime: ["POST", "/reconnect"],
   getMonthlyRuntimeSSHInfo: ["GET", "/ssh"],
@@ -1480,16 +1481,10 @@ const monthlyRuntimeStatusActions = Object.fromEntries(
   MonthlyRuntimeStatusAction
 >;
 
-export const getMonthlyRuntimeStatus =
-  monthlyRuntimeStatusActions.getMonthlyRuntimeStatus;
 export const startMonthlyRuntime =
   monthlyRuntimeStatusActions.startMonthlyRuntime;
 export const stopMonthlyRuntime =
   monthlyRuntimeStatusActions.stopMonthlyRuntime;
-export const enableMonthlyRuntimeSSH =
-  monthlyRuntimeStatusActions.enableMonthlyRuntimeSSH;
-export const disableMonthlyRuntimeSSH =
-  monthlyRuntimeStatusActions.disableMonthlyRuntimeSSH;
 export const decommissionMonthlyRuntime =
   monthlyRuntimeStatusActions.decommissionMonthlyRuntime;
 export const reconnectMonthlyRuntime =
@@ -1585,17 +1580,6 @@ export async function getManagedCreationPause(
   );
 }
 
-export async function getMonthlyRuntimeOperations(
-  leaseId: string,
-  tenantId?: string,
-  limit = 50,
-): Promise<MonthlyRuntimeOperation[]> {
-  return apiRequest<MonthlyRuntimeOperation[]>(
-    "GET",
-    monthlyRuntimePath(leaseId, "/operations", tenantId, { limit }),
-  );
-}
-
 // ============================================================================
 // Stack Spec Import/Export API
 // ============================================================================
@@ -1637,14 +1621,21 @@ export async function exportKombinationSpec(
   const acceptHeader =
     format === "yaml" ? "application/yaml" : "application/json";
 
-  const response = await fetch(
-    `/api/v1/stacks/${encodeURIComponent(kitDeploymentId)}/export`,
+  const exportPath = `/api/v1/stacks/${encodeURIComponent(kitDeploymentId)}/export`;
+  const response = await fetchWithSessionRenewal(
+    () =>
+      fetch(exportPath, {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          Accept: acceptHeader,
+        },
+      }),
     {
+      viaGateway: false,
+      url: exportPath,
       method: "GET",
-      credentials: "include",
-      headers: {
-        Accept: acceptHeader,
-      },
+      pendingMessage: tr("sessionRenewal.pending"),
     },
   );
 

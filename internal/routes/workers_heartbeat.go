@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
 	ksapi "github.com/kombifyio/techstack/pkg/api"
 	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/guardbinding"
+	"github.com/kombifyio/techstack/pkg/guardidentity"
 	"github.com/kombifyio/techstack/pkg/httpx"
 	"github.com/kombifyio/techstack/pkg/monitoring"
 	"github.com/kombifyio/techstack/pkg/runtimeconvergence"
@@ -119,7 +121,8 @@ func (h workerRouteHandlers) heartbeatWithRuntimeAgent(e *httpx.Event, id string
 		return httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to persist server heartbeat", nil)
 	}
 	h.observeGuardPosture(e.Request.Context(), authCtx, req)
-	h.updateEvaluator.observe(authCtx.TenantID, id, req.RuntimeConvergence)
+	h.updateRefusals.observe(guardRefusalKey(authCtx.TenantID, authCtx.RuntimeAgentID), req.GuardPosture, now)
+	h.updateEvaluator.observe(e.Request.Context(), authCtx.TenantID, id, req.RuntimeConvergence)
 	acceptedSamples := 0
 	if h.metricWriter != nil {
 		samples := workerHeartbeatSamplesFromStore(*updated, serverID, req, now)
@@ -132,35 +135,39 @@ func (h workerRouteHandlers) heartbeatWithRuntimeAgent(e *httpx.Event, id string
 			acceptedSamples = len(samples)
 		}
 	}
-	return httpx.Success(e, http.StatusOK, map[string]any{
+	response := map[string]any{
 		"worker_id":        updated.ID,
 		"server_id":        serverID,
 		"runtime_agent_id": id,
 		"last_seen":        now.UTC().Format(time.RFC3339Nano),
 		"samples_accepted": acceptedSamples,
-	})
+	}
+	if offer := h.guardTenantRebindOffer(e.Request.Context(), authCtx, req.GuardTenantRebindStaged, now); offer != nil {
+		// The offer carries a credential: never cache this answer.
+		e.Response.Header().Set("Cache-Control", "no-store")
+		response[guardidentity.TenantRebindOfferField] = offer
+	}
+	return httpx.Success(e, http.StatusOK, response)
 }
 
+// maxReportedStackKitCapabilities bounds a report; a Guard sends at most the
+// observed list, so a longer one is malformed rather than newer.
+const maxReportedStackKitCapabilities = 32
+
+// normalizeObservedStackKitCapabilities keeps the reported capabilities this
+// control plane knows (stackkitcommand.ObservedStackKitCapabilities, the list the
+// Guard reports from) once each and drops the rest. A report is only a claim no
+// decision reads, so a Guard newer than this server keeps its heartbeat instead of
+// being refused for a capability added after this release.
 func normalizeObservedStackKitCapabilities(values []string) ([]string, error) {
-	if len(values) > 6 {
+	if len(values) > maxReportedStackKitCapabilities {
 		return nil, fmt.Errorf("too many StackKit capabilities")
 	}
-	allowed := map[string]bool{
-		"stackkit": true,
-		stackkitcommand.ExpectedPlanHashCapability:        true,
-		stackkitcommand.WorkspaceInstanceCapability:       true,
-		stackkitcommand.RestoreActivationCapability:       true,
-		stackkitcommand.OriginalRecoveryReleaseCapability: true,
-		stackkitcommand.AdvancedOperationsCapability:      true,
-	}
 	result := make([]string, 0, len(values))
-	seen := map[string]bool{}
 	for _, value := range values {
-		if !allowed[value] || seen[value] {
-			return nil, fmt.Errorf("unsupported or duplicate StackKit capability")
+		if slices.Contains(stackkitcommand.ObservedStackKitCapabilities, value) && !slices.Contains(result, value) {
+			result = append(result, value)
 		}
-		seen[value] = true
-		result = append(result, value)
 	}
 	return result, nil
 }

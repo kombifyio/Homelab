@@ -1,7 +1,7 @@
 /**
  * StackKits update journey (kombify-StackKits-9r4e, -l38u; D-2026-11-02-03).
  * Techstack manages StackKits updates: the server's Guard section shows the
- * update setting (default: approve each update) and, for a server behind the
+ * update setting (default: ask) and, for a server behind the
  * published release, the proposal with highlights for its activated use cases
  * and the public changelog link. Nothing installs until Approve, unless the
  * release carries a security patch for an app on the server; Approve runs the
@@ -39,7 +39,7 @@ export async function runStackKitsUpdateJourney(
   const path = `/api/v1/workers/${encodeURIComponent(deps.workerId)}/stackkits-update`;
   const read = () => deps.api("GET", path);
   let view = await read();
-  expect(view.behavior, "a server approves each update by default").toBe("approve");
+  expect(view.behavior, "a server asks by default").toBe("ask");
   const evidence: StackKitsUpdateJourneyEvidence = {
     worker_id: deps.workerId,
     installed: view.installed,
@@ -54,7 +54,7 @@ export async function runStackKitsUpdateJourney(
   await deps.page.goto(deps.serverPage, { waitUntil: "domcontentloaded" });
   const section = deps.page.getByTestId("guard-stackkits-update");
   await expect(section).toBeVisible({ timeout: 60_000 });
-  await expect(deps.page.getByTestId("guard-updates-behavior-approve")).toHaveAttribute("aria-checked", "true");
+  await expect(deps.page.getByTestId("guard-updates-behavior-ask")).toHaveAttribute("aria-checked", "true");
 
   if (view.available) {
     const proposal = view.proposal as Json;
@@ -63,7 +63,7 @@ export async function runStackKitsUpdateJourney(
     await expect(deps.page.getByTestId("guard-updates-proposal")).toBeVisible();
     await expect(deps.page.getByTestId("guard-updates-changelog")).toHaveAttribute("href", proposal.changelog_url);
     if (evidence.highlights.length > 0) {
-      await expect(deps.page.getByTestId("guard-updates-highlight").first()).toHaveAttribute("data-use-case", evidence.highlights[0]);
+      await expect(deps.page.getByTestId("guard-updates-highlight").first()).toHaveAttribute("data-use-case", evidence.highlights[0] ?? "");
     }
     let jobId: string;
     if (evidence.security) {
@@ -114,8 +114,8 @@ export async function runStackKitsUpdateJourney(
   expect(view.behavior).toBe("automatic");
   await deps.page.reload({ waitUntil: "domcontentloaded" });
   await expect(deps.page.getByTestId("guard-updates-behavior-automatic")).toHaveAttribute("aria-checked", "true", { timeout: 60_000 });
-  view = await deps.api("PUT", `${path}/behavior`, { behavior: "approve" });
+  view = await deps.api("PUT", `${path}/behavior`, { behavior: "ask" });
   evidence.behavior_round_trip.push(view.behavior);
-  expect(view.behavior).toBe("approve");
+  expect(view.behavior).toBe("ask");
   return evidence;
 }

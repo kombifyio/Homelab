@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 
-	rilaction "github.com/kombifyio/techstack/pkg/ril/actioncontract"
 	"github.com/kombifyio/techstack/pkg/ril/actions"
+	"github.com/kombifyio/techstack/pkg/ril/primitives"
 	"github.com/kombifyio/techstack/pkg/ril/workflow"
 	"github.com/kombifyio/techstack/pkg/ril/workflows"
 )
@@ -30,59 +30,80 @@ type RemediationLauncher struct {
 }
 
 func (l *RemediationLauncher) Execute(ctx context.Context, input actions.BeginExecution) (*actions.GovernedCard, error) {
-	if l == nil || l.Engine == nil || l.Authority == nil {
-		return nil, ErrWorkflowExecutionUnavailable
-	}
-	card, err := l.Authority.Get(ctx, input.TenantID, input.OwnerSubjectID, input.CardID)
+	card, executorBound, err := l.Admit(ctx, input)
 	if err != nil {
 		return nil, err
 	}
 	if card.Status == string(actions.StatusCompleted) || card.Status == string(actions.StatusFailed) {
-		if card.IdempotencyKey == input.IdempotencyKey && card.ExecutionID == input.ExecutionID && card.TraceID == input.TraceID {
-			return card, nil
-		}
-		return nil, actions.ErrCardConflict
+		return card, nil
 	}
-	isVerify := card.Template.Primitive.ID == "verify-stackkit-state" && card.Template.Primitive.OperationClass == "product-verify" && card.Template.Target.Scope == rilaction.TargetScopeStack
-	canonicalVerify := card.Status == "awaiting_approval" && isVerify
-	if !canonicalVerify && card.Status != string(actions.StatusApproved) && card.Status != "executing" && card.Status != "verifying" {
-		return nil, actions.ErrApprovalRequired
+	return l.run(ctx, input, card, executorBound)
+}
+
+// Admit performs only the synchronous part of an execution: the exact
+// identity fence and, for an executor-bound card, the Gateway Decision (filed
+// and answered by the acting agent's equipment) and the fenced admission that
+// Begin commits together with the issued lease. It never starts a workflow.
+// A terminal card returns as it is; a card it admitted or that was already
+// admitted under the same identity returns executing.
+func (l *RemediationLauncher) Admit(ctx context.Context, input actions.BeginExecution) (*actions.GovernedCard, bool, error) {
+	if l == nil || l.Engine == nil || l.Authority == nil {
+		return nil, false, ErrWorkflowExecutionUnavailable
+	}
+	card, err := l.Authority.Get(ctx, input.TenantID, input.OwnerSubjectID, input.CardID)
+	if err != nil {
+		return nil, false, err
+	}
+	if card.Status == string(actions.StatusCompleted) || card.Status == string(actions.StatusFailed) {
+		if card.IdempotencyKey == input.IdempotencyKey && card.ExecutionID == input.ExecutionID && card.TraceID == input.TraceID {
+			return card, false, nil
+		}
+		return nil, false, actions.ErrCardConflict
+	}
+	profile, executorBound := primitives.For(card.Template.Primitive)
+	executorBound = executorBound && profile.Admits(card.Template.Target, card.Template.Inputs)
+	awaitingDecision := card.Status == "awaiting_approval" && executorBound
+	if !awaitingDecision && card.Status != string(actions.StatusApproved) && card.Status != "executing" && card.Status != "verifying" {
+		return nil, false, actions.ErrApprovalRequired
 	}
 	if (card.Status == "executing" || card.Status == "verifying") &&
 		(card.IdempotencyKey != input.IdempotencyKey || card.ExecutionID != input.ExecutionID || card.TraceID != input.TraceID) {
-		return nil, actions.ErrCardConflict
+		return nil, false, actions.ErrCardConflict
 	}
-	// An unanswered Verify must not create a terminal workflow. Admit the
-	// real Gateway decision first; Begin commits the exact lease and fenced
-	// execution together. A lost workflow-start response can then safely
-	// resume that same admitted execution without minting another lease.
-	if canonicalVerify || card.Status == "executing" || card.Status == "verifying" {
+	// An executor-bound card must not create a terminal workflow before its
+	// Decision. Begin commits the exact lease and fenced execution together,
+	// so a lost workflow-start response safely resumes that same admitted
+	// execution without minting another lease.
+	if awaitingDecision || card.Status == "executing" || card.Status == "verifying" {
 		begun, beginErr := l.Authority.Begin(ctx, input)
 		if beginErr != nil {
-			return nil, beginErr
+			return nil, false, beginErr
 		}
 		if begun.Card == nil || begun.Card.IdempotencyKey != input.IdempotencyKey || begun.Card.ExecutionID != input.ExecutionID || begun.Card.TraceID != input.TraceID {
-			return nil, actions.ErrCardConflict
+			return nil, false, actions.ErrCardConflict
 		}
 		if begun.Disposition == actions.BeginReplay {
-			return begun.Card, nil
+			return begun.Card, false, nil
 		}
 		if begun.Disposition != actions.BeginAcquired || (begun.Card.Status != "executing" && begun.Card.Status != "verifying") {
-			return nil, actions.ErrCardConflict
+			return nil, false, actions.ErrCardConflict
 		}
 		card = begun.Card
 		// A changed current template cannot downgrade an already admitted
-		// Verify to the legacy workflow identity.
-		if begun.Request.Primitive.ID == "verify-stackkit-state" {
-			isVerify = true
+		// executor-bound action to the legacy workflow identity.
+		if _, admitted := primitives.For(begun.Request.Primitive); admitted {
+			executorBound = true
 		}
 	}
 	if card.Status == string(actions.StatusApproved) {
 		if err := actions.RefuseUnentitledStart(card, input); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	}
+	return card, executorBound, nil
+}
 
+func (l *RemediationLauncher) run(ctx context.Context, input actions.BeginExecution, card *actions.GovernedCard, executorBound bool) (*actions.GovernedCard, error) {
 	ctx = workflow.WithTenant(ctx, input.TenantID)
 	runInput := map[string]any{
 		workflows.InputTenantID:       input.TenantID,
@@ -100,7 +121,7 @@ func (l *RemediationLauncher) Execute(ctx context.Context, input actions.BeginEx
 		runInput[workflows.InputConnectorProjection] = projection
 	}
 	identityInput := runInput
-	if isVerify {
+	if executorBound {
 		// Connector projection stays in the immutable workflow input for exact
 		// conflict checks, but cannot select a second run for this execution.
 		identityInput = map[string]any{

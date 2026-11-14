@@ -120,6 +120,7 @@
     const matching = accessItems.filter((item) => fits(item) === true);
     if (matching.length !== 1) return;
     const [only] = matching;
+    if (!only) return;
     const attempt = ++preselecting;
     void listServiceAccess(only.itemId)
       .then((grants) => {

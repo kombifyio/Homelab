@@ -18,8 +18,9 @@
     onrefresh: () => Promise<void>;
   } = $props();
 
+  const PAUSED_TITLE = "wizard.server.managed.pause.title.paused";
   const TITLES: Record<string, string> = {
-    paused: "wizard.server.managed.pause.title.paused",
+    paused: PAUSED_TITLE,
     probe_in_flight: "wizard.server.managed.pause.title.probeInFlight",
     outcome_unknown: "wizard.server.managed.pause.title.outcomeUnknown",
   };
@@ -57,7 +58,7 @@
   <header>
     <CirclePause size={18} aria-hidden="true" />
     <h4>
-      {tr(TITLES[pause.state] ?? TITLES.paused, { provider })}
+      {tr(TITLES[pause.state] ?? PAUSED_TITLE, { provider })}
     </h4>
     <button
       type="button"

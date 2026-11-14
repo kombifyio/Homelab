@@ -1,5 +1,4 @@
 import { defineConfig, devices } from "@playwright/test";
-import { earlyAccessUse } from "./tests/helpers/early-access-use";
 
 // A failed test would attach an ARIA snapshot of the page to the report, and
 // that snapshot prints input values, passwords included.
@@ -59,7 +58,6 @@ export default defineConfig({
   outputDir: `${outputDir}/test-results`,
   use: {
     baseURL,
-    ...earlyAccessUse(),
     // Managed runtime flows carry short-lived auth and provider responses.
     // Persist only the scenario's explicitly redacted evidence artifacts.
     trace: "off",

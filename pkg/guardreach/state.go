@@ -98,6 +98,20 @@ type Row struct {
 	// Relay is what the Guard last reported about its own relay connection.
 	Relay RelayReport
 
+	// AgentKey is the canonical JSON of the Gateway's agent envelope key
+	// document of the current Connect registration (public values only);
+	// empty while the Gateway hands none.
+	AgentKey string
+	// AgentLink is the delivery of the agent link to the node: Generation is
+	// the binding generation and Ref the sha256 digest of the request bytes
+	// the node pinned (registered), last failed on (failed) or removed
+	// (revoked).
+	AgentLink Target
+	// AgentLinkPinned is the digest of the request the node last pinned,
+	// recorded on every successful install and cleared by a removal; it
+	// decides whether there is a pin to remove.
+	AgentLinkPinned string
+
 	// RevokeReason is the reason both registries receive when the row is revoked.
 	RevokeReason  string
 	Attempts      int
@@ -198,9 +212,8 @@ var (
 
 // ConnectTenant maps a Techstack tenant to the tenant id Gateway derives for
 // the same owner: the Auth0 organization id when the Gateway JWT carries one
-// (org_*), otherwise usr:<subject>. The legacy naked-subject tenant is the
-// pre-standardization form of usr:<subject>. Any other tenant (for example the
-// shared demo tenant) has no Connect namespace, so the mapping fails closed
+// (org_*), otherwise usr:<subject>. Any other tenant (for example the shared
+// demo tenant) has no Connect namespace, so the mapping fails closed
 // instead of guessing a tenant that would list the server under another scope.
 func ConnectTenant(tenantID, ownerSubject string) (string, error) {
 	tenantID, ownerSubject = strings.TrimSpace(tenantID), strings.TrimSpace(ownerSubject)
@@ -212,8 +225,6 @@ func ConnectTenant(tenantID, ownerSubject string) (string, error) {
 		return tenantID, nil
 	case tenantID == connectTenantPersonalPref+ownerSubject:
 		return tenantID, nil
-	case tenantID == ownerSubject:
-		return connectTenantPersonalPref + ownerSubject, nil
 	}
 	return "", ErrTenantUnmappable
 }

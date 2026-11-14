@@ -68,10 +68,66 @@ export interface GuardUpdates {
   };
 }
 
+/** One measured step of the UPS-aware ordered shutdown. */
+export interface GuardPowerStep {
+  name: "applications" | "storage" | "host" | string;
+  outcome:
+    | "pending"
+    | "running"
+    | "succeeded"
+    | "failed"
+    | "skipped"
+    | "canceled"
+    | string;
+  started_at?: string;
+  finished_at?: string;
+  detail?: string;
+  items?: string[];
+}
+
+export interface GuardPowerPolicy {
+  on_battery_grace_seconds?: number;
+  low_charge_percent?: number;
+  critical_charge_percent?: number;
+  low_runtime_seconds?: number;
+  critical_runtime_seconds?: number;
+  application_timeout_seconds?: number;
+  storage_timeout_seconds?: number;
+  host_delay_seconds?: number;
+  host_timeout_seconds?: number;
+  application_services?: string[];
+  storage_units?: string[];
+}
+
+/**
+ * The persisted UPS-aware power protection of one Guard. `state` is `line`,
+ * `on_battery`, `shutdown`, `canceled` or `unknown`; an absent or stale section
+ * is unknown, never protected.
+ */
+export interface GuardPower {
+  state: string;
+  phase: string;
+  reason_code?: string;
+  observed_at?: string;
+  expires_at?: string;
+  on_battery?: boolean;
+  charge_percent?: number;
+  runtime_seconds?: number;
+  source?: { driver?: string; name?: string; model?: string };
+  steps?: GuardPowerStep[];
+  policy?: GuardPowerPolicy;
+  started_at?: string;
+  canceled_at?: string;
+  cancel_reason?: string;
+  host_requested_at?: string;
+  evidence?: string;
+}
+
 export interface GuardReadModelExtension {
   security?: GuardSecurity;
   recovery?: GuardRecovery;
   updates?: GuardUpdates;
+  power?: GuardPower;
 }
 
 // ---------------------------------------------------------------------------
@@ -154,6 +210,12 @@ function text(value: unknown): string | undefined {
 function count(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) && value >= 0
     ? Math.floor(value)
+    : undefined;
+}
+
+function numeric(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
     : undefined;
 }
 
@@ -270,6 +332,85 @@ function parseUpdates(value: unknown): GuardUpdates | undefined {
 }
 
 /** Read the Guard sections of a canonical server, dropping malformed ones. */
+function parsePower(raw: unknown): GuardPower | undefined {
+  const value = record(raw);
+  if (!value) return undefined;
+  const state = text(value.state);
+  const phase = text(value.phase);
+  if (!state || !phase) return undefined;
+  const source = record(value.source);
+  const policy = record(value.policy);
+  const steps: GuardPowerStep[] = [];
+  if (Array.isArray(value.steps)) {
+    for (const item of value.steps) {
+      const step = record(item);
+      const name = text(step?.name);
+      const outcome = text(step?.outcome);
+      if (!name || !outcome) continue;
+      steps.push({
+        name,
+        outcome,
+        started_at: text(step?.started_at),
+        finished_at: text(step?.finished_at),
+        detail: text(step?.detail),
+        items: Array.isArray(step?.items)
+          ? step.items.filter(
+              (entry): entry is string => typeof entry === "string",
+            )
+          : undefined,
+      });
+    }
+  }
+  return {
+    state,
+    phase,
+    reason_code: text(value.reason_code),
+    observed_at: text(value.observed_at),
+    expires_at: text(value.expires_at),
+    on_battery: value.on_battery === true,
+    charge_percent: numeric(value.charge_percent),
+    runtime_seconds: numeric(value.runtime_seconds),
+    source: source
+      ? {
+          driver: text(source.driver),
+          name: text(source.name),
+          model: text(source.model),
+        }
+      : undefined,
+    steps,
+    policy: policy
+      ? {
+          on_battery_grace_seconds: numeric(policy.on_battery_grace_seconds),
+          low_charge_percent: numeric(policy.low_charge_percent),
+          critical_charge_percent: numeric(policy.critical_charge_percent),
+          low_runtime_seconds: numeric(policy.low_runtime_seconds),
+          critical_runtime_seconds: numeric(policy.critical_runtime_seconds),
+          application_timeout_seconds: numeric(
+            policy.application_timeout_seconds,
+          ),
+          storage_timeout_seconds: numeric(policy.storage_timeout_seconds),
+          host_delay_seconds: numeric(policy.host_delay_seconds),
+          host_timeout_seconds: numeric(policy.host_timeout_seconds),
+          application_services: Array.isArray(policy.application_services)
+            ? policy.application_services.filter(
+                (entry): entry is string => typeof entry === "string",
+              )
+            : undefined,
+          storage_units: Array.isArray(policy.storage_units)
+            ? policy.storage_units.filter(
+                (entry): entry is string => typeof entry === "string",
+              )
+            : undefined,
+        }
+      : undefined,
+    started_at: text(value.started_at),
+    canceled_at: text(value.canceled_at),
+    cancel_reason: text(value.cancel_reason),
+    host_requested_at: text(value.host_requested_at),
+    evidence: text(value.evidence),
+  };
+}
+
 export function parseGuardReadModel(server: unknown): GuardReadModelExtension {
   const raw = record(server);
   if (!raw) return {};
@@ -277,6 +418,7 @@ export function parseGuardReadModel(server: unknown): GuardReadModelExtension {
     security: parseSecurity(raw.security),
     recovery: parseRecovery(raw.recovery),
     updates: parseUpdates(raw.updates),
+    power: parsePower(raw.power),
   };
 }
 
@@ -542,7 +684,15 @@ export function denialReason(details: unknown): string | undefined {
 // Guard runs the governed upgrade and rolls it back on failure.
 // ---------------------------------------------------------------------------
 
-export type StackKitsUpdateBehavior = "approve" | "automatic";
+/**
+ * The server's one update setting for its StackKits release and the
+ * applications it manages (D-2026-11-12-06). Security fixes are offered in
+ * every setting.
+ */
+export type StackKitsUpdateBehavior =
+  | "ask"
+  | "automatic"
+  | "with_stackkits_releases";
 
 export interface StackKitsUpdateChange {
   version: string;

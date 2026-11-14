@@ -11,6 +11,7 @@ export type GoalsSlice = Pick<
   | "useCaseSettings"
   | "useCaseCapabilities"
   | "useCaseSetupAnswers"
+  | "useCaseAccess"
   | "advanced"
 >;
 

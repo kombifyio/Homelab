@@ -246,7 +246,8 @@
       applyServerProvisioningMode(config, "install-command");
     if (config.serverProvisioning.mode === "kombify-cloud" && managedRuntimeSelectable) {
       if (!visibleManagedProviders.some((item) => item.value === config.providerId)) {
-        selectManagedProvider(visibleManagedProviders[0].value);
+        const firstProvider = visibleManagedProviders[0];
+        if (firstProvider) selectManagedProvider(firstProvider.value);
       } else if (notifiedManagedProvider !== config.providerId) {
         notifiedManagedProvider = config.providerId;
         onmanagedproviderselect?.(config.providerId);

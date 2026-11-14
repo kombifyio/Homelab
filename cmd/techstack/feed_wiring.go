@@ -37,6 +37,8 @@ type companionFeedBoot struct {
 	userNotices *usernotice.Service
 	nodes       pkgusernotice.NodeResolver
 	digest      *homelabdigest.Job
+	homeGraphs  controlplane.HomeGraphStore
+	homeSync    routes.HomeGraphSyncer
 }
 
 func bootCompanionFeed(v2 *v2Boot, orch *orchestrator.Orchestrator, outbox *productnotifications.Outbox, grpcSrv *grpcserver.Server, posture *guardposture.Service, log *logger.Logger) *companionFeedBoot {
@@ -55,7 +57,11 @@ func bootCompanionFeed(v2 *v2Boot, orch *orchestrator.Orchestrator, outbox *prod
 			Verifier:     &household.OIDCVerifier{AllowPrivateNetworks: !v2.saasMode},
 			LinkClientID: strings.TrimSpace(os.Getenv(householdLinkClientIDEnv)),
 		},
-		nodes: feedNodeResolver{workers: store},
+		nodes:      feedNodeResolver{workers: store},
+		homeGraphs: store,
+	}
+	if orch != nil {
+		feed.homeSync = orch
 	}
 	if outbox != nil {
 		feed.userNotices = &usernotice.Service{Admission: store, Links: store, Stacks: store, Outbox: outbox}
@@ -410,6 +416,7 @@ func registerHouseholdRoutes(router *httpx.Router, deps routeDeps) {
 	}
 	if deps.feed != nil {
 		cfg.Service = deps.feed.household
+		cfg.HomeGraphs, cfg.HomeGraphSync = deps.feed.homeGraphs, deps.feed.homeSync
 	}
 	routes.RegisterHouseholdInternalRoutes(router, cfg)
 	routes.RegisterHouseholdRelay(router, deps.typedControl)

@@ -1,4 +1,11 @@
 export const hi: Record<string, string> = {
+  "ui.homelab.firstServerHint": "मौजूदा सर्वर कनेक्ट करें या नया सेट अप करें। आपके सर्वर यहाँ दिखाई देंगे।",
+  "ui.homelab.installedUseCases": "इंस्टॉल किए गए उपयोग के मामले",
+  "ui.homelab.transferHint": "स्टैक कॉन्फ़िगरेशन आयात करें या चुना गया स्टैक निर्यात करें।",
+  "ui.homelab.export": "निर्यात करें",
+  "ui.homelab.importSpec": "StackKit विनिर्देश",
+  "ui.apps.useCaseConfigure": "कॉन्फ़िगर करें",
+  "ui.apps.useCaseRemove": "हटाएँ",
   "ui.clientLocal.bootstrapPassword": "प्रारंभिक पासवर्ड",
   "ui.clientLocal.bootstrapGuidance":
     "प्रारंभिक पासवर्ड पाने के लिए इस इंस्टॉलेशन के होस्ट पर टर्मिनल में {command} चलाएँ। अगर पिछला पासवर्ड इस्तेमाल हो चुका है या उसकी अवधि समाप्त हो गई है, तो कमांड उसे बदल देती है और पुराना पासवर्ड काम नहीं करता।",
@@ -7,8 +14,8 @@ export const hi: Record<string, string> = {
   "setupReplay.body":
     "इस डिवाइस का कनेक्शन देखें, फिर परिचय दोहराएँ। आपकी सेटिंग्स का मसौदा यहीं रहेगा।",
   "setupReplay.edition": "इंस्टॉलर संस्करण",
-  "setupReplay.localEdition": "Techstack Local",
-  "setupReplay.cloudEdition": "Techstack Cloud",
+  "setupReplay.localEdition": "Techstack Standalone",
+  "setupReplay.cloudEdition": "Techstack Connected",
   "setupReplay.connection": "कनेक्शन",
   "setupReplay.address": "पता",
   "setupReplay.browser": "वेब ब्राउज़र",
@@ -17,6 +24,31 @@ export const hi: Record<string, string> = {
   "setupReplay.skip": "सेटअप छोड़ें",
   "setupReplay.keep": "कनेक्शन बनाए रखें",
   "ui.services.stackIt": "Stack it",
+  "ui.services.unmanaged": "अप्रबंधित",
+  "ui.services.stackItFirst": "पहले Stack it करें, फिर ले जाएँ",
+  "ui.services.stackItHere": "{name} को यहाँ Stack it करें",
+  "ui.services.stackItPlanning": "योजना बन रही है…",
+  "ui.services.stackItRecreated": "नए कंटेनर के रूप में फिर से बनाया जाता है। मूल रुकता है और 7 दिन रखा जाता है।",
+  "ui.services.stackItName": "नाम",
+  "ui.services.stackItData": "डेटा",
+  "ui.services.stackItDowntime": "डाउनटाइम",
+  "ui.services.stackItSeconds": "लगभग {seconds} से",
+  "ui.services.stackItDisk": "{size} · {free} खाली",
+  "ui.services.stackItPorts": "पोर्ट",
+  "ui.services.stackItSecrets": "छिपी सेटिंग्स",
+  "ui.services.stackItRow.kept": "यथावत",
+  "ui.services.stackItRow.changed": "बदला",
+  "ui.services.stackItRow.refused": "अस्वीकृत",
+  "ui.services.stackItRefused": "यह कंटेनर अभी स्टैक नहीं हो सकता।",
+  "ui.services.stackItDone": "स्टैक हो गया।",
+  "ui.services.originalKept": "मूल रखा गया",
+  "ui.services.originalKeptUntil": "मूल {date} तक रखा गया",
+  "ui.services.restoreOriginal": "मूल बहाल करें",
+  "ui.services.removeOriginal": "मूल हटाएँ",
+  "ui.services.restoreOriginalBody": "स्टैक की गई ऐप हटाता है (उसका डेटा रहता है) और मूल को फिर से शुरू करता है।",
+  "ui.services.removeOriginalBody": "रुका हुआ मूल कंटेनर हटाता है। उसका डेटा रहता है।",
+  "ui.services.originalRestored": "मूल बहाल हुआ।",
+  "ui.services.originalRemoved": "मूल हटाया गया।",
   "ui.services.approveStackIt": "इस अपनाने को मंज़ूरी दें",
   "ui.services.releaseBinding": "जीवनचक्र प्रबंधन हटाएँ",
   "ui.services.adoptionScope": "इस मौजूदा Home Assistant कंटेनर का जीवनचक्र उसी स्थान पर प्रबंधित करने के लिए समीक्षा करें। यह प्रोफ़ाइल अन्य ऐप या दूसरे सर्वर पर स्थानांतरण का समर्थन नहीं करती।",
@@ -340,7 +372,6 @@ export const hi: Record<string, string> = {
   "ui.dashboard.healthy": "स्वस्थ",
   "ui.dashboard.alerts": "अलर्ट",
   "ui.common.importExport": "इम्पोर्ट / एक्सपोर्ट",
-  "ui.dashboard.sections": "Homelab अनुभाग",
   "ui.dashboard.failureDetails": "विवरण",
   "ui.dashboard.hideFailureDetails": "विवरण छिपाएँ",
   "ui.dashboard.inventoryUnavailable": "आपके सर्वर और सेवाओं की मौजूदा स्थिति पढ़ी नहीं जा सकी। नीचे सहेजा गया टेलीमेट्री केवल निदान के लिए है और इसका मतलब यह नहीं कि आपका Homelab खाली है।",
@@ -396,9 +427,6 @@ export const hi: Record<string, string> = {
     "क्लीनअप अभी जारी है। दोबारा बनाना तभी खुलता है जब लीज़, प्रामाणिक सर्वर, प्रदाता ऑपरेशन, अनुपस्थिति का प्रमाण और क्षमता की मुक्ति, सभी अंतिम स्थिति में पहुँच जाएँ।",
   "ui.common.close": "बंद करें",
   "ui.metric.noSamples": "इस अवधि में कोई सैंपल नहीं",
-  "ui.relogin.localPath":
-    "स्थानीय Techstack सेटअप के रास्ते पर जारी रखिए। यह स्क्रीन पासवर्ड नहीं माँगती।",
-  "ui.relogin.continueLocal": "स्थानीय सेटअप जारी रखें",
   "ui.rotation.schedule": "रोटेशन शेड्यूल",
   "ui.rotation.rotateNow": "अभी रोटेट करें",
   "ui.serverAccess.authorizeKey": "मेरी SSH कुंजी को अधिकृत करें",
@@ -463,7 +491,7 @@ export const hi: Record<string, string> = {
   "wizard.preview.reset": "रीसेट करें",
   "wizard.preview.language": "प्रीव्यू भाषा",
   "wizard.preview.sandboxNotice":
-    "इंटरैक्टिव डिज़ाइन प्रीव्यू। A और B की तुलना एक ही चयन के साथ कीजिए। चुनाव इसी व्यू में रहते हैं; कुछ भी इंस्टॉल नहीं होता। मेल और गेम नियोजित बीटा अनुभव दिखाते हैं।",
+    "इंटरैक्टिव डिज़ाइन प्रीव्यू। गोल और संक्षिप्त दृश्य की तुलना एक ही चयन के साथ कीजिए। चुनाव इसी व्यू में रहते हैं; कुछ भी इंस्टॉल नहीं होता। मेल और गेम नियोजित बीटा अनुभव दिखाते हैं।",
   "wizard.preview.files.title": "दस्तावेज़ और फ़ाइलें",
   "wizard.preview.files.description": "आपकी रोज़ की फ़ाइलें, आपकी अपनी जगह पर।",
   "wizard.preview.files.help":
@@ -519,9 +547,6 @@ export const hi: Record<string, string> = {
     "SOGo वेबमेल और ग्रुपवेयर वाला वैकल्पिक एकीकृत मेल सूट। सूट या अलग सर्वर में से एक चुनिए; एक ही मेलबॉक्स के लिए दोनों ज़रूरी नहीं हैं।",
   "wizard.preview.service.pterodactyl":
     "गेम के लिए चुना गया प्लेटफ़ॉर्म। नियोजित इंटीग्रेशन अलग-अलग Minecraft Java और Bedrock प्रोफ़ाइल, उनके संसाधन और स्थायी दुनिया प्रबंधित करता है।",
-  "wizard.preview.compare": "दोनों डिज़ाइनों की तुलना करें",
-  "wizard.preview.discover": "खोजें",
-  "wizard.preview.focus": "फ़ोकस",
   "wizard.preview.eyebrow": "आपका डिजिटल घर",
   "wizard.preview.title": "जो मायने रखता है, उसके लिए जगह बनाइए।",
   "wizard.preview.subtitle":
@@ -536,8 +561,6 @@ export const hi: Record<string, string> = {
   "wizard.preview.aboutUseCase": "करीब से देखें",
   "wizard.preview.inside": "इस उपयोग के टूल",
   "wizard.preview.explore": "खोजें और अनुकूलित करें",
-  "wizard.preview.selectUseCase": "चुनें",
-  "wizard.preview.collapse": "कम ब्योरा",
   "wizard.preview.selected": "चुना गया",
   "wizard.preview.optional": "वैकल्पिक",
   "wizard.preview.selectionCount": "चुने गए",
@@ -1136,6 +1159,10 @@ export const hi: Record<string, string> = {
   "wizard.server.command.join.review": "इस सर्वर की पुष्टि करें",
   "wizard.server.command.join.reviewBody":
     "चुनिए कि यह डिवाइस कैसे जुड़े। आपके Homelab की पहुँच, लोग और साइन-इन जैसे हैं वैसे रहते हैं।",
+  "wizard.focus.title": "{useCase} सेट अप कीजिए",
+  "wizard.focus.subtitle":
+    "ऐप चुनिए और वह कैसे सेट हो। ब्योरा तब मौजूद है जब आपको चाहिए।",
+  "wizard.step.useCase": "उपयोग का मामला",
   "wizard.step.inherited": "आपके Homelab के लिए पहले से सेट",
   "wizard.step.existingOwner": "आपका Homelab मालिक वही रहता है",
   "wizard.settings.title": "Homelab सेटिंग्स",
@@ -1328,16 +1355,6 @@ export const hi: Record<string, string> = {
   "auth.email": "ईमेल",
   "auth.password": "पासवर्ड",
   "auth.username": "उपयोगकर्ता नाम",
-  "auth.session.renewal.title": "सत्र रीफ़्रेश ज़रूरी है",
-  "auth.session.renewal.body":
-    "हम kombify Cloud तक आपकी सुरक्षित पहुँच अपने आप नवीनीकृत नहीं कर सके। आपका काम सुरक्षित है — दोबारा साइन-इन कीजिए और ठीक वहीं से जारी रखिए जहाँ आपने छोड़ा था।",
-  "auth.session.renewal.signIn": "फिर से साइन-इन करें",
-  "auth.session.renewal.retry": "फिर कोशिश करें",
-  "auth.session.renewal.retrying": "फिर कोशिश हो रही है…",
-  "auth.session.gatewayUnavailable":
-    "kombify Cloud तक सुरक्षित पहुँच सत्यापित नहीं हो सकी। जारी रखने के लिए दोबारा साइन-इन कीजिए।",
-  "auth.session.tenantContextRequired":
-    "आपके सत्र में कोई kombify संगठन नहीं है, इसलिए टेनेंट डेटा दिखाया नहीं जा सकता। अपने kombify Cloud पोर्टल से Techstack खोलिए या दोबारा साइन-इन कीजिए।",
   "wizard.run.banner.inProgressTitle": "आपका Homelab सेट हो रहा है",
   "wizard.run.banner.inProgressBody":
     "सेटअप अभी चल रहा है। आप प्रगति देख सकते हैं या बाद में लौट सकते हैं।",
@@ -1353,22 +1370,6 @@ export const hi: Record<string, string> = {
   "wizard.run.banner.cancelFailed": "रोलआउट रद्द नहीं हो सका",
   "wizard.run.banner.dismiss": "बंद करें",
   "wizard.run.banner.dismissFailed": "सूचना बंद नहीं हो सकी",
-  "auth.session.expired.default":
-    "आपका सत्र समाप्त हो गया है। कृपया फिर से साइन-इन कीजिए।",
-  "auth.session.expired.title": "सत्र समाप्त",
-  "auth.session.expired.subtitle": "कृपया फिर से लॉग इन कीजिए",
-  "auth.session.expired.saasBody":
-    "आपका Techstack सत्र समाप्त हो गया। साइन-इन के बाद इस वर्कफ़्लो पर लौटने के लिए Auth0 के साथ जारी रखिए।",
-  "auth.session.expired.continueAuth0": "Auth0 के साथ जारी रखें",
-  "auth.session.expired.reconnecting": "फिर से जुड़ रहे हैं...",
-  "auth.session.expired.signOut": "साइन-आउट करें",
-  "auth.session.expired.reopenPortal": "kombify Cloud फिर से खोलें",
-  "auth.session.expired.embeddedHint":
-    "kombify Cloud को नए टैब में खोलिए, वहाँ साइन-इन कीजिए, फिर यहाँ सत्र रीफ़्रेश दोबारा आज़माइए।",
-  "auth.session.expired.embeddedRefreshFailed":
-    "एम्बेडेड kombify Cloud सत्र रीफ़्रेश नहीं हो सका। दोबारा साइन-इन करने के लिए kombify Cloud फिर से खोलिए, फिर कोशिश कीजिए।",
-  "auth.session.expired.dataPreserved":
-    "आपका डेटा सुरक्षित है। लॉग इन करने के बाद आप वहीं से जारी रख सकते हैं जहाँ आपने छोड़ा था।",
   "nav.notifications": "सूचनाएँ",
   "companion.frameTitle": "kombify Companion",
   "companion.open": "Companion खोलें",
@@ -1454,8 +1455,6 @@ export const hi: Record<string, string> = {
     "यह विंडो अपने आप बंद हो जाएगी।",
   "ui.authCloud-link-complete.youCanCloseThisTab":
     "आप इस टैब को बंद करके विज़ार्ड पर लौट सकते हैं।",
-  "ui.authHandler.yourSessionHasExpiredPlease":
-    "आपका सेशन समाप्त हो गया है। कृपया फिर से साइन इन कीजिए।",
   "ui.authSso.noSsoTokenProvided": "कोई SSO टोकन नहीं दिया गया",
   "ui.authSso.ssoAuthenticationFailed": "SSO प्रमाणीकरण विफल रहा",
   "ui.authSso.ssoAuthenticationKombifyTechstack":
@@ -1466,13 +1465,10 @@ export const hi: Record<string, string> = {
     "आपका kombify Cloud सेशन बहाल नहीं हो सका। कृपया फिर कोशिश कीजिए।",
   "ui.client.csrfTokenResponseMissingToken":
     "CSRF टोकन के जवाब में टोकन नहीं है",
-  "ui.client.gatewayAuthenticationUnavailableSignIn":
-    "Gateway प्रमाणीकरण उपलब्ध नहीं है। अपने प्रबंधित रनटाइम अधिकार सत्यापित करने के लिए फिर से साइन इन कीजिए।",
   "ui.client.networkError":
     "नेटवर्क त्रुटि: API से कनेक्ट नहीं हो सका। क्या बैकएंड पहुँच में है?",
   "ui.client.networkErrorAt":
     "नेटवर्क त्रुटि: {base} पर API से कनेक्ट नहीं हो सका। क्या बैकएंड पहुँच में है?",
-  "ui.client.parentGatewayTokenFailed": "पैरेंट गेटवे टोकन विफल रहा",
   "ui.client.requestTimedOutAfterS":
     "अनुरोध {v1} सेकंड बाद टाइम आउट हो गया: {url}",
   "ui.client.serverReturnedHTMLInsteadOf":
@@ -1778,7 +1774,6 @@ export const hi: Record<string, string> = {
     "पुराने कस्टडी रिकॉर्ड का समाधान करें?",
   "ui.homelabDashboardPage.retry": "फिर कोशिश करें",
   "ui.homelabDashboardPage.retryExactCleanup": "सटीक क्लीनअप फिर आज़माएँ",
-  "ui.homelabDashboardPage.review": "समीक्षा करें",
   "ui.homelabDashboardPage.reviewStart": "समीक्षा करें और बनाएँ",
   "ui.homelabDashboardPage.rolloutReadinessIsUnavailableRefresh":
     "रोलआउट की तैयारी की स्थिति उपलब्ध नहीं है। शुरू करने से पहले ऑपरेशन डेटा रिफ़्रेश कीजिए।",
@@ -1982,6 +1977,7 @@ export const hi: Record<string, string> = {
   "ui.monitoring.acrossEpisodes.other": "कुल {count} घटनाओं में",
   "ui.monitoring.availabilityHistoryIsUnavailableOn": "इस इंस्टॉलेशन पर उपलब्धता इतिहास उपलब्ध नहीं है।",
   "ui.monitoring.availabilityWindow": "उपलब्धता · {window}",
+  "ui.monitoring.availabilityWindowLabel": "उपलब्धता अवधि",
   "ui.monitoring.dailyState": "दैनिक स्थिति",
   "ui.monitoring.dailyStateLabel": "{name}: दैनिक कनेक्शन स्थिति",
   "ui.monitoring.downFor": "{duration} डाउन",
@@ -2113,12 +2109,30 @@ export const hi: Record<string, string> = {
     "रिकवरी पासफ़्रेज़ कम से कम {MIN_RECOVERY_PASSPHRASE_LENGTH} अक्षरों का होना चाहिए",
   "ui.ownerState.recoveryPassphrasesDoNotMatch":
     "रिकवरी पासफ़्रेज़ मेल नहीं खाते",
+  "ui.ownerState.theCloudLinkCouldNotBeRemoved":
+    "kombify Cloud लिंक हटाया नहीं जा सका। फिर कोशिश कीजिए।",
+  "ui.ownerState.theCloudLinkCouldNotBeSaved":
+    "kombify Cloud लिंक सहेजा नहीं जा सका। फिर कोशिश कीजिए।",
+  "ui.ownerState.theCloudLinkCouldNotBeStarted":
+    "kombify Cloud लिंक शुरू नहीं किया जा सका। फिर कोशिश कीजिए।",
+  "ui.ownerState.theCloudLinkIsTemporarilyUnavailable":
+    "kombify Cloud लिंक अस्थायी रूप से उपलब्ध नहीं है। कुछ देर बाद फिर कोशिश कीजिए।",
+  "ui.ownerState.theCloudLinkStatusCouldNotBeRead":
+    "kombify Cloud लिंक की स्थिति पढ़ी नहीं जा सकी। कुछ देर बाद फिर कोशिश कीजिए।",
+  "ui.ownerState.theCloudProfileCouldNotBeRead":
+    "kombify Cloud प्रोफ़ाइल पढ़ी नहीं जा सकी। कनेक्शन फिर से शुरू कीजिए।",
+  "ui.ownerState.theCloudTokenExchangeFailed":
+    "kombify Cloud टोकन एक्सचेंज विफल रहा। कनेक्शन फिर से शुरू कीजिए।",
+  "ui.ownerState.theKombifyCloudAccountIsAlready":
+    "आपका kombify Cloud खाता पहले से जुड़ा हुआ है। Cloud लिंक केवल सेल्फ़-होस्टेड इंस्टॉल में उपलब्ध है।",
   "ui.ownerState.theKombifyCloudEmailIs":
     "kombify Cloud का ईमेल सत्यापित नहीं है। अपने Cloud खाते में उसे सत्यापित कीजिए, फिर दोबारा लिंक कीजिए।",
   "ui.ownerState.theKombifyCloudProfileHas":
     "kombify Cloud प्रोफ़ाइल में कोई ईमेल पता नहीं है।",
   "ui.ownerState.theLinkRequestExpiredStart":
     "लिंक अनुरोध की समय-सीमा खत्म हो गई। कनेक्शन फिर से शुरू कीजिए।",
+  "ui.ownerState.theLinkRequestIsMissingStart":
+    "लिंक अनुरोध में कोड या स्थिति नहीं है। कनेक्शन फिर से शुरू कीजिए।",
   "ui.ownerState.theSelectedOwnerSourceIs":
     "चुना गया ओनर स्रोत अब समर्थित नहीं है। स्थानीय ओनर चुनिए या अपनी kombify Cloud प्रोफ़ाइल लिंक कीजिए।",
   "ui.ownerState.thisInstanceHasNoKombify":
@@ -2630,8 +2644,6 @@ export const hi: Record<string, string> = {
   "ui.serviceSheet.notPlaced": "प्लेस नहीं किया गया",
   "ui.serviceSheet.ownership": "स्वामित्व: {value}",
   "ui.serviceSheet.stackkit": "StackKit {version}",
-  "ui.services.aboutToMove":
-    "आप इस एप्लिकेशन को {slot} से {slot} पर ले जाने वाले हैं।",
   "ui.services.action.freeze": "फ़्रीज़ करें",
   "ui.services.action.logs": "लॉग",
   "ui.services.action.restart": "रीस्टार्ट करें",
@@ -2644,7 +2656,7 @@ export const hi: Record<string, string> = {
     "कार्रवाई पूरी हुई, लेकिन सेवा की ताज़गी अवधि के भीतर कोई नई इन्वेंटरी ऑब्ज़र्वेशन नहीं आई।",
   "ui.services.actionCompletedInventoryIsRefreshing":
     "कार्रवाई पूरी हुई; इन्वेंटरी रिफ़्रेश हो रही है।",
-  "ui.services.actionTitle": "{action} {name}",
+  "ui.services.actionTitle": "{name}: {action}",
   "ui.services.addACatalogApplicationOr": "कैटलॉग से कोई एप्लिकेशन जोड़िए या अप्रबंधित सर्वर इन्वेंटरी इम्पोर्ट कीजिए।",
   "ui.services.addService": "सेवा जोड़ें",
   "ui.services.adoptIntoManagement": "प्रबंधन में शामिल करें…",
@@ -2652,15 +2664,10 @@ export const hi: Record<string, string> = {
   "ui.services.anyRuntimeInventoryShownAbove":
     "ऊपर दिखाई गई कोई भी रनटाइम इन्वेंटरी केवल-पढ़ने योग्य रहती है। सेवा रजिस्ट्री के ठीक होने तक कैटलॉग, इम्पोर्ट, सत्यापन और माइग्रेशन की कार्रवाइयाँ बंद रहेंगी।",
   "ui.services.application": "एप्लिकेशन",
-  "ui.services.applicationIsAlreadyMovingOr":
-    "एप्लिकेशन पहले से मूव हो रहा है या सत्यापन की प्रतीक्षा में है।",
   "ui.services.applicationManagementIsTemporarilyUnavailable":
     "एप्लिकेशन प्रबंधन अस्थायी रूप से उपलब्ध नहीं है",
   "ui.services.applicationManagementIsUnavailableUntil":
     "सेवा रजिस्ट्री के ठीक होने तक एप्लिकेशन प्रबंधन उपलब्ध नहीं है।",
-  "ui.services.applicationMove": "एप्लिकेशन मूव",
-  "ui.services.applicationNeedsAStableRunning":
-    "एप्लिकेशन को मूव करने से पहले उसका स्थिर रूप से चलती या रुकी हुई स्थिति में होना ज़रूरी है।",
   "ui.services.applicationPlacementIsTemporarilyUnavailable":
     "एप्लिकेशन प्लेसमेंट अस्थायी रूप से उपलब्ध नहीं है",
   "ui.services.applications": "एप्लिकेशन",
@@ -2695,12 +2702,8 @@ export const hi: Record<string, string> = {
   "ui.services.discoveredOn":
     "{name} पर खोजा गया — kombify द्वारा प्रबंधित नहीं",
   "ui.services.displayName": "प्रदर्शित नाम",
-  "ui.services.dragAndDropStaysDisabled": "ड्रैग-एंड-ड्रॉप अभी उपलब्ध नहीं है। किसी ऐप को सुरक्षित रूप से ले जाने के लिए इंस्टॉल, हेल्थ चेक, स्विच-ओवर और पुरानी कॉपी की सफ़ाई का स्वचालित होना ज़रूरी है।",
-  "ui.services.dropManagedApplicationsHere": "प्रबंधित एप्लिकेशन यहाँ छोड़ें",
   "ui.services.error": "त्रुटि",
   "ui.services.failedToDeleteArchivedService": "संग्रहीत सेवा हटाने में विफल।",
-  "ui.services.failedToInitiateMigration": "माइग्रेशन शुरू करने में विफल।",
-  "ui.services.failedToVerifyService": "सेवा सत्यापित करने में विफल।",
   "ui.services.fetchLogs": "लॉग प्राप्त करें",
   "ui.services.freshnessValue": "ताज़गी: {value}",
   "ui.services.health": "हेल्थ",
@@ -2711,18 +2714,15 @@ export const hi: Record<string, string> = {
     "मानक सेवा इन्वेंटरी लोड हो रही है",
   "ui.services.localNode": "स्थानीय सर्वर",
   "ui.services.managedProviderTarget": "प्रबंधित प्रदाता लक्ष्य",
-  "ui.services.migrationJobIsActive": "माइग्रेशन जॉब सक्रिय है।",
+  "ui.services.moreActions": "सेवाओं के लिए और कार्रवाइयाँ",
   "ui.services.moveApplication": "एप्लिकेशन मूव करें",
   "ui.services.moveHere": "{name} को यहाँ मूव करें",
-  "ui.services.moveSteps": "मूव के चरण:",
-  "ui.services.moveToAnotherNode": "दूसरे सर्वर पर मूव करें…",
   "ui.services.mutationsRequireOwnerApprovalA":
     "बदलावों के लिए ओनर की मंज़ूरी चाहिए; मापी गई स्थिति बदलने से पहले StackKits सत्यापन चलता है।",
   "ui.services.noApplicationsDeployed": "कोई एप्लिकेशन डिप्लॉय नहीं है",
   "ui.services.noApplicationsMatching":
     "{status} स्थिति वाला कोई एप्लिकेशन नहीं",
   "ui.services.noApplicationsReported": "किसी एप्लिकेशन की रिपोर्ट नहीं मिली",
-  "ui.services.noAvailableTargetNodeFor": "इस एप्लिकेशन के लिए कोई उपलब्ध लक्ष्य सर्वर नहीं है।",
   "ui.services.noCanonicalRuntimeObservationYet":
     "अभी कोई मानक रनटाइम ऑब्ज़र्वेशन नहीं — रजिस्ट्री प्रोजेक्शन दिखाया जा रहा है।",
   "ui.services.noGovernedActionHasRun":
@@ -2736,12 +2736,10 @@ export const hi: Record<string, string> = {
   "ui.services.nodeCapabilities": "सर्वर की क्षमताएँ",
   "ui.services.nodeColumn": "सर्वर {name} कॉलम",
   "ui.services.observed": "देखा गया",
-  "ui.services.stacked": "Stacked",
-  "ui.services.unstacked": "Unstacked",
+  "ui.services.stacked": "स्टैक किया गया",
+  "ui.services.unstacked": "स्टैक नहीं किया गया",
   "ui.services.observedTechnicalComponentsWithoutApplication":
     "देखे गए तकनीकी कॉम्पोनेंट, जिनमें एप्लिकेशन-स्तर के कंट्रोल नहीं हैं",
-  "ui.services.observedUnmanagedApplicationsMustBe":
-    "देखे गए अप्रबंधित एप्लिकेशन को मूव करने से पहले प्रबंधन में शामिल करना होगा।",
   "ui.services.open": "खोलें",
   "ui.services.operationValue": "ऑपरेशन: {value}",
   "ui.services.ownershipUnknown": "स्वामित्व अज्ञात",
@@ -2757,15 +2755,10 @@ export const hi: Record<string, string> = {
   "ui.services.port": "पोर्ट",
   "ui.services.ramUsedOf": "{used} GB / {total} GB",
   "ui.services.refreshLogs": "लॉग रिफ़्रेश करें",
-  "ui.services.relocatingOnBackend": "बैकएंड पर स्थानांतरण हो रहा है...",
   "ui.services.removeOldCopy": "पुरानी प्रति हटाएँ…",
   "ui.services.retryManagementData": "प्रबंधन डेटा फिर आज़माएँ",
   "ui.services.running": "चल रहा है",
   "ui.services.runtimeInventoryCouldNotBe": "रनटाइम इन्वेंटरी लोड नहीं हो सकी।",
-  "ui.services.runtimeMigrationIsNotEnabled":
-    "रनटाइम माइग्रेशन अभी चालू नहीं है",
-  "ui.services.runtimeMigrationUnavailable": "रनटाइम माइग्रेशन उपलब्ध नहीं",
-  "ui.services.runtimeServiceMigrationIsNot": "इस इंस्टॉलेशन पर ऐप्स को सर्वरों के बीच ले जाना चालू नहीं है।",
   "ui.services.runtimeTarget": "रनटाइम लक्ष्य",
   "ui.services.selectANodeAndCatalog": "एक सर्वर और एक कैटलॉग सेवा चुनिए।",
   "ui.services.selectANodeThenEnter": "एक सर्वर चुनिए, फिर सेवा का नाम दर्ज कीजिए।",
@@ -2784,20 +2777,12 @@ export const hi: Record<string, string> = {
   "ui.services.showingLastVerifiedCapacityTelemetry":
     "आख़िरी सत्यापित क्षमता टेलीमेट्री दिखाई जा रही है",
   "ui.services.stackkitsApplicationModel": "StackKits एप्लिकेशन मॉडल",
-  "ui.services.startMove": "मूव शुरू करें",
-  "ui.services.startsControlledMove":
-    "इससे {slot} का नियंत्रित मूव शुरू होता है।",
   "ui.services.statusValue": "स्थिति: {value}",
   "ui.services.storage": "स्टोरेज",
   "ui.services.storageFreeOf": "{free} GB खाली / {total} GB",
   "ui.services.systemServices": "सिस्टम सेवाएँ",
-  "ui.services.targetIsReadyForVerification": "लक्ष्य सत्यापन के लिए तैयार है।",
-  "ui.services.targetNode": "लक्ष्य सर्वर",
   "ui.services.targetValue": "लक्ष्य: {value}",
   "ui.services.telemetryPending": "टेलीमेट्री लंबित",
-  "ui.services.temporaryInstance":
-    "{slot} पर एक अस्थायी इंस्टेंस डिप्लॉय किया जाएगा।",
-  "ui.services.theApplicationConfigWillBe": "एप्लिकेशन कॉन्फ़िग की प्रति लक्ष्य सर्वर पर बनाई जाएगी।",
   "ui.services.theLastLogPageWas": "आख़िरी लॉग पेज खाली था।",
   "ui.services.theLastSuccessfulSnapshotRemains": "आख़िरी सफल स्नैपशॉट तब तक दिखता रहता है जब तक यह Homelab उसका प्रतिस्थापन या ऐप के डाउन होने का स्पष्ट प्रमाण रिपोर्ट नहीं करता।",
   "ui.services.thisHomelab": "यह Homelab",
@@ -2806,14 +2791,8 @@ export const hi: Record<string, string> = {
   "ui.services.type2": "प्रकार",
   "ui.services.unclassifiedRuntimeComponentsAppearHere":
     "अवर्गीकृत रनटाइम कॉम्पोनेंट यहाँ दिखते हैं।",
-  "ui.services.uponYourManualVerificationThe":
-    "आपके मैन्युअल सत्यापन के बाद पुराना इंस्टेंस निष्क्रिय हो जाता है और उसे स्थायी रूप से हटाया जा सकता है।",
   "ui.services.url": "URL",
-  "ui.services.verifyFinish": "सत्यापित करें और पूरा करें",
   "ui.services.verifying": "· सत्यापित हो रहा है",
-  "ui.services.waitingForRuntimeDeployment": "इंस्टॉलेशन की प्रतीक्षा है...",
-  "ui.services.youCanTestTheNew":
-    "पुराना इंस्टेंस सक्रिय रहते हुए आप नए इंस्टेंस को टेस्ट कर सकते हैं।",
   "ui.servicesApplicationId.addressClass": "पता श्रेणी",
   "ui.servicesApplicationId.applicationDetails": "एप्लिकेशन विवरण",
   "ui.servicesApplicationId.applicationDetailsCouldNotBe":
@@ -3075,7 +3054,8 @@ export const hi: Record<string, string> = {
   "ui.stacksCreatingCreation-controller.rolloutRetryRequiresTheExact":
     "रोलआउट दोबारा आज़माने के लिए सटीक विफल जॉब और प्रबंधित VM लीज़ चाहिए।",
   "ui.stacksCreatingCreation-controller.serviceVerification": "सेवा सत्यापन",
-  "ui.stacksCreatingCreation-controller.sessionExpired": "सेशन समाप्त हो गया",
+  "ui.stacksCreatingCreation-controller.sessionExpired":
+    "आपकी पुष्टि की प्रतीक्षा है",
   "ui.stacksCreatingCreation-controller.simulationGate": "सिमुलेशन गेट",
   "ui.stacksCreatingCreation-controller.stackkitRollout": "StackKit रोलआउट",
   "ui.stacksCreatingCreation-controller.stackkitRuntimeVerificationMissing":
@@ -3101,7 +3081,7 @@ export const hi: Record<string, string> = {
   "ui.stacksCreatingCreation-controller.yourRemoteNodeConfigurationIs":
     "आपकी रिमोट सर्वर कॉन्फ़िगरेशन रोलआउट के लिए तैयार है",
   "ui.stacksCreatingCreation-controller.yourSessionIsNoLonger":
-    "आपका सेशन अब मान्य नहीं है, इसलिए निर्माण की प्रगति जाँची नहीं जा सकती। निगरानी जारी रखने के लिए दोबारा साइन इन करें और इस निर्माण को फिर खोलें।",
+    "निर्माण सर्वर पर चलता रहता है। यहाँ इसकी प्रगति देखते रहने के लिए फिर से जाँचें और अपने सेशन की पुष्टि करें।",
   "ui.stacksCreatingCreation-results.backendError":
     "{cleanDetails}\n\nबैकएंड त्रुटि:\n{cleanError}",
   "ui.stacksCreatingCreation-results.incidentContext": "घटना संदर्भ:",
@@ -3412,6 +3392,7 @@ export const hi: Record<string, string> = {
   "ui.stacksId.monitoringEvidence": "मॉनिटरिंग साक्ष्य",
   "ui.stacksId.monthlyRuntime": "मासिक रनटाइम",
   "ui.stacksId.monthlyRuntimeActionFailed": "मासिक रनटाइम की कार्रवाई विफल रही",
+  "ui.stacksId.moreActions": "{name} के लिए और कार्रवाइयाँ",
   "ui.stacksId.noCredentialsConfiguredForThis": "इस Homelab के लिए कोई क्रेडेंशियल कॉन्फ़िगर नहीं है।",
   "ui.stacksId.noLeaseAttached": "कोई लीज़ जुड़ी नहीं है",
   "ui.stacksId.noStackkitDeploymentIdProvided": "कोई Homelab ID नहीं दी गई",
@@ -3484,6 +3465,7 @@ export const hi: Record<string, string> = {
     "प्रबंधित रनटाइम लीज़ का संदर्भ।",
   "ui.stacksIdServersServerId.memory": "मेमोरी",
   "ui.stacksIdServersServerId.metadata": "मेटाडेटा",
+  "ui.stacksIdServersServerId.moreActions": "{name} के लिए और कार्रवाइयाँ",
   "ui.stacksIdServersServerId.noCompilerDeclaredReservationOr":
     "नवीनतम पूर्ण Guard स्नैपशॉट में कंपाइलर द्वारा घोषित कोई आरक्षण या बाउंड रनटाइम लिस्नर मौजूद नहीं था।",
   "ui.stacksIdServersServerId.noDesiredListenerIsReserved":

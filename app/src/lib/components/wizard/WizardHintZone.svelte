@@ -6,6 +6,7 @@
   import type { WizardPreviewState } from "#lib/wizard/WizardPreviewController.js";
   import { tr } from "#lib/i18n.svelte.js";
   import { hintReasonText } from "#lib/wizard/layout-reasons.js";
+  import { useCreationEntry } from "#lib/creation/host.js";
 
   interface Props {
     state: WizardPreviewState;
@@ -13,6 +14,8 @@
   }
 
   let { state, onopen }: Props = $props();
+  // Hosted, the zone shares one screen with the step: one tight block.
+  const dense = useCreationEntry() !== null;
 
   const result = $derived.by<WizardRecommendationResult | undefined>(() => {
     if (state.phase === "resolved") return state.result;
@@ -55,12 +58,14 @@
     data-kx="plate"
     data-testid="wizard-hint-zone"
     data-recommendation-status={result?.status ?? state.phase}
-    class="rounded-xl border border-primary/25 bg-primary/5 p-4"
+    class="rounded-xl border border-primary/25 bg-primary/5 {dense
+      ? 'px-3 py-2'
+      : 'p-4'}"
     aria-live="polite"
   >
     <div class="flex min-w-0 items-start gap-3">
       <div
-        class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"
+        class="mt-0.5 flex {dense ? 'h-6 w-6' : 'h-8 w-8'} shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"
         aria-hidden="true"
       >
         ✦
@@ -91,11 +96,11 @@
         </div>
 
         {#if primary}
-          <p class="mt-1 text-sm text-foreground">
+          <p class="{dense ? 'mt-0.5' : 'mt-1'} text-sm text-foreground">
             <strong>{stackKitLabel(primary.stackkit)}</strong>
             {tr("wizard.hints.bestFit")}
           </p>
-          <div class="mt-3 flex flex-wrap items-center gap-2">
+          <div class="{dense ? 'mt-1.5' : 'mt-3'} flex flex-wrap items-center gap-2">
             <button
               type="button"
               class="rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary/15"
@@ -112,7 +117,7 @@
             {/each}
           </div>
           {#if reasonLines.length > 0}
-            <details class="mt-3 text-sm" data-testid="wizard-hint-why">
+            <details class="{dense ? 'mt-1' : 'mt-3'} text-sm" data-testid="wizard-hint-why">
               <summary
                 class="cursor-pointer select-none text-xs font-medium text-primary"
               >

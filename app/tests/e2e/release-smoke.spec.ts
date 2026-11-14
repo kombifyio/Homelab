@@ -270,20 +270,21 @@ test.describe.serial("Release Smoke (Render deploy gate)", () => {
         page.getByRole("textbox", { name: "Password", exact: true }),
       ).toBeVisible();
     }
-    if (cloudProviders.length > 0) {
+    const firstCloudProvider = cloudProviders[0];
+    if (firstCloudProvider) {
       // At least one cloud-provider button or link visible; tolerate either
       // a button or a link role depending on the implementation.
       const ssoControls = page.getByRole("link", {
-        name: new RegExp(cloudProviders[0].label, "i"),
+        name: new RegExp(firstCloudProvider.label, "i"),
       });
       const ssoButtons = page.getByRole("button", {
-        name: new RegExp(cloudProviders[0].label, "i"),
+        name: new RegExp(firstCloudProvider.label, "i"),
       });
       const visibleCount =
         (await ssoControls.count()) + (await ssoButtons.count());
       expect(
         visibleCount,
-        `expected a clickable element for cloud provider "${cloudProviders[0].label}"`,
+        `expected a clickable element for cloud provider "${firstCloudProvider.label}"`,
       ).toBeGreaterThan(0);
     }
 

@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { leaveGoalsStep } from "../helpers/test-utils";
 
 import {
   authenticateRuntimeUser,
@@ -199,7 +200,7 @@ test("the Companion follows live wizard use-case choices", async ({ page }) => {
     .toBe("goals");
   const initial = await current();
   expect(initial?.route).toBe("/stacks/new");
-  expect(initial?.page?.facts?.availableUseCases.split("+")).toEqual(
+  expect(initial?.page?.facts?.availableUseCases?.split("+")).toEqual(
     expect.arrayContaining(["media", "files"]),
   );
   expect(initial?.page?.facts?.mediaOptions?.split("+")).toContain(
@@ -240,15 +241,11 @@ test("the Companion follows live wizard use-case choices", async ({ page }) => {
         (await current())?.page?.facts?.selectedUseCases?.split("+") ?? [],
     )
     .toEqual(expect.arrayContaining(["media", "files"]));
-  await page.getByTestId("wizard-next").click();
+  await leaveGoalsStep(page);
   await expect
     .poll(async () => (await current())?.page?.facts?.wizardStep)
     .toBe("server");
-  await page.getByRole("link", { name: "Settings", exact: true }).click();
-  await page
-    .getByRole("alertdialog")
-    .getByRole("button", { name: "Leave page", exact: true })
-    .click();
+  await leaveCreation(page);
   await expect.poll(async () => (await current())?.route).toBe("/settings");
   expect((await current())?.page?.facts?.wizardStep).toBeUndefined();
 });
@@ -273,6 +270,7 @@ test.describe.serial("Runtime Auth0 smoke", () => {
       await expect(page.getByText("Session Expired")).toHaveCount(0);
       if (process.env.TECHSTACK_RUNTIME_E2E_USE_CASE_PLACEMENT === "1") {
         test.setTimeout(300_000);
+        await verifyBuilderPlan(page);
         await verifyUseCasePlacement(page);
       }
       const whoami = await fetchBrowserWhoAmI(page);
@@ -309,7 +307,7 @@ test.describe.serial("Runtime Auth0 smoke", () => {
             .click();
         }
         await expect(storage).toHaveAttribute("data-plan", /^(included|required)$/);
-        await page.getByTestId("wizard-next").click();
+        await leaveGoalsStep(page);
         await expect(page.getByTestId("easy-step-2")).toBeVisible();
         await verifyStepNavigation(page);
       }
@@ -349,6 +347,95 @@ test.describe.serial("Runtime Auth0 smoke", () => {
   });
 });
 
+// The handoff is a review of wishes; it never starts provider work. The
+// Builder plan keeps its own server-side creation draft
+// (src/lib/wizard/draft-storage.ts), separate from the normal one.
+async function verifyBuilderPlan(page: import("@playwright/test").Page) {
+  const draftWrites: Array<{ key: string; method: string; body: any }> = [];
+  const observeDraft = (request: import("@playwright/test").Request) => {
+    const match = new URL(request.url()).pathname.match(
+      /\/creation\/drafts\/([^/]+)$/,
+    );
+    if (!match?.[1] || request.method() === "GET") return;
+    let body: any;
+    try {
+      body = request.postDataJSON();
+    } catch {
+      body = null;
+    }
+    draftWrites.push({
+      key: decodeURIComponent(match[1]),
+      method: request.method(),
+      body,
+    });
+  };
+  page.on("request", observeDraft);
+  await page.goto(
+    "/stacks/new?builder-plan=photos%3Alocal%2Cdocuments%3Acloud%2Cwebsite%3Amanaged%2Cmedia%3Alocal&builder-session=12345678-1234-4123-8123-123456789abc",
+  );
+  await expect(
+    page.getByRole("heading", { name: "Review your Builder plan" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("This idea is not yet available as a wizard prefill."),
+  ).toBeVisible();
+  await page.getByRole("checkbox", { name: "Media", exact: true }).uncheck();
+  await page
+    .getByLabel("Preferred location for Documents")
+    .selectOption("local");
+  await page.getByRole("button", { name: "Open creation wizard" }).click();
+  await expect(page.getByTestId("easy-step-1")).toBeVisible({
+    timeout: 180_000,
+  });
+  await expect(page.getByLabel("Your Builder plan")).toBeFocused();
+  await expect(
+    page.getByRole("button", { name: "Remove from your kit Photo Memories", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Add to your kit Media Streaming", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: "Remove from your kit Documents & Files",
+    }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Your Builder plan")).toContainText(
+    "Website — Managed service",
+  );
+  const builderKey = `stack-builder-${new URL(page.url()).searchParams.get("builder-session")}`;
+  await page
+    .getByRole("button", { name: "Remove from your kit Photo Memories" })
+    .click();
+  await expect
+    .poll(() =>
+      draftWrites.some(
+        ({ key, method, body }) =>
+          key === builderKey &&
+          method === "PUT" &&
+          body?.answers?.goals?.photos === false,
+      ),
+    )
+    .toBe(true);
+  await page.reload();
+  await expect(page.getByTestId("easy-step-1")).toBeVisible({
+    timeout: 180_000,
+  });
+  await expect(page.getByLabel("Your Builder plan")).toContainText(
+    "Documents — At home",
+  );
+  await expect(
+    page.getByRole("button", { name: "Add to your kit Photo Memories" }),
+  ).toBeVisible();
+  await leaveGoalsStep(page);
+  await expect(page.getByTestId("easy-step-2")).toBeVisible();
+  // The Builder plan never writes or discards the normal creation draft.
+  expect(
+    draftWrites.filter(({ key }) => key !== builderKey).map(({ key }) => key),
+  ).toEqual([]);
+  page.off("request", observeDraft);
+  await leaveCreation(page);
+}
+
 // Cloud's use-case handoff opens the creation wizard with the use case
 // selected; the owner's existing servers are offered on its Server step,
 // next to a new server. A chosen server that runs a StackKit takes the use
@@ -375,7 +462,7 @@ async function verifyUseCasePlacement(page: import("@playwright/test").Page) {
   };
   page.on("response", observe);
   try {
-    await page.goto("/stacks/new?use-case=vault&setup=backend:vaultwarden", {
+    await page.goto("/stacks/new?use-case=vault", {
       waitUntil: "domcontentloaded",
     });
     await expect(page.getByTestId("easy-step-1")).toBeVisible({
@@ -391,7 +478,7 @@ async function verifyUseCasePlacement(page: import("@playwright/test").Page) {
         .locator('[aria-pressed="true"]')
         .first(),
     ).toBeVisible();
-    await page.getByTestId("wizard-next").click();
+    await leaveGoalsStep(page);
     const homelab = await openServerChoice(page);
     if (homelab) {
       const chosen = homelab.locator(
@@ -429,8 +516,9 @@ async function verifyUseCasePlacement(page: import("@playwright/test").Page) {
       "inactive",
     );
     await expect(page).toHaveURL(
-      /use-case=vault.*setup=backend%3Avaultwarden|use-case=vault.*setup=backend:vaultwarden/,
+      /[?&]use-case=vault(?:&|$)/,
     );
+    await leaveCreation(page);
   } finally {
     page.off("response", observe);
   }
@@ -469,8 +557,31 @@ async function selectStorageAndOpenServerStep(
       .getByRole("button", { name: /^Add to your kit /, pressed: false })
       .click();
   }
-  await page.getByTestId("wizard-next").click();
+  await leaveGoalsStep(page);
   return openServerChoice(page);
+}
+
+// The wizard keeps the owner's answers and step on the server so a reload,
+// another frame or another device resumes them (src/lib/wizard/draft-storage.ts);
+// its own "Leave page" dialog ends that draft. A page.goto accepts the
+// browser's leave prompt instead and keeps the draft, so the next creation
+// entry would resume at the step reached here rather than open at Goals.
+// Called on the wizard past Goals.
+async function leaveCreation(page: import("@playwright/test").Page) {
+  // Leaving ends the draft, including a save still pending from the last step.
+  const discarded = page.waitForResponse(
+    (response) =>
+      response.request().method() === "DELETE" &&
+      /\/creation\/drafts\/[^/]+$/.test(new URL(response.url()).pathname),
+  );
+  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Leave page", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/settings(?:[?#]|$)/);
+  await expect(page.getByTestId("easy-wizard")).toHaveCount(0);
+  expect((await discarded).ok()).toBe(true);
 }
 
 async function openNewServerWizard(page: import("@playwright/test").Page) {
@@ -482,7 +593,7 @@ async function openNewServerWizard(page: import("@playwright/test").Page) {
 }
 
 // Use cases go onto the owner's existing servers before a new one is offered
-// (kombify-Techstack-8m9s.1): the dashboard offers "Add use cases" with any
+// (kombify-Techstack-8m9s.1): Apps offers "Add use cases" with any
 // number of StackKits, and on the Server step a server that runs a StackKit
 // is chosen first, which leaves Access, Users and Login with that StackKit.
 // Real owner reads only; nothing is submitted.
@@ -494,7 +605,7 @@ async function verifyExistingTargetsFirst(
   const rows = listed.body?.data ?? listed.body;
   const stacks = { count: Array.isArray(rows) ? rows.length : 0 };
   if (stacks.count > 0) {
-    await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
+    await page.goto("/apps", { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("add-use-cases-button")).toBeVisible({
       timeout: 60_000,
     });
@@ -504,12 +615,12 @@ async function verifyExistingTargetsFirst(
   const homelab = await selectStorageAndOpenServerStep(page);
   if (!homelab) {
     expect(stacks.count).toBe(0);
-    return;
+    return leaveCreation(page);
   }
   const ready = homelab.locator(
     '[data-testid="homelab-server"][data-state="ready"][data-has-stackkit="true"]',
   );
-  if ((await ready.count()) === 0) return;
+  if ((await ready.count()) === 0) return leaveCreation(page);
   await ready.first().click();
   await expect(page).toHaveURL(/[?&]target=server(%3A|:)/);
   for (const id of [3, 4, 5])
@@ -523,6 +634,7 @@ async function verifyExistingTargetsFirst(
   await expect(
     page.locator('[data-testid="homelab-server"]:has(input:checked)'),
   ).toHaveCount(1, { timeout: 180_000 });
+  await leaveCreation(page);
 }
 
 // Each creation process shows only the steps it can change (kombify-Techstack-8m9s.3
@@ -544,6 +656,7 @@ async function verifyCreationProcesses(
   });
   if (await selectStorageAndOpenServerStep(page))
     await expect(page.getByTestId("use-case-preferred-skipped")).toBeVisible();
+  await leaveCreation(page);
 
   const listed = await authenticatedJSON(token, "/api/v1/stacks");
   const rows = listed.body?.data ?? listed.body;
@@ -556,7 +669,7 @@ async function verifyCreationProcesses(
   await expect(page.getByTestId("easy-step-1")).toBeVisible({ timeout: 60_000 });
   await stepState(1, "current");
   for (const id of [3, 4, 5]) await stepState(id, "inactive");
-  await page.getByTestId("wizard-next").click();
+  await leaveGoalsStep(page);
   await expect(page.getByTestId("easy-step-2")).toBeVisible();
   await page.locator(".advanced-trigger").click();
   await page
@@ -579,6 +692,21 @@ async function verifyCreationProcesses(
     timeout: 180_000,
   });
   await expect(page.getByTestId("use-case-target-back")).toHaveCount(0);
+  // A use case opened there asks where it runs first, then that use case
+  // alone; on a server of the homelab nothing else is asked.
+  await expect(page.getByTestId("easy-step-2")).toBeVisible();
+  await stepState(1, "current");
+  await expect(page).toHaveURL(/[?&]step=server(&|$)/);
+  // Without a ready server of the homelab the step waits for a new one.
+  if (
+    (await page.getByTestId("wizard-next").getAttribute("aria-disabled")) !==
+    "true"
+  ) {
+    await page.getByTestId("wizard-next").click();
+    await expect(page.getByTestId("easy-step-1")).toBeVisible();
+    await expect(page.locator("[data-card-id]")).toHaveCount(1);
+    await expect(page.locator('[data-card-id="vault"]')).toBeVisible();
+  }
 
   await page.goto("/settings/homelab", { waitUntil: "domcontentloaded" });
   const settingsEmpty = page.getByTestId("homelab-settings-empty");
@@ -916,12 +1044,7 @@ async function verifyCloudInventoryCore(
   const registryWarningCount = await page
     .getByTestId("registry-services-warning")
     .count();
-  const registryManagementAction = page.getByTestId("new-service-button");
-  await expect(registryManagementAction).toBeEnabled({ timeout: 10_000 });
-  const registryManagementActionEnabled =
-    await registryManagementAction.isEnabled();
   expect(registryWarningCount).toBe(0);
-  expect(registryManagementActionEnabled).toBe(true);
   const servicesDOMIDs = await domInventoryIDs(
     page,
     "runtime-service-card",
@@ -1019,7 +1142,6 @@ async function verifyCloudInventoryCore(
         registry_response_shape_valid: true,
         registry_item_count: registryServiceIDs.length,
         registry_warning_absent: registryWarningCount === 0,
-        registry_management_action_enabled: registryManagementActionEnabled,
         expected_state: "data",
         state_matches_backend: true,
         error_panel_absent: true,

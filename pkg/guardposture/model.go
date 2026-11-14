@@ -3,6 +3,8 @@ package guardposture
 import (
 	"errors"
 	"time"
+
+	"github.com/kombifyio/techstack/pkg/guardpower"
 )
 
 // ErrNotFound means no posture row exists for the worker.
@@ -48,6 +50,12 @@ type Posture struct {
 
 	Security SecurityRecord
 	Backup   BackupRecord
+
+	// Power is the latest UPS-aware power protection report of the Guard. It is
+	// kept apart from the security observation: a host can be secure and still
+	// be on battery, and an old power report is unknown, never protected.
+	Power           *guardpower.PowerReport
+	PowerReportedAt time.Time
 
 	// Guard update posture, as the heartbeat reports it.
 	GuardMode          string

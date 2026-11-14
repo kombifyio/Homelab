@@ -2,6 +2,17 @@
 
 Native Windows shell for kombify TechStack.
 
+The installer has two editions, both running on the person's own computer
+(D-2026-11-11-05): **Standalone** needs no kombify account and **Connected**
+is signed in to one. The build identifiers keep their names so installed
+clients upgrade in place: the MSBuild property `DesktopEdition` with the values
+`Local` and `Cloud`, `DesktopEdition.cs` (`local`, `cloud`), the installer file
+names, the `windows-cloud-beta` feed and tags, upgrade codes, install folders,
+state paths and the registry key. Only the installer display names
+("kombify Techstack Standalone", "kombify Techstack Connected", the
+`DesktopEditionName` value of the WiX build) and the text customers read use the
+new names.
+
 The reusable profile-validation and Windows secret-custody boundary lives in
 `Kombify.Client.Shell`; Techstack-specific runtime supervision, routes,
 branding and UI remain in `Kombify.TechStack.Client`.
@@ -185,23 +196,23 @@ Signed updates (DESKTOP-FOUNDATION-STANDARD.md §5.7):
   blindly. Historical versions need their own verified recovery manifest;
   publishing a newer manifest does not supply one for an older release.
 
-- Cloud machine installations use `%ProgramFiles%\kombify\techstack-cloud`
+- Connected edition machine installations use `%ProgramFiles%\kombify\techstack-cloud`
   and `kombify-techstack-cloud-updater.exe`. The packager builds that helper
   from the same `client_update.go` consumer, without linking the local product
   runtime, database or provider entry point. The embedded update key is unchanged.
   The helper accepts only the `windows-cloud-beta` feed, channel `beta`, and
   the exact `windows-cloud-v<VERSION>/kombify-Techstack-Cloud-Setup.exe` asset.
-  Signed Local or foreign-product installers are refused before handoff.
-- Cloud rollback snapshots the edition/channel's client state, including its
+  Signed Standalone or foreign-product installers are refused before handoff.
+- Connected edition rollback snapshots the edition/channel's client state, including its
   operator cache, while excluding the updates directory that holds recovery
   packages and the cursor. Recovery restores that state before WebView starts.
   An update is acknowledged after successful navigation to the Cloud product;
   WebView creation alone, an error response or an unavailable service does not
   acknowledge it. A failed WebView process or startup enters signed recovery.
-  Portable Cloud installations still opt out, and saved opt-out choices remain.
-- Cloud feed publication and installed update/rollback acceptance are separate
+  Portable Connected installations still opt out, and saved opt-out choices remain.
+- Connected feed publication and installed update/rollback acceptance are separate
   release evidence. Source/module checks do not establish them. On 2026-10-15
-  the public beta feed returned HTTP 404; no Cloud release is claimed here.
+  the public beta feed returned HTTP 404; no Connected release is claimed here.
 
 Windows packaging and publication do not depend on Authenticode. The existing
 update-manifest signature verifies update origin and integrity and does not

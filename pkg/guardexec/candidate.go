@@ -14,13 +14,17 @@ import (
 )
 
 // candidateInstallBinding reuses the command-binding payload, pin and expiry
-// checks at runtime.install. Public runtime installs retain their existing path.
+// checks at OpRuntimeInstall (guardbinding.RuntimeInstallOperation). Public
+// runtime installs retain their existing path.
 func candidateInstallBinding(params RuntimeInstallParams, pins []guardbinding.PinnedKey, now time.Time) *Denial {
 	if params.CandidateIntent == nil || params.CandidateAdmission == nil || len(pins) == 0 {
 		return deny(CodeBindingMismatch, "internal candidate install needs a pinned worker admission")
 	}
 	intent, b := params.CandidateIntent, params.CandidateAdmission
-	if intent.Candidate.Validate() != nil || intent.BundleSHA256 != params.SHA256 || b.TenantID == "" || b.WorkerID == "" || b.ServerID == "" || b.WorkerGeneration <= 0 || b.WorkerGeneration != b.CurrentGeneration {
+	// Generation 0 is a key-bound Guard that was never rotated: the control
+	// plane signs a candidate admission only for a host-key-proven request, and
+	// the pinned worker binding key verifies it below (kombify-StackKits-4czp).
+	if intent.Candidate.Validate() != nil || intent.BundleSHA256 != params.SHA256 || b.TenantID == "" || b.WorkerID == "" || b.ServerID == "" || b.WorkerGeneration < 0 || b.WorkerGeneration != b.CurrentGeneration {
 		return deny(CodeBindingMismatch, "candidate installation identity is incomplete")
 	}
 	raw, err := json.Marshal(intent)

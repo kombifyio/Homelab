@@ -13,11 +13,12 @@ import (
 
 var ErrStackKitLifecycleUnavailable = errors.New("typed StackKits lifecycle is unavailable")
 
-// ErrStackKitBackupCustodyManaged refuses an operator backup operation for a
-// kit whose backup repository is kombify-managed custody. Those backups are
-// cost-bearing and run only through the entitlement-gated scheduled backup
-// path. Owner-approved managed restore drills additionally require fresh
-// admission and an operation-scoped signed renewal.
+// ErrStackKitBackupCustodyManaged refuses an operator backup run, configure or
+// restore for a kit whose backup repository is kombify-managed custody. Those
+// backups are cost-bearing and run only through the entitlement-gated
+// scheduled backup path. The backup status read is not part of it.
+// Owner-approved managed restore drills additionally require fresh admission
+// and an operation-scoped signed renewal.
 var ErrStackKitBackupCustodyManaged = errors.New("backup operations for this StackKit run through the managed backup schedule")
 
 // ConfigureStackKitCommander installs the sole lifecycle Adapter used by
@@ -30,7 +31,9 @@ func (o *Orchestrator) ConfigureStackKitCommander(sender jobs.StackKitCommandSen
 	o.stackKitCommander = sender
 	o.cfg.StackKitCommander = sender
 	config := jobs.StackKitLifecycleConfig{Sender: sender, AdvancedIssuer: o.cfg.AdvancedIssuer, OriginCertificates: o.cfg.OriginCertificates, ManagedStackKitInventory: o.managedStackKitInventory, ManagedAddressAuthority: o.managedChangeSetAddressAuthority, ApplicationAuthorize: o.authorizeApplicationOperation, ServiceRuntimeAuthorize: o.authorizeDeclaredServiceRuntime, ConnectorAuthorize: o.authorizeApplicationConnector}
+	config.HomeGraph = o.homeGraphStore()
 	config.WalletHostDelivery = walletHostDelivery(o.cfg.KombifyWallet, o.cfg.WalletHostAuthority)
+	config.IdentityJoinWallet = identityJoinWallet(o.cfg.KombifyWallet, o.cfg.WalletHostAuthority)
 	config.Services, _ = o.cfg.StackStore.(interface {
 		controlplane.ServiceRuntimeStore
 		controlplane.ServiceEventWriter
@@ -39,10 +42,33 @@ func (o *Orchestrator) ConfigureStackKitCommander(sender jobs.StackKitCommandSen
 	// A deployed node keeps its installed StackKits CLI until the owner-approved
 	// governed upgrade succeeded; commands address that release until then.
 	jobs.SetNodeStackKitReleaseReader(o.nodeStackKitRelease)
+	jobs.SetNodeUpdateSettingReader(o.nodeUpdateSetting)
+	// A stack that never applied anything has no such plan: its first rollout
+	// serves the node the release that authored the INIT candidate.
+	jobs.SetFirstRolloutStackKitsAdmission(o.admitFirstRolloutStackKitsRelease)
 	config.StackKitsTargets, _ = o.workerStore.(controlplane.WorkerStackKitsTargetRecorder)
+	// The decision receipt path (flag stackkit_decision_receipt) reads the
+	// server an agent runs from the server registry; the ledger client is
+	// installed process-wide (jobs.SetStackKitDecisionLedger).
+	config.DecisionServers, _ = o.cfg.StackStore.(jobs.StackKitDecisionServers)
+	o.stackKitLifecycleConfig = config
 	jobs.RegisterStackKitLifecycleHandler(o.queue, config)
 	jobs.RegisterWorkloadRelocationHandler(o.queue, config)
+	jobs.RegisterHomelabIdentityJoinHandler(o.queue, config)
 	jobs.RegisterDefaultHandlers(o.queue, o.provisionConfig(o.cfg.RuntimeActions))
+}
+
+// RILLifecycleEffects returns the managed lifecycle job's aggregate capture
+// and projection over the configuration the job handler runs with, for the
+// RIL executor-bound service primitives (one write path). Before the
+// commander is configured it has no aggregate authority and refuses.
+func (o *Orchestrator) RILLifecycleEffects() jobs.RILLifecycleEffects {
+	if o == nil {
+		return jobs.NewRILLifecycleEffects(jobs.StackKitLifecycleConfig{})
+	}
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	return jobs.NewRILLifecycleEffects(o.stackKitLifecycleConfig)
 }
 
 // Reuse the approved lifecycle binding at execution and intent projection; a
@@ -137,74 +163,9 @@ func (o *Orchestrator) EnqueueStackKitLifecycle(ctx context.Context, request job
 	if id, replayed, err := o.ReplayRestoreActivationRequest(ctx, request); err != nil || replayed {
 		return id, err
 	}
-	normalized, err := jobs.NormalizeStackKitLifecycleRequest(request)
+	normalized, stack, binding, err := o.prepareStackKitLifecycle(ctx, request)
 	if err != nil {
 		return "", err
-	}
-	if jobs.IsAIProviderStep(normalized.Operation) {
-		// The delivery steps run only inside ai_provider, which supplies the
-		// Wallet's sealed envelope and its delivering key.
-		return "", fmt.Errorf("%w: %s runs only as a step of %s", ErrStackKitLifecycleUnavailable, normalized.Operation, jobs.StackKitLifecycleAIProvider)
-	}
-	if jobs.IsSSHTrustStep(normalized.Operation) {
-		return "", fmt.Errorf("%w: %s runs only as a step of %s", ErrStackKitLifecycleUnavailable, normalized.Operation, jobs.StackKitLifecycleSSHTrustApply)
-	}
-	// These fields belong to canonical runtime admission, never the caller.
-	normalized.ManagedRuntimeLeaseID, normalized.ManagedRuntimeServerID = "", ""
-	stack, err := o.findStackForJob(ctx, normalized.StackID, ProvisionStackOptions{
-		RequestContext: ctx,
-		TenantID:       normalized.TenantID,
-		OwnerID:        normalized.OwnerID,
-	})
-	if err != nil {
-		return "", err
-	}
-	if stack.tenantID != normalized.TenantID || stack.ownerID != normalized.OwnerID {
-		return "", controlplane.ErrNotFound
-	}
-	normalized = jobs.ApplyStackKitRolloutDefaults(normalized, stackKitRolloutBinding(stack), stackKitCatalogRef(stack))
-	if normalized.Operation == jobs.StackKitLifecycleBackupRestoreActivate || normalized.Operation == jobs.StackKitLifecycleBackupRestoreRecover {
-		actualKit := stackKitRolloutBinding(stack).StackKit
-		if actualKit == "" {
-			actualKit = stackKitCatalogRef(stack)
-		}
-		if jobs.NormalizeStackKitRef(actualKit) != jobs.DefaultBasementKitRef {
-			return "", ErrStackKitBackupCustodyManaged
-		}
-	}
-	// A caller cannot use a Basement spelling to bypass managed backup custody.
-	if (jobs.IsStackKitBackupOperation(normalized.Operation) || normalized.Operation == jobs.StackKitLifecycleRestoreDrill) && stackKitRolloutBinding(stack).StackKit == "cloud-kit" && normalized.StackKit != "cloud-kit" {
-		return "", ErrStackKitBackupCustodyManaged
-	}
-	// Direct managed backup operations remain schedule-owned.
-	if jobs.IsStackKitBackupOperation(normalized.Operation) &&
-		normalized.StackKit != jobs.DefaultBasementKitRef {
-		// Typed activation is native node custody, not admission to bypass the
-		// managed schedule or its released Advanced restore contract.
-		return "", ErrStackKitBackupCustodyManaged
-	}
-	normalized, err = bindStackKitLifecycleInstance(normalized, stack)
-	if err != nil {
-		return "", err
-	}
-	binding, err := o.admitStackKitLifecycleAgent(ctx, stack, normalized.AgentID)
-	if err != nil {
-		return "", err
-	}
-	normalized.AgentID = binding.AgentID
-	normalized.NodeID = binding.NodeID
-	// The node the admitted agent owns picks the Site and channel of a
-	// multi-node kit (Modern Homelab); an agent that owns none of its nodes is
-	// refused here, before a job exists.
-	if normalized.WizardExtend != nil && normalized.WizardExtend.ExecutionBinding != nil {
-		if err := o.admitWizardExecutionNode(ctx, stack, normalized, binding); err != nil {
-			return "", err
-		}
-	} else {
-		normalized.NodeRef = binding.NodeRef
-		if err := jobs.RequireStackKitNode(normalized.StackKit, normalized.NodeRef); err != nil {
-			return "", fmt.Errorf("%w: %v", ErrStackKitLifecycleUnavailable, err)
-		}
 	}
 	var restoreAdmission map[string]interface{}
 	if normalized.Operation == jobs.StackKitLifecycleBackupRestoreRecover {
@@ -255,14 +216,14 @@ func (o *Orchestrator) EnqueueStackKitLifecycle(ctx context.Context, request job
 		if readErr != nil || worker == nil {
 			return "", ErrStackKitLifecycleUnavailable
 		}
-		credentials, credentialErr := controlplane.WorkerCredentialStateFromWorker(*worker)
-		if credentialErr != nil || credentials.Generation <= 0 {
+		generation, admitted := o.commandAuthorityGeneration(ctx, normalized.TenantID, *worker)
+		if !admitted {
 			return "", ErrStackKitLifecycleUnavailable
 		}
-		if normalized.Connector.OriginalOperationID != "" && normalized.Connector.WorkerGeneration != credentials.Generation {
+		if normalized.Connector.OriginalOperationID != "" && normalized.Connector.WorkerGeneration != generation {
 			return "", ErrStackKitLifecycleUnavailable
 		}
-		normalized.Connector.WorkerGeneration = credentials.Generation
+		normalized.Connector.WorkerGeneration = generation
 		if err := o.authorizeApplicationConnector(ctx, normalized); err != nil {
 			return "", err
 		}
@@ -329,7 +290,7 @@ func (o *Orchestrator) EnqueueStackKitLifecycle(ctx context.Context, request job
 		job.Payload[jobs.ManagedBackupAdmissionField] = admission
 		job.Result[jobs.ManagedBackupAdmissionField] = admission
 	}
-	jobs.CopyEdgeFlagsFromContext(ctx, job.Payload)
+	jobs.CopyEdgeFlagsFromContext(ctx, job)
 	jobs.CaptureRequestAuthority(ctx, job, stack.tenantID, stack.ownerID)
 	if jobs.IsApplicationLifecycleOperation(normalized.Operation) || jobs.IsApplicationConnectorLifecycleOperation(normalized.Operation) {
 		jobs.CaptureRequestOperateAuthority(ctx, job, stack.tenantID, stack.ownerID)
@@ -491,7 +452,7 @@ func (o *Orchestrator) reserveStackKitLifecycleJob(
 	if restoreReceipt := jobs.RestoreActivationRequestReceipt(request); restoreReceipt != nil {
 		reservation.Result[controlplane.RestoreActivationRequestResultKey] = restoreReceipt
 		prepared := &jobs.Job{ID: request.DurableJobID, Type: jobs.JobTypeStackKitLifecycle, TargetID: stack.id, Payload: jobs.StackKitLifecyclePayload(request)}
-		jobs.CopyEdgeFlagsFromContext(ctx, prepared.Payload)
+		jobs.CopyEdgeFlagsFromContext(ctx, prepared)
 		jobs.CaptureRequestAuthority(ctx, prepared, stack.tenantID, stack.ownerID)
 		reservation.Payload = prepared.Payload
 	}
@@ -502,7 +463,7 @@ func (o *Orchestrator) reserveStackKitLifecycleJob(
 	if receipt := jobs.WizardExtendReceipt(request); receipt != nil {
 		reservation.Result[jobs.WizardExtendReceiptKey] = receipt
 		prepared := &jobs.Job{ID: request.DurableJobID, Type: jobs.JobTypeStackKitLifecycle, TargetID: stack.id, Payload: jobs.StackKitLifecyclePayload(request)}
-		jobs.CopyEdgeFlagsFromContext(ctx, prepared.Payload)
+		jobs.CopyEdgeFlagsFromContext(ctx, prepared)
 		jobs.CaptureRequestAuthority(ctx, prepared, stack.tenantID, stack.ownerID)
 		reservation.Payload = prepared.Payload
 	}
@@ -560,6 +521,115 @@ func (o *Orchestrator) reserveStackKitLifecycleJob(
 		}
 	}
 	return existing.ID, true, nil
+}
+
+// PrepareStackKitLifecycleCommand binds an operator lifecycle request to the
+// canonical stack, its recorded rollout, its StackKits instance, the approved
+// agent and the node that agent owns, exactly as EnqueueStackKitLifecycle
+// does, without reserving a job. A RIL executor-bound primitive builds its one
+// typed StackKits command from this request.
+func (o *Orchestrator) PrepareStackKitLifecycleCommand(ctx context.Context, request jobs.StackKitLifecycleRequest) (jobs.StackKitLifecycleRequest, error) {
+	if o == nil {
+		return jobs.StackKitLifecycleRequest{}, ErrStackKitLifecycleUnavailable
+	}
+	prepared, _, _, err := o.prepareStackKitLifecycle(ctx, request)
+	return prepared, err
+}
+
+func (o *Orchestrator) prepareStackKitLifecycle(ctx context.Context, request jobs.StackKitLifecycleRequest) (jobs.StackKitLifecycleRequest, *orchestratorStack, stackKitLifecycleAgentBinding, error) {
+	var none stackKitLifecycleAgentBinding
+	normalized, err := jobs.NormalizeStackKitLifecycleRequest(request)
+	if err != nil {
+		return normalized, nil, none, err
+	}
+	if jobs.IsAIProviderStep(normalized.Operation) {
+		// The delivery steps run only inside ai_provider, which supplies the
+		// Wallet's sealed envelope and its delivering key.
+		return normalized, nil, none, fmt.Errorf("%w: %s runs only as a step of %s", ErrStackKitLifecycleUnavailable, normalized.Operation, jobs.StackKitLifecycleAIProvider)
+	}
+	if jobs.IsSSHTrustStep(normalized.Operation) {
+		return normalized, nil, none, fmt.Errorf("%w: %s runs only as a step of %s", ErrStackKitLifecycleUnavailable, normalized.Operation, jobs.StackKitLifecycleSSHTrustApply)
+	}
+	// These fields belong to canonical runtime admission, never the caller.
+	normalized.ManagedRuntimeLeaseID, normalized.ManagedRuntimeServerID = "", ""
+	stack, err := o.findStackForJob(ctx, normalized.StackID, ProvisionStackOptions{
+		RequestContext: ctx,
+		TenantID:       normalized.TenantID,
+		OwnerID:        normalized.OwnerID,
+	})
+	if err != nil {
+		return normalized, nil, none, err
+	}
+	if stack.tenantID != normalized.TenantID || stack.ownerID != normalized.OwnerID {
+		return normalized, nil, none, controlplane.ErrNotFound
+	}
+	normalized = jobs.ApplyStackKitRolloutDefaults(normalized, stackKitRolloutBinding(stack), stackKitCatalogRef(stack))
+	if normalized.Operation == jobs.StackKitLifecycleBackupRestoreActivate || normalized.Operation == jobs.StackKitLifecycleBackupRestoreRecover {
+		actualKit := stackKitRolloutBinding(stack).StackKit
+		if actualKit == "" {
+			actualKit = stackKitCatalogRef(stack)
+		}
+		if jobs.NormalizeStackKitRef(actualKit) != jobs.DefaultBasementKitRef {
+			return normalized, nil, none, ErrStackKitBackupCustodyManaged
+		}
+	}
+	// The backup status is the one backup operation that only reads (the
+	// local repository and its authenticated receipts): it costs nothing,
+	// changes nothing and opens no credential the node does not already hold,
+	// so it is admitted for every kit. Run, configure and restore stay with the
+	// kit's managed backup schedule.
+	managedBackupOperation := jobs.IsStackKitBackupOperation(normalized.Operation) && !jobs.IsStackKitBackupRead(normalized.Operation)
+	// A caller cannot use a Basement spelling to bypass managed backup custody.
+	if (managedBackupOperation || normalized.Operation == jobs.StackKitLifecycleRestoreDrill) && stackKitRolloutBinding(stack).StackKit == "cloud-kit" && normalized.StackKit != "cloud-kit" {
+		return normalized, nil, none, ErrStackKitBackupCustodyManaged
+	}
+	// A backup operation addresses the kit the stack runs: a spelling of
+	// another kit (a Basement spelling on a Modern Homelab stack) neither
+	// reaches the Basement-only operations nor reads another kit's facts.
+	if jobs.IsStackKitBackupOperation(normalized.Operation) {
+		if bound := jobs.NormalizeStackKitRef(firstNonEmptyString(stackKitRolloutBinding(stack).StackKit, stackKitCatalogRef(stack))); bound != "" && jobs.NormalizeStackKitRef(normalized.StackKit) != bound {
+			return normalized, nil, none, fmt.Errorf("%w: the backup operation names %q, the stack runs %q", ErrStackKitLifecycleUnavailable, normalized.StackKit, bound)
+		}
+	}
+	// Direct managed backup operations (run, configure, restore) remain
+	// schedule-owned.
+	if managedBackupOperation &&
+		normalized.StackKit != jobs.DefaultBasementKitRef {
+		// Typed activation is native node custody, not admission to bypass the
+		// managed schedule or its released Advanced restore contract.
+		return normalized, nil, none, ErrStackKitBackupCustodyManaged
+	}
+	normalized, err = bindStackKitLifecycleInstance(normalized, stack)
+	if err != nil {
+		return normalized, nil, none, err
+	}
+	binding, err := o.admitStackKitLifecycleAgent(ctx, stack, normalized.AgentID)
+	if err != nil {
+		return normalized, nil, none, err
+	}
+	normalized.AgentID = binding.AgentID
+	normalized.NodeID = binding.NodeID
+	// The node the admitted agent owns picks the Site and channel of a
+	// multi-node kit (Modern Homelab); an agent that owns none of its nodes is
+	// refused here, before a job exists.
+	if normalized.WizardExtend != nil && normalized.WizardExtend.ExecutionBinding != nil {
+		if err := o.admitWizardExecutionNode(ctx, stack, normalized, binding); err != nil {
+			return normalized, nil, none, err
+		}
+	} else {
+		normalized.NodeRef = binding.NodeRef
+		if err := jobs.RequireStackKitNode(normalized.StackKit, normalized.NodeRef); err != nil {
+			return normalized, nil, none, fmt.Errorf("%w: %v", ErrStackKitLifecycleUnavailable, err)
+		}
+		if jobs.IsStackKitBackupRead(normalized.Operation) {
+			// A node that makes no backup of its own is refused here, before
+			// any Decision, lease or claim exists, with the node that does.
+			if err := jobs.RequireBackupReadable(normalized.StackKit, normalized.NodeRef); err != nil {
+				return normalized, nil, none, err
+			}
+		}
+	}
+	return normalized, stack, binding, nil
 }
 
 func (o *Orchestrator) admitStackKitLifecycleAgent(ctx context.Context, stack *orchestratorStack, requestedAgentID string) (stackKitLifecycleAgentBinding, error) {
@@ -864,6 +934,19 @@ func (o *Orchestrator) AuthorizeApplicationConnectorRead(ctx context.Context, re
 	return ErrStackKitLifecycleUnavailable
 }
 
+// commandAuthorityGeneration is the worker's credential generation for
+// connector authority: generation 0 counts only for a Guard whose bound host
+// key it last proved, unreadable state never (controlplane.CommandAuthorityGeneration).
+func (o *Orchestrator) commandAuthorityGeneration(ctx context.Context, tenantID string, worker controlplane.Worker) (int64, bool) {
+	return controlplane.CommandAuthorityGeneration(worker, func() (*controlplane.WorkerIdentity, error) {
+		identities, ok := o.workerStore.(controlplane.WorkerIdentityStore)
+		if !ok {
+			return nil, ErrStackKitLifecycleUnavailable
+		}
+		return identities.GetWorkerIdentity(ctx, tenantID, worker.ID)
+	})
+}
+
 // Rejoin canonical backend authority before dispatch, read reconciliation and
 // projection. Stored grants and caller-selected servers cannot substitute it.
 func (o *Orchestrator) authorizeApplicationConnector(ctx context.Context, req jobs.StackKitLifecycleRequest) error {
@@ -905,8 +988,10 @@ func (o *Orchestrator) authorizeApplicationConnector(ctx context.Context, req jo
 	if err != nil || worker == nil {
 		return ErrStackKitLifecycleUnavailable
 	}
-	credentials, err := controlplane.WorkerCredentialStateFromWorker(*worker)
-	if err != nil || credentials.Generation <= 0 || credentials.Generation != b.WorkerGeneration {
+	// A key-bound Guard that was never rotated holds generation 0; it is
+	// admitted only with the bound host key that the checks below require of
+	// every generation (kombify-StackKits-4czp).
+	if generation, admitted := o.commandAuthorityGeneration(ctx, req.TenantID, *worker); !admitted || generation != b.WorkerGeneration {
 		return ErrStackKitLifecycleUnavailable
 	}
 	// The generation alone survives key withdrawal. This capability requires

@@ -1,51 +1,86 @@
 <!--
   Placement board: one column per Node with its capacity and the applications
-  on it. Dragging a movable card onto another column asks the page to move it
-  (`onmove`); the page resolves every card, so this stays presentation.
+  on it. A card the backend can move drags onto exactly the columns it admits
+  as destination; the drop asks the page to confirm and move it (`onmove`).
+  Unmanaged containers sit in a collapsible section of their own Node; one
+  dropped on its own Node's stacked area opens "Stack it" (`onstack`). It
+  cannot move to another Node before it is stacked.
 -->
 <script lang="ts">
   import LoadingNote from "#lib/components/ui/LoadingNote.svelte";
   import {
     AlertTriangle,
     ArrowRight,
+    ChevronDown,
+    ChevronRight,
     Cpu,
+    Layers,
     HardDrive,
     Loader2,
     Server,
   } from "@lucide/svelte";
   import { ServiceCardCompact } from "@kombiverselabs/ui/service";
   import Button from "#lib/components/ui/Button.svelte";
-  import { tr } from "#lib/i18n.svelte.js";
+  import { tr, formatDateTime } from "#lib/i18n.svelte.js";
+  import { serviceCardLabels } from "#lib/service-card-adapter.js";
   import type { RegistryServer, RegistryService } from "#lib/api/registry.js";
-  import type { PlacementCard, PlacementColumn } from "#lib/services/placement.js";
+  import type {
+    PlacementCard,
+    PlacementColumn,
+    UnmanagedCard,
+  } from "#lib/services/placement.js";
   import type { CockpitRefreshError } from "#lib/monitoring/cockpit-snapshot.js";
 
   interface Props {
     columns: PlacementColumn[];
     loading: boolean;
     registryError: string | null;
-    migrationAvailable: boolean;
-    migrationUnavailableReason?: string;
     cockpitStale: boolean;
     cockpitError: CockpitRefreshError | null;
     onretry: () => void;
     onmove: (service: RegistryService, target: RegistryServer) => void;
+    onstack: (card: UnmanagedCard) => void;
   }
 
   let {
     columns,
     loading,
     registryError,
-    migrationAvailable,
-    migrationUnavailableReason,
     cockpitStale,
     cockpitError,
     onretry,
     onmove,
+    onstack,
   }: Props = $props();
+
+  // Unmanaged drag: only its own Node accepts it, and only into Stack it.
+  let activeUnmanaged = $state<{ card: UnmanagedCard; serverId: string } | null>(
+    null,
+  );
+  let collapsed = $state<Record<string, boolean>>({});
+  const cardLabels = $derived(serviceCardLabels());
+
+  function handleUnmanagedDragStart(
+    event: DragEvent,
+    card: UnmanagedCard,
+    serverId: string,
+  ) {
+    if (!card.canStack) {
+      event.preventDefault();
+      return;
+    }
+    activeUnmanaged = { card, serverId };
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", card.runtime.id);
+    }
+  }
 
   let activeDrag = $state<PlacementCard | null>(null);
   let activeDragServerId = $state<string | null>(null);
+
+  const accepts = (serverId: string) =>
+    activeDrag?.moveTargetIds.includes(serverId) ?? false;
 
   function handleDragStart(event: DragEvent, card: PlacementCard) {
     if (!card.canMove) {
@@ -60,10 +95,15 @@
   }
 
   function handleDragOver(event: DragEvent, serverId: string) {
-    event.preventDefault();
-    if (activeDrag && activeDrag.service.server_id !== serverId) {
+    if (activeUnmanaged) {
+      if (activeUnmanaged.serverId !== serverId) return;
+      event.preventDefault();
       activeDragServerId = serverId;
+      return;
     }
+    if (!accepts(serverId)) return;
+    event.preventDefault();
+    activeDragServerId = serverId;
   }
 
   function handleDragLeave() {
@@ -73,31 +113,19 @@
   function handleDrop(event: DragEvent, target: RegistryServer) {
     event.preventDefault();
     activeDragServerId = null;
+    const unmanaged = activeUnmanaged;
+    activeUnmanaged = null;
+    if (unmanaged) {
+      if (unmanaged.serverId === target.id) onstack(unmanaged.card);
+      return;
+    }
     const card = activeDrag;
     activeDrag = null;
-    if (!card || card.service.server_id === target.id) return;
+    if (!card || !card.moveTargetIds.includes(target.id)) return;
     onmove(card.service, target);
   }
 </script>
 
-{#if !loading && !registryError && !migrationAvailable}
-  <div
-    class="mb-5 flex gap-3 rounded-lg border border-warning/30 bg-warning/10 p-4 text-sm text-warning"
-    role="status"
-    data-testid="migration-unavailable"
-  >
-    <AlertTriangle class="mt-0.5 h-5 w-5 shrink-0 text-warning" />
-    <div>
-      <p class="font-semibold">
-        {tr("ui.services.runtimeMigrationIsNotEnabled")}
-      </p>
-      <p class="mt-1 text-warning/80">
-        {migrationUnavailableReason ||
-          tr("ui.services.dragAndDropStaysDisabled")}
-      </p>
-    </div>
-  </div>
-{/if}
 {#if cockpitStale || cockpitError}
   <div
     class="mb-5 flex gap-3 rounded-lg border border-warning/30 bg-warning/10 p-4 text-sm text-warning"
@@ -114,14 +142,6 @@
       <p class="mt-1 text-warning/80">
         {tr("ui.services.theLastSuccessfulSnapshotRemains")}
       </p>
-      {#if cockpitError}
-        <p
-          class="mt-2 break-words font-mono text-xs text-warning/70"
-          data-testid="placement-cockpit-refresh-error"
-        >
-          {cockpitError.message}
-        </p>
-      {/if}
     </div>
   </div>
 {/if}
@@ -176,7 +196,14 @@
         class="w-80 shrink-0 flex flex-col bg-card/35 backdrop-blur-sm border rounded-xl p-4 min-h-[550px] transition-all duration-300
                {activeDragServerId === server.id
           ? 'border-primary/60 bg-primary/5 shadow-md shadow-primary/5'
-          : 'border-border/80'}"
+          : (activeDrag && accepts(server.id)) ||
+              activeUnmanaged?.serverId === server.id
+            ? 'border-dashed border-primary/40'
+            : activeUnmanaged
+              ? 'opacity-60'
+              : 'border-border/80'}"
+        data-testid="placement-column"
+        data-server-id={server.id}
         ondragover={(e) => handleDragOver(e, server.id)}
         ondragleave={handleDragLeave}
         ondrop={(e) => handleDrop(e, server)}
@@ -278,11 +305,11 @@
             >
               {cap.source === "telemetry"
                 ? cockpitStale
-                  ? "last verified telemetry"
-                  : "live telemetry"
+                  ? tr("ui.services.capacityLastVerified")
+                  : tr("ui.services.capacityLive")
                 : cap.source === "capabilities"
                   ? tr("ui.services.nodeCapabilities")
-                  : "no capacity data"}
+                  : tr("ui.services.capacityNoData")}
             </p>
           </div>
         </div>
@@ -300,6 +327,8 @@
               ondragstart={(e) => handleDragStart(e, card)}
               ondragend={() => (activeDrag = null)}
               role="listitem"
+              data-testid="placement-card"
+              data-movable={canMove}
               class="space-y-2 {canMove
                 ? 'cursor-grab active:cursor-grabbing'
                 : 'opacity-75'} {service.status === 'migrating' ||
@@ -308,6 +337,8 @@
                 : ''} {service.status === 'archived' ? 'opacity-55' : ''}"
             >
               <ServiceCardCompact
+                class="placement-board-card"
+                labels={cardLabels}
                 name={card.name}
                 meta={card.meta}
                 placement={card.placement}
@@ -317,23 +348,49 @@
                 actions={card.actions}
               />
 
-              <!-- Relocating status messages -->
               {#if isMigrating}
                 <div
                   class="mt-2.5 pt-2 border-t border-border/40 flex items-center gap-1.5 text-[11px] text-warning font-medium"
+                  role="status"
+                  data-testid="placement-move-status"
                 >
                   <Loader2 class="w-3 h-3 animate-spin shrink-0" />
-                  <span class="truncate"
-                    >{card.migrationMessage}</span
-                  >
+                  <span class="truncate">{card.migrationMessage}</span>
                 </div>
+              {:else if card.migrationMessage}
+                <p
+                  class="mt-2.5 pt-2 border-t border-border/40 text-[11px] text-muted-foreground"
+                  role="status"
+                  data-testid="placement-move-outcome"
+                >
+                  {card.migrationMessage}
+                </p>
               {/if}
-              <!-- Verify / Move / Remove moved into the detail sheet's
-                   Operations tab (card family v2, 2026-08-27). -->
             </div>
           {/each}
 
-          {#if activeDragServerId === server.id && activeDrag && activeDrag.service.server_id !== server.id}
+          {#if activeUnmanaged && activeUnmanaged.serverId !== server.id}
+            <div
+              class="border border-dashed border-border/60 rounded-lg p-3 text-center text-xs text-muted-foreground"
+              data-testid="placement-stack-first"
+            >
+              {tr("ui.services.stackItFirst")}
+            </div>
+          {/if}
+
+          {#if activeDragServerId === server.id && activeUnmanaged}
+            <div
+              class="border-2 border-dashed border-primary/50 bg-primary/5 rounded-lg p-4 h-24 flex flex-col items-center justify-center text-xs text-muted-foreground gap-1.5"
+              data-testid="placement-stack-here"
+            >
+              <Layers class="w-5 h-5 text-primary" />
+              <span class="font-medium"
+                >{tr("ui.services.stackItHere", {
+                  name: activeUnmanaged.card.name,
+                })}</span
+              >
+            </div>
+          {:else if activeDragServerId === server.id && activeDrag}
             <div
               class="border-2 border-dashed border-primary/50 bg-primary/5 rounded-lg p-4 h-24 flex flex-col items-center justify-center text-xs text-muted-foreground transition-all gap-1.5"
             >
@@ -346,7 +403,7 @@
             </div>
           {/if}
 
-          {#if column.cards.length === 0}
+          {#if column.cards.length === 0 && column.unmanaged.length === 0}
             <div
               class="flex-1 border border-dashed border-border/40 rounded-lg p-6 flex flex-col items-center justify-center text-center text-xs text-muted-foreground min-h-[140px] bg-card/20"
             >
@@ -354,15 +411,84 @@
               <span class="font-medium text-foreground/80"
                 >{tr("ui.services.noApplicationsDeployed")}</span
               >
-              <span class="text-[10px] mt-1 text-muted-foreground/80"
-                >{migrationAvailable
-                  ? tr("ui.services.dropManagedApplicationsHere")
-                  : tr("ui.services.runtimeMigrationUnavailable")}</span
-              >
             </div>
           {/if}
         </div>
+
+        {#if column.unmanaged.length > 0}
+          {@const open = !collapsed[server.id]}
+          <div
+            class="mt-4 pt-3 border-t border-dashed border-border/60"
+            data-testid="placement-unmanaged"
+          >
+            <button
+              type="button"
+              class="flex w-full items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground"
+              aria-expanded={open}
+              onclick={() => (collapsed[server.id] = open)}
+            >
+              {#if open}<ChevronDown class="h-3.5 w-3.5" />{:else}<ChevronRight
+                  class="h-3.5 w-3.5"
+                />{/if}
+              {tr("ui.services.unmanaged")}
+              <span class="ml-auto font-mono">{column.unmanaged.length}</span>
+            </button>
+            {#if open}
+              <div class="mt-2.5 space-y-2" role="list">
+                {#each column.unmanaged as card (card.key)}
+                  <div
+                    draggable={card.canStack}
+                    ondragstart={(e) =>
+                      handleUnmanagedDragStart(e, card, server.id)}
+                    ondragend={() => {
+                      activeUnmanaged = null;
+                      activeDragServerId = null;
+                    }}
+                    role="listitem"
+                    data-testid="placement-unmanaged-card"
+                    data-stackable={card.canStack}
+                    class="opacity-70 saturate-50 {card.canStack
+                      ? 'cursor-grab active:cursor-grabbing'
+                      : ''}"
+                  >
+                    <ServiceCardCompact
+                      class="placement-board-card"
+                      labels={cardLabels}
+                      name={card.name}
+                      meta={card.stacked && card.runtime.adoption?.stack_it?.retain_until
+                        ? tr("ui.services.originalKeptShort", {
+                            date: formatDateTime(card.runtime.adoption.stack_it.retain_until, { dateStyle: "short" }),
+                          })
+                        : card.meta}
+                      placement={card.placement}
+                      status={card.status}
+                      showGrip={card.canStack}
+                      actions={card.actions}
+                    />
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/if}
       </div>
     {/each}
   </div>
 {/if}
+
+<style>
+  /*
+   * A board column is narrow: the name gets the full width, the status sits
+   * beside the actions and the placement path spans its own row.
+   */
+  :global(.kf-compact.placement-board-card) {
+    grid-template-areas:
+      "grip glyph id id"
+      "grip glyph badge actions"
+      "grip path path path";
+    row-gap: 8px;
+  }
+  :global(.kf-compact.placement-board-card .kf-badge-slot) {
+    justify-self: start;
+  }
+</style>

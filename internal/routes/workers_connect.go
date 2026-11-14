@@ -105,6 +105,7 @@ func (h workerRouteHandlers) connectServer(e *httpx.Event) error {
 		return httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to create server enrollment", nil)
 	}
 	h.enrollGuardReachFromConnect(e, result.Enrollment)
+	captureServerConnected(ownerID, leaseID)
 	return h.writeWorkerEnrollmentResponse(e, result.Enrollment)
 }
 

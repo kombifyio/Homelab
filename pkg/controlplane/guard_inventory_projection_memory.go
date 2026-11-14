@@ -122,7 +122,7 @@ func (s *MemoryStore) guardInventorySnapshotAtRevisionLocked(serverID string, re
 
 func (s *MemoryStore) validateGuardInventoryProjectionBindingsLocked(command GuardInventoryProjection) error {
 	if existing, ok := s.nodes[command.Node.ID]; ok &&
-		(existing.TenantID != command.Node.TenantID || existing.StackID != command.Node.StackID ||
+		(existing.TenantID != command.Node.TenantID || (existing.StackID != "" && existing.StackID != command.Node.StackID) ||
 			(existing.InstanceID != "" && existing.InstanceID != command.Node.InstanceID) ||
 			(existing.WorkerID != "" && existing.WorkerID != command.Node.WorkerID)) {
 		return fmt.Errorf("%w: Guard node id is already bound to another runtime", ErrConflict)
@@ -160,7 +160,7 @@ func (s *MemoryStore) persistGuardInventoryProjectionLocked(
 	if existing, ok := s.nodes[node.ID]; ok {
 		node.CreatedAt = existing.CreatedAt
 		node.InstanceID = existing.InstanceID
-		node.StackID = existing.StackID
+		node.StackID = firstNonEmpty(existing.StackID, node.StackID)
 		node.WorkerID = existing.WorkerID
 		node.Name = existing.Name
 		node.Role = existing.Role

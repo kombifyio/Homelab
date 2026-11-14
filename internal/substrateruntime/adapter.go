@@ -250,12 +250,16 @@ func (a *Adapter) observeGuest(ctx context.Context, inv providercontrol.AdapterI
 }
 
 func (a *Adapter) execution(inv providercontrol.AdapterInvocation, payload json.RawMessage, phase providerexecutor.WorkerPhase, id, stage, task string, prerequisite *providerexecutor.WorkerExecutionResult) providerexecutor.WorkerExecution {
-	parts := strings.Split(strings.TrimPrefix(inv.Request.Command.ConnectionRef, "provider-connection://substrate/"), "/")
-	worker := ""
-	if len(parts) == 2 && parts[1] == inv.Request.Command.LeaseID {
-		worker = parts[0]
+	return providerexecutor.WorkerExecution{Command: inv.Request.Command, InvocationID: id, WorkerID: substrateWorker(inv.Request.Command), HeadSequence: inv.Request.Previous.Sequence, HeadDigest: inv.Request.Previous.ReceiptDigest, Phase: phase, Stage: stage, Payload: payload, TaskRef: task, Prerequisite: prerequisite, ExpiresAt: time.Now().UTC().Add(45 * time.Second)}
+}
+
+// substrateWorker is the Guard the command's per-lease connection names.
+func substrateWorker(command providerexecutor.Command) string {
+	parts := strings.Split(strings.TrimPrefix(command.ConnectionRef, "provider-connection://substrate/"), "/")
+	if len(parts) == 2 && parts[1] == command.LeaseID {
+		return parts[0]
 	}
-	return providerexecutor.WorkerExecution{Command: inv.Request.Command, InvocationID: id, WorkerID: worker, HeadSequence: inv.Request.Previous.Sequence, HeadDigest: inv.Request.Previous.ReceiptDigest, Phase: phase, Stage: stage, Payload: payload, TaskRef: task, Prerequisite: prerequisite, ExpiresAt: time.Now().UTC().Add(45 * time.Second)}
+	return ""
 }
 
 func (a *Adapter) spec(ctx context.Context, command providerexecutor.Command) (substrate.ExecutionSpec, json.RawMessage, string, error) {

@@ -100,8 +100,9 @@ type Release struct {
 	// release shipped; nil when the release predates the catalog.
 	advancedOperations []byte
 	verifyExpectedPlan bool
-	verifyRILPrimitive bool
-	rilPrimitiveHash   string
+	// rilPrimitiveHashes is id -> contract hash of each executor-bound
+	// primitive the authenticated executable declares exactly once.
+	rilPrimitiveHashes map[string]string
 }
 
 // Cache resolves current artifact pins directly and legacy v1 pins from the
@@ -281,7 +282,8 @@ func (cache Cache) Resolve(pin Pin) (Release, error) {
 	if err != nil {
 		return Release{}, fmt.Errorf("verify canonical executable in published StackKits archive: %w", err)
 	}
-	if current != published {
+	// Capabilities are derived from the same bytes, so equal digests imply them.
+	if current.sha256 != published.sha256 || current.size != published.size {
 		return Release{}, fmt.Errorf("configured StackKits binary differs from the pinned published release")
 	}
 
@@ -292,8 +294,7 @@ func (cache Cache) Resolve(pin Pin) (Release, error) {
 		receipt:            receipt,
 		advancedOperations: catalog,
 		verifyExpectedPlan: current.verifyExpectedPlan,
-		verifyRILPrimitive: current.verifyRILPrimitive,
-		rilPrimitiveHash:   current.rilPrimitiveHash,
+		rilPrimitiveHashes: current.rilPrimitiveHashes,
 	}, nil
 }
 
@@ -336,8 +337,7 @@ func resolveArtifactPin(pin Pin, pinPath string) (Release, error) {
 	return Release{
 		advancedOperations: catalog,
 		verifyExpectedPlan: current.verifyExpectedPlan,
-		verifyRILPrimitive: current.verifyRILPrimitive,
-		rilPrimitiveHash:   current.rilPrimitiveHash,
+		rilPrimitiveHashes: current.rilPrimitiveHashes,
 		binaryPath:         binaryPath,
 		installDir:         filepath.Dir(binaryPath),
 		receiptPath:        pinPath,
@@ -644,8 +644,9 @@ type fileDigest struct {
 	sha256             string
 	size               int64
 	verifyExpectedPlan bool
-	verifyRILPrimitive bool
-	rilPrimitiveHash   string
+	// rilPrimitiveHashes is id -> contract hash of each executor-bound
+	// primitive the authenticated executable declares exactly once.
+	rilPrimitiveHashes map[string]string
 }
 
 func digestRegularFile(path string, limit int64) (fileDigest, error) {
@@ -666,7 +667,7 @@ func digestRegularFile(path string, limit int64) (fileDigest, error) {
 	if err := ensureUnchanged(file, info); err != nil {
 		return fileDigest{}, err
 	}
-	return fileDigest{sha256: hex.EncodeToString(digest.Sum(nil)), size: written, verifyExpectedPlan: scanner.matches == 1, verifyRILPrimitive: scanner.rilMatches == 1, rilPrimitiveHash: scanner.qualifiedHash()}, nil
+	return scanner.fileDigest(digest.Sum(nil), written), nil
 }
 
 func openRegularFile(path string, limit int64) (*os.File, os.FileInfo, error) {

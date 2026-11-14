@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/techstack/internal/privatefs"
 	agentpkg "github.com/kombifyio/techstack/pkg/agent"
 	"github.com/kombifyio/techstack/pkg/agent/httpguard"
 	"github.com/kombifyio/techstack/pkg/guardbinding"
@@ -101,6 +102,9 @@ func ServeConnection(ctx context.Context, conn net.Conn, opts Options) error {
 	if err != nil {
 		return err
 	}
+	if err := updater.AdoptTrial(ctx, AdoptAtExecutorConnection); err != nil {
+		opts.Log.Warn("guard_trial_adoption_failed", "error", err.Error())
+	}
 	manifests := append([]string{}, httpguard.DefaultAccessManifestFiles()...)
 	for _, path := range strings.Split(opts.Getenv("TECHSTACK_ACCESS_MANIFEST"), ",") {
 		if path = strings.TrimSpace(path); path != "" {
@@ -121,6 +125,7 @@ func ServeConnection(ctx context.Context, conn net.Conn, opts Options) error {
 		Pins: func() ([]guardbinding.PinnedKey, error) {
 			return guardbinding.ReadPins(filepath.Join(opts.StateDir, guardbinding.PinFile))
 		},
+		RotatePins: func(keys []guardbinding.PinnedKey) error { return writeBindingPins(opts.StateDir, keys) },
 	}
 	return server.Serve(ctx, conn)
 }
@@ -145,8 +150,9 @@ func ConnFromStdin() (net.Conn, error) {
 	return conn, nil
 }
 
-// RunTrial is the update trial supervisor.
-func RunTrial(ctx context.Context, opts Options, trialID string) error {
+// RunTrial is the update trial supervisor; resume takes over a trial whose
+// supervisor is gone without restarting the Guard again.
+func RunTrial(ctx context.Context, opts Options, trialID string, resume bool) error {
 	opts.defaults()
 	if os.Geteuid() != 0 {
 		return errors.New("the update trial supervisor must run as root")
@@ -155,7 +161,22 @@ func RunTrial(ctx context.Context, opts Options, trialID string) error {
 	if err != nil {
 		return err
 	}
-	return updater.RunTrial(ctx, trialID)
+	return updater.RunTrial(ctx, trialID, resume)
+}
+
+// RecoverTrial is the Guard service's recovery hook while an update trial is
+// open: before every start of the service it adopts a trial whose supervisor is
+// gone, after a reboot or a lost supervisor.
+func RecoverTrial(ctx context.Context, opts Options) error {
+	opts.defaults()
+	if os.Geteuid() != 0 {
+		return errors.New("the update trial recovery must run as root")
+	}
+	updater, err := NewUpdaterFromOptions(opts)
+	if err != nil {
+		return err
+	}
+	return updater.AdoptTrial(ctx, AdoptAtGuardStart)
 }
 
 // Recover clears the recovery flag after an operator restored a verified Guard.
@@ -205,4 +226,19 @@ func envTrue(value string) bool {
 
 func parseDuration(value string) (time.Duration, error) {
 	return time.ParseDuration(strings.TrimSpace(value))
+}
+
+// writeBindingPins replaces the root-only pin file of the executor state
+// directory, as the layout command writes it.
+func writeBindingPins(stateDir string, keys []guardbinding.PinnedKey) error {
+	encoded, err := guardbinding.EncodePins(keys)
+	if err != nil {
+		return err
+	}
+	root, err := privatefs.Open(stateDir)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+	return privatefs.Replace(root, guardbinding.PinFile, encoded, 0o600)
 }

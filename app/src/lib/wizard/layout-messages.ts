@@ -35,6 +35,18 @@ export const layoutMessages = {
     "layout.verification.details": "Details",
     "layout.reason.data_budget_unset":
       "How much space your data needs on {node} isn't set yet, so free disk space was not checked for it.",
+    "layout.reason.homelab_considered":
+      "All servers of your homelab were considered, including those of your other StackKit deployments and free servers.",
+    "layout.reason.extends_other_deployment":
+      "These apps go to {deployment} instead of {origin}: its servers are the better place for them.",
+    "layout.reason.found_on_bare_server":
+      "None of your StackKit deployments has room for these apps. {server} is connected and free, so it can run them as a new deployment.",
+    "layout.reason.found_not_checked":
+      "A new deployment on {server} is checked against its hardware when you set it up there.",
+    "layout.reason.joins_bare_server":
+      "None of your StackKit deployments has room for these apps on its own servers. {server} is connected and free, so it can join {deployment} and run them there.",
+    "layout.reason.join_not_checked":
+      "{server} is checked against its hardware when it joins {deployment}.",
     "layout.outcome.proven-infeasible":
       "Not everything you picked fits your servers as they are.",
     "layout.outcome.unknown":
@@ -47,6 +59,22 @@ export const layoutMessages = {
       "Some of your choices can't be distributed together yet.",
     "layout.state.unavailable":
       "A recommended distribution isn't available right now. You can still continue.",
+    "layout.state.pinRefused":
+      "That server can't take this app here. Choose another one, or use the recommendation.",
+    "layout.pin.choose": "Choose another server",
+    "layout.pin.label": "Server for {app}",
+    "layout.pin.notConnected": "{server} (not connected)",
+    "layout.pin.chosen":
+      "You chose where some apps run. kombify checked your choice against your hardware again.",
+    "layout.pin.reset": "Use the recommendation",
+    "layout.pin.undo": "Undo this choice",
+    "layout.pin.blocked":
+      "Your server choice isn't confirmed yet. Wait for the check, choose another server, or use the recommendation.",
+    "layout.reason.owner_choice": "You chose {node} for {title}.",
+    "layout.reason.chosen_node_lacks_room":
+      "{node}, the server you chose for {title}, can't run it.",
+    "layout.reason.goes_to_chosen_deployment":
+      "These apps go to {deployment} instead of {origin}, because the server you chose belongs to it.",
     "layout.summary.title": "Where your apps will run",
     "layout.summary.applies": "Finishing this setup applies this distribution.",
     "layout.summary.line": "{node}: {apps}",
@@ -142,6 +170,10 @@ export const layoutMessages = {
     "layout.addUseCases.stale.title": "The recommendation is out of date",
     "layout.addUseCases.stale.body":
       "Nothing was changed. Review the distribution again and add the use cases once more.",
+    "layout.addServer.superseded.body":
+      "Nothing was changed. The updated distribution is shown. Review it and add the server again to confirm.",
+    "layout.addServer.stale.body":
+      "Nothing was changed. Review the distribution again and add the server once more.",
     "layout.addUseCases.unavailable.title":
       "The recommendation can't be checked right now",
     "layout.addUseCases.unavailable.body":
@@ -149,6 +181,20 @@ export const layoutMessages = {
     "layout.addUseCases.failed.title": "The use cases could not be added",
     "layout.addUseCases.failed.body":
       "Check your choices and try again. Your answers are still here.",
+    "layout.addUseCases.access.title": "Access to {useCase}",
+    "layout.addUseCases.access.inherited": "As in your homelab",
+    "layout.addUseCases.access.inherit": "Use homelab setting",
+    "layout.addUseCases.access.reach": "Reachable",
+    "layout.addUseCases.access.reach.local": "At home only",
+    "layout.addUseCases.access.reach.remote": "Also away, signed in",
+    "layout.addUseCases.access.people": "For",
+    "layout.addUseCases.access.people.owner": "Only me",
+    "layout.addUseCases.access.people.household": "Household",
+    "layout.addUseCases.access.people.selected": "Selected people",
+    "layout.addUseCases.access.chosen": "People who get {useCase}",
+    "layout.addUseCases.access.choosePeople": "Choose at least one person for {useCase}.",
+    "layout.addUseCases.access.blocked.title": "Your choice is saved",
+    "layout.addUseCases.access.blocked.body": "Separate access for {useCases} isn't available yet, so nothing was set up. Your choice stays saved.",
     "wizard.validation.goalsRequired":
       "Choose at least one use case to continue.",
 
@@ -206,6 +252,18 @@ export const layoutMessages = {
     "layout.verification.details": "Details",
     "layout.reason.data_budget_unset":
       "Wie viel Platz deine Daten auf {node} brauchen, ist noch nicht festgelegt, deshalb wurde der freie Speicherplatz dafür nicht geprüft.",
+    "layout.reason.homelab_considered":
+      "Alle Server deines Homelabs wurden berücksichtigt, auch die deiner anderen StackKit-Deployments und freie Server.",
+    "layout.reason.extends_other_deployment":
+      "Diese Apps kommen zu {deployment} statt zu {origin}: Dessen Server sind der bessere Platz dafür.",
+    "layout.reason.found_on_bare_server":
+      "Keines deiner StackKit-Deployments hat Platz für diese Apps. {server} ist verbunden und frei und kann sie als neues Deployment ausführen.",
+    "layout.reason.found_not_checked":
+      "Ein neues Deployment auf {server} wird gegen seine Hardware geprüft, wenn du es dort einrichtest.",
+    "layout.reason.joins_bare_server":
+      "Keines deiner StackKit-Deployments hat auf seinen eigenen Servern Platz für diese Apps. {server} ist verbunden und frei, kann also {deployment} beitreten und sie dort ausführen.",
+    "layout.reason.join_not_checked":
+      "{server} wird gegen seine Hardware geprüft, wenn er {deployment} beitritt.",
     "layout.outcome.proven-infeasible":
       "Nicht alles, was du ausgewählt hast, passt auf deine Server, so wie sie sind.",
     "layout.outcome.unknown":
@@ -218,6 +276,22 @@ export const layoutMessages = {
       "Einige deiner Auswahlen lassen sich noch nicht gemeinsam verteilen.",
     "layout.state.unavailable":
       "Eine empfohlene Verteilung ist gerade nicht verfügbar. Du kannst trotzdem weitermachen.",
+    "layout.state.pinRefused":
+      "Dieser Server kann diese App hier nicht übernehmen. Wähle einen anderen oder nimm die Empfehlung.",
+    "layout.pin.choose": "Anderen Server wählen",
+    "layout.pin.label": "Server für {app}",
+    "layout.pin.notConnected": "{server} (nicht verbunden)",
+    "layout.pin.chosen":
+      "Du hast selbst gewählt, wo einige Apps laufen. kombify hat deine Wahl noch einmal gegen deine Hardware geprüft.",
+    "layout.pin.reset": "Empfehlung verwenden",
+    "layout.pin.undo": "Diese Wahl rückgängig machen",
+    "layout.pin.blocked":
+      "Deine Serverwahl ist noch nicht bestätigt. Warte auf die Prüfung, wähle einen anderen Server oder nimm die Empfehlung.",
+    "layout.reason.owner_choice": "Du hast {node} für {title} gewählt.",
+    "layout.reason.chosen_node_lacks_room":
+      "{node}, der Server, den du für {title} gewählt hast, kann es nicht ausführen.",
+    "layout.reason.goes_to_chosen_deployment":
+      "Diese Apps kommen zu {deployment} statt zu {origin}, weil der gewählte Server dazugehört.",
     "layout.summary.title": "Wo deine Apps laufen werden",
     "layout.summary.applies":
       "Wenn du diese Einrichtung abschließt, wird diese Verteilung angewendet.",
@@ -315,6 +389,10 @@ export const layoutMessages = {
     "layout.addUseCases.stale.title": "Die Empfehlung ist nicht mehr aktuell",
     "layout.addUseCases.stale.body":
       "Es wurde nichts geändert. Sieh dir die Verteilung noch einmal an und füge die Use Cases erneut hinzu.",
+    "layout.addServer.superseded.body":
+      "Es wurde nichts geändert. Die aktualisierte Verteilung wird angezeigt. Sieh sie dir an und füge den Server erneut hinzu, um sie zu bestätigen.",
+    "layout.addServer.stale.body":
+      "Es wurde nichts geändert. Sieh dir die Verteilung noch einmal an und füge den Server erneut hinzu.",
     "layout.addUseCases.unavailable.title":
       "Die Empfehlung lässt sich gerade nicht prüfen",
     "layout.addUseCases.unavailable.body":
@@ -323,6 +401,20 @@ export const layoutMessages = {
       "Die Use Cases konnten nicht hinzugefügt werden",
     "layout.addUseCases.failed.body":
       "Prüfe deine Auswahl und versuche es erneut. Deine Antworten sind noch da.",
+    "layout.addUseCases.access.title": "Zugriff auf {useCase}",
+    "layout.addUseCases.access.inherited": "Wie im Homelab",
+    "layout.addUseCases.access.inherit": "Homelab-Einstellung übernehmen",
+    "layout.addUseCases.access.reach": "Erreichbar",
+    "layout.addUseCases.access.reach.local": "Nur zu Hause",
+    "layout.addUseCases.access.reach.remote": "Auch unterwegs, angemeldet",
+    "layout.addUseCases.access.people": "Für",
+    "layout.addUseCases.access.people.owner": "Nur mich",
+    "layout.addUseCases.access.people.household": "Haushalt",
+    "layout.addUseCases.access.people.selected": "Ausgewählte Personen",
+    "layout.addUseCases.access.chosen": "Personen, die {useCase} bekommen",
+    "layout.addUseCases.access.choosePeople": "Wähle mindestens eine Person für {useCase}.",
+    "layout.addUseCases.access.blocked.title": "Deine Wahl ist gespeichert",
+    "layout.addUseCases.access.blocked.body": "Eigener Zugriff für {useCases} ist noch nicht verfügbar, darum wurde noch nichts eingerichtet. Deine Wahl bleibt gespeichert.",
     "wizard.validation.goalsRequired":
       "Wähle mindestens einen Use Case, um weiterzumachen.",
 
@@ -380,6 +472,18 @@ export const layoutMessages = {
     "layout.verification.details": "Detalles",
     "layout.reason.data_budget_unset":
       "Aún no se ha indicado cuánto espacio necesitan tus datos en {node}, así que no se comprobó el espacio libre en disco para ellos.",
+    "layout.reason.homelab_considered":
+      "Se tuvieron en cuenta todos los servidores de tu Homelab, también los de tus otros despliegues de StackKit y los servidores libres.",
+    "layout.reason.extends_other_deployment":
+      "Estas apps van a {deployment} en lugar de {origin}: sus servidores son el mejor lugar para ellas.",
+    "layout.reason.found_on_bare_server":
+      "Ninguno de tus despliegues de StackKit tiene espacio para estas apps. {server} está conectado y libre, así que puede ejecutarlas como un despliegue nuevo.",
+    "layout.reason.found_not_checked":
+      "Un despliegue nuevo en {server} se comprueba con su hardware cuando lo configures allí.",
+    "layout.reason.joins_bare_server":
+      "Ninguno de tus despliegues de StackKit tiene espacio para estas apps en sus propios servidores. {server} está conectado y libre, así que puede unirse a {deployment} y ejecutarlas allí.",
+    "layout.reason.join_not_checked":
+      "{server} se comprueba con su hardware cuando se une a {deployment}.",
     "layout.outcome.proven-infeasible":
       "No todo lo que elegiste cabe en tus servidores tal como están.",
     "layout.outcome.unknown":
@@ -392,6 +496,22 @@ export const layoutMessages = {
       "Algunas de tus opciones todavía no se pueden distribuir juntas.",
     "layout.state.unavailable":
       "Ahora mismo no hay una distribución recomendada disponible. Puedes continuar de todos modos.",
+    "layout.state.pinRefused":
+      "Ese servidor no puede encargarse de esta app aquí. Elige otro o usa la recomendación.",
+    "layout.pin.choose": "Elegir otro servidor",
+    "layout.pin.label": "Servidor para {app}",
+    "layout.pin.notConnected": "{server} (sin conexión)",
+    "layout.pin.chosen":
+      "Has elegido dónde se ejecutan algunas apps. kombify ha vuelto a comprobar tu elección con tu hardware.",
+    "layout.pin.reset": "Usar la recomendación",
+    "layout.pin.undo": "Deshacer esta elección",
+    "layout.pin.blocked":
+      "Tu elección de servidor aún no está confirmada. Espera la comprobación, elige otro servidor o usa la recomendación.",
+    "layout.reason.owner_choice": "Elegiste {node} para {title}.",
+    "layout.reason.chosen_node_lacks_room":
+      "{node}, el servidor que elegiste para {title}, no puede ejecutarla.",
+    "layout.reason.goes_to_chosen_deployment":
+      "Estas apps van a {deployment} en lugar de a {origin}, porque el servidor que elegiste pertenece a él.",
     "layout.summary.title": "Dónde se ejecutarán tus apps",
     "layout.summary.applies":
       "Al terminar esta configuración se aplica esta distribución.",
@@ -488,6 +608,10 @@ export const layoutMessages = {
     "layout.addUseCases.stale.title": "La recomendación ya no está al día",
     "layout.addUseCases.stale.body":
       "No se cambió nada. Revisa de nuevo la distribución y vuelve a añadir los casos de uso.",
+    "layout.addServer.superseded.body":
+      "No se cambió nada. Se muestra la distribución actualizada. Revísala y vuelve a añadir el servidor para confirmarla.",
+    "layout.addServer.stale.body":
+      "No se cambió nada. Revisa de nuevo la distribución y vuelve a añadir el servidor.",
     "layout.addUseCases.unavailable.title":
       "Ahora mismo no se puede comprobar la recomendación",
     "layout.addUseCases.unavailable.body":
@@ -495,6 +619,20 @@ export const layoutMessages = {
     "layout.addUseCases.failed.title": "No se pudieron añadir los casos de uso",
     "layout.addUseCases.failed.body":
       "Revisa tu selección e inténtalo de nuevo. Tus respuestas siguen aquí.",
+    "layout.addUseCases.access.title": "Acceso a {useCase}",
+    "layout.addUseCases.access.inherited": "Como en tu homelab",
+    "layout.addUseCases.access.inherit": "Usar el ajuste del homelab",
+    "layout.addUseCases.access.reach": "Accesible",
+    "layout.addUseCases.access.reach.local": "Solo en casa",
+    "layout.addUseCases.access.reach.remote": "También fuera, con sesión iniciada",
+    "layout.addUseCases.access.people": "Para",
+    "layout.addUseCases.access.people.owner": "Solo yo",
+    "layout.addUseCases.access.people.household": "Hogar",
+    "layout.addUseCases.access.people.selected": "Personas elegidas",
+    "layout.addUseCases.access.chosen": "Personas que reciben {useCase}",
+    "layout.addUseCases.access.choosePeople": "Elige al menos una persona para {useCase}.",
+    "layout.addUseCases.access.blocked.title": "Tu elección está guardada",
+    "layout.addUseCases.access.blocked.body": "El acceso propio para {useCases} aún no está disponible, así que todavía no se ha configurado nada. Tu elección sigue guardada.",
     "wizard.validation.goalsRequired":
       "Elige al menos un caso de uso para continuar.",
 
@@ -549,6 +687,18 @@ export const layoutMessages = {
     "layout.verification.details": "详情",
     "layout.reason.data_budget_unset":
       "尚未设置你的数据在 {node} 上需要多少空间，因此没有为其检查可用磁盘空间。",
+    "layout.reason.homelab_considered":
+      "已考虑你 Homelab 的所有服务器，包括你其他 StackKit 部署的服务器和空闲服务器。",
+    "layout.reason.extends_other_deployment":
+      "这些应用将加入 {deployment}，而不是 {origin}：它的服务器更适合它们。",
+    "layout.reason.found_on_bare_server":
+      "你的 StackKit 部署都没有空间容纳这些应用。{server} 已连接且空闲，可以把它们作为新部署运行。",
+    "layout.reason.found_not_checked":
+      "{server} 上的新部署会在你在那里设置它时根据其硬件进行检查。",
+    "layout.reason.joins_bare_server":
+      "你的 StackKit 部署在其自身服务器上都没有空间运行这些应用。{server} 已连接且空闲，可以加入 {deployment} 并在那里运行它们。",
+    "layout.reason.join_not_checked":
+      "{server} 会在加入 {deployment} 时根据其硬件进行检查。",
     "layout.outcome.proven-infeasible":
       "你选择的内容并不能全部放进现有服务器。",
     "layout.outcome.unknown": "我们暂时还无法判断你选择的内容是否都放得下。",
@@ -556,6 +706,22 @@ export const layoutMessages = {
     "layout.state.noSetup": "待你的 Homelab 完成首次设置后，才能推荐分配方案。",
     "layout.state.invalid": "你的部分选择目前还无法一起分配。",
     "layout.state.unavailable": "目前无法提供推荐的分配方案。你仍可继续。",
+    "layout.state.pinRefused":
+      "该服务器无法在此运行这个应用。请选择其他服务器，或使用推荐方案。",
+    "layout.pin.choose": "选择其他服务器",
+    "layout.pin.label": "{app} 的服务器",
+    "layout.pin.notConnected": "{server}（未连接）",
+    "layout.pin.chosen":
+      "你已自行选择部分应用的运行位置。kombify 已根据你的硬件重新检查了你的选择。",
+    "layout.pin.reset": "使用推荐方案",
+    "layout.pin.undo": "撤销此选择",
+    "layout.pin.blocked":
+      "你的服务器选择尚未确认。请等待检查完成、选择其他服务器，或使用推荐方案。",
+    "layout.reason.owner_choice": "你为 {title} 选择了 {node}。",
+    "layout.reason.chosen_node_lacks_room":
+      "你为 {title} 选择的服务器 {node} 无法运行它。",
+    "layout.reason.goes_to_chosen_deployment":
+      "这些应用将部署到 {deployment} 而不是 {origin}，因为你选择的服务器属于它。",
     "layout.summary.title": "你的应用将运行在哪里",
     "layout.summary.applies": "完成本次设置时将应用此分配方案。",
     "layout.summary.line": "{node}：{apps}",
@@ -645,11 +811,29 @@ export const layoutMessages = {
     "layout.addUseCases.stale.title": "推荐已过期",
     "layout.addUseCases.stale.body":
       "未做任何更改。请重新查看分配方案，然后再次添加用例。",
+    "layout.addServer.superseded.body":
+      "未做任何更改。已显示更新后的分配方案。请查看后再次添加服务器以确认。",
+    "layout.addServer.stale.body":
+      "未做任何更改。请重新查看分配方案，然后再次添加服务器。",
     "layout.addUseCases.unavailable.title": "目前无法检查推荐",
     "layout.addUseCases.unavailable.body": "未做任何更改。请稍后再试。",
     "layout.addUseCases.failed.title": "无法添加这些用例",
     "layout.addUseCases.failed.body":
       "请检查你的选择后重试。你的回答仍保留在这里。",
+    "layout.addUseCases.access.title": "{useCase} 的访问",
+    "layout.addUseCases.access.inherited": "与家庭实验室相同",
+    "layout.addUseCases.access.inherit": "使用家庭实验室设置",
+    "layout.addUseCases.access.reach": "可访问",
+    "layout.addUseCases.access.reach.local": "仅在家中",
+    "layout.addUseCases.access.reach.remote": "外出时登录后也可",
+    "layout.addUseCases.access.people": "适用于",
+    "layout.addUseCases.access.people.owner": "仅我自己",
+    "layout.addUseCases.access.people.household": "家庭成员",
+    "layout.addUseCases.access.people.selected": "指定的人",
+    "layout.addUseCases.access.chosen": "可使用 {useCase} 的人",
+    "layout.addUseCases.access.choosePeople": "请为 {useCase} 至少选择一个人。",
+    "layout.addUseCases.access.blocked.title": "你的选择已保存",
+    "layout.addUseCases.access.blocked.body": "{useCases} 的单独访问设置暂不可用，因此尚未进行任何设置。你的选择会继续保存。",
     "wizard.validation.goalsRequired": "请至少选择一个用例以继续。",
 
     "wizard.hints.why": "为什么这样设置",
@@ -703,6 +887,18 @@ export const layoutMessages = {
     "layout.verification.details": "विवरण",
     "layout.reason.data_budget_unset":
       "{node} पर आपके डेटा को कितनी जगह चाहिए, यह अभी तय नहीं है, इसलिए उसके लिए खाली डिस्क स्थान की जाँच नहीं की गई।",
+    "layout.reason.homelab_considered":
+      "आपके Homelab के सभी सर्वरों पर विचार किया गया, आपके दूसरे StackKit डिप्लॉयमेंट और खाली सर्वरों समेत।",
+    "layout.reason.extends_other_deployment":
+      "ये ऐप {origin} के बजाय {deployment} में जाते हैं: उसके सर्वर इनके लिए बेहतर जगह हैं।",
+    "layout.reason.found_on_bare_server":
+      "आपके किसी भी StackKit डिप्लॉयमेंट में इन ऐप के लिए जगह नहीं है। {server} जुड़ा हुआ और खाली है, इसलिए वह इन्हें नए डिप्लॉयमेंट के रूप में चला सकता है।",
+    "layout.reason.found_not_checked":
+      "{server} पर नया डिप्लॉयमेंट वहाँ सेट अप करते समय उसके हार्डवेयर से जाँचा जाता है।",
+    "layout.reason.joins_bare_server":
+      "आपके किसी भी StackKit डिप्लॉयमेंट के अपने सर्वरों पर इन ऐप्स के लिए जगह नहीं है। {server} जुड़ा हुआ और खाली है, इसलिए यह {deployment} से जुड़कर उन्हें वहाँ चला सकता है।",
+    "layout.reason.join_not_checked":
+      "{server} को {deployment} से जुड़ते समय उसके हार्डवेयर से जाँचा जाता है।",
     "layout.outcome.proven-infeasible":
       "आपने जो चुना है, वह सब आपके सर्वरों पर मौजूदा रूप में फ़िट नहीं होता।",
     "layout.outcome.unknown":
@@ -714,6 +910,22 @@ export const layoutMessages = {
     "layout.state.invalid": "आपके कुछ चुनाव अभी एक साथ नहीं बाँटे जा सकते।",
     "layout.state.unavailable":
       "सुझाई गई व्यवस्था अभी उपलब्ध नहीं है। आप फिर भी आगे बढ़ सकते हैं।",
+    "layout.state.pinRefused":
+      "वह सर्वर यहाँ यह ऐप नहीं चला सकता। कोई दूसरा चुनें या सुझाव का उपयोग करें।",
+    "layout.pin.choose": "दूसरा सर्वर चुनें",
+    "layout.pin.label": "{app} के लिए सर्वर",
+    "layout.pin.notConnected": "{server} (कनेक्ट नहीं है)",
+    "layout.pin.chosen":
+      "आपने कुछ ऐप्स के चलने की जगह खुद चुनी है। kombify ने आपके हार्डवेयर पर आपकी पसंद फिर से जाँची।",
+    "layout.pin.reset": "सुझाव का उपयोग करें",
+    "layout.pin.undo": "यह चुनाव वापस लें",
+    "layout.pin.blocked":
+      "आपकी सर्वर पसंद अभी पुष्ट नहीं हुई है। जाँच पूरी होने दें, कोई दूसरा सर्वर चुनें या सुझाव का उपयोग करें।",
+    "layout.reason.owner_choice": "आपने {title} के लिए {node} चुना।",
+    "layout.reason.chosen_node_lacks_room":
+      "{node}, जो सर्वर आपने {title} के लिए चुना, उसे नहीं चला सकता।",
+    "layout.reason.goes_to_chosen_deployment":
+      "ये ऐप्स {origin} के बजाय {deployment} में जाते हैं, क्योंकि आपका चुना सर्वर उसी का है।",
     "layout.summary.title": "आपके ऐप्स कहाँ चलेंगे",
     "layout.summary.applies": "यह सेटअप पूरा करने पर यही व्यवस्था लागू होगी।",
     "layout.summary.line": "{node}: {apps}",
@@ -808,12 +1020,30 @@ export const layoutMessages = {
     "layout.addUseCases.stale.title": "यह सुझाव पुराना हो गया है",
     "layout.addUseCases.stale.body":
       "कुछ भी नहीं बदला गया। व्यवस्था को फिर से देखें और यूज़ केस एक बार फिर जोड़ें।",
+    "layout.addServer.superseded.body":
+      "कुछ भी नहीं बदला गया। अपडेट की हुई व्यवस्था दिखाई गई है। उसे देखें और पुष्टि के लिए सर्वर फिर से जोड़ें।",
+    "layout.addServer.stale.body":
+      "कुछ भी नहीं बदला गया। व्यवस्था को फिर से देखें और सर्वर एक बार फिर जोड़ें।",
     "layout.addUseCases.unavailable.title": "सुझाव की जाँच अभी नहीं हो पा रही",
     "layout.addUseCases.unavailable.body":
       "कुछ भी नहीं बदला गया। थोड़ी देर बाद फिर कोशिश करें।",
     "layout.addUseCases.failed.title": "यूज़ केस जोड़े नहीं जा सके",
     "layout.addUseCases.failed.body":
       "अपने चुनाव जाँचें और फिर कोशिश करें। आपके जवाब अभी यहीं हैं।",
+    "layout.addUseCases.access.title": "{useCase} तक पहुँच",
+    "layout.addUseCases.access.inherited": "होमलैब जैसा",
+    "layout.addUseCases.access.inherit": "होमलैब की सेटिंग अपनाएँ",
+    "layout.addUseCases.access.reach": "पहुँच",
+    "layout.addUseCases.access.reach.local": "सिर्फ़ घर पर",
+    "layout.addUseCases.access.reach.remote": "बाहर भी, साइन इन करके",
+    "layout.addUseCases.access.people": "किसके लिए",
+    "layout.addUseCases.access.people.owner": "सिर्फ़ मैं",
+    "layout.addUseCases.access.people.household": "घर के लोग",
+    "layout.addUseCases.access.people.selected": "चुने हुए लोग",
+    "layout.addUseCases.access.chosen": "जिन लोगों को {useCase} मिलेगा",
+    "layout.addUseCases.access.choosePeople": "{useCase} के लिए कम से कम एक व्यक्ति चुनें।",
+    "layout.addUseCases.access.blocked.title": "आपकी पसंद सहेज ली गई है",
+    "layout.addUseCases.access.blocked.body": "{useCases} के लिए अलग पहुँच अभी उपलब्ध नहीं है, इसलिए अभी कुछ भी सेट नहीं किया गया। आपकी पसंद सहेजी रहेगी।",
     "wizard.validation.goalsRequired":
       "आगे बढ़ने के लिए कम से कम एक यूज़ केस चुनें।",
 
@@ -870,6 +1100,18 @@ export const layoutMessages = {
     "layout.verification.details": "التفاصيل",
     "layout.reason.data_budget_unset":
       "لم يحدد بعد مقدار المساحة التي تحتاجها بياناتك على {node}، لذلك لم تفحص مساحة القرص الحرة من أجلها.",
+    "layout.reason.homelab_considered":
+      "تم أخذ جميع خوادم Homelab لديك في الاعتبار، بما فيها خوادم عمليات نشر StackKit الأخرى والخوادم المتاحة.",
+    "layout.reason.extends_other_deployment":
+      "تذهب هذه التطبيقات إلى {deployment} بدلًا من {origin}: خوادمه هي المكان الأفضل لها.",
+    "layout.reason.found_on_bare_server":
+      "لا تتسع أي من عمليات نشر StackKit لديك لهذه التطبيقات. {server} متصل ومتاح، لذا يمكنه تشغيلها كعملية نشر جديدة.",
+    "layout.reason.found_not_checked":
+      "يُفحص النشر الجديد على {server} مقابل عتاده عند إعداده هناك.",
+    "layout.reason.joins_bare_server":
+      "لا يتوفر في أي من عمليات نشر StackKit لديك مكان لهذه التطبيقات على خوادمها. {server} متصل ومتاح، لذا يمكنه الانضمام إلى {deployment} وتشغيلها هناك.",
+    "layout.reason.join_not_checked":
+      "يُفحص {server} مقابل عتاده عند انضمامه إلى {deployment}.",
     "layout.outcome.proven-infeasible":
       "لا يتسع كل ما اخترته على خوادمك كما هي.",
     "layout.outcome.unknown":
@@ -881,6 +1123,22 @@ export const layoutMessages = {
     "layout.state.invalid": "بعض اختياراتك لا يمكن توزيعها معًا بعد.",
     "layout.state.unavailable":
       "التوزيع الموصى به غير متاح الآن. يمكنك المتابعة رغم ذلك.",
+    "layout.state.pinRefused":
+      "لا يمكن لهذا الخادم تشغيل هذا التطبيق هنا. اختر خادمًا آخر أو استخدم التوصية.",
+    "layout.pin.choose": "اختر خادمًا آخر",
+    "layout.pin.label": "الخادم لـ {app}",
+    "layout.pin.notConnected": "{server} (غير متصل)",
+    "layout.pin.chosen":
+      "لقد اخترت بنفسك أين تعمل بعض التطبيقات. أعاد kombify التحقق من اختيارك على أجهزتك.",
+    "layout.pin.reset": "استخدم التوصية",
+    "layout.pin.undo": "تراجع عن هذا الاختيار",
+    "layout.pin.blocked":
+      "لم يتأكد اختيارك للخادم بعد. انتظر التحقق، أو اختر خادمًا آخر، أو استخدم التوصية.",
+    "layout.reason.owner_choice": "اخترت {node} لـ {title}.",
+    "layout.reason.chosen_node_lacks_room":
+      "لا يستطيع {node}، الخادم الذي اخترته لـ {title}، تشغيله.",
+    "layout.reason.goes_to_chosen_deployment":
+      "تذهب هذه التطبيقات إلى {deployment} بدلًا من {origin}، لأن الخادم الذي اخترته ينتمي إليه.",
     "layout.summary.title": "أين ستعمل تطبيقاتك",
     "layout.summary.applies": "بإنهاء هذا الإعداد يُطبَّق هذا التوزيع.",
     "layout.summary.line": "{node}: {apps}",
@@ -972,12 +1230,30 @@ export const layoutMessages = {
     "layout.addUseCases.stale.title": "التوصية لم تعد محدّثة",
     "layout.addUseCases.stale.body":
       "لم يتغيّر شيء. راجع التوزيع مرة أخرى ثم أضف حالات الاستخدام من جديد.",
+    "layout.addServer.superseded.body":
+      "لم يتغيّر شيء. يظهر التوزيع المحدّث. راجعه ثم أضف الخادم مرة أخرى للتأكيد.",
+    "layout.addServer.stale.body":
+      "لم يتغيّر شيء. راجع التوزيع مرة أخرى ثم أضف الخادم من جديد.",
     "layout.addUseCases.unavailable.title": "تعذّر فحص التوصية الآن",
     "layout.addUseCases.unavailable.body":
       "لم يتغيّر شيء. حاول مرة أخرى بعد قليل.",
     "layout.addUseCases.failed.title": "تعذّرت إضافة حالات الاستخدام",
     "layout.addUseCases.failed.body":
       "تحقق من اختياراتك وحاول مرة أخرى. إجاباتك لا تزال هنا.",
+    "layout.addUseCases.access.title": "الوصول إلى {useCase}",
+    "layout.addUseCases.access.inherited": "كما في مختبرك المنزلي",
+    "layout.addUseCases.access.inherit": "استخدام إعداد المختبر المنزلي",
+    "layout.addUseCases.access.reach": "إمكانية الوصول",
+    "layout.addUseCases.access.reach.local": "في المنزل فقط",
+    "layout.addUseCases.access.reach.remote": "خارج المنزل أيضًا بعد تسجيل الدخول",
+    "layout.addUseCases.access.people": "لمن",
+    "layout.addUseCases.access.people.owner": "أنا فقط",
+    "layout.addUseCases.access.people.household": "أفراد المنزل",
+    "layout.addUseCases.access.people.selected": "أشخاص محددون",
+    "layout.addUseCases.access.chosen": "الأشخاص الذين يحصلون على {useCase}",
+    "layout.addUseCases.access.choosePeople": "اختر شخصًا واحدًا على الأقل لـ {useCase}.",
+    "layout.addUseCases.access.blocked.title": "تم حفظ اختيارك",
+    "layout.addUseCases.access.blocked.body": "الوصول المنفصل إلى {useCases} غير متاح بعد، لذلك لم يُعدّ أي شيء. يبقى اختيارك محفوظًا.",
     "wizard.validation.goalsRequired":
       "اختر حالة استخدام واحدة على الأقل للمتابعة.",
 

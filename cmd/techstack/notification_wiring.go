@@ -113,7 +113,7 @@ func (n *productAlertNotifier) Notify(ctx context.Context, alert monitoring.Aler
 			firstNotificationLabel(alert.Labels, "server_id"), firstNotificationLabel(alert.Labels, "drive_id"), eventID, transition)
 	}
 	return n.outbox.Enqueue(ctx, productnotifications.ProductEvent{
-		Topic: topic, Auth0UserID: recipient, OrganizationID: organizationID, IdempotencyKey: key,
+		Topic: topic, Auth0UserID: recipient, TenantID: organizationID, IdempotencyKey: key,
 		Payload: map[string]any{
 			"subject":     alert.RuleName,
 			"body":        alert.Message,

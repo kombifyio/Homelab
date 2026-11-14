@@ -17,6 +17,8 @@ const (
 	WorkerCredentialGenerationResourceKey        = "credential_generation"
 )
 
+var qualifiedColumnPattern = regexp.MustCompile(`^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*$`)
+
 var workerCredentialSHA256Pattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
 
 // WorkerCredentialState is the non-reversible durable state for one runtime
@@ -60,6 +62,57 @@ func WorkerCredentialStateFromWorker(worker Worker) (WorkerCredentialState, erro
 	}
 	state.Generation = generation
 	return state, nil
+}
+
+// CommandAuthorityGeneration is the credential generation that command,
+// candidate-install and connector authority for this worker binds to, and
+// whether that authority is admitted (kombify-StackKits-4czp). An opaque
+// credential starts at generation 1 and is admitted as before. Generation 0 is
+// a key-bound Guard that was never rotated and holds no opaque credential, but
+// a legacy bearer worker whose hash sits on the worker row reads generation 0
+// too. So 0 is admitted only when the worker last proved its host key and that
+// identity is bound; boundIdentity is read only then. Unreadable credential
+// state is never admitted.
+func CommandAuthorityGeneration(worker Worker, boundIdentity func() (*WorkerIdentity, error)) (int64, bool) {
+	state, err := WorkerCredentialStateFromWorker(worker)
+	if err != nil {
+		return -1, false
+	}
+	if state.Generation > 0 {
+		return state.Generation, true
+	}
+	if boundIdentity == nil {
+		return 0, false
+	}
+	identity, err := boundIdentity()
+	return 0, err == nil && WorkerProvedHostKey(worker, identity)
+}
+
+// WorkerProvedHostKey reports whether the worker last authenticated with its
+// host key (identity_binding host_key in its recorded state) and that key's
+// identity is bound.
+func WorkerProvedHostKey(worker Worker, identity *WorkerIdentity) bool {
+	binding, _ := worker.Capabilities["identity_binding"].(string)
+	return strings.TrimSpace(binding) == IdentityBindingHostKey && identity != nil &&
+		identity.State == WorkerIdentityBound && identity.WorkerID == worker.ID && identity.TenantID == worker.TenantID
+}
+
+// GenerationZeroKeyBoundSQL is CommandAuthorityGeneration's generation-0
+// admission for a tenant-scoped query over recorded evidence: the worker named
+// by the tenant and worker columns still reads credential generation 0 (no
+// opaque credential; any other or unreadable value refuses), last proved its
+// host key, and its identity is bound. The column arguments are the caller's
+// fixed qualified column names (alias.column), never input; anything else
+// panics.
+func GenerationZeroKeyBoundSQL(tenantColumn, workerColumn string) string {
+	if !qualifiedColumnPattern.MatchString(tenantColumn) || !qualifiedColumnPattern.MatchString(workerColumn) {
+		panic("controlplane: GenerationZeroKeyBoundSQL takes fixed qualified column names")
+	}
+	key := strings.ReplaceAll(WorkerCredentialGenerationResourceKey, "'", "''")
+	return `EXISTS (SELECT 1 FROM workers hk_w JOIN worker_identities hk_i ON hk_i.tenant_id=hk_w.tenant_id AND hk_i.worker_id=hk_w.id
+		WHERE hk_w.tenant_id=` + tenantColumn + ` AND hk_w.id=` + workerColumn + `
+		AND COALESCE(hk_w.resources_json->'` + key + `','null'::jsonb) IN ('null'::jsonb,'0'::jsonb,'"0"'::jsonb)
+		AND hk_w.capabilities_json->>'identity_binding'='` + IdentityBindingHostKey + `' AND hk_i.state='` + WorkerIdentityBound + `')`
 }
 
 func normalizeWorkerCredentialCAS(command WorkerCredentialCAS) (WorkerCredentialCAS, error) {
@@ -120,6 +173,7 @@ func preserveWorkerCredentialResources(existing, incoming map[string]any) map[st
 		WorkerStackKitsTargetResourceKey,
 		WorkerStackKitsUpdateBehaviorResourceKey,
 		WorkerStackKitsUpdateAttemptResourceKey,
+		WorkerTenantRebindResourceKey,
 	} {
 		delete(out, key)
 		if value, ok := existing[key]; ok {

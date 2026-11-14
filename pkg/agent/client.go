@@ -279,6 +279,7 @@ func (c *Client) Register(ctx context.Context) error {
 			stackkitcommand.AdvancedTrustImportCapability,
 			stackkitcommand.AdvancedOperationsCapability,
 			stackkitcommand.FederationHandoffCapability,
+			stackkitcommand.IdentityJoinCapability,
 		)
 		// Host maintenance is not advertised on the mTLS registration path:
 		// its heartbeat does not report host_boot_id or the machine-id

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -18,6 +19,16 @@ const wizardGoalActivationTopic = "product.news"
 
 // loadStoredWizardGoals folds canonical wishes into the effective intent before
 // admission. Explicit incoming fields win, including false and empty answers.
+//
+// Of the saved goals only the backlog is reconciled: unmapped_goals, the
+// goals no earlier release could realize and every goal of a blocked run. A
+// goal an earlier run realized stays recorded but is not applied again.
+// Otherwise founding a new kit deployment would copy the homelab's earlier
+// use cases into it, and a later run would project a use case the owner
+// removed back in (kombify-StackKits-c0jn). A same-key retry keeps the goals
+// its first attempt evaluated, even when that attempt already moved a goal
+// out of the backlog. Saved decisions ride along only for the goals this run
+// projects, because the projection refuses a decision without its goal.
 func (h wizardRunHandlers) loadStoredWizardGoals(ctx context.Context, run *wizardRunState) error {
 	homelab, err := h.crud.homelabStore.GetHomelabByOwner(ctx, run.tenantID, run.ownerID)
 	if err != nil {
@@ -34,10 +45,25 @@ func (h wizardRunHandlers) loadStoredWizardGoals(ctx context.Context, run *wizar
 	}
 	run.priorUnmappedGoals = wizardStringValues(wizard["unmapped_goals"])
 	intent := &run.request.Intent
-	intent.Goals = mergeWizardGoals(stored.Goals, run.priorUnmappedGoals, intent.Goals)
-	intent.UseCaseSettings = mergeWizardDecisions(stored.UseCaseSettings, intent.UseCaseSettings)
-	intent.UseCaseCapabilities = mergeWizardDecisions(stored.UseCaseCapabilities, intent.UseCaseCapabilities)
-	intent.UseCaseSetupAnswers = mergeWizardDecisions(stored.UseCaseSetupAnswers, intent.UseCaseSetupAnswers)
+	intent.Goals = mergeWizardGoals(run.priorUnmappedGoals, intent.Goals)
+	if prior := run.priorFailed; prior != nil && prior.RequestSHA256 == run.requestHash {
+		if raw, ok := prior.Result["evaluated_goals"]; ok {
+			intent.Goals = mergeWizardGoals(intent.Goals, wizardStringValues(raw))
+		}
+	}
+	intent.UseCaseSettings = mergeWizardDecisions(decisionsForGoals(stored.UseCaseSettings, intent.Goals), intent.UseCaseSettings)
+	intent.UseCaseCapabilities = mergeWizardDecisions(decisionsForGoals(stored.UseCaseCapabilities, intent.Goals), intent.UseCaseCapabilities)
+	intent.UseCaseSetupAnswers = mergeWizardDecisions(decisionsForGoals(stored.UseCaseSetupAnswers, intent.Goals), intent.UseCaseSetupAnswers)
+	access := make(map[string]specv2.UseCaseAccessIntent)
+	for slug, decision := range stored.UseCaseAccess {
+		if slices.Contains(intent.Goals, slug) {
+			access[slug] = decision
+		}
+	}
+	for slug, decision := range intent.UseCaseAccess {
+		access[slug] = decision
+	}
+	intent.UseCaseAccess = access
 	if intent.Access.Mode == "" && intent.Access.Publications == nil {
 		intent.Access = stored.Access
 	}
@@ -55,6 +81,21 @@ func wizardIntentFromDocument(wizard map[string]any) (specv2.WizardIntent, error
 	}
 	err = json.Unmarshal(raw, &intent)
 	return intent, err
+}
+
+// decisionsForGoals keeps the saved decisions of the given goals only.
+func decisionsForGoals[T any](stored map[string]map[string]T, goals []string) map[string]map[string]T {
+	var kept map[string]map[string]T
+	for slug, values := range stored {
+		if !slices.Contains(goals, slug) {
+			continue
+		}
+		if kept == nil {
+			kept = make(map[string]map[string]T)
+		}
+		kept[slug] = values
+	}
+	return kept
 }
 
 func mergeWizardDecisions[T any](stored, incoming map[string]map[string]T) map[string]map[string]T {
@@ -113,7 +154,7 @@ func (h wizardRunHandlers) enqueueWizardGoalActivationNotifications(ctx context.
 			Topic:          wizardGoalActivationTopic,
 			Channel:        "in_app",
 			Auth0UserID:    run.ownerID,
-			OrganizationID: run.tenantID,
+			TenantID:       run.tenantID,
 			IdempotencyKey: key,
 			Payload: map[string]any{
 				"subject":    "A saved Wizard goal is now available",

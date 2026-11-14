@@ -5,6 +5,7 @@ package jobs
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -154,6 +155,9 @@ func detectManagedStackKitDrift(ctx context.Context, cfg *DriftCheckConfig, job 
 		return stackkitcommand.DriftReport{}, fmt.Errorf("typed StackKits drift detect dispatch failed: %w", err)
 	}
 	if result == nil || !result.Success {
+		if failure := typedStackKitFailureFromResult(result); storedPlanNeedsRollout(failure.ReasonCode) {
+			return stackkitcommand.DriftReport{}, &StackKitLifecycleFailedError{Operation: StackKitLifecycleDriftDetect, Failure: failure}
+		}
 		return stackkitcommand.DriftReport{}, fmt.Errorf("StackKits drift detect failed: %s", strings.TrimSpace(result.GetStderr()))
 	}
 	report, err := stackkitcommand.ParseDriftReport(command, result)
@@ -284,6 +288,13 @@ func DriftCheckHandler(cfg *DriftCheckConfig) JobHandler {
 		q.UpdateProgress(job.ID, 100, statusMsg)
 
 		if result.Status == DriftStatusFailed {
+			// A saved Plan the node's CLI refuses fails every later check the
+			// same way: report the typed refusal with its rollout guidance
+			// instead of a transient error.
+			var refused *StackKitLifecycleFailedError
+			if errors.As(err, &refused) {
+				return NewPermanentError(refused)
+			}
 			return wrapDriftError(StepDriftCollectResults, result.ErrorMessage, result.ErrorDetails)
 		}
 		return nil

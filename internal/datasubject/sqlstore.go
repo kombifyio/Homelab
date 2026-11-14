@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/kombifyio/techstack/pkg/db"
 )
@@ -38,6 +39,47 @@ var evidenceTables = map[string]bool{
 // statement runs in a transaction scoped to the principal's tenant, so row
 // level security applies.
 type SQLStore struct{ DB *sql.DB }
+
+// sqlProcessorRoute inspects the selected driver's configuration, never an edition label.
+func sqlProcessorRoute(ctx context.Context, database *sql.DB) (processorRoute, error) {
+	if database == nil {
+		return "", BlockedError{Reason: "processor_route_unqualified"}
+	}
+	conn, err := database.Conn(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer conn.Close()
+	var route processorRoute
+	err = conn.Raw(func(raw any) error {
+		c, ok := raw.(*stdlib.Conn)
+		if !ok {
+			return BlockedError{Reason: "processor_route_unqualified"}
+		}
+		cfg := c.Conn().Config()
+		route, err = postgresProcessorRoute(cfg.Host)
+		if err != nil {
+			return BlockedError{Reason: "processor_route_unqualified"}
+		}
+		for _, fallback := range cfg.Fallbacks {
+			r, ferr := postgresProcessorRoute(fallback.Host)
+			if ferr != nil || r != route {
+				return BlockedError{Reason: "processor_route_unqualified"}
+			}
+		}
+		return nil
+	})
+	return route, err
+}
+
+func (s *SQLStore) processorBinding(ctx context.Context) error {
+	_, err := sqlProcessorRoute(ctx, s.DB)
+	return err
+}
+func (d *SQLDirectory) processorBinding(ctx context.Context) error {
+	_, err := sqlProcessorRoute(ctx, d.DB)
+	return err
+}
 
 func ident(parts ...string) string { return pgx.Identifier(parts).Sanitize() }
 
@@ -74,7 +116,10 @@ func subjectTables(ctx context.Context, tx *sql.Tx) ([]tableColumn, error) {
 }
 
 // liveResources counts servers and leases that still map to provider capacity.
-func liveResources(ctx context.Context, tx *sql.Tx, tables []tableColumn, sub string) (int64, error) {
+// A lease counts until its decommission is handed to provider control
+// (desired_state 'absent', the indexed column's name for the archived lease);
+// its server row then counts until provider absence is proven.
+func liveResources(ctx context.Context, tx *sql.Tx, tables []tableColumn, sub string, onRead func()) (int64, error) {
 	var total int64
 	for _, tc := range tables {
 		var query string
@@ -84,7 +129,7 @@ func liveResources(ctx context.Context, tx *sql.Tx, tables []tableColumn, sub st
 				AND (lifecycle_state IN ('provisioning', 'enrolling', 'active', 'decommissioning')
 				     OR (provider_ref IS NOT NULL AND lifecycle_state <> 'decommissioned'))`
 		case "techstack_vm_leases":
-			query = `SELECT count(*) FROM techstack_vm_leases WHERE subject_id = $1 AND desired_state <> 'archived'`
+			query = `SELECT count(*) FROM techstack_vm_leases WHERE subject_id = $1 AND desired_state <> 'absent'`
 		default:
 			continue
 		}
@@ -92,6 +137,7 @@ func liveResources(ctx context.Context, tx *sql.Tx, tables []tableColumn, sub st
 		if err := tx.QueryRowContext(ctx, query, sub).Scan(&n); err != nil {
 			return 0, err
 		}
+		onRead()
 		total += n
 	}
 	return total, nil
@@ -99,6 +145,10 @@ func liveResources(ctx context.Context, tx *sql.Tx, tables []tableColumn, sub st
 
 // Inventory counts the principal's rows per table and its live resources.
 func (s *SQLStore) Inventory(ctx context.Context, p Principal) (Inventory, error) {
+	route, err := sqlProcessorRoute(ctx, s.DB)
+	if err != nil {
+		return Inventory{}, err
+	}
 	tx, err := s.tx(ctx, p)
 	if err != nil {
 		return Inventory{}, err
@@ -108,6 +158,12 @@ func (s *SQLStore) Inventory(ctx context.Context, p Principal) (Inventory, error
 	if err != nil {
 		return Inventory{}, err
 	}
+	recordProcessor(ctx, route, processorStoreRead, "")
+	action := processorStoreRead
+	if kind, _ := ctx.Value(processorInventoryKind{}).(bool); kind {
+		action = processorExportInventoryRead
+	}
+	onRead := func() { recordProcessor(ctx, route, action, "") }
 	var inv Inventory
 	for _, tc := range tables {
 		var n int64
@@ -115,11 +171,12 @@ func (s *SQLStore) Inventory(ctx context.Context, p Principal) (Inventory, error
 			fmt.Sprintf(`SELECT count(*) FROM %s WHERE %s = $1`, ident(tc.table), ident(tc.column)), p.Subject).Scan(&n); err != nil {
 			return Inventory{}, err
 		}
+		onRead()
 		if n > 0 {
 			inv.Tables = append(inv.Tables, TableRows{Table: tc.table, Rows: n, Evidence: evidenceTables[tc.table]})
 		}
 	}
-	if inv.LiveResources, err = liveResources(ctx, tx, tables, p.Subject); err != nil {
+	if inv.LiveResources, err = liveResources(ctx, tx, tables, p.Subject, onRead); err != nil {
 		return Inventory{}, err
 	}
 	sort.Slice(inv.Tables, func(i, j int) bool { return inv.Tables[i].Table < inv.Tables[j].Table })
@@ -130,6 +187,10 @@ func (s *SQLStore) Inventory(ctx context.Context, p Principal) (Inventory, error
 // again inside the deleting transaction, so a server provisioned between the
 // inventory and the delete still blocks.
 func (s *SQLStore) Erase(ctx context.Context, p Principal) (map[string]int64, error) {
+	route, err := sqlProcessorRoute(ctx, s.DB)
+	if err != nil {
+		return nil, err
+	}
 	tx, err := s.tx(ctx, p)
 	if err != nil {
 		return nil, err
@@ -139,7 +200,9 @@ func (s *SQLStore) Erase(ctx context.Context, p Principal) (map[string]int64, er
 	if err != nil {
 		return nil, err
 	}
-	live, err := liveResources(ctx, tx, tables, p.Subject)
+	onRead := func() { recordProcessor(ctx, route, processorStoreRead, "") }
+	onRead()
+	live, err := liveResources(ctx, tx, tables, p.Subject, onRead)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +236,7 @@ func (s *SQLStore) Erase(ctx context.Context, p Principal) (map[string]int64, er
 	}
 	// Once nothing at all remains (retained evidence rows still name the
 	// subject), the directory entry goes too: it holds the raw subject id.
-	remaining, err := remainingRows(ctx, tx, tables, p.Subject)
+	remaining, err := remainingRows(ctx, tx, tables, p.Subject, onRead)
 	if err != nil {
 		return nil, err
 	}
@@ -185,10 +248,16 @@ func (s *SQLStore) Erase(ctx context.Context, p Principal) (map[string]int64, er
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
+	for _, n := range deleted {
+		if n > 0 {
+			recordProcessor(ctx, route, processorDeleted, "")
+			break
+		}
+	}
 	return deleted, nil
 }
 
-func remainingRows(ctx context.Context, tx *sql.Tx, tables []tableColumn, sub string) (int64, error) {
+func remainingRows(ctx context.Context, tx *sql.Tx, tables []tableColumn, sub string, onRead func()) (int64, error) {
 	var total int64
 	for _, tc := range tables {
 		var n int64
@@ -196,6 +265,7 @@ func remainingRows(ctx context.Context, tx *sql.Tx, tables []tableColumn, sub st
 			fmt.Sprintf(`SELECT count(*) FROM %s WHERE %s = $1`, ident(tc.table), ident(tc.column)), sub).Scan(&n); err != nil {
 			return 0, err
 		}
+		onRead()
 		total += n
 	}
 	return total, nil
@@ -212,10 +282,15 @@ func (d *SQLDirectory) Lookup(ctx context.Context, subjectRef string) ([]Princip
 	if d == nil || d.DB == nil {
 		return nil, errors.New("datasubject: database handle is nil")
 	}
+	route, err := sqlProcessorRoute(ctx, d.DB)
+	if err != nil {
+		return nil, err
+	}
 	rows, err := d.DB.QueryContext(ctx, `SELECT tenant_id, owner_subject_id FROM techstack_lookup_subject_directory($1)`, subjectRef)
 	if err != nil {
 		return nil, err
 	}
+	recordProcessor(ctx, route, processorSubjectLookup, "")
 	defer rows.Close()
 	var out []Principal
 	for rows.Next() {
@@ -225,7 +300,10 @@ func (d *SQLDirectory) Lookup(ctx context.Context, subjectRef string) ([]Princip
 		}
 		out = append(out, p)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 // deleteOwned deletes one table's rows inside a savepoint, so a foreign-key

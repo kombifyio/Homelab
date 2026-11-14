@@ -4,14 +4,14 @@
     {
       "id": "coolify",
       "repository": "https://github.com/coollabsio/coolify",
-      "commit": "972ab7f6f45b5cc6c2efdff207738a4e23d23756",
+      "commit": "4f56c81236834fdaff0fdc9d219faf230212a57e",
       "license": "Apache-2.0",
       "path": "templates/compose"
     },
     {
       "id": "dokploy",
       "repository": "https://github.com/Dokploy/templates",
-      "commit": "1b3c254f89a60ae86679404c0fcbe4745ce487d5",
+      "commit": "b40194a4c27dee65b83cbba4e96710fd6cbf7b18",
       "license": "MIT",
       "path": "blueprints"
     }
@@ -1226,6 +1226,22 @@
       ]
     },
     {
+      "id": "cakephp",
+      "name": "CakePHP 5",
+      "category": "other",
+      "homepage": "https://cakephp.org/",
+      "source_repo": "themusicdev/cakephp-hello",
+      "web_port": 80,
+      "web_scheme": "http",
+      "images": [
+        "themusicdev/cakephp-hello"
+      ],
+      "icon": "si:cakephp",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
       "id": "calcom",
       "name": "Calcom",
       "category": "productivity",
@@ -1289,6 +1305,22 @@
       "icon": "calibre-web-automated-book-downloader",
       "sources": [
         "coolify"
+      ]
+    },
+    {
+      "id": "calnode",
+      "name": "Calnode",
+      "category": "productivity",
+      "homepage": "https://calnode.com/",
+      "source_repo": "calnode/calnode",
+      "web_port": 3000,
+      "web_scheme": "http",
+      "images": [
+        "calnode/calnode"
+      ],
+      "icon": "",
+      "sources": [
+        "dokploy"
       ]
     },
     {
@@ -1940,6 +1972,22 @@
       ]
     },
     {
+      "id": "container-monitoring",
+      "name": "Container Monitoring",
+      "category": "monitoring",
+      "homepage": "https://prometheus.io/",
+      "source_repo": "google/cadvisor",
+      "web_port": 3000,
+      "web_scheme": "http",
+      "images": [
+        "grafana/grafana"
+      ],
+      "icon": "",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
       "id": "convertx",
       "name": "ConvertX",
       "category": "dev",
@@ -1965,8 +2013,7 @@
       "web_port": 6791,
       "web_scheme": "http",
       "images": [
-        "convex/convex-dashboard",
-        "get-convex/convex-dashboard"
+        "convex/convex-dashboard"
       ],
       "icon": "convex",
       "sources": [
@@ -2126,6 +2173,22 @@
         "sergi0g/cup"
       ],
       "icon": "cup",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
+      "id": "customermates",
+      "name": "Customermates",
+      "category": "productivity",
+      "homepage": "https://customermates.com",
+      "source_repo": "customermates/customermates",
+      "web_port": 4000,
+      "web_scheme": "http",
+      "images": [
+        "customermates/customermates"
+      ],
+      "icon": "",
       "sources": [
         "dokploy"
       ]
@@ -3019,7 +3082,7 @@
       "web_port": 8080,
       "web_scheme": "http",
       "images": [
-        "ente-io/server"
+        "ente/server"
       ],
       "icon": "ente-photos",
       "sources": [
@@ -4847,6 +4910,22 @@
       ]
     },
     {
+      "id": "itsaplan",
+      "name": "It's a Plan",
+      "category": "productivity",
+      "homepage": "https://itsaplan.dev",
+      "source_repo": "croffasia/itsaplan",
+      "web_port": 3000,
+      "web_scheme": "http",
+      "images": [
+        "croffasia/itsaplan-api"
+      ],
+      "icon": "",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
       "id": "jean",
       "name": "Jean",
       "category": "dev",
@@ -5212,6 +5291,22 @@
       "web_scheme": "http",
       "images": [
         "komari-monitor/komari"
+      ],
+      "icon": "",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
+      "id": "kortix",
+      "name": "Kortix",
+      "category": "ai",
+      "homepage": "https://kortix.com",
+      "source_repo": "kortix-ai/suna",
+      "web_port": 3000,
+      "web_scheme": "http",
+      "images": [
+        "kortix/kortix-frontend"
       ],
       "icon": "",
       "sources": [
@@ -6521,7 +6616,7 @@
       "web_port": 0,
       "web_scheme": "",
       "images": [
-        "anvian/navi-music"
+        "andre-carbajal/navimusic"
       ],
       "icon": "",
       "sources": [
@@ -6657,7 +6752,7 @@
     },
     {
       "id": "newapi",
-      "name": "Newapi",
+      "name": "New API",
       "category": "dev",
       "homepage": "https://docs.newapi.pro/en/getting-started/",
       "source_repo": "",
@@ -7503,11 +7598,11 @@
       "name": "OpenTodo",
       "category": "productivity",
       "homepage": "https://open-todo.app",
-      "source_repo": "pixari/opentodo",
+      "source_repo": "opentodoapp/opentodo",
       "web_port": 8080,
       "web_scheme": "http",
       "images": [
-        "pixari/opentodo"
+        "opentodoapp/opentodo"
       ],
       "icon": "",
       "sources": [
@@ -7567,13 +7662,15 @@
       "category": "productivity",
       "homepage": "https://orbit.noveum.ai",
       "source_repo": "noveum/orbit",
-      "web_port": 3000,
+      "web_port": 8080,
       "web_scheme": "http",
       "images": [
+        "coollabsio/orbit",
         "noveum/orbit-gateway"
       ],
       "icon": "",
       "sources": [
+        "coolify",
         "dokploy"
       ]
     },
@@ -9362,6 +9459,22 @@
       ]
     },
     {
+      "id": "shopnex",
+      "name": "ShopNex",
+      "category": "other",
+      "homepage": "https://shopnex.ai",
+      "source_repo": "shopnex-ai/shopnex",
+      "web_port": 3000,
+      "web_scheme": "http",
+      "images": [
+        "shopnex-ai/shopnex"
+      ],
+      "icon": "",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
       "id": "shopware",
       "name": "Shopware",
       "category": "other",
@@ -9626,7 +9739,7 @@
       "id": "solidping",
       "name": "SolidPing",
       "category": "monitoring",
-      "homepage": "https://solidping.io/",
+      "homepage": "https://www.solidping.io",
       "source_repo": "fclairamb/solidping",
       "web_port": 4000,
       "web_scheme": "http",
@@ -11248,7 +11361,7 @@
       "images": [
         "ulsklyc/yuvomi"
       ],
-      "icon": "",
+      "icon": "yuvomi",
       "sources": [
         "dokploy"
       ]
@@ -11283,6 +11396,22 @@
       "icon": "",
       "sources": [
         "coolify"
+      ]
+    },
+    {
+      "id": "zeqqat",
+      "name": "Zeqqat",
+      "category": "ai",
+      "homepage": "https://zeqqat.com",
+      "source_repo": "zeqqat/zeqqat",
+      "web_port": 3000,
+      "web_scheme": "http",
+      "images": [
+        "zeqqat/zeqqat"
+      ],
+      "icon": "",
+      "sources": [
+        "dokploy"
       ]
     },
     {

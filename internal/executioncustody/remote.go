@@ -15,12 +15,15 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
-	wire "github.com/kombifyio/stackkits/contracts/advancedcapability"
 	"github.com/google/uuid"
+	wire "github.com/kombifyio/stackkits/contracts/advancedcapability"
+
+	"github.com/kombifyio/techstack/internal/advancedissuer"
 )
 
 const (
@@ -59,13 +62,29 @@ func CheckRemoteCustody() error {
 	if raw := ""; raw != "" && json.Unmarshal([]byte(raw), &bundle) != nil {
 		return errors.New("remote Execution requires a valid scoped company bundle")
 	}
-	for _, name := range []string{EnvIssuerKey, EnvKeyCustodyDatabaseURL, "TECHSTACK_ENCRYPTION_KEY", "TECHSTACK_PROVIDER_CONTROL_RUNTIME_DATABASE_URL", "TECHSTACK_IONOS_PROVIDER_BUNDLE", "TECHSTACK_CENTRON_PROVIDER_BUNDLE", "TECHSTACK_MIGRATION_DATABASE_URL", "TECHSTACK_MANAGED_TEST_ADMIN_DATABASE_URL"} {
+	for _, name := range []string{EnvIssuerKey, EnvKeyCustodyDatabaseURL, "TECHSTACK_ENCRYPTION_KEY", "TECHSTACK_PROVIDER_CONTROL_RUNTIME_DATABASE_URL", "TECHSTACK_MIGRATION_DATABASE_URL", "TECHSTACK_MANAGED_TEST_ADMIN_DATABASE_URL"} {
 		if os.Getenv(name) != "" || bundle[name] != "" {
+			return fmt.Errorf("remote advanced issuer forbids installation custody in caller: %s", name)
+		}
+	}
+	// Every provider adapter's credential custody object is
+	// TECHSTACK_<PROVIDER>_PROVIDER_BUNDLE (AdapterDescriptor.CredentialEnvironment),
+	// so the pattern covers every provider without naming one.
+	for _, entry := range os.Environ() {
+		name, value, _ := strings.Cut(entry, "=")
+		if value != "" && providerBundleEnvironment.MatchString(name) {
+			return fmt.Errorf("remote advanced issuer forbids installation custody in caller: %s", name)
+		}
+	}
+	for name, value := range bundle {
+		if value != "" && providerBundleEnvironment.MatchString(name) {
 			return fmt.Errorf("remote advanced issuer forbids installation custody in caller: %s", name)
 		}
 	}
 	return nil
 }
+
+var providerBundleEnvironment = regexp.MustCompile(`^TECHSTACK_[A-Z0-9]+_PROVIDER_BUNDLE$`)
 
 func OpenRemote(ctx context.Context) (*Remote, error) {
 	if err := CheckRemoteCustody(); err != nil {
@@ -126,9 +145,26 @@ func (client *Remote) TrustBundleSHA256() string {
 	return "sha256:" + hex.EncodeToString(sum[:])
 }
 func (client *Remote) Issue(ctx context.Context, request Request) (Capability, error) {
+	if client == nil {
+		return Capability{}, advancedissuer.ErrUnavailable
+	}
 	var result Capability
 	err := client.call(ctx, "issue", request, &result)
 	return result, err
+}
+
+// IssueTransferReceive forwards one receiving step of a native transfer to the
+// issuer that holds the installation key; the canonical scope travels inside
+// the same recorded issuance request.
+func (client *Remote) IssueTransferReceive(ctx context.Context, request Request, scope wire.TransferReceive) (Capability, error) {
+	if client == nil {
+		return Capability{}, advancedissuer.ErrUnavailable
+	}
+	request.TransferReceive = &scope
+	if len(request.Operations) == 0 {
+		request.Operations = []string{advancedissuer.OperationApplicationTransferReceive}
+	}
+	return client.Issue(ctx, request)
 }
 func (client *Remote) RecordTrustBinding(ctx context.Context, binding TrustBinding) error {
 	return client.call(ctx, "bind", binding, nil)

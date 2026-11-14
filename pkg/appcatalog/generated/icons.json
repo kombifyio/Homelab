@@ -5,13 +5,13 @@
     {
       "id": "dashboard-icons",
       "repository": "https://github.com/homarr-labs/dashboard-icons",
-      "commit": "83f32e08257b66fbd971ac8d7645f5b38d52e85d",
+      "commit": "d767d7327db7f8ebd3715b552523f61889eea41c",
       "license": "Apache-2.0"
     },
     {
       "id": "simple-icons",
       "repository": "https://github.com/simple-icons/simple-icons",
-      "commit": "90646e4bf7f3b89df6c37e65baf3e7bc759a517c",
+      "commit": "1bb2f6e6ea50f920de8d2f3d273ae48564a5eaee",
       "license": "CC0-1.0"
     }
   ],
@@ -4608,6 +4608,16 @@
         "png",
         "svg",
         "webp"
+      ],
+      "light": "plane",
+      "dark": "plane-light"
+    },
+    "plane-light": {
+      "source": "dashboard-icons",
+      "formats": [
+        "png",
+        "svg",
+        "webp"
       ]
     },
     "planka": {
@@ -5457,6 +5467,13 @@
         "svg"
       ],
       "hex": "DDDF72"
+    },
+    "si:cakephp": {
+      "source": "simple-icons",
+      "formats": [
+        "svg"
+      ],
+      "hex": "D33C43"
     },
     "si:dify": {
       "source": "simple-icons",
@@ -6635,6 +6652,14 @@
       ]
     },
     "yourls": {
+      "source": "dashboard-icons",
+      "formats": [
+        "png",
+        "svg",
+        "webp"
+      ]
+    },
+    "yuvomi": {
       "source": "dashboard-icons",
       "formats": [
         "png",

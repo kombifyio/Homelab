@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-
-	"github.com/kombifyio/techstack/internal/providercatalog"
 )
 
 // ManagedBootstrapNetworkRequirements is the provider-neutral network
@@ -29,19 +27,9 @@ const (
 )
 
 // ManagedBootstrapAdapterException records the one provider adapter detail
-// that cannot be expressed by the normalized network requirements.
+// that cannot be expressed by the normalized network requirements. Each
+// adapter declares its value in its AdapterDescriptor.
 type ManagedBootstrapAdapterException string
-
-const (
-	// ManagedBootstrapAdapterExceptionIONOSPublicLAN identifies the IONOS
-	// composite request's public LAN/DHCP NIC and disabled default security
-	// group. The host firewall remains the normalized SSH-only baseline.
-	ManagedBootstrapAdapterExceptionIONOSPublicLAN ManagedBootstrapAdapterException = "ionos_public_lan_without_default_security_group"
-	// ManagedBootstrapAdapterExceptionCentronNetworkReadback identifies the
-	// Centron response shape where the public IPv4 is observed under
-	// network_adapters[].ip_addresses[], rather than supplied in create input.
-	ManagedBootstrapAdapterExceptionCentronNetworkReadback ManagedBootstrapAdapterException = "centron_network_adapter_ipv4_readback"
-)
 
 // ManagedBootstrapNetworkProfile combines the normalized catalog contract
 // with the explicit adapter exception selected by the provider/adapter pair.
@@ -76,8 +64,8 @@ func NormalizeManagedBootstrapNetwork(payload json.RawMessage) (ManagedBootstrap
 	return requirements, nil
 }
 
-// ManagedBootstrapNetworkProfileFor resolves the explicit adapter exception
-// for one canonical provider catalog profile. The adapter ID is part of the
+// ManagedBootstrapNetworkProfileFor resolves the adapter exception declared in
+// the registered AdapterDescriptor of one canonical provider catalog profile. The adapter ID is part of the
 // selection so a different adapter build cannot silently inherit provider
 // network assumptions.
 func ManagedBootstrapNetworkProfileFor(providerID, adapterID string, requirements ManagedBootstrapNetworkRequirements) (ManagedBootstrapNetworkProfile, error) {
@@ -86,16 +74,11 @@ func ManagedBootstrapNetworkProfileFor(providerID, adapterID string, requirement
 	if err := validateManagedBootstrapNetworkRequirements(requirements); err != nil {
 		return ManagedBootstrapNetworkProfile{}, err
 	}
-	var exception ManagedBootstrapAdapterException
-	switch {
-	case providerID == providercatalog.ProviderIONOS && adapterID == "ionos-cloudapi-v6":
-		exception = ManagedBootstrapAdapterExceptionIONOSPublicLAN
-	case providerID == providercatalog.ProviderCentron && adapterID == "centron-ccloud-v1":
-		exception = ManagedBootstrapAdapterExceptionCentronNetworkReadback
-	default:
+	descriptor, ok := AdapterDescriptorFor(providerID, adapterID)
+	if !ok {
 		return ManagedBootstrapNetworkProfile{}, fmt.Errorf("managed bootstrap network adapter exception is not registered for %s/%s", providerID, adapterID)
 	}
-	return ManagedBootstrapNetworkProfile{Requirements: requirements, AdapterException: exception}, nil
+	return ManagedBootstrapNetworkProfile{Requirements: requirements, AdapterException: descriptor.BootstrapNetworkException}, nil
 }
 
 func validateManagedBootstrapNetworkRequirements(requirements ManagedBootstrapNetworkRequirements) error {

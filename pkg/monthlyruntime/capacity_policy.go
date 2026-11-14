@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/kombifyio/techstack/internal/gocommon/edgeauth"
+	"github.com/kombifyio/techstack/internal/providercatalog"
 )
 
 const (
@@ -145,7 +146,7 @@ func (p *managedRuntimeCapacityPolicy) ResolveCapacity(ctx context.Context, requ
 	if ctx == nil || tenantID == "" || ownerSubjectID == "" {
 		return CapacityGrant{}, fmt.Errorf("%w: context, tenant, and owner are required", ErrCapacityPolicyInvalidRequest)
 	}
-	if providerID != ProviderIONOS && providerID != ProviderCentron {
+	if !providercatalog.IsCanonicalProviderID(providerID) {
 		return CapacityGrant{}, fmt.Errorf("%w: exact managed provider is required", ErrCapacityPolicyInvalidRequest)
 	}
 

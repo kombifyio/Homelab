@@ -68,8 +68,6 @@ const FEATURE_DEFAULTS: Record<string, boolean> = {
   raw_commands: false,
   ssh_tunnel: false,
   cloud_backup: false,
-  // The Alpha desktop's native StackKits creation path is the supported local path.
-  native_v2_wizard: true,
   cloudflare_tunnel: false,
   self_healing: false,
   ha_stackkit: false,
@@ -77,19 +75,8 @@ const FEATURE_DEFAULTS: Record<string, boolean> = {
   monthly_runtime_cloudkit: false,
   monthly_runtime_centron: false,
   monthly_runtime_ionos: false,
-  // UX features - ON by default
-  onboarding_wizard: true,
-  keyboard_shortcuts: true,
-  dark_mode: true,
-  use_case_photos: true,
-  use_case_media: true,
-  use_case_vault: true,
-  use_case_files: true,
-  use_case_smart_home: true,
-  use_case_ai: true,
-  use_case_dev: true,
-  use_case_mail: true,
-  use_case_game: true,
+  use_case_access: true,
+  stackkit_decision_receipt: false,
 };
 
 /**
@@ -263,14 +250,6 @@ export const isNetworkDiscoveryEnabled = derived(
   ($features) =>
     $features.get("network_discovery")?.enabled ??
     getDefaultEnabled("network_discovery"),
-);
-
-// Derived store for the native v2 wizard beta flag (wizard-runs facade).
-export const isNativeV2WizardEnabled = derived(
-  features.allFeatures,
-  ($features) =>
-    $features.get("native_v2_wizard")?.enabled ??
-    getDefaultEnabled("native_v2_wizard"),
 );
 
 // Helper type exports

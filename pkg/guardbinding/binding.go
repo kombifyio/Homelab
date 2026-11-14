@@ -43,6 +43,11 @@ const (
 	MaxKnownCommands = guardcompat.MaxKnownCommands
 	// MaxReasonBytes bounds every free-text reason carried on the wire.
 	MaxReasonBytes = guardcompat.MaxReasonBytes
+	// RuntimeInstallOperation is the operation of a signed internal candidate
+	// runtime-install admission. It equals the privileged executor operation
+	// the Guard validates the binding against (guardexec.OpRuntimeInstall), so
+	// the control plane and the Guard name one operation.
+	RuntimeInstallOperation = "stackkit.runtime.install"
 )
 
 // Denial codes are stable, machine-readable and safe to show to an operator.

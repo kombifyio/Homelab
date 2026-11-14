@@ -39,3 +39,35 @@ func (a walletHostDeliveryAdapter) DeliverItem(ctx context.Context, owner, itemI
 	}
 	return jobs.WalletHostEnvelope{Envelope: sealed.Envelope, Version: sealed.Version}, nil
 }
+
+// identityJoinWalletAdapter stores a joined server's sign-in client secret
+// as a generic secret of that server's deployment in the owner's kombify
+// Wallet, from where host delivery seals it to the server.
+type identityJoinWalletAdapter struct {
+	wallet *kombifywallet.Client
+}
+
+// identityJoinWallet returns nil unless the Wallet and its delivering key are
+// configured, so the homelab identity join fails closed.
+func identityJoinWallet(wallet *kombifywallet.Client, authority *kombifywallet.HostAuthority) jobs.HomelabIdentityJoinWallet {
+	if !wallet.Enabled() || authority == nil {
+		return nil
+	}
+	return identityJoinWalletAdapter{wallet: wallet}
+}
+
+func (a identityJoinWalletAdapter) StoreIdentityClientSecret(ctx context.Context, owner, stackID, clientID string, secret []byte) (string, bool, error) {
+	scope, ok := kombifywallet.ProjectScope(stackID)
+	if !ok {
+		return "", false, errors.New("the stack id is not a kombify Wallet project reference")
+	}
+	result, err := a.wallet.Ensure(ctx, owner, kombifywallet.ItemSpec{
+		Type: kombifywallet.ItemTypeGenericSecret, DisplayName: "Homelab sign-in client " + clientID, Scope: scope,
+		Description: "Client secret of this server's TinyAuth at the homelab Authority's Pocket ID; delivered only to this server.",
+		Value:       secret,
+	})
+	if err != nil {
+		return "", false, err
+	}
+	return result.ItemID, result.Versioned, nil
+}

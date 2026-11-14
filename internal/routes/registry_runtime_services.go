@@ -65,7 +65,7 @@ func (h registryRouteHandlers) projectRegistryRuntimeServices(stack controlplane
 		if server != nil {
 			record.ServerName = firstNonEmptyString(server.Name, server.ID)
 		}
-		record.MoveAllowed, record.MoveBlockedReason = registryServiceMoveEligibility(record.Status, record.ManagementState)
+		record.moveRuntimeRef = registryApplicationRuntimeRef(row, record.ManagementState)
 		result = append(result, record)
 	}
 	for _, record := range legacy {

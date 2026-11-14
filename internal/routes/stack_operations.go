@@ -715,7 +715,7 @@ func (h stackOperationsRouteHandlers) assignWorkerFromStore(e *httpx.Event) erro
 		})
 	}
 
-	updated, bindErr := h.assignCanonicalWorker(ctx, tenantID, ownerID, stack.ID, *worker)
+	updated, bindErr := h.assignCanonicalWorker(ctx, tenantID, ownerID, stack.ID, "", *worker)
 	if bindErr != nil {
 		switch {
 		case errors.Is(bindErr, controlplane.ErrNotFound):
@@ -743,15 +743,17 @@ func (h stackOperationsRouteHandlers) assignWorkerFromStore(e *httpx.Event) erro
 }
 
 // assignCanonicalWorker shares the canonical CAS authority between explicit
-// assignment and a wizard first install on an already enrolled host.
-func (h stackOperationsRouteHandlers) assignCanonicalWorker(ctx context.Context, tenantID, ownerID, stackID string, worker controlplane.Worker) (*controlplane.Worker, error) {
+// assignment and a wizard first install on an already enrolled host. A
+// non-empty specNodeID also binds the server to that StackSpec node, as a
+// wizard join of an enrolled host does.
+func (h stackOperationsRouteHandlers) assignCanonicalWorker(ctx context.Context, tenantID, ownerID, stackID, specNodeID string, worker controlplane.Worker) (*controlplane.Worker, error) {
 	if worker.TenantID != tenantID || worker.OwnerSubjectID != ownerID || !worker.Approved || !workerAssignmentStatusAllowed(worker.Status) {
 		return nil, fmt.Errorf("%w: worker is not approved for this owner", controlplane.ErrConflict)
 	}
 	if current := strings.TrimSpace(worker.StackID); current != "" && current != stackID {
 		return nil, fmt.Errorf("%w: worker is already assigned", controlplane.ErrConflict)
 	}
-	if _, err := h.bindCanonicalWorkerRuntime(ctx, tenantID, ownerID, stackID, worker); err != nil {
+	if _, err := h.bindCanonicalWorkerRuntime(ctx, tenantID, ownerID, stackID, specNodeID, worker); err != nil {
 		return nil, err
 	}
 	// workers.stack_id is a projection written after canonical CAS succeeds.
@@ -771,7 +773,7 @@ func workerAssignmentStatusAllowed(status string) bool {
 
 func (h stackOperationsRouteHandlers) bindCanonicalWorkerRuntime(
 	ctx context.Context,
-	tenantID, ownerID, stackID string,
+	tenantID, ownerID, stackID, specNodeID string,
 	worker controlplane.Worker,
 ) (*controlplane.ServerRuntime, error) {
 	if h.serverStore == nil {
@@ -794,8 +796,17 @@ func (h stackOperationsRouteHandlers) bindCanonicalWorkerRuntime(
 		if validateErr := validateWorkerRuntimeAssignment(*current, worker, tenantID, ownerID, stackID); validateErr != nil {
 			return nil, validateErr
 		}
-		if strings.TrimSpace(current.StackID) == stackID {
-			return current, nil
+		if bound, boundErr := runtimeBoundToNode(*current, stackID, specNodeID); boundErr != nil || bound {
+			return current, boundErr
+		}
+		patch := controlplane.ServerRuntime{StackID: stackID}
+		evidence := map[string]any{
+			"worker_id": worker.ID,
+			"stack_id":  stackID,
+		}
+		if specNodeID != "" {
+			patch.Metadata = map[string]any{"spec_node_id": specNodeID}
+			evidence["spec_node_id"] = specNodeID
 		}
 
 		result, applyErr := eventStore.ApplyServerEvent(ctx, controlplane.ServerEvent{
@@ -804,14 +815,14 @@ func (h stackOperationsRouteHandlers) bindCanonicalWorkerRuntime(
 			Authority: controlplane.ServerEventAuthorityControlPlane,
 			Source:    "stack-worker-assignment", SourceID: "stack-operations",
 			ObservedAt: time.Now().UTC(),
-			Evidence: map[string]any{
-				"worker_id": worker.ID,
-				"stack_id":  stackID,
-			},
-			Runtime: controlplane.ServerRuntime{StackID: stackID},
+			Evidence:   evidence,
+			Runtime:    patch,
 		})
 		if applyErr == nil {
-			if result == nil || result.Server == nil || strings.TrimSpace(result.Server.StackID) != stackID {
+			if result == nil || result.Server == nil {
+				return nil, fmt.Errorf("canonical server assignment returned no bound aggregate")
+			}
+			if bound, _ := runtimeBoundToNode(*result.Server, stackID, specNodeID); !bound {
 				return nil, fmt.Errorf("canonical server assignment returned no bound aggregate")
 			}
 			return result.Server, nil
@@ -821,7 +832,7 @@ func (h stackOperationsRouteHandlers) bindCanonicalWorkerRuntime(
 		}
 
 		latest, retry, resolveErr := h.resolveWorkerRuntimeAssignmentConflict(
-			ctx, tenantID, ownerID, stackID, serverID, worker, current.Revision, applyErr,
+			ctx, tenantID, ownerID, stackID, specNodeID, serverID, worker, current.Revision, applyErr,
 		)
 		if resolveErr != nil {
 			return nil, resolveErr
@@ -835,7 +846,7 @@ func (h stackOperationsRouteHandlers) bindCanonicalWorkerRuntime(
 
 func (h stackOperationsRouteHandlers) resolveWorkerRuntimeAssignmentConflict(
 	ctx context.Context,
-	tenantID, ownerID, stackID, serverID string,
+	tenantID, ownerID, stackID, specNodeID, serverID string,
 	worker controlplane.Worker,
 	previousRevision int64,
 	conflictErr error,
@@ -847,13 +858,33 @@ func (h stackOperationsRouteHandlers) resolveWorkerRuntimeAssignmentConflict(
 	if err := validateWorkerRuntimeAssignment(*latest, worker, tenantID, ownerID, stackID); err != nil {
 		return nil, false, err
 	}
-	if strings.TrimSpace(latest.StackID) == stackID {
-		return latest, false, nil
+	if bound, boundErr := runtimeBoundToNode(*latest, stackID, specNodeID); boundErr != nil || bound {
+		return latest, false, boundErr
 	}
 	if latest.Revision == previousRevision {
 		return nil, false, conflictErr
 	}
 	return nil, true, nil
+}
+
+// runtimeBoundToNode reports whether the runtime already carries the
+// assignment: the stack and, when one is named, the StackSpec node. A server
+// of the stack that is already another node of it is a conflict.
+func runtimeBoundToNode(runtime controlplane.ServerRuntime, stackID, specNodeID string) (bool, error) {
+	if strings.TrimSpace(runtime.StackID) != stackID {
+		return false, nil
+	}
+	if specNodeID == "" {
+		return true, nil
+	}
+	switch current := strings.TrimSpace(stringFromAnyMap(runtime.Metadata, "spec_node_id")); current {
+	case specNodeID:
+		return true, nil
+	case "":
+		return false, nil
+	default:
+		return false, fmt.Errorf("%w: canonical runtime is already node %s of this stack", controlplane.ErrConflict, current)
+	}
 }
 
 func assignmentServerID(worker controlplane.Worker) (string, error) {

@@ -11,6 +11,8 @@ export type TunnelMode = "auto" | "local" | "tunnel" | "tailscale" | "custom";
 export interface RegistryUrlResult {
   url: string;
   mode: TunnelMode | string;
+  /** Complete secret-free command from the configured control plane. */
+  connect_command: string;
   /** Key pin of the private-LAN bridge, present only when url is that bridge. */
   lan_pin?: string;
 }
@@ -62,4 +64,14 @@ export async function createGuardReinstallCommand(): Promise<GuardReinstallComma
     { method: "POST", body: JSON.stringify({ mode: "reinstall-guard" }) },
   );
   return res.data;
+}
+
+/** Prepare a connect-only pairing using the existing install-command authority. */
+export async function createServerConnection(): Promise<{
+  command: string; pairing: string; expires_at: string; registry_url: string; lan_pin: string;
+}> {
+  const response = await fetchApi<{
+    command: string; pairing: string; expires_at: string; registry_url: string; lan_pin: string;
+  }>("/api/v1/tunnel/install-command", { method: "POST", body: JSON.stringify({ mode: "connect" }) });
+  return response.data;
 }

@@ -1,8 +1,10 @@
 package unifier
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/kombifyio/techstack/internal/stackkitrelease"
@@ -56,6 +58,30 @@ func (l *StackKitLoader) GetKitInfo(name string) (*StackKitInfo, error) {
 		}
 	}
 	return nil, fmt.Errorf("%w: %s", stackkitrelease.ErrKitMetadataNotFound, name)
+}
+
+// MultiNodeFeature is the kit metadata feature with which a StackKits release
+// declares that a deployment of the kit takes additional nodes.
+const MultiNodeFeature = "multiNode"
+
+// ErrMultiNodeJoinUnsupported means the pinned release does not declare
+// multi-node join for the kit, so no server may join its deployments.
+var ErrMultiNodeJoinUnsupported = errors.New("the pinned StackKits release does not declare multi-node join for this StackKit")
+
+// RequireMultiNodeJoin fails closed unless the released metadata of the kit
+// declares MultiNodeFeature. An unknown or unreadable kit is refused too.
+func (l *StackKitLoader) RequireMultiNodeJoin(kit string) error {
+	if strings.TrimSpace(kit) == "" {
+		return fmt.Errorf("%w: no StackKit named", ErrMultiNodeJoinUnsupported)
+	}
+	info, err := l.GetKitInfo(kit)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrMultiNodeJoinUnsupported, err)
+	}
+	if !slices.Contains(info.Features, MultiNodeFeature) {
+		return fmt.Errorf("%w: %s %s", ErrMultiNodeJoinUnsupported, info.Name, info.Version)
+	}
+	return nil
 }
 
 func stackKitInfoFromMetadata(kit stackkitrelease.KitMetadata) *StackKitInfo {

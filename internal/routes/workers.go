@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/techstack/internal/notifications"
 	"github.com/kombifyio/techstack/internal/portinventory"
 	"github.com/kombifyio/techstack/internal/routes/tenantguard"
 	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
@@ -88,6 +89,15 @@ type WorkerRouteConfig struct {
 	// StackKitsUpdates is Techstack's StackKits update management of a node.
 	// Nil leaves updates unmanaged: no proposal and no automatic start.
 	StackKitsUpdates WorkerStackKitsUpdates
+	// ApplicationNotices records the application.vulnerability notice of a
+	// known high advisory affecting a version a Guard reports. Nil sends none.
+	ApplicationNotices notifications.ProductEventEnqueuer
+	// SystemContext marks Guard and agent ingress as system work once its
+	// credential passed the ingress check (platform-3r69a): a Guard carries no
+	// Edge-signed database context, so its transactions run on the hosted
+	// system login. Owner routes on the same prefix keep the application login.
+	// Nil keeps the single serving login (native Local and Guard).
+	SystemContext func(context.Context) context.Context
 }
 
 // WorkerAgentIdentityIssuer is the fail-closed bridge from one claimed
@@ -162,6 +172,8 @@ func RegisterWorkerRoutesWithStore(r *httpx.Router, cfg WorkerRouteConfig) {
 		telemetry:            cfg.Telemetry,
 		userNotices:          cfg.UserNotices,
 		stackKitsUpdates:     cfg.StackKitsUpdates,
+		applicationNotices:   cfg.ApplicationNotices,
+		systemContext:        cfg.SystemContext,
 		updateEvaluator:      newStackKitsUpdateEvaluator(cfg.StackKitsUpdates),
 		entitlements:         cfg.Entitlements,
 		networkRebinder:      cfg.NetworkRebinder,
@@ -173,10 +185,11 @@ func RegisterWorkerRoutesWithStore(r *httpx.Router, cfg WorkerRouteConfig) {
 		bindingKeyBase:       bindingKeyBase,
 		bindingSigner:        cfg.BindingSigner,
 		inventoryGate:        newInventoryProjectionGate(inventoryProjectionBudget),
+		updateRefusals:       newGuardUpdateRefusals(),
 	}
 	r.GET("/api/v1/workers", h.list)
 	registerLimiter := newWorkerRegisterLimiter()
-	r.POST("/api/v1/workers/register", h.register).BindFunc(registerLimiter.middleware()).BindFunc(workerBodyBound(workerRegistrationMaxBodyBytes))
+	r.POST("/api/v1/workers/register", h.register).BindFunc(h.agentSystemWork).BindFunc(registerLimiter.middleware()).BindFunc(workerBodyBound(workerRegistrationMaxBodyBytes))
 	r.POST("/v1/ril/servers/connect", h.connectServer).BindFunc(workerBodyBound(workerSmallBodyLimit))
 	r.POST("/v1/ril/servers/{id}/credential/rotate", h.rotateServerCredential).BindFunc(workerBodyBound(workerSmallBodyLimit))
 	r.POST("/api/v1/workers/{id}/approve", h.approve).BindFunc(workerBodyBound(workerSmallBodyLimit))
@@ -201,24 +214,27 @@ func RegisterWorkerRoutesWithStore(r *httpx.Router, cfg WorkerRouteConfig) {
 	r.POST("/api/v1/workers/{id}/identity/upgrade/approve", h.identityUpgradeApprove).BindFunc(workerBodyBound(4 << 10))
 	r.POST("/api/v1/workers/{id}/identity/upgrade/reject", h.identityUpgradeReject).BindFunc(workerBodyBound(4 << 10))
 	r.GET("/api/v1/workers/{id}/stackkits-update", h.stackKitsUpdate)
-	r.PUT("/api/v1/workers/{id}/stackkits-update/behavior", h.setStackKitsUpdateBehavior).BindFunc(workerBodyBound(1 << 10))
+	// The handler bounds its body itself, so the setting stays a leaf route the
+	// generated MCP tool set_server_update_setting can invoke.
+	r.PUT("/api/v1/workers/{id}/stackkits-update/behavior", h.setStackKitsUpdateBehavior)
 	r.POST("/api/v1/workers/{id}/tenant-handoff", h.confirmTenantHandoff).BindFunc(workerBodyBound(1 << 10))
-	r.POST("/api/v1/workers/tenant-handoffs/verify", h.verifyTenantHandoff).BindFunc(workerBodyBound(4 << 10))
+	r.POST("/api/v1/workers/tenant-handoffs/verify", h.verifyTenantHandoff).BindFunc(h.agentSystemWork).BindFunc(workerBodyBound(4 << 10))
 	r.POST("/api/v1/workers/{id}/reach", h.workerReach).BindFunc(h.workerAgentIngress(workerReachMaxBody))
 	r.POST("/api/v1/workers/{id}/posture", h.workerPosture).BindFunc(h.workerAgentIngress(workerPostureBodyLimit))
 	r.POST("/api/v1/workers/{id}/telemetry", h.workerTelemetry).BindFunc(h.workerAgentIngress(workerTelemetryBodyLimit))
 	r.POST("/api/v1/workers/{id}/user-notification", h.workerUserNotification).BindFunc(h.workerAgentIngress(workerUserNotificationBodyLimit))
-	r.POST("/api/v1/workers/bootstrap/logs", h.ingestBootstrapLog).BindFunc(workerBodyBound(maxBootstrapLogPayload))
+	r.POST("/api/v1/workers/bootstrap/logs", h.ingestBootstrapLog).BindFunc(h.agentSystemWork).BindFunc(workerBodyBound(maxBootstrapLogPayload))
 	h.binaryDownloadGuard = newAgentBinaryDownloadGuard()
-	r.GET("/api/v1/workers/install-pins", h.agentInstallPins)
-	r.POST("/api/v1/agent/binary/{os}/{arch}", h.agentBinary).BindFunc(workerBodyBound(workerSmallBodyLimit))
-	r.POST("/api/v1/agent/release-evidence/{os}/{arch}", h.agentReleaseEvidence).BindFunc(workerBodyBound(workerSmallBodyLimit))
-	r.POST("/api/v1/agent/stackkit-release/{os}/{arch}", h.agentStackKitRelease).BindFunc(workerBodyBound(workerSmallBodyLimit))
+	r.GET("/api/v1/workers/install-pins", h.agentInstallPins).BindFunc(h.agentSystemWork)
+	r.POST("/api/v1/agent/binary/{os}/{arch}", h.agentBinary).BindFunc(h.agentSystemWork).BindFunc(workerBodyBound(workerSmallBodyLimit))
+	r.POST("/api/v1/agent/release-evidence/{os}/{arch}", h.agentReleaseEvidence).BindFunc(h.agentSystemWork).BindFunc(workerBodyBound(workerSmallBodyLimit))
+	r.POST("/api/v1/agent/stackkit-release/{os}/{arch}", h.agentStackKitRelease).BindFunc(h.agentSystemWork).BindFunc(workerBodyBound(workerSmallBodyLimit))
 	r.GET("/install.sh", h.installScript)
 	r.GET("/install.ps1", h.installScriptPS)
 }
 
 type workerRouteHandlers struct {
+	systemContext           func(context.Context) context.Context
 	managedRuntimeLeases    managedRuntimeLeaseLister
 	metricWriter            WorkerMetricWriter
 	wst                     controlplane.WorkerStore
@@ -244,9 +260,13 @@ type workerRouteHandlers struct {
 	binaryArtifact          func() (agentBinaryArtifact, error)
 	stackKitReleaseArtifact func() (agentBinaryArtifact, error)
 	binaryDownloadGuard     *agentBinaryDownloadGuard
-	inventoryGate           *inventoryProjectionGate
-	networkRebinder         NetworkRebinder
-	connectorReconciler     ConnectorReconciler
+	// updateRefusals holds the Guard binary from a Guard that refused it; the
+	// heartbeat fills it, so it exists before any route is bound.
+	updateRefusals      *guardUpdateRefusals
+	inventoryGate       *inventoryProjectionGate
+	networkRebinder     NetworkRebinder
+	connectorReconciler ConnectorReconciler
+	applicationNotices  notifications.ProductEventEnqueuer
 
 	// bindingKeyBase is the secret each worker's command-binding key is derived
 	// from. Empty leaves new Guards unpinned and bindings unsigned.
@@ -749,6 +769,9 @@ type workerHeartbeatRequest struct {
 	GuardJournal *guardbinding.JournalHealth `json:"guard_journal,omitempty"`
 	// GuardPosture is how the Guard is isolated and how its latest update went.
 	GuardPosture *guardbinding.Posture `json:"guard_posture,omitempty"`
+	// GuardTenantRebindStaged acknowledges the id of the tenant rebind offer
+	// the Guard stored (guardidentity.TenantRebindOffer).
+	GuardTenantRebindStaged string `json:"guard_tenant_rebind_staged,omitempty"`
 	hostMaintenanceFacts
 }
 
@@ -911,6 +934,9 @@ func (h workerRouteHandlers) registerWithStore(e *httpx.Event, req workerRegistr
 	// The worker row and its agent identity are persisted: the redemption is
 	// complete and the single-use claim must never be released from here on.
 	enrollmentIssued = true
+	if !isSubstrate {
+		captureServerConnected(worker.OwnerSubjectID, leaseID)
+	}
 	e.Response.Header().Set("Cache-Control", "no-store")
 	return h.writeWorkerEnrollmentResponse(e, workerEnrollmentContext{
 		WorkerID:       worker.ID,

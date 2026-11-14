@@ -59,6 +59,9 @@ func guardLayoutOptions(binary, operations, guardUser string, log *slog.Logger, 
 	return guardlayout.Options{
 		BinaryPath: binary, OperationsPath: operations, GuardUser: guardUser,
 		NotifyReady: true, Activate: activate, Log: log,
+		PowerEnabled:      envBoolDefault(guardPowerAgentEnv, false),
+		PowerServices:     listEnv(guardPowerServicesEnv),
+		PowerStorageUnits: listEnv(guardPowerUnitsEnv),
 		VerifyExecutor: func(ctx context.Context, socket string) error {
 			probe, cancel := context.WithTimeout(ctx, 20*time.Second)
 			defer cancel()
@@ -132,7 +135,7 @@ func migrateGuardLayoutWithOptions(ctx context.Context, log *slog.Logger, option
 func layoutTrialOptions(opts guardexec.Options) guardlayout.Options {
 	binary := firstCLIValue(opts.AgentPath, guardlayout.DefaultBinaryPath)
 	operations := firstCLIValue(opts.OperationsPath, guardlayout.DefaultOperationsPath)
-	return guardlayout.Options{BinaryPath: binary, OperationsPath: operations, GuardUser: firstCLIValue(opts.GuardUser, guardlayout.DefaultUser), NotifyReady: true, Log: opts.Log}
+	return guardlayout.Options{BinaryPath: binary, OperationsPath: operations, GuardUser: firstCLIValue(opts.GuardUser, guardlayout.DefaultUser), NotifyReady: true, PowerEnabled: envBoolDefault(guardPowerAgentEnv, false), PowerServices: listEnv(guardPowerServicesEnv), PowerStorageUnits: listEnv(guardPowerUnitsEnv), Log: opts.Log}
 }
 
 func describeLayoutBudget(opts guardexec.Options) time.Duration {

@@ -36,9 +36,8 @@ type ConnectorSource struct {
 type ConnectorRequest struct {
 	SchemaVersion string `json:"schemaVersion"`
 	Connector     struct {
-		Binding      ConnectorSource `json:"binding"`
-		Action       string          `json:"action"`
-		LifespanDays int             `json:"lifespanDays"`
+		Binding ConnectorSource `json:"binding"`
+		Action  string          `json:"action"`
 	} `json:"connector"`
 }
 type ConnectorDeployment struct {
@@ -57,6 +56,7 @@ type ConnectorIssuer struct {
 	HAUserID         string             `json:"haUserId"`
 	HAVersion        string             `json:"haVersion"`
 	RequestedBinding ConnectorSource    `json:"requestedBinding"`
+	GuardIdentity    string             `json:"guardIdentity"`
 	SecretRef        string             `json:"secretRef"`
 	Status           string             `json:"status"`
 	ObservedAt       time.Time          `json:"observedAt"`
@@ -95,6 +95,10 @@ type ApplicationConnectorEvidence struct {
 	ReceiptBase64          string              `json:"receiptBase64"`
 	ReceiptDigest          string              `json:"receiptDigest"`
 	CurrentLocalDeployment ConnectorDeployment `json:"currentLocalDeployment"`
+	// CurrentIssuer is the node's Owner-signed issuer evidence of the
+	// rotating credential it holds now; the signed receipt names the
+	// generation of setup.
+	CurrentIssuer *ConnectorIssuer `json:"currentIssuer,omitempty"`
 }
 
 func IsApplicationConnectorOperation(op agentpb.StackKitOperation) bool {
@@ -132,7 +136,7 @@ func DecodeConnectorRequest(raw []byte) (ConnectorRequest, error) {
 		return r, err
 	}
 	b := r.Connector.Binding
-	if r.SchemaVersion != ApplicationConnectorRequestSchema || !commandIDPattern.MatchString(b.ResourceID) || !sha256Pattern.MatchString(b.ContainerID) || !specHashPattern.MatchString(b.ImageDigest) || b.ServiceRevision <= 0 || r.Connector.LifespanDays < 1 || r.Connector.LifespanDays > 365 || (r.Connector.Action != "ensure" && r.Connector.Action != "revoke") {
+	if r.SchemaVersion != ApplicationConnectorRequestSchema || !commandIDPattern.MatchString(b.ResourceID) || !sha256Pattern.MatchString(b.ContainerID) || !specHashPattern.MatchString(b.ImageDigest) || b.ServiceRevision <= 0 || (r.Connector.Action != "ensure" && r.Connector.Action != "revoke") {
 		return r, fmt.Errorf("connector request has no closed source/action binding")
 	}
 	for _, ref := range []string{b.Node.SiteRef, b.Node.NodeRef, b.Node.ExecutionChannelRef} {
@@ -215,7 +219,7 @@ func ParseApplicationConnectorEvidence(c *agentpb.StackKitCommand, result *agent
 	validSignature := func(signature ConnectorSignature) bool {
 		return signature.OwnerRef != "" && signature.KeyID != "" && signature.Value != ""
 	}
-	if s.APIVersion != "stackkit.application-setup-result/v1" || s.WorkloadRef != "smart-home" || s.OperationID != c.ApplicationOperationId || s.ActionRef != "home-assistant-owner-bootstrap" || !specHashPattern.MatchString(s.ApplyResultHash) || !specHashPattern.MatchString(s.ArtifactDigest) || !specHashPattern.MatchString(s.Authority.PlanHash) || !specHashPattern.MatchString(s.Authority.LifecycleContractHash) || s.Authority.LifecycleVersion == "" || s.Authority.PackageRef == "" || (c.ExpectedPlanHash != "" && c.ExpectedPlanHash != s.Authority.PlanHash) || s.InstanceRef == "" || s.AccountRef == "" || !s.Initialized || !s.AdminLoginVerified || !s.OnboardingComplete || s.VerifiedAt.IsZero() || s.VerifiedAt.After(time.Now().Add(time.Minute)) || !validSignature(receipt.Signature) || !validSignature(i.Signature) || i.OwnerRef != receipt.Signature.OwnerRef || i.OwnerRef != i.Signature.OwnerRef || i.RequestedBinding != b || i.Status != wantStatus || i.HAUserID != s.AccountRef || i.HAVersion != s.ApplicationVersion || !strings.HasPrefix(i.SecretRef, "secret://home-assistant/connector/") || !sha256Pattern.MatchString(strings.TrimPrefix(i.SecretRef, "secret://home-assistant/connector/")) || i.ObservedAt.IsZero() || i.ObservedAt.After(time.Now().Add(time.Minute)) || (wantStatus == "active" && !i.ExpiresAt.After(time.Now())) || local != s.HomeAssistantConnector.VerifiedLocalDeployment || local.Node != b.Node || local.ContainerID != b.ContainerID || local.ImageDigest != b.ImageDigest || local.InstanceRef != s.InstanceRef {
+	if s.APIVersion != "stackkit.application-setup-result/v1" || s.WorkloadRef != "smart-home" || s.OperationID != c.ApplicationOperationId || s.ActionRef != "home-assistant-owner-bootstrap" || !specHashPattern.MatchString(s.ApplyResultHash) || !specHashPattern.MatchString(s.ArtifactDigest) || !specHashPattern.MatchString(s.Authority.PlanHash) || !specHashPattern.MatchString(s.Authority.LifecycleContractHash) || s.Authority.LifecycleVersion == "" || s.Authority.PackageRef == "" || (c.ExpectedPlanHash != "" && c.ExpectedPlanHash != s.Authority.PlanHash) || s.InstanceRef == "" || s.AccountRef == "" || !s.Initialized || !s.AdminLoginVerified || !s.OnboardingComplete || s.VerifiedAt.IsZero() || s.VerifiedAt.After(time.Now().Add(time.Minute)) || !validSignature(receipt.Signature) || !validSignature(i.Signature) || i.OwnerRef != receipt.Signature.OwnerRef || i.OwnerRef != i.Signature.OwnerRef || i.RequestedBinding != b || i.Status != wantStatus || i.HAUserID != s.AccountRef || i.HAVersion != s.ApplicationVersion || !strings.HasPrefix(i.SecretRef, "secret://home-assistant/connector/") || !sha256Pattern.MatchString(strings.TrimPrefix(i.SecretRef, "secret://home-assistant/connector/")) || i.ObservedAt.IsZero() || i.ObservedAt.After(time.Now().Add(time.Minute)) || (wantStatus == "active" && !currentConnectorIssuerMatches(i, e.CurrentIssuer)) || local != s.HomeAssistantConnector.VerifiedLocalDeployment || local.Node != b.Node || local.ContainerID != b.ContainerID || local.ImageDigest != b.ImageDigest || local.InstanceRef != s.InstanceRef {
 		return fail()
 	}
 	return e, receipt, nil
@@ -272,4 +276,18 @@ func rejectConnectorDuplicateKeys(raw []byte) error {
 		return fmt.Errorf("connector document contains trailing data")
 	}
 	return nil
+}
+
+// currentConnectorIssuerMatches admits the node's current issuer evidence of
+// an active connector only when it is Owner-signed by the receipt's Owner,
+// names the same owner, user, version, binding, Guard identity and secret
+// reference, is fresh and active, and its expiry is current and not before
+// the receipt's (rotation only moves it later).
+func currentConnectorIssuerMatches(receipt ConnectorIssuer, current *ConnectorIssuer) bool {
+	now := time.Now()
+	return current != nil && strings.HasPrefix(receipt.GuardIdentity, "guard:") && current.Signature.OwnerRef == receipt.OwnerRef &&
+		current.Signature.KeyID != "" && current.Signature.Value != "" && current.OwnerRef == receipt.OwnerRef && current.HAUserID == receipt.HAUserID &&
+		current.HAVersion == receipt.HAVersion && current.RequestedBinding == receipt.RequestedBinding && current.GuardIdentity == receipt.GuardIdentity &&
+		current.SecretRef == receipt.SecretRef && current.Status == "active" && !current.ObservedAt.IsZero() && !current.ObservedAt.After(now.Add(time.Minute)) &&
+		now.Sub(current.ObservedAt) < 10*time.Minute && current.ExpiresAt.After(now) && !current.ExpiresAt.Before(receipt.ExpiresAt)
 }

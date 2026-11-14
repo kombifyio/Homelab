@@ -9,9 +9,11 @@
   Dispatches 'oncreate' event with StackConfig when the person creates the
   homelab on the last step.
 
-  Answers survive a reload (draftKey): the non-secret part of the config is
-  kept in sessionStorage for this tab and ends when the creation is accepted
-  or the person chooses to leave. Passwords and passphrases are never stored.
+  Answers and the step continue in every frame and on every device (draftKey):
+  Techstack keeps the non-secret part of the config per owner and process until
+  the creation is accepted, the person chooses to leave, or it expires.
+  Passwords and passphrases are never stored. The steps open once the kept
+  draft was read.
 
   The step is part of the address (`?step=goals`), one history entry per step:
   the browser's back and forward buttons move between steps, and every step
@@ -38,6 +40,7 @@
   import type {
     LayoutRecommendationAcceptance,
     LayoutRecommendationView,
+    LayoutRunTarget,
   } from "#lib/api/layout.js";
   import { tr } from "#lib/i18n.svelte.js";
   import {
@@ -50,6 +53,7 @@
   import { appCreationContext } from "#lib/creation/app-context.svelte.js";
   import { provideCreationContext } from "#lib/creation/context.js";
   import {
+    creationShownSteps,
     creationStepKey,
     creationStepNumber,
     creationStepOnly,
@@ -58,10 +62,12 @@
   } from "#lib/creation/core/index.js";
   import { CreationFrame } from "#lib/creation/frame.svelte.js";
   import { CREATION_MODULES } from "#lib/creation/modules.js";
+  import LoadingNote from "#lib/components/ui/LoadingNote.svelte";
   import type { HomelabServerSelection } from "#lib/creation/homelab-servers.js";
   import {
     emitCreationEvent,
     guardCreationClose,
+    keepCreationDraftBeforeLeaving,
     useCreationEntry,
   } from "#lib/creation/host.js";
   import { onCreationCommand } from "#lib/stores/postMessageBridge.js";
@@ -73,11 +79,16 @@
      * Called when the person creates on the last step. `layoutRecommendation`
      * is the recommended distribution the person was shown, present only when
      * it is recorded, open and verified against their hardware; the run request
-     * carries it, and finishing the run accepts it.
+     * carries it, and finishing the run accepts it. `layoutTarget` is the
+     * deployment that run must extend, which can be another deployment of the
+     * homelab than `layoutStackId`.
      */
     oncreate?: (
       config: StackConfig,
-      extras?: { layoutRecommendation?: LayoutRecommendationAcceptance },
+      extras?: {
+        layoutRecommendation?: LayoutRecommendationAcceptance;
+        layoutTarget?: LayoutRunTarget;
+      },
     ) => void;
     initialConfig?: StackConfig;
     isDeploying?: boolean;
@@ -85,8 +96,8 @@
     submitLabel?: string;
     submittingLabel?: string;
     /**
-     * Keeps the entered answers across a reload under this name. Without it
-     * nothing is stored (surfaces that join an existing homelab).
+     * Keeps the entered answers and the step under this name, per owner, for
+     * every frame and device. Without it nothing is kept.
      */
     draftKey?: string;
     /**
@@ -132,6 +143,9 @@
   // Inside the embedded module the host owns the page around this frame: its
   // dialog has no place in the browser's history, and one step can stand alone.
   const entry = useCreationEntry();
+  // Hosted, the frame fits the host's screen: one continue control at the
+  // top, and the step below it takes the remaining height.
+  const hosted = entry !== null;
   const singleStep = $derived(
     entry?.frame === "step" && entry.step && !requestedProcess.inactive[entry.step]
       ? entry.step
@@ -183,7 +197,25 @@
   });
   const session = frame.session;
   const standardBundle = ACTIVE_STANDARD_BUNDLE;
-  const surfaceSteps = EASY_STEPS;
+  // The steps in the process's order, numbered by their place in it. A
+  // process for one use case calls its Goals step by that use case.
+  const shownSteps = $derived(creationShownSteps(process));
+  const surfaceSteps = $derived(
+    shownSteps.map((key, index) => {
+      const step = EASY_STEPS.find((candidate) => candidate.key === key);
+      const focusLabel = key === "goals" && Boolean(process.focusGoal);
+      return {
+        id: index + 1,
+        key,
+        get label() {
+          return focusLabel ? tr("wizard.step.useCase") : (step?.label ?? key);
+        },
+        labelKey: focusLabel ? "wizard.step.useCase" : step?.labelKey,
+      };
+    }),
+  );
+  const stepNumber = (key: CreationStepKey) =>
+    creationStepNumber(key, shownSteps);
 
   // The app's own dialog replaces window.confirm. It answers later than the
   // navigation asks, so the navigation is cancelled first and repeated once
@@ -259,17 +291,19 @@
 
   const disabledStepReasons = $derived(
     Object.fromEntries(
-      Object.entries(process.inactive).map(([key, reason]) => [
-        creationStepNumber(key as CreationStepKey),
-        tr(reason),
-      ]),
+      Object.entries(process.inactive)
+        .filter(([key]) => shownSteps.includes(key as CreationStepKey))
+        .map(([key, reason]) => [
+          stepNumber(key as CreationStepKey),
+          tr(reason),
+        ]),
     ),
   );
-  const reachableSteps = $derived(frame.reachableSteps.map(creationStepNumber));
+  const reachableSteps = $derived(frame.reachableSteps.map(stepNumber));
   const stepSummaries = $derived(
     Object.fromEntries(
       frame.reachableSteps.map((key) => [
-        creationStepNumber(key),
+        stepNumber(key),
         CREATION_MODULES[key].summary(frame.config, frame),
       ]),
     ),
@@ -332,7 +366,7 @@
     if (!entry) return;
     const stopCommands = onCreationCommand((command) => {
       if (command.command === "go-to-step")
-        void goTo(creationStepNumber(command.step));
+        void goTo(stepNumber(command.step));
     });
     const stopGuard = guardCreationClose(async () => {
       if (!frame.hasUnsavedAnswers) return true;
@@ -346,9 +380,11 @@
       if (leave) frame.forgetDraft();
       return leave;
     });
+    const stopKeep = keepCreationDraftBeforeLeaving(() => frame.flushDraft());
     return () => {
       stopCommands();
       stopGuard();
+      stopKeep();
     };
   });
 
@@ -357,6 +393,8 @@
   let urlStepSynced = false;
   $effect(() => {
     const key = currentUrl.searchParams.get("step");
+    // A kept draft decides which steps are reached; the address waits for it.
+    if (frame.draftLoading) return;
     untrack(() => {
       const requested = creationStepKey(key);
       const reachable =
@@ -388,6 +426,14 @@
   });
 
   async function goNext() {
+    // Step 1 first leaves its choice for the configuration of the chosen
+    // use cases; an empty choice falls through to the usual validation.
+    if (frame.goalsPicking) {
+      frame.goalsStage = "configure";
+      frame.attempted = false;
+      await revealStep();
+      return;
+    }
     frame.attempted = true;
     const move = session.next();
     if (move.kind === "moved") {
@@ -402,6 +448,11 @@
   }
 
   async function goPrev() {
+    if (frame.goalsConfiguring) {
+      frame.goalsStage = "pick";
+      await revealStep();
+      return;
+    }
     const move = session.prev();
     if (move.kind !== "moved") return;
     writeStep(move.step, false);
@@ -412,7 +463,7 @@
   // A click on a reached step. Forward, every step on the way must still be
   // complete; the first one that is not opens with what is missing.
   async function goTo(target: number) {
-    const key = creationStepKey(target);
+    const key = creationStepKey(target, shownSteps);
     if (!key) return;
     const before = frame.current;
     const move = session.goTo(key);
@@ -458,6 +509,7 @@
 
     oncreate?.(frame.finalizedConfig(), {
       layoutRecommendation: frame.layoutAcceptance,
+      layoutTarget: frame.layoutTarget,
     });
   }
 
@@ -469,8 +521,11 @@
 </script>
 
 <div
-  class="w-full min-w-0"
+  class={hosted
+    ? "flex min-h-0 w-full min-w-0 flex-1 flex-col"
+    : "w-full min-w-0"}
   data-testid="easy-wizard"
+  data-creation-hosted={hosted ? "true" : undefined}
   onpointerdowncapture={() => (frame.interacted = true)}
   onkeydowncapture={() => (frame.interacted = true)}
   onclickcapture={() => (frame.interacted = true)}
@@ -479,6 +534,9 @@
   data-standard-bundle-id={standardBundle.id}
   data-standard-bundle-version={standardBundle.version}
 >
+  {#if frame.draftLoading}
+    <LoadingNote label={tr("common.loading")} />
+  {:else}
   {#if frame.draftRestored}
     <p
       class="mb-6 flex items-start justify-between gap-3 rounded-lg border border-info/30 bg-info/10 px-4 py-3 text-sm text-foreground"
@@ -547,20 +605,24 @@
     deployLabel={submitLabel}
     deployingLabel={submittingLabel}
     blockedReason={nodeAlternative ? "" : frame.blockedReason}
+    innerBack={frame.goalsConfiguring}
+    innerForward={frame.goalsPicking}
     onprev={goPrev}
     onnext={goNext}
     ondeploy={handleCreate}
     {reachableSteps}
     {stepSummaries}
     onselect={goTo}
+    dense={hosted}
   />
   {/if}
 
   <div
     bind:this={stepContent}
     tabindex="-1"
-    class="mx-auto w-full min-w-0 scroll-mt-6 outline-none {frame.current ===
-      'goals' || frame.current === 'server'
+    class="mx-auto w-full min-w-0 scroll-mt-6 outline-none {hosted
+      ? 'min-h-0 flex-1 overflow-y-auto overscroll-contain'
+      : ''} {frame.current === 'goals' || frame.current === 'server'
       ? ''
       : 'max-w-4xl'}"
   >
@@ -580,13 +642,22 @@
     {/if}
   </div>
   {#if footerNotice}
-    <!-- Takes no room while the notice has nothing to show. -->
+    <!-- Takes no room while the notice has nothing to show; as wide as the
+         step above it. -->
     <div
-      class="mx-auto mt-8 hidden w-full min-w-0 max-w-4xl space-y-4 has-[*]:block"
+      class="mx-auto hidden w-full min-w-0 space-y-4 has-[*]:block {hosted
+        ? 'mt-3 max-h-[40%] shrink-0 overflow-y-auto'
+        : 'mt-8'} {frame.current ===
+        'goals' || frame.current === 'server'
+        ? ''
+        : 'max-w-4xl'}"
     >
       {@render footerNotice()}
     </div>
   {/if}
+  <!-- Hosted, the bar at the top is the one continue control; a step shown
+       alone has no bar there and keeps this one. -->
+  {#if !hosted || singleStep}
   <Stepper
     navigationOnly
     steps={surfaceSteps}
@@ -599,8 +670,12 @@
     deployLabel={submitLabel}
     deployingLabel={submittingLabel}
     blockedReason={nodeAlternative ? "" : frame.blockedReason}
+    innerBack={frame.goalsConfiguring}
+    innerForward={frame.goalsPicking}
     onprev={goPrev}
     onnext={goNext}
     ondeploy={handleCreate}
   />
+  {/if}
+  {/if}
 </div>

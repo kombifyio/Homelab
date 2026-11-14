@@ -16,6 +16,7 @@ import (
 	ksapi "github.com/kombifyio/techstack/pkg/api"
 	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/guardposture"
+	"github.com/kombifyio/techstack/pkg/guardpower"
 	"github.com/kombifyio/techstack/pkg/guardreach"
 	"github.com/kombifyio/techstack/pkg/httpx"
 	"github.com/kombifyio/techstack/pkg/kombifywallet"
@@ -66,6 +67,9 @@ type ServerRuntimeRouteConfig struct {
 	// (GET /servers/{id}/network and POST /servers/{id}/network/rebind). Nil
 	// leaves them unregistered.
 	Network *ServerNetworkRouteConfig
+	// HostOperations serves the owner's host inspection and action routes
+	// under /api/v1/servers/{serverId}/host/. Nil leaves them unregistered.
+	HostOperations *ServerHostOperationsRouteConfig
 	// BindingRepair registers POST /api/v1/servers/{serverId}/binding-repair
 	// and advertises re_pair. Nil leaves both absent.
 	BindingRepair BindingRepairMinter
@@ -122,6 +126,7 @@ type serverRuntimeHandlers struct {
 	currentMTLSIdentity     func(tenantID, workerID string) string
 	currentMTLSCapabilities func(controlplane.ServerRuntime) ([]string, bool)
 	network                 *ServerNetworkRouteConfig
+	hostOps                 *serverHostOperationsHandlers
 	// availabilityReader and availabilityConfirmer back the node availability
 	// routes. They are the canonical server store itself; a store that cannot
 	// serve a windowed transition read or the confirmation write leaves the
@@ -184,6 +189,9 @@ type serverRuntimeResponse struct {
 	Security *guardposture.Security `json:"security,omitempty"`
 	Recovery *guardposture.Recovery `json:"recovery,omitempty"`
 	Updates  *guardposture.Updates  `json:"updates,omitempty"`
+	// Power is the persisted UPS-aware power protection of this Guard. A Guard
+	// without UPS protection reports no section, never "protected".
+	Power *guardpower.View `json:"power,omitempty"`
 	// Capabilities are the Guard facts the control plane persisted for this
 	// server's worker; see serverRuntimeCapabilities.
 	Capabilities *serverRuntimeCapabilities `json:"capabilities,omitempty"`
@@ -244,7 +252,7 @@ func RegisterServerRuntimeRoutes(r *httpx.Router, cfg ServerRuntimeRouteConfig) 
 		cfg.Now = func() time.Time { return time.Now().UTC() }
 	}
 	_, reachControl := cfg.Reach.(ServerReachControl)
-	if (cfg.Detacher != nil || cfg.Maintenance != nil || cfg.Posture != nil || reachControl || cfg.Network != nil) && cfg.Policy == nil {
+	if (cfg.Detacher != nil || cfg.Maintenance != nil || cfg.Posture != nil || reachControl || cfg.Network != nil || cfg.HostOperations != nil) && cfg.Policy == nil {
 		panic("RegisterServerRuntimeRoutes: inventory policy required for server detach, maintenance, security repair and reach")
 	}
 	h := serverRuntimeHandlers{
@@ -254,6 +262,7 @@ func RegisterServerRuntimeRoutes(r *httpx.Router, cfg ServerRuntimeRouteConfig) 
 		roundTrips:              cfg.RoundTrips,
 		currentMTLSIdentity:     cfg.CurrentMTLSIdentity,
 		network:                 cfg.Network,
+		hostOps:                 newServerHostOperationsHandlers(cfg.HostOperations),
 		currentMTLSCapabilities: cfg.CurrentMTLSCapabilities,
 		walletWithdraw:          cfg.WalletWithdraw,
 		bindingRepair:           cfg.BindingRepair,
@@ -282,6 +291,12 @@ func RegisterServerRuntimeRoutes(r *httpx.Router, cfg ServerRuntimeRouteConfig) 
 	if h.network != nil && h.network.Workers != nil {
 		r.GET("/api/v1/servers/{serverId}/network", h.networkRead)
 		r.POST("/api/v1/servers/{serverId}/network/rebind", h.networkRebind)
+	}
+	if h.hostOps != nil {
+		r.GET("/api/v1/servers/{serverId}/host/processes", h.hostProcesses)
+		r.GET("/api/v1/servers/{serverId}/host/containers", h.hostContainers)
+		r.POST("/api/v1/servers/{serverId}/host/container-actions", h.hostContainerAction)
+		r.POST("/api/v1/servers/{serverId}/host/systemd-actions", h.hostSystemdAction)
 	}
 	if h.posture != nil {
 		r.POST("/api/v1/servers/{serverId}/security/verify", h.postureVerify)
