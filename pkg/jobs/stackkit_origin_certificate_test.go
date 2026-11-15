@@ -14,8 +14,9 @@ import (
 	"encoding/pem"
 	"fmt"
 	"github.com/kombifyio/techstack/internal/gocommon/edgeauth"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/features"
+	"github.com/kombifyio/techstack/pkg/identity"
+	"github.com/kombifyio/techstack/pkg/middleware"
+
 	"math/big"
 	"os"
 	"path/filepath"
@@ -398,43 +399,58 @@ func TestPublicTLSRepairRedispatchesApplyAfterTheCertificateInstall(t *testing.T
 	}
 }
 
-func TestJobFlagsRetainOnlyRequestDecisions(t *testing.T) {
-	for _, tc := range []struct {
-		name  string
-		flags map[string]bool
-		want  bool
-	}{
-		{"signed on", map[string]bool{"self.healing.enabled": true}, true},
-		{"signed off", map[string]bool{"self.healing.enabled": false}, false},
-		{"empty signed map", map[string]bool{}, false},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			job := &Job{Payload: map[string]interface{}{"edge_flags": map[string]bool{"self.healing.enabled": !tc.want}}}
-			request := edgeauth.FlagsToContext(t.Context(), edgeauth.FlagSet{Flags: tc.flags})
-			CopyEdgeFlagsFromContext(request, job)
-			svc, err := features.NewService(nil, features.ServiceConfig{Edition: config.EditionSaaSStandalone})
-			if err != nil {
-				t.Fatal(err)
-			}
-			ctx := contextWithJobEdgeFlags(context.Background(), job)
-			got, err := svc.IsEnabled(ctx, "self_healing", "synthetic-owner")
-			if err != nil || got != tc.want {
-				t.Fatalf("job decision=%v,%v want=%v", got, err, tc.want)
-			}
-			// The persisted payload, including any pre-cutover flags, cannot grant after restart.
-			data, err := json.Marshal(job)
-			if err != nil {
-				t.Fatal(err)
-			}
-			var restored Job
-			if err := json.Unmarshal(data, &restored); err != nil {
-				t.Fatal(err)
-			}
-			restoredCtx := contextWithJobEdgeFlags(context.Background(), &restored)
-			got, err = svc.IsEnabled(restoredCtx, "self_healing", "synthetic-owner")
-			if err != nil || got {
-				t.Fatalf("restored payload granted feature: %v,%v", got, err)
-			}
-		})
+func TestJobPayloadAuthoritySurvivesRequestAndRejectsTransplant(t *testing.T) {
+	job := &Job{ID: "job-1", Type: JobTypeDeploy, TargetID: "stack-1", Payload: map[string]interface{}{"tenant_id": "tenant", "owner_id": "owner"}}
+	request := identity.NewContext(t.Context(), &identity.Identity{UserID: "owner", OrgID: "tenant"})
+	request = middleware.WithMembershipEntitlements(request, "techstack.inventory.operate", "techstack.inventory.provision")
+	request = edgeauth.FlagsToContext(request, edgeauth.FlagSet{Flags: map[string]bool{"self.healing.enabled": true}})
+	CaptureJobAuthorization(request, job, "tenant", "owner")
+	data, err := json.Marshal(job)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var restored Job
+	if err := json.Unmarshal(data, &restored); err != nil {
+		t.Fatal(err)
+	}
+	for _, current := range []*Job{job, &restored} {
+		ctx := contextWithJobAuthorization(context.Background(), current)
+		if _, present := edgeauth.FlagsFromContext(ctx); present {
+			t.Fatal("worker inherited request flags")
+		}
+		grants, source, ok := middleware.AuthorizedEntitlementsFromContext(ctx)
+		if !ok || source != middleware.EntitlementSourceJobPayload || !grants.Has("techstack.inventory.operate") || grants.Has("techstack.inventory.provision") {
+			t.Fatal("job did not preserve its exact bounded operate grant")
+		}
+		if _, signed := middleware.SignedEntitlementsFromContext(ctx); signed {
+			t.Fatal("job payload pretended to be an edge signature")
+		}
+	}
+	for _, mutate := range []func(*Job){func(j *Job) { j.ID = "different" }, func(j *Job) { j.Type = JobTypeDestroy }, func(j *Job) { j.TargetID = "other-stack" }, func(j *Job) { j.Payload["tenant_id"] = "other" }, func(j *Job) { j.Payload["owner_id"] = "other" }} {
+		var transplanted Job
+		if err := json.Unmarshal(data, &transplanted); err != nil {
+			t.Fatal(err)
+		}
+		mutate(&transplanted)
+		if _, _, ok := middleware.AuthorizedEntitlementsFromContext(contextWithJobAuthorization(context.Background(), &transplanted)); ok {
+			t.Fatal("transplanted job granted authority")
+		}
+	}
+}
+
+func TestJobAdmissionDiscardsInjectedAuthorityAndSupportsResultScope(t *testing.T) {
+	job := &Job{ID: "job-1", Type: JobTypeDeploy, TargetID: "stack-1", Result: map[string]interface{}{"tenant_id": "tenant", "owner_id": "owner"}}
+	ctx := identity.NewContext(t.Context(), &identity.Identity{UserID: "owner", OrgID: "tenant"})
+	ctx = middleware.WithMembershipEntitlements(ctx, "techstack.inventory.read")
+	CaptureJobAuthorization(ctx, job, "tenant", "owner")
+	grants, _, ok := middleware.AuthorizedEntitlementsFromContext(contextWithJobAuthorization(context.Background(), job))
+	if !ok || !grants.Has("techstack.inventory.read") || grants.Has("techstack.inventory.operate") {
+		t.Fatal("result-scoped job did not receive its exact read grant")
+	}
+	// Re-admission always replaces an imported reserved field, even when the
+	// caller has no authority. Persisted recovery inputs are server-owned rows.
+	CaptureJobAuthorization(context.Background(), job, "tenant", "owner")
+	if _, _, ok := middleware.AuthorizedEntitlementsFromContext(contextWithJobAuthorization(context.Background(), job)); ok {
+		t.Fatal("untrusted payload retained authority at admission")
 	}
 }

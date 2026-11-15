@@ -8,6 +8,10 @@ export interface BoxSettings {
   wake?: { enabled?: boolean; phrase?: string };
   assist?: {
     max_followups?: number;
+    /** Keep listening after a reply (conversation mode); Box default on. */
+    conversation?: boolean;
+    /** Request time limit in seconds, 30 to 3600; 0 restores the Box default. */
+    turn_max_s?: number;
     sound_cues?: boolean;
     sound_cue_style?: "chime" | "pop" | "glass" | "bell";
     voice?: "auto" | "female" | "male";
@@ -97,6 +101,8 @@ export function parseBoxSettings(value: unknown): BoxSettings | null {
     },
     assist: {
       max_followups: (v) => integer(v, 0, 3),
+      conversation: (v) => typeof v === "boolean",
+      turn_max_s: (v) => v === 0 || integer(v, 30, 3600),
       sound_cues: (v) => typeof v === "boolean",
       sound_cue_style: (v) =>
         typeof v === "string" && ["chime", "pop", "glass", "bell"].includes(v),
@@ -333,9 +339,17 @@ export function supportsSetting(device: EdgeDevice, path: string): boolean {
  * `reported.supports` has no such setting, and a watch never has one.
  */
 export function supportsDesign(device: EdgeDevice): boolean {
+  return supportsListed(device, "display.design");
+}
+
+/**
+ * Whether a Box lists this setting in `reported.supports`. For settings newer
+ * than the supports list itself: a Box without the list never gets them.
+ */
+export function supportsListed(device: EdgeDevice, path: string): boolean {
   if (device.kind !== "kombify-box") return false;
   const supports = device.reported.supports;
-  return Array.isArray(supports) && supports.includes("display.design");
+  return Array.isArray(supports) && supports.includes(path);
 }
 
 /** Options come only from this board; never widen them with a dashboard default. */

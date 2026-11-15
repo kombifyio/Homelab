@@ -9,13 +9,16 @@ clients upgrade in place: the MSBuild property `DesktopEdition` with the values
 `Local` and `Cloud`, `DesktopEdition.cs` (`local`, `cloud`), the installer file
 names, the `windows-cloud-beta` feed and tags, upgrade codes, install folders,
 state paths and the registry key. Only the installer display names
-("kombify Techstack Standalone", "kombify Techstack Connected", the
+("Techstack Standalone", "Techstack Connected", the
 `DesktopEditionName` value of the WiX build) and the text customers read use the
 new names.
 
 The reusable profile-validation and Windows secret-custody boundary lives in
 `Kombify.Client.Shell`; Techstack-specific runtime supervision, routes,
-branding and UI remain in `Kombify.TechStack.Client`.
+branding and UI remain in `Kombify.TechStack.Client`. The shell also carries the
+client of the desktop Companion's local interface (Companion AppLink v1,
+`Kombify.Client.Shell/README.md`); the Techstack client references it from
+source but has no Companion switch in its settings yet.
 
 - `kombify-techstack-client.exe` is the WinForms/WebView2 desktop app.
 - `techstack.exe` remains the runtime/CLI binary.

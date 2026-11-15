@@ -285,7 +285,7 @@
           class="h-12 w-auto max-w-full object-contain"
         />
       </div>
-      <h1 class="text-3xl font-semibold">kombify Techstack</h1>
+      <h1 class="text-3xl font-semibold">Techstack</h1>
       <p class="text-sm text-muted-foreground">
         {#if recovery}
           {tr("ui.login.emergencyRecoveryOnlyDayTo")}

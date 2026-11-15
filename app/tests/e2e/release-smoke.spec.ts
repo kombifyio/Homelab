@@ -248,7 +248,7 @@ test.describe.serial("Release Smoke (Render deploy gate)", () => {
     await page.waitForTimeout(1000);
 
     await expect(
-      page.getByRole("heading", { name: "kombify Techstack" }),
+      page.getByRole("heading", { name: "Techstack" }),
     ).toBeVisible();
 
     const methods = await fetchAuthMethods(request);

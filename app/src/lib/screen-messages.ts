@@ -125,7 +125,7 @@ export const screenMessages = {
     "ui.clientLocal.localSignInFailed": "Local sign-in failed.",
     "ui.clientLocal.localTechstackSetup": "Local TechStack setup.",
     "ui.clientLocal.localTechstackSetupKombifyTechstack":
-      "Local TechStack setup | kombify Techstack",
+      "Local TechStack setup | Techstack",
     "ui.clientLocal.ownerName": "Owner name: {name}",
     "ui.clientLocal.password": "Password",
     "ui.clientLocal.selfHostedLocalOwner": "Self-hosted local owner",
@@ -142,7 +142,7 @@ export const screenMessages = {
     "ui.clientOnboarding.noTechstackAccountRequiredTechstack":
       "No Techstack account required. Techstack runs on this device and opens a token-protected enrollment channel for your private network.",
     "ui.clientOnboarding.setUpKombifyTechstackOn":
-      "Set up kombify Techstack on this Windows device.",
+      "Set up Techstack on this Windows device.",
     "ui.clientOnboarding.signInWithKombifyCloud": "Sign in with kombify Cloud",
     "ui.clientOnboarding.signInWithYourKombify":
       "Sign in with your kombify Cloud account and connect this desktop client.",
@@ -155,7 +155,7 @@ export const screenMessages = {
     "ui.clientOnboarding.useYourOwnSelfHosted":
       "Use your own self-hosted server instead",
     "ui.clientOnboarding.windowsClientOnboardingKombifyTechstack":
-      "Windows Client Onboarding | kombify Techstack",
+      "Windows Client Onboarding | Techstack",
     "ui.cockpitSnapshot.monitoringCockpitCouldNotBe":
       "Monitoring cockpit could not be refreshed.",
     "ui.common.copiedCheck": "✓ Copied",
@@ -194,7 +194,7 @@ export const screenMessages = {
       "Something unexpected went wrong. Try again. If it keeps happening, contact support and share the technical details.",
     "ui.configurationFlow.authenticationRequired": "Authentication required",
     "ui.configurationFlow.cannotConnectToBackend":
-      "kombify Techstack can't be reached",
+      "Techstack can't be reached",
     "ui.configurationFlow.deploymentFailed": "Your Homelab couldn't be created",
     "ui.configurationFlow.managedServerIsNotActive":
       "Managed server is not active",
@@ -453,11 +453,44 @@ export const screenMessages = {
     "ui.hypervisorSelection.ramMib": "RAM (MiB)",
     "ui.identity.alien": "Alien",
     "ui.identity.astronaut": "Astronaut",
+    "ui.identity.cat": "Cat",
     "ui.identity.circuit": "Circuit",
     "ui.identity.cybershield": "Cybershield",
     "ui.identity.dragon": "Dragon",
+    "ui.identity.editor.animations": "Animations",
+    "ui.identity.editor.collapse": "Collapse",
+    "ui.identity.editor.customize": "Customize",
+    "ui.identity.editor.futuristic": "Futuristic",
+    "ui.identity.editor.glowColor": "Glow color",
+    "ui.identity.editor.iconStyle": "Icon style",
+    "ui.identity.editor.notSavedYet": "Not saved yet",
+    "ui.identity.editor.playful": "Playful",
+    "ui.identity.editor.resetToDefault": "Reset to default",
+    "ui.identity.editor.save": "Save",
+    "ui.identity.editor.saved": "Saved",
+    "ui.identity.editor.savedAt": "Saved {date}",
+    "ui.identity.editor.saving": "Saving…",
+    "ui.identity.editor.select": "Select {label}",
+    "ui.identity.editor.selectGlow": "Select {label} glow",
+    "ui.identity.editor.stackNamePlaceholder": "Stack name…",
+    "ui.identity.editor.toggleAnimations": "Toggle identity animations",
+    "ui.identity.editor.unknown": "Unknown",
     "ui.identity.ghost": "Ghost",
+    "ui.identity.glow.default": "Default",
+    "ui.identity.glow.ember": "Ember",
+    "ui.identity.glow.forest": "Forest",
+    "ui.identity.glow.mint": "Mint",
+    "ui.identity.glow.neon": "Neon",
+    "ui.identity.glow.ocean": "Ocean",
+    "ui.identity.glow.rose": "Rose",
+    "ui.identity.glow.sunset": "Sunset",
+    "ui.identity.glow.violet": "Violet",
     "ui.identity.hologram": "Hologram",
+    "ui.identity.home": "Home",
+    "ui.identity.iconStyle.filled": "Filled",
+    "ui.identity.iconStyle.glass": "Glass",
+    "ui.identity.iconStyle.gradient": "Gradient",
+    "ui.identity.iconStyle.outlined": "Outlined",
     "ui.identity.myHomelab": "My Homelab",
     "ui.identity.nebula": "Nebula",
     "ui.identity.ninja": "Ninja",
@@ -466,6 +499,7 @@ export const screenMessages = {
     "ui.identity.robot": "Robot",
     "ui.identity.rocket": "Rocket",
     "ui.identity.satellite": "Satellite",
+    "ui.identity.tree": "Tree",
     "ui.identity.unicorn": "Unicorn",
     "ui.identity.wizard": "Wizard",
     "ui.importExport.downloadEncrypted.one":
@@ -588,7 +622,7 @@ export const screenMessages = {
     "ui.login.revealFailed": "Reveal failed.",
     "ui.login.revealing": "Revealing...",
     "ui.login.signInAsEmergencyAdmin": "Sign in as emergency admin",
-    "ui.login.signInKombifyTechstack": "Sign in | kombify Techstack",
+    "ui.login.signInKombifyTechstack": "Sign in | Techstack",
     "ui.login.signInWithKombifyCloud": "Sign in with kombify Cloud.",
     "ui.login.signInWithTheLocal":
       "Sign in with the local owner account for this Techstack.",
@@ -952,7 +986,7 @@ export const screenMessages = {
     "ui.providerErrors.makeSureAStackKitWas":
       "Make sure a StackKit was selected or detected",
     "ui.providerErrors.makeSureTheKombifyTechstack":
-      "Make sure the kombify Techstack server is running",
+      "Make sure the Techstack server is running",
     "ui.providerErrors.managedRuntimeCouldNotBe":
       "Managed Runtime could not be prepared",
     "ui.providerErrors.managedRuntimeCouldNotBe2":
@@ -1043,7 +1077,7 @@ export const screenMessages = {
     "ui.providerErrors.theConfigurationCouldNotBe2":
       "The configuration could not be transformed into a valid deployment spec.",
     "ui.providerErrors.theKombifyTechstackServerCould":
-      "The kombify Techstack server could not be reached.",
+      "The Techstack server could not be reached.",
     "ui.providerErrors.theManagedVMWasPrepared":
       "The managed VM was prepared, but StackKits could not generate the rollout artifacts or kombify.me routing data.",
     "ui.providerErrors.theRolloutDidNotReturn":
@@ -1275,7 +1309,7 @@ export const screenMessages = {
     "ui.stepUp.checking": "Checking…",
     "ui.stepUp.confirm": "Confirm sign-in",
     "ui.stepUp.doneBody":
-      "You can close this window and return to kombify Techstack.",
+      "You can close this window and return to Techstack.",
     "ui.stepUp.doneTitle": "Sign-in confirmed",
     "ui.stepUp.notConfirmed":
       "The confirmation has not arrived yet. Finish it in the other window, or try again.",
@@ -1637,7 +1671,7 @@ export const screenMessages = {
     "ui.stackImportExportModal.youWillBeRedirectedTo":
       "You will be redirected to the setup page shortly.",
     "ui.stacksCreating.creatingStackkitDeploymentKombifyTechstack":
-      "Creating your Homelab | kombify Techstack",
+      "Creating your Homelab | Techstack",
     "ui.stacksCreating.leanBackBody":
       "You did your part. We're setting everything up for you right now, and something great is on its way.",
     "ui.stacksCreating.leanBackTitle": "Lean back – we're doing the magic",
@@ -1867,7 +1901,7 @@ export const screenMessages = {
     "ui.stacksCreatingCreationInstallCommand.copyInstallationCommandToClipboard":
       "Copy installation command to clipboard",
     "ui.stacksCreatingCreationInstallCommand.kombifyTechstackServerUrlReachable":
-      "kombify Techstack address (reachable from your server):",
+      "Techstack address (reachable from your server):",
     "ui.stacksCreatingCreationInstallCommand.openOneHourSimulateDemo":
       "Open one-hour Simulate demo preview",
     "ui.stacksCreatingCreationInstallCommand.previewLifetimeIsLimitedTo":
@@ -2503,7 +2537,7 @@ export const screenMessages = {
     "ui.taskStatus.yourChosenAuthMethodIs":
       "Your chosen auth method is applied across all services. Multi-user setups get group-based permissions automatically.",
     "ui.taskUpdates.anUnexpectedErrorOccurred": "An unexpected error occurred",
-    "ui.techstackBrandLogo.kombifyTechstack": "kombify Techstack",
+    "ui.techstackBrandLogo.kombifyTechstack": "Techstack",
     "ui.terminal.title": "Terminal · {name}",
     "ui.time.daysHours": "{days} d {hours} h",
     "ui.time.hours": "{count} h",
@@ -2808,7 +2842,7 @@ export const screenMessages = {
     "ui.clientLocal.localSignInFailed": "Lokale Anmeldung fehlgeschlagen.",
     "ui.clientLocal.localTechstackSetup": "Lokale Techstack-Einrichtung.",
     "ui.clientLocal.localTechstackSetupKombifyTechstack":
-      "Lokale Techstack-Einrichtung | kombify Techstack",
+      "Lokale Techstack-Einrichtung | Techstack",
     "ui.clientLocal.ownerName": "Name des Owners: {name}",
     "ui.clientLocal.password": "Passwort",
     "ui.clientLocal.selfHostedLocalOwner": "Lokaler Owner (selbst gehostet)",
@@ -2825,7 +2859,7 @@ export const screenMessages = {
     "ui.clientOnboarding.noTechstackAccountRequiredTechstack":
       "Kein Techstack-Konto erforderlich. Techstack läuft auf diesem Gerät und öffnet einen tokengeschützten Enrollment-Kanal für dein privates Netzwerk.",
     "ui.clientOnboarding.setUpKombifyTechstackOn":
-      "kombify Techstack auf diesem Windows-Gerät einrichten.",
+      "Techstack auf diesem Windows-Gerät einrichten.",
     "ui.clientOnboarding.signInWithKombifyCloud": "Mit kombify Cloud anmelden",
     "ui.clientOnboarding.signInWithYourKombify":
       "Melde dich mit deinem kombify-Cloud-Konto an und verbinde diesen Desktop-Client.",
@@ -2838,7 +2872,7 @@ export const screenMessages = {
     "ui.clientOnboarding.useYourOwnSelfHosted":
       "Stattdessen deinen eigenen selbst gehosteten Server verwenden",
     "ui.clientOnboarding.windowsClientOnboardingKombifyTechstack":
-      "Windows-Client-Onboarding | kombify Techstack",
+      "Windows-Client-Onboarding | Techstack",
     "ui.cockpitSnapshot.monitoringCockpitCouldNotBe":
       "Das Monitoring-Cockpit konnte nicht aktualisiert werden.",
     "ui.common.copiedCheck": "✓ Kopiert",
@@ -2878,7 +2912,7 @@ export const screenMessages = {
     "ui.configurationFlow.authenticationRequired":
       "Authentifizierung erforderlich",
     "ui.configurationFlow.cannotConnectToBackend":
-      "kombify Techstack ist nicht erreichbar",
+      "Techstack ist nicht erreichbar",
     "ui.configurationFlow.deploymentFailed":
       "Dein Homelab konnte nicht erstellt werden",
     "ui.configurationFlow.managedServerIsNotActive":
@@ -3150,11 +3184,44 @@ export const screenMessages = {
     "ui.hypervisorSelection.ramMib": "RAM (MiB)",
     "ui.identity.alien": "Alien",
     "ui.identity.astronaut": "Astronaut",
+    "ui.identity.cat": "Katze",
     "ui.identity.circuit": "Schaltkreis",
     "ui.identity.cybershield": "Cyberschild",
     "ui.identity.dragon": "Drache",
+    "ui.identity.editor.animations": "Animationen",
+    "ui.identity.editor.collapse": "Einklappen",
+    "ui.identity.editor.customize": "Anpassen",
+    "ui.identity.editor.futuristic": "Futuristisch",
+    "ui.identity.editor.glowColor": "Leuchtfarbe",
+    "ui.identity.editor.iconStyle": "Symbolstil",
+    "ui.identity.editor.notSavedYet": "Noch nicht gespeichert",
+    "ui.identity.editor.playful": "Verspielt",
+    "ui.identity.editor.resetToDefault": "Auf Standard zurücksetzen",
+    "ui.identity.editor.save": "Speichern",
+    "ui.identity.editor.saved": "Gespeichert",
+    "ui.identity.editor.savedAt": "Gespeichert am {date}",
+    "ui.identity.editor.saving": "Wird gespeichert…",
+    "ui.identity.editor.select": "{label} auswählen",
+    "ui.identity.editor.selectGlow": "Leuchten von {label} auswählen",
+    "ui.identity.editor.stackNamePlaceholder": "Stack-Name…",
+    "ui.identity.editor.toggleAnimations": "Identitätsanimationen umschalten",
+    "ui.identity.editor.unknown": "Unbekannt",
     "ui.identity.ghost": "Geist",
+    "ui.identity.glow.default": "Standard",
+    "ui.identity.glow.ember": "Glut",
+    "ui.identity.glow.forest": "Wald",
+    "ui.identity.glow.mint": "Minze",
+    "ui.identity.glow.neon": "Neon",
+    "ui.identity.glow.ocean": "Ozean",
+    "ui.identity.glow.rose": "Rosa",
+    "ui.identity.glow.sunset": "Sonnenuntergang",
+    "ui.identity.glow.violet": "Violett",
     "ui.identity.hologram": "Hologramm",
+    "ui.identity.home": "Zuhause",
+    "ui.identity.iconStyle.filled": "Gefüllt",
+    "ui.identity.iconStyle.glass": "Glas",
+    "ui.identity.iconStyle.gradient": "Verlauf",
+    "ui.identity.iconStyle.outlined": "Umriss",
     "ui.identity.myHomelab": "Mein Homelab",
     "ui.identity.nebula": "Nebel",
     "ui.identity.ninja": "Ninja",
@@ -3163,6 +3230,7 @@ export const screenMessages = {
     "ui.identity.robot": "Roboter",
     "ui.identity.rocket": "Rakete",
     "ui.identity.satellite": "Satellit",
+    "ui.identity.tree": "Baum",
     "ui.identity.unicorn": "Einhorn",
     "ui.identity.wizard": "Zauberer",
     "ui.importExport.downloadEncrypted.one":
@@ -3292,7 +3360,7 @@ export const screenMessages = {
     "ui.login.revealFailed": "Anzeigen fehlgeschlagen.",
     "ui.login.revealing": "Wird angezeigt...",
     "ui.login.signInAsEmergencyAdmin": "Als Notfall-Admin anmelden",
-    "ui.login.signInKombifyTechstack": "Anmelden | kombify Techstack",
+    "ui.login.signInKombifyTechstack": "Anmelden | Techstack",
     "ui.login.signInWithKombifyCloud": "Mit kombify Cloud anmelden.",
     "ui.login.signInWithTheLocal":
       "Melde dich mit dem Konto des lokalen Owners für dieses Techstack an.",
@@ -4002,7 +4070,7 @@ export const screenMessages = {
     "ui.stepUp.checking": "Wird geprüft…",
     "ui.stepUp.confirm": "Anmeldung bestätigen",
     "ui.stepUp.doneBody":
-      "Du kannst dieses Fenster schließen und zu kombify Techstack zurückkehren.",
+      "Du kannst dieses Fenster schließen und zu Techstack zurückkehren.",
     "ui.stepUp.doneTitle": "Anmeldung bestätigt",
     "ui.stepUp.notConfirmed":
       "Die Bestätigung ist noch nicht angekommen. Schließe sie im anderen Fenster ab oder versuche es erneut.",
@@ -4381,7 +4449,7 @@ export const screenMessages = {
     "ui.stackImportExportModal.youWillBeRedirectedTo":
       "Du wirst in Kürze zur Einrichtungsseite weitergeleitet.",
     "ui.stacksCreating.creatingStackkitDeploymentKombifyTechstack":
-      "Dein Homelab wird erstellt | kombify Techstack",
+      "Dein Homelab wird erstellt | Techstack",
     "ui.stacksCreating.leanBackBody":
       "Deinen Teil hast du geschafft. Wir richten gerade alles für dich ein – gleich gibt es etwas richtig Schönes zu sehen.",
     "ui.stacksCreating.leanBackTitle":
@@ -5295,7 +5363,7 @@ export const screenMessages = {
       "Deine gewählte Auth-Methode wird auf alle Dienste angewendet. Mehrbenutzer-Setups erhalten automatisch gruppenbasierte Berechtigungen.",
     "ui.taskUpdates.anUnexpectedErrorOccurred":
       "Ein unerwarteter Fehler ist aufgetreten",
-    "ui.techstackBrandLogo.kombifyTechstack": "kombify Techstack",
+    "ui.techstackBrandLogo.kombifyTechstack": "Techstack",
     "ui.terminal.title": "Terminal · {name}",
     "ui.time.daysHours": "{days} T {hours} Std",
     "ui.time.hours": "{count} Std",

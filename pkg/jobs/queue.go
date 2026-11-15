@@ -12,7 +12,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/edgeauth"
 	"github.com/kombifyio/techstack/pkg/logger"
 	"github.com/kombifyio/techstack/pkg/providererrors"
 	"github.com/kombifyio/techstack/pkg/releasechannel"
@@ -120,11 +119,9 @@ type Job struct {
 	NextResumeAt *time.Time             `json:"next_resume_at,omitempty"`
 	// In-process only. Job payload/result stay redacted; managed runtime
 	// credentials are resolved again after restart or across process boundaries.
-	managedRuntimeTarget  *ManagedRuntimeTarget     `json:"-"`
-	requestAuthority      *requestAuthoritySnapshot `json:"-"`
-	flagDecisions         *edgeauth.FlagSet         `json:"-"`
-	suppressPersistence   bool                      `json:"-"`
-	executionClaimPending bool                      `json:"-"`
+	managedRuntimeTarget  *ManagedRuntimeTarget `json:"-"`
+	suppressPersistence   bool                  `json:"-"`
+	executionClaimPending bool                  `json:"-"`
 	// H5: Per-job cancellation support
 	cancelFunc            context.CancelFunc `json:"-"` // Not serialized
 	cancellationRequested bool               `json:"-"`
@@ -583,8 +580,7 @@ func (q *Queue) beginJobExecution(ctx context.Context, job *Job) (*jobExecutionA
 		stopQueueCancellation()
 		jobCancel()
 	}
-	jobCtx = contextWithJobEdgeFlags(jobCtx, job)
-	jobCtx = contextWithJobRequestAuthority(jobCtx, job)
+	jobCtx = contextWithJobAuthorization(jobCtx, job)
 	if jobCtx.Err() != nil {
 		cleanup()
 		return nil, false

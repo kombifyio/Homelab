@@ -1,7 +1,8 @@
 <Project>
   <PropertyGroup>
-    <!-- Release versions come exclusively from the packager via -p:Version;
-         everything else is a recognizable dev build. -->
+    <!-- Release versions come from the packager via -p:Version; the internal
+         Kombify.Client.Shell package sets its own Version in its project file.
+         Everything else is a recognizable dev build. -->
     <Version Condition="'$(Version)' == ''">0.0.0-dev</Version>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

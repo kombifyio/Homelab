@@ -41,7 +41,7 @@
 </script>
 
 <svelte:head>
-  <title>{tr("ui.credits.title")} – kombify Techstack</title>
+  <title>{tr("ui.credits.title")} – Techstack</title>
 </svelte:head>
 
 <div class="mx-auto max-w-3xl p-4 md:p-6" data-testid="credits-page">

@@ -181,7 +181,7 @@ func connectorWait(cause error) error {
 func runApplicationConnectorJob(ctx context.Context, cfg StackKitLifecycleConfig, job *Job, q *Queue, req StackKitLifecycleRequest, release stackkitrelease.Release) error {
 	// Catalog qualification is mandatory even on restored jobs. There is no
 	// sibling checkout or guessed minimum-release path in production.
-	ctx = contextWithJobRequestAuthority(ctx, job)
+	ctx = contextWithJobAuthorization(ctx, job)
 	catalog, err := release.AdvancedOperations()
 	if err != nil {
 		return NewConfigError(err)
@@ -261,7 +261,7 @@ func runApplicationConnectorJob(ctx context.Context, cfg StackKitLifecycleConfig
 			if cfg.ApplicationAuthorize == nil {
 				return NewConfigError(fmt.Errorf("connector operate authority unavailable"))
 			}
-			if err = cfg.ApplicationAuthorize(contextWithJobRequestAuthority(ctx, job), req.TenantID, req.OwnerID, req.Connector.ServerID); err != nil {
+			if err = cfg.ApplicationAuthorize(contextWithJobAuthorization(ctx, job), req.TenantID, req.OwnerID, req.Connector.ServerID); err != nil {
 				return NewPermanentError(err)
 			}
 			// Read the current node plan. The CLI independently requires its own
@@ -283,7 +283,7 @@ func runApplicationConnectorJob(ctx context.Context, cfg StackKitLifecycleConfig
 			if head.Revision != req.Connector.Request.Connector.Binding.ServiceRevision {
 				return NewPermanentError(fmt.Errorf("connector source changed during plan admission"))
 			}
-			if err = cfg.ApplicationAuthorize(contextWithJobRequestAuthority(ctx, job), req.TenantID, req.OwnerID, req.Connector.ServerID); err != nil {
+			if err = cfg.ApplicationAuthorize(contextWithJobAuthorization(ctx, job), req.TenantID, req.OwnerID, req.Connector.ServerID); err != nil {
 				return NewPermanentError(err)
 			}
 			if _, err = connectorCommand(id, effective, release, planHash); err != nil {

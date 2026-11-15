@@ -78,7 +78,7 @@ const MAX_TITLE = 120;
 const MAX_CODE = 64;
 const MAX_LABEL = 80;
 const MAX_FACTS = 16;
-const FALLBACK_TITLE = "kombify Techstack";
+const FALLBACK_TITLE = "Techstack";
 
 // C0 and C1 controls plus the Unicode line and paragraph separators.
 const CONTROL_CHARS = new RegExp(

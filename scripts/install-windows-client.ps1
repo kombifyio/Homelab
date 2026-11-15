@@ -54,22 +54,25 @@ if (!$NoShortcuts) {
     $programsDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\kombify"
     New-Item -ItemType Directory -Force -Path $programsDir | Out-Null
     $shell = New-Object -ComObject WScript.Shell
-    $shortcut = $shell.CreateShortcut((Join-Path $programsDir "kombify TechStack Client.lnk"))
+    # The shortcut was named "kombify TechStack Client" before the product name lost its prefix.
+    Remove-Item -LiteralPath (Join-Path $programsDir "kombify TechStack Client.lnk") -Force -ErrorAction SilentlyContinue
+    $shortcut = $shell.CreateShortcut((Join-Path $programsDir "Techstack Client.lnk"))
     $shortcut.TargetPath = Join-Path $InstallDir "kombify-techstack-client.exe"
     $shortcut.WorkingDirectory = $InstallDir
-    $shortcut.Description = "kombify TechStack Client"
+    $shortcut.Description = "Techstack Client"
     $shortcut.IconLocation = Join-Path $InstallDir "kombify-techstack-client.exe"
     $shortcut.Save()
 
     if ($DesktopShortcut) {
-        $desktopShortcut = $shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath("Desktop")) "kombify TechStack Client.lnk"))
+        Remove-Item -LiteralPath (Join-Path ([Environment]::GetFolderPath("Desktop")) "kombify TechStack Client.lnk") -Force -ErrorAction SilentlyContinue
+        $desktopShortcut = $shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath("Desktop")) "Techstack Client.lnk"))
         $desktopShortcut.TargetPath = Join-Path $InstallDir "kombify-techstack-client.exe"
         $desktopShortcut.WorkingDirectory = $InstallDir
-        $desktopShortcut.Description = "kombify TechStack Client"
+        $desktopShortcut.Description = "Techstack Client"
         $desktopShortcut.IconLocation = Join-Path $InstallDir "kombify-techstack-client.exe"
         $desktopShortcut.Save()
     }
 }
 
-Write-Host "kombify TechStack Client installed at $InstallDir"
+Write-Host "Techstack Client installed at $InstallDir"
 if ($Launch) { Start-Process -FilePath (Join-Path $InstallDir "kombify-techstack-client.exe") }

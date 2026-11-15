@@ -170,7 +170,7 @@ test.describe.serial("Integration Flow (Real Docker Backend)", () => {
     ).toHaveCount(0);
     await expect(
       sharedPage.getByRole("heading", {
-        name: /kombify Techstack|Local Techstack setup/,
+        name: /Techstack|Local Techstack setup/,
       }),
     ).toBeVisible();
 

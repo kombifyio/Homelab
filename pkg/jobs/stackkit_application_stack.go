@@ -153,7 +153,7 @@ func runApplicationStackJob(ctx context.Context, cfg StackKitLifecycleConfig, jo
 			if cfg.ApplicationAuthorize == nil {
 				return NewConfigError(fmt.Errorf("application operate authority is unavailable"))
 			}
-			if err := cfg.ApplicationAuthorize(contextWithJobRequestAuthority(ctx, job), req.TenantID, req.OwnerID, req.Application.ServerID); err != nil {
+			if err := cfg.ApplicationAuthorize(contextWithJobAuthorization(ctx, job), req.TenantID, req.OwnerID, req.Application.ServerID); err != nil {
 				return NewPermanentError(fmt.Errorf("application operate authority denied: %w", err))
 			}
 		}

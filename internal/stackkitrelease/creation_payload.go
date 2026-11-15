@@ -74,10 +74,21 @@ func CreationCatalogPayload(
 		}
 		useCases = append(useCases, entry)
 	}
-	return map[string]any{
+	payload := map[string]any{
 		"configured":           true,
 		"deliverability_known": deliverabilityKnown,
 		"release":              catalog.Release,
 		"use_cases":            useCases,
 	}
+	// What each application is, whether or not a homelab runs it: our guide,
+	// its official clients and its upstream project, from the SDK registry
+	// snapshot of this same release and keyed by the components' application
+	// id. A service record carries the same facts on its catalog entry; this
+	// list lets the Companion and the Wizard describe an application before it
+	// is installed. Another pin's facts are never borrowed.
+	if metadata, err := PinnedApplicationMetadata(); err == nil &&
+		metadata.Source.MatchesCatalog(catalog.Release) && len(metadata.Applications) > 0 {
+		payload["applications"] = metadata.Applications
+	}
+	return payload
 }

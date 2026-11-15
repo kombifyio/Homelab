@@ -19,3 +19,4 @@ export {
   StackIdentityEditor,
 } from "@kombiverselabs/ui/identity";
 export * from "./identity";
+export * from "./identity-labels";

@@ -1292,7 +1292,7 @@ export const zhHans: Record<string, string> = {
   "wizard.run.banner.dismiss": "忽略",
   "wizard.run.banner.dismissFailed": "无法忽略此通知",
   "nav.notifications": "通知",
-  "companion.frameTitle": "kombify Companion",
+  "companion.frameTitle": "Companion",
   "companion.open": "打开 Companion",
   "companion.close": "关闭 Companion",
   "companion.startVoiceAgent": "启动语音助手",
@@ -1402,7 +1402,7 @@ export const zhHans: Record<string, string> = {
   "ui.clientLocal.localSignInFailed": "本地登录失败。",
   "ui.clientLocal.localTechstackSetup": "本地 Techstack 设置。",
   "ui.clientLocal.localTechstackSetupKombifyTechstack":
-    "本地 Techstack 设置 | kombify Techstack",
+    "本地 Techstack 设置 | Techstack",
   "ui.clientLocal.ownerName": "所有者名称：{name}",
   "ui.clientLocal.password": "密码",
   "ui.clientLocal.selfHostedLocalOwner": "自托管本地所有者",
@@ -1417,7 +1417,7 @@ export const zhHans: Record<string, string> = {
   "ui.clientOnboarding.noTechstackAccountRequiredTechstack":
     "无需 Techstack 账户。Techstack 在此设备上运行，并为你的专用网络开启受令牌保护的注册通道。",
   "ui.clientOnboarding.setUpKombifyTechstackOn":
-    "在此 Windows 设备上设置 kombify Techstack。",
+    "在此 Windows 设备上设置 Techstack。",
   "ui.clientOnboarding.signInWithKombifyCloud": "使用 kombify Cloud 登录",
   "ui.clientOnboarding.signInWithYourKombify":
     "使用你的 kombify Cloud 账户登录，并连接此桌面客户端。",
@@ -1429,7 +1429,7 @@ export const zhHans: Record<string, string> = {
   "ui.clientOnboarding.useLocally": "本地使用",
   "ui.clientOnboarding.useYourOwnSelfHosted": "改用你自己的自托管服务器",
   "ui.clientOnboarding.windowsClientOnboardingKombifyTechstack":
-    "Windows 客户端引导 | kombify Techstack",
+    "Windows 客户端引导 | Techstack",
   "ui.cockpitSnapshot.monitoringCockpitCouldNotBe": "无法刷新监控驾驶舱。",
   "ui.common.copiedCheck": "✓ 已复制",
   "ui.common.copy": "复制",
@@ -1464,7 +1464,7 @@ export const zhHans: Record<string, string> = {
   "ui.configurationFlow.anUnexpectedErrorOccurredPlease":
     "发生了意外错误。请重试。如果问题持续，请联系支持并提供技术详情。",
   "ui.configurationFlow.authenticationRequired": "需要身份验证",
-  "ui.configurationFlow.cannotConnectToBackend": "无法连接到 kombify Techstack",
+  "ui.configurationFlow.cannotConnectToBackend": "无法连接到 Techstack",
   "ui.configurationFlow.deploymentFailed": "无法创建你的 Homelab",
   "ui.configurationFlow.managedServerIsNotActive": "托管服务器未处于活动状态",
   "ui.configurationFlow.permissionDenied": "权限被拒绝",
@@ -1690,11 +1690,44 @@ export const zhHans: Record<string, string> = {
   "ui.hypervisorSelection.ramMib": "RAM (MiB)",
   "ui.identity.alien": "外星人",
   "ui.identity.astronaut": "宇航员",
+  "ui.identity.cat": "猫",
   "ui.identity.circuit": "电路",
   "ui.identity.cybershield": "网络盾牌",
   "ui.identity.dragon": "龙",
+  "ui.identity.editor.animations": "动画",
+  "ui.identity.editor.collapse": "收起",
+  "ui.identity.editor.customize": "自定义",
+  "ui.identity.editor.futuristic": "未来感",
+  "ui.identity.editor.glowColor": "光晕颜色",
+  "ui.identity.editor.iconStyle": "图标样式",
+  "ui.identity.editor.notSavedYet": "尚未保存",
+  "ui.identity.editor.playful": "趣味",
+  "ui.identity.editor.resetToDefault": "恢复默认设置",
+  "ui.identity.editor.save": "保存",
+  "ui.identity.editor.saved": "已保存",
+  "ui.identity.editor.savedAt": "保存于 {date}",
+  "ui.identity.editor.saving": "正在保存…",
+  "ui.identity.editor.select": "选择{label}",
+  "ui.identity.editor.selectGlow": "选择{label}的光晕",
+  "ui.identity.editor.stackNamePlaceholder": "Stack 名称…",
+  "ui.identity.editor.toggleAnimations": "切换身份动画",
+  "ui.identity.editor.unknown": "未知",
   "ui.identity.ghost": "幽灵",
+  "ui.identity.glow.default": "默认",
+  "ui.identity.glow.ember": "余烬",
+  "ui.identity.glow.forest": "森林",
+  "ui.identity.glow.mint": "薄荷",
+  "ui.identity.glow.neon": "霓虹",
+  "ui.identity.glow.ocean": "海洋",
+  "ui.identity.glow.rose": "玫瑰",
+  "ui.identity.glow.sunset": "日落",
+  "ui.identity.glow.violet": "紫罗兰",
   "ui.identity.hologram": "全息影像",
+  "ui.identity.home": "家",
+  "ui.identity.iconStyle.filled": "实心",
+  "ui.identity.iconStyle.glass": "玻璃",
+  "ui.identity.iconStyle.gradient": "渐变",
+  "ui.identity.iconStyle.outlined": "描边",
   "ui.identity.myHomelab": "我的 Homelab",
   "ui.identity.nebula": "星云",
   "ui.identity.ninja": "忍者",
@@ -1703,6 +1736,7 @@ export const zhHans: Record<string, string> = {
   "ui.identity.robot": "机器人",
   "ui.identity.rocket": "火箭",
   "ui.identity.satellite": "卫星",
+  "ui.identity.tree": "树",
   "ui.identity.unicorn": "独角兽",
   "ui.identity.wizard": "巫师",
   "ui.importExport.downloadEncrypted.one": "将 {count} 条凭据下载为加密的 JSON",
@@ -1811,7 +1845,7 @@ export const zhHans: Record<string, string> = {
   "ui.login.revealFailed": "显示失败。",
   "ui.login.revealing": "正在显示...",
   "ui.login.signInAsEmergencyAdmin": "以应急管理员身份登录",
-  "ui.login.signInKombifyTechstack": "登录 | kombify Techstack",
+  "ui.login.signInKombifyTechstack": "登录 | Techstack",
   "ui.login.signInWithKombifyCloud": "使用 kombify Cloud 登录。",
   "ui.login.signInWithTheLocal": "使用此 Techstack 的本地所有者账户登录。",
   "ui.login.techstackReconnectsThroughTheKombify":
@@ -2127,7 +2161,7 @@ export const zhHans: Record<string, string> = {
   "ui.providerErrors.kombifyMeRegistrationFailed": "kombify.me 注册失败",
   "ui.providerErrors.makeSureAStackKitWas": "请确保已选择或检测到某个 StackKit",
   "ui.providerErrors.makeSureTheKombifyTechstack":
-    "请确保 kombify Techstack 服务器正在运行",
+    "请确保 Techstack 服务器正在运行",
   "ui.providerErrors.managedRuntimeCouldNotBe": "无法准备托管运行时",
   "ui.providerErrors.managedRuntimeCouldNotBe2": "无法创建托管运行时",
   "ui.providerErrors.managedRuntimeIsNotReady": "托管运行时尚未就绪",
@@ -2207,7 +2241,7 @@ export const zhHans: Record<string, string> = {
   "ui.providerErrors.theConfigurationCouldNotBe2":
     "无法将配置转换为有效的部署规范。",
   "ui.providerErrors.theKombifyTechstackServerCould":
-    "无法连接到 kombify Techstack 服务器。",
+    "无法连接到 Techstack 服务器。",
   "ui.providerErrors.theManagedVMWasPrepared":
     "托管 VM 已准备就绪，但 StackKits 无法生成部署产物或 kombify.me 路由数据。",
   "ui.providerErrors.theRolloutDidNotReturn":
@@ -2414,7 +2448,7 @@ export const zhHans: Record<string, string> = {
   "ui.stepUp.blockedLink": "打开登录确认",
   "ui.stepUp.checking": "正在检查…",
   "ui.stepUp.confirm": "确认登录",
-  "ui.stepUp.doneBody": "你可以关闭此窗口，返回 kombify Techstack。",
+  "ui.stepUp.doneBody": "你可以关闭此窗口，返回 Techstack。",
   "ui.stepUp.doneTitle": "登录已确认",
   "ui.stepUp.notConfirmed":
     "尚未收到确认。请在另一个窗口中完成确认，或再试一次。",
@@ -2731,7 +2765,7 @@ export const zhHans: Record<string, string> = {
   "ui.stackImportExportModal.youWillBeRedirectedTo":
     "你很快将被重定向到设置页面。",
   "ui.stacksCreating.creatingStackkitDeploymentKombifyTechstack":
-    "正在创建你的 Homelab | kombify Techstack",
+    "正在创建你的 Homelab | Techstack",
   "ui.stacksCreating.leanBackBody":
     "你的部分已经完成。我们正在为你准备一切，精彩马上就来。",
   "ui.stacksCreating.leanBackTitle": "放松一下，我们正在为你施展魔法",
@@ -2945,7 +2979,7 @@ export const zhHans: Record<string, string> = {
   "ui.stacksCreatingCreationInstallCommand.copyInstallationCommandToClipboard":
     "将安装命令复制到剪贴板",
   "ui.stacksCreatingCreationInstallCommand.kombifyTechstackServerUrlReachable":
-    "kombify Techstack 地址（你的服务器可访问）：",
+    "Techstack 地址（你的服务器可访问）：",
   "ui.stacksCreatingCreationInstallCommand.openOneHourSimulateDemo":
     "打开一小时的 Simulate 演示预览",
   "ui.stacksCreatingCreationInstallCommand.previewLifetimeIsLimitedTo":
@@ -3518,7 +3552,7 @@ export const zhHans: Record<string, string> = {
   "ui.taskStatus.yourChosenAuthMethodIs":
     "你选择的认证方式会应用于所有服务。多用户配置会自动获得基于组的权限。",
   "ui.taskUpdates.anUnexpectedErrorOccurred": "发生意外错误",
-  "ui.techstackBrandLogo.kombifyTechstack": "kombify Techstack",
+  "ui.techstackBrandLogo.kombifyTechstack": "Techstack",
   "ui.terminal.title": "终端 · {name}",
   "ui.time.daysHours": "{days} 天 {hours} 小时",
   "ui.time.hours": "{count} 小时",

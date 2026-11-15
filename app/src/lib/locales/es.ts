@@ -1399,7 +1399,7 @@ export const es: Record<string, string> = {
   "wizard.run.banner.dismiss": "Descartar",
   "wizard.run.banner.dismissFailed": "No se pudo descartar el aviso",
   "nav.notifications": "Notificaciones",
-  "companion.frameTitle": "kombify Companion",
+  "companion.frameTitle": "Companion",
   "companion.open": "Abrir el Companion",
   "companion.close": "Cerrar el Companion",
   "companion.startVoiceAgent": "Iniciar agente de voz",
@@ -1522,7 +1522,7 @@ export const es: Record<string, string> = {
   "ui.clientLocal.localSignInFailed": "Falló el inicio de sesión local.",
   "ui.clientLocal.localTechstackSetup": "Configuración local de Techstack.",
   "ui.clientLocal.localTechstackSetupKombifyTechstack":
-    "Configuración local de Techstack | kombify Techstack",
+    "Configuración local de Techstack | Techstack",
   "ui.clientLocal.ownerName": "Nombre del propietario: {name}",
   "ui.clientLocal.password": "Contraseña",
   "ui.clientLocal.selfHostedLocalOwner": "Propietario local autoalojado",
@@ -1539,7 +1539,7 @@ export const es: Record<string, string> = {
   "ui.clientOnboarding.noTechstackAccountRequiredTechstack":
     "No se necesita cuenta de Techstack. Techstack se ejecuta en este dispositivo y abre un canal de registro protegido con token para tu red privada.",
   "ui.clientOnboarding.setUpKombifyTechstackOn":
-    "Configura kombify Techstack en este dispositivo Windows.",
+    "Configura Techstack en este dispositivo Windows.",
   "ui.clientOnboarding.signInWithKombifyCloud":
     "Iniciar sesión con kombify Cloud",
   "ui.clientOnboarding.signInWithYourKombify":
@@ -1553,7 +1553,7 @@ export const es: Record<string, string> = {
   "ui.clientOnboarding.useYourOwnSelfHosted":
     "Usar en su lugar tu propio servidor autoalojado",
   "ui.clientOnboarding.windowsClientOnboardingKombifyTechstack":
-    "Incorporación del cliente de Windows | kombify Techstack",
+    "Incorporación del cliente de Windows | Techstack",
   "ui.cockpitSnapshot.monitoringCockpitCouldNotBe":
     "No se pudo actualizar el panel de monitorización.",
   "ui.common.copiedCheck": "✓ Copiado",
@@ -1592,7 +1592,7 @@ export const es: Record<string, string> = {
     "Algo inesperado salió mal. Inténtalo de nuevo. Si sigue ocurriendo, ponte en contacto con el soporte y comparte los detalles técnicos.",
   "ui.configurationFlow.authenticationRequired": "Se requiere autenticación",
   "ui.configurationFlow.cannotConnectToBackend":
-    "No se puede conectar con kombify Techstack",
+    "No se puede conectar con Techstack",
   "ui.configurationFlow.deploymentFailed": "No se pudo crear tu Homelab",
   "ui.configurationFlow.managedServerIsNotActive":
     "El servidor gestionado no está activo",
@@ -1845,11 +1845,44 @@ export const es: Record<string, string> = {
   "ui.hypervisorSelection.ramMib": "RAM (MiB)",
   "ui.identity.alien": "Alienígena",
   "ui.identity.astronaut": "Astronauta",
+  "ui.identity.cat": "Gato",
   "ui.identity.circuit": "Circuito",
   "ui.identity.cybershield": "Cyberescudo",
   "ui.identity.dragon": "Dragón",
+  "ui.identity.editor.animations": "Animaciones",
+  "ui.identity.editor.collapse": "Contraer",
+  "ui.identity.editor.customize": "Personalizar",
+  "ui.identity.editor.futuristic": "Futurista",
+  "ui.identity.editor.glowColor": "Color del brillo",
+  "ui.identity.editor.iconStyle": "Estilo del icono",
+  "ui.identity.editor.notSavedYet": "Aún no guardado",
+  "ui.identity.editor.playful": "Divertido",
+  "ui.identity.editor.resetToDefault": "Restablecer los valores predeterminados",
+  "ui.identity.editor.save": "Guardar",
+  "ui.identity.editor.saved": "Guardado",
+  "ui.identity.editor.savedAt": "Guardado el {date}",
+  "ui.identity.editor.saving": "Guardando…",
+  "ui.identity.editor.select": "Seleccionar {label}",
+  "ui.identity.editor.selectGlow": "Seleccionar el brillo de {label}",
+  "ui.identity.editor.stackNamePlaceholder": "Nombre del stack…",
+  "ui.identity.editor.toggleAnimations": "Alternar las animaciones de identidad",
+  "ui.identity.editor.unknown": "Desconocido",
   "ui.identity.ghost": "Fantasma",
+  "ui.identity.glow.default": "Predeterminado",
+  "ui.identity.glow.ember": "Brasa",
+  "ui.identity.glow.forest": "Bosque",
+  "ui.identity.glow.mint": "Menta",
+  "ui.identity.glow.neon": "Neón",
+  "ui.identity.glow.ocean": "Océano",
+  "ui.identity.glow.rose": "Rosa",
+  "ui.identity.glow.sunset": "Atardecer",
+  "ui.identity.glow.violet": "Violeta",
   "ui.identity.hologram": "Holograma",
+  "ui.identity.home": "Casa",
+  "ui.identity.iconStyle.filled": "Relleno",
+  "ui.identity.iconStyle.glass": "Vidrio",
+  "ui.identity.iconStyle.gradient": "Degradado",
+  "ui.identity.iconStyle.outlined": "Contorno",
   "ui.identity.myHomelab": "Mi Homelab",
   "ui.identity.nebula": "Nebulosa",
   "ui.identity.ninja": "Ninja",
@@ -1858,6 +1891,7 @@ export const es: Record<string, string> = {
   "ui.identity.robot": "Robot",
   "ui.identity.rocket": "Cohete",
   "ui.identity.satellite": "Satélite",
+  "ui.identity.tree": "Árbol",
   "ui.identity.unicorn": "Unicornio",
   "ui.identity.wizard": "Mago",
   "ui.importExport.downloadEncrypted.one":
@@ -1984,7 +2018,7 @@ export const es: Record<string, string> = {
   "ui.login.revealing": "Mostrando...",
   "ui.login.signInAsEmergencyAdmin":
     "Iniciar sesión como administrador de emergencia",
-  "ui.login.signInKombifyTechstack": "Iniciar sesión | kombify Techstack",
+  "ui.login.signInKombifyTechstack": "Iniciar sesión | Techstack",
   "ui.login.signInWithKombifyCloud": "Inicia sesión con kombify Cloud.",
   "ui.login.signInWithTheLocal":
     "Inicia sesión con la cuenta del propietario local de este Techstack.",
@@ -2340,7 +2374,7 @@ export const es: Record<string, string> = {
   "ui.providerErrors.makeSureAStackKitWas":
     "Asegúrate de que se haya seleccionado o detectado un StackKit",
   "ui.providerErrors.makeSureTheKombifyTechstack":
-    "Asegúrate de que el servidor de kombify Techstack esté en marcha",
+    "Asegúrate de que el servidor de Techstack esté en marcha",
   "ui.providerErrors.managedRuntimeCouldNotBe":
     "No se pudo preparar el Managed Runtime",
   "ui.providerErrors.managedRuntimeCouldNotBe2":
@@ -2435,7 +2469,7 @@ export const es: Record<string, string> = {
   "ui.providerErrors.theConfigurationCouldNotBe2":
     "No se pudo transformar la configuración en una especificación de despliegue válida.",
   "ui.providerErrors.theKombifyTechstackServerCould":
-    "No se pudo acceder al servidor de kombify Techstack.",
+    "No se pudo acceder al servidor de Techstack.",
   "ui.providerErrors.theManagedVMWasPrepared":
     "La VM gestionada se preparó, pero StackKits no pudo generar los artefactos del despliegue ni los datos de enrutamiento de kombify.me.",
   "ui.providerErrors.theRolloutDidNotReturn":
@@ -2667,7 +2701,7 @@ export const es: Record<string, string> = {
   "ui.stepUp.checking": "Comprobando…",
   "ui.stepUp.confirm": "Confirmar inicio de sesión",
   "ui.stepUp.doneBody":
-    "Puedes cerrar esta ventana y volver a kombify Techstack.",
+    "Puedes cerrar esta ventana y volver a Techstack.",
   "ui.stepUp.doneTitle": "Inicio de sesión confirmado",
   "ui.stepUp.notConfirmed":
     "La confirmación aún no ha llegado. Termínala en la otra ventana o inténtalo de nuevo.",
@@ -3025,7 +3059,7 @@ export const es: Record<string, string> = {
   "ui.stackImportExportModal.youWillBeRedirectedTo":
     "En breve se te redirigirá a la página de configuración.",
   "ui.stacksCreating.creatingStackkitDeploymentKombifyTechstack":
-    "Creando tu Homelab | kombify Techstack",
+    "Creando tu Homelab | Techstack",
   "ui.stacksCreating.leanBackBody":
     "Ya hiciste tu parte. Estamos preparando todo para ti ahora mismo y pronto verás algo genial.",
   "ui.stacksCreating.leanBackTitle": "Relájate: estamos haciendo magia",
@@ -3266,7 +3300,7 @@ export const es: Record<string, string> = {
   "ui.stacksCreatingCreationInstallCommand.copyInstallationCommandToClipboard":
     "Copiar el comando de instalación al portapapeles",
   "ui.stacksCreatingCreationInstallCommand.kombifyTechstackServerUrlReachable":
-    "Dirección de kombify Techstack (accesible desde tu servidor):",
+    "Dirección de Techstack (accesible desde tu servidor):",
   "ui.stacksCreatingCreationInstallCommand.openOneHourSimulateDemo":
     "Abrir la vista previa de demostración de Simulate de una hora",
   "ui.stacksCreatingCreationInstallCommand.previewLifetimeIsLimitedTo":
@@ -3911,7 +3945,7 @@ export const es: Record<string, string> = {
     "El método de autenticación que elegiste se aplica a todos los servicios. Las configuraciones multiusuario reciben permisos basados en grupos automáticamente.",
   "ui.taskUpdates.anUnexpectedErrorOccurred":
     "Se ha producido un error inesperado",
-  "ui.techstackBrandLogo.kombifyTechstack": "kombify Techstack",
+  "ui.techstackBrandLogo.kombifyTechstack": "Techstack",
   "ui.terminal.title": "Terminal · {name}",
   "ui.time.daysHours": "{days} d {hours} h",
   "ui.time.hours": "{count} h",

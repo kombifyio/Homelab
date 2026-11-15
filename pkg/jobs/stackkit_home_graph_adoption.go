@@ -78,7 +78,7 @@ func homeGraphAdoptionCommand(id string, req StackKitLifecycleRequest, release s
 
 // runApplicationHomeGraphAdoptionJob refuses a changed graph before dispatch and retains the result for Cloud.
 func runApplicationHomeGraphAdoptionJob(ctx context.Context, cfg StackKitLifecycleConfig, job *Job, q *Queue, req StackKitLifecycleRequest, release stackkitrelease.Release) error {
-	ctx = contextWithJobRequestAuthority(ctx, job)
+	ctx = contextWithJobAuthorization(ctx, job)
 	if cfg.HomeGraph == nil {
 		return NewConfigError(fmt.Errorf("home graph store unavailable"))
 	}

@@ -160,6 +160,9 @@ type NodeUpsert struct {
 	KeyThumbprint                 string
 	DisplayName, StackID          string
 	Placement                     string
+	// MCPHost is the https://<name>.kombify.me/mcp host of the server's product MCP (Gateway ADR 0042 rule 3); empty
+	// registers none. Gateway refuses any host that is not a kombify.me name.
+	MCPHost string
 }
 
 type nodeBody struct {
@@ -182,10 +185,14 @@ func (g *Gateway) obo(owner, connectTenant string, _ []string) *servicecall.OnBe
 // PutNode upserts the techstack-node of one server. Gateway verifies the host
 // proof itself; a server whose proof does not verify is never recorded.
 func (g *Gateway) PutNode(ctx context.Context, in NodeUpsert) (*Node, error) {
-	body, err := json.Marshal(map[string]string{
+	fields := map[string]string{
 		"host_proof": in.HostProof, "guard_key_thumbprint": in.KeyThumbprint,
 		"display_name": in.DisplayName, "stack_id": in.StackID, "placement": in.Placement,
-	})
+	}
+	if in.MCPHost != "" {
+		fields["mcp_host"] = in.MCPHost
+	}
+	body, err := json.Marshal(fields)
 	if err != nil {
 		return nil, err
 	}
