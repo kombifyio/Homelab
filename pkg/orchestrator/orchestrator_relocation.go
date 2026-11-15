@@ -140,9 +140,7 @@ func (o *Orchestrator) EnqueueWorkloadRelocation(ctx context.Context, tenant, ow
 	payload["tenant_id"], payload["owner_id"], payload["agent_id"] = tenant, owner, source.AgentID
 	payload["execution_targets"] = []controlplane.ExecutionTarget{{StackID: source.StackID, AgentID: source.AgentID}, {StackID: destination.StackID, AgentID: destination.AgentID}}
 	job := &jobs.Job{ID: id, Type: jobs.JobTypeWorkloadRelocation, TargetType: targetTypeStack, TargetID: source.StackID, TargetName: source.StackName, Payload: payload, Result: map[string]any{"relocation_request_sha256": intentDigest}, MaxAttempts: 1}
-	jobs.CopyEdgeFlagsFromContext(ctx, job)
-	jobs.CaptureRequestAuthority(ctx, job, tenant, owner)
-	jobs.CaptureRequestOperateAuthority(ctx, job, tenant, owner)
+	jobs.CaptureJobAuthorization(ctx, job, tenant, owner)
 	_, err = o.jobStore.CreateJob(ctx, controlplane.UpsertJobRequest{ID: id, TenantID: tenant, StackID: source.StackID, Type: string(job.Type), State: persistentStatePending, Payload: job.Payload, Result: job.Result, ScheduledFor: time.Now().UTC()})
 	if err != nil {
 		if existing, readErr := o.jobStore.GetJob(ctx, tenant, id); readErr == nil && existing.Type == string(jobs.JobTypeWorkloadRelocation) && existing.StackID == input.SourceStackID && existing.Result["relocation_request_sha256"] == intentDigest && existing.Payload["owner_id"] == owner {

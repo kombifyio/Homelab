@@ -1342,7 +1342,7 @@ export const ar: Record<string, string> = {
   "wizard.run.banner.dismiss": "إغلاق",
   "wizard.run.banner.dismissFailed": "تعذّر إغلاق الإشعار",
   "nav.notifications": "الإشعارات",
-  "companion.frameTitle": "kombify Companion",
+  "companion.frameTitle": "Companion",
   "companion.open": "فتح Companion",
   "companion.close": "إغلاق Companion",
   "companion.startVoiceAgent": "بدء الوكيل الصوتي",
@@ -1459,7 +1459,7 @@ export const ar: Record<string, string> = {
   "ui.clientLocal.localSignInFailed": "فشل تسجيل الدخول المحلي.",
   "ui.clientLocal.localTechstackSetup": "إعداد Techstack المحلي.",
   "ui.clientLocal.localTechstackSetupKombifyTechstack":
-    "إعداد Techstack المحلي | kombify Techstack",
+    "إعداد Techstack المحلي | Techstack",
   "ui.clientLocal.ownerName": "اسم المالك: {name}",
   "ui.clientLocal.password": "كلمة المرور",
   "ui.clientLocal.selfHostedLocalOwner": "المالك المحلي المستضاف ذاتيًا",
@@ -1475,7 +1475,7 @@ export const ar: Record<string, string> = {
   "ui.clientOnboarding.noTechstackAccountRequiredTechstack":
     "لا حاجة إلى حساب Techstack. يعمل Techstack على هذا الجهاز ويفتح قناة تسجيل محمية برمز لشبكتك الخاصة.",
   "ui.clientOnboarding.setUpKombifyTechstackOn":
-    "أعدّ kombify Techstack على جهاز Windows هذا.",
+    "أعدّ Techstack على جهاز Windows هذا.",
   "ui.clientOnboarding.signInWithKombifyCloud":
     "تسجيل الدخول باستخدام kombify Cloud",
   "ui.clientOnboarding.signInWithYourKombify":
@@ -1489,7 +1489,7 @@ export const ar: Record<string, string> = {
   "ui.clientOnboarding.useYourOwnSelfHosted":
     "استخدم خادمك المستضاف ذاتيًا بدلًا من ذلك",
   "ui.clientOnboarding.windowsClientOnboardingKombifyTechstack":
-    "إعداد عميل Windows | kombify Techstack",
+    "إعداد عميل Windows | Techstack",
   "ui.cockpitSnapshot.monitoringCockpitCouldNotBe":
     "تعذّر تحديث لوحة قيادة المراقبة.",
   "ui.common.copiedCheck": "✓ تم النسخ",
@@ -1525,7 +1525,7 @@ export const ar: Record<string, string> = {
   "ui.configurationFlow.anUnexpectedErrorOccurredPlease":
     "حدث خطأ غير متوقع. حاول مرة أخرى. إذا استمر ذلك، فتواصل مع الدعم وشارك التفاصيل التقنية.",
   "ui.configurationFlow.authenticationRequired": "المصادقة مطلوبة",
-  "ui.configurationFlow.cannotConnectToBackend": "تعذّر الوصول إلى kombify Techstack",
+  "ui.configurationFlow.cannotConnectToBackend": "تعذّر الوصول إلى Techstack",
   "ui.configurationFlow.deploymentFailed": "تعذّر إنشاء الـ Homelab الخاص بك",
   "ui.configurationFlow.managedServerIsNotActive": "الخادم المُدار غير نشط",
   "ui.configurationFlow.permissionDenied": "تم رفض الإذن",
@@ -1762,11 +1762,44 @@ export const ar: Record<string, string> = {
   "ui.hypervisorSelection.ramMib": "RAM (MiB)",
   "ui.identity.alien": "كائن فضائي",
   "ui.identity.astronaut": "رائد فضاء",
+  "ui.identity.cat": "قطة",
   "ui.identity.circuit": "دارة",
   "ui.identity.cybershield": "درع سيبراني",
   "ui.identity.dragon": "تنين",
+  "ui.identity.editor.animations": "الحركات",
+  "ui.identity.editor.collapse": "طي",
+  "ui.identity.editor.customize": "تخصيص",
+  "ui.identity.editor.futuristic": "مستقبلي",
+  "ui.identity.editor.glowColor": "لون التوهج",
+  "ui.identity.editor.iconStyle": "نمط الرمز",
+  "ui.identity.editor.notSavedYet": "لم يُحفظ بعد",
+  "ui.identity.editor.playful": "مرح",
+  "ui.identity.editor.resetToDefault": "إعادة التعيين إلى الافتراضي",
+  "ui.identity.editor.save": "حفظ",
+  "ui.identity.editor.saved": "تم الحفظ",
+  "ui.identity.editor.savedAt": "حُفظ في {date}",
+  "ui.identity.editor.saving": "جارٍ الحفظ…",
+  "ui.identity.editor.select": "اختيار {label}",
+  "ui.identity.editor.selectGlow": "اختيار توهج {label}",
+  "ui.identity.editor.stackNamePlaceholder": "اسم Stack…",
+  "ui.identity.editor.toggleAnimations": "تبديل حركات الهوية",
+  "ui.identity.editor.unknown": "غير معروف",
   "ui.identity.ghost": "شبح",
+  "ui.identity.glow.default": "افتراضي",
+  "ui.identity.glow.ember": "جمر",
+  "ui.identity.glow.forest": "غابة",
+  "ui.identity.glow.mint": "نعناعي",
+  "ui.identity.glow.neon": "نيون",
+  "ui.identity.glow.ocean": "محيط",
+  "ui.identity.glow.rose": "وردي",
+  "ui.identity.glow.sunset": "غروب",
+  "ui.identity.glow.violet": "بنفسجي",
   "ui.identity.hologram": "هولوغرام",
+  "ui.identity.home": "منزل",
+  "ui.identity.iconStyle.filled": "ممتلئ",
+  "ui.identity.iconStyle.glass": "زجاجي",
+  "ui.identity.iconStyle.gradient": "متدرج",
+  "ui.identity.iconStyle.outlined": "محدّد",
   "ui.identity.myHomelab": "Homelab الخاص بي",
   "ui.identity.nebula": "سديم",
   "ui.identity.ninja": "نينجا",
@@ -1775,6 +1808,7 @@ export const ar: Record<string, string> = {
   "ui.identity.robot": "روبوت",
   "ui.identity.rocket": "صاروخ",
   "ui.identity.satellite": "قمر صناعي",
+  "ui.identity.tree": "شجرة",
   "ui.identity.unicorn": "وحيد القرن الأسطوري",
   "ui.identity.wizard": "ساحر",
   "ui.importExport.downloadEncrypted.one":
@@ -1896,7 +1930,7 @@ export const ar: Record<string, string> = {
   "ui.login.revealFailed": "فشل الإظهار.",
   "ui.login.revealing": "جارٍ الإظهار...",
   "ui.login.signInAsEmergencyAdmin": "تسجيل الدخول بصفة مسؤول الطوارئ",
-  "ui.login.signInKombifyTechstack": "تسجيل الدخول | kombify Techstack",
+  "ui.login.signInKombifyTechstack": "تسجيل الدخول | Techstack",
   "ui.login.signInWithKombifyCloud": "سجّل الدخول باستخدام kombify Cloud.",
   "ui.login.signInWithTheLocal":
     "سجّل الدخول بحساب المالك المحلي لهذا Techstack.",
@@ -2233,7 +2267,7 @@ export const ar: Record<string, string> = {
   "ui.providerErrors.kombifyMeRegistrationFailed": "فشل تسجيل kombify.me",
   "ui.providerErrors.makeSureAStackKitWas": "تأكد من تحديد StackKit أو اكتشافه",
   "ui.providerErrors.makeSureTheKombifyTechstack":
-    "تأكد من أن خادم kombify Techstack قيد التشغيل",
+    "تأكد من أن خادم Techstack قيد التشغيل",
   "ui.providerErrors.managedRuntimeCouldNotBe": "تعذّر تجهيز Managed Runtime",
   "ui.providerErrors.managedRuntimeCouldNotBe2": "تعذّر إنشاء Managed Runtime",
   "ui.providerErrors.managedRuntimeIsNotReady": "Managed Runtime غير جاهز بعد",
@@ -2320,7 +2354,7 @@ export const ar: Record<string, string> = {
   "ui.providerErrors.theConfigurationCouldNotBe2":
     "تعذّر تحويل التكوين إلى مواصفة نشر صالحة.",
   "ui.providerErrors.theKombifyTechstackServerCould":
-    "تعذّر الوصول إلى خادم kombify Techstack.",
+    "تعذّر الوصول إلى خادم Techstack.",
   "ui.providerErrors.theManagedVMWasPrepared":
     "تم تجهيز VM المُدارة، لكن StackKits لم يتمكن من إنشاء نواتج الطرح أو بيانات توجيه kombify.me.",
   "ui.providerErrors.theRolloutDidNotReturn":
@@ -2541,7 +2575,7 @@ export const ar: Record<string, string> = {
   "ui.stepUp.checking": "جارٍ التحقق…",
   "ui.stepUp.confirm": "تأكيد تسجيل الدخول",
   "ui.stepUp.doneBody":
-    "يمكنك إغلاق هذه النافذة والعودة إلى kombify Techstack.",
+    "يمكنك إغلاق هذه النافذة والعودة إلى Techstack.",
   "ui.stepUp.doneTitle": "تم تأكيد تسجيل الدخول",
   "ui.stepUp.notConfirmed":
     "لم يصل التأكيد بعد. أنهِه في النافذة الأخرى أو حاول مرة أخرى.",
@@ -2873,7 +2907,7 @@ export const ar: Record<string, string> = {
   "ui.stackImportExportModal.youWillBeRedirectedTo":
     "ستتم إعادة توجيهك إلى صفحة الإعداد خلال لحظات.",
   "ui.stacksCreating.creatingStackkitDeploymentKombifyTechstack":
-    "جارٍ إنشاء الـ Homelab الخاص بك | kombify Techstack",
+    "جارٍ إنشاء الـ Homelab الخاص بك | Techstack",
   "ui.stacksCreating.leanBackBody":
     "لقد أنجزت دورك. نحن نجهّز كل شيء لك الآن، وشيء رائع في الطريق.",
   "ui.stacksCreating.leanBackTitle": "استرخِ، فنحن نصنع السحر من أجلك",
@@ -3093,7 +3127,7 @@ export const ar: Record<string, string> = {
   "ui.stacksCreatingCreationInstallCommand.copyInstallationCommandToClipboard":
     "نسخ أمر التثبيت إلى الحافظة",
   "ui.stacksCreatingCreationInstallCommand.kombifyTechstackServerUrlReachable":
-    "عنوان kombify Techstack (يمكن لخادمك الوصول إليه):",
+    "عنوان Techstack (يمكن لخادمك الوصول إليه):",
   "ui.stacksCreatingCreationInstallCommand.openOneHourSimulateDemo":
     "فتح معاينة Simulate التجريبية لمدة ساعة",
   "ui.stacksCreatingCreationInstallCommand.previewLifetimeIsLimitedTo":
@@ -3702,7 +3736,7 @@ export const ar: Record<string, string> = {
   "ui.taskStatus.yourChosenAuthMethodIs":
     "تُطبَّق طريقة المصادقة التي اخترتها على جميع الخدمات. تحصل الإعدادات متعددة المستخدمين تلقائيًا على أذونات قائمة على المجموعات.",
   "ui.taskUpdates.anUnexpectedErrorOccurred": "حدث خطأ غير متوقع",
-  "ui.techstackBrandLogo.kombifyTechstack": "kombify Techstack",
+  "ui.techstackBrandLogo.kombifyTechstack": "Techstack",
   "ui.terminal.title": "الطرفية · {name}",
   "ui.time.daysHours": "{days} يوم {hours} ساعة",
   "ui.time.hours": "{count} ساعة",

@@ -290,11 +290,7 @@ func (o *Orchestrator) EnqueueStackKitLifecycle(ctx context.Context, request job
 		job.Payload[jobs.ManagedBackupAdmissionField] = admission
 		job.Result[jobs.ManagedBackupAdmissionField] = admission
 	}
-	jobs.CopyEdgeFlagsFromContext(ctx, job)
-	jobs.CaptureRequestAuthority(ctx, job, stack.tenantID, stack.ownerID)
-	if jobs.IsApplicationLifecycleOperation(normalized.Operation) || jobs.IsApplicationConnectorLifecycleOperation(normalized.Operation) {
-		jobs.CaptureRequestOperateAuthority(ctx, job, stack.tenantID, stack.ownerID)
-	}
+	jobs.CaptureJobAuthorization(ctx, job, stack.tenantID, stack.ownerID)
 	if err := o.enqueueWithSync(job, stack.tenantID); err != nil {
 		return "", err
 	}
@@ -353,7 +349,7 @@ func (o *Orchestrator) ReplayRestoreActivationRequest(ctx context.Context, reque
 				return "", false, fmt.Errorf("%w: accepted restore payload is unavailable; retain original job %s", ErrStackKitLifecycleUnavailable, existing.ID)
 			}
 			job := &jobs.Job{ID: existing.ID, Type: jobs.JobTypeStackKitLifecycle, TargetType: targetTypeStack, TargetID: existing.StackID, TargetName: stack.name, Payload: existing.Payload, Result: existing.Result, MaxAttempts: 1}
-			jobs.CaptureRequestAuthority(ctx, job, request.TenantID, request.OwnerID)
+			jobs.CaptureJobAuthorization(ctx, job, request.TenantID, request.OwnerID)
 			if err := o.enqueueWithSync(job, request.TenantID); err != nil {
 				return "", false, err
 			}
@@ -452,8 +448,7 @@ func (o *Orchestrator) reserveStackKitLifecycleJob(
 	if restoreReceipt := jobs.RestoreActivationRequestReceipt(request); restoreReceipt != nil {
 		reservation.Result[controlplane.RestoreActivationRequestResultKey] = restoreReceipt
 		prepared := &jobs.Job{ID: request.DurableJobID, Type: jobs.JobTypeStackKitLifecycle, TargetID: stack.id, Payload: jobs.StackKitLifecyclePayload(request)}
-		jobs.CopyEdgeFlagsFromContext(ctx, prepared)
-		jobs.CaptureRequestAuthority(ctx, prepared, stack.tenantID, stack.ownerID)
+		jobs.CaptureJobAuthorization(ctx, prepared, stack.tenantID, stack.ownerID)
 		reservation.Payload = prepared.Payload
 	}
 	if receipt := jobs.RILStackKitOperationReceipt(request); receipt != nil {
@@ -463,8 +458,7 @@ func (o *Orchestrator) reserveStackKitLifecycleJob(
 	if receipt := jobs.WizardExtendReceipt(request); receipt != nil {
 		reservation.Result[jobs.WizardExtendReceiptKey] = receipt
 		prepared := &jobs.Job{ID: request.DurableJobID, Type: jobs.JobTypeStackKitLifecycle, TargetID: stack.id, Payload: jobs.StackKitLifecyclePayload(request)}
-		jobs.CopyEdgeFlagsFromContext(ctx, prepared)
-		jobs.CaptureRequestAuthority(ctx, prepared, stack.tenantID, stack.ownerID)
+		jobs.CaptureJobAuthorization(ctx, prepared, stack.tenantID, stack.ownerID)
 		reservation.Payload = prepared.Payload
 	}
 	var created *controlplane.Job

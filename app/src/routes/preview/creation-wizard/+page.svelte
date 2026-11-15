@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-  <title>{tr("wizard.preview.label")} | kombify Techstack</title>
+  <title>{tr("wizard.preview.label")} | Techstack</title>
   <meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 

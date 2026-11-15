@@ -27,6 +27,9 @@ const (
 	guardReachSecretEnv  = "TECHSTACK_GATEWAY_CONNECT_SERVICE_SECRET"
 	guardReachRelayEnv   = "TECHSTACK_GUARD_REACH_RELAY_URL"
 	guardReachPollEnv    = "TECHSTACK_GUARD_REACH_REVOCATION_POLL"
+	// guardReachAnnounceMCPEnv registers the server's kombify.me route as its product MCP host with the Connect node
+	// (Gateway ADR 0042). Off by default.
+	guardReachAnnounceMCPEnv = "TECHSTACK_GUARD_REACH_ANNOUNCE_MCP_HOST"
 )
 
 // Maintenance authority is independent of optional tunnel publication and its
@@ -93,6 +96,7 @@ func bootGuardReach(v2 *v2Boot, edition config.Edition, orch *orchestrator.Orche
 		Store: reachStore, Me: guardreach.NewMe(kombifyme.NewClient(meConfig)), Connect: gateway,
 		Identities: guardreach.ControlPlane{Workers: store, Identities: store, Servers: store}, Access: store,
 		AgentLinks:     agentLinks,
+		AnnounceMCPHost: os.Getenv(guardReachAnnounceMCPEnv) == "true",
 		RelayURL:       os.Getenv(guardReachRelayEnv),
 		RevocationPoll: poll, Logger: log.Logger,
 	})

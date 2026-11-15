@@ -44,7 +44,7 @@ export const appLogoMessages = {
     "ui.credits.removal.body":
       "If you hold the rights to a logo and want it removed, tell kombify and it is removed for every user.",
     "ui.credits.removal.link": "Imprint and contact",
-    "ui.credits.back": "Back to kombify Techstack",
+    "ui.credits.back": "Back to Techstack",
   },
   de: {
     "ui.appLogo.label": "Logo",
@@ -89,7 +89,7 @@ export const appLogoMessages = {
     "ui.credits.removal.body":
       "Wenn dir die Rechte an einem Logo gehören und du es entfernt haben möchtest, sag kombify Bescheid; es wird dann für alle Nutzer entfernt.",
     "ui.credits.removal.link": "Impressum und Kontakt",
-    "ui.credits.back": "Zurück zu kombify Techstack",
+    "ui.credits.back": "Zurück zu Techstack",
   },
   es: {
     "ui.appLogo.label": "Logotipo",
@@ -133,7 +133,7 @@ export const appLogoMessages = {
     "ui.credits.removal.body":
       "Si posees los derechos de un logotipo y quieres que se retire, díselo a kombify y se retirará para todos los usuarios.",
     "ui.credits.removal.link": "Aviso legal y contacto",
-    "ui.credits.back": "Volver a kombify Techstack",
+    "ui.credits.back": "Volver a Techstack",
   },
   "zh-Hans": {
     "ui.appLogo.label": "标志",
@@ -174,7 +174,7 @@ export const appLogoMessages = {
     "ui.credits.removal.body":
       "如果你拥有某个标志的权利并希望将其移除，请告知 kombify，该标志将对所有用户移除。",
     "ui.credits.removal.link": "法律声明与联系方式",
-    "ui.credits.back": "返回 kombify Techstack",
+    "ui.credits.back": "返回 Techstack",
   },
   hi: {
     "ui.appLogo.label": "लोगो",
@@ -218,7 +218,7 @@ export const appLogoMessages = {
     "ui.credits.removal.body":
       "यदि किसी लोगो के अधिकार आपके पास हैं और आप उसे हटवाना चाहते हैं, तो kombify को बताएँ; उसे सभी उपयोगकर्ताओं के लिए हटा दिया जाएगा।",
     "ui.credits.removal.link": "इम्प्रेसम और संपर्क",
-    "ui.credits.back": "kombify Techstack पर वापस जाएँ",
+    "ui.credits.back": "Techstack पर वापस जाएँ",
   },
   ar: {
     "ui.appLogo.label": "الشعار",
@@ -262,6 +262,6 @@ export const appLogoMessages = {
     "ui.credits.removal.body":
       "إذا كنت تملك حقوق شعار وتريد إزالته، فأخبر kombify وستتم إزالته لدى جميع المستخدمين.",
     "ui.credits.removal.link": "بيانات الناشر وطرق التواصل",
-    "ui.credits.back": "العودة إلى kombify Techstack",
+    "ui.credits.back": "العودة إلى Techstack",
   },
 };

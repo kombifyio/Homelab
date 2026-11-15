@@ -7,6 +7,8 @@
     defaultIdentity,
     StackIdentityDisplay,
     StackIdentityEditor,
+    stackIdentityEditorLabels,
+    stackIdentityLabelFor,
   } from "#lib/components/open-core/index.js";
   import { NotificationPreferences } from "#lib/components/open-core/index.js";
   import { parseApiError } from "#lib/api/errors.js";
@@ -418,10 +420,16 @@
         {:else if stackIdentityEditable && stackIdentityLoaded}
           <StackIdentityEditor
             identity={stackIdentityValue ?? fallbackIdentity}
+            labels={stackIdentityEditorLabels()}
+            labelFor={stackIdentityLabelFor}
+            locale={getLocale()}
             onSave={handleIdentitySave}
           />
         {:else if stackIdentityLoaded && stackIdentityValue}
-          <StackIdentityDisplay identity={stackIdentityValue} />
+          <StackIdentityDisplay
+            identity={stackIdentityValue}
+            labelFor={stackIdentityLabelFor}
+          />
           <p
             class="mt-4 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground"
           >

@@ -970,8 +970,7 @@ func (o *Orchestrator) ProvisionStackWithOptions(stackID string, spec map[string
 	if id := identity.FromContext(ctx); id != nil {
 		job.Payload["actor"] = jobs.ActorPayloadFromIdentity(id)
 	}
-	jobs.CopyEdgeFlagsFromContext(ctx, job)
-	jobs.CaptureRequestAuthority(ctx, job, stack.tenantID, stack.ownerID)
+	jobs.CaptureJobAuthorization(ctx, job, stack.tenantID, stack.ownerID)
 
 	// If we have a stored raw user config (imported YAML), pass it through so
 	// the provision job can persist it byte-exact as kombination.yaml.
@@ -1046,8 +1045,7 @@ func (o *Orchestrator) deployStackWithOptionsLocked(ctx context.Context, stackID
 		}
 		o.updateStackStatusForJob(ctx, stack, persistentStateProvisioning)
 		job := buildDeployQueueJob(stackID, stack, payload, dispatchResult, jobID)
-		jobs.CopyEdgeFlagsFromContext(ctx, job)
-		jobs.CaptureRequestAuthority(ctx, job, stack.tenantID, stack.ownerID)
+		jobs.CaptureJobAuthorization(ctx, job, stack.tenantID, stack.ownerID)
 		if enqueueErr := o.enqueueWithSync(job, stack.tenantID); enqueueErr != nil {
 			return "", enqueueErr
 		}
@@ -1075,8 +1073,7 @@ func (o *Orchestrator) deployStackWithOptionsLocked(ctx context.Context, stackID
 	o.updateStackStatusForJob(ctx, stack, persistentStateProvisioning)
 
 	job := buildDeployQueueJob(stackID, stack, payload, dispatchResult, jobID)
-	jobs.CopyEdgeFlagsFromContext(ctx, job)
-	jobs.CaptureRequestAuthority(ctx, job, stack.tenantID, stack.ownerID)
+	jobs.CaptureJobAuthorization(ctx, job, stack.tenantID, stack.ownerID)
 
 	if enqueueErr := o.enqueueWithSync(job, stack.tenantID); enqueueErr != nil {
 		return "", enqueueErr
@@ -2044,7 +2041,7 @@ func (o *Orchestrator) DestroyStackWithOptions(stackID string, opts ProvisionSta
 	if len(destroyResult) > 0 {
 		job.Result = destroyResult
 	}
-	jobs.CopyEdgeFlagsFromContext(ctx, job)
+	jobs.CaptureJobAuthorization(ctx, job, stack.tenantID, stack.ownerID)
 
 	if err := o.enqueueWithSync(job, stack.tenantID); err != nil {
 		return "", err

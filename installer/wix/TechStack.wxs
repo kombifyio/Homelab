@@ -14,7 +14,7 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:fire="http://wixtoolset.org/schemas/v4/wxs/firewall">
   <Package
-    Name="kombify Techstack $(var.DesktopEditionName)"
+    Name="Techstack $(var.DesktopEditionName)"
     Manufacturer="kombify"
     Version="$(var.TechStackVersion)"
     UpgradeCode="$(var.MsiUpgradeCode)"
@@ -24,10 +24,10 @@
     Scope="perMachine"
     InstallerVersion="500">
 
-    <SummaryInformation Description="kombify Techstack Windows client" />
+    <SummaryInformation Description="Techstack Windows client" />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
     <MajorUpgrade
-      DowngradeErrorMessage="A newer version of kombify Techstack is already installed."
+      DowngradeErrorMessage="A newer version of Techstack is already installed."
       Schedule="afterInstallInitialize" />
 
     <StandardDirectory Id="ProgramFiles6432Folder">
@@ -61,8 +61,8 @@
         <Component Id="StartMenuShortcut" Guid="*">
           <Shortcut
             Id="TechStackClientShortcut"
-            Name="kombify Techstack Client"
-            Description="Open kombify Techstack"
+            Name="Techstack Client"
+            Description="Open Techstack"
             Target="[INSTALLFOLDER]kombify-techstack-client.exe"
             WorkingDirectory="INSTALLFOLDER"
             Icon="TechStackIcon" />
@@ -82,7 +82,7 @@
     <Property Id="ARPPRODUCTICON" Value="TechStackIcon" />
     <Property Id="ARPHELPLINK" Value="https://github.com/kombifyio/TechStack" />
 
-    <Feature Id="ProductFeature" Title="kombify Techstack" Level="1">
+    <Feature Id="ProductFeature" Title="Techstack" Level="1">
       <ComponentGroupRef Id="StageFiles" />
       <ComponentRef Id="StartMenuShortcut" />
 <?if $(var.DesktopEdition) = Local ?>

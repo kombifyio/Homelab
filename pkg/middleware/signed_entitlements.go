@@ -10,6 +10,8 @@ type signedEntitlementsContextKey struct{}
 
 type membershipEntitlementsContextKey struct{}
 
+type jobEntitlementsContextKey struct{}
+
 // SignedEntitlements is the immutable set extracted only after a v2 Edge
 // identity signature has been verified. It is deliberately separate from
 // feature flags because those are not authorization grants.
@@ -92,6 +94,7 @@ type EntitlementSource string
 const (
 	EntitlementSourceSignedEdge EntitlementSource = "signed_edge"
 	EntitlementSourceMembership EntitlementSource = "membership"
+	EntitlementSourceJobPayload EntitlementSource = "job_payload"
 )
 
 // AuthorizedEntitlementsFromContext returns the Edge-signed grants when
@@ -101,8 +104,25 @@ func AuthorizedEntitlementsFromContext(ctx context.Context) (SignedEntitlements,
 	if signed, ok := SignedEntitlementsFromContext(ctx); ok {
 		return signed, EntitlementSourceSignedEdge, true
 	}
+	if ctx != nil {
+		if grant, ok := ctx.Value(jobEntitlementsContextKey{}).(SignedEntitlements); ok {
+			return grant, EntitlementSourceJobPayload, true
+		}
+	}
 	if membership, ok := MembershipEntitlementsFromContext(ctx); ok {
 		return membership, EntitlementSourceMembership, true
 	}
 	return SignedEntitlements{}, "", false
+}
+
+// WithJobEntitlements attaches explicit grants from a server-owned, bound job
+// payload. It never marks a payload as an Edge signature or admits spend.
+func WithJobEntitlements(ctx context.Context, entitlements ...string) context.Context {
+	values := make(map[string]struct{}, len(entitlements))
+	for _, key := range entitlements {
+		if key == "techstack.inventory.read" || key == "techstack.inventory.operate" {
+			values[key] = struct{}{}
+		}
+	}
+	return context.WithValue(ctx, jobEntitlementsContextKey{}, SignedEntitlements{values: values})
 }

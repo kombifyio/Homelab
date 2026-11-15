@@ -1371,7 +1371,7 @@ export const hi: Record<string, string> = {
   "wizard.run.banner.dismiss": "बंद करें",
   "wizard.run.banner.dismissFailed": "सूचना बंद नहीं हो सकी",
   "nav.notifications": "सूचनाएँ",
-  "companion.frameTitle": "kombify Companion",
+  "companion.frameTitle": "Companion",
   "companion.open": "Companion खोलें",
   "companion.close": "Companion बंद करें",
   "companion.startVoiceAgent": "वॉइस एजेंट शुरू करें",
@@ -1491,7 +1491,7 @@ export const hi: Record<string, string> = {
   "ui.clientLocal.localSignInFailed": "स्थानीय साइन-इन विफल रहा।",
   "ui.clientLocal.localTechstackSetup": "स्थानीय Techstack सेटअप।",
   "ui.clientLocal.localTechstackSetupKombifyTechstack":
-    "स्थानीय Techstack सेटअप | kombify Techstack",
+    "स्थानीय Techstack सेटअप | Techstack",
   "ui.clientLocal.ownerName": "ओनर का नाम: {name}",
   "ui.clientLocal.password": "पासवर्ड",
   "ui.clientLocal.selfHostedLocalOwner": "सेल्फ-होस्टेड स्थानीय ओनर",
@@ -1508,7 +1508,7 @@ export const hi: Record<string, string> = {
   "ui.clientOnboarding.noTechstackAccountRequiredTechstack":
     "किसी Techstack खाते की ज़रूरत नहीं है। Techstack इसी डिवाइस पर चलता है और आपके निजी नेटवर्क के लिए टोकन-सुरक्षित एनरोलमेंट चैनल खोलता है।",
   "ui.clientOnboarding.setUpKombifyTechstackOn":
-    "इस Windows डिवाइस पर kombify Techstack सेट अप कीजिए।",
+    "इस Windows डिवाइस पर Techstack सेट अप कीजिए।",
   "ui.clientOnboarding.signInWithKombifyCloud": "kombify Cloud से साइन इन करें",
   "ui.clientOnboarding.signInWithYourKombify":
     "अपने kombify Cloud खाते से साइन इन कीजिए और इस डेस्कटॉप क्लाइंट को जोड़िए।",
@@ -1521,7 +1521,7 @@ export const hi: Record<string, string> = {
   "ui.clientOnboarding.useYourOwnSelfHosted":
     "इसके बजाय अपना सेल्फ-होस्टेड सर्वर इस्तेमाल करें",
   "ui.clientOnboarding.windowsClientOnboardingKombifyTechstack":
-    "Windows क्लाइंट ऑनबोर्डिंग | kombify Techstack",
+    "Windows क्लाइंट ऑनबोर्डिंग | Techstack",
   "ui.cockpitSnapshot.monitoringCockpitCouldNotBe":
     "मॉनिटरिंग कॉकपिट रिफ़्रेश नहीं हो सका।",
   "ui.common.copiedCheck": "✓ कॉपी हो गया",
@@ -1559,7 +1559,7 @@ export const hi: Record<string, string> = {
   "ui.configurationFlow.anUnexpectedErrorOccurredPlease":
     "कुछ अप्रत्याशित गड़बड़ हो गई। फिर से कोशिश करें। अगर यह बार-बार हो, तो सहायता से संपर्क करें और तकनीकी विवरण साझा करें।",
   "ui.configurationFlow.authenticationRequired": "प्रमाणीकरण आवश्यक है",
-  "ui.configurationFlow.cannotConnectToBackend": "kombify Techstack से कनेक्ट नहीं हो पा रहा",
+  "ui.configurationFlow.cannotConnectToBackend": "Techstack से कनेक्ट नहीं हो पा रहा",
   "ui.configurationFlow.deploymentFailed": "आपका Homelab नहीं बनाया जा सका",
   "ui.configurationFlow.managedServerIsNotActive":
     "प्रबंधित सर्वर सक्रिय नहीं है",
@@ -1804,11 +1804,44 @@ export const hi: Record<string, string> = {
   "ui.hypervisorSelection.ramMib": "RAM (MiB)",
   "ui.identity.alien": "एलियन",
   "ui.identity.astronaut": "अंतरिक्ष यात्री",
+  "ui.identity.cat": "बिल्ली",
   "ui.identity.circuit": "सर्किट",
   "ui.identity.cybershield": "साइबर शील्ड",
   "ui.identity.dragon": "ड्रैगन",
+  "ui.identity.editor.animations": "एनिमेशन",
+  "ui.identity.editor.collapse": "संक्षिप्त करें",
+  "ui.identity.editor.customize": "अनुकूलित करें",
+  "ui.identity.editor.futuristic": "भविष्यवादी",
+  "ui.identity.editor.glowColor": "चमक का रंग",
+  "ui.identity.editor.iconStyle": "आइकन शैली",
+  "ui.identity.editor.notSavedYet": "अभी सहेजा नहीं गया",
+  "ui.identity.editor.playful": "मज़ेदार",
+  "ui.identity.editor.resetToDefault": "डिफ़ॉल्ट पर लौटाएँ",
+  "ui.identity.editor.save": "सहेजें",
+  "ui.identity.editor.saved": "सहेजा गया",
+  "ui.identity.editor.savedAt": "{date} को सहेजा गया",
+  "ui.identity.editor.saving": "सहेजा जा रहा है…",
+  "ui.identity.editor.select": "{label} चुनें",
+  "ui.identity.editor.selectGlow": "{label} की चमक चुनें",
+  "ui.identity.editor.stackNamePlaceholder": "स्टैक नाम…",
+  "ui.identity.editor.toggleAnimations": "पहचान एनिमेशन टॉगल करें",
+  "ui.identity.editor.unknown": "अज्ञात",
   "ui.identity.ghost": "भूत",
+  "ui.identity.glow.default": "डिफ़ॉल्ट",
+  "ui.identity.glow.ember": "अंगारा",
+  "ui.identity.glow.forest": "वन",
+  "ui.identity.glow.mint": "पुदीना",
+  "ui.identity.glow.neon": "नियॉन",
+  "ui.identity.glow.ocean": "महासागर",
+  "ui.identity.glow.rose": "गुलाबी",
+  "ui.identity.glow.sunset": "सूर्यास्त",
+  "ui.identity.glow.violet": "बैंगनी",
   "ui.identity.hologram": "होलोग्राम",
+  "ui.identity.home": "घर",
+  "ui.identity.iconStyle.filled": "भरा हुआ",
+  "ui.identity.iconStyle.glass": "काँच",
+  "ui.identity.iconStyle.gradient": "ग्रेडिएंट",
+  "ui.identity.iconStyle.outlined": "रूपरेखा",
   "ui.identity.myHomelab": "मेरा Homelab",
   "ui.identity.nebula": "नीहारिका",
   "ui.identity.ninja": "निंजा",
@@ -1817,6 +1850,7 @@ export const hi: Record<string, string> = {
   "ui.identity.robot": "रोबोट",
   "ui.identity.rocket": "रॉकेट",
   "ui.identity.satellite": "उपग्रह",
+  "ui.identity.tree": "पेड़",
   "ui.identity.unicorn": "यूनिकॉर्न",
   "ui.identity.wizard": "जादूगर",
   "ui.importExport.downloadEncrypted.one":
@@ -1939,7 +1973,7 @@ export const hi: Record<string, string> = {
   "ui.login.revealFailed": "दिखाना विफल रहा।",
   "ui.login.revealing": "दिखाया जा रहा है...",
   "ui.login.signInAsEmergencyAdmin": "आपातकालीन एडमिन के रूप में साइन इन करें",
-  "ui.login.signInKombifyTechstack": "साइन इन | kombify Techstack",
+  "ui.login.signInKombifyTechstack": "साइन इन | Techstack",
   "ui.login.signInWithKombifyCloud": "kombify Cloud से साइन इन कीजिए।",
   "ui.login.signInWithTheLocal":
     "इस Techstack के स्थानीय ओनर खाते से साइन इन कीजिए।",
@@ -2286,7 +2320,7 @@ export const hi: Record<string, string> = {
   "ui.providerErrors.makeSureAStackKitWas":
     "सुनिश्चित कीजिए कि कोई StackKit चुना गया या पहचाना गया है",
   "ui.providerErrors.makeSureTheKombifyTechstack":
-    "सुनिश्चित कीजिए कि kombify Techstack सर्वर चल रहा है",
+    "सुनिश्चित कीजिए कि Techstack सर्वर चल रहा है",
   "ui.providerErrors.managedRuntimeCouldNotBe":
     "Managed Runtime तैयार नहीं हो सका",
   "ui.providerErrors.managedRuntimeCouldNotBe2":
@@ -2378,7 +2412,7 @@ export const hi: Record<string, string> = {
   "ui.providerErrors.theConfigurationCouldNotBe2":
     "कॉन्फ़िगरेशन को मान्य डिप्लॉयमेंट स्पेक में बदला नहीं जा सका।",
   "ui.providerErrors.theKombifyTechstackServerCould":
-    "kombify Techstack सर्वर तक पहुँचा नहीं जा सका।",
+    "Techstack सर्वर तक पहुँचा नहीं जा सका।",
   "ui.providerErrors.theManagedVMWasPrepared":
     "प्रबंधित VM तैयार हो गई, लेकिन StackKits रोलआउट आर्टिफ़ैक्ट या kombify.me रूटिंग डेटा जनरेट नहीं कर सका।",
   "ui.providerErrors.theRolloutDidNotReturn":
@@ -2606,7 +2640,7 @@ export const hi: Record<string, string> = {
   "ui.stepUp.checking": "जाँच हो रही है…",
   "ui.stepUp.confirm": "साइन-इन की पुष्टि करें",
   "ui.stepUp.doneBody":
-    "आप इस विंडो को बंद करके kombify Techstack पर लौट सकते हैं।",
+    "आप इस विंडो को बंद करके Techstack पर लौट सकते हैं।",
   "ui.stepUp.doneTitle": "साइन-इन की पुष्टि हो गई",
   "ui.stepUp.notConfirmed":
     "पुष्टि अभी तक नहीं मिली है। इसे दूसरी विंडो में पूरा करें या फिर से कोशिश करें।",
@@ -2946,7 +2980,7 @@ export const hi: Record<string, string> = {
   "ui.stackImportExportModal.youWillBeRedirectedTo":
     "आपको जल्द ही सेटअप पेज पर भेज दिया जाएगा।",
   "ui.stacksCreating.creatingStackkitDeploymentKombifyTechstack":
-    "आपका Homelab बनाया जा रहा है | kombify Techstack",
+    "आपका Homelab बनाया जा रहा है | Techstack",
   "ui.stacksCreating.leanBackBody":
     "आपका काम पूरा हो गया। हम अभी आपके लिए सब कुछ तैयार कर रहे हैं, और जल्द ही कुछ शानदार सामने आएगा।",
   "ui.stacksCreating.leanBackTitle":
@@ -3177,7 +3211,7 @@ export const hi: Record<string, string> = {
   "ui.stacksCreatingCreationInstallCommand.copyInstallationCommandToClipboard":
     "इंस्टॉलेशन कमांड क्लिपबोर्ड पर कॉपी करें",
   "ui.stacksCreatingCreationInstallCommand.kombifyTechstackServerUrlReachable":
-    "kombify Techstack का पता (आपके सर्वर से पहुँचने योग्य):",
+    "Techstack का पता (आपके सर्वर से पहुँचने योग्य):",
   "ui.stacksCreatingCreationInstallCommand.openOneHourSimulateDemo":
     "एक घंटे का Simulate डेमो पूर्वावलोकन खोलें",
   "ui.stacksCreatingCreationInstallCommand.previewLifetimeIsLimitedTo":
@@ -3803,7 +3837,7 @@ export const hi: Record<string, string> = {
   "ui.taskStatus.yourChosenAuthMethodIs":
     "आपका चुना हुआ ऑथ तरीका सभी सेवाओं पर लागू होता है। मल्टी-यूज़र सेटअप को अपने-आप ग्रुप-आधारित अनुमतियाँ मिलती हैं।",
   "ui.taskUpdates.anUnexpectedErrorOccurred": "एक अप्रत्याशित त्रुटि हुई",
-  "ui.techstackBrandLogo.kombifyTechstack": "kombify Techstack",
+  "ui.techstackBrandLogo.kombifyTechstack": "Techstack",
   "ui.terminal.title": "टर्मिनल · {name}",
   "ui.time.daysHours": "{days} दिन {hours} घंटे",
   "ui.time.hours": "{count} घंटे",

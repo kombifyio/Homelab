@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# kombify Techstack Server Preparation Script
+# Techstack Server Preparation Script
 # Supported OS: Ubuntu 20.04, 22.04, 24.04, 26.04
 # Installs: Docker, OpenTofu, Terramate (optional)
 
@@ -141,7 +141,7 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-log "Starting kombify Techstack Server Preparation..."
+log "Starting Techstack Server Preparation..."
 check_root
 check_os
 install_dependencies

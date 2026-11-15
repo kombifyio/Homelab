@@ -4,7 +4,11 @@
     <AssemblyName>Kombify.Client.Shell</AssemblyName>
     <RootNamespace>Kombify.Client.Shell</RootNamespace>
     <PackageId>Kombify.Client.Shell</PackageId>
-    <Description>Shared strict connection-profile and Windows secret-custody seams for thin Kombify WebView2 clients.</Description>
+    <!-- The one place this package's version is set: client-shell-package.yml and
+         scripts/package-client-shell.ps1 read it (dotnet msbuild -getProperty:Version).
+         A published version is immutable; a source change needs a new one here. -->
+    <Version>0.1.0-alpha.6</Version>
+    <Description>Shared strict connection-profile, Windows secret-custody and Companion AppLink v1 client and carried-Companion install seams for thin Kombify WebView2 clients.</Description>
     <RepositoryUrl>https://github.com/kombifyio/TechStack</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>

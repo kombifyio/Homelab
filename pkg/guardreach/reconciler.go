@@ -82,6 +82,9 @@ type Config struct {
 	// references to each registered node (optional; nil keeps the agent link
 	// off and the node's /mcp reachable by its native token only).
 	AgentLinks AgentLinkDelivery
+	// AnnounceMCPHost registers the server's kombify.me route as its product MCP host with the Connect node, so a kombify
+	// agent with a server-bound lease can reach it (Gateway ADR 0042). Off by default.
+	AnnounceMCPHost bool
 	// RelayURL is the kombify.me relay WebSocket URL handed to Guards.
 	RelayURL string
 
@@ -687,6 +690,7 @@ func (s *Service) registerConnect(ctx context.Context, tenantID, workerID, proof
 		OwnerSubject: row.OwnerSubjectID, ConnectTenantID: row.ConnectTenantID, Roles: row.OwnerRoles,
 		HostProof: proof, KeyThumbprint: row.KeyThumbprint, DisplayName: connectDisplayName(row),
 		StackID: gatewayStackID(row.StackID, row.ServerID), Placement: normalizePlacement(row.Placement),
+		MCPHost: s.mcpHostOf(row),
 	})
 	revokeNow := false
 	_, err = s.cfg.Store.Update(ctx, tenantID, workerID, func(r *Row) bool {
@@ -748,4 +752,13 @@ func connectDisplayName(row *Row) string {
 // ListByTenant serves the reach section of the server read model.
 func (s *Service) ListByTenant(ctx context.Context, tenantID string) ([]Row, error) {
 	return s.cfg.Store.ListByTenant(ctx, tenantID)
+}
+
+// mcpHostOf is the https://<fqdn>/mcp host of a server whose kombify.me route is registered, or empty (also when the
+// announcement is off or the route is not registered at this generation).
+func (s *Service) mcpHostOf(row *Row) string {
+	if !s.cfg.AnnounceMCPHost || row.Me.State != TargetRegistered || row.Me.Generation != row.Generation || row.Me.Ref == "" {
+		return ""
+	}
+	return "https://" + row.Me.Ref + "/mcp"
 }

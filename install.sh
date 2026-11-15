@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# kombify Techstack Installer Script
+# Techstack Installer Script
 # Usage: curl -fsSL https://raw.githubusercontent.com/kombifyio/TechStack/main/install.sh | sh
 
 set -e
@@ -278,7 +278,7 @@ enroll_with_guard_binary() {
             echo "${GREEN}✓ Worker registered and accepted.${NC}"
         else
             echo "${YELLOW}Worker registered but pending approval in the UI.${NC}"
-            echo "Open the kombify Techstack dashboard and approve the worker to continue."
+            echo "Open the Techstack dashboard and approve the worker to continue."
         fi
         WORKER_REGISTERED="1"
         GUARD_ENROLLED="1"
@@ -371,14 +371,14 @@ worker_register_if_env_set() {
 
     print_localhost_hint() {
         echo "${YELLOW}Hint:${NC} You are using a localhost URL (${SERVER})." >&2
-        echo "On a worker/VM, localhost refers to that machine (not your kombify Techstack host)." >&2
-        echo "Use the kombify Techstack host's reachable IP/hostname instead (e.g. http://<host-ip>:5260)." >&2
+        echo "On a worker/VM, localhost refers to that machine (not your Techstack host)." >&2
+        echo "Use the Techstack host's reachable IP/hostname instead (e.g. http://<host-ip>:5260)." >&2
         if is_likely_vm; then
             echo "${YELLOW}Note:${NC} You appear to be running inside a VM. Replace localhost accordingly." >&2
         fi
     }
 
-    echo "${CYAN}Registering worker with kombify Techstack...${NC}"
+    echo "${CYAN}Registering worker with Techstack...${NC}"
     echo "${CYAN}Server:${NC} ${SERVER}" 
 
     REGISTER_TMP_DIR=$(mktemp -d)
@@ -454,7 +454,7 @@ worker_register_if_env_set() {
         echo "${GREEN}✓ Worker registered and accepted.${NC}"
     elif echo "$RESP" | grep -q '"accepted"[[:space:]]*:[[:space:]]*false'; then
         echo "${YELLOW}Worker registered but pending approval in the UI.${NC}"
-        echo "Open the kombify Techstack dashboard and approve the worker to continue."
+        echo "Open the Techstack dashboard and approve the worker to continue."
     else
         bootstrap_log error "Worker registration returned an invalid enrollment response."
         echo "${RED}Worker registration response was not recognized.${NC}" >&2
@@ -1195,7 +1195,7 @@ install_systemd_service() {
         
         echo "${GREEN}✓ SystemD service installed${NC}"
         echo ""
-        echo "To start kombify Techstack:"
+        echo "To start Techstack:"
         echo "  sudo systemctl start techstack"
         echo ""
         echo "To enable at boot:"
@@ -1219,7 +1219,7 @@ install_legacy_guard_unit() {
     umask 077
     cat > "$UNIT_TMP" <<EOF
 [Unit]
-Description=Kombify TechStack Guard (outbound HTTPS runtime channel)
+Description=Techstack Guard (outbound HTTPS runtime channel)
 Documentation=https://github.com/kombifyio/TechStack
 After=network-online.target
 Wants=network-online.target
@@ -1609,7 +1609,7 @@ reinstall_guard() {
 # Main installation flow
 main() {
     echo "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo "${CYAN}   kombify Techstack Installer${NC}"
+    echo "${CYAN}   Techstack Installer${NC}"
     echo "${CYAN}   The Hybrid Infrastructure Unifier${NC}"
     echo "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""

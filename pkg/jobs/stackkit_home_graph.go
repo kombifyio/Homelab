@@ -83,7 +83,7 @@ func homeGraphSyncCommand(id string, req StackKitLifecycleRequest, release stack
 // acknowledgement or a restart is safe and needs no outcome fence: the stored
 // state keeps the restore items until a run with them succeeded.
 func runApplicationHomeGraphJob(ctx context.Context, cfg StackKitLifecycleConfig, job *Job, q *Queue, req StackKitLifecycleRequest, release stackkitrelease.Release) error {
-	ctx = contextWithJobRequestAuthority(ctx, job)
+	ctx = contextWithJobAuthorization(ctx, job)
 	if cfg.HomeGraph == nil {
 		return NewConfigError(fmt.Errorf("home graph store unavailable"))
 	}
@@ -242,7 +242,7 @@ func homeGraphLoxoneImportCommand(id string, req StackKitLifecycleRequest, relea
 // to store in the household home graph. Nothing is written to the Miniserver
 // or to the stored graph, so a re-run is safe.
 func runApplicationHomeGraphLoxoneImportJob(ctx context.Context, cfg StackKitLifecycleConfig, job *Job, q *Queue, req StackKitLifecycleRequest, release stackkitrelease.Release) error {
-	ctx = contextWithJobRequestAuthority(ctx, job)
+	ctx = contextWithJobAuthorization(ctx, job)
 	if cfg.HomeGraph == nil {
 		return NewConfigError(fmt.Errorf("home graph store unavailable"))
 	}

@@ -77,6 +77,9 @@ foreach ($process in $processes) {
 }
 
 $shortcutPaths = @(
+    (Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\kombify\Techstack Client.lnk"),
+    (Join-Path ([Environment]::GetFolderPath("Desktop")) "Techstack Client.lnk"),
+    # Shortcuts written before the product name lost its prefix.
     (Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\kombify\kombify TechStack Client.lnk"),
     (Join-Path ([Environment]::GetFolderPath("Desktop")) "kombify TechStack Client.lnk")
 )
@@ -123,7 +126,7 @@ if (Test-Path -LiteralPath $resolvedInstall) {
 }
 
 if ($RemoveState) {
-    Write-Host "kombify TechStack Client uninstalled with state removal."
+    Write-Host "Techstack Client uninstalled with state removal."
 } else {
-    Write-Host "kombify TechStack Client uninstalled; state and Credential Manager entries preserved at $resolvedState"
+    Write-Host "Techstack Client uninstalled; state and Credential Manager entries preserved at $resolvedState"
 }

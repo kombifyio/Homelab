@@ -11,6 +11,7 @@
     record,
     reportedOptions,
     supportsDesign,
+    supportsListed,
     supportsSetting,
     firmwareVersionPattern,
     type BoxSettings,
@@ -49,6 +50,9 @@
     ),
   );
   const supports = (path: string) => supportsSetting(live, path);
+  const listed = (path: string) => supportsListed(live, path);
+  /** Request time limits offered, in seconds. */
+  const TURN_LIMITS = [60, 120, 300, 600];
   const hasDesign = $derived(supportsDesign(live));
   const hasFirmware = $derived(
     [
@@ -374,6 +378,23 @@
             label={tr("box.followups")}
             onchange={(next) =>
               void save("assist", "max_followups", Number(next))}
+          />
+        </SettingsRow>
+      {/if}
+      {#if listed("assist.conversation")}
+        {@render toggle("assist", "conversation", tr("box.conversation"))}
+      {/if}
+      {#if listed("assist.turn_max_s")}
+        <SettingsRow label={tr("box.turnMax")}>
+          <SegmentedControl
+            class="flex-wrap"
+            items={TURN_LIMITS.map((seconds) => ({
+              value: String(seconds),
+              label: tr("box.minutes", { count: seconds / 60 }),
+            }))}
+            value={text("assist", "turn_max_s")}
+            label={tr("box.turnMax")}
+            onchange={(next) => void save("assist", "turn_max_s", Number(next))}
           />
         </SettingsRow>
       {/if}

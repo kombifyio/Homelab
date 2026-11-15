@@ -345,7 +345,7 @@ internal sealed partial class ClientWindow : Form
     public ClientWindow(ClientConfig config)
     {
         _config = config;
-        Text = "kombify TechStack Client";
+        Text = "Techstack Client";
         MinimumSize = new Size(980, 680);
         StartPosition = FormStartPosition.CenterScreen;
         WindowState = FormWindowState.Maximized;
@@ -515,7 +515,7 @@ internal sealed partial class ClientWindow : Form
             {
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Text = $"kombify TechStack Client could not start WebView2.\n\n{ex.Message}",
+                Text = $"Techstack Client could not start WebView2.\n\n{ex.Message}",
             });
         }
     }
@@ -1321,7 +1321,7 @@ img{width:72px;height:72px;object-fit:contain;margin-bottom:26px}h1{font-size:40
 .tag{font-size:12px;color:#0b3a78;text-transform:uppercase;font-weight:700}.code{display:inline-flex;margin-top:8px;padding:14px 18px;border:1px solid #c7d4e8;border-radius:8px;background:#f3f7fc;color:#07366f;font-family:Consolas,monospace;font-size:30px;font-weight:700;letter-spacing:.12em}
 a{color:#0b3a78;font-weight:700}
 pre{max-height:220px;overflow:auto;background:#06142d;color:#f5f7fb;padding:14px;border-radius:8px;font-size:12px;line-height:1.45;white-space:pre-wrap}.path{font-family:Consolas,monospace;color:#25314a}
-</style></head><body><main class="card"><img src="{{logo}}" alt=""><p class="tag">kombify TechStack Client</p><h1>{{Html(title)}}</h1><p class="copy">{{Html(detail)}}</p>{{extraHtml}}</main></body></html>
+</style></head><body><main class="card"><img src="{{logo}}" alt=""><p class="tag">Techstack Client</p><h1>{{Html(title)}}</h1><p class="copy">{{Html(detail)}}</p>{{extraHtml}}</main></body></html>
 """;
     }
 

@@ -1034,7 +1034,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     // interior; these are the host's launcher strings, which the SDK never
     // ships (packages carry no customer-facing prose).
     "nav.notifications": "Notifications",
-    "companion.frameTitle": "kombify Companion",
+    "companion.frameTitle": "Companion",
     "companion.open": "Open the Companion",
     "companion.close": "Close the Companion",
     "companion.startVoiceAgent": "Start voice agent",
@@ -2034,7 +2034,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // Companion
     "nav.notifications": "Benachrichtigungen",
-    "companion.frameTitle": "kombify Companion",
+    "companion.frameTitle": "Companion",
     "companion.open": "Companion öffnen",
     "companion.close": "Companion schließen",
     "companion.startVoiceAgent": "Sprachassistent starten",

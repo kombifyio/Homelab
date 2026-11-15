@@ -5,7 +5,7 @@ param(
     [switch]$Help
 )
 
-# kombify Techstack Windows Installer
+# Techstack Windows Installer
 # Usage (wizard one-liner):
 #   $env:KOMBI_SERVER='http://<host>:5260'; $env:KOMBI_TOKEN='<token>'; irm https://install.techstack.kombify.io/install.ps1 | iex
 # Usage (direct):
@@ -77,11 +77,11 @@ function Register-WorkerIfEnvSet {
     $hostName = $env:COMPUTERNAME
     if ([string]::IsNullOrWhiteSpace($hostName)) { $hostName = "worker" }
 
-    Write-Host "Registering worker with kombify Techstack..." -ForegroundColor Cyan
+    Write-Host "Registering worker with Techstack..." -ForegroundColor Cyan
     Write-Host ("Server: {0}" -f $server) -ForegroundColor Cyan
 
     if ($server -match "^https?://(localhost|127\.)") {
-        Write-Host "Hint: On a worker/VM, localhost refers to that machine, not your kombify Techstack host." -ForegroundColor Yellow
+        Write-Host "Hint: On a worker/VM, localhost refers to that machine, not your Techstack host." -ForegroundColor Yellow
         Write-Host "Use the host reachable IP/hostname instead (e.g. http://<host-ip>:5260)." -ForegroundColor Yellow
     }
 
@@ -100,7 +100,7 @@ function Register-WorkerIfEnvSet {
         Write-Host "Worker registered and accepted." -ForegroundColor Green
     } else {
         Write-Host "Worker registered but pending approval in the UI." -ForegroundColor Yellow
-        Write-Host "Open the kombify Techstack dashboard and approve the worker to continue."
+        Write-Host "Open the Techstack dashboard and approve the worker to continue."
     }
 }
 
@@ -248,9 +248,9 @@ function Install-WindowsService([string]$exePath) {
     $existing = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
     if ($existing) {
         Write-Host "Service already exists; updating binary path." -ForegroundColor Cyan
-        & sc.exe config $serviceName binPath= ('"{0}" serve' -f $exePath) | Out-Null
+        & sc.exe config $serviceName binPath= ('"{0}" serve' -f $exePath) DisplayName= "Techstack" | Out-Null
     } else {
-        New-Service -Name $serviceName -BinaryPathName ('"{0}" serve' -f $exePath) -DisplayName "kombify Techstack" -StartupType Automatic | Out-Null
+        New-Service -Name $serviceName -BinaryPathName ('"{0}" serve' -f $exePath) -DisplayName "Techstack" -StartupType Automatic | Out-Null
     }
     Write-Host "Windows Service 'techstack' installed." -ForegroundColor Green
     Write-Host "  Start:  Start-Service techstack"
@@ -262,7 +262,7 @@ function Install-WindowsService([string]$exePath) {
 if ($Help) { Show-Usage; return }
 
 Write-Host "----------------------------------------" -ForegroundColor Cyan
-Write-Host "   kombify Techstack Installer (Windows)" -ForegroundColor Cyan
+Write-Host "   Techstack Installer (Windows)" -ForegroundColor Cyan
 Write-Host "   The Hybrid Infrastructure Unifier" -ForegroundColor Cyan
 Write-Host "----------------------------------------" -ForegroundColor Cyan
 Write-Host ""

@@ -46,6 +46,7 @@ func signEdgeRequest(t *testing.T, e *httpx.Event, secret string) {
 	}
 	nonce := "test-nonce-" + strconv.FormatInt(testNonceSeq.Add(1), 10)
 	edgeauthtest.Sign(t, e.Request, edgeauthtest.Config{Version: edgeSignatureVersion, Secret: secret, KeyID: defaultEdgeKeyID, At: time.Now(), Nonce: nonce})
+	attachDefaultFlagDecision(t, e.Request, secret)
 }
 
 // TestEdgeIdentityMiddleware_SelfHosted verifies that in self-hosted mode the
@@ -728,8 +729,8 @@ func TestEdgeIdentityMiddleware_EdgeAuth_MissingSignatureRejected(t *testing.T) 
 func TestEdgeIdentityMiddleware_SpoofRejection_WithSecret(t *testing.T) {
 	const realSecret = "real-secret-xyz"
 	mw := EdgeIdentityMiddlewareWithConfig(EdgeIdentityConfig{
-		Mode:   config.ModeSaaS,
-		Secret: realSecret,
+		Mode:           config.ModeSaaS,
+		EdgeAuthSecret: realSecret,
 	})
 
 	e := newTestEvent("GET", "/test")
@@ -781,11 +782,11 @@ func TestEdgeIdentityMiddleware_SpoofRejection_WithoutSecret(t *testing.T) {
 
 // TestEdgeIdentityMiddleware_EdgeSecretFallback verifies the legacy Edge
 // shared secret path still works when Edge Auth header is absent.
-func TestEdgeIdentityMiddleware_EdgeSecretFallback(t *testing.T) {
+func TestEdgeIdentityMiddleware_RejectsLegacySharedSecret(t *testing.T) {
 	const testSecret = "super-secret-123"
 	mw := EdgeIdentityMiddlewareWithConfig(EdgeIdentityConfig{
-		Mode:   config.ModeSaaS,
-		Secret: testSecret,
+		Mode:           config.ModeSaaS,
+		EdgeAuthSecret: testSecret,
 	})
 
 	e := newTestEvent("GET", "/test")
@@ -799,13 +800,16 @@ func TestEdgeIdentityMiddleware_EdgeSecretFallback(t *testing.T) {
 	}
 
 	id := identity.FromContext(e.Request.Context())
-	if id == nil || id.UserID != "edge-user" {
-		t.Error("expected identity from Edge secret path")
+	if id != nil && id.IsAuthenticated() {
+		t.Error("legacy shared secret authenticated a request")
+	}
+	if IsEdgeAuthenticated(e.Request.Context()) || e.Request.Header.Get("X-Edge-Auth-Secret") != "" {
+		t.Fatal("legacy shared secret retained edge authority")
 	}
 
 	plan := UserPlanFromContext(e.Request.Context())
-	if plan != "team" {
-		t.Errorf("expected plan=team from Edge path, got %q", plan)
+	if plan != "" {
+		t.Errorf("legacy shared secret supplied plan %q", plan)
 	}
 }
 
@@ -842,6 +846,7 @@ func signEdgeRequestV2At(t *testing.T, e *httpx.Event, secret string, issuedAt t
 	}
 	nonce := "test-nonce-v2-" + strconv.FormatInt(testNonceSeq.Add(1), 10)
 	edgeauthtest.Sign(t, e.Request, edgeauthtest.Config{Version: "v2", Secret: secret, KeyID: defaultEdgeKeyID, At: issuedAt, Nonce: nonce})
+	attachDefaultFlagDecision(t, e.Request, secret)
 }
 
 func attachSignedTechStackDecision(
@@ -1038,8 +1043,18 @@ func signEdgeRequestV9(t *testing.T, e *httpx.Event, secret string) {
 	if e.Request.Header.Get(headerEdgeService) == "" {
 		e.Request.Header.Set(headerEdgeService, "techstack")
 	}
+	if e.Request.Header.Get(commonedgeauth.HeaderOrgID) == "" {
+		e.Request.Header.Set(commonedgeauth.HeaderOrgID, "org-test")
+	}
+	if e.Request.Header.Get(headerPublicPrefix) == "" {
+		e.Request.Header.Set(headerPublicPrefix, "/v1/techstack")
+	}
+	if e.Request.Header.Get(commonedgeauth.HeaderRequestID) == "" {
+		e.Request.Header.Set(commonedgeauth.HeaderRequestID, "req-test")
+	}
 	nonce := "test-nonce-v9-" + strconv.FormatInt(testNonceSeq.Add(1), 10)
 	edgeauthtest.Sign(t, e.Request, edgeauthtest.Config{Version: commonedgeauth.EdgeSignatureVersionV9, Secret: secret, KeyID: defaultEdgeKeyID, At: time.Now(), Nonce: nonce, SignedPath: e.Request.URL.RequestURI()})
+	attachDefaultFlagDecision(t, e.Request, secret)
 }
 
 // An agent acting for the person is admitted only from the signed principal
@@ -1239,6 +1254,9 @@ func TestEdgeIdentityMiddleware_DataProfile_EnforceDeniesMissingAndTampered(t *t
 			// Re-signing the identity for another subject must break the
 			// profile binding even though the identity itself verifies.
 			e.Request.Header.Set(commonedgeauth.HeaderUserID, "auth0|mallory")
+			for _, key := range []string{commonedgeauth.HeaderFlags, commonedgeauth.HeaderBudgets, commonedgeauth.HeaderFlagsSignature, commonedgeauth.HeaderFlagsTimestamp, commonedgeauth.HeaderFlagsKeyID} {
+				e.Request.Header.Del(key)
+			}
 			signEdgeRequestV2(t, e, testEdgeAuthSecret)
 		},
 	} {
@@ -1310,16 +1328,13 @@ func TestEdgeIdentityMiddleware_OpaqueDBContextTransport(t *testing.T) {
 		{name: "signed", signed: true, token: opaque, wantToken: true, wantIdentity: true},
 		{name: "unsigned", token: opaque},
 		{name: "tampered", signed: true, tampered: true, token: opaque},
-		{name: "legacy shared secret", legacy: true, token: opaque, wantIdentity: true},
+		{name: "legacy shared secret", legacy: true, token: opaque},
 		{name: "no identity", signed: true, noIdentity: true, token: opaque},
 		{name: "too long", signed: true, token: strings.Repeat("x", 4097), wantIdentity: true},
 		{name: "missing", signed: true, wantIdentity: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			cfg := EdgeIdentityConfig{Mode: config.ModeSaaS, EdgeAuthSecret: testEdgeAuthSecret}
-			if tc.legacy {
-				cfg.Secret = "transport-legacy-test-secret"
-			}
 			e := newTestEvent("GET", "/opaque-db-context")
 			if !tc.noIdentity {
 				e.Request.Header.Set("X-User-ID", "transport-user")
@@ -1331,7 +1346,7 @@ func TestEdgeIdentityMiddleware_OpaqueDBContextTransport(t *testing.T) {
 				signEdgeRequest(t, e, testEdgeAuthSecret)
 			}
 			if tc.legacy {
-				e.Request.Header.Set("X-Edge-Auth-Secret", cfg.Secret)
+				e.Request.Header.Set("X-Edge-Auth-Secret", testEdgeAuthSecret)
 			}
 			if tc.tampered {
 				e.Request.Header.Set("X-User-ID", "tampered-user")
@@ -1381,6 +1396,11 @@ func TestConnectedSelfHostConsumesSignedFlagsWithoutReplacingLocalIdentity(t *te
 			e.Request.Header.Set(headerEdgeAuth, edgeAuthValueJWT)
 			e.Request.Header.Set("X-User-ID", "cloud-user")
 			signEdgeRequest(t, e, testEdgeAuthSecret)
+			if tc.omit {
+				for _, key := range []string{commonedgeauth.HeaderFlags, commonedgeauth.HeaderBudgets, commonedgeauth.HeaderFlagsSignature, commonedgeauth.HeaderFlagsTimestamp, commonedgeauth.HeaderFlagsKeyID} {
+					e.Request.Header.Del(key)
+				}
+			}
 			if !tc.omit {
 				headers, err := commonedgeauth.SignFlagHeaders(testEdgeAuthSecret, "primary", tc.flags, nil, time.Now())
 				if err != nil {
@@ -1399,6 +1419,8 @@ func TestConnectedSelfHostConsumesSignedFlagsWithoutReplacingLocalIdentity(t *te
 			if err != nil {
 				t.Fatal(err)
 			}
+			// A missing map is served with every flag unanswered (off); only a
+			// present, invalid one refuses the request (platform-42ocp6.18).
 			if tc.tamper {
 				if e.Response.(*httptest.ResponseRecorder).Code != http.StatusUnauthorized {
 					t.Fatalf("tampered response=%d", e.Response.(*httptest.ResponseRecorder).Code)
@@ -1553,5 +1575,252 @@ func TestConsentGatesSignedAndSelfHostedDecisions(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func attachDefaultFlagDecision(t *testing.T, r *http.Request, secret string) {
+	t.Helper()
+	if r.Header.Get(commonedgeauth.HeaderFlags) != "" || r.Header.Get(commonedgeauth.HeaderFlagsSignature) != "" {
+		return
+	}
+	var h http.Header
+	var err error
+	if r.Header.Get(headerEdgeService) == "techstack" && edgeIdentityHasSubjectAndTenant(r) {
+		h, err = commonedgeauth.SignDecisionHeaders(commonedgeauth.DecisionSignInput{
+			Secret: secret, KeyID: defaultEdgeKeyID, Method: r.Method, SignedPath: r.URL.RequestURI(),
+			Audience: r.Header.Get(headerEdgeService), PublicPrefix: r.Header.Get(headerPublicPrefix),
+			SubjectID: r.Header.Get(commonedgeauth.HeaderUserID), TenantID: r.Header.Get(commonedgeauth.HeaderOrgID),
+			RequestID: r.Header.Get(commonedgeauth.HeaderRequestID), EdgeKeyID: r.Header.Get(headerEdgeKeyID),
+			EdgeTimestamp: r.Header.Get(headerEdgeTimestamp), EdgeNonce: r.Header.Get(headerEdgeNonce), EdgeSignature: r.Header.Get(headerEdgeSignature),
+			Flags: map[string]bool{}, Budgets: map[string]any{},
+		})
+	} else {
+		h, err = commonedgeauth.SignFlagHeaders(secret, defaultEdgeKeyID, map[string]bool{}, map[string]any{}, time.Now())
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	copyHeaders(r.Header, h)
+}
+
+// A flag envelope authorizes features, not the request (platform-42ocp6.18).
+// A hop without any flag header is served with every flag unanswered: it
+// gets no feature, even one whose offline default is on, and no decision
+// binding. An envelope that is present but partial, forged, expired or
+// tampered refuses the request.
+func TestGatewayFlagEnvelopeAbsentGrantsNothingInvalidRefuses(t *testing.T) {
+	stripFlags := func(r *http.Request) {
+		for _, key := range []string{commonedgeauth.HeaderFlags, commonedgeauth.HeaderBudgets, commonedgeauth.HeaderFlagsSignature, commonedgeauth.HeaderFlagsTimestamp, commonedgeauth.HeaderFlagsKeyID} {
+			r.Header.Del(key)
+		}
+	}
+	resign := func(secret string, at time.Time) func(*http.Request) {
+		return func(r *http.Request) {
+			h, err := commonedgeauth.SignFlagHeaders(secret, defaultEdgeKeyID, map[string]bool{edgeFlagTechStackUseCaseAccessForTest: true}, map[string]any{}, at)
+			if err != nil {
+				panic(err)
+			}
+			stripFlags(r)
+			copyHeaders(r.Header, h)
+		}
+	}
+	for _, tc := range []struct {
+		name     string
+		hop      func(*testing.T) *httpx.Event
+		mutate   func(*http.Request)
+		admitted bool
+	}{
+		{name: "v1 service, no envelope", hop: capabilitiesHop, mutate: stripFlags, admitted: true},
+		{name: "techstack decision hop, no envelope", hop: func(t *testing.T) *httpx.Event {
+			return signTechstackHop(t, "owner", "org-test", map[string]bool{})
+		}, mutate: stripFlags, admitted: true},
+		{name: "techstack hop without tenant, no envelope", hop: func(t *testing.T) *httpx.Event {
+			return signTechstackHop(t, "machine-client", "", map[string]bool{})
+		}, mutate: stripFlags, admitted: true},
+		{name: "partial envelope", hop: capabilitiesHop, mutate: func(r *http.Request) {
+			stripFlags(r)
+			r.Header.Set(commonedgeauth.HeaderFlagsTimestamp, "1")
+		}},
+		{name: "forged envelope", hop: capabilitiesHop, mutate: resign("forged-flags-secret", time.Now())},
+		{name: "expired envelope", hop: capabilitiesHop, mutate: resign(testEdgeAuthSecret, time.Now().Add(-time.Hour))},
+		{name: "tampered envelope", hop: capabilitiesHop, mutate: func(r *http.Request) {
+			resign(testEdgeAuthSecret, time.Now())(r)
+			r.Header.Set(commonedgeauth.HeaderFlags, `{"techstack.use-case-access":true,"techstack.inventory":true}`)
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := tc.hop(t)
+			tc.mutate(e.Request)
+			err := EdgeIdentityMiddlewareWithConfig(EdgeIdentityConfig{Mode: config.ModeSaaS, EdgeAuthSecret: testEdgeAuthSecret})(e)
+			code := e.Response.(*httptest.ResponseRecorder).Code
+			if admitted := err == nil && code == http.StatusOK; admitted != tc.admitted {
+				t.Fatalf("admitted=%v want %v (status=%d err=%v)", admitted, tc.admitted, code, err)
+			}
+			if !tc.admitted {
+				return
+			}
+			if !IsEdgeAuthenticated(e.Request.Context()) {
+				t.Fatal("the signed identity must still authenticate the request")
+			}
+			flags, present := commonedgeauth.FlagsFromContext(e.Request.Context())
+			if !present || len(flags.Flags) != 0 || len(flags.Budgets) != 0 {
+				t.Fatalf("a hop without an envelope must carry an empty flag set, got present=%v %+v", present, flags)
+			}
+			if _, bound := flags.VerifiedDecisionBinding(); bound {
+				t.Fatal("a hop without an envelope carries no decision binding")
+			}
+			// use_case_access defaults on offline; without a signed answer it stays off.
+			svc, err := features.NewService(consentStore{consent: true}, features.ServiceConfig{Edition: config.EditionSelfHostOSS})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if on, err := svc.IsEnabled(e.Request.Context(), "use_case_access", "owner"); err != nil || on {
+				t.Fatalf("use_case_access=%v err=%v without an envelope, want off", on, err)
+			}
+		})
+	}
+}
+
+const edgeFlagTechStackUseCaseAccessForTest = "techstack.use-case-access"
+
+func capabilitiesHop(t *testing.T) *httpx.Event {
+	t.Helper()
+	e := newTestEvent("GET", "/api/v1/stacks")
+	e.Request.Header.Set(headerEdgeAuth, edgeAuthValueJWT)
+	e.Request.Header.Set(commonedgeauth.HeaderUserID, "owner")
+	signEdgeRequest(t, e, testEdgeAuthSecret)
+	return e
+}
+
+// signTechstackHop signs a v2 identity for the techstack audience with the
+// given subject and tenant and attaches the flag envelope the Gateway sends
+// for it: the request-bound decision with both, the detached v1 envelope
+// otherwise (kombify-Gateway docs/API_REFERENCE.md "Signed flag envelope").
+func signTechstackHop(t *testing.T, subject, tenant string, flags map[string]bool) *httpx.Event {
+	t.Helper()
+	e := newTestEvent("GET", "/api/v1/stacks")
+	e.Request.Header.Set(headerEdgeAuth, edgeAuthValueJWT)
+	e.Request.Header.Set(headerEdgeService, techStackDecisionAudience)
+	e.Request.Header.Set(headerPublicPrefix, techStackDecisionPublicPrefix)
+	e.Request.Header.Set(commonedgeauth.HeaderRequestID, "req-"+strconv.FormatInt(testNonceSeq.Add(1), 10))
+	if subject != "" {
+		e.Request.Header.Set(commonedgeauth.HeaderUserID, subject)
+	}
+	if tenant != "" {
+		e.Request.Header.Set(commonedgeauth.HeaderOrgID, tenant)
+	}
+	nonce := "test-nonce-hop-" + strconv.FormatInt(testNonceSeq.Add(1), 10)
+	edgeauthtest.Sign(t, e.Request, edgeauthtest.Config{Version: "v2", Secret: testEdgeAuthSecret, KeyID: defaultEdgeKeyID, At: time.Now(), Nonce: nonce, SignedPath: e.Request.URL.RequestURI()})
+	var h http.Header
+	var err error
+	if subject != "" && tenant != "" {
+		h, err = commonedgeauth.SignDecisionHeaders(commonedgeauth.DecisionSignInput{
+			Secret: testEdgeAuthSecret, KeyID: defaultEdgeKeyID, Method: e.Request.Method, SignedPath: e.Request.URL.RequestURI(),
+			Audience: techStackDecisionAudience, PublicPrefix: techStackDecisionPublicPrefix, SubjectID: subject, TenantID: tenant,
+			RequestID: e.Request.Header.Get(commonedgeauth.HeaderRequestID), EdgeKeyID: e.Request.Header.Get(headerEdgeKeyID),
+			EdgeTimestamp: e.Request.Header.Get(headerEdgeTimestamp), EdgeNonce: e.Request.Header.Get(headerEdgeNonce),
+			EdgeSignature: e.Request.Header.Get(headerEdgeSignature), Flags: flags, Budgets: map[string]any{},
+		})
+	} else {
+		h, err = commonedgeauth.SignFlagHeaders(testEdgeAuthSecret, defaultEdgeKeyID, flags, map[string]any{}, time.Now())
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	copyHeaders(e.Request.Header, h)
+	return e
+}
+
+// A techstack-audience hop without a person or an organisation (MCP and
+// Gateway-internal hops) carries the detached v1 envelope, because a decision
+// binds both (platform-42ocp6.18). It is admitted with that envelope, or
+// without any envelope and then grants nothing; a tampered one is refused.
+// With both, a v1 envelope cannot stand in for the decision.
+func TestTechstackHopEnvelopeFollowsSubjectAndTenant(t *testing.T) {
+	notEvaluated := map[string]bool{"$flag_evaluation:not_evaluated": true}
+	for _, tc := range []struct {
+		name            string
+		subject, tenant string
+		mutate          func(*http.Request)
+		admitted        bool
+		unsigned        bool
+	}{
+		{name: "no tenant, v1 envelope", subject: "machine-client", admitted: true},
+		{name: "no person, v1 envelope", tenant: "org-test", admitted: true},
+		{name: "no tenant, missing envelope", subject: "machine-client", mutate: func(r *http.Request) {
+			for _, key := range []string{commonedgeauth.HeaderFlags, commonedgeauth.HeaderBudgets, commonedgeauth.HeaderFlagsSignature, commonedgeauth.HeaderFlagsTimestamp, commonedgeauth.HeaderFlagsKeyID} {
+				r.Header.Del(key)
+			}
+		}, admitted: true, unsigned: true},
+		{name: "no tenant, tampered envelope", subject: "machine-client", mutate: func(r *http.Request) {
+			r.Header.Set(commonedgeauth.HeaderFlags, `{"techstack.inventory":true}`)
+		}},
+		{name: "person and tenant, decision", subject: "owner", tenant: "org-test", admitted: true},
+		{name: "person and tenant, v1 in place of the decision", subject: "owner", tenant: "org-test", mutate: func(r *http.Request) {
+			h, err := commonedgeauth.SignFlagHeaders(testEdgeAuthSecret, defaultEdgeKeyID, notEvaluated, map[string]any{}, time.Now())
+			if err != nil {
+				panic(err)
+			}
+			for _, key := range []string{commonedgeauth.HeaderFlags, commonedgeauth.HeaderBudgets, commonedgeauth.HeaderFlagsSignature, commonedgeauth.HeaderFlagsTimestamp, commonedgeauth.HeaderFlagsKeyID} {
+				r.Header.Del(key)
+			}
+			copyHeaders(r.Header, h)
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := signTechstackHop(t, tc.subject, tc.tenant, notEvaluated)
+			if tc.mutate != nil {
+				tc.mutate(e.Request)
+			}
+			err := EdgeIdentityMiddlewareWithConfig(EdgeIdentityConfig{Mode: config.ModeSaaS, EdgeAuthSecret: testEdgeAuthSecret})(e)
+			code := e.Response.(*httptest.ResponseRecorder).Code
+			if admitted := err == nil && code == http.StatusOK; admitted != tc.admitted {
+				t.Fatalf("admitted=%v want %v (status=%d err=%v body=%s)", admitted, tc.admitted, code, err, e.Response.(*httptest.ResponseRecorder).Body.String())
+			}
+			if !tc.admitted {
+				return
+			}
+			flags, ok := commonedgeauth.FlagsFromContext(e.Request.Context())
+			if !ok {
+				t.Fatal("admitted hop lacks its verified flag set")
+			}
+			if _, bound := flags.VerifiedDecisionBinding(); bound != (tc.subject != "" && tc.tenant != "" && !tc.unsigned) {
+				t.Fatalf("decision binding=%v for subject %q tenant %q", bound, tc.subject, tc.tenant)
+			}
+		})
+	}
+}
+
+// Per key (platform-42ocp6.18): a granted feature is on; a denied, an
+// unanswered and a failed one are off for this request, and a failed
+// evaluation never refuses the request itself.
+func TestTechstackFlagDecisionsPerKey(t *testing.T) {
+	const signedKey = "network.discovery.enabled"
+	for _, tc := range []struct {
+		name  string
+		flags map[string]bool
+		want  bool
+	}{
+		{name: "granted", flags: map[string]bool{signedKey: true, "$flag_evaluation:complete": true}, want: true},
+		{name: "denied", flags: map[string]bool{signedKey: false, "$flag_evaluation:complete": true}},
+		{name: "failed key", flags: map[string]bool{signedKey: false, "$flag_evaluation:failed": true, "$flag_unavailable:" + signedKey: true}},
+		{name: "failed evaluation keeps an answered grant", flags: map[string]bool{signedKey: true, "$flag_evaluation:failed": true, "$flag_unavailable:other.flag": true}, want: true},
+		{name: "unanswered", flags: map[string]bool{"$flag_evaluation:not_evaluated": true}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := signTechstackHop(t, "owner", "org-test", tc.flags)
+			if err := EdgeIdentityMiddlewareWithConfig(EdgeIdentityConfig{Mode: config.ModeSaaS, EdgeAuthSecret: testEdgeAuthSecret})(e); err != nil ||
+				e.Response.(*httptest.ResponseRecorder).Code != http.StatusOK {
+				t.Fatalf("a valid decision must admit the request: err=%v status=%d", err, e.Response.(*httptest.ResponseRecorder).Code)
+			}
+			svc, err := features.NewService(consentStore{consent: true}, features.ServiceConfig{Edition: config.EditionSaaSEmbedded})
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := svc.IsEnabled(e.Request.Context(), "network_discovery", "owner")
+			if err != nil || got != tc.want {
+				t.Fatalf("network_discovery=%v err=%v, want %v", got, err, tc.want)
+			}
+		})
 	}
 }

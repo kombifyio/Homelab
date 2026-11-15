@@ -183,7 +183,7 @@ func (o *Orchestrator) replayWizardExtend(ctx context.Context, request jobs.Stac
 			}
 			job := &jobs.Job{ID: existing.ID, Type: jobs.JobTypeStackKitLifecycle, TargetType: targetTypeStack,
 				TargetID: existing.StackID, TargetName: stack.name, Payload: existing.Payload, Result: existing.Result, MaxAttempts: 1}
-			jobs.CaptureRequestAuthority(ctx, job, request.TenantID, request.OwnerID)
+			jobs.CaptureJobAuthorization(ctx, job, request.TenantID, request.OwnerID)
 			if err := o.enqueueWithSync(job, request.TenantID); err != nil {
 				return "", false, err
 			}

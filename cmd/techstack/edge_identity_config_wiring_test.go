@@ -121,7 +121,7 @@ func TestSignedEdgeDemoFirstLoginBootstrapsEmptyAuthProjection(t *testing.T) {
 	}
 }
 
-func TestGlobalMiddlewareUsesTechstackEdgeAuthConfigForLegacyAndV2(t *testing.T) {
+func TestGlobalMiddlewareUsesTechstackSignedEdgeConfigAndRejectsLegacy(t *testing.T) {
 	const (
 		secret          = "documented-techstack-edge-secret"
 		flagsSecret     = "documented-techstack-flags-secret"
@@ -172,7 +172,7 @@ func TestGlobalMiddlewareUsesTechstackEdgeAuthConfigForLegacyAndV2(t *testing.T)
 			http.Error(e.Response, "edge identity missing", http.StatusUnauthorized)
 			return nil
 		}
-		if decisions, ok := commonedgeauth.FlagsFromContext(e.Request.Context()); ok {
+		if decisions, _ := commonedgeauth.FlagsFromContext(e.Request.Context()); hasBoundConfigDecision(decisions) {
 			credits, binding, err := decisions.VerifiedCloudRuntimeCredits()
 			if err != nil || credits.ManagedServers.Mode != commonedgeauth.ManagedServerCreditModeLimited ||
 				credits.ManagedServers.Limit != 3 || binding.KeyID != "flags-next" {
@@ -188,9 +188,11 @@ func TestGlobalMiddlewareUsesTechstackEdgeAuthConfigForLegacyAndV2(t *testing.T)
 		name         string
 		prepare      func(*http.Request)
 		wantDecision bool
+		wantDenied   bool
 	}{
 		{
-			name: "legacy shared secret",
+			name:       "legacy shared secret",
+			wantDenied: true,
 			prepare: func(req *http.Request) {
 				req.Header.Set("X-Edge-Auth-Secret", secret)
 			},
@@ -202,6 +204,13 @@ func TestGlobalMiddlewareUsesTechstackEdgeAuthConfigForLegacyAndV2(t *testing.T)
 				req.Header.Set(commonedgeauth.HeaderEntitlements, "techstack.inventory.read")
 				req.Header.Set(commonedgeauth.HeaderKnowledgeTier, "standard")
 				signV2EdgeRequestForConfigWiringTest(t, req, secret)
+				headers, err := commonedgeauth.SignFlagHeaders(flagsSecret, "flags-primary", map[string]bool{}, map[string]any{}, time.Now())
+				if err != nil {
+					t.Fatal(err)
+				}
+				for key, values := range headers {
+					req.Header[key] = values
+				}
 			},
 		},
 		{
@@ -246,8 +255,12 @@ func TestGlobalMiddlewareUsesTechstackEdgeAuthConfigForLegacyAndV2(t *testing.T)
 
 			rec := httptest.NewRecorder()
 			router.BuildMux().ServeHTTP(rec, req)
-			if rec.Code != http.StatusNoContent {
-				t.Fatalf("request status = %d body=%q, want %d", rec.Code, rec.Body.String(), http.StatusNoContent)
+			want := http.StatusNoContent
+			if tc.wantDenied {
+				want = http.StatusUnauthorized
+			}
+			if rec.Code != want {
+				t.Fatalf("request status = %d body=%q, want %d", rec.Code, rec.Body.String(), want)
 			}
 			if got := rec.Header().Get("X-Test-Decision"); (got == "verified") != tc.wantDecision {
 				t.Fatalf("decision marker=%q, wantDecision=%t", got, tc.wantDecision)
@@ -267,6 +280,13 @@ func signV2EdgeRequestForConfigWiringTestWithNonce(t testing.TB, req *http.Reque
 		req.Header.Set(commonedgeauth.HeaderEdgeService, "capabilities")
 	}
 	edgeauthtest.Sign(t, req, edgeauthtest.Config{Version: "v2", Secret: secret, At: time.Now(), Nonce: nonce})
+	headers, err := commonedgeauth.SignFlagHeaders(secret, "primary", map[string]bool{}, map[string]any{}, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for key, values := range headers {
+		req.Header[key] = values
+	}
 }
 
 // D-2026-10-22-02: through the whole global middleware chain, a signed edge
@@ -357,4 +377,9 @@ func TestMembershipEntitlementsDoNotBecomeFeatureFlags(t *testing.T) {
 	if !ok || !entitlements.Has("self.healing.enabled") {
 		t.Fatal("membership authorization was lost")
 	}
+}
+
+func hasBoundConfigDecision(decisions commonedgeauth.FlagSet) bool {
+	_, verified := decisions.VerifiedDecisionBinding()
+	return verified
 }

@@ -128,7 +128,7 @@ func newInventoryMCPHandler(h inventoryHandlers, routes inventoryMCPRouteLookup)
 func (h inventoryHandlers) newInventoryMCPServer(routes inventoryMCPRouteLookup) *mcpsdk.Server {
 	server := mcpsdk.NewServer(&mcpsdk.Implementation{
 		Name:    inventoryMCPServerName,
-		Title:   "Kombify Techstack",
+		Title:   "Techstack",
 		Version: firstNonEmptyString(h.version, inventoryMCPDevelopmentVersion),
 	}, &mcpsdk.ServerOptions{
 		Instructions: "Policy-scoped Techstack tools generated from the OpenAPI contract: reads (techstack.inventory.read), writes and validations (techstack.inventory.write), confirmation-gated runtime operations (techstack.inventory.operate) and cost-bearing provisioning (techstack.inventory.provision). Tenant and subject identity are derived from authenticated context and must never be supplied as tool arguments.",

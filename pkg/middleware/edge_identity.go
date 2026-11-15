@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -40,7 +39,7 @@ func markEdgeAuthenticatedContext(ctx context.Context) context.Context {
 }
 
 // IsEdgeAuthenticated reports whether the request passed a verified Gateway
-// edge envelope (or the explicitly configured legacy shared-secret hop).
+// edge envelope.
 // Product handlers use this only to decide whether edge-minted projections may
 // be consumed; it grants no entitlement by itself.
 func IsEdgeAuthenticated(ctx context.Context) bool {
@@ -55,10 +54,6 @@ func IsEdgeAuthenticated(ctx context.Context) bool {
 type EdgeIdentityConfig struct {
 	// Mode is the deployment mode (self-hosted or saas).
 	Mode config.DeploymentMode
-	// Secret is the shared secret that Edge injects via X-Edge-Auth-Secret.
-	// If non-empty, requests missing the correct secret are treated as
-	// unauthenticated (identity headers are NOT trusted).
-	Secret string
 	// EdgeAuthSecret verifies HMAC-signed Cloudflare edge identity headers.
 	// Defaults to EDGE_AUTH_SECRET when empty.
 	EdgeAuthSecret string
@@ -81,18 +76,14 @@ type EdgeIdentityConfig struct {
 	EdgeSignatureWindow time.Duration
 }
 
-// EdgeIdentityMiddlewareFromConfig binds the Techstack runtime configuration
-// to both the legacy shared-secret path and the signed edge envelope verifier.
-// TECHSTACK_EDGE_AUTH_SECRET is loaded into Config.EdgeAuthSecret, so keeping
-// this translation in one place prevents startup and integration servers from
-// silently accepting only one of the two migration paths.
+// EdgeIdentityMiddlewareFromConfig binds the runtime identity and decision
+// keyrings to the signed Gateway admission boundary.
 func EdgeIdentityMiddlewareFromConfig(cfg *config.Config) func(*httpx.Event) error {
 	if cfg == nil {
 		return EdgeIdentityMiddlewareWithConfig(EdgeIdentityConfig{})
 	}
 	return EdgeIdentityMiddlewareWithConfig(EdgeIdentityConfig{
 		Mode:                cfg.DeploymentMode,
-		Secret:              cfg.EdgeAuthSecret,
 		EdgeAuthSecret:      cfg.EdgeAuthSecret,
 		EdgeAuthNextSecret:  cfg.EdgeAuthNextSecret,
 		EdgeAuthKeyID:       cfg.EdgeAuthKeyID,
@@ -142,11 +133,8 @@ const (
 
 // EdgeIdentityMiddlewareWithConfig creates identity middleware with full config.
 //
-// Trust priority (checked in order):
-//  1. Cloudflare Edge Router (X-Kombify-Edge-Auth: auth0-jwt) — primary path for
-//     HTTP routes migrated from Edge. CF strips client-injected headers.
-//  2. Edge shared secret (X-Edge-Auth-Secret) — legacy path for gRPC (Phase 5).
-//
+// Gateway requests require a signed identity; a flag envelope, when present,
+// must verify, and without one no flag-gated feature is granted.
 // Self-hosted requests retain local identity; connected requests also verify flags.
 func EdgeIdentityMiddlewareWithConfig(cfg EdgeIdentityConfig) func(*httpx.Event) error {
 	return func(e *httpx.Event) error {
@@ -268,37 +256,8 @@ func EdgeIdentityMiddlewareWithConfig(cfg EdgeIdentityConfig) func(*httpx.Event)
 			return e.Next()
 		}
 
-		// ── Path 2: Edge shared secret (legacy) ─────────────────────────────────
-		if cfg.Secret != "" {
-			reqSecret := e.Request.Header.Get("X-Edge-Auth-Secret")
-			if subtle.ConstantTimeCompare([]byte(reqSecret), []byte(cfg.Secret)) != 1 {
-				slog.Debug("edge identity: secret mismatch, skipping header trust")
-				stripIdentityHeaders(e.Request)
-				return e.Next()
-			}
-			e.Request.Header.Del("X-Edge-Auth-Secret")
-			e.Request = e.Request.WithContext(markEdgeAuthenticatedContext(e.Request.Context()))
-		} else {
-			slog.Debug("edge identity: no trusted edge or Edge secret configured, skipping header trust")
-			stripIdentityHeaders(e.Request)
-			return e.Next()
-		}
-
-		id := identity.FromHeaders(e.Request.Header.Get)
-		if id.IsAuthenticated() {
-			ctx := identity.NewContext(e.Request.Context(), id)
-			e.Request = e.Request.WithContext(ctx)
-		}
-
-		// Extract X-User-Plan header and store in context
-		if plan := strings.TrimSpace(e.Request.Header.Get("X-User-Plan")); plan != "" {
-			ctx := context.WithValue(e.Request.Context(), userPlanContextKey{}, plan)
-			e.Request = e.Request.WithContext(ctx)
-		}
-
-		// Strip identity headers to prevent downstream spoofing
+		// An unsigned hop cannot authenticate through a shared secret header.
 		stripIdentityHeaders(e.Request)
-
 		return e.Next()
 	}
 }
@@ -307,6 +266,7 @@ func EdgeIdentityMiddlewareWithConfig(cfg EdgeIdentityConfig) func(*httpx.Event)
 // so that downstream handlers cannot be confused by them if they were
 // spoofed by an external caller (defense in depth).
 func stripIdentityHeaders(r *http.Request) {
+	r.Header.Del("X-Edge-Auth-Secret")
 	r.Header.Del(tenantdb.ContextTokenHeader)
 	r.Header.Del("X-User-ID")
 	r.Header.Del("X-Org-ID")
@@ -334,7 +294,7 @@ func stripIdentityHeaders(r *http.Request) {
 
 // attachSignedEdgeEntitlements copies only entitlements cryptographically
 // bound to a verified v2, v7 or v9 (both v2 supersets) Edge envelope into an immutable
-// request-context set. V1 and shared-secret requests deliberately receive no
+// request-context set. V1 requests deliberately receive no
 // authorization grants.
 func attachSignedEdgeEntitlements(e *httpx.Event) error {
 	if e == nil || e.Request == nil {
@@ -381,7 +341,18 @@ func validEdgeEntitlement(value string) bool {
 }
 
 func attachEdgeFlags(e *httpx.Event, cfg EdgeIdentityConfig) error {
-	if e == nil || e.Request == nil || !hasAnyEdgeFlagHeader(e.Request) {
+	if e == nil || e.Request == nil {
+		return fmt.Errorf("edge flag request is missing")
+	}
+	// A flag envelope authorizes features, not the request (kombify-Gateway
+	// docs/API_REFERENCE.md "Signed flag envelope", platform-42ocp6.18). A hop
+	// without any flag header is served with an empty, unsigned set: every
+	// flag is unanswered, so no flag-gated feature, decision binding, budget
+	// or job authority is granted, whatever the edition's offline default. A
+	// partial, forged, expired or misbound envelope, or one in the wrong form
+	// for the identity, still refuses the request below.
+	if !hasAnyEdgeFlagHeader(e.Request) {
+		e.Request = e.Request.WithContext(commonedgeauth.FlagsToContext(e.Request.Context(), commonedgeauth.FlagSet{}))
 		return nil
 	}
 	keys := edgeFlagVerificationConfig(cfg)
@@ -397,7 +368,7 @@ func attachEdgeFlags(e *httpx.Event, cfg EdgeIdentityConfig) error {
 	if err := assertKnownEdgeFlagsKeyID(e.Request, keys); err != nil {
 		return err
 	}
-	if strings.TrimSpace(e.Request.Header.Get(headerEdgeService)) == techStackDecisionAudience {
+	if strings.TrimSpace(e.Request.Header.Get(headerEdgeService)) == techStackDecisionAudience && edgeIdentityHasSubjectAndTenant(e.Request) {
 		flags, err := commonedgeauth.VerifyDecisionHeadersWithKeys(e.Request, commonedgeauth.DecisionVerifyConfig{
 			PrimarySecret:        keys.PrimarySecret,
 			NextSecret:           keys.NextSecret,
@@ -422,15 +393,27 @@ func attachEdgeFlags(e *httpx.Event, cfg EdgeIdentityConfig) error {
 		return nil
 	}
 
-	// Other services sharing the TechStack origin retain v1 rollout flags.
-	// Those flags have no VerifiedDecisionBinding and therefore cannot become
-	// cost-bearing commercial authority.
+	// Other services sharing the TechStack origin, and a techstack hop whose
+	// signed identity has no subject or no tenant, carry the detached v1
+	// envelope: a request-bound decision binds both, so the Gateway cannot
+	// sign one there (kombify-Gateway docs/API_REFERENCE.md "Signed flag
+	// envelope"). Those flags have no VerifiedDecisionBinding and therefore
+	// cannot become cost-bearing commercial authority or job authority.
 	flags, err := commonedgeauth.VerifyFlagHeadersWithKeys(e.Request, keys)
 	if err != nil {
 		return err
 	}
 	e.Request = e.Request.WithContext(commonedgeauth.FlagsToContext(e.Request.Context(), flags))
 	return nil
+}
+
+// edgeIdentityHasSubjectAndTenant reads the identity headers the verified
+// edge signature binds. With both, a techstack hop must carry the
+// request-bound decision and a detached v1 envelope is refused; dropping
+// either value would break the identity signature.
+func edgeIdentityHasSubjectAndTenant(r *http.Request) bool {
+	return strings.TrimSpace(r.Header.Get(commonedgeauth.HeaderUserID)) != "" &&
+		strings.TrimSpace(r.Header.Get(commonedgeauth.HeaderOrgID)) != ""
 }
 
 // Resolve the budget key set once, independently from identity authentication.
@@ -455,10 +438,10 @@ func edgeFlagVerificationConfig(cfg EdgeIdentityConfig) commonedgeauth.FlagVerif
 	return keys
 }
 
+// hasAnyEdgeFlagHeader reports whether any part of a flag envelope is present.
+// Only a request with none of them is "missing"; any part alone is a partial
+// envelope and fails verification.
 func hasAnyEdgeFlagHeader(r *http.Request) bool {
-	if r == nil {
-		return false
-	}
 	for _, header := range []string{
 		commonedgeauth.HeaderFlags,
 		commonedgeauth.HeaderBudgets,
@@ -523,7 +506,7 @@ func verifyEdgeSignature(r *http.Request, cfg EdgeIdentityConfig) (stepUp common
 		if id := identity.FromContext(accepted.Context()); id != nil {
 			emailVerified = id.EmailVerified
 		}
-	})).ServeHTTP(recorder, r)
+	})).ServeHTTP(recorder, r.Clone(r.Context()))
 	if !verified {
 		return commonedgeauth.StepUpClaims{}, false, false, fmt.Errorf("edge signature rejected (status %d, reason %s)", recorder.Code, edgeRejectionReason(recorder.Body.Bytes()))
 	}
