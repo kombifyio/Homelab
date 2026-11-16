@@ -31,15 +31,17 @@ type RecreateRequest struct {
 // RecreateIntent is the immutable, provider-neutral intent recovered from the
 // released generation. Provider handles and credentials never cross this seam.
 type RecreateIntent struct {
-	StackID                   string
-	RuntimeSlotKey            string
-	PreviousGenerationOrdinal uint64
-	NodeRole                  string
-	RuntimeOfferingID         string
-	ProviderID                string
-	ProviderRegion            string
-	StackKit                  string
-	Services                  []string
+	StackID                     string
+	RuntimeSlotKey              string
+	PreviousGenerationOrdinal   uint64
+	NodeRole                    string
+	RuntimeOfferingID           string
+	ProviderPackage             string
+	ProviderExecutionOfferingID string
+	ProviderID                  string
+	ProviderRegion              string
+	StackKit                    string
+	Services                    []string
 }
 
 // PrepareRecreate proves the old exact generation is terminal and reconstructs
@@ -103,15 +105,17 @@ func (s *Service) PrepareRecreate(ctx context.Context, req RecreateRequest) (*Re
 		return nil, ErrRecreateIntentInvalid
 	}
 	intent := &RecreateIntent{
-		StackID:                   strings.TrimSpace(lease.Metadata["stack_id"]),
-		RuntimeSlotKey:            strings.TrimSpace(lease.Metadata["runtime_slot_key"]),
-		PreviousGenerationOrdinal: generation,
-		NodeRole:                  firstNonEmptyMetadata(lease.Metadata, "server_node_role", "node_role"),
-		RuntimeOfferingID:         strings.TrimSpace(lease.Metadata["runtime_offering_id"]),
-		ProviderID:                providerID,
-		ProviderRegion:            region,
-		StackKit:                  strings.TrimSpace(lease.Metadata["stackkit"]),
-		Services:                  splitRecreateServices(lease.Metadata["requested_services"]),
+		StackID:                     strings.TrimSpace(lease.Metadata["stack_id"]),
+		RuntimeSlotKey:              strings.TrimSpace(lease.Metadata["runtime_slot_key"]),
+		PreviousGenerationOrdinal:   generation,
+		NodeRole:                    firstNonEmptyMetadata(lease.Metadata, "server_node_role", "node_role"),
+		RuntimeOfferingID:           strings.TrimSpace(lease.Metadata["runtime_offering_id"]),
+		ProviderID:                  providerID,
+		ProviderPackage:             strings.TrimSpace(lease.Metadata[MetadataKeyProviderPackage]),
+		ProviderExecutionOfferingID: strings.TrimSpace(lease.Metadata[MetadataKeyProviderExecutionOfferingID]),
+		ProviderRegion:              region,
+		StackKit:                    strings.TrimSpace(lease.Metadata["stackkit"]),
+		Services:                    splitRecreateServices(lease.Metadata["requested_services"]),
 	}
 	if intent.StackID == "" || intent.RuntimeSlotKey == "" || intent.NodeRole == "" ||
 		intent.RuntimeOfferingID == "" || intent.StackKit == "" {
@@ -120,6 +124,17 @@ func (s *Service) PrepareRecreate(ctx context.Context, req RecreateRequest) (*Re
 	if _, ok := OfferingByID(serverruntime.RuntimeOfferingID(intent.RuntimeOfferingID)); !ok {
 		return nil, ErrRecreateIntentInvalid
 	}
+	if _, err := PackageForRecordedSKU(intent.ProviderID, intent.RuntimeOfferingID, intent.ProviderPackage); err != nil {
+		return nil, ErrRecreateIntentInvalid
+	}
+	if intent.ProviderPackage == "Memory Cube S" {
+		if intent.ProviderID != ProviderIONOS || intent.RuntimeOfferingID != string(serverruntime.RuntimeOfferingStandard) || intent.ProviderExecutionOfferingID != IONOSStandardMemoryExecutionOfferingID {
+			return nil, ErrRecreateIntentInvalid
+		}
+	} else if intent.ProviderExecutionOfferingID != "" {
+		return nil, ErrRecreateIntentInvalid
+	}
+
 	return intent, nil
 }
 

@@ -93,8 +93,10 @@ type normalizedCreateStackRequest struct {
 	// HomelabID is resolved to the owner's canonical umbrella by the control
 	// plane persistence boundary. StackSpecV2 is set by the wizard-run facade
 	// and persisted under config_json.stack_spec_v2.
-	HomelabID   string
-	StackSpecV2 map[string]interface{}
+	HomelabID          string
+	StackSpecV2        map[string]interface{}
+	ProviderPackage    string
+	ProviderReplayOnly bool
 }
 
 // createStackDispatch bundles the persisted-stack inputs the create flow hands
@@ -316,6 +318,15 @@ func (h crudRouteHandlers) admitManagedCreate(e *httpx.Event, ownerID, tenantID 
 	)
 	if err != nil {
 		return "", nil, true, httpx.BadRequest(e, "Invalid managed runtime specification: "+err.Error(), nil)
+	}
+	request.ReplayOnly = normalized.ProviderReplayOnly
+	delete(request.Metadata, monthlyruntime.MetadataKeyProviderPackage)
+	delete(request.Metadata, monthlyruntime.MetadataKeyProviderExecutionOfferingID)
+	if normalized.ProviderPackage != "" {
+		if request.Metadata == nil {
+			request.Metadata = map[string]string{}
+		}
+		request.Metadata[monthlyruntime.MetadataKeyProviderPackage] = normalized.ProviderPackage
 	}
 	if !stack.IdempotentReplay {
 		preflight, ok := h.managedLeases.(jobs.ManagedLeaseAdmissionPreflighter)

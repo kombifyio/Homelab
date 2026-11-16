@@ -270,7 +270,8 @@ func registerCoreRoutes(router *httpx.Router, deps routeDeps, managedLeases jobs
 			DeviceReauth: newWalletLocalDeviceReauth(deps),
 		})
 	}
-	if err := routes.RegisterUnifierRoutes(router, workerControlPlaneStore(deps.v2), deps.featureSvc); err != nil {
+	memoryAvailability, _ := managedLeases.(interface{ IONOSStandardMemoryAvailable(context.Context) error })
+	if err := routes.RegisterUnifierRoutes(router, workerControlPlaneStore(deps.v2), deps.featureSvc, memoryAvailability); err != nil {
 		fmt.Printf("⚠️  Unifier routes failed: %v\n", err)
 	}
 	trustWorkerStore := workerControlPlaneStore(deps.v2)

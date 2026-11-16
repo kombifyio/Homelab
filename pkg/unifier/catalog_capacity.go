@@ -90,7 +90,13 @@ func selectedFootprints(catalog stackkitrelease.UseCaseCatalog, goals []string, 
 	var result []stackkitrelease.WorkloadFootprint
 	for _, id := range ids {
 		choice := choices[id]
-		facts, err := catalog.WorkloadFootprints(id, choice.Alternative, profile, accelerators[choice.Goal])
+		workloadProfile := profile
+		// Immich Lite has only a low-profile footprint. This is a per-workload
+		// choice and must not lower the profile of unrelated selected goals.
+		if id == "photos" && choice.Alternative == "immich-lite" {
+			workloadProfile = "low"
+		}
+		facts, err := catalog.WorkloadFootprints(id, choice.Alternative, workloadProfile, accelerators[choice.Goal])
 		if err != nil {
 			return nil, err
 		}

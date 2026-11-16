@@ -630,12 +630,13 @@ type DecisionReason struct {
 // deliberately absent: the route derives those from the authenticated
 // request and the canonical registry.
 type WizardRecommendationRequest struct {
-	ServerFit      *WizardServerFitRequest `json:"server_fit,omitempty"`
-	Goals          []string                `json:"goals"`
-	Services       []string                `json:"services"`
-	DeploymentLane string                  `json:"deployment_lane"`
-	ProviderID     string                  `json:"provider_id,omitempty"`
-	Surface        string                  `json:"surface"`
+	IONOSMemoryEnabled bool                    `json:"-"`
+	ServerFit          *WizardServerFitRequest `json:"server_fit,omitempty"`
+	Goals              []string                `json:"goals"`
+	Services           []string                `json:"services"`
+	DeploymentLane     string                  `json:"deployment_lane"`
+	ProviderID         string                  `json:"provider_id,omitempty"`
+	Surface            string                  `json:"surface"`
 	// SelectionIntent "all" asks which of AvailableGoals the full-homelab
 	// template should preselect for this operator; empty asks for none.
 	SelectionIntent string `json:"selection_intent,omitempty"`

@@ -2,6 +2,7 @@ package unifier
 
 import (
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/kombifyio/techstack/internal/stackkitrelease"
@@ -40,7 +41,38 @@ func EvaluateServerFit(request core.WizardRecommendationRequest, inventory Wizar
 		}
 	} else {
 		fit.Evidence, fit.ProviderID, fit.OfferingID = "projected", strings.TrimSpace(choice.ProviderID), strings.TrimSpace(choice.OfferingID)
-		pkg, err := monthlyruntime.PackageForProvider(fit.ProviderID, fit.OfferingID)
+		// The wizard authors managed workloads at the standard tier; a client
+		// preview hint cannot select a smaller package or relax admission.
+		if fit.ProviderID == monthlyruntime.ProviderIONOS && fit.OfferingID == "monthly-runtime-standard" {
+			request.ComputeProfile = ""
+		}
+		sku := ""
+		if fit.ProviderID == monthlyruntime.ProviderIONOS && fit.OfferingID == "monthly-runtime-standard" {
+			catalog, catalogErr := stackkitrelease.ResolveUseCaseCatalog()
+			if catalogErr != nil {
+				addUnknown("catalog_footprint_unavailable", "", "")
+				return fit
+			}
+			if backend, _ := request.UseCaseSettings["photos"]["backend"].(string); backend == "ente-photos" && slices.Contains(request.Goals, "photos") {
+				photos, ok := catalog.FindUseCase("photos")
+				_, installable := photos.InstallingAlternative(backend)
+				if !ok || !installable {
+					addUnknown("photo_backend_unavailable", "photos", "")
+					return fit
+				}
+			}
+			footprints, footprintErr := selectedFootprints(catalog, request.Goals, request.ComputeProfile, request.UseCaseSettings, request.UseCaseCapabilities)
+			if footprintErr != nil {
+				addUnknown("catalog_footprint_unavailable", "", "")
+				return fit
+			}
+			for _, footprint := range footprints {
+				if request.IONOSMemoryEnabled && footprint.Workload == "photos" && footprint.Module == "stackkits-immich-runtime" {
+					sku = "Memory Cube S"
+				}
+			}
+		}
+		pkg, err := monthlyruntime.PackageForRecordedSKU(fit.ProviderID, fit.OfferingID, sku)
 		if err != nil {
 			addUnknown("provider_package_unavailable", "", "")
 			return fit

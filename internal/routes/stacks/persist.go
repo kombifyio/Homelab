@@ -267,6 +267,9 @@ func createStackRequestHash(req normalizedCreateStackRequest) string {
 func stackConfigFromRequest(req normalizedCreateStackRequest) map[string]any {
 	config := map[string]any{}
 	runtimeConfig := runtimeConfigFromRequest(req)
+	if req.ProviderPackage != "" {
+		config["admitted_provider_package"] = req.ProviderPackage
+	}
 	if req.UserConfig != nil {
 		config["user_config"] = redactUserConfigForStorage(req.UserConfig)
 	}

@@ -80,16 +80,17 @@ type StackLifecycleStores struct {
 }
 
 type managedRuntimeServerRequest struct {
-	RuntimeSlotKey     string   `json:"runtime_slot_key"`
-	NodeRole           string   `json:"node_role"`
-	RuntimeOfferingID  string   `json:"runtime_offering_id"`
-	ProviderID         string   `json:"provider_id"`
-	LeaseProvider      string   `json:"lease_provider"`
-	SimulateProviderID string   `json:"simulate_provider_id"`
-	ProviderRegion     string   `json:"provider_region"`
-	IONOSDatacenter    string   `json:"ionos_datacenter"`
-	StackKit           string   `json:"stackkit"`
-	Services           []string `json:"services"`
+	recreateProviderPackage string
+	RuntimeSlotKey          string   `json:"runtime_slot_key"`
+	NodeRole                string   `json:"node_role"`
+	RuntimeOfferingID       string   `json:"runtime_offering_id"`
+	ProviderID              string   `json:"provider_id"`
+	LeaseProvider           string   `json:"lease_provider"`
+	SimulateProviderID      string   `json:"simulate_provider_id"`
+	ProviderRegion          string   `json:"provider_region"`
+	IONOSDatacenter         string   `json:"ionos_datacenter"`
+	StackKit                string   `json:"stackkit"`
+	Services                []string `json:"services"`
 }
 
 // ManagedRuntimeExpansionResult is the public, secret-free outcome of the
@@ -121,16 +122,17 @@ type ManagedRuntimeExpansionResult struct {
 // the event-callable expansion authority. Stack ownership and identity are
 // still derived from the authenticated event; callers cannot provide them.
 type ManagedRuntimeExpansionRequest struct {
-	StackID           string
-	IdempotencyKey    string
-	RuntimeSlotKey    string
-	NodeRole          string
-	RuntimeOfferingID string
-	ProviderID        string
-	ProviderRegion    string
-	IONOSDatacenter   string
-	StackKit          string
-	Services          []string
+	recreateProviderPackage string
+	StackID                 string
+	IdempotencyKey          string
+	RuntimeSlotKey          string
+	NodeRole                string
+	RuntimeOfferingID       string
+	ProviderID              string
+	ProviderRegion          string
+	IONOSDatacenter         string
+	StackKit                string
+	Services                []string
 	// RecreateExpectedGeneration and RecreateRequiresReleasedSlot are set only
 	// by the confirmed Recreate route. They bind the shared expansion authority
 	// to exactly old generation N -> new generation N+1 without creating a
@@ -307,6 +309,8 @@ func (service *ManagedRuntimeExpansion) Execute(e *httpx.Event, request ManagedR
 	if err != nil {
 		return nil, httpx.BadRequest(e, err.Error(), nil)
 	}
+	// Only the in-package Recreate handler can set this unexported field.
+	normalized.recreateProviderPackage = request.recreateProviderPackage
 	return service.h.executeManagedRuntimeExpansion(e, ownerID, stack, idempotencyKey, normalized, managedRuntimeExpansionConstraints{
 		expectedGeneration:   request.RecreateExpectedGeneration,
 		requiresReleasedSlot: request.RecreateRequiresReleasedSlot,

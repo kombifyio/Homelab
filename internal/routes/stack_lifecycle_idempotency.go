@@ -49,6 +49,7 @@ var (
 // In particular, empty fields remain empty: mutable stack defaults must never
 // be re-read to decide whether a previously persisted request is a replay.
 type managedRuntimeClientIntent struct {
+	ProviderPackage   string   `json:"provider_package,omitempty"`
 	Version           string   `json:"version"`
 	RuntimeSlotKey    string   `json:"runtime_slot_key"`
 	ProviderID        string   `json:"provider_id"`
@@ -63,6 +64,7 @@ type managedRuntimeClientIntent struct {
 // to the native manager. Replays use this snapshot rather than current stack
 // defaults, which may legitimately have changed after the first request.
 type managedRuntimeEffectiveIntent struct {
+	ProviderPackage       string   `json:"provider_package,omitempty"`
 	Version               string   `json:"version"`
 	TenantID              string   `json:"tenant_id"`
 	OwnerSubjectID        string   `json:"owner_subject_id"`
@@ -142,6 +144,7 @@ func newManagedRuntimeIdempotency(
 	}
 	generationKey := fmt.Sprintf("%d", generation)
 	canonical := managedRuntimeClientIntent{
+		ProviderPackage:   request.recreateProviderPackage,
 		Version:           managedRuntimeClientIntentVersion,
 		RuntimeSlotKey:    runtimeSlotKey,
 		ProviderID:        request.ProviderID,
@@ -191,6 +194,7 @@ func newManagedRuntimeEffectiveIntent(tenantID, ownerID string, stack managedRun
 		runtimeSlotKey = jobruntime.PrimaryManagedRuntimeSlotKey
 	}
 	return managedRuntimeEffectiveIntent{
+		ProviderPackage:       request.recreateProviderPackage,
 		Version:               managedRuntimeEffectiveIntentVersion,
 		TenantID:              strings.TrimSpace(tenantID),
 		OwnerSubjectID:        strings.TrimSpace(ownerID),
@@ -710,18 +714,23 @@ func writeManagedRuntimeCapacityDenial(
 
 func managedRuntimeRequestFromEffectiveIntent(effective managedRuntimeEffectiveIntent) managedRuntimeServerRequest {
 	return managedRuntimeServerRequest{
-		NodeRole:          effective.NodeRole,
-		RuntimeOfferingID: effective.RuntimeOfferingID,
-		ProviderID:        effective.ProviderID,
-		ProviderRegion:    effective.ProviderRegion,
-		IONOSDatacenter:   effective.ProviderRegion,
-		StackKit:          effective.StackKit,
-		RuntimeSlotKey:    effective.RuntimeSlotKey,
-		Services:          append([]string(nil), effective.Services...),
+		recreateProviderPackage: effective.ProviderPackage,
+		NodeRole:                effective.NodeRole,
+		RuntimeOfferingID:       effective.RuntimeOfferingID,
+		ProviderID:              effective.ProviderID,
+		ProviderRegion:          effective.ProviderRegion,
+		IONOSDatacenter:         effective.ProviderRegion,
+		StackKit:                effective.StackKit,
+		RuntimeSlotKey:          effective.RuntimeSlotKey,
+		Services:                append([]string(nil), effective.Services...),
 	}
 }
 
 func managedRuntimeLeaseRequest(effective managedRuntimeEffectiveIntent, operationKey string) jobruntime.ManagedLeaseRequest {
+	metadata := map[string]string{"runtime_offering_id": effective.RuntimeOfferingID, "provider_region": effective.ProviderRegion}
+	if effective.ProviderPackage != "" {
+		metadata[monthlyruntime.MetadataKeyProviderPackage] = effective.ProviderPackage
+	}
 	return jobruntime.ManagedLeaseRequest{
 		StackID:               effective.StackID,
 		StackName:             effective.StackName,
@@ -734,10 +743,7 @@ func managedRuntimeLeaseRequest(effective managedRuntimeEffectiveIntent, operati
 		RuntimeSlotGeneration: effective.RuntimeSlotGeneration,
 		NodeRole:              effective.NodeRole,
 		Services:              append([]string(nil), effective.Services...),
-		Metadata: map[string]string{
-			"runtime_offering_id": effective.RuntimeOfferingID,
-			"provider_region":     effective.ProviderRegion,
-		},
+		Metadata:              metadata,
 	}
 }
 

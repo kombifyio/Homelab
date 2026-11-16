@@ -121,6 +121,7 @@ const (
 )
 
 type ManagedLeaseRequest struct {
+	ReplayOnly            bool              `json:"replay_only,omitempty"`
 	StackID               string            `json:"stack_id"`
 	StackName             string            `json:"stack_name"`
 	StackKit              string            `json:"stackkit"`

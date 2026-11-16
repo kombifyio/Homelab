@@ -247,8 +247,8 @@ func managedRuntimeInventoryItemFromLease(record vmleases.LeaseInventoryRecord) 
 	metadata := lease.Metadata
 	offeringID := monthlyruntime.OfferingIDFromMetadata(metadata)
 	offering, _ := monthlyruntime.OfferingByID(offeringID)
-	size, sizeErr := monthlyruntime.PackageForProvider(lease.Resource.ProviderID, string(offeringID))
-	if sizeErr != nil {
+	size, sizeErr := monthlyruntime.PackageForRecordedSKU(lease.Resource.ProviderID, string(offeringID), metadata[monthlyruntime.MetadataKeyProviderPackage])
+	if sizeErr != nil && metadata[monthlyruntime.MetadataKeyProviderPackage] == "" {
 		size = monthlyruntime.ProviderPackage{VCPUs: offering.VCPUs, MemoryMB: offering.MemoryMB, DiskGB: offering.DiskGB}
 	}
 	enrollmentStatus := strings.TrimSpace(metadata["runtime_enrollment_status"])

@@ -879,12 +879,18 @@ func primaryManagedLeaseRequest(
 	for _, service := range spec.Services {
 		requestedServices = append(requestedServices, service.Name)
 	}
+	metadata := make(map[string]string, len(spec.Metadata))
+	for key, value := range spec.Metadata {
+		if key != "provider_package" && key != "provider_execution_offering_id" {
+			metadata[key] = value
+		}
+	}
 	return ManagedLeaseRequest{
 		StackID: stackID, StackName: spec.Name, StackKit: spec.Kit,
 		TenantID: tenantID, OwnerID: ownerID, Provider: providerID,
 		OperationKey:   PrimaryManagedLeaseOperationKey,
 		RuntimeSlotKey: PrimaryManagedRuntimeSlotKey, RuntimeSlotGeneration: 1,
-		NodeRole: "foundation", Services: requestedServices, Metadata: spec.Metadata,
+		NodeRole: "foundation", Services: requestedServices, Metadata: metadata,
 	}
 }
 

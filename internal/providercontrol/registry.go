@@ -191,8 +191,13 @@ func (r *Registry) RegisterAtMostOnceProvision(adapterID string, executor AtMost
 	}
 	if resolver, ok := executor.(ProviderCreateRegionResolver); ok {
 		if reporter, ok := executor.(ManagedProviderSafetyReporter); ok {
+			providerID := reporter.ProviderSafetyCapabilities().ProviderID
+			descriptor, _ := AdapterDescriptorFor(providerID, adapterID)
+			if descriptor.ExecutionOfferingID != "" {
+				return nil
+			}
 			registered := r.adapters[adapterID]
-			registered.providerID = reporter.ProviderSafetyCapabilities().ProviderID
+			registered.providerID = providerID
 			registered.createRegion = resolver.ProviderCreateRegion
 			r.adapters[adapterID] = registered
 		}

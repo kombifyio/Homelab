@@ -1,8 +1,18 @@
 {
   "schemaVersion": "stackkits.release-notes/v1",
-  "version": "v0.57.14",
+  "version": "v0.57.16",
   "changelogUrl": "https://stackkit.cc/changelog",
   "releases": [
+    {
+      "version": "v0.57.16",
+      "date": "2026-11-16",
+      "entries": []
+    },
+    {
+      "version": "v0.57.15",
+      "date": "2026-11-16",
+      "entries": []
+    },
     {
       "version": "v0.57.14",
       "date": "2026-11-14",
@@ -1413,28 +1423,6 @@
           "kind": "fixed",
           "scope": "public-tls",
           "text": "an origin-certificate router ignores certificates ordered before it"
-        }
-      ]
-    },
-    {
-      "version": "v0.54.18",
-      "date": "2026-11-01",
-      "entries": [
-        {
-          "kind": "fixed",
-          "scope": "pocketid",
-          "text": "the writer drain admits Kopia's read-only backup bind of the PocketID volume (kombify-StackKits-lj6v)"
-        }
-      ]
-    },
-    {
-      "version": "v0.54.17",
-      "date": "2026-10-31",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "Basement runs the published Pocket ID CAS derivative (platform-r2920)"
         }
       ]
     }

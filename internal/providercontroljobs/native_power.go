@@ -219,7 +219,7 @@ func (p *NativePowerController) preparePower(
 			             ON version.catalog_version = profile.catalog_version
 			           WHERE version.status = 'active'
 			             AND profile.provider_id = LOWER(BTRIM(lease.provider_id))
-			             AND profile.offering_id = COALESCE(lease.lease_json->'metadata'->>'runtime_offering_id', '')
+			             AND profile.offering_id = COALESCE(NULLIF(lease.lease_json->'metadata'->>'provider_execution_offering_id', ''), lease.lease_json->'metadata'->>'runtime_offering_id', '')
 			             AND profile.can_pause
 			             AND profile.stop_effect = 'pause'
 			       )

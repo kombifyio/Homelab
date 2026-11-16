@@ -10,17 +10,20 @@ import (
 )
 
 const (
-	MetadataKeyRuntimeLane        = "runtime_lane"
-	MetadataKeyRuntimeOfferingID  = "runtime_offering_id"
-	MetadataKeyBillingCadence     = "billing_cadence"
-	MetadataKeyServerMode         = "server_mode"
-	MetadataKeyBillingMode        = "billing_mode"
-	MetadataKeyProviderID         = providercatalog.ProviderIDField
-	MetadataKeyLeaseProvider      = providercatalog.LegacyLeaseProviderField
-	MetadataKeyProviderRegion     = "provider_region"
-	MetadataKeyIONOSDatacenter    = "ionos_datacenter"
-	MetadataKeySimulateProviderID = providercatalog.LegacySimulateProviderIDField
-	MetadataKeySimulateLifecycle  = "simulate_node_lifecycle"
+	MetadataKeyRuntimeLane                 = "runtime_lane"
+	MetadataKeyRuntimeOfferingID           = "runtime_offering_id"
+	MetadataKeyProviderPackage             = "provider_package"
+	MetadataKeyProviderExecutionOfferingID = "provider_execution_offering_id"
+	IONOSStandardMemoryExecutionOfferingID = "ionos-cube-standard-memory"
+	MetadataKeyBillingCadence              = "billing_cadence"
+	MetadataKeyServerMode                  = "server_mode"
+	MetadataKeyBillingMode                 = "billing_mode"
+	MetadataKeyProviderID                  = providercatalog.ProviderIDField
+	MetadataKeyLeaseProvider               = providercatalog.LegacyLeaseProviderField
+	MetadataKeyProviderRegion              = "provider_region"
+	MetadataKeyIONOSDatacenter             = "ionos_datacenter"
+	MetadataKeySimulateProviderID          = providercatalog.LegacySimulateProviderIDField
+	MetadataKeySimulateLifecycle           = "simulate_node_lifecycle"
 
 	ServerModeManagedCloud = "managed-cloud"
 	ProviderCentron        = providercatalog.ProviderCentron
@@ -122,6 +125,23 @@ var ionosBasicCubes = map[serverruntime.RuntimeOfferingID]ProviderPackage{
 		ProviderID: ProviderIONOS, OfferingID: serverruntime.RuntimeOfferingLarge,
 		Template: "Basic Cube L", Location: IONOSCubeDatacenter, VCPUs: 8, MemoryMB: 16384, DiskGB: 480,
 	},
+}
+
+// PackageForRecordedSKU resolves a durable, server-selected package. An empty
+// SKU is the historical Basic/default package; an unknown SKU fails closed.
+func PackageForRecordedSKU(providerID, offeringID, sku string) (ProviderPackage, error) {
+	pkg, err := PackageForProvider(providerID, offeringID)
+	if err != nil {
+		return ProviderPackage{}, err
+	}
+	if sku == "" || sku == pkg.Template {
+		return pkg, nil
+	}
+	if providerID == ProviderIONOS && offeringID == string(serverruntime.RuntimeOfferingStandard) && sku == "Memory Cube S" {
+		pkg.Template, pkg.MemoryMB = "Memory Cube S", 8192
+		return pkg, nil
+	}
+	return ProviderPackage{}, fmt.Errorf("monthlyruntime: package %q is not admitted for provider %q offering %q", sku, providerID, offeringID)
 }
 
 // PackageForProvider resolves the exact machine a provider provisions for an

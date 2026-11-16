@@ -144,6 +144,10 @@
     {
       "version": "196_server_registry_retained_tenants.sql",
       "sha256": "5a642ae9cd04429755f3e2ed8e624a6fb3e2a6a4a1c260a513efd5d4e3264d3d"
+    },
+    {
+      "version": "197_ionos_memory_cube_s_execution_profile.sql",
+      "sha256": "24cb8a5acb3ccb871dc506ec85cea17304777c35d41411b61669f2b826e1c825"
     }
   ],
   "database_target": "core",

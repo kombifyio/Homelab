@@ -30,6 +30,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -342,14 +343,39 @@ func (h wizardRunHandlers) createWizardRun(e *httpx.Event) error {
 	if handled := h.prepareWizardRun(e, &run); handled {
 		return nil
 	}
+	if managed := run.request.Managed; managed != nil && (strings.TrimSpace(managed.ProviderID) != managed.ProviderID || strings.TrimSpace(managed.RuntimeOfferingID) != managed.RuntimeOfferingID) {
+		return httpx.BadRequest(e, "Managed provider and offering must use canonical identifiers")
+	}
+	if managed := run.request.Managed; managed != nil && managed.ProviderID == "ionos" && strings.TrimSpace(managed.RuntimeOfferingID) == "" {
+		managed.RuntimeOfferingID = "monthly-runtime-standard"
+	}
+	if backend, ok := run.request.Intent.UseCaseSettings["photos"]["backend"].(string); ok && backend != strings.TrimSpace(backend) {
+		return httpx.BadRequest(e, "Photo backend must use a canonical identifier")
+	}
+	if backend, _ := run.request.Intent.UseCaseSettings["photos"]["backend"].(string); backend == "ente-photos" && run.resumeStack == nil && slices.Contains(run.request.Intent.Goals, "photos") && run.request.Intent.KitAssignment.Mode == wizardRunKindFound && run.request.Managed != nil && run.request.Managed.ProviderID == "ionos" && run.request.Managed.RuntimeOfferingID == "monthly-runtime-standard" {
+		catalog, err := stackkitrelease.ResolveUseCaseCatalog()
+		if err != nil {
+			return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "The photo catalog is unavailable", nil)
+		}
+		photos, ok := catalog.FindUseCase("photos")
+		_, installable := photos.InstallingAlternative(backend)
+		if !ok || !installable {
+			return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeValidation, "Ente Photos is not yet available for installation", map[string]any{"reason_code": "photo_backend_unavailable", "retryable": false})
+		}
+	}
+	if h.crud.runtimeFeatures != nil {
+		enabled, flagErr := h.crud.runtimeFeatures.IsEnabled(e.Request.Context(), "ionos_standard_photo_memory", ownerID)
+		run.ionosMemoryEnabled = flagErr == nil && enabled
+	}
 	// Recompute at admission without relying on client-supplied capacity or a preview.
-	if managed := run.request.Managed; managed != nil && run.request.Intent.KitAssignment.Mode == wizardRunKindFound && managed.ProviderID != "" && managed.RuntimeOfferingID != "" && h.crud.runtimeFeatures != nil {
+	if managed := run.request.Managed; managed != nil && run.resumeStack == nil && run.request.Intent.KitAssignment.Mode == wizardRunKindFound && managed.ProviderID != "" && managed.RuntimeOfferingID != "" && h.crud.runtimeFeatures != nil {
 		enabled, flagErr := h.crud.runtimeFeatures.IsEnabled(e.Request.Context(), "server_hardware_fit", ownerID)
-		if flagErr == nil && enabled {
+		if (flagErr == nil && enabled) || run.ionosMemoryEnabled {
 			intent := run.request.Intent
 			fit := unifier.EvaluateServerFit(core.WizardRecommendationRequest{
-				ServerFit: &core.WizardServerFitRequest{ProviderID: managed.ProviderID, OfferingID: managed.RuntimeOfferingID},
-				Goals:     intent.Goals, Services: run.request.Services, UseCaseSettings: intent.UseCaseSettings, UseCaseCapabilities: intent.UseCaseCapabilities,
+				ServerFit:          &core.WizardServerFitRequest{ProviderID: managed.ProviderID, OfferingID: managed.RuntimeOfferingID},
+				IONOSMemoryEnabled: run.ionosMemoryEnabled,
+				Goals:              intent.Goals, Services: run.request.Services, UseCaseSettings: intent.UseCaseSettings, UseCaseCapabilities: intent.UseCaseCapabilities,
 			}, unifier.WizardRecommendationInventory{})
 			if fit.Status == "does_not_fit" {
 				return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeValidation, "Selected workloads exceed the selected server package", map[string]any{"reason_code": "server_hardware_incompatible", "retryable": false, "server_fit": fit})
@@ -479,6 +505,7 @@ func wizardRunJobSnapshot(job *controlplane.Job) map[string]any {
 // wizardRunState threads the per-run facts through the flow helpers.
 type wizardRunState struct {
 	blockedCapabilities []wizardBlockedCapability
+	ionosMemoryEnabled  bool
 	runID               string
 	tenantID            string
 	ownerID             string

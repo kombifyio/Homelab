@@ -91,6 +91,7 @@ func monthlyRuntimeRecreateHandler(svc *monthlyruntime.Service, recreator manage
 			RuntimeOfferingID: intent.RuntimeOfferingID, ProviderID: intent.ProviderID,
 			ProviderRegion: intent.ProviderRegion, IONOSDatacenter: intent.ProviderRegion,
 			StackKit: intent.StackKit, Services: intent.Services,
+			recreateProviderPackage:      intent.ProviderPackage,
 			RecreateExpectedGeneration:   intent.PreviousGenerationOrdinal + 1,
 			RecreateRequiresReleasedSlot: true,
 		})

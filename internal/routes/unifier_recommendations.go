@@ -54,15 +54,20 @@ func (api *UnifierAPI) handleRecommendations(e *httpx.Event) error {
 	}
 	request := envelope.WizardRecommendationRequest
 	if request.ServerFit != nil {
-		enabled := false
+		fitEnabled, memoryEnabled := false, false
 		if api.features != nil {
-			var flagErr error
-			enabled, flagErr = api.features.IsEnabled(e.Request.Context(), "server_hardware_fit", ownerID)
-			if flagErr != nil {
-				enabled = false
+			var err error
+			fitEnabled, err = api.features.IsEnabled(e.Request.Context(), "server_hardware_fit", ownerID)
+			if err != nil {
+				fitEnabled = false
+			}
+			memoryEnabled, err = api.features.IsEnabled(e.Request.Context(), "ionos_standard_photo_memory", ownerID)
+			if err != nil {
+				memoryEnabled = false
 			}
 		}
-		if !enabled {
+		request.IONOSMemoryEnabled = memoryEnabled
+		if !fitEnabled && !memoryEnabled {
 			request.ServerFit = nil
 		}
 	}
@@ -94,6 +99,14 @@ func (api *UnifierAPI) handleRecommendations(e *httpx.Event) error {
 		SelfDisclosure:          disclosure,
 		SelfDisclosureUpdatedAt: disclosureUpdatedAt,
 	})
+	if response.ServerFit != nil && response.ServerFit.Template == "Memory Cube S" &&
+		(api.memoryAvailability == nil || api.memoryAvailability.IONOSStandardMemoryAvailable(e.Request.Context()) != nil) {
+		response.ServerFit.Status = "unknown"
+		response.ServerFit.Template, response.ServerFit.Location = "", ""
+		response.ServerFit.Specs = kscore.WizardServerFitSpecs{}
+		response.ServerFit.Deficits = nil
+		response.ServerFit.Unknowns = append(response.ServerFit.Unknowns, kscore.WizardServerFitFact{Code: "provider_package_unavailable"})
+	}
 	var smartHome *specv2.SmartHomeRecommendation
 	for _, goal := range request.Goals {
 		if goal == "smart-home" {
