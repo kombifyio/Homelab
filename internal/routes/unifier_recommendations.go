@@ -53,6 +53,19 @@ func (api *UnifierAPI) handleRecommendations(e *httpx.Event) error {
 		return httpx.BadRequest(e, "invalid recommendation request: "+decodeErr.Error())
 	}
 	request := envelope.WizardRecommendationRequest
+	if request.ServerFit != nil {
+		enabled := false
+		if api.features != nil {
+			var flagErr error
+			enabled, flagErr = api.features.IsEnabled(e.Request.Context(), "server_hardware_fit", ownerID)
+			if flagErr != nil {
+				enabled = false
+			}
+		}
+		if !enabled {
+			request.ServerFit = nil
+		}
+	}
 	if validationErr := validateWizardRecommendationRequest(request); validationErr != "" {
 		return httpx.BadRequest(e, validationErr)
 	}
@@ -96,6 +109,12 @@ func (api *UnifierAPI) handleRecommendations(e *httpx.Event) error {
 }
 
 func validateWizardRecommendationRequest(request kscore.WizardRecommendationRequest) string {
+	if fit := request.ServerFit; fit != nil {
+		provider, offering, server := strings.TrimSpace(fit.ProviderID), strings.TrimSpace(fit.OfferingID), strings.TrimSpace(fit.ServerID)
+		if (server == "" && (provider == "" || offering == "")) || (server != "" && (provider != "" || offering != "")) {
+			return "server_fit requires either provider_id and offering_id or server_id"
+		}
+	}
 	if lane := strings.ToLower(strings.TrimSpace(request.DeploymentLane)); lane != "saas" && lane != "self-hosted" {
 		return "deployment_lane must be saas or self-hosted"
 	}

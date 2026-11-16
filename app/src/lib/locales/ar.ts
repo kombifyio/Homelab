@@ -792,7 +792,7 @@ export const ar: Record<string, string> = {
   "common.tip": "نصيحة",
   "common.moreInfo": "المزيد عن هذا الخيار",
   "common.recommended": "موصى به",
-  "wizard.title": "إنشاء kombify-Techstack",
+  "wizard.title": "إنشاء Techstack",
   "wizard.selfDisclosure.review.title":
     "هل تريد استخدام الإجابات الواردة في هذا الرابط؟",
   "wizard.selfDisclosure.review.body":
@@ -1420,7 +1420,7 @@ export const ar: Record<string, string> = {
     "أغلق علامة التبويب هذه وحاول مرة أخرى من المعالج.",
   "ui.authCloud-link-complete.kombifyCloudConnected": "تم ربط kombify Cloud",
   "ui.authCloud-link-complete.kombifyCloudLinkKombifyTechstack":
-    "ربط kombify Cloud - kombify-Techstack",
+    "ربط kombify Cloud | Techstack",
   "ui.authCloud-link-complete.thisWindowClosesAutomatically":
     "ستُغلق هذه النافذة تلقائيًا.",
   "ui.authCloud-link-complete.youCanCloseThisTab":
@@ -1428,7 +1428,7 @@ export const ar: Record<string, string> = {
   "ui.authSso.noSsoTokenProvided": "لم يتم توفير رمز SSO",
   "ui.authSso.ssoAuthenticationFailed": "فشلت مصادقة SSO",
   "ui.authSso.ssoAuthenticationKombifyTechstack":
-    "مصادقة SSO - kombify-Techstack",
+    "مصادقة SSO | Techstack",
   "ui.authSso.unableToVerifyYourCredentials": "تعذّر التحقق من بيانات اعتمادك",
   "ui.authSso.yourKombifyCloudSessionCould":
     "تعذّرت استعادة جلسة kombify Cloud الخاصة بك. يرجى المحاولة مرة أخرى.",
@@ -3342,7 +3342,7 @@ export const ar: Record<string, string> = {
   "ui.stacksId.noLeaseAttached": "لا يوجد عقد إيجار مرتبط",
   "ui.stacksId.noStackkitDeploymentIdProvided": "لم يتم توفير معرّف Homelab",
   "ui.stacksId.offeringSpec": "{vcpus} vCPU · {memory} GB RAM",
-  "ui.stacksId.pageTitle": "{name} | kombify-Techstack",
+  "ui.stacksId.pageTitle": "{name} | Techstack",
   "ui.stacksId.query": "الاستعلام",
   "ui.stacksId.runtime": "بيئة التشغيل",
   "ui.stacksId.series": "السلسلة",
@@ -3366,7 +3366,7 @@ export const ar: Record<string, string> = {
   "ui.stacksId.thisPermanentlyRemovesTheSelected":
     "يؤدي هذا إلى إزالة بيانات الاعتماد المحددة نهائيًا.",
   "ui.stacksId.username": "اسم المستخدم",
-  "ui.stacksIdServersNew.addNodeKombifyTechstack": "إضافة خادم | kombify-Techstack",
+  "ui.stacksIdServersNew.addNodeKombifyTechstack": "إضافة خادم | Techstack",
   "ui.stacksIdServersServerId.activityHistory": "سجل النشاط",
   "ui.stacksIdServersServerId.addressesDomains": "العناوين والنطاقات",
   "ui.stacksIdServersServerId.agentId": "معرّف Agent",
@@ -3449,7 +3449,7 @@ export const ar: Record<string, string> = {
   "ui.stacksIdServersServerId.serverDetachFailed": "فشل فصل الخادم.",
   "ui.stacksIdServersServerId.serverDetailSections": "أقسام تفاصيل الخادم",
   "ui.stacksIdServersServerId.serverDetailsKombifyTechstack":
-    "تفاصيل الخادم | kombify-Techstack",
+    "تفاصيل الخادم | Techstack",
   "ui.stacksIdServersServerId.serverGenerationDecommissioned": "تمت إزالة جيل الخادم",
   "ui.stacksIdServersServerId.serverSettings": "إعدادات الخادم",
   "ui.stacksIdServersServerId.serviceEndpoints": "نقاط نهاية الخدمات",

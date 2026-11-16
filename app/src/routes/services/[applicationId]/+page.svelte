@@ -14,6 +14,9 @@
   } from "@lucide/svelte";
   import { PageHeader } from "@kombiverselabs/ui/shell";
   import { ServiceCard } from "@kombiverselabs/ui/service";
+  import { KfCardShell } from "@kombiverselabs/ui/card";
+  import { SegmentedControl, Tabs } from "@kombiverselabs/ui/primitives";
+  import { EmptyState } from "@kombiverselabs/ui/states";
   import Button from "#lib/components/ui/Button.svelte";
   import ErrorCallout from "#lib/components/ui/ErrorCallout.svelte";
   import AppLogoControl from "#lib/components/dashboard/AppLogoControl.svelte";
@@ -190,18 +193,6 @@
     const url = new URL(location.href);
     url.searchParams.set("component", id);
     replaceState(url, {});
-  }
-
-  function onTabKeydown(event: KeyboardEvent, index: number) {
-    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
-    event.preventDefault();
-    const step = event.key === "ArrowRight" ? 1 : -1;
-    const next = TABS[(index + step + TABS.length) % TABS.length];
-    if (!next) return;
-    setTab(next);
-    queueMicrotask(() =>
-      document.getElementById(`application-tab-${next}`)?.focus(),
-    );
   }
 
   const placementContext = $derived({
@@ -568,42 +559,23 @@
       />
     {/if}
 
-    <div
-      role="tablist"
-      aria-label={tr("ui.serviceDetail.tabsLabel")}
-      class="mb-6 flex w-full flex-wrap gap-1 rounded-lg border border-border bg-card/60 p-1 text-sm shadow-sm sm:w-fit"
+    {@const componentCount = application.components.length}
+    <Tabs
+      tabs={TABS.map((id) => ({
+        id,
+        label: tr(`ui.serviceDetail.tab.${id}`),
+        badge: id === "components" ? componentCount : undefined,
+      }))}
+      value={tab}
+      onchange={(id) => setTab(parseTab(id))}
+      label={tr("ui.serviceDetail.tabsLabel")}
+      testId="application-tab"
     >
-      {#each TABS as id, index (id)}
-        <button
-          type="button"
-          role="tab"
-          id="application-tab-{id}"
-          aria-selected={tab === id}
-          aria-controls="application-panel-{id}"
-          tabindex={tab === id ? 0 : -1}
-          data-testid="application-tab-{id}"
-          class="cursor-pointer rounded-md px-4 py-2 font-medium transition-all {tab ===
-          id
-            ? 'bg-muted font-semibold text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground'}"
-          onclick={() => setTab(id)}
-          onkeydown={(event) => onTabKeydown(event, index)}
-        >
-          {tr(`ui.serviceDetail.tab.${id}`)}
-          {#if id === "components"}
-            <span class="ml-1 text-xs text-muted-foreground"
-              >{application.components.length}</span
-            >
-          {/if}
-        </button>
-      {/each}
-    </div>
-
-    {#if tab === "overview"}
+      {#snippet panel(id)}
+    <!-- A snippet is a deferred function, so the narrowing of the branch above
+         does not reach it; this guard restores it for the type checker. -->
+    {#if !application}{:else if id === "overview"}
       <div
-        role="tabpanel"
-        id="application-panel-overview"
-        aria-labelledby="application-tab-overview"
         class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]"
         data-testid="application-panel-overview"
       >
@@ -687,8 +659,10 @@
           {/each}
 
           {#if version || ownVersion || !ownApplicationOnly}
-          <section
-            class="rounded-lg border border-border bg-card/60 p-4"
+          <KfCardShell
+            tag="section"
+            accent="muted"
+            class="p-4"
             aria-labelledby="version-title"
           >
             <h2 id="version-title" class="text-base font-semibold">
@@ -871,11 +845,13 @@
                 {tr("ui.serviceDetail.version.none")}
               </p>
             {/if}
-          </section>
+          </KfCardShell>
           {/if}
 
-          <section
-            class="rounded-lg border border-border bg-card/60 p-4"
+          <KfCardShell
+            tag="section"
+            accent="muted"
+            class="p-4"
             aria-labelledby="access-title"
           >
             <h2 id="access-title" class="text-base font-semibold">
@@ -933,19 +909,23 @@
                 {/each}
               </ul>
             {/if}
-          </section>
+          </KfCardShell>
 
-          <section
-            class="rounded-lg border border-border bg-card/60 p-4"
+          <KfCardShell
+            tag="section"
+            accent="muted"
+            class="p-4"
             aria-labelledby="health-title"
           >
             <h2 id="health-title" class="text-base font-semibold">
               {tr("ui.services.health")}
             </h2>
             {#if application.components.length === 0}
-              <p class="mt-2 text-sm text-muted-foreground">
-                {tr("ui.serviceDetail.components.empty")}
-              </p>
+              <EmptyState
+                size="inline"
+                class="mt-2"
+                title={tr("ui.serviceDetail.components.empty")}
+              />
             {:else}
               <ul class="mt-3 grid gap-2 sm:grid-cols-2">
                 {#each application.components as component (component.id)}
@@ -971,11 +951,14 @@
                 {/each}
               </ul>
             {/if}
-          </section>
+          </KfCardShell>
         </div>
 
-        <aside
-          class="h-fit rounded-lg border border-border bg-card/60 p-4"
+        <KfCardShell
+          tag="section"
+          accent="muted"
+          class="h-fit p-4"
+          role="complementary"
           aria-labelledby="facts-title"
         >
           <div class="flex items-center gap-2">
@@ -1052,21 +1035,14 @@
               applicationKey={appLogoKey(application.application_key)}
             />
           </div>
-        </aside>
+        </KfCardShell>
       </div>
-    {:else if tab === "components"}
+    {:else if id === "components"}
       <div
-        role="tabpanel"
-        id="application-panel-components"
-        aria-labelledby="application-tab-components"
         data-testid="application-panel-components"
       >
         {#if application.components.length === 0}
-          <p
-            class="rounded-lg border border-dashed border-border bg-background/40 p-6 text-center text-sm text-muted-foreground"
-          >
-            {tr("ui.serviceDetail.components.empty")}
-          </p>
+          <EmptyState title={tr("ui.serviceDetail.components.empty")} />
         {:else}
           <div class="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
             {#each application.components as component (component.id)}
@@ -1146,40 +1122,25 @@
           </div>
         {/if}
       </div>
-    {:else if tab === "logs"}
+    {:else if id === "logs"}
       <div
-        role="tabpanel"
-        id="application-panel-logs"
-        aria-labelledby="application-tab-logs"
         class="space-y-4"
         data-testid="application-panel-logs"
       >
         {#if !logComponent}
-          <p
-            class="rounded-lg border border-dashed border-border bg-background/40 p-6 text-center text-sm text-muted-foreground"
-          >
-            {tr("ui.serviceDetail.components.empty")}
-          </p>
+          <EmptyState title={tr("ui.serviceDetail.components.empty")} />
         {:else}
           <div class="flex flex-wrap items-center gap-2">
-            <div
-              class="flex flex-wrap gap-1"
-              role="group"
-              aria-label={tr("ui.serviceDetail.logs.component")}
-            >
-              {#each application.components as component (component.id)}
-                <button
-                  type="button"
-                  aria-pressed={logComponent.id === component.id}
-                  class="cursor-pointer rounded-md border px-3 py-1.5 text-xs font-medium transition-colors {logComponent.id ===
-                  component.id
-                    ? 'border-primary bg-primary/10 text-foreground'
-                    : 'border-border text-muted-foreground hover:text-foreground'}"
-                  onclick={() => selectLogComponent(component.id)}
-                  >{component.name || component.service_key}</button
-                >
-              {/each}
-            </div>
+            <SegmentedControl
+              class="flex-wrap"
+              items={application.components.map((component) => ({
+                value: component.id,
+                label: component.name || component.service_key,
+              }))}
+              value={logComponent.id}
+              label={tr("ui.serviceDetail.logs.component")}
+              onchange={selectLogComponent}
+            />
             <div class="ml-auto flex items-center gap-2">
               {#if logState?.loading || (logJob?.action === "logs" && isActionActive(logJob))}
                 <Loader2
@@ -1240,11 +1201,8 @@
           {/if}
         {/if}
       </div>
-    {:else if tab === "activity"}
+    {:else if id === "activity"}
       <div
-        role="tabpanel"
-        id="application-panel-activity"
-        aria-labelledby="application-tab-activity"
         class="space-y-4"
         data-testid="application-panel-activity"
       >
@@ -1268,11 +1226,10 @@
         {#if recorded.loading && activityRows.length === 0}
           <LoadingNote label={tr("common.loading")} />
         {:else if activityRows.length === 0}
-          <p
-            class="rounded-lg border border-dashed border-border bg-background/40 p-6 text-center text-sm text-muted-foreground"
-          >
-            {tr("ui.services.noGovernedActionHasRun")}
-          </p>
+          <EmptyState
+            size="inline"
+            title={tr("ui.services.noGovernedActionHasRun")}
+          />
         {:else}
           <ol class="space-y-2" data-testid="application-activity-list">
             {#each activityRows as row (row.id)}
@@ -1306,9 +1263,6 @@
       </div>
     {:else}
       <div
-        role="tabpanel"
-        id="application-panel-settings"
-        aria-labelledby="application-tab-settings"
         class="space-y-4"
         data-testid="application-panel-settings"
       >
@@ -1316,11 +1270,10 @@
           {tr("ui.services.mutationsRequireOwnerApprovalA")}
         </p>
         {#if application.components.length === 0}
-          <p
-            class="rounded-lg border border-dashed border-border bg-background/40 p-6 text-center text-sm text-muted-foreground"
-          >
-            {tr("ui.serviceDetail.components.empty")}
-          </p>
+          <EmptyState
+            size="inline"
+            title={tr("ui.serviceDetail.components.empty")}
+          />
         {/if}
         {#each application.components as component (component.id)}
           {@const locked = serviceIsLocked(component.mutation_lock)}
@@ -1443,5 +1396,7 @@
         {/each}
       </div>
     {/if}
+      {/snippet}
+    </Tabs>
   {/if}
 </div>

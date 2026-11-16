@@ -43,15 +43,15 @@ export class WizardPreviewController {
   update(request: WizardRecommendationRequest): void {
     const normalized = normalizeRequest(request);
     const key = JSON.stringify(normalized);
-    const cached = this.#cache.get(key);
+    this.cancelPending();
+    const sequence = ++this.#sequence;
+    const cached = request.server_fit ? undefined : this.#cache.get(key);
     if (cached) {
       this.#current = cached;
       this.#onchange({ phase: "resolved", result: cached });
       return;
     }
 
-    this.cancelPending();
-    const sequence = ++this.#sequence;
     this.#onchange({ phase: "loading", previous: this.#current });
     this.#timer = setTimeout(() => {
       this.#timer = null;
@@ -60,7 +60,7 @@ export class WizardPreviewController {
       void this.#load(normalized, controller.signal)
         .then((result) => {
           if (controller.signal.aborted || sequence !== this.#sequence) return;
-          this.#cache.set(key, result);
+          if (!normalized.server_fit) this.#cache.set(key, result);
           this.#current = result;
           this.#onchange({ phase: "resolved", result });
         })
@@ -117,6 +117,7 @@ function normalizeRequest(
     services,
     deployment_lane: request.deployment_lane,
     ...(provider ? { provider_id: provider } : {}),
+    ...(request.server_fit ? { server_fit: request.server_fit } : {}),
     ...(request.compute_profile
       ? { compute_profile: request.compute_profile.trim() }
       : {}),

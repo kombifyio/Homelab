@@ -630,11 +630,12 @@ type DecisionReason struct {
 // deliberately absent: the route derives those from the authenticated
 // request and the canonical registry.
 type WizardRecommendationRequest struct {
-	Goals          []string `json:"goals"`
-	Services       []string `json:"services"`
-	DeploymentLane string   `json:"deployment_lane"`
-	ProviderID     string   `json:"provider_id,omitempty"`
-	Surface        string   `json:"surface"`
+	ServerFit      *WizardServerFitRequest `json:"server_fit,omitempty"`
+	Goals          []string                `json:"goals"`
+	Services       []string                `json:"services"`
+	DeploymentLane string                  `json:"deployment_lane"`
+	ProviderID     string                  `json:"provider_id,omitempty"`
+	Surface        string                  `json:"surface"`
 	// SelectionIntent "all" asks which of AvailableGoals the full-homelab
 	// template should preselect for this operator; empty asks for none.
 	SelectionIntent string `json:"selection_intent,omitempty"`
@@ -643,6 +644,48 @@ type WizardRecommendationRequest struct {
 	ComputeProfile      string                       `json:"compute_profile,omitempty"`
 	UseCaseSettings     map[string]map[string]any    `json:"use_case_settings,omitempty"`
 	UseCaseCapabilities map[string]map[string]string `json:"use_case_capabilities,omitempty"`
+}
+
+// WizardServerFitRequest names exactly one server; capacity is always resolved by the server.
+type WizardServerFitRequest struct {
+	ProviderID string `json:"provider_id,omitempty"`
+	OfferingID string `json:"offering_id,omitempty"`
+	ServerID   string `json:"server_id,omitempty"`
+}
+
+type WizardServerFitSpecs struct {
+	CPUCores     int    `json:"cpu_cores"`
+	MemoryMB     int    `json:"memory_mb"`
+	DiskGB       int    `json:"disk_gb"`
+	Architecture string `json:"architecture,omitempty"`
+	AMD64Level   int    `json:"amd64_level,omitempty"`
+}
+
+type WizardServerFitFact struct {
+	Code      string  `json:"code"`
+	Workload  string  `json:"workload,omitempty"`
+	Goal      string  `json:"goal,omitempty"`
+	Module    string  `json:"module,omitempty"`
+	Required  float64 `json:"required,omitempty"`
+	Available float64 `json:"available,omitempty"`
+	Unit      string  `json:"unit,omitempty"`
+}
+
+// WizardServerFit evaluates only released selected-workload footprints. It is not runtime acceptance.
+type WizardServerFit struct {
+	Status        string                `json:"status"`
+	Scope         string                `json:"scope"`
+	Advisories    []WizardServerFitFact `json:"advisories"`
+	Evidence      string                `json:"evidence"`
+	ProviderID    string                `json:"provider_id,omitempty"`
+	OfferingID    string                `json:"offering_id,omitempty"`
+	Template      string                `json:"template,omitempty"`
+	Location      string                `json:"location,omitempty"`
+	ServerID      string                `json:"server_id,omitempty"`
+	CatalogSource string                `json:"catalog_source,omitempty"`
+	Specs         WizardServerFitSpecs  `json:"specs"`
+	Deficits      []WizardServerFitFact `json:"deficits"`
+	Unknowns      []WizardServerFitFact `json:"unknowns"`
 }
 
 // WizardRecommendationStatus is the explicit state of a recommendation
@@ -688,6 +731,7 @@ type WizardRecommendation struct {
 // both Wizard depths. DecisionContext is always server-constructed and its
 // hash binds the recommendation to the evidence used for evaluation.
 type WizardRecommendationResponse struct {
+	ServerFit           *WizardServerFit           `json:"server_fit,omitempty"`
 	Status              WizardRecommendationStatus `json:"status"`
 	GeneratedAt         time.Time                  `json:"generated_at"`
 	DecisionContext     *DecisionContext           `json:"decision_context"`

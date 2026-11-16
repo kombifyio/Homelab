@@ -43,11 +43,13 @@ import (
 	ksapi "github.com/kombifyio/techstack/pkg/api"
 	"github.com/kombifyio/techstack/pkg/config"
 	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/techstack/pkg/core"
 	"github.com/kombifyio/techstack/pkg/httpx"
 	"github.com/kombifyio/techstack/pkg/jobs"
 	"github.com/kombifyio/techstack/pkg/kombifywallet"
 	"github.com/kombifyio/techstack/pkg/orchestrator"
 	"github.com/kombifyio/techstack/pkg/specv2"
+	"github.com/kombifyio/techstack/pkg/unifier"
 )
 
 const (
@@ -339,6 +341,20 @@ func (h wizardRunHandlers) createWizardRun(e *httpx.Event) error {
 	}
 	if handled := h.prepareWizardRun(e, &run); handled {
 		return nil
+	}
+	// Recompute at admission without relying on client-supplied capacity or a preview.
+	if managed := run.request.Managed; managed != nil && run.request.Intent.KitAssignment.Mode == wizardRunKindFound && managed.ProviderID != "" && managed.RuntimeOfferingID != "" && h.crud.runtimeFeatures != nil {
+		enabled, flagErr := h.crud.runtimeFeatures.IsEnabled(e.Request.Context(), "server_hardware_fit", ownerID)
+		if flagErr == nil && enabled {
+			intent := run.request.Intent
+			fit := unifier.EvaluateServerFit(core.WizardRecommendationRequest{
+				ServerFit: &core.WizardServerFitRequest{ProviderID: managed.ProviderID, OfferingID: managed.RuntimeOfferingID},
+				Goals:     intent.Goals, Services: run.request.Services, UseCaseSettings: intent.UseCaseSettings, UseCaseCapabilities: intent.UseCaseCapabilities,
+			}, unifier.WizardRecommendationInventory{})
+			if fit.Status == "does_not_fit" {
+				return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeValidation, "Selected workloads exceed the selected server package", map[string]any{"reason_code": "server_hardware_incompatible", "retryable": false, "server_fit": fit})
+			}
+		}
 	}
 	if handled := h.reserveWizardRun(e, &run); handled {
 		return nil

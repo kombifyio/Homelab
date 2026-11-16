@@ -21,6 +21,7 @@
   } from "#lib/wizard/index.js";
   import { managedProviders } from "#lib/wizard/managed-providers.js";
   import { tr } from "#lib/i18n.svelte.js";
+  import { useCreationContext } from "#lib/creation/context.js";
   import { NODE_GUIDES } from "#lib/docs-links.js";
   import InfoTip from "./InfoTip.svelte";
   import ManagedCreationPauseNotice from "./ManagedCreationPauseNotice.svelte";
@@ -38,6 +39,10 @@
     providers: ReadonlyArray<(typeof managedProviders)[number]>;
     onselect: (provider: ManagedProviderID) => void;
   } = $props();
+  const creation = useCreationContext();
+  const fitEnabled = $derived(
+    creation.features.isEnabled("server_hardware_fit"),
+  );
   let offerings = $state<MonthlyRuntimeOffering[]>([]);
   let loading = $state(true);
   let loadFailed = $state(false);
@@ -116,7 +121,7 @@
       <p class="loading" role="status">
         {tr("wizard.server.managed.loadingSpecs")}
       </p>
-    {:else if offering}
+    {:else if offering && !fitEnabled}
       <dl class="server-specs">
         {#if offering.vcpus}<div>
             <dt><Cpu size={15} aria-hidden="true" />vCPU</dt>
@@ -124,7 +129,9 @@
           </div>{/if}
         {#if offering.memory_mb}<div>
             <dt><MemoryStick size={15} aria-hidden="true" />RAM</dt>
-            <dd>{tr("ui.managed.sizeGiB", { size: offering.memory_mb / 1024 })}</dd>
+            <dd>
+              {tr("ui.managed.sizeGiB", { size: offering.memory_mb / 1024 })}
+            </dd>
           </div>{/if}
         {#if offering.disk_gb}<div>
             <dt>

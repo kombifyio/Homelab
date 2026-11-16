@@ -38,75 +38,130 @@ if (args.Contains("--rollback-only", StringComparer.Ordinal))
     return 0;
 }
 
-AssertInstallerAuthority();
-Console.WriteLine($"PASS {DesktopEdition.Name} installer authority");
-AssertDeviceContextDocumentBoundary();
-Console.WriteLine("PASS device context stays inside the current product document and navigation lifetime");
-await AssertCredentialRedirectRejected();
-Console.WriteLine("PASS credential requests do not follow redirects");
+// One report per assertion, and the run continues after a failure: every PASS and FAIL line of this edition appears in
+// the one dispatch, and the exit code is non-zero only after all of them ran.
+var failures = new List<string>();
+var passed = 0;
+string Summary() => $"{DesktopEdition.Name}: {passed} passed, {failures.Count} failed";
+void Report(string name, Action check)
+{
+    try
+    {
+        check();
+        passed++;
+        Console.WriteLine($"PASS {name}");
+    }
+    catch (Exception error)
+    {
+        failures.Add(name);
+        Console.WriteLine($"FAIL {name}: {error.Message}");
+    }
+}
+async Task ReportAsync(string name, Func<Task> check)
+{
+    try
+    {
+        await check();
+        passed++;
+        Console.WriteLine($"PASS {name}");
+    }
+    catch (Exception error)
+    {
+        failures.Add(name);
+        Console.WriteLine($"FAIL {name}: {error.Message}");
+    }
+}
+
+Report($"{DesktopEdition.Name} installer authority", AssertInstallerAuthority);
+Report("device context stays inside the current product document and navigation lifetime", AssertDeviceContextDocumentBoundary);
+await ReportAsync("credential requests do not follow redirects", AssertCredentialRedirectRejected);
 #if CLOUD_DESKTOP
-AssertCloudUpdateRetainsRecoveryCursor();
-AssertCloudRecoveryReacquiresMissingCache();
-AssertLegacyRollbackResumesWithVerifierEvidence();
-await AssertConnectAccountMismatchDenied();
-Console.WriteLine("PASS Connect rejects an account mismatch before custody or request effects");
+Report("Cloud update restores the operator cache and retains its recovery cursor", AssertCloudUpdateRetainsRecoveryCursor);
+Report("Cloud recovery reacquires a missing cache through the edition helper", AssertCloudRecoveryReacquiresMissingCache);
+Report("legacy rollback resumes with verifier evidence", AssertLegacyRollbackResumesWithVerifierEvidence);
+await ReportAsync("Connect rejects an account mismatch before custody or request effects", AssertConnectAccountMismatchDenied);
+await ReportAsync("only a refused grant ends the Connect session; 429, 5xx, network faults and timeouts keep the stored token", AssertConnectRefreshFailureRule);
 #endif
 if (DesktopEdition.IsLocal)
 {
-    await AssertSpoofedLocalRuntimeRejected();
-    Console.WriteLine("PASS spoofed local runtime cannot capture the device token");
+    await ReportAsync("spoofed local runtime cannot capture the device token", AssertSpoofedLocalRuntimeRejected);
 }
-if (args.Contains("--authority-only", StringComparer.Ordinal)) return 0;
+if (args.Contains("--authority-only", StringComparer.Ordinal))
+{
+    Console.WriteLine(Summary());
+    return failures.Count == 0 ? 0 : 1;
+}
 if (DesktopEdition.IsLocal)
 {
-    AssertLegacyRollbackResumesWithVerifierEvidence();
-    AssertFailedUpdatePreservesRecovery();
-    AssertPendingRollbackResumesBeforeStartup();
-    Console.WriteLine("PASS pending rollback protects and restores data before runtime startup");
+    Report("legacy rollback resumes with verifier evidence", AssertLegacyRollbackResumesWithVerifierEvidence);
+    Report("a failed update preserves recovery", AssertFailedUpdatePreservesRecovery);
+    Report("pending rollback protects and restores data before runtime startup", AssertPendingRollbackResumesBeforeStartup);
 }
 
 if (args.Contains("--credential-roundtrip", StringComparer.Ordinal))
 {
-    var target = $"kombify/techstack/contract-tests/{Guid.NewGuid():N}";
-    var secret = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+    Report("Windows Credential Manager roundtrip", () =>
+    {
+        var target = $"kombify/techstack/contract-tests/{Guid.NewGuid():N}";
+        var secret = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+        try
+        {
+            WindowsCredentialStore.Write(target, Environment.UserName, secret);
+            if (!string.Equals(WindowsCredentialStore.Read(target), secret, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("Windows Credential Manager roundtrip changed the secret.");
+            }
+        }
+        finally
+        {
+            TryDeleteCredential(target);
+        }
+    });
+}
+
+// A cleanup failure must never replace the check's own result. The Credential Manager is absent on a logon without a
+// user vault (a non-interactive SSH logon answers 1312, "no such logon session"), which says nothing about what the
+// assertions observed; the line stays visible in the run output instead.
+static void TryDeleteCredential(string target)
+{
     try
     {
-        WindowsCredentialStore.Write(target, Environment.UserName, secret);
-        if (!string.Equals(WindowsCredentialStore.Read(target), secret, StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException("Windows Credential Manager roundtrip changed the secret.");
-        }
-        Console.WriteLine("PASS Windows Credential Manager roundtrip");
-    }
-    finally
-    {
         WindowsCredentialStore.Delete(target);
+    }
+    catch (Exception error)
+    {
+        Console.WriteLine($"WARN credential cleanup left {target} in place: {error.GetType().Name}: {error.Message}");
     }
 }
 
 // Connect installation key: a DPoP proof must verify under the key whose RFC 7638
 // thumbprint Gateway stores as dpop_jkt, and the key must not be exportable.
 {
-    var keyName = $"kombify-techstack-contract-tests-{Guid.NewGuid():N}";
-    try
+    string? custody = null;
+    Report("Connect DPoP proof verifies under the installation key and the key is not exportable", () =>
     {
-        using var key = ConnectDeviceKey.OpenOrCreate(keyName);
-        var proof = key.CreateProof("POST", new Uri("https://connect.kombify.io/v1/installations?x=1"));
-        var segments = proof.Split('.');
-        var payload = System.Text.Json.JsonDocument.Parse(Convert.FromBase64String(
-            segments[1].Replace('-', '+').Replace('_', '/').PadRight(segments[1].Length + (4 - segments[1].Length % 4) % 4, '=')));
-        if (!key.VerifyProof(proof)
-            || payload.RootElement.GetProperty("htu").GetString() != "https://connect.kombify.io/v1/installations"
-            || key.Thumbprint.Length != 43)
+        var keyName = $"kombify-techstack-contract-tests-{Guid.NewGuid():N}";
+        try
         {
-            throw new InvalidOperationException("Connect DPoP proof does not verify under the installation key.");
+            using var key = ConnectDeviceKey.OpenOrCreate(keyName);
+            custody = key.Custody.ToString();
+            var proof = key.CreateProof("POST", new Uri("https://connect.kombify.io/v1/installations?x=1"));
+            var segments = proof.Split('.');
+            var payload = System.Text.Json.JsonDocument.Parse(Convert.FromBase64String(
+                segments[1].Replace('-', '+').Replace('_', '/').PadRight(segments[1].Length + (4 - segments[1].Length % 4) % 4, '=')));
+            if (!key.VerifyProof(proof)
+                || payload.RootElement.GetProperty("htu").GetString() != "https://connect.kombify.io/v1/installations"
+                || key.Thumbprint.Length != 43)
+            {
+                throw new InvalidOperationException("Connect DPoP proof does not verify under the installation key.");
+            }
         }
-        Console.WriteLine($"PASS Connect DPoP proof ({key.Custody})");
-    }
-    finally
-    {
-        ConnectDeviceKey.Delete(keyName);
-    }
+        finally
+        {
+            ConnectDeviceKey.Delete(keyName);
+        }
+    });
+    if (custody is not null) Console.WriteLine($"INFO Connect DPoP key custody: {custody}");
 }
 
 const string ValidSelfHosted = """
@@ -135,34 +190,39 @@ const string ValidLocal = """
 }
 """;
 
-var tests = new (string Name, Action Execute)[]
+// Shared contracts hold in both editions; an edition's own contract runs only in that edition.
+var sharedTests = new (string Name, Action Execute)[]
 {
-    ("local startup opens the device-session entry without mode selection", AssertLocalStartupEntry),
     ("self-hosted HTTPS profile", () => Parse(ValidSelfHosted, "https://home.example.net/")),
     ("local loopback profile", () => Parse(ValidLocal, "http://127.0.0.1:5260/")),
     ("remote HTTP rejected", () => MustFail(() => ClientConnectionProfileValidator.NormalizeConfiguredEndpoint("http://home.example.net/"))),
     ("mismatched base URL rejected", () => MustFail(() => Parse(ValidSelfHosted, "https://other.example.net/"))),
     ("unknown token field rejected", () => MustFail(() => Parse(ValidSelfHosted.Replace("\"sync\":", "\"access_token\":\"secret\",\"sync\":"), "https://home.example.net/"))),
     ("cloud device flow rejected", () => MustFail(() => Parse(ValidSelfHosted.Replace("\"self_hosted\"", "\"cloud\""), "https://home.example.net/"))),
-    ("Standalone edition rejects Cloud discovery", AssertLocalEditionRejectsCloudProfile),
     ("default credential target remains stable", AssertDefaultCredentialTarget),
+};
+// The Standalone installer owns the local device-session entry, the local state root and the refusal of every Cloud
+// entry point; the Connected installer refuses any non-cloud mode instead (TechStack.Client/Program.cs:163-166).
+var localTests = new (string Name, Action Execute)[]
+{
+    ("local startup opens the device-session entry without mode selection", AssertLocalStartupEntry),
+    ("Standalone edition rejects Cloud discovery", AssertLocalEditionRejectsCloudProfile),
     ("isolated state receives stable credential namespace", AssertIsolatedCredentialNamespace),
     ("state root override falls back to product state", () => AssertRejectedStateOverride("")),
     ("state sibling override falls back to product state", () => AssertRejectedStateOverride("-outside")),
 };
 
-foreach (var test in tests)
+foreach (var test in sharedTests) Report(test.Name, test.Execute);
+if (DesktopEdition.IsLocal)
 {
-    try
-    {
-        test.Execute();
-        Console.WriteLine($"PASS {test.Name}");
-    }
-    catch (Exception error)
-    {
-        Console.Error.WriteLine($"FAIL {test.Name}: {error.Message}");
-        return 1;
-    }
+    foreach (var test in localTests) Report(test.Name, test.Execute);
+}
+
+Console.WriteLine(Summary());
+if (failures.Count != 0)
+{
+    Console.WriteLine($"{DesktopEdition.Name}: FAILED {string.Join(" | ", failures)}");
+    return 1;
 }
 return 0;
 
@@ -385,7 +445,7 @@ static void AssertCloudRecoveryReacquiresMissingCache()
             !result.PackageSha256.Equals(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(approved)),
                 StringComparison.OrdinalIgnoreCase))
             throw new InvalidDataException("Cloud recovery did not reacquire and reverify its approved package.");
-        Console.WriteLine("PASS real Cloud recovery path reacquired a missing cache through the edition helper process; verifier boundary substituted, no production signature claim");
+        Console.WriteLine("INFO real Cloud recovery path reacquired a missing cache through the edition helper process; verifier boundary substituted, no production signature claim");
     }
     finally
     {
@@ -428,7 +488,7 @@ static void AssertCloudUpdateRetainsRecoveryCursor()
         if (File.ReadAllText(cache) != "pre-update-operator-state" || File.Exists(newCache) ||
             File.ReadAllText(cursor) != "retained-recovery-cursor")
             throw new InvalidDataException("Cloud rollback lost operator data or its durable recovery cursor.");
-        Console.WriteLine("PASS Cloud rollback restores operator cache and retains its recovery cursor; Local feed refused");
+        Console.WriteLine("INFO Cloud rollback restores operator cache and retains its recovery cursor; Local feed refused");
     }
     finally
     {
@@ -613,6 +673,307 @@ static async Task AssertConnectAccountMismatchDenied()
         throw new InvalidOperationException("Mismatched Connect login changed account custody or called Connect.");
     }
     throw new InvalidOperationException("Mismatched Connect login was accepted.");
+}
+
+// Rule A2 (signed in once per device), three classes: transient (429, 5xx, network faults, timeouts, answers without an
+// OAuth error body, authorization_pending / slow_down / too_many_requests) keeps the stored refresh token and backs off;
+// an operator fault (invalid_client, unauthorized_client) keeps it and reports "not ready"; every other OAuth error on
+// 400/401/403 is the session gone.
+static async Task AssertConnectRefreshFailureRule()
+{
+    static string Jwt() => "e30." + Convert.ToBase64String("{\"sub\":\"auth0|connect-refresh\"}"u8.ToArray())
+        .TrimEnd('=').Replace('+', '-').Replace('/', '_') + ".c2ln";
+    static ScriptedAuth0 Script(params object[] answers) => new(answers);
+    static (Auth0NativeLogin Client, List<TimeSpan> Waits, Func<TimeSpan, CancellationToken, Task> Delay) Make(ScriptedAuth0 auth0)
+    {
+        var waits = new List<TimeSpan>();
+        return (new Auth0NativeLogin(new HttpClient(auth0), new Uri("https://login.kombify.test/"), "client", "https://api.kombify.test", [63690]),
+            waits, (wait, _) => { waits.Add(wait); return Task.CompletedTask; });
+    }
+    static ScriptedAuth0.Answer Ok(string? rotated = null) => new(System.Net.HttpStatusCode.OK,
+        "{\"access_token\":\"" + Jwt() + "\"" + (rotated is null ? "" : ",\"refresh_token\":\"" + rotated + "\"") + "}");
+    static ScriptedAuth0.Answer Err(int status, string body, int? retryAfter = null) => new((System.Net.HttpStatusCode)status, body, retryAfter);
+    static void Expect(bool condition, string what) { if (!condition) throw new InvalidOperationException("Connect refresh rule: " + what); }
+
+    // Transient: a 5xx, then a network fault, then a timeout (retried at once with the same token), then success.
+    var recovering = Script(Err(503, "{}"), new HttpRequestException("network"), new TaskCanceledException("timeout"), Ok("refresh-rotated"));
+    var (login, waits, delay) = Make(recovering);
+    var session = await login.RefreshWithBackoffAsync("refresh-old", CancellationToken.None, delay);
+    Expect(session.RefreshToken == "refresh-rotated" && session.SubjectId == "auth0|connect-refresh", "rotated token and subject not returned");
+    Expect(recovering.RefreshTokens.SequenceEqual(["refresh-old", "refresh-old", "refresh-old", "refresh-old"]), "the stored token was not replayed unchanged");
+    Expect(waits.SequenceEqual([TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2)]), "a timeout was not retried at once (expected waits 1, 2 s only)");
+
+    // A timeout allows at most one immediate retry; if that fails (timeout or 5xx), nothing more is sent and not ready is reported.
+    var twice = Script(new TaskCanceledException("timeout"), new TaskCanceledException("timeout"), Ok("refresh-rotated"));
+    (login, waits, delay) = Make(twice);
+    try { await login.RefreshWithBackoffAsync("refresh-old", CancellationToken.None, delay); Expect(false, "a double timeout refreshed"); }
+    catch (Auth0RefreshUnavailableException ex) when (ex is not Auth0ClientNotReadyException)
+    {
+        Expect(twice.RefreshTokens.Count == 2 && waits.Count == 0 && ex.PossiblyRetired && ex.Message.Contains("not ready", StringComparison.Ordinal)
+            && !ex.Message.Contains("try again in a moment", StringComparison.Ordinal),
+            "a double timeout replayed past the immediate retry or misreported not ready");
+    }
+    var timeoutThen503 = Script(new TaskCanceledException("timeout"), Err(503, "{}"), Ok("refresh-rotated"));
+    (login, waits, delay) = Make(timeoutThen503);
+    try { await login.RefreshWithBackoffAsync("refresh-old", CancellationToken.None, delay); Expect(false, "timeout then 503 refreshed"); }
+    catch (Auth0RefreshUnavailableException ex) when (ex is not Auth0ClientNotReadyException)
+    {
+        Expect(timeoutThen503.RefreshTokens.Count == 2 && waits.Count == 0 && ex.PossiblyRetired,
+            "a 503 after a timed-out send entered backoff and replayed a possibly-retired token");
+    }
+
+    // 429 waits its Retry-After.
+    var limited = Script(Err(429, "{\"error\":\"too_many_requests\"}", 3), Ok());
+    (login, waits, delay) = Make(limited);
+    await login.RefreshWithBackoffAsync("refresh-old", CancellationToken.None, delay);
+    Expect(waits.SequenceEqual([TimeSpan.FromSeconds(3)]), "Retry-After not honoured");
+
+    // A persistent 5xx is temporary, never a refused grant (even with invalid_grant in its body). The last allowed
+    // attempt ends the loop: 4 sends and 3 waits, never a further send without a wait.
+    var down = Script(Err(502, "{\"error\":\"invalid_grant\"}"));
+    (login, waits, delay) = Make(down);
+    try { await login.RefreshWithBackoffAsync("refresh-old", CancellationToken.None, delay); Expect(false, "a 5xx refreshed"); }
+    catch (Auth0RefreshUnavailableException ex) when (ex is not Auth0ClientNotReadyException)
+    {
+        Expect(down.RefreshTokens.Count == 4 && waits.Count == 3 && !ex.PossiblyRetired,
+            "a persistent 5xx was not retried exactly 4 times with 3 waits, or was called possibly retired");
+    }
+
+    // A connection lost after the request was written may have retired the token: the sends stay inside the budget,
+    // and the failure carries the marker that stops later sends in this run.
+    var reset = Script(new HttpRequestException("The response ended prematurely."));
+    (login, waits, delay) = Make(reset);
+    try { await login.RefreshWithBackoffAsync("refresh-old", CancellationToken.None, delay); Expect(false, "a reset refreshed"); }
+    catch (Auth0RefreshUnavailableException ex)
+    {
+        Expect(reset.RefreshTokens.Count == 4 && waits.Count == 3 && ex.PossiblyRetired
+            && ex.Message.Contains("not ready", StringComparison.Ordinal),
+            "a connection reset did not keep the possibly-retired marker");
+    }
+
+    // A connection that never reached Auth0 (name resolution, connect) retires nothing: the token stays replayable.
+    var unreachable = Script(new HttpRequestException(System.Net.Http.HttpRequestError.NameResolutionError,
+        "No such host is known."));
+    (login, waits, delay) = Make(unreachable);
+    try { await login.RefreshWithBackoffAsync("refresh-old", CancellationToken.None, delay); Expect(false, "an unreachable host refreshed"); }
+    catch (Auth0RefreshUnavailableException ex)
+    {
+        Expect(unreachable.RefreshTokens.Count == 4 && !ex.PossiblyRetired,
+            "a name-resolution fault was called possibly retired");
+    }
+
+    // A 200 whose body carries no usable token may have rotated and retired the sent token: one send, no retry,
+    // and the marker that stops later sends in this run.
+    var unusable = Script(new ScriptedAuth0.Answer(System.Net.HttpStatusCode.OK, "<html>proxy</html>"));
+    (login, waits, delay) = Make(unusable);
+    try { await login.RefreshWithBackoffAsync("refresh-old", CancellationToken.None, delay); Expect(false, "an unusable 200 refreshed"); }
+    catch (Auth0RefreshUnavailableException ex)
+    {
+        Expect(unusable.RefreshTokens.Count == 1 && waits.Count == 0 && ex.PossiblyRetired
+            && ex.Message.Contains("not ready", StringComparison.Ordinal)
+            && !ex.Message.Contains("try again in a moment", StringComparison.Ordinal),
+            "an unusable 200 body was retried or did not report a possibly-retired token");
+    }
+
+    // A send the caller cancelled in flight may have been received: the exception stays a cancellation and keeps the
+    // marker, so nothing more is sent in this run.
+    using (var cancel = new CancellationTokenSource())
+    {
+        var inFlightAnswer = new ScriptedAuth0.InFlight();
+        var inFlight = Script(inFlightAnswer);
+        (login, waits, delay) = Make(inFlight);
+        var call = login.RefreshWithBackoffAsync("refresh-old", cancel.Token, delay);
+        await inFlightAnswer.Sent.Task;
+        cancel.Cancel();
+        try { await call; Expect(false, "a cancelled send refreshed"); }
+        catch (OperationCanceledException ex)
+        {
+            Expect(inFlight.RefreshTokens.Count == 1 && waits.Count == 0
+                && ex is ConnectRefreshCancelledException { PossiblyRetired: true },
+                "a cancelled in-flight send did not keep the possibly-retired marker");
+        }
+    }
+
+    // A Retry-After beyond the budget is not waited out here, is capped at one hour, and omits "try again in a moment".
+    var tooLong = Script(Err(429, "{}", 86400));
+    (login, waits, delay) = Make(tooLong);
+    try { await login.RefreshWithBackoffAsync("refresh-old", CancellationToken.None, delay); Expect(false, "a 429 refreshed"); }
+    catch (Auth0RefreshUnavailableException ex)
+    {
+        Expect(tooLong.RefreshTokens.Count == 1 && waits.Count == 0 && ex.RetryAfter == TimeSpan.FromHours(1)
+            && ex.Message.Contains("1 hour", StringComparison.Ordinal)
+            && !ex.Message.Contains("try again in a moment", StringComparison.Ordinal),
+            "an over-budget Retry-After was waited out, not capped at an hour, or kept generic wording");
+    }
+
+    // Transient too: no OAuth error body (an HTML 403, a bodiless 400, a proxy 401) and the transient codes.
+    foreach (var (status, body) in new[] { (403, "<html>blocked</html>"), (400, ""), (401, "{\"message\":\"unauthorized\"}"),
+        (403, "{\"error\":\"too_many_requests\"}"), (400, "{\"error\":\"slow_down\"}"), (400, "{\"error\":\"authorization_pending\"}") })
+    {
+        var quiet = Script(Err(status, body));
+        (login, waits, delay) = Make(quiet);
+        try { await login.RefreshWithBackoffAsync("refresh-old", CancellationToken.None, delay); Expect(false, $"{status} {body} refreshed"); }
+        catch (Auth0RefreshUnavailableException ex) when (ex is not Auth0ClientNotReadyException)
+        { Expect(quiet.RefreshTokens.Count == 4 && waits.Count == 3, $"{status} {body} was not treated as transient"); }
+    }
+
+    // Operator fault: the credential is kept, the program is not ready, no retry in this process, no "try again in a moment".
+    foreach (var (status, error) in new[] { (401, "invalid_client"), (403, "unauthorized_client"), (400, "invalid_client") })
+    {
+        var operatorFault = Script(Err(status, "{\"error\":\"" + error + "\"}"));
+        (login, waits, delay) = Make(operatorFault);
+        try { await login.RefreshWithBackoffAsync("refresh-old", CancellationToken.None, delay); Expect(false, error + " refreshed"); }
+        catch (Auth0ClientNotReadyException ex)
+        {
+            Expect(operatorFault.RefreshTokens.Count == 1 && waits.Count == 0
+                && !ex.Message.Contains("try again in a moment", StringComparison.Ordinal),
+                error + " was retried or kept 'try again in a moment'");
+        }
+    }
+
+    // Definitive: every other OAuth error on 400/401/403 ends the session at once, with no retry.
+    foreach (var (status, error) in new[] { (403, "invalid_grant"), (403, "access_denied"), (400, "expired_token"), (403, "mfa_required"),
+        (400, "invalid_request"), (401, "a_code_nobody_knows") })
+    {
+        var refused = Script(Err(status, "{\"error\":\"" + error + "\"}"));
+        (login, waits, delay) = Make(refused);
+        try { await login.RefreshWithBackoffAsync("refresh-old", CancellationToken.None, delay); Expect(false, error + " refreshed"); }
+        catch (Auth0GrantRefusedException) { Expect(refused.RefreshTokens.Count == 1 && waits.Count == 0, error + " was retried"); }
+    }
+
+    // Fix 2: a rotated token for the expected account is persisted before post-sign-in account checks run.
+    var switchedWrites = 0;
+    var switchedConnectRequests = 0;
+    var expectedIdentity = new ConnectProductIdentity("account-A", "tenant-A");
+    var identityReads = 0;
+    try
+    {
+        await ConnectEnrollment.WithVerifiedSessionAsync(expectedIdentity,
+            _ => Task.FromResult(identityReads++ == 0 ? expectedIdentity : new ConnectProductIdentity("account-B", "tenant-B")),
+            _ => Task.FromResult(new Auth0NativeSession("token-A2", "refresh-A2", "account-A")),
+            _ => switchedWrites++,
+            (_, _) => { switchedConnectRequests++; return Task.FromResult(true); },
+            CancellationToken.None);
+        Expect(false, "an account switch after refresh reached Connect");
+    }
+    catch (ConnectAccountException)
+    {
+        Expect(switchedWrites == 1 && switchedConnectRequests == 0, "the rotated token was not saved before the post-sign-in account check");
+    }
+
+    // The enrolment keeps the Credential Manager entry on a temporary failure and does not fall into the browser;
+    // once a timed-out send may have retired the token, later calls in this run send nothing more and report not ready.
+    var previous = Environment.GetEnvironmentVariable("TECHSTACK_CLIENT_STATE_DIR");
+    var paths = new ClientStatePaths("techstack", "cloud", "beta");
+    var state = Path.Combine(paths.DefaultDirectory, $"contract-refresh-rule-{Guid.NewGuid():N}");
+    if (paths.ResolveDirectory(state) != state) throw new InvalidOperationException("Unsafe isolated refresh-rule root.");
+    const string subject = "auth0|connect-refresh";
+    try
+    {
+        Environment.SetEnvironmentVariable("TECHSTACK_CLIENT_STATE_DIR", state);
+        var target = ConnectEnrollment.RefreshTarget(subject);
+        WindowsCredentialStore.Write(target, subject, "refresh-old");
+        using var http = new HttpClient(Script(new ScriptedAuth0.Answer(System.Net.HttpStatusCode.ServiceUnavailable, "{}")));
+        try
+        {
+            using var limit = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await ConnectEnrollment.SignInForAccountAsync(new ClientConfig(), http, subject, limit.Token);
+            Expect(false, "the enrolment signed in while Auth0 was down");
+        }
+        catch (Auth0RefreshUnavailableException) { }
+        Expect(WindowsCredentialStore.Read(target) == "refresh-old", "the stored refresh token did not survive a 5xx");
+        using var unregistered = new HttpClient(Script(Err(401, "{\"error\":\"invalid_client\"}")));
+        try
+        {
+            using var limit = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await ConnectEnrollment.SignInForAccountAsync(new ClientConfig(), unregistered, subject, limit.Token);
+            Expect(false, "the enrolment signed in while the client was not registered");
+        }
+        catch (Auth0ClientNotReadyException) { }
+        Expect(WindowsCredentialStore.Read(target) == "refresh-old", "the stored refresh token did not survive invalid_client");
+
+        // An account-switching SignInForAccountAsync call still persists the rotated token before WithVerifiedSessionAsync checks.
+        using var rotatedHttp = new HttpClient(Script(Ok("refresh-rotated-early")));
+        var earlySwitchedConnect = 0;
+        var earlyIdentityReads = 0;
+        var enrolledIdentity = new ConnectProductIdentity(subject, "tenant-A");
+        try
+        {
+            using var limit = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await ConnectEnrollment.WithVerifiedSessionAsync(enrolledIdentity,
+                _ => Task.FromResult(earlyIdentityReads++ == 0 ? enrolledIdentity : new ConnectProductIdentity("other-subject", "tenant-B")),
+                ct => ConnectEnrollment.SignInForAccountAsync(new ClientConfig(), rotatedHttp, subject, ct),
+                session => ConnectEnrollment.SaveRefreshForAccount(subject, session),
+                (_, _) => { earlySwitchedConnect++; return Task.FromResult(true); },
+                limit.Token);
+            Expect(false, "the enrolment continued after the account changed");
+        }
+        catch (ConnectAccountException)
+        {
+            Expect(earlySwitchedConnect == 0 && WindowsCredentialStore.Read(target) == "refresh-rotated-early",
+                "SignInForAccountAsync did not save the rotated token before the account check failed");
+        }
+
+        // A timed-out send marks the token as possibly retired for this run: only 2 attempts, then 0 on repeat in this run.
+        var timedOutScript = Script(new TaskCanceledException("timeout"), new TaskCanceledException("timeout"), Ok("refresh-after-timeout"));
+        using var timedOutHttp = new HttpClient(timedOutScript);
+        try
+        {
+            using var limit = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await ConnectEnrollment.SignInForAccountAsync(new ClientConfig(), timedOutHttp, subject, limit.Token);
+            Expect(false, "the enrolment signed in after double timeout");
+        }
+        catch (Auth0RefreshUnavailableException ex) when (ex.PossiblyRetired) { }
+        Expect(timedOutScript.RefreshTokens.Count == 2 && WindowsCredentialStore.Read(target) == "refresh-rotated-early",
+            "timed-out enrolment sent more than 2 requests or dropped the credential");
+
+        var secondRunScript = Script(Ok("should-never-send"));
+        using var secondRunHttp = new HttpClient(secondRunScript);
+        try
+        {
+            using var limit = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await ConnectEnrollment.SignInForAccountAsync(new ClientConfig(), secondRunHttp, subject, limit.Token);
+            Expect(false, "a repeated enrolment call in the same run sent a possibly-retired token");
+        }
+        catch (Auth0RefreshUnavailableException ex) when (ex.PossiblyRetired) { }
+        Expect(secondRunScript.RefreshTokens.Count == 0, "a repeated enrolment call in the same run contacted Auth0");
+
+        // A send the caller cancelled in flight marks the token too: the exception stays a cancellation, and the next
+        // call in this run sends nothing.
+        const string cancelledSubject = "auth0|connect-cancelled";
+        var cancelledTarget = ConnectEnrollment.RefreshTarget(cancelledSubject);
+        WindowsCredentialStore.Write(cancelledTarget, cancelledSubject, "refresh-cancelled");
+        var cancelledAnswer = new ScriptedAuth0.InFlight();
+        var cancelledInFlight = Script(cancelledAnswer);
+        using var cancelledHttp = new HttpClient(cancelledInFlight);
+        using var cancelSource = new CancellationTokenSource();
+        var cancelledCall = ConnectEnrollment.SignInForAccountAsync(new ClientConfig(), cancelledHttp, cancelledSubject, cancelSource.Token);
+        await cancelledAnswer.Sent.Task;
+        cancelSource.Cancel();
+        try
+        {
+            await cancelledCall;
+            Expect(false, "a cancelled enrolment completed");
+        }
+        catch (OperationCanceledException) { }
+        var afterCancelScript = Script(Ok("should-never-send"));
+        using var afterCancelHttp = new HttpClient(afterCancelScript);
+        try
+        {
+            using var limit = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await ConnectEnrollment.SignInForAccountAsync(new ClientConfig(), afterCancelHttp, cancelledSubject, limit.Token);
+            Expect(false, "a cancelled send did not stop the next send in this run");
+        }
+        catch (Auth0RefreshUnavailableException ex) when (ex.PossiblyRetired) { }
+        Expect(afterCancelScript.RefreshTokens.Count == 0, "a cancelled send left the token replayable in this run");
+    }
+    finally
+    {
+        // Cleanup never replaces the result above: a logon without a credential vault answers 1312 on delete.
+        TryDeleteCredential(ConnectEnrollment.RefreshTarget(subject));
+        TryDeleteCredential(ConnectEnrollment.RefreshTarget("auth0|connect-cancelled"));
+        Environment.SetEnvironmentVariable("TECHSTACK_CLIENT_STATE_DIR", previous);
+    }
 }
 #endif
 
@@ -1218,3 +1579,36 @@ sealed class WalletProbeTransport : DelegatingHandler
         return await http.SendAsync(request);
     }
 }
+
+#if CLOUD_DESKTOP
+/// <summary>Auth0's token endpoint scripted answer by answer (the last repeats); an exception answers as a network fault or timeout.</summary>
+sealed class ScriptedAuth0(IReadOnlyList<object> answers) : HttpMessageHandler
+{
+    internal sealed record Answer(System.Net.HttpStatusCode Status, string Body, int? RetryAfterSeconds = null);
+
+    /// <summary>A send that stays in flight until the caller cancels it; <see cref="Sent"/> says it reached the handler.</summary>
+    internal sealed class InFlight
+    {
+        internal TaskCompletionSource Sent { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+
+    private int next;
+    internal List<string> RefreshTokens { get; } = [];
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var form = System.Web.HttpUtility.ParseQueryString(await request.Content!.ReadAsStringAsync(cancellationToken));
+        RefreshTokens.Add(form["refresh_token"] ?? "");
+        var step = answers[Math.Min(next++, answers.Count - 1)];
+        if (step is InFlight inFlight)
+        {
+            inFlight.Sent.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+        }
+        if (step is Exception fault) throw fault;
+        var answer = (Answer)step;
+        var response = new HttpResponseMessage(answer.Status) { Content = new StringContent(answer.Body) };
+        if (answer.RetryAfterSeconds is { } seconds) response.Headers.RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromSeconds(seconds));
+        return response;
+    }
+}
+#endif

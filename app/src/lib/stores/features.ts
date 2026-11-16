@@ -77,6 +77,7 @@ const FEATURE_DEFAULTS: Record<string, boolean> = {
   monthly_runtime_ionos: false,
   use_case_access: true,
   stackkit_decision_receipt: false,
+  server_hardware_fit: false,
 };
 
 /**

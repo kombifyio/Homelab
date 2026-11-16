@@ -95,6 +95,18 @@ func (s *MemoryStore) ListStacksByTenant(_ context.Context, tenantID string) ([]
 	return out, nil
 }
 
+func (s *MemoryStore) ListOwnerHomelabSpecs(_ context.Context, tenantID, ownerSubjectID, homelabID string) ([]OwnerStackSpec, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make([]OwnerStackSpec, 0)
+	for _, stack := range s.stacks {
+		if stack.TenantID == tenantID && stack.OwnerSubjectID == ownerSubjectID && stack.DeletedAt == nil && (stack.HomelabID == homelabID || stack.HomelabID == "") {
+			out = append(out, OwnerStackSpec{HomelabID: stack.HomelabID, Spec: cloneMap(stack.Config)["stack_spec_v2"]})
+		}
+	}
+	return out, nil
+}
+
 func (s *MemoryStore) SoftDeleteStack(_ context.Context, tenantID, stackID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

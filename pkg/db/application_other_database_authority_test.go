@@ -2,8 +2,10 @@ package db
 
 import (
 	"context"
+	"database/sql/driver"
 	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -70,3 +72,50 @@ func TestOperatorEgressPreservesDatabaseTLSAuthority(t *testing.T) {
 		}
 	}
 }
+
+// The native Windows login keeps its attempts in a table without tenant and row
+// security. The application role holds exactly the capabilities this policy
+// names, so a table missing here is unusable to the runtime: it answered
+// POST /api/v2/auth/native/start with 503 while the table existed.
+func TestApplicationPolicyGrantsTheNativeLoginAttempts(t *testing.T) {
+	// The sequence lookup binds slices, which only a pgx connection converts.
+	sqlDB, mock, err := sqlmock.New(sqlmock.ValueConverterOption(passthroughConverter{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = sqlDB.Close() })
+
+	mock.ExpectQuery("FROM pg_class c JOIN pg_namespace n").WillReturnRows(
+		sqlmock.NewRows([]string{"oid", "relname", "rls", "tenant"}).
+			AddRow(int64(41), "native_login_handoffs", false, false).
+			AddRow(int64(42), "an_unlisted_table_without_tenant", false, false))
+	mock.ExpectQuery("unnest").WillReturnRows(sqlmock.NewRows([]string{"oid", "relname"}))
+	for range applicationCapabilityFunctions {
+		mock.ExpectQuery("to_regprocedure").WillReturnRows(sqlmock.NewRows([]string{"oid"}).AddRow(nil))
+	}
+	mock.ExpectQuery("to_regnamespace").WillReturnRows(sqlmock.NewRows([]string{"oid"}).AddRow(nil))
+
+	policy, err := loadApplicationPolicy(context.Background(), sqlDB, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	granted := policy.Tables[41]
+	for _, privilege := range []string{"SELECT", "INSERT", "UPDATE", "DELETE"} {
+		if !granted[privilege] {
+			t.Fatalf("native_login_handoffs lacks %s, got %v", privilege, granted)
+		}
+	}
+	if len(granted) != 4 {
+		t.Fatalf("native_login_handoffs privileges = %v, want exactly SELECT, INSERT, UPDATE, DELETE", granted)
+	}
+	if _, ok := policy.Tables[42]; ok {
+		t.Fatal("a table the policy does not name must stay without privileges")
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+type passthroughConverter struct{}
+
+func (passthroughConverter) ConvertValue(v any) (driver.Value, error) { return v, nil }

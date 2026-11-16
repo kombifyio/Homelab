@@ -770,7 +770,7 @@ export const zhHans: Record<string, string> = {
   "common.tip": "提示",
   "common.moreInfo": "了解此选项的更多信息",
   "common.recommended": "推荐",
-  "wizard.title": "创建 kombify-Techstack",
+  "wizard.title": "创建 Techstack",
   "wizard.selfDisclosure.review.title": "使用此链接中的回答吗？",
   "wizard.selfDisclosure.review.body":
     "你打开的链接包含以下关于你的回答。只有在你选择“使用这些回答”后，Techstack 才会将其保存到你的个人资料并用于推荐。目前尚未保存任何内容。",
@@ -1367,7 +1367,7 @@ export const zhHans: Record<string, string> = {
     "请关闭此标签页，然后在向导中重试。",
   "ui.authCloud-link-complete.kombifyCloudConnected": "kombify Cloud 已连接",
   "ui.authCloud-link-complete.kombifyCloudLinkKombifyTechstack":
-    "kombify Cloud 链接 - kombify-Techstack",
+    "kombify Cloud 链接 | Techstack",
   "ui.authCloud-link-complete.thisWindowClosesAutomatically":
     "此窗口将自动关闭。",
   "ui.authCloud-link-complete.youCanCloseThisTab":
@@ -1375,7 +1375,7 @@ export const zhHans: Record<string, string> = {
   "ui.authSso.noSsoTokenProvided": "未提供 SSO 令牌",
   "ui.authSso.ssoAuthenticationFailed": "SSO 身份验证失败",
   "ui.authSso.ssoAuthenticationKombifyTechstack":
-    "SSO 身份验证 - kombify-Techstack",
+    "SSO 身份验证 | Techstack",
   "ui.authSso.unableToVerifyYourCredentials": "无法验证你的凭据",
   "ui.authSso.yourKombifyCloudSessionCould":
     "无法恢复你的 kombify Cloud 会话。请重试。",
@@ -3178,7 +3178,7 @@ export const zhHans: Record<string, string> = {
   "ui.stacksId.noLeaseAttached": "未关联租约",
   "ui.stacksId.noStackkitDeploymentIdProvided": "未提供 Homelab ID",
   "ui.stacksId.offeringSpec": "{vcpus} vCPU · {memory} GB RAM",
-  "ui.stacksId.pageTitle": "{name} | kombify-Techstack",
+  "ui.stacksId.pageTitle": "{name} | Techstack",
   "ui.stacksId.query": "查询",
   "ui.stacksId.runtime": "运行时",
   "ui.stacksId.series": "系列",
@@ -3200,7 +3200,7 @@ export const zhHans: Record<string, string> = {
     "服务器将关闭，并保留其磁盘、地址和月度套餐。你可以随时重新启动。",
   "ui.stacksId.thisPermanentlyRemovesTheSelected": "这将永久移除所选凭据。",
   "ui.stacksId.username": "用户名",
-  "ui.stacksIdServersNew.addNodeKombifyTechstack": "添加服务器| kombify-Techstack",
+  "ui.stacksIdServersNew.addNodeKombifyTechstack": "添加服务器 | Techstack",
   "ui.stacksIdServersServerId.activityHistory": "活动历史",
   "ui.stacksIdServersServerId.addressesDomains": "地址和域名",
   "ui.stacksIdServersServerId.agentId": "Agent ID",
@@ -3274,7 +3274,7 @@ export const zhHans: Record<string, string> = {
   "ui.stacksIdServersServerId.serverDetachFailed": "服务器分离失败。",
   "ui.stacksIdServersServerId.serverDetailSections": "服务器详情分区",
   "ui.stacksIdServersServerId.serverDetailsKombifyTechstack":
-    "服务器详情 | kombify-Techstack",
+    "服务器详情 | Techstack",
   "ui.stacksIdServersServerId.serverGenerationDecommissioned": "服务器世代已移除",
   "ui.stacksIdServersServerId.serverSettings": "服务器设置",
   "ui.stacksIdServersServerId.serviceEndpoints": "服务端点",

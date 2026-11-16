@@ -24,6 +24,9 @@
   } from "#lib/api/registry.js";
   import { canonicalServerAxes } from "#lib/server-card-adapter.js";
   import { serverStatusAxes } from "@kombiverselabs/ui/server";
+  import { KfCardShell } from "@kombiverselabs/ui/card";
+  import { Button as LinkButton, Dialog } from "@kombiverselabs/ui/primitives";
+  import { PageHeader } from "@kombiverselabs/ui/shell";
   import Button from "#lib/components/ui/Button.svelte";
   import ErrorCallout from "#lib/components/ui/ErrorCallout.svelte";
   import { toast } from "#lib/stores/toast.js";
@@ -67,6 +70,11 @@
     return current?.allowed_actions?.includes("detach") === true;
   }
 
+  function closeDetach() {
+    showDetachConfirmation = false;
+    detachError = null;
+  }
+
   async function confirmDetach() {
     const current = server;
     if (!current || detaching || !serverAllowsDetach(current)) return;
@@ -78,9 +86,11 @@
       toast.success(tr("monitoring.serverRemoved", { name: current.name }));
       await goto(SERVERS_HREF);
     } catch (err) {
-      detachError =
+      const message =
         parseApiError(err).message ||
         tr("ui.monitoring.serverCouldNotBeRemoved");
+      if (showDetachConfirmation) detachError = message;
+      else toast.error(message);
     } finally {
       detaching = false;
     }
@@ -316,32 +326,27 @@
 </svelte:head>
 
 <div class="mx-auto max-w-7xl p-4 md:p-6" data-testid="server-monitoring-page">
-  <div class="mb-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-    <a
-      href="/monitoring"
-      class="inline-flex items-center gap-2 text-[12.5px] font-medium text-primary hover:underline"
-    >
-      <ArrowLeft class="h-3.5 w-3.5" />
-      {tr("ui.monitoring.monitoring")}
-    </a>
-    {#if server}
-      <!-- This page is the history of one server; its detail, with
-           services, ports, checks and logs, is the canonical server page. -->
-      {@const detailHref = serverDetailHref({
-        serverId: server.id,
-        deploymentId: server.kit_deployment_id,
-      })}
-      {#if detailHref && !detailHref.startsWith("/monitoring/")}
-        <a
-          href={detailHref}
-          class="inline-flex items-center gap-2 text-[12.5px] font-medium text-primary hover:underline"
-          data-testid="server-monitoring-open-server"
-        >
-          {tr("monitoring.openServer", { name: server.name })}
-        </a>
+  <PageHeader title={server?.name ?? tr("ui.monitoringServer.server")}>
+    {#snippet actions()}
+      <LinkButton href="/monitoring" variant="ghost" size="sm">
+        <ArrowLeft class="h-3.5 w-3.5" />
+        {tr("ui.monitoring.monitoring")}
+      </LinkButton>
+      {#if server}
+        <!-- This page is the history of one server; its detail, with
+             services, ports, checks and logs, is the canonical server page. -->
+        {@const detailHref = serverDetailHref({
+          serverId: server.id,
+          deploymentId: server.kit_deployment_id,
+        })}
+        {#if detailHref && !detailHref.startsWith("/monitoring/")}
+          <LinkButton href={detailHref} variant="secondary" size="sm">
+            {tr("monitoring.openServer", { name: server.name })}
+          </LinkButton>
+        {/if}
       {/if}
-    {/if}
-  </div>
+    {/snippet}
+  </PageHeader>
 
   {#if error}
     <ErrorCallout
@@ -353,13 +358,12 @@
   {:else if !server}
     <LoadingNote label={tr("common.loading")} />
   {:else}
-    <section
-      class="mb-4 flex flex-wrap items-start justify-between gap-6 rounded-lg border border-border bg-card p-5"
+    <KfCardShell
+      tag="section"
+      accent="muted"
+      class="mb-4 flex flex-wrap items-start justify-between gap-6 p-5"
     >
       <div class="flex min-w-0 flex-col gap-2.5">
-        <h1 class="text-xl font-semibold tracking-tight text-foreground">
-          {server.name}
-        </h1>
         <div class="flex flex-wrap gap-2">
           {#each serverStatusAxes(canonicalServerAxes(server)) as axis (axis.key)}
             <span
@@ -404,61 +408,51 @@
           >
         {/if}
         {#if serverAllowsDetach(server)}
-          {#if showDetachConfirmation}
-            <div
-              class="max-w-sm rounded-lg border border-destructive/40 bg-destructive/10 p-3"
-              data-testid="server-monitoring-detach-confirmation"
-            >
-              <p class="text-sm font-medium text-foreground">
-                {tr("ui.monitoring.removeFrom", { name: server.name })}
-              </p>
-              <p class="mt-1 text-xs text-muted-foreground">
-                {tr("ui.monitoringServerId.guardIsRevokedImmediatelyThe")}
-              </p>
-              {#if detachError}
-                <ErrorCallout class="mt-2 p-2 text-xs" message={detachError} />
-              {/if}
-              <div class="mt-3 flex flex-wrap gap-2">
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  testId="server-monitoring-detach-confirm"
-                  onclick={() => void confirmDetach()}
-                  disabled={detaching}
-                >
-                  <Trash2 class="h-3.5 w-3.5" />
-                  {detaching
-                    ? tr("ui.monitoring.removing")
-                    : tr("ui.monitoringServerId.removeFromView")}
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onclick={() => {
-                    showDetachConfirmation = false;
-                    detachError = null;
-                  }}
-                  disabled={detaching}
-                >
-                  {tr("ui.importExportModal.cancel")}
-                </Button>
-              </div>
-            </div>
-          {:else}
-            <Button
-              variant="ghost"
-              size="sm"
-              testId="server-monitoring-detach"
-              onclick={() => (showDetachConfirmation = true)}
-              disabled={detaching}
-            >
-              <Trash2 class="h-3.5 w-3.5" />
-              {tr("ui.monitoringServerId.removeFromView")}
-            </Button>
-          {/if}
+          <Button
+            variant="ghost"
+            size="sm"
+            testId="server-monitoring-detach"
+            onclick={() => (showDetachConfirmation = true)}
+            disabled={detaching}
+          >
+            <Trash2 class="h-3.5 w-3.5" />
+            {tr("ui.monitoringServerId.removeFromView")}
+          </Button>
         {/if}
       </div>
-    </section>
+    </KfCardShell>
+
+    <Dialog
+      open={showDetachConfirmation}
+      title={tr("ui.monitoring.removeFrom", { name: server.name })}
+      description={tr("ui.monitoringServerId.guardIsRevokedImmediatelyThe")}
+      role="alertdialog"
+      tone="danger"
+      closeLabel={tr("ui.common.close")}
+      onclose={closeDetach}
+    >
+      <div data-testid="server-monitoring-detach-confirmation">
+        {#if detachError}
+          <ErrorCallout message={detachError} />
+        {/if}
+      </div>
+      {#snippet footer()}
+        <Button variant="secondary" onclick={closeDetach} disabled={detaching}>
+          {tr("ui.importExportModal.cancel")}
+        </Button>
+        <Button
+          variant="destructive"
+          testId="server-monitoring-detach-confirm"
+          onclick={() => void confirmDetach()}
+          disabled={detaching}
+        >
+          <Trash2 class="h-4 w-4" />
+          {detaching
+            ? tr("ui.monitoring.removing")
+            : tr("ui.monitoringServerId.removeFromView")}
+        </Button>
+      {/snippet}
+    </Dialog>
 
     <DriveHealth
       {serverId}

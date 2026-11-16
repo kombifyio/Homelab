@@ -310,7 +310,7 @@
 </script>
 
 <svelte:head>
-  <title>kombify-Techstack</title>
+  <title>Techstack</title>
   <meta name="description" content="Hybrid Infrastructure Control Plane" />
 </svelte:head>
 

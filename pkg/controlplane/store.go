@@ -134,6 +134,18 @@ type StackStore interface {
 	SetStackHomelab(ctx context.Context, tenantID, stackID, homelabID string) (*Stack, error)
 }
 
+// OwnerStackSpecReader provides the owner's active deployments for a Homelab
+// projection. Unbound legacy deployments are included so callers can fail
+// closed until their Homelab relationship is known.
+type OwnerStackSpecReader interface {
+	ListOwnerHomelabSpecs(ctx context.Context, tenantID, ownerSubjectID, homelabID string) ([]OwnerStackSpec, error)
+}
+
+type OwnerStackSpec struct {
+	HomelabID string
+	Spec      any
+}
+
 type StackConfigCAS struct {
 	TenantID          string
 	StackID           string

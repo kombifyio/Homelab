@@ -94,6 +94,21 @@ export function denialMessage(parsed: ParsedApiError): string {
   return parsed.outcome?.userGuidance?.body || parsed.message;
 }
 
+/**
+ * A refusal because the account has no plan that includes the action
+ * (`entitlement_required` / `missing_entitlement`). Its next step is a plan,
+ * not a retry.
+ */
+export function isPlanDenial(parsed: ParsedApiError): boolean {
+  const outcome = parsed.outcome;
+  return (
+    parsed.status === 403 &&
+    (outcome?.errorCode === "entitlement_required" ||
+      outcome?.reasonCode === "entitlement_required" ||
+      outcome?.reasonCode === "missing_entitlement")
+  );
+}
+
 export function isCancelledRequestError(err: unknown): boolean {
   const maybeAny = err as { name?: unknown; message?: unknown } | null;
   const name = typeof maybeAny?.name === "string" ? maybeAny.name : "";

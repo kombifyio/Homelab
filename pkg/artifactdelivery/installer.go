@@ -11,14 +11,18 @@ import (
 // the Guard release mirrors it to private R2 under this digest; serving any
 // partial, stale, or locally substituted shell fragment fails closed until the
 // contract digest is deliberately updated with the installer.
-const LinuxInstallerSHA256 = "cb86dc1a102b6c2f59d4598a6c1206bb1ba68c203ebcdf47ec522242519c9d15"
+// scripts/pre-merge-installer-pin.mjs fails a pull request that changes
+// techstack/install.sh without this pin, so a release never meets the drift.
+const LinuxInstallerSHA256 = "e5e2b62987312d07e6850e8c19f77b2d81fdb69daa0c3f58e09e4013fe527137"
 
 // WindowsInstallerSHA256 pins the authoritative repository install.ps1 after
 // CRLF-to-LF normalization. The runtime image copies that exact artifact and
 // the Guard release mirrors it to private R2 under this digest; the Gateway
 // serves it without Render bytes only while the stored object hashes to this
-// pin.
-const WindowsInstallerSHA256 = "021d2daa6a310eae4faa9a506fdcbf8e993577ace770f7425491e5890aff6659"
+// pin. Both pins move together with their installer: a change to
+// techstack/install.ps1 without this one fails the pre-merge check
+// (scripts/pre-merge-installer-pin.mjs).
+const WindowsInstallerSHA256 = "4d3cd53ef09ceb9ba5850c38fb06c6db5841ccf472444457912c326733543ab8"
 
 // NormalizeLinuxInstaller returns the CRLF-to-LF normalized installer and its
 // SHA-256, the form both the pin and the R2 object use.

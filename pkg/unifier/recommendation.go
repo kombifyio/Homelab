@@ -23,12 +23,13 @@ const (
 // canonical tenant worker registry after applying the authenticated owner
 // scope; callers cannot provide this structure through the public JSON API.
 type WizardRecommendationInventory struct {
-	Workers     []core.Worker
-	State       string
-	Source      string
-	SnapshotID  string
-	ObservedAt  time.Time
-	StaleInputs []string
+	Workers        []core.Worker
+	StaleWorkerIDs map[string]bool
+	State          string
+	Source         string
+	SnapshotID     string
+	ObservedAt     time.Time
+	StaleInputs    []string
 }
 
 // WizardRecommendationEvaluation is the complete server-side input bundle
@@ -99,6 +100,9 @@ func (a *WizardRecommendationAuthority) Recommend(input WizardRecommendationEval
 		response.CatalogSource = "embedded-known-stackkits"
 	}
 
+	if req.ServerFit != nil {
+		response.ServerFit = EvaluateServerFit(req, input.Inventory)
+	}
 	response.Selection = GuideWizardSelection(req, input)
 	spec := wizardRecommendationSpec(req)
 	decisionContext := buildWizardRecommendationDecisionContext(req, input, spec)

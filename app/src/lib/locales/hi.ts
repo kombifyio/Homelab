@@ -801,7 +801,7 @@ export const hi: Record<string, string> = {
   "common.tip": "सुझाव",
   "common.moreInfo": "इस विकल्प के बारे में और जानें",
   "common.recommended": "अनुशंसित",
-  "wizard.title": "kombify-Techstack बनाएँ",
+  "wizard.title": "Techstack बनाएँ",
   "wizard.selfDisclosure.review.title": "क्या इस लिंक के जवाब इस्तेमाल करें?",
   "wizard.selfDisclosure.review.body":
     "आपने जो लिंक खोला है, उसमें आपके बारे में ये जवाब हैं। Techstack इन्हें आपकी प्रोफ़ाइल में तभी सेव करता है और आपकी सिफ़ारिशों के लिए तभी इस्तेमाल करता है, जब आप “ये जवाब इस्तेमाल करें” चुनते हैं। अभी कुछ भी सेव नहीं हुआ है।",
@@ -1450,7 +1450,7 @@ export const hi: Record<string, string> = {
     "इस टैब को बंद कीजिए और विज़ार्ड से फिर कोशिश कीजिए।",
   "ui.authCloud-link-complete.kombifyCloudConnected": "kombify Cloud जुड़ गया",
   "ui.authCloud-link-complete.kombifyCloudLinkKombifyTechstack":
-    "kombify Cloud लिंक - kombify-Techstack",
+    "kombify Cloud लिंक | Techstack",
   "ui.authCloud-link-complete.thisWindowClosesAutomatically":
     "यह विंडो अपने आप बंद हो जाएगी।",
   "ui.authCloud-link-complete.youCanCloseThisTab":
@@ -1458,7 +1458,7 @@ export const hi: Record<string, string> = {
   "ui.authSso.noSsoTokenProvided": "कोई SSO टोकन नहीं दिया गया",
   "ui.authSso.ssoAuthenticationFailed": "SSO प्रमाणीकरण विफल रहा",
   "ui.authSso.ssoAuthenticationKombifyTechstack":
-    "SSO प्रमाणीकरण - kombify-Techstack",
+    "SSO प्रमाणीकरण | Techstack",
   "ui.authSso.unableToVerifyYourCredentials":
     "आपके क्रेडेंशियल सत्यापित नहीं किए जा सके",
   "ui.authSso.yourKombifyCloudSessionCould":
@@ -3431,7 +3431,7 @@ export const hi: Record<string, string> = {
   "ui.stacksId.noLeaseAttached": "कोई लीज़ जुड़ी नहीं है",
   "ui.stacksId.noStackkitDeploymentIdProvided": "कोई Homelab ID नहीं दी गई",
   "ui.stacksId.offeringSpec": "{vcpus} vCPU · {memory} GB RAM",
-  "ui.stacksId.pageTitle": "{name} | kombify-Techstack",
+  "ui.stacksId.pageTitle": "{name} | Techstack",
   "ui.stacksId.query": "क्वेरी",
   "ui.stacksId.runtime": "रनटाइम",
   "ui.stacksId.series": "श्रृंखला",
@@ -3455,7 +3455,7 @@ export const hi: Record<string, string> = {
   "ui.stacksId.thisPermanentlyRemovesTheSelected":
     "यह चुने गए क्रेडेंशियल को स्थायी रूप से हटा देता है।",
   "ui.stacksId.username": "उपयोगकर्ता नाम",
-  "ui.stacksIdServersNew.addNodeKombifyTechstack": "सर्वर जोड़ें | kombify-Techstack",
+  "ui.stacksIdServersNew.addNodeKombifyTechstack": "सर्वर जोड़ें | Techstack",
   "ui.stacksIdServersServerId.activityHistory": "गतिविधि इतिहास",
   "ui.stacksIdServersServerId.addressesDomains": "पते और डोमेन",
   "ui.stacksIdServersServerId.agentId": "Agent ID",
@@ -3540,7 +3540,7 @@ export const hi: Record<string, string> = {
   "ui.stacksIdServersServerId.serverDetachFailed": "सर्वर अलग करना विफल रहा।",
   "ui.stacksIdServersServerId.serverDetailSections": "सर्वर विवरण अनुभाग",
   "ui.stacksIdServersServerId.serverDetailsKombifyTechstack":
-    "सर्वर विवरण | kombify-Techstack",
+    "सर्वर विवरण | Techstack",
   "ui.stacksIdServersServerId.serverGenerationDecommissioned": "सर्वर जनरेशन हटा दी गई",
   "ui.stacksIdServersServerId.serverSettings": "सर्वर सेटिंग्स",
   "ui.stacksIdServersServerId.serviceEndpoints": "सेवा एंडपॉइंट",

@@ -294,14 +294,11 @@ export class CreationFrame {
 
   readonly primaryGoalQuestions = $derived.by(() =>
     this.#goalQuestions.filter(
-      (goal) =>
-        (goal.surface ?? "primary") === "primary",
+      (goal) => (goal.surface ?? "primary") === "primary",
     ),
   );
   readonly advancedGoalQuestions = $derived.by(() =>
-    this.#goalQuestions.filter(
-      (goal) => goal.surface === "advanced",
-    ),
+    this.#goalQuestions.filter((goal) => goal.surface === "advanced"),
   );
   readonly #availableGoals = $derived.by(() =>
     creationGoals(
@@ -812,6 +809,8 @@ export class CreationFrame {
       const config = this.config;
       const server = config.serverProvisioning;
       const smartHome = config.useCaseSettings?.["smart-home"];
+      const selectedServer = this.options.homelab?.selected;
+      const fitEnabled = this.context.features.isEnabled("server_hardware_fit");
       this.#recommendations.update({
         smart_home_settings: smartHome,
         smart_home_context: {
@@ -837,6 +836,18 @@ export class CreationFrame {
         ...(server.mode === "kombify-cloud"
           ? { provider_id: config.providerId }
           : {}),
+        ...(fitEnabled && selectedServer
+          ? { server_fit: { server_id: selectedServer } }
+          : fitEnabled &&
+              server.mode === "kombify-cloud" &&
+              config.runtimeOfferingId
+            ? {
+                server_fit: {
+                  provider_id: config.providerId,
+                  offering_id: config.runtimeOfferingId,
+                },
+              }
+            : {}),
         surface: "easy",
       });
     });

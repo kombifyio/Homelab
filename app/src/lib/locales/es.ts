@@ -818,7 +818,7 @@ export const es: Record<string, string> = {
   "common.tip": "Consejo",
   "common.moreInfo": "Más sobre esta opción",
   "common.recommended": "recomendado",
-  "wizard.title": "Crear kombify-Techstack",
+  "wizard.title": "Crear Techstack",
   "wizard.selfDisclosure.review.title": "¿Usar las respuestas de este enlace?",
   "wizard.selfDisclosure.review.body":
     "El enlace que has abierto contiene estas respuestas sobre ti. Techstack las guarda en tu perfil y las usa para tus recomendaciones solo si eliges «Usar estas respuestas». Todavía no se ha guardado nada.",
@@ -1481,7 +1481,7 @@ export const es: Record<string, string> = {
     "Cierra esta pestaña e inténtalo de nuevo desde el asistente.",
   "ui.authCloud-link-complete.kombifyCloudConnected": "kombify Cloud conectado",
   "ui.authCloud-link-complete.kombifyCloudLinkKombifyTechstack":
-    "Enlace de kombify Cloud - kombify-Techstack",
+    "Enlace de kombify Cloud | Techstack",
   "ui.authCloud-link-complete.thisWindowClosesAutomatically":
     "Esta ventana se cierra automáticamente.",
   "ui.authCloud-link-complete.youCanCloseThisTab":
@@ -1489,7 +1489,7 @@ export const es: Record<string, string> = {
   "ui.authSso.noSsoTokenProvided": "No se proporcionó ningún token SSO",
   "ui.authSso.ssoAuthenticationFailed": "Falló la autenticación SSO",
   "ui.authSso.ssoAuthenticationKombifyTechstack":
-    "Autenticación SSO - kombify-Techstack",
+    "Autenticación SSO | Techstack",
   "ui.authSso.unableToVerifyYourCredentials":
     "No se pudieron verificar tus credenciales",
   "ui.authSso.yourKombifyCloudSessionCould":
@@ -3525,7 +3525,7 @@ export const es: Record<string, string> = {
   "ui.stacksId.noLeaseAttached": "Sin arrendamiento asociado",
   "ui.stacksId.noStackkitDeploymentIdProvided": "No se ha proporcionado ningún ID de homelab",
   "ui.stacksId.offeringSpec": "{vcpus} vCPU · {memory} GB de RAM",
-  "ui.stacksId.pageTitle": "{name} | kombify-Techstack",
+  "ui.stacksId.pageTitle": "{name} | Techstack",
   "ui.stacksId.query": "Consulta",
   "ui.stacksId.runtime": "Runtime",
   "ui.stacksId.series": "Serie",
@@ -3549,7 +3549,7 @@ export const es: Record<string, string> = {
   "ui.stacksId.thisPermanentlyRemovesTheSelected":
     "Esto elimina de forma permanente la credencial seleccionada.",
   "ui.stacksId.username": "Nombre de usuario",
-  "ui.stacksIdServersNew.addNodeKombifyTechstack": "Añadir servidor | kombify-Techstack",
+  "ui.stacksIdServersNew.addNodeKombifyTechstack": "Añadir servidor | Techstack",
   "ui.stacksIdServersServerId.activityHistory": "Historial de actividad",
   "ui.stacksIdServersServerId.addressesDomains": "Direcciones y dominios",
   "ui.stacksIdServersServerId.agentId": "ID del Agent",
@@ -3638,7 +3638,7 @@ export const es: Record<string, string> = {
   "ui.stacksIdServersServerId.serverDetailSections":
     "Secciones de detalles del servidor",
   "ui.stacksIdServersServerId.serverDetailsKombifyTechstack":
-    "Detalles del servidor | kombify-Techstack",
+    "Detalles del servidor | Techstack",
   "ui.stacksIdServersServerId.serverGenerationDecommissioned": "Generación del servidor quitada",
   "ui.stacksIdServersServerId.serverSettings": "Ajustes del servidor",
   "ui.stacksIdServersServerId.serviceEndpoints": "Endpoints de servicios",

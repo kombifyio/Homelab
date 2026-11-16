@@ -106,7 +106,7 @@
 </script>
 
 <svelte:head>
-  <title>{tr("wizard.title")} | kombify-Techstack</title>
+  <title>{tr("wizard.title")}</title>
 </svelte:head>
 
 {#if builderParameter !== null && !builderChoices}

@@ -66,6 +66,9 @@ type InventoryRouteConfig struct {
 	UpdateChecker *appcatalog.UpdateChecker
 	// Homelabs backs the rename_homelab MCP tool; nil keeps it fail-closed (503).
 	Homelabs          controlplane.HomelabStore
+	WizardRuns        controlplane.WizardRunStore
+	Jobs              controlplane.JobStore
+	OwnerStackSpecs   controlplane.OwnerStackSpecReader
 	MaintenanceOrigin MaintenanceOriginConfig
 	// MaintenanceAction is the canonical leaf returned by RegisterServerRuntimeRoutes.
 	// Nil leaves the maintenance MCP operation unavailable.
@@ -86,6 +89,9 @@ type inventoryHandlers struct {
 	maintenanceOrigin     MaintenanceOriginConfig
 	maintenanceAction     httpx.HandlerFunc
 	maintenanceImpact     httpx.HandlerFunc
+	wizardRuns            controlplane.WizardRunStore
+	jobs                  controlplane.JobStore
+	ownerStackSpecs       controlplane.OwnerStackSpecReader
 }
 
 type inventoryApplication struct {
@@ -207,6 +213,9 @@ func RegisterInventoryRoutes(r *httpx.Router, cfg InventoryRouteConfig) {
 		maintenanceOrigin:     cfg.MaintenanceOrigin,
 		maintenanceAction:     cfg.MaintenanceAction,
 		maintenanceImpact:     cfg.MaintenanceImpact,
+		wizardRuns:            cfg.WizardRuns,
+		jobs:                  cfg.Jobs,
+		ownerStackSpecs:       cfg.OwnerStackSpecs,
 	}
 	r.GET("/api/v1/inventory/servers", h.httpListServers)
 	// Public RIL is a compatibility view over the canonical inventory read
