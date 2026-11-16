@@ -7,17 +7,22 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
-	"github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 	"github.com/google/uuid"
+	"github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 
 	"github.com/kombifyio/techstack/internal/providercatalog"
+	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
 	"github.com/kombifyio/techstack/pkg/monthlyruntime"
 )
 
-const runtimeOfferingMetadataKey = "runtime_offering_id"
+const (
+	runtimeOfferingMetadataKey = monthlyruntime.MetadataKeyRuntimeOfferingID
+	ionosMemoryRuntimeProfile  = "ionos-memory-cube-s-standard"
+)
 
 var (
 	catalogIdentifierPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,127}$`)
@@ -320,6 +325,7 @@ func loadLeaseProfileSelection(
 	request ProfileRequest,
 ) (leaseProfileSelection, error) {
 	var selection leaseProfileSelection
+	var executionOffering, sku string
 	// Profile resolution performs no provider side effect. The operation insert
 	// revalidates the exact lease generation, and the claim trigger owns the
 	// final row-locked mutation fence; keeping this lookup SELECT-only preserves
@@ -330,7 +336,9 @@ SELECT
 	lease.owner_subject_id,
     lease.lease_json->'subject'->>'kind',
     lease.lease_json->'subject'->>'id',
-    lease.lease_json->'metadata'->>$6
+	lease.lease_json->'metadata'->>$6,
+	coalesce(lease.lease_json->'metadata'->>$7, ''),
+	coalesce(lease.lease_json->'metadata'->>$8, '')
 FROM techstack_vm_leases AS lease
 WHERE lease.tenant_id = $1
   AND lease.id = $2
@@ -343,12 +351,16 @@ WHERE lease.tenant_id = $1
 		request.RuntimeServerID,
 		request.ResourceGenerationID,
 		runtimeOfferingMetadataKey,
+		monthlyruntime.MetadataKeyProviderExecutionOfferingID,
+		monthlyruntime.MetadataKeyProviderPackage,
 	).Scan(
 		&selection.ProviderID,
 		&selection.OwnerSubjectID,
 		&selection.SubjectKind,
 		&selection.SubjectID,
 		&selection.OfferingID,
+		&executionOffering,
+		&sku,
 	)
 	if err != nil {
 		return leaseProfileSelection{}, unavailableProfile("lease profile selection is unavailable", err)
@@ -361,10 +373,25 @@ WHERE lease.tenant_id = $1
 	if !validLeaseProfileSelection(selection) {
 		return leaseProfileSelection{}, unavailableProfile("lease profile selection is invalid", nil)
 	}
+	selection.OfferingID, err = catalogExecutionOffering(selection.ProviderID, selection.OfferingID, executionOffering, sku)
+	if err != nil {
+		return leaseProfileSelection{}, err
+	}
 	if !consistentLeaseCredentialSubject(selection, request) {
 		return leaseProfileSelection{}, unavailableProfile("lease credential subject is inconsistent", nil)
 	}
 	return selection, nil
+}
+
+func catalogExecutionOffering(provider, offering, executionOffering, sku string) (string, error) {
+	if executionOffering == "" && offering != monthlyruntime.IONOSStandardMemoryExecutionOfferingID && sku != "Memory Cube S" {
+		return offering, nil
+	}
+	if provider != providercatalog.ProviderIONOS || offering != string(serverruntime.RuntimeOfferingStandard) ||
+		executionOffering != monthlyruntime.IONOSStandardMemoryExecutionOfferingID || sku != "Memory Cube S" {
+		return "", unavailableProfile("IONOS Memory Cube S requires an exact Standard execution selection", nil)
+	}
+	return executionOffering, nil
 }
 
 func validLeaseProfileSelection(selection leaseProfileSelection) bool {
@@ -507,6 +534,11 @@ LIMIT 2`, catalogVersion, selection.ProviderID, selection.OfferingID)
 	if !validCatalogProfileRow(row, catalogVersion, selection) {
 		return catalogProfileRow{}, unavailableProfile("catalog profile is invalid", nil)
 	}
+	if selection.OfferingID == monthlyruntime.IONOSStandardMemoryExecutionOfferingID {
+		if !validIONOSStandardMemoryProfile(row) {
+			return catalogProfileRow{}, unavailableProfile("IONOS Memory Cube S catalog profile is invalid", nil)
+		}
+	}
 	canonicalCapabilities, err := canonicalCatalogCapabilities(row.CapabilitySnapshot)
 	if err != nil {
 		return catalogProfileRow{}, err
@@ -516,6 +548,22 @@ LIMIT 2`, catalogVersion, selection.ProviderID, selection.OfferingID)
 	}
 	row.CapabilitySnapshot = canonicalCapabilities
 	return row, nil
+}
+
+func validIONOSStandardMemoryProfile(row catalogProfileRow) bool {
+	descriptor, ok := AdapterDescriptorFor(row.ProviderID, row.AdapterID)
+	if !ok || descriptor.ExecutionOfferingID != row.OfferingID || row.RuntimeProfileID != ionosMemoryRuntimeProfile ||
+		row.CredentialMode != CredentialModeManaged || row.ProvisionDispatchMode != ProvisionDispatchAtMostOnceManualReconcile ||
+		!row.CanPause || row.StopEffect != "pause" || !row.CanRecreate {
+		return false
+	}
+	var shape struct {
+		Regions       []string `json:"regions"`
+		InstanceTypes []string `json:"instance_types"`
+	}
+	return json.Unmarshal(row.CapabilitySnapshot, &shape) == nil &&
+		slices.Equal(shape.Regions, []string{"de-fra-2"}) &&
+		slices.Equal(shape.InstanceTypes, []string{"memory-cube-s"})
 }
 
 func validCatalogProfileRow(

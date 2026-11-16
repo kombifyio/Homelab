@@ -14,9 +14,9 @@ import (
 	"strings"
 	"unicode"
 
+	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
 	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 
 	"github.com/kombifyio/techstack/internal/providercatalog"
 	"github.com/kombifyio/techstack/internal/providercontrol"
@@ -107,6 +107,19 @@ func NewManager(cfg ManagerConfig) (*Manager, error) {
 		admission: cfg.Admission, activation: cfg.ActivationGate,
 		decommissioner: cfg.Decommissioner, asyncRequests: cfg.AsyncRequests,
 	}, nil
+}
+
+// IONOSStandardMemoryAvailable checks the same catalog authority used by
+// admission, without creating a lease or provider resource.
+func (m *Manager) IONOSStandardMemoryAvailable(ctx context.Context) error {
+	if m == nil {
+		return fmt.Errorf("providercontroljobs: admission unavailable")
+	}
+	availability, ok := m.admission.(interface{ IONOSStandardMemoryAvailable(context.Context) error })
+	if !ok {
+		return fmt.Errorf("providercontroljobs: Memory Cube S authority unavailable")
+	}
+	return availability.IONOSStandardMemoryAvailable(ctx)
 }
 
 // PreflightCreateOrBindLease performs the native admission application's
@@ -250,17 +263,19 @@ type normalizedManagedLeaseRequest struct {
 }
 
 type publicDesiredSpec struct {
-	SchemaVersion         string   `json:"schema_version"`
-	ProviderID            string   `json:"provider_id"`
-	OfferingID            string   `json:"offering_id"`
-	Region                string   `json:"region,omitempty"`
-	StackID               string   `json:"stack_id"`
-	StackName             string   `json:"stack_name"`
-	StackKit              string   `json:"stackkit"`
-	NodeRole              string   `json:"node_role"`
-	RuntimeSlotKey        string   `json:"runtime_slot_key"`
-	RuntimeSlotGeneration uint64   `json:"runtime_slot_generation"`
-	Services              []string `json:"services"`
+	SchemaVersion               string   `json:"schema_version"`
+	ProviderID                  string   `json:"provider_id"`
+	OfferingID                  string   `json:"offering_id"`
+	ProviderPackage             string   `json:"provider_package,omitempty"`
+	ProviderExecutionOfferingID string   `json:"provider_execution_offering_id,omitempty"`
+	Region                      string   `json:"region,omitempty"`
+	StackID                     string   `json:"stack_id"`
+	StackName                   string   `json:"stack_name"`
+	StackKit                    string   `json:"stackkit"`
+	NodeRole                    string   `json:"node_role"`
+	RuntimeSlotKey              string   `json:"runtime_slot_key"`
+	RuntimeSlotGeneration       uint64   `json:"runtime_slot_generation"`
+	Services                    []string `json:"services"`
 }
 
 func normalizeManagedLeaseRequest(req jobs.ManagedLeaseRequest) (normalizedManagedLeaseRequest, error) {
@@ -303,6 +318,16 @@ func normalizeManagedLeaseRequest(req jobs.ManagedLeaseRequest) (normalizedManag
 	if !providerIDPattern.MatchString(offeringID) {
 		return normalizedManagedLeaseRequest{}, fmt.Errorf("providercontroljobs: canonical offering_id is required")
 	}
+	sku := strings.TrimSpace(req.Metadata[monthlyruntime.MetadataKeyProviderPackage])
+	// Preserve legacy empty-SKU request normalization and its replay digest.
+	// A recorded SKU must, however, name an exact admitted provider package.
+	if sku != "" {
+		pkg, err := monthlyruntime.PackageForRecordedSKU(providerID, offeringID, sku)
+		if err != nil {
+			return normalizedManagedLeaseRequest{}, err
+		}
+		sku = pkg.Template
+	}
 	region := strings.TrimSpace(req.Metadata["provider_region"])
 	if len(region) > 128 || strings.ContainsAny(region, "\r\n\x00") {
 		return normalizedManagedLeaseRequest{}, fmt.Errorf("providercontroljobs: invalid provider region")
@@ -322,6 +347,16 @@ func normalizeManagedLeaseRequest(req jobs.ManagedLeaseRequest) (normalizedManag
 		monthlyruntime.MetadataKeyServerMode:  serverruntime.RuntimeLaneMonthly,
 		monthlyruntime.MetadataKeyBillingMode: monthlyruntime.BillingSubscription,
 	}
+	executionOfferingID := ""
+	if providerID == monthlyruntime.ProviderIONOS && offeringID == defaultOfferingID && sku == "Memory Cube S" {
+		executionOfferingID = monthlyruntime.IONOSStandardMemoryExecutionOfferingID
+	}
+	if sku != "" {
+		leaseMetadata[monthlyruntime.MetadataKeyProviderPackage] = sku
+	}
+	if executionOfferingID != "" {
+		leaseMetadata[monthlyruntime.MetadataKeyProviderExecutionOfferingID] = executionOfferingID
+	}
 	if region != "" {
 		leaseMetadata["provider_region"] = region
 	}
@@ -337,7 +372,7 @@ func normalizeManagedLeaseRequest(req jobs.ManagedLeaseRequest) (normalizedManag
 	}
 	specJSON, err := json.Marshal(publicDesiredSpec{
 		SchemaVersion: desiredSpecSchemaVersion, ProviderID: providerID,
-		OfferingID: offeringID, Region: region, StackID: stackID,
+		OfferingID: offeringID, ProviderPackage: sku, ProviderExecutionOfferingID: executionOfferingID, Region: region, StackID: stackID,
 		StackName: stackName, StackKit: stackKit, NodeRole: nodeRole,
 		RuntimeSlotKey:        runtimeSlotKey,
 		RuntimeSlotGeneration: runtimeSlotGeneration,
@@ -350,7 +385,7 @@ func normalizeManagedLeaseRequest(req jobs.ManagedLeaseRequest) (normalizedManag
 	return normalizedManagedLeaseRequest{
 		providerID: providerID,
 		admission: providercontrol.NativeProvisionAdmissionRequest{
-			TenantID: tenantID, RuntimeSlotKey: runtimeSlotKey, RuntimeSlotID: runtimeSlotID,
+			TenantID: tenantID, ReplayOnly: req.ReplayOnly, RuntimeSlotKey: runtimeSlotKey, RuntimeSlotID: runtimeSlotID,
 			RuntimeSlotGeneration: runtimeSlotGeneration,
 			RuntimeServerID:       serverID, OwnerSubjectID: ownerID,
 			IdempotencyKey: idempotencyKey, Lease: lease,

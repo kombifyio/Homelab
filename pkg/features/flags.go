@@ -103,6 +103,11 @@ var securityFeatures = map[string]FeatureDefinition{
 
 // betaFeatures defines experimental features. Each definition owns its default.
 var betaFeatures = map[string]FeatureDefinition{
+	"ionos_standard_photo_memory": {
+		Key: "ionos_standard_photo_memory", Name: "IONOS Standard photo memory", DefaultValue: false,
+		RiskLevel: RiskLevelLow, Category: CategoryBeta,
+		Description: "Select the IONOS Memory Cube S for full Immich in the Standard slot.",
+	},
 	"server_hardware_fit": {
 		Key: "server_hardware_fit", Name: "Server hardware fit", DefaultValue: false,
 		RiskLevel: RiskLevelLow, Category: CategoryBeta,
@@ -345,6 +350,11 @@ func (s *Service) flagDecision(ctx context.Context, def FeatureDefinition) (bool
 	}
 	if s.edition != "" && s.edition.IsSaaS() {
 		return false, true
+	}
+	// Provider purchasing variants remain off without a centrally supplied
+	// decision, including in the self-host edition.
+	if def.Key == "ionos_standard_photo_memory" {
+		return false, false
 	}
 	if s.edition == config.EditionSelfHostOSS {
 		return true, false

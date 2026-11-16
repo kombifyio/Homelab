@@ -64,6 +64,9 @@ const (
 type AdapterDescriptor struct {
 	ProviderID string
 	AdapterID  string
+	// ExecutionOfferingID restricts a variant to one private execution
+	// offering. The primary descriptor supplies provider-wide defaults.
+	ExecutionOfferingID string
 	// APIBase is the provider API origin and path prefix the adapter calls.
 	APIBase string
 	// CredentialEnvironment names the one custody object holding the
@@ -127,6 +130,9 @@ func (d AdapterDescriptor) Validate() error {
 	if len(d.CredentialFields) == 0 || d.ManagedSSHPrivateKey == nil {
 		return fmt.Errorf("providercontrol: adapter descriptor %s/%s has no credential contract", d.ProviderID, d.AdapterID)
 	}
+	if d.ExecutionOfferingID != "" && !canonicalCatalogIdentifier(d.ExecutionOfferingID) {
+		return fmt.Errorf("providercontrol: adapter descriptor %s/%s has an invalid execution offering", d.ProviderID, d.AdapterID)
+	}
 	for _, capability := range d.Capabilities {
 		if _, known := knownAdapterCapabilities[capability]; !known {
 			return fmt.Errorf("providercontrol: adapter descriptor %s/%s declares unknown capability %q", d.ProviderID, d.AdapterID, capability)
@@ -170,15 +176,15 @@ func AdapterDescriptorFor(providerID, adapterID string) (AdapterDescriptor, bool
 	return descriptor, ok
 }
 
-// AdapterDescriptorForProvider returns the single registered descriptor of a
-// provider. Two adapters of one provider make the lookup ambiguous.
+// AdapterDescriptorForProvider returns the single primary descriptor of a
+// provider. Execution variants have no provider-wide defaults of their own.
 func AdapterDescriptorForProvider(providerID string) (AdapterDescriptor, bool) {
 	adapterDescriptorsMu.RLock()
 	defer adapterDescriptorsMu.RUnlock()
 	var found AdapterDescriptor
 	count := 0
 	for _, descriptor := range adapterDescriptors {
-		if descriptor.ProviderID == strings.TrimSpace(providerID) {
+		if descriptor.ExecutionOfferingID == "" && descriptor.ProviderID == strings.TrimSpace(providerID) {
 			found = descriptor
 			count++
 		}

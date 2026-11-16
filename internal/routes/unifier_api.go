@@ -31,13 +31,14 @@ func readRequestBodyLimited(r io.Reader, limitBytes int64) ([]byte, bool, error)
 
 // UnifierAPI holds the Unifier engine and pipeline instances.
 type UnifierAPI struct {
-	engine          *unifier.Engine
-	pipeline        *unifier.Pipeline
-	loader          *unifier.Loader
-	recommendations *unifier.WizardRecommendationAuthority
-	workers         controlplane.WorkerStore
-	features        *features.Service
-	selfDisclosures controlplane.OperatorSelfDisclosureStore
+	engine             *unifier.Engine
+	pipeline           *unifier.Pipeline
+	loader             *unifier.Loader
+	recommendations    *unifier.WizardRecommendationAuthority
+	workers            controlplane.WorkerStore
+	features           *features.Service
+	memoryAvailability interface{ IONOSStandardMemoryAvailable(context.Context) error }
+	selfDisclosures    controlplane.OperatorSelfDisclosureStore
 	// servers and transitions are the canonical server rows and their
 	// connection history. They are the same store that backs the worker
 	// registry; without them workers carry no server identity or availability
@@ -167,13 +168,14 @@ func unifierWorkerTags(values map[string]any) map[string]string {
 }
 
 // RegisterUnifierRoutes adds the /api/v1/unifier/* endpoints.
-func RegisterUnifierRoutes(r *httpx.Router, workers controlplane.WorkerStore, featureService *features.Service) error {
+func RegisterUnifierRoutes(r *httpx.Router, workers controlplane.WorkerStore, featureService *features.Service, memoryAvailability interface{ IONOSStandardMemoryAvailable(context.Context) error }) error {
 	api, err := NewUnifierAPI(workers)
 	if err != nil {
 		return err
 	}
 
 	api.features = featureService
+	api.memoryAvailability = memoryAvailability
 	r.POST("/api/v1/unifier/validate", func(e *httpx.Event) error { return api.handleValidate(e) })
 	r.POST("/api/v1/unifier/unify", func(e *httpx.Event) error { return api.handleUnify(e) })
 	r.POST("/api/v1/unifier/recommendations", func(e *httpx.Event) error { return api.handleRecommendations(e) })

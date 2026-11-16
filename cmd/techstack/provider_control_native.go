@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 	"github.com/kombifyio/techstack/internal/providercontrol"
 	"github.com/kombifyio/techstack/internal/providercontroljobs"
 	"github.com/kombifyio/techstack/internal/providerevidence"
@@ -17,7 +18,6 @@ import (
 	"github.com/kombifyio/techstack/pkg/config"
 	"github.com/kombifyio/techstack/pkg/jobs"
 	"github.com/kombifyio/techstack/pkg/logger"
-	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 )
 
 // managedProviderAdapter is the contract every executable managed provider
@@ -36,6 +36,7 @@ type managedProviderRegistration struct {
 	providerID          string
 	adapterID           string
 	adapterManifestHash string
+	executionOfferingID string
 	build               func() (managedProviderAdapter, error)
 }
 
@@ -96,11 +97,16 @@ func composeNativeProviderControlParts(database *sql.DB, edition config.Edition,
 		// A registered provider is create-ready by default. Adapter composition
 		// and capability discovery below are the authority; there is no second
 		// deployment switch that can silently disable the normal lifecycle.
-		createPolicy[provider.providerID] = providercontrol.ProviderCreateDecision{Enabled: true}
+		primary := provider.executionOfferingID == ""
+		if primary {
+			createPolicy[provider.providerID] = providercontrol.ProviderCreateDecision{Enabled: true}
+		}
 		adapter, adapterErr := provider.build()
 		if adapterErr != nil {
-			createPolicy[provider.providerID] = providercontrol.ProviderCreateDecision{
-				Enabled: false, ReasonCode: providercontrol.ProviderCreateReasonSafetyIncomplete,
+			if primary {
+				createPolicy[provider.providerID] = providercontrol.ProviderCreateDecision{
+					Enabled: false, ReasonCode: providercontrol.ProviderCreateReasonSafetyIncomplete,
+				}
 			}
 			// A provider without resolvable custody stays unregistered rather
 			// than blocking the ones that do resolve. Its wizard offerings then
@@ -110,36 +116,51 @@ func composeNativeProviderControlParts(database *sql.DB, edition config.Edition,
 			}
 			continue
 		}
-		if registerErr := registry.RegisterAtMostOnceProvision(provider.adapterID, adapter); registerErr != nil {
-			return nativeProviderControl{}, fmt.Errorf(
-				"register %s provider adapter: %w", provider.providerID, registerErr)
-		}
 		capabilities := adapter.ProviderSafetyCapabilities()
 		if capabilityErr := capabilities.Validate(provider.providerID, provider.adapterID); capabilityErr != nil {
 			return nativeProviderControl{}, fmt.Errorf(
 				"validate %s provider adapter safety capabilities: %w", provider.providerID, capabilityErr)
 		}
-		if !capabilities.ProvisionCandidateDiscovery {
+		if primary && !capabilities.ProvisionCandidateDiscovery {
 			// Keep the adapter registered for polling and exact-handle cleanup,
 			// but do not admit a create whose ambiguous outcome cannot be
 			// discovered and resolved without guessing.
 			enforceProviderCreateSafety(createPolicy, capabilities)
 		}
-		coverage, coverageErr := providercontrol.ManagedCatalogCoverageRequirements(
-			provider.providerID, provider.adapterID, provider.adapterManifestHash)
-		if coverageErr != nil {
-			return nativeProviderControl{}, fmt.Errorf("resolve %s provider catalog coverage: %w", provider.providerID, coverageErr)
+		coverage := []providercontrol.CatalogCoverageRequirement{{
+			ProviderID: provider.providerID, OfferingID: provider.executionOfferingID,
+			AdapterID: provider.adapterID, AdapterManifestHash: provider.adapterManifestHash,
+			ProvisionDispatchMode: providercontrol.ProvisionDispatchAtMostOnceManualReconcile,
+		}}
+		if primary {
+			var err error
+			coverage, err = providercontrol.ManagedCatalogCoverageRequirements(
+				provider.providerID, provider.adapterID, provider.adapterManifestHash)
+			if err != nil {
+				return nativeProviderControl{}, fmt.Errorf("resolve %s provider catalog coverage: %w", provider.providerID, err)
+			}
 		}
 		coverageCtx, cancelCoverage := context.WithTimeout(context.Background(), 5*time.Second)
-		coverageErr = providercontrol.ValidateActiveCatalogCoverage(
+		coverageErr := providercontrol.ValidateActiveCatalogCoverage(
 			coverageCtx,
 			database,
 			coverage,
 		)
 		cancelCoverage()
 		if coverageErr != nil {
+			if !primary {
+				if log != nil {
+					log.Warn("provider_execution_variant_unavailable", "provider", provider.providerID,
+						"adapter", provider.adapterID, "reason", coverageErr)
+				}
+				continue
+			}
 			return nativeProviderControl{}, fmt.Errorf(
 				"validate %s provider catalog coverage: %w", provider.providerID, coverageErr)
+		}
+		if registerErr := registry.RegisterAtMostOnceProvision(provider.adapterID, adapter); registerErr != nil {
+			return nativeProviderControl{}, fmt.Errorf(
+				"register %s provider adapter: %w", provider.providerID, registerErr)
 		}
 		if log != nil {
 			log.Info("provider_adapter_registered",
@@ -154,7 +175,9 @@ func composeNativeProviderControlParts(database *sql.DB, edition config.Edition,
 			)
 		}
 		gate = providercontrol.CertifiedMutationGate{Registry: registry}
-		managedCredentialAuthorities[provider.providerID] = adapter.ManagedCredentialAuthority()
+		if primary {
+			managedCredentialAuthorities[provider.providerID] = adapter.ManagedCredentialAuthority()
+		}
 	}
 	profiles, err := providercontrol.NewPostgresCatalogExecutionProfileResolver(database)
 	if err != nil {

@@ -21,11 +21,14 @@ import (
 	"github.com/kombifyio/techstack/internal/routes/trust"
 	ksapi "github.com/kombifyio/techstack/pkg/api"
 	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/techstack/pkg/core"
 	"github.com/kombifyio/techstack/pkg/httpx"
 	"github.com/kombifyio/techstack/pkg/jobs"
 	"github.com/kombifyio/techstack/pkg/logger"
+	"github.com/kombifyio/techstack/pkg/monthlyruntime"
 	"github.com/kombifyio/techstack/pkg/orchestrator"
 	"github.com/kombifyio/techstack/pkg/specv2"
+	"github.com/kombifyio/techstack/pkg/unifier"
 )
 
 // runWizardFound creates a new kit deployment: seed -> project -> validate
@@ -55,7 +58,37 @@ func (h wizardRunHandlers) runWizardFound(e *httpx.Event, run *wizardRunState) e
 	}
 	normalized.HomelabID = run.homelab.ID
 	normalized.StackSpecV2 = projection.Spec
+	// Bind the package only after the pinned CLI produced the actual workload.
+	// The preview uses the same release selection; disagreement fails closed.
+	managed := run.request.Managed
+	if managed != nil && managed.ProviderID == monthlyruntime.ProviderIONOS && managed.RuntimeOfferingID == "monthly-runtime-standard" && run.ionosMemoryEnabled && run.resumeStack == nil {
+		workloads, _ := projection.Spec["workloads"].(map[string]any)
+		photos, _ := workloads["photos"].(map[string]any)
+		sku := "Basic Cube S"
+		if photos != nil && photos["enabled"] != false && photos["alternative"] == "immich" {
+			sku = "Memory Cube S"
+		}
+		intent := run.request.Intent
+		fit := unifier.EvaluateServerFit(core.WizardRecommendationRequest{
+			ServerFit:          &core.WizardServerFitRequest{ProviderID: managed.ProviderID, OfferingID: managed.RuntimeOfferingID},
+			IONOSMemoryEnabled: run.ionosMemoryEnabled,
+			Goals:              intent.Goals, Services: run.request.Services, UseCaseSettings: intent.UseCaseSettings, UseCaseCapabilities: intent.UseCaseCapabilities,
+		}, unifier.WizardRecommendationInventory{})
+		if fit == nil || fit.Template != sku || fit.Status == "does_not_fit" {
+			return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeValidation, "Selected workloads do not match an admitted server package", map[string]any{"reason_code": "server_hardware_incompatible", "retryable": false, "server_fit": fit})
+		}
+		normalized.ProviderPackage = sku
+	}
 
+	if run.resumeStack != nil {
+		// A persisted intent predates this attempt; preserve its exact choice
+		// across flag changes. Missing historical bindings mean Basic.
+		normalized.ProviderPackage, _ = run.resumeStack.Config["admitted_provider_package"].(string)
+	}
+
+	if normalized.ProviderPackage == "Memory Cube S" && !run.ionosMemoryEnabled {
+		normalized.ProviderReplayOnly = true
+	}
 	if walletErr := h.crud.requireWalletForCreate(e, run.ownerID, normalized); walletErr != nil {
 		return walletErr
 	}
@@ -66,6 +99,16 @@ func (h wizardRunHandlers) runWizardFound(e *httpx.Event, run *wizardRunState) e
 	stack, err := h.crud.persistStackWithRequestHash(e, run.ownerID, run.tenantID, normalized, run.requestHash)
 	if err != nil || stack == nil {
 		return err
+	}
+	if stack.IdempotentReplay {
+		existing, getErr := h.crud.stackStore.GetStack(e.Request.Context(), run.tenantID, stack.Id)
+		if getErr != nil || existing == nil {
+			return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "The existing server selection is unavailable", nil)
+		}
+		normalized.ProviderPackage, _ = existing.Config["admitted_provider_package"].(string)
+	}
+	if normalized.ProviderPackage == "Memory Cube S" && !run.ionosMemoryEnabled {
+		normalized.ProviderReplayOnly = true
 	}
 	if stack.Name != "" {
 		// resolveWizardStackName pre-resolved collisions, so a persist-level

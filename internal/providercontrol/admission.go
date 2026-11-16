@@ -15,8 +15,10 @@ import (
 	"time"
 
 	"github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
+	"github.com/kombifyio/techstack/internal/providercatalog"
 	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
 	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/techstack/pkg/monthlyruntime"
 	"github.com/kombifyio/techstack/pkg/serverregistry"
 	"github.com/kombifyio/techstack/pkg/vmleases"
 )
@@ -52,6 +54,9 @@ type NativeProvisionAdmissionRequest struct {
 	RuntimeServerID       string
 	OwnerSubjectID        string
 	IdempotencyKey        string
+	// ReplayOnly allows a committed managed admission to be read after its
+	// first-create permission is disabled. It adds no new request identity.
+	ReplayOnly bool
 	// ValidFor is measured from the transaction's database time. Zero selects
 	// vmleases.DefaultNativeAdmissionValidity; absolute caller times are rejected.
 	ValidFor       time.Duration
@@ -175,8 +180,14 @@ func (a *NativeAdmission) PreflightProvision(
 		committed = true
 		return nil
 	}
+	if normalized.ReplayOnly {
+		return unavailableProfile("new managed runtime admission is disabled", nil)
+	}
 	if createErr := a.providerCreates.RequireProviderCreate(ctx, normalized.Lease.Resource.ProviderID); createErr != nil {
 		return createErr
+	}
+	if err := a.requireNativeExecutionOfferingTx(ctx, tx, normalized.Lease); err != nil {
+		return err
 	}
 	capacity, capacityErr := resolveNativeAdmissionCapacity(ctx, a.capacity, normalized)
 	if capacityErr != nil {
@@ -255,6 +266,9 @@ func (a *NativeAdmission) AdmitProvision(
 		committed = true
 		return replay, nil
 	}
+	if normalized.ReplayOnly {
+		return NativeProvisionAdmissionResult{}, unavailableProfile("new managed runtime admission is disabled", nil)
+	}
 	// This is the last read-only point. A closed gate therefore performs no
 	// writes and does not consume a resource-generation UUID.
 	capacity, createErr := a.requireNativeAdmissionCreateTx(ctx, tx, normalized)
@@ -295,6 +309,9 @@ func (a *NativeAdmission) requireNativeAdmissionCreateTx(
 	if err := a.activation.Require(ctx); err != nil {
 		return normalizedCapacityGrant{}, err
 	}
+	if err := a.requireNativeExecutionOfferingTx(ctx, tx, request.Lease); err != nil {
+		return normalizedCapacityGrant{}, err
+	}
 	region, regionErr := a.coordinator.registry.CanonicalCreateRegion(request.Lease.Resource.ProviderID, request.Lease.Metadata[runtimeOfferingMetadataKey], request.Lease.Resource.Region)
 	if regionErr != nil {
 		return normalizedCapacityGrant{}, regionErr
@@ -316,6 +333,55 @@ func (a *NativeAdmission) requireNativeAdmissionCreateTx(
 		return normalizedCapacityGrant{}, err
 	}
 	return capacity, nil
+}
+
+// IONOSStandardMemoryAvailable checks only execution support. Account, region
+// protection and capacity admission still run in the normal provision flow.
+func (a *NativeAdmission) IONOSStandardMemoryAvailable(ctx context.Context) error {
+	if !a.configured() {
+		return unavailableProfile("IONOS Memory Cube S admission is unavailable", nil)
+	}
+	if err := a.providerCreates.RequireProviderCreate(ctx, providercatalog.ProviderIONOS); err != nil {
+		return err
+	}
+	tx, err := a.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
+	if err != nil {
+		return unavailableProfile("begin IONOS Memory Cube S catalog check", err)
+	}
+	defer tx.Rollback() //nolint:errcheck // Done after a successful Commit.
+	if err := a.requireIONOSStandardMemoryProfileTx(ctx, tx); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func (a *NativeAdmission) requireNativeExecutionOfferingTx(ctx context.Context, tx *sql.Tx, lease vmlease.Lease) error {
+	executionOffering, err := catalogExecutionOffering(lease.Resource.ProviderID,
+		lease.Metadata[runtimeOfferingMetadataKey], lease.Metadata[monthlyruntime.MetadataKeyProviderExecutionOfferingID],
+		lease.Metadata[monthlyruntime.MetadataKeyProviderPackage])
+	if err != nil || executionOffering != monthlyruntime.IONOSStandardMemoryExecutionOfferingID {
+		return err
+	}
+	return a.requireIONOSStandardMemoryProfileTx(ctx, tx)
+}
+
+func (a *NativeAdmission) requireIONOSStandardMemoryProfileTx(ctx context.Context, tx *sql.Tx) error {
+	version, err := loadActiveCatalogVersion(ctx, tx)
+	if err != nil {
+		return err
+	}
+	profile, err := loadCatalogProfile(ctx, tx, version, leaseProfileSelection{
+		ProviderID: providercatalog.ProviderIONOS,
+		OfferingID: monthlyruntime.IONOSStandardMemoryExecutionOfferingID,
+	})
+	if err != nil {
+		return err
+	}
+	adapter, err := a.coordinator.registry.resolveAdapter(profile.AdapterID)
+	if err != nil {
+		return err
+	}
+	return adapter.validateProvisionDispatchPin(providerexecutor.OperationProvision, profile.ProvisionDispatchMode, profile.AdapterManifestHash)
 }
 
 func (a *NativeAdmission) insertNativeAdmissionTx(
