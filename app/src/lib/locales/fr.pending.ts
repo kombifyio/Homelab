@@ -2,6 +2,32 @@
 import { ownApplicationMessagesMore } from "../services/own-application-messages-more";
 
 export const frPending: Record<string, string> = {
+  "wizard.server.fit.actionChange": "Choisissez un autre serveur ou modifiez les cas d’usage.",
+  "wizard.server.fit.actionCheck": "Connectez ou choisissez un serveur et vérifiez lorsque ses données sont disponibles.",
+  "wizard.server.fit.amounts": "{required} {unit} nécessaires, {available} {unit} disponibles",
+  "wizard.server.fit.checking": "Vérification du matériel…",
+  "wizard.server.fit.deficit": "Insuffisant : {reason}",
+  "wizard.server.fit.does_not_fit": "Autre matériel nécessaire",
+  "wizard.server.fit.estimate": "Estimation de l’offre du fournisseur",
+  "wizard.server.fit.fits": "Compatible avec la capacité connue",
+  "wizard.server.fit.observed": "Données observées du serveur",
+  "wizard.server.fit.projected": "La compatibilité des applications exclut la plateforme de base et ne confirme ni le déploiement ni la compatibilité du système.",
+  "wizard.server.fit.reason.accelerator": "Accélérateur",
+  "wizard.server.fit.reason.architecture": "Architecture du processeur",
+  "wizard.server.fit.reason.cpu": "CPU",
+  "wizard.server.fit.reason.footprint": "Besoins des applications",
+  "wizard.server.fit.reason.foundation": "Capacité de la plateforme",
+  "wizard.server.fit.reason.goals": "Cas d’usage choisis",
+  "wizard.server.fit.reason.memory": "Mémoire",
+  "wizard.server.fit.reason.observation": "Matériel observé",
+  "wizard.server.fit.reason.other": "Exigences",
+  "wizard.server.fit.reason.package": "Offre du fournisseur",
+  "wizard.server.fit.reason.storage": "Stockage",
+  "wizard.server.fit.reason.usage": "Utilisation actuelle",
+  "wizard.server.fit.specs": "{cpu} CPU · {memory} GiB RAM · {disk} GB",
+  "wizard.server.fit.stale": "Vérifiez à nouveau les données matérielles",
+  "wizard.server.fit.unconfirmed": "Non confirmé : {reason}",
+  "wizard.server.fit.unknown": "Compatibilité inconnue",
   ...ownApplicationMessagesMore.fr,
   "ui.serviceCards.update.strip": "{to} disponible · {note}",
   "ui.serviceCards.status.running": "En marche",
@@ -673,7 +699,7 @@ export const frPending: Record<string, string> = {
     "Fermez cet onglet et réessayez depuis l’assistant.",
   "ui.authCloud-link-complete.kombifyCloudConnected": "kombify Cloud connecté",
   "ui.authCloud-link-complete.kombifyCloudLinkKombifyTechstack":
-    "Liaison kombify Cloud - kombify-Techstack",
+    "Liaison kombify Cloud | Techstack",
   "ui.authCloud-link-complete.thisWindowClosesAutomatically":
     "Cette fenêtre se ferme automatiquement.",
   "ui.authCloud-link-complete.youCanCloseThisTab":
@@ -681,7 +707,7 @@ export const frPending: Record<string, string> = {
   "ui.authSso.noSsoTokenProvided": "Aucun jeton SSO fourni",
   "ui.authSso.ssoAuthenticationFailed": "Échec de l’authentification SSO",
   "ui.authSso.ssoAuthenticationKombifyTechstack":
-    "Authentification SSO - kombify-Techstack",
+    "Authentification SSO | Techstack",
   "ui.authSso.unableToVerifyYourCredentials":
     "Impossible de vérifier vos identifiants",
   "ui.authSso.yourKombifyCloudSessionCould":
@@ -2776,7 +2802,7 @@ export const frPending: Record<string, string> = {
   "ui.stacksId.noStackkitDeploymentIdProvided":
     "Aucun identifiant Homelab fourni",
   "ui.stacksId.offeringSpec": "{vcpus} vCPU · {memory} Go de RAM",
-  "ui.stacksId.pageTitle": "{name} | kombify-Techstack",
+  "ui.stacksId.pageTitle": "{name} | Techstack",
   "ui.stacksId.query": "Requête",
   "ui.stacksId.runtime": "Exécution",
   "ui.stacksId.series": "Séries",
@@ -2802,7 +2828,7 @@ export const frPending: Record<string, string> = {
     "Cette action supprime définitivement l’identifiant sélectionné.",
   "ui.stacksId.username": "Nom d’utilisateur",
   "ui.stacksIdServersNew.addNodeKombifyTechstack":
-    "Ajouter un serveur | kombify-Techstack",
+    "Ajouter un serveur | Techstack",
   "ui.stacksIdServersServerId.activityHistory": "Historique des activités",
   "ui.stacksIdServersServerId.addressesDomains": "Adresses et domaines",
   "ui.stacksIdServersServerId.agentId": "Identifiant de l’agent",
@@ -2895,7 +2921,7 @@ export const frPending: Record<string, string> = {
   "ui.stacksIdServersServerId.serverDetailSections":
     "Sections des détails du serveur",
   "ui.stacksIdServersServerId.serverDetailsKombifyTechstack":
-    "Détails du serveur | kombify-Techstack",
+    "Détails du serveur | Techstack",
   "ui.stacksIdServersServerId.serverGenerationDecommissioned":
     "Génération de serveur supprimée",
   "ui.stacksIdServersServerId.serverSettings": "Paramètres du serveur",
@@ -4307,6 +4333,8 @@ export const frPending: Record<string, string> = {
   "maintenance.changed":
     "Le serveur ou ses dépendances ont changé. Examinez l’impact actualisé et confirmez à nouveau.",
   "maintenance.retry": "Récupérer le reçu de la demande",
+  "maintenance.planNeeded": "Cela nécessite un forfait kombify.",
+  "maintenance.choosePlan": "Choisir un forfait",
   "maintenance.loading": "Vérification de la maintenance…",
   "maintenance.target": "{action} · {server}",
   "maintenance.rebootImpact":
@@ -5416,7 +5444,7 @@ export const frPending: Record<string, string> = {
     "Les applications choisies réservent {need} Go de mémoire, mais vos serveurs disposent de {free} Go libres.",
   "layout.reason.no_combination_fits":
     "Aucune répartition ne permet de faire tenir toutes les applications choisies.",
-  "layout.addUseCases.pageTitle": "Ajouter des cas d’usage | kombify-Techstack",
+  "layout.addUseCases.pageTitle": "Ajouter des cas d’usage | Techstack",
   "layout.addUseCases.entry": "Ajouter des cas d’usage",
   "layout.addUseCases.title": "Ajouter des cas d’usage",
   "layout.addUseCases.subtitle":
@@ -5999,7 +6027,7 @@ export const frPending: Record<string, string> = {
   "common.tip": "Conseil",
   "common.moreInfo": "En savoir plus sur cette option",
   "common.recommended": "recommandé",
-  "wizard.title": "Créer kombify-Techstack",
+  "wizard.title": "Créer Techstack",
   "wizard.selfDisclosure.review.title": "Utiliser les réponses de ce lien ?",
   "wizard.selfDisclosure.review.body":
     "Le lien ouvert contient ces réponses vous concernant. Techstack les enregistre dans votre profil et les utilise pour vos recommandations uniquement si vous choisissez « Utiliser ces réponses ». Rien n’est encore enregistré.",

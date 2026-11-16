@@ -53,12 +53,20 @@ internal static class ConnectEnrollment
             MessageBoxButtons.OK, MessageBoxIcon.Error);
     }
 
+    private static readonly object PossiblyRetiredLock = new();
+    private static readonly Dictionary<string, string> PossiblyRetiredTokens = new(StringComparer.Ordinal);
+
     internal static HttpClient NewHttpClient() =>
-        new(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(30) };
+        new(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(15) };
 
     /// <summary>
-    /// Uses the stored refresh token when there is one; otherwise, and when it no longer works,
-    /// signs in through Auth0 in the browser. The access token is never persisted.
+    /// Uses the stored refresh token when there is one; otherwise, and when Auth0 refuses it for good,
+    /// signs in through Auth0 in the browser. A temporary failure (429, 5xx, network, timeout) is retried
+    /// within the 25 s renewal budget and then reported, with the stored token kept: it never becomes a sign-in.
+    /// If a send may have retired the stored token (a timeout, a connection lost after the request was written, an
+    /// answer without a usable token, or a send the caller cancelled in flight), nothing more is sent in this run and
+    /// "not ready" is reported; the next start tries again. An operator fault (<c>invalid_client</c>,
+    /// <c>unauthorized_client</c>) is reported as "not ready" the same way. The access token is never persisted.
     /// </summary>
     internal static async Task<Auth0NativeSession> SignInForAccountAsync(
         ClientConfig config, HttpClient http, string subject, CancellationToken cancellationToken)
@@ -76,16 +84,40 @@ internal static class ConnectEnrollment
             config.ConnectAuth0Audience,
             LoopbackPorts);
         Auth0NativeSession? session = null;
-        var stored = WindowsCredentialStore.Read(RefreshTarget(subject));
+        var target = RefreshTarget(subject);
+        var stored = WindowsCredentialStore.Read(target);
         if (!string.IsNullOrWhiteSpace(stored))
         {
+            lock (PossiblyRetiredLock)
+            {
+                if (PossiblyRetiredTokens.TryGetValue(target, out var retired) && retired == stored)
+                {
+                    throw Auth0RefreshUnavailableException.NotReadyForTimedOutToken();
+                }
+            }
+
             try
             {
-                session = await login.RefreshAsync(stored, cancellationToken);
+                session = await login.RefreshWithBackoffAsync(stored, cancellationToken);
+                // Persist a rotated token immediately, before any caller account check or cancellation can discard it.
+                if (session.RefreshToken != stored) SaveRefreshForAccount(subject, session);
+                lock (PossiblyRetiredLock) PossiblyRetiredTokens.Remove(target);
             }
-            catch (InvalidOperationException)
+            catch (Auth0RefreshUnavailableException ex) when (ex.PossiblyRetired)
             {
-                // Revoked or expired refresh token: fall through to an interactive sign-in.
+                lock (PossiblyRetiredLock) PossiblyRetiredTokens[target] = stored;
+                throw;
+            }
+            catch (ConnectRefreshCancelledException)
+            {
+                // The caller stopped the send in flight: Auth0 may have received it, so nothing more is sent in this run.
+                lock (PossiblyRetiredLock) PossiblyRetiredTokens[target] = stored;
+                throw;
+            }
+            catch (Auth0GrantRefusedException)
+            {
+                lock (PossiblyRetiredLock) PossiblyRetiredTokens.Remove(target);
+                // Auth0 refused the grant for good (revoked or expired refresh token): fall through to an interactive sign-in.
             }
         }
 
@@ -105,9 +137,7 @@ internal static class ConnectEnrollment
     {
         await RequireCurrentAccountAsync(expected, currentIdentity, token);
         var session = await signIn(token);
-        await RequireCurrentAccountAsync(expected, currentIdentity, token);
         if (session.SubjectId != expected.Subject) throw new ConnectAccountException();
-        token.ThrowIfCancellationRequested();
         saveRefresh(session);
         await RequireCurrentAccountAsync(expected, currentIdentity, token);
         return await operation(session, token);
@@ -123,8 +153,17 @@ internal static class ConnectEnrollment
 
     internal static void SaveRefreshForAccount(string subject, Auth0NativeSession session)
     {
-        if (!string.IsNullOrWhiteSpace(session.RefreshToken))
-            WindowsCredentialStore.Write(RefreshTarget(subject), subject, session.RefreshToken);
+        if (string.IsNullOrWhiteSpace(session.RefreshToken)) return;
+        var target = RefreshTarget(subject);
+        if (WindowsCredentialStore.Read(target) == session.RefreshToken) return;
+        // Read the store back once: a store that kept the old value would replay a retired token at the next start.
+        for (var attempt = 1; attempt <= 2; attempt++)
+        {
+            WindowsCredentialStore.Write(target, subject, session.RefreshToken);
+            if (WindowsCredentialStore.Read(target) == session.RefreshToken) return;
+            System.Diagnostics.Trace.TraceWarning("kombify Connect: the credential store kept its old refresh token after a save" +
+                (attempt == 1 ? "; saving again." : "; still the old value."));
+        }
     }
 
     internal static ConnectDeviceKey OpenKey() => ConnectDeviceKey.OpenOrCreate(KeyName);

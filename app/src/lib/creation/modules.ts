@@ -83,8 +83,8 @@ export const CREATION_MODULES: Record<CreationStepKey, CreationStepModule> = {
         // and people are decided here.
         asksUseCaseAccess: Boolean(
           frame.useCaseAccessEnabled &&
-            frame.process.focusGoal &&
-            frame.process.inactive.access,
+          frame.process.focusGoal &&
+          frame.process.inactive.access,
         ),
         goalsStage: frame.goalsStage,
         onGoalsStage: (stage: CreationStage) => {
@@ -124,6 +124,8 @@ export const CREATION_MODULES: Record<CreationStepKey, CreationStepModule> = {
         lockFoundation: frame.process.inheritsAccess && !frame.options.homelab,
         joinSurface: frame.process.inheritsAccess && !frame.options.homelab,
         homelab: frame.options.homelab,
+        fitEnabled: frame.context.features.isEnabled("server_hardware_fit"),
+        recommendationState: frame.recommendationState,
         onmanagedproviderselect: frame.options.onmanagedproviderselect,
         recommendedStackKit: frame.recommendedStackKit,
       }),

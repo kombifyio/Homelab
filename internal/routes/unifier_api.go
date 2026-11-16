@@ -10,6 +10,7 @@ import (
 
 	"github.com/kombifyio/techstack/pkg/controlplane"
 	kscore "github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/techstack/pkg/features"
 	"github.com/kombifyio/techstack/pkg/httpx"
 	"github.com/kombifyio/techstack/pkg/unifier"
 )
@@ -35,6 +36,7 @@ type UnifierAPI struct {
 	loader          *unifier.Loader
 	recommendations *unifier.WizardRecommendationAuthority
 	workers         controlplane.WorkerStore
+	features        *features.Service
 	selfDisclosures controlplane.OperatorSelfDisclosureStore
 	// servers and transitions are the canonical server rows and their
 	// connection history. They are the same store that backs the worker
@@ -131,6 +133,7 @@ func (api *UnifierAPI) fetchRecommendationInventory(ctx context.Context, tenantI
 		return inventory, err
 	}
 	inventory.State = "fresh"
+	inventory.StaleWorkerIDs = make(map[string]bool)
 	stale := false
 	var latest time.Time
 	now := api.clock()
@@ -139,6 +142,7 @@ func (api *UnifierAPI) fetchRecommendationInventory(ctx context.Context, tenantI
 	for _, record := range owned {
 		if record.LastSeenAt == nil || now.Sub(record.LastSeenAt.UTC()) > wizardRecommendationInventoryTTL {
 			stale = true
+			inventory.StaleWorkerIDs[record.ID] = true
 		}
 		if record.LastSeenAt != nil && record.LastSeenAt.After(latest) {
 			latest = record.LastSeenAt.UTC()
@@ -163,12 +167,13 @@ func unifierWorkerTags(values map[string]any) map[string]string {
 }
 
 // RegisterUnifierRoutes adds the /api/v1/unifier/* endpoints.
-func RegisterUnifierRoutes(r *httpx.Router, workers controlplane.WorkerStore) error {
+func RegisterUnifierRoutes(r *httpx.Router, workers controlplane.WorkerStore, featureService *features.Service) error {
 	api, err := NewUnifierAPI(workers)
 	if err != nil {
 		return err
 	}
 
+	api.features = featureService
 	r.POST("/api/v1/unifier/validate", func(e *httpx.Event) error { return api.handleValidate(e) })
 	r.POST("/api/v1/unifier/unify", func(e *httpx.Event) error { return api.handleUnify(e) })
 	r.POST("/api/v1/unifier/recommendations", func(e *httpx.Event) error { return api.handleRecommendations(e) })

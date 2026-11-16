@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "public_repository": "kombifyio/TechStack",
-  "source_commit": "55c844f1740174ce6d57cc6b44b8713f61841104",
-  "candidate_digest": "3d6745de3f3d1baa1ca35203d95db72c901e8588ea994e76415d95eda059c17f",
-  "candidate_file_count": 2825,
+  "source_commit": "e7ce94957be9da65c95ea09f642cc9e7c93144ff",
+  "candidate_digest": "7eaebbd0c6ea06d658c08db367496fdb57d2830eb068291030ab76080913a980",
+  "candidate_file_count": 2828,
   "digest_scope": "sha256 over every exported file except this receipt, in code-unit path order, as path NUL content NUL",
   "projected_go_sources": [
     {
       "destination": "internal/gocommon",
-      "version": "v0.8.14-0.20261108151234-720a4e553d49",
-      "sum": "h1:0mHFdxAzbltCs9levU5P4UznmLIbxTTlt+CfbHd9+PU=",
-      "commit": "720a4e553d493d29e98007ec58a0de7addc8c25f",
+      "version": "v0.9.2",
+      "sum": "h1:a2TuBN0GwFg+dxKGdbCwGTf+Lsri12XUeZPUHZ7XT5w=",
+      "commit": "d8dc5f0a0a53f50c85b058447caca4ab3b623757",
       "packages": [
         "apisurface",
         "apisurface/cli",
@@ -51,38 +51,38 @@
   "vendored_npm_packages": [
     {
       "name": "@kombiverselabs/ai-sdk",
-      "version": "0.16.6",
-      "integrity": "sha512-KicOhG8vpetEzPz0nPPRvw7oq27CyG8agR21oueubEzrIRQ43CInfdBIn8mxXliVEJ9HeFwTmHx89mJfNkbzVw==",
+      "version": "0.16.16",
+      "integrity": "sha512-y0ZhILdHRoWb15Zp8g2QwC0gqBjmeqo4xiqiscBfyfTln8AX6/FOElQ9gHjR9CCmZCL2s8XfVw9XbQMCv3hgQQ==",
       "license": "MIT",
-      "path": "app/third_party/npm/ai-sdk-0.16.6.tgz"
+      "path": "app/third_party/npm/ai-sdk-0.16.16.tgz"
     },
     {
       "name": "@kombiverselabs/cloud-notifications",
-      "version": "0.5.0",
-      "integrity": "sha512-hM/n/GxnpzKpZOPlHZxUhdEu1/FY4UieyoiqEmsWtcEdAtMeOCWBMY8yy7qgKShr5R5QjMSZcevV0Sdn6BL+sQ==",
+      "version": "0.5.5",
+      "integrity": "sha512-7+LwMKVzlCVHphUPasg3fOnh5n+Vj1+XhuvJTULHOH/+WjrY69FpeYcyBpIbPnfUHK3qtKClc0gdi/Nm9OkDDA==",
       "license": "MIT",
-      "path": "app/third_party/npm/cloud-notifications-0.5.0.tgz"
+      "path": "app/third_party/npm/cloud-notifications-0.5.5.tgz"
     },
     {
       "name": "@kombiverselabs/design",
-      "version": "0.11.17",
-      "integrity": "sha512-nJnKcth3l50iYGvTeb/C/8UkalFHZcOqP1ctsCM02Ll0Orb2wwlbm98CtqnUSZgeTkxn1aqBwdqCuEldL/frtQ==",
+      "version": "0.12.1",
+      "integrity": "sha512-CSSimE2LetvkEpRB2nvt/3/ExRNyouA0LK0tJx8q8B156KjKytlGRK6TH0QBicOERleQMc2n+hOf6xO/MBnb6w==",
       "license": null,
-      "path": "app/third_party/npm/design-0.11.17.tgz"
+      "path": "app/third_party/npm/design-0.12.1.tgz"
     },
     {
       "name": "@kombiverselabs/embed",
-      "version": "0.16.6",
-      "integrity": "sha512-BB2Olupf419kXrDAag0bFm9q7gv3/Jsev4RdblBBSE2RAARLY+Sy0qYZyMonbR5MDeYoXKJqE4TOBOc3ItaS6A==",
+      "version": "0.16.16",
+      "integrity": "sha512-4UjDb+4hMTJ/uTnKNuBIEuhSO9DpEQKAWEv/vbxp/ERH1FuCB/WRTLNSHFu3ZmFUuuC6cNuC2H+cKAxXyRHhkw==",
       "license": "MIT",
-      "path": "app/third_party/npm/embed-0.16.6.tgz"
+      "path": "app/third_party/npm/embed-0.16.16.tgz"
     },
     {
       "name": "@kombiverselabs/execution-contracts",
-      "version": "0.16.6",
-      "integrity": "sha512-aMy45SipBE4IElGuGf+nwWz27xP/smhWwT3v6ZbFM1dM+u5x8UQlL9pe0fndJfQ5pNj4mytW7z26Ib4U54G5pg==",
+      "version": "0.16.16",
+      "integrity": "sha512-ST8knLDnxKJxruBNsTSOrKETbCcoU73Qgssbvk+u3NbXsTajeby0kgOHZoijfe+stVzXfae0AqsWEej+/inHxQ==",
       "license": "MIT",
-      "path": "app/third_party/npm/execution-contracts-0.16.6.tgz"
+      "path": "app/third_party/npm/execution-contracts-0.16.16.tgz"
     },
     {
       "name": "@kombiverselabs/observability",
@@ -93,17 +93,17 @@
     },
     {
       "name": "@kombiverselabs/onboarding-core",
-      "version": "0.11.17",
-      "integrity": "sha512-Tul+iOoTKu9AgUgaCb/AAlbF2QO0CffDakWfUz8HZ2TceK8zJT14Pzfyh70uo6tfddzYY7sYr2WPauD4+arcgA==",
+      "version": "0.12.1",
+      "integrity": "sha512-5ePxvuJMlfxoKnZQt2XkOngjAiXEpQVVAQBSZr1oqopDVIX1jT/+gEbOVx8Z2HXMrfQGjtkvjzXulKFXp3aaXQ==",
       "license": "MIT",
-      "path": "app/third_party/npm/onboarding-core-0.11.17.tgz"
+      "path": "app/third_party/npm/onboarding-core-0.12.1.tgz"
     },
     {
       "name": "@kombiverselabs/speechkit-voiceagent-client",
-      "version": "0.79.13",
-      "integrity": "sha512-J4jcFy4uSpOfxCa0+aIyndiDQfOl94jP1bpM+xtkTuMF1tCh7+WnOSRaOdwMXxdfR6oo29fPlwQBlbBCEgU6ng==",
+      "version": "0.80.3",
+      "integrity": "sha512-ozbBUyPgbphtx4/Rsz8rgl6sCg8WayCoLC0egLWy3QoxtnuFZaRAzxTOENPxARHYuhtRONjU/77sQv/njYjimA==",
       "license": "Apache-2.0",
-      "path": "app/third_party/npm/speechkit-voiceagent-client-0.79.13.tgz"
+      "path": "app/third_party/npm/speechkit-voiceagent-client-0.80.3.tgz"
     },
     {
       "name": "@kombiverselabs/tsconfig",
@@ -114,10 +114,10 @@
     },
     {
       "name": "@kombiverselabs/ui",
-      "version": "0.11.17",
-      "integrity": "sha512-8CtVER0KBUBRKormkaMmGNgqnlTACIq0ik+dM7h2hBThBMImGMptj+EtsaG7ktIXhjI3YMKUI0M6KSxMrzMUgQ==",
+      "version": "0.12.1",
+      "integrity": "sha512-sheWxynaW00k4ejvT/S3+wwRM+7cijrEnsD6iI1UP8mPBvXR5JYR82UpR587KcXxsIfl67tkC1Lqi0ALrKZ3Aw==",
       "license": "MIT",
-      "path": "app/third_party/npm/ui-0.11.17.tgz"
+      "path": "app/third_party/npm/ui-0.12.1.tgz"
     }
   ]
 }

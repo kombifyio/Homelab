@@ -155,6 +155,8 @@ export interface WizardRecommendationRequest {
   /** "all" asks which of `available_goals` the full-homelab template preselects. */
   selection_intent?: "all";
   available_goals?: string[];
+  server_fit?:
+    { provider_id: string; offering_id: string } | { server_id: string };
   compute_profile?: string;
   use_case_settings?: Record<string, Record<string, string | boolean>>;
   use_case_capabilities?: Record<string, Record<string, string>>;
@@ -182,7 +184,37 @@ export interface WizardRecommendation {
   };
 }
 
+export interface ServerFitReason {
+  code: string;
+  workload?: string;
+  module?: string;
+  goal?: string;
+  required?: number;
+  available?: number;
+  unit?: string;
+}
+
+export interface ServerFit {
+  status: "fits" | "does_not_fit" | "unknown" | "stale";
+  evidence: "projected" | "observed";
+  provider_id?: string;
+  offering_id?: string;
+  server_id?: string;
+  template?: string;
+  catalog_source?: string;
+  specs: {
+    cpu_cores: number;
+    memory_mb: number;
+    disk_gb: number;
+    architecture?: string;
+    amd64_level?: string;
+  };
+  deficits: ServerFitReason[];
+  unknowns: ServerFitReason[];
+}
+
 export interface WizardRecommendationResult {
+  server_fit?: ServerFit;
   smart_home_recommendation?: SmartHomeRecommendation;
   status: WizardRecommendationStatus;
   generated_at: string;

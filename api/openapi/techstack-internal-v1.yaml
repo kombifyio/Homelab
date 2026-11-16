@@ -825,6 +825,19 @@ components:
         services:
           type: object
           description: InventoryServiceList projection with management_state (see techstack-v1.yaml).
+        configured_use_cases:
+          type: array
+          nullable: true
+          description: Owner-confirmed goals from Homelab intent, reconciled with the owner's current canonical desired StackSpecs when all needed authorities are available; null means intent could not be read. Blocked indicates an unmapped or blocked goal; pending or failed is attributed only to the exact latest run's requested goals and correlated operation. Unknown has no sufficiently correlated runtime evidence. Settings contain only catalog-validated choice and toggle values.
+          items:
+            type: object
+            required: [goal, status]
+            properties:
+              goal: { type: string }
+              status: { type: string, enum: [blocked, pending, failed, unknown] }
+              settings:
+                type: object
+                additionalProperties: true
     RuntimeMonitoringEnvelope:
       type: object
       required: [version, generated_at, scope_state]

@@ -270,7 +270,7 @@ func registerCoreRoutes(router *httpx.Router, deps routeDeps, managedLeases jobs
 			DeviceReauth: newWalletLocalDeviceReauth(deps),
 		})
 	}
-	if err := routes.RegisterUnifierRoutes(router, workerControlPlaneStore(deps.v2)); err != nil {
+	if err := routes.RegisterUnifierRoutes(router, workerControlPlaneStore(deps.v2), deps.featureSvc); err != nil {
 		fmt.Printf("⚠️  Unifier routes failed: %v\n", err)
 	}
 	trustWorkerStore := workerControlPlaneStore(deps.v2)
@@ -703,6 +703,7 @@ func registerRuntimeInventoryRoutes(router *httpx.Router, deps routeDeps, state 
 	if !ok {
 		panic("registerRuntimeInventoryRoutes: canonical server store lacks authorization-scoped inventory reads")
 	}
+	ownerStackSpecs, _ := stackStores.Stacks.(controlplane.OwnerStackSpecReader)
 	routes.RegisterInventoryRoutes(router, routes.InventoryRouteConfig{
 		ReadStore:             inventoryReadStore,
 		PortInventory:         deps.portInventory,
@@ -723,6 +724,9 @@ func registerRuntimeInventoryRoutes(router *httpx.Router, deps routeDeps, state 
 		},
 		Posture:           serverPosture(deps),
 		Homelabs:          stackStores.Homelabs,
+		WizardRuns:        stackStores.WizardRuns,
+		Jobs:              stackStores.Jobs,
+		OwnerStackSpecs:   ownerStackSpecs,
 		MaintenanceOrigin: routes.MaintenanceOriginConfig{Keys: maintenanceKeys, Authority: maintenanceAuthority, Entitlements: maintenanceEntitlements},
 		MaintenanceAction: maintenanceRoutes.Action,
 		MaintenanceImpact: maintenanceRoutes.Impact,

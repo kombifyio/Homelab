@@ -86,7 +86,7 @@ export const screenMessages = {
     "ui.authCloud-link-complete.kombifyCloudConnected":
       "kombify Cloud connected",
     "ui.authCloud-link-complete.kombifyCloudLinkKombifyTechstack":
-      "kombify Cloud Link - kombify-Techstack",
+      "kombify Cloud Link | Techstack",
     "ui.authCloud-link-complete.thisWindowClosesAutomatically":
       "This window closes automatically.",
     "ui.authCloud-link-complete.youCanCloseThisTab":
@@ -94,7 +94,7 @@ export const screenMessages = {
     "ui.authSso.noSsoTokenProvided": "No SSO token provided",
     "ui.authSso.ssoAuthenticationFailed": "SSO authentication failed",
     "ui.authSso.ssoAuthenticationKombifyTechstack":
-      "SSO Authentication - kombify-Techstack",
+      "SSO Authentication | Techstack",
     "ui.authSso.unableToVerifyYourCredentials":
       "Unable to verify your credentials",
     "ui.authSso.yourKombifyCloudSessionCould":
@@ -2119,7 +2119,7 @@ export const screenMessages = {
     "ui.stacksId.noLeaseAttached": "No lease attached",
     "ui.stacksId.noStackkitDeploymentIdProvided": "No homelab ID provided",
     "ui.stacksId.offeringSpec": "{vcpus} vCPU · {memory} GB RAM",
-    "ui.stacksId.pageTitle": "{name} | kombify-Techstack",
+    "ui.stacksId.pageTitle": "{name} | Techstack",
     "ui.stacksId.query": "Query",
     "ui.stacksId.runtime": "Runtime",
     "ui.stacksId.series": "Series",
@@ -2145,7 +2145,7 @@ export const screenMessages = {
       "This permanently removes the selected credential.",
     "ui.stacksId.username": "Username",
     "ui.stacksIdServersNew.addNodeKombifyTechstack":
-      "Add server | kombify-Techstack",
+      "Add server | Techstack",
     "ui.stacksIdServersServerId.activityHistory": "Activity history",
     "ui.stacksIdServersServerId.addressesDomains": "Addresses & domains",
     "ui.stacksIdServersServerId.agentId": "Agent ID",
@@ -2233,7 +2233,7 @@ export const screenMessages = {
     "ui.stacksIdServersServerId.serverDetachFailed": "Server detach failed.",
     "ui.stacksIdServersServerId.serverDetailSections": "Server detail sections",
     "ui.stacksIdServersServerId.serverDetailsKombifyTechstack":
-      "Server Details | kombify-Techstack",
+      "Server Details | Techstack",
     "ui.stacksIdServersServerId.serverGenerationDecommissioned":
       "Server generation removed",
     "ui.stacksIdServersServerId.serverSettings": "Server settings",
@@ -2800,7 +2800,7 @@ export const screenMessages = {
     "ui.authCloud-link-complete.kombifyCloudConnected":
       "kombify Cloud verbunden",
     "ui.authCloud-link-complete.kombifyCloudLinkKombifyTechstack":
-      "kombify Cloud Link - kombify-Techstack",
+      "kombify Cloud Link | Techstack",
     "ui.authCloud-link-complete.thisWindowClosesAutomatically":
       "Dieses Fenster schließt sich automatisch.",
     "ui.authCloud-link-complete.youCanCloseThisTab":
@@ -2809,7 +2809,7 @@ export const screenMessages = {
     "ui.authSso.ssoAuthenticationFailed":
       "SSO-Authentifizierung fehlgeschlagen",
     "ui.authSso.ssoAuthenticationKombifyTechstack":
-      "SSO-Authentifizierung - kombify-Techstack",
+      "SSO-Authentifizierung | Techstack",
     "ui.authSso.unableToVerifyYourCredentials":
       "Deine Zugangsdaten konnten nicht überprüft werden",
     "ui.authSso.yourKombifyCloudSessionCould":
@@ -4922,7 +4922,7 @@ export const screenMessages = {
     "ui.stacksId.noLeaseAttached": "Kein Lease verknüpft",
     "ui.stacksId.noStackkitDeploymentIdProvided": "Keine Homelab-ID angegeben",
     "ui.stacksId.offeringSpec": "{vcpus} vCPU · {memory} GB RAM",
-    "ui.stacksId.pageTitle": "{name} | kombify-Techstack",
+    "ui.stacksId.pageTitle": "{name} | Techstack",
     "ui.stacksId.query": "Abfrage",
     "ui.stacksId.runtime": "Runtime",
     "ui.stacksId.series": "Serie",
@@ -4948,7 +4948,7 @@ export const screenMessages = {
       "Dadurch werden die ausgewählten Zugangsdaten dauerhaft entfernt.",
     "ui.stacksId.username": "Benutzername",
     "ui.stacksIdServersNew.addNodeKombifyTechstack":
-      "Server hinzufügen | kombify-Techstack",
+      "Server hinzufügen | Techstack",
     "ui.stacksIdServersServerId.activityHistory": "Aktivitätsverlauf",
     "ui.stacksIdServersServerId.addressesDomains": "Adressen & Domains",
     "ui.stacksIdServersServerId.agentId": "Agent-ID",
@@ -5042,7 +5042,7 @@ export const screenMessages = {
     "ui.stacksIdServersServerId.serverDetailSections":
       "Abschnitte der Serverdetails",
     "ui.stacksIdServersServerId.serverDetailsKombifyTechstack":
-      "Serverdetails | kombify-Techstack",
+      "Serverdetails | Techstack",
     "ui.stacksIdServersServerId.serverGenerationDecommissioned":
       "Server-Generation entfernt",
     "ui.stacksIdServersServerId.serverSettings": "Servereinstellungen",

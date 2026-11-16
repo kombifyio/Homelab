@@ -19,6 +19,8 @@ export const maintenanceMessages = {
     "maintenance.changed":
       "The server or its dependencies changed. Review the refreshed impact and confirm again.",
     "maintenance.retry": "Retrieve request receipt",
+    "maintenance.planNeeded": "This needs a kombify plan.",
+    "maintenance.choosePlan": "Choose a plan",
     "maintenance.loading": "Checking maintenance…",
     "maintenance.target": "{action} · {server}",
     "maintenance.rebootImpact":
@@ -77,6 +79,8 @@ export const maintenanceMessages = {
     "maintenance.changed":
       "Der Server oder seine Abhängigkeiten haben sich geändert. Prüfe die aktualisierten Auswirkungen und bestätige erneut.",
     "maintenance.retry": "Anfragebeleg abrufen",
+    "maintenance.planNeeded": "Dafür braucht es einen kombify-Plan.",
+    "maintenance.choosePlan": "Plan wählen",
     "maintenance.loading": "Wartung wird geprüft …",
     "maintenance.target": "{action} · {server}",
     "maintenance.rebootImpact":
@@ -138,6 +142,8 @@ export const maintenanceMessages = {
     "maintenance.changed":
       "El servidor o sus dependencias han cambiado. Revisa el impacto actualizado y confirma de nuevo.",
     "maintenance.retry": "Recuperar comprobante",
+    "maintenance.planNeeded": "Esto requiere un plan de kombify.",
+    "maintenance.choosePlan": "Elegir un plan",
     "maintenance.loading": "Comprobando mantenimiento…",
     "maintenance.target": "{action} · {server}",
     "maintenance.rebootImpact":
@@ -194,6 +200,8 @@ export const maintenanceMessages = {
       "请求结果未知。请重试同一请求以获取回执，然后再启动其他操作。",
     "maintenance.changed": "服务器或其依赖项已更改。请查看最新影响并重新确认。",
     "maintenance.retry": "获取请求回执",
+    "maintenance.planNeeded": "此操作需要 kombify 套餐。",
+    "maintenance.choosePlan": "选择套餐",
     "maintenance.loading": "正在检查维护…",
     "maintenance.target": "{action} · {server}",
     "maintenance.rebootImpact": "服务器重启期间，其上的服务将中断。",
@@ -245,6 +253,8 @@ export const maintenanceMessages = {
     "maintenance.changed":
       "सर्वर या उसकी निर्भरताएँ बदल गई हैं। नया प्रभाव देखें और फिर पुष्टि करें।",
     "maintenance.retry": "अनुरोध की रसीद प्राप्त करें",
+    "maintenance.planNeeded": "इसके लिए kombify प्लान चाहिए।",
+    "maintenance.choosePlan": "प्लान चुनें",
     "maintenance.loading": "रखरखाव की जाँच हो रही है…",
     "maintenance.target": "{action} · {server}",
     "maintenance.rebootImpact":
@@ -302,6 +312,8 @@ export const maintenanceMessages = {
     "maintenance.changed":
       "تغيّر الخادم أو تبعياته. راجع التأثير المحدّث وأكّد مرة أخرى.",
     "maintenance.retry": "استرجاع إيصال الطلب",
+    "maintenance.planNeeded": "يتطلب هذا خطة kombify.",
+    "maintenance.choosePlan": "اختر خطة",
     "maintenance.loading": "جارٍ فحص الصيانة…",
     "maintenance.target": "{action} · {server}",
     "maintenance.rebootImpact":

@@ -9,7 +9,7 @@
 </script>
 
 <svelte:head
-  ><title>{tr("removeUseCase.title")} | kombify-Techstack</title></svelte:head
+  ><title>{tr("removeUseCase.title")} | Techstack</title></svelte:head
 >
 {#key `${stackId}:${preferredUseCase}`}<UseCaseRemoveFlow
     {stackId}

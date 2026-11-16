@@ -9,7 +9,7 @@
 </script>
 
 <svelte:head
-  ><title>{tr("configure.title")} | kombify-Techstack</title></svelte:head
+  ><title>{tr("configure.title")} | Techstack</title></svelte:head
 >
 
 {#key `${stackId}:${preferredWorkload}`}

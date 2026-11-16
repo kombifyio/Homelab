@@ -27,10 +27,10 @@
   } from "#lib/server-card-adapter.js";
   import { serverStatusAxes } from "@kombiverselabs/ui/server";
   import { PageHeader } from "@kombiverselabs/ui/shell";
-  import { SegmentedControl } from "@kombiverselabs/ui/primitives";
+  import { Dialog, SegmentedControl } from "@kombiverselabs/ui/primitives";
+  import { KfCardShell } from "@kombiverselabs/ui/card";
   import Button from "#lib/components/ui/Button.svelte";
   import ErrorCallout from "#lib/components/ui/ErrorCallout.svelte";
-  import Modal from "#lib/components/Modal.svelte";
   import { toast } from "#lib/stores/toast.js";
   import { SERVERS_HREF } from "#lib/navigation.js";
   import { serverDetailHref } from "#lib/server-links.js";
@@ -183,6 +183,11 @@
     detachError = null;
   }
 
+  function closeDetach() {
+    pendingDetach = null;
+    detachError = null;
+  }
+
   async function confirmDetach() {
     const server = pendingDetach;
     if (!server || detaching) return;
@@ -194,9 +199,11 @@
       toast.success(tr("monitoring.serverRemoved", { name: server.name }));
       await refresh();
     } catch (err) {
-      detachError =
+      const message =
         parseApiError(err).message ||
         tr("ui.monitoring.serverCouldNotBeRemoved");
+      if (pendingDetach) detachError = message;
+      else toast.error(message);
     } finally {
       detaching = false;
     }
@@ -306,50 +313,41 @@
     />
   {/if}
 
-  {#if pendingDetach}
-    <!-- A question about one server, asked in a dialog in front of the page
-         rather than as a banner far from the row that raised it. -->
-    <Modal
-      title={tr("ui.monitoring.removeFrom", { name: pendingDetach.name })}
-      description={tr("ui.monitoring.thisRevokesTheBoundGuard")}
-      onClose={() => {
-        if (detaching) return;
-        pendingDetach = null;
-        detachError = null;
-      }}
-      maxWidth="md"
-      role="alertdialog"
-      tone="danger"
-      testId="monitoring-detach-confirmation"
-    >
+  <!-- A question about one server, asked in a dialog in front of the page
+       rather than as a banner far from the row that raised it. -->
+  <Dialog
+    open={pendingDetach !== null}
+    title={pendingDetach
+      ? tr("ui.monitoring.removeFrom", { name: pendingDetach.name })
+      : ""}
+    description={tr("ui.monitoring.thisRevokesTheBoundGuard")}
+    role="alertdialog"
+    tone="danger"
+    closeLabel={tr("ui.common.close")}
+    onclose={closeDetach}
+  >
+    <div data-testid="monitoring-detach-confirmation">
       {#if detachError}
         <ErrorCallout message={detachError} testId="monitoring-detach-error" />
       {/if}
-      {#snippet footer()}
-        <Button
-          variant="secondary"
-          onclick={() => {
-            pendingDetach = null;
-            detachError = null;
-          }}
-          disabled={detaching}
-        >
-          {tr("ui.importExportModal.cancel")}
-        </Button>
-        <Button
-          variant="destructive"
-          testId="monitoring-detach-confirm"
-          onclick={() => void confirmDetach()}
-          disabled={detaching}
-        >
-          <Trash2 class="h-4 w-4" />
-          {detaching
-            ? tr("ui.monitoring.removing")
-            : tr("ui.monitoringServerId.removeFromView")}
-        </Button>
-      {/snippet}
-    </Modal>
-  {/if}
+    </div>
+    {#snippet footer()}
+      <Button variant="secondary" onclick={closeDetach} disabled={detaching}>
+        {tr("ui.importExportModal.cancel")}
+      </Button>
+      <Button
+        variant="destructive"
+        testId="monitoring-detach-confirm"
+        onclick={() => void confirmDetach()}
+        disabled={detaching}
+      >
+        <Trash2 class="h-4 w-4" />
+        {detaching
+          ? tr("ui.monitoring.removing")
+          : tr("ui.monitoringServerId.removeFromView")}
+      </Button>
+    {/snippet}
+  </Dialog>
 
   <!--
     Right now: the three orthogonal axes per node. A monitoring home that
@@ -421,8 +419,11 @@
     {:else}
       <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {#each inventoryServers as server (server.id)}
-          <div
-            class="flex flex-col rounded-lg border border-border bg-background transition-colors hover:border-primary/50"
+          <KfCardShell
+            tag="div"
+            accent="muted"
+            density="compact"
+            class="flex flex-col"
             data-testid="monitoring-node-summary"
             data-server-id={server.id}
             data-connection={server.connection?.state ?? "unknown"}
@@ -486,7 +487,7 @@
                 </Button>
               </div>
             {/if}
-          </div>
+          </KfCardShell>
         {/each}
       </div>
     {/if}
@@ -608,9 +609,7 @@
       class="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
       data-testid="monitoring-section-availability"
     >
-      <section
-        class="flex flex-col gap-2 rounded-lg border border-border bg-card p-4"
-      >
+      <KfCardShell tag="section" accent="muted" class="flex flex-col gap-2 p-4">
         <span class="text-xs text-muted-foreground"
           >{tr("ui.monitoring.availabilityWindow", {
             window: availability.window,
@@ -626,11 +625,9 @@
             duration: formatDuration(availability.observed_seconds),
           })}
         </span>
-      </section>
+      </KfCardShell>
 
-      <section
-        class="flex flex-col gap-2 rounded-lg border border-border bg-card p-4"
-      >
+      <KfCardShell tag="section" accent="muted" class="flex flex-col gap-2 p-4">
         <span class="text-xs text-muted-foreground"
           >{tr("ui.monitoring.totalDowntime")}</span
         >
@@ -641,11 +638,9 @@
         <span class="font-mono text-[11px] text-muted-foreground">
           {trn("ui.monitoring.acrossEpisodes", availabilityEpisodes.length)}
         </span>
-      </section>
+      </KfCardShell>
 
-      <section
-        class="flex flex-col gap-2 rounded-lg border border-border bg-card p-4"
-      >
+      <KfCardShell tag="section" accent="muted" class="flex flex-col gap-2 p-4">
         <span class="text-xs text-muted-foreground"
           >{tr("ui.monitoring.meanTimeToRecover")}</span
         >
@@ -658,10 +653,12 @@
             count: availability.closed_episodes,
           })}
         </span>
-      </section>
+      </KfCardShell>
 
-      <section
-        class="flex flex-col gap-2.5 rounded-lg border border-border bg-card p-4"
+      <KfCardShell
+        tag="section"
+        accent="muted"
+        class="flex flex-col gap-2.5 p-4"
       >
         <span class="text-xs text-muted-foreground"
           >{tr("ui.monitoring.downtimeByCause")}</span
@@ -691,7 +688,7 @@
             {/each}
           </div>
         {/if}
-      </section>
+      </KfCardShell>
     </div>
 
     <!-- Anchor target for the history link on the dashboard and the rail. -->

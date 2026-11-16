@@ -11,6 +11,8 @@
   import { ServerRegistryPanel } from "../index";
   import ServerProvisioningStep from "../ServerProvisioningStep.svelte";
   import HomelabServerChoice from "../HomelabServerChoice.svelte";
+  import ServerFitNotice from "../ServerFitNotice.svelte";
+  import type { WizardPreviewState } from "#lib/wizard/WizardPreviewController.js";
   import type { HomelabServerSelection } from "#lib/creation/homelab-servers.js";
   import type { ManagedProviderID, StackConfig } from "#lib/wizard/index.js";
   import { tr } from "#lib/i18n.svelte.js";
@@ -34,6 +36,8 @@
     stepNumber?: number;
     /** The person's existing servers, offered before a new one. */
     homelab?: HomelabServerSelection;
+    fitEnabled?: boolean;
+    recommendationState?: WizardPreviewState;
   }
 
   let {
@@ -51,6 +55,8 @@
     onselectionchange,
     stepNumber = 2,
     homelab,
+    fitEnabled = false,
+    recommendationState,
   }: Props = $props();
   // A chosen existing server is a complete answer; nothing new is set up.
   const existingChosen = $derived(Boolean(homelab?.selected));
@@ -119,6 +125,10 @@
     />
   {/if}
 
+  {#if fitEnabled}
+    <ServerFitNotice state={recommendationState} target={homelab?.selected ? { server_id: homelab.selected } : config.serverProvisioning.mode === "kombify-cloud" ? { provider_id: config.providerId, offering_id: config.runtimeOfferingId } : undefined} />
+  {/if}
+
   <section class="advanced-region">
     <button
       type="button"
@@ -156,6 +166,9 @@
       </div>
     {/if}
   </section>
+  {/if}
+  {#if fitEnabled && existingChosen}
+    <ServerFitNotice state={recommendationState} target={homelab?.selected ? { server_id: homelab.selected } : undefined} />
   {/if}
 </div>
 

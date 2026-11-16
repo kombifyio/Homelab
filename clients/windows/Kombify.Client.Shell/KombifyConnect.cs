@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -297,6 +298,119 @@ public sealed class ConnectEnrollmentClient(HttpClient http, Uri connectOrigin)
     }
 }
 
+/// <summary>
+/// Auth0 refused the refresh grant for good: the session is gone. Every OAuth error on 400, 401 or 403 that is
+/// neither transient nor an operator fault (<c>invalid_grant</c>, <c>expired_token</c>, <c>access_denied</c>,
+/// <c>mfa_required</c>, <c>invalid_request</c>, unknown codes). The only refresh failure that ends a session.
+/// </summary>
+public sealed class Auth0GrantRefusedException(string error)
+    : InvalidOperationException($"Auth0 refused the refresh token ({error}); sign in again.")
+{
+    public string Error { get; } = error;
+}
+
+/// <summary>
+/// The refresh could not be completed for now: Auth0 answered 429 or 5xx, did not answer, or answered without an
+/// OAuth error body (an HTML 403, a proxy 401), or with a transient code (<c>authorization_pending</c>,
+/// <c>slow_down</c>, <c>too_many_requests</c>). The stored refresh token is still good and is kept.
+/// </summary>
+public class Auth0RefreshUnavailableException : InvalidOperationException
+{
+    /// <param name="possiblyRetired">
+    /// True when the send itself may have retired the refresh token (a timeout, a connection lost after the request
+    /// was written, or an answer that cannot be read): nothing more may be sent in this run.
+    /// </param>
+    public Auth0RefreshUnavailableException(string detail, TimeSpan? retryAfter, bool retryable, Exception? inner = null,
+        bool timedOut = false, bool possiblyRetired = false)
+        : this(FormatMessage(detail, CapRetryAfter(retryAfter)), inner, CapRetryAfter(retryAfter), retryable, timedOut,
+            possiblyRetired)
+    {
+    }
+
+    protected Auth0RefreshUnavailableException(string message, Exception? inner, TimeSpan? retryAfter, bool retryable,
+        bool timedOut, bool possiblyRetired)
+        : base(message, inner)
+    {
+        RetryAfter = CapRetryAfter(retryAfter);
+        Retryable = retryable;
+        TimedOut = timedOut;
+        PossiblyRetired = possiblyRetired;
+    }
+
+    /// <summary>The <c>Retry-After</c> Auth0 sent, at most one hour.</summary>
+    public TimeSpan? RetryAfter { get; }
+    /// <summary>False for an answer that waiting in this process does not change.</summary>
+    public bool Retryable { get; }
+    /// <summary>The request timed out after it was sent (Auth0 may have received it).</summary>
+    public bool TimedOut { get; }
+    /// <summary>A timed-out send may have retired the refresh token; send nothing more in this run.</summary>
+    public bool PossiblyRetired { get; }
+
+    public static Auth0RefreshUnavailableException NotReadyForTimedOutToken(Exception? inner = null) =>
+        new("kombify Connect is not ready; your sign-in is kept.", inner, retryAfter: null, retryable: false,
+            timedOut: true, possiblyRetired: true);
+
+    /// <summary>
+    /// A send that may have retired the stored refresh token ended this run's renewals: nothing more is sent and "not
+    /// ready" is reported. <paramref name="detail"/> names the cause the person can understand.
+    /// </summary>
+    public static Auth0RefreshUnavailableException NotReadyForPossiblyRetiredToken(string detail, Exception? inner = null) =>
+        new($"kombify Connect is not ready ({detail}); your sign-in is kept.", inner, retryAfter: null, retryable: false,
+            timedOut: false, possiblyRetired: true);
+
+    private static TimeSpan? CapRetryAfter(TimeSpan? retryAfter) =>
+        retryAfter is { } wait && wait > TimeSpan.Zero
+            ? TimeSpan.FromTicks(Math.Min(wait.Ticks, TimeSpan.FromHours(1).Ticks))
+            : null;
+
+    private static string FormatMessage(string detail, TimeSpan? retryAfter)
+    {
+        if (retryAfter is null) return $"{detail}; your sign-in is kept, try again in a moment.";
+        var totalSeconds = Math.Max(1, (int)Math.Ceiling(retryAfter.Value.TotalSeconds));
+        string wait;
+        if (totalSeconds >= 3600) wait = "1 hour";
+        else if (totalSeconds >= 60)
+        {
+            var minutes = (int)Math.Ceiling(totalSeconds / 60.0);
+            wait = minutes >= 60 ? "1 hour" : $"{minutes} min";
+        }
+        else
+        {
+            wait = $"{totalSeconds} s";
+        }
+        return $"{detail}; your sign-in is kept, retry in {wait}.";
+    }
+}
+
+/// <summary>
+/// Auth0 answered <c>invalid_client</c> or <c>unauthorized_client</c>: the registration is wrong, not the person's
+/// session. The stored refresh token is kept (the client heals once the registration is repaired), the program is
+/// reported as not ready, and no sign-in is started.
+/// </summary>
+public sealed class Auth0ClientNotReadyException(string error, TimeSpan? retryAfter)
+    : Auth0RefreshUnavailableException($"kombify Connect is not ready (Auth0 answered {error}); your sign-in is kept.",
+        inner: null, retryAfter, retryable: false, timedOut: false, possiblyRetired: false)
+{
+    public string Error { get; } = error;
+}
+
+/// <summary>
+/// The caller stopped a refresh send in flight. Auth0 may have received the grant and retired the token, so nothing
+/// more is sent in this run; the exception stays an <see cref="OperationCanceledException"/> so a closed window is
+/// still a cancelled action, not a failure dialog.
+/// </summary>
+public sealed class ConnectRefreshCancelledException : OperationCanceledException
+{
+    public ConnectRefreshCancelledException(Exception? inner, CancellationToken cancellationToken)
+        : base("The Connect refresh was cancelled after the request was sent; its token may be retired.", inner,
+            cancellationToken)
+    {
+    }
+
+    /// <summary>The cancelled send may have retired the refresh token: send nothing more in this run.</summary>
+    public bool PossiblyRetired => true;
+}
+
 /// <summary>Result of the Auth0 native login: the access token stays in memory only.</summary>
 public sealed record Auth0NativeSession(string AccessToken, string? RefreshToken, string SubjectId);
 
@@ -363,25 +477,197 @@ public sealed class Auth0NativeLogin(HttpClient http, Uri issuer, string clientI
         return new Auth0NativeSession(accessToken, refreshToken, SubjectOf(accessToken));
     }
 
-    /// <summary>Exchanges a stored refresh token; Auth0 rotation may return a new one.</summary>
-    public async Task<Auth0NativeSession> RefreshAsync(string refreshToken, CancellationToken cancellationToken)
+    private static readonly HashSet<string> TransientErrors = new(StringComparer.Ordinal)
     {
-        using var exchange = await http.PostAsync(new Uri(issuer, "/oauth/token"), new FormUrlEncodedContent(new Dictionary<string, string>
+        "authorization_pending", "slow_down", "too_many_requests",
+    };
+
+    private static readonly HashSet<string> OperatorErrors = new(StringComparer.Ordinal)
+    {
+        "invalid_client", "unauthorized_client",
+    };
+
+    private const int RefreshAttempts = 4;
+    private static readonly TimeSpan RefreshRequestTimeout = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan RefreshFirstPause = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan RefreshBudget = TimeSpan.FromSeconds(25);
+
+    /// <summary>
+    /// Exchanges a stored refresh token once; Auth0 rotation may return a new one. Three classes:
+    /// transient (429, 5xx, network fault, timeout, an answer without an OAuth error body, a transient code)
+    /// throws <see cref="Auth0RefreshUnavailableException"/>; an operator fault (<c>invalid_client</c>,
+    /// <c>unauthorized_client</c>) throws <see cref="Auth0ClientNotReadyException"/>; every other OAuth error on
+    /// 400, 401 or 403 throws <see cref="Auth0GrantRefusedException"/> (session gone). The refresh token is still
+    /// valid after the first two.
+    /// </summary>
+    public Task<Auth0NativeSession> RefreshAsync(string refreshToken, CancellationToken cancellationToken) =>
+        RefreshCoreAsync(refreshToken, RefreshRequestTimeout, cancellationToken);
+
+    private async Task<Auth0NativeSession> RefreshCoreAsync(
+        string refreshToken, TimeSpan requestTimeout, CancellationToken cancellationToken)
+    {
+        HttpStatusCode status;
+        TimeSpan? retryAfter;
+        string text;
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(requestTimeout);
+        try
         {
-            ["grant_type"] = "refresh_token",
-            ["client_id"] = clientId,
-            ["refresh_token"] = refreshToken,
-        }), cancellationToken);
-        var text = await exchange.Content.ReadAsStringAsync(cancellationToken);
-        if (!exchange.IsSuccessStatusCode)
+            using var exchange = await http.PostAsync(new Uri(issuer, "/oauth/token"), new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["grant_type"] = "refresh_token",
+                ["client_id"] = clientId,
+                ["refresh_token"] = refreshToken,
+            }), timeoutCts.Token);
+            status = exchange.StatusCode;
+            retryAfter = RetryAfterOf(exchange.Headers.RetryAfter);
+            text = await exchange.Content.ReadAsStringAsync(timeoutCts.Token);
+        }
+        catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
         {
-            throw new InvalidOperationException($"Auth0 refresh failed with HTTP {(int)exchange.StatusCode}; sign in again.");
+            // The caller stopped the send in flight: Auth0 may have received the grant and retired the token.
+            throw new ConnectRefreshCancelledException(ex, cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException
+            || (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested))
+        {
+            // A fault of the network or a timeout of the request, not of the caller. A fault that happened after the
+            // request was written may have retired the token; a name, connect or TLS fault never reaches Auth0.
+            throw new Auth0RefreshUnavailableException("Auth0 could not be reached", null, retryable: true, ex,
+                timedOut: ex is OperationCanceledException, possiblyRetired: MayHaveReachedAuth0(ex));
         }
 
-        using var document = JsonDocument.Parse(text);
-        var accessToken = document.RootElement.GetProperty("access_token").GetString()!;
-        var rotated = document.RootElement.TryGetProperty("refresh_token", out var refresh) ? refresh.GetString() : null;
-        return new Auth0NativeSession(accessToken, rotated ?? refreshToken, SubjectOf(accessToken));
+        if (status is >= HttpStatusCode.OK and < HttpStatusCode.MultipleChoices)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(text);
+                var accessToken = document.RootElement.GetProperty("access_token").GetString();
+                if (string.IsNullOrEmpty(accessToken)) throw new InvalidOperationException("no access token");
+                var rotated = document.RootElement.TryGetProperty("refresh_token", out var refresh) ? refresh.GetString() : null;
+                return new Auth0NativeSession(accessToken, rotated ?? refreshToken, SubjectOf(accessToken));
+            }
+            catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException or FormatException)
+            {
+                // A 200 whose body carries no usable token: Auth0 may have rotated and retired the sent token already.
+                throw Auth0RefreshUnavailableException.NotReadyForPossiblyRetiredToken(
+                    "Auth0 answered the refresh without a usable token", ex);
+            }
+        }
+
+        if (status is HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden
+            && ErrorCodeOf(text) is { Length: > 0 } error && !TransientErrors.Contains(error))
+        {
+            if (OperatorErrors.Contains(error)) throw new Auth0ClientNotReadyException(error, retryAfter);
+            throw new Auth0GrantRefusedException(error);
+        }
+
+        throw new Auth0RefreshUnavailableException($"Auth0 renewal failed with HTTP {(int)status}", retryAfter, retryable: true);
+    }
+
+    /// <summary>
+    /// <see cref="RefreshAsync"/> with backoff inside Auth0's 30 s reuse leeway: each exchange is capped at 15 s
+    /// inside a 25 s renewal budget. A non-timeout transient failure is tried again (1 s, 2 s, 4 s; the longer of
+    /// that and <c>Retry-After</c>, up to an hour) within the 25 s budget; the last allowed attempt ends the loop, so
+    /// the token is sent at most <see cref="RefreshAttempts"/> times. A timeout after the request was sent is retried
+    /// at most once immediately within the budget; if a timed-out send may have retired the token and that retry
+    /// fails, nothing more is sent in this run and "not ready" is reported. A refused grant and an operator fault are
+    /// thrown at once, without a retry. A failure that may have retired the token (a timeout, a connection lost after
+    /// the request was written, an answer without a usable token) carries <see cref="Auth0RefreshUnavailableException.PossiblyRetired"/>,
+    /// so the run sends nothing more for that credential.
+    /// </summary>
+    public async Task<Auth0NativeSession> RefreshWithBackoffAsync(
+        string refreshToken, CancellationToken cancellationToken, Func<TimeSpan, CancellationToken, Task>? delay = null)
+    {
+        delay ??= (wait, token) => Task.Delay(wait, token);
+        var elapsed = Stopwatch.StartNew();
+        var pause = RefreshFirstPause;
+        var timedOut = false;          // a send timed out: one immediate retry, then nothing more
+        var possiblyRetired = false;   // a send may have retired the token: later calls in this run send nothing
+        for (var attempt = 1; ; attempt++)
+        {
+            var remaining = RefreshBudget - elapsed.Elapsed;
+            if (remaining <= TimeSpan.Zero)
+            {
+                throw possiblyRetired
+                    ? Auth0RefreshUnavailableException.NotReadyForTimedOutToken()
+                    : new Auth0RefreshUnavailableException("Auth0 could not be reached", null, retryable: false, timedOut: true);
+            }
+            var attemptTimeout = remaining < RefreshRequestTimeout ? remaining : RefreshRequestTimeout;
+            try
+            {
+                return await RefreshCoreAsync(refreshToken, attemptTimeout, cancellationToken);
+            }
+            catch (Auth0RefreshUnavailableException ex) when (ex.TimedOut && !timedOut && elapsed.Elapsed < RefreshBudget)
+            {
+                timedOut = true;
+                possiblyRetired = true;
+            }
+            catch (Auth0RefreshUnavailableException ex) when ((ex.TimedOut || timedOut) && ex is not Auth0ClientNotReadyException)
+            {
+                // A timed-out send may have retired the token: send nothing more and report not ready.
+                throw Auth0RefreshUnavailableException.NotReadyForTimedOutToken(ex);
+            }
+            catch (Auth0RefreshUnavailableException ex) when (ex.Retryable)
+            {
+                possiblyRetired |= ex.PossiblyRetired;
+                var wait = ex.RetryAfter is { } retryAfter && retryAfter > pause ? retryAfter : pause;
+                // The last allowed attempt, and one whose wait no longer fits the budget, end the loop: no further
+                // send happens in this run.
+                if (attempt >= RefreshAttempts || elapsed.Elapsed + wait > RefreshBudget)
+                {
+                    if (!possiblyRetired) throw;
+                    throw Auth0RefreshUnavailableException.NotReadyForPossiblyRetiredToken("the last renewal did not finish", ex);
+                }
+                await delay(wait, cancellationToken);
+                pause *= 2;
+            }
+        }
+    }
+
+    /// <summary>
+    /// True when a transport fault may have reached Auth0: the connection was established, so the refresh token may
+    /// have been received and retired. A name-resolution, connect, TLS or proxy-tunnel fault never gets that far.
+    /// </summary>
+    private static bool MayHaveReachedAuth0(Exception ex) => ex switch
+    {
+        HttpRequestException http => http.HttpRequestError is not (
+            HttpRequestError.NameResolutionError or HttpRequestError.ConnectionError
+            or HttpRequestError.SecureConnectionError or HttpRequestError.ProxyTunnelError
+            or HttpRequestError.VersionNegotiationError or HttpRequestError.ExtendedConnectNotSupported),
+        // The answer could not be read after the request was written.
+        IOException => true,
+        // A request timeout after the send started.
+        OperationCanceledException => true,
+        _ => false,
+    };
+
+    private static TimeSpan? RetryAfterOf(RetryConditionHeaderValue? header)
+    {
+        if (header is null) return null;
+        if (header.Delta is { } delta) return delta > TimeSpan.Zero ? delta : null;
+        if (header.Date is { } date)
+        {
+            var wait = date - DateTimeOffset.UtcNow;
+            return wait > TimeSpan.Zero ? wait : null;
+        }
+        return null;
+    }
+
+    private static string? ErrorCodeOf(string text)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(text);
+            return document.RootElement.ValueKind == JsonValueKind.Object
+                && document.RootElement.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.String
+                ? error.GetString()
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     private HttpListener StartListener(out string redirectUri)

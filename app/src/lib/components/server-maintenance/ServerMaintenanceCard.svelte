@@ -3,7 +3,14 @@
   import { RefreshCw, Wrench } from "@lucide/svelte";
   import { tr, formatDateTime, stateLabel } from "#lib/i18n.svelte.js";
   import Button from "#lib/components/ui/Button.svelte";
-  import { denialMessage, parseApiError } from "#lib/api/errors.js";
+  import { Button as LinkButton } from "@kombiverselabs/ui/primitives";
+  import {
+    denialMessage,
+    isPlanDenial,
+    parseApiError,
+    type ParsedApiError,
+  } from "#lib/api/errors.js";
+  import { planHref } from "#lib/support/plan.js";
   import {
     getMaintenanceImpact,
     requestMaintenance,
@@ -45,6 +52,13 @@
   let pending = $state<PendingRequest | null>(null);
   let busy = $state(false);
   let error = $state<string | null>(null);
+  /** The shown refusal needs a plan; its one next step is the plan page. */
+  let planNeeded = $state(false);
+
+  function refusal(parsed: ParsedApiError): string {
+    planNeeded = isPlanDenial(parsed);
+    return planNeeded ? tr("maintenance.planNeeded") : denialMessage(parsed);
+  }
   let notice = $state<string | null>(null);
   let generation = 0;
   let jobReadSequence = 0;
@@ -139,7 +153,7 @@
         if (read === jobReadSequence && mine === generation) onChanged?.();
     } catch (cause) {
       if (mine !== generation || read !== jobReadSequence) return;
-      error = denialMessage(parseApiError(cause));
+      error = refusal(parseApiError(cause));
     }
     if (
       mine === generation &&
@@ -162,7 +176,7 @@
     } catch (cause) {
       if (mine !== generation) return null;
       impact = null;
-      error = denialMessage(parseApiError(cause));
+      error = refusal(parseApiError(cause));
       return null;
     }
   }
@@ -227,7 +241,7 @@
     } catch (cause) {
       if (mine !== generation) return;
       const parsed = parseApiError(cause);
-      error = denialMessage(parsed);
+      error = refusal(parsed);
       // Timeouts, disconnected transport and server errors may follow admission.
       // Keep both the body and key; the next click replays this exact attempt.
       if (parsed.status === 0 || parsed.status >= 500) {
@@ -302,7 +316,7 @@
       persist();
       await submitPending(mine);
     } catch (cause) {
-      if (mine === generation) error = denialMessage(parseApiError(cause));
+      if (mine === generation) error = refusal(parseApiError(cause));
     } finally {
       if (mine === generation) busy = false;
     }
@@ -317,7 +331,7 @@
     try {
       await cancelMaintenanceJob(serverId, jobId);
     } catch (cause) {
-      if (mine === generation) error = denialMessage(parseApiError(cause));
+      if (mine === generation) error = refusal(parseApiError(cause));
     } finally {
       if (mine === generation) {
         await followJob();
@@ -384,6 +398,11 @@
   {#if error}<p class="mt-4 text-sm text-destructive" role="alert">
       {error}
     </p>{/if}
+  {#if error && planNeeded}<LinkButton
+      class="mt-3"
+      variant="primary"
+      href={planHref()}>{tr("maintenance.choosePlan")}</LinkButton
+    >{/if}
   {#if pending}<Button
       class="mt-3"
       variant="secondary"

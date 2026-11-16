@@ -103,6 +103,11 @@ var securityFeatures = map[string]FeatureDefinition{
 
 // betaFeatures defines experimental features. Each definition owns its default.
 var betaFeatures = map[string]FeatureDefinition{
+	"server_hardware_fit": {
+		Key: "server_hardware_fit", Name: "Server hardware fit", DefaultValue: false,
+		RiskLevel: RiskLevelLow, Category: CategoryBeta,
+		Description: "Show selected workload capacity evidence at server choice.",
+	},
 	"cloudflare_tunnel": {
 		Key:             "cloudflare_tunnel_enabled",
 		Name:            "Cloudflare Tunnel",

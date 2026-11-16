@@ -56,6 +56,12 @@
   } from "#lib/service-card-adapter.js";
   import { ServiceCardCompact } from "@kombiverselabs/ui/service";
   import { EntityActionMenu, type EntityAction } from "@kombiverselabs/ui/entity";
+  import {
+    Button as LinkButton,
+    Tabs,
+    type TabItem,
+  } from "@kombiverselabs/ui/primitives";
+  import { EmptyState, ErrorState } from "@kombiverselabs/ui/states";
   import BrandLogoIcon from "#lib/components/BrandLogoIcon.svelte";
   import BrandLogoScope from "#lib/components/BrandLogoScope.svelte";
   import { brandDomainForTool } from "#lib/brand-logo.js";
@@ -121,9 +127,19 @@
   let runtimeStatus = $state<MonthlyRuntimeStatus | null>(null);
   let runtimeLogs = $state<RuntimeLogEntry[]>([]);
   let runtimeLogsError = $state<string | null>(null);
-  let activeTab = $state<
-    "overview" | "services" | "ports" | "checks" | "logs" | "settings"
-  >("overview");
+  const SERVER_TABS = [
+    "overview",
+    "services",
+    "ports",
+    "checks",
+    "logs",
+    "settings",
+  ] as const;
+  type ServerTab = (typeof SERVER_TABS)[number];
+  let activeTab = $state<ServerTab>("overview");
+  const serverTabs = $derived<TabItem[]>(
+    SERVER_TABS.map((id) => ({ id, label: tr(`serverPage.tab.${id}`) })),
+  );
   // The server API decides which servers its owner may detach.
   let canDetachSelfOwnedServer = $derived(
     canonicalServer?.allowed_actions?.includes("detach") === true,
@@ -568,16 +584,8 @@
   }
 
   function setTab(tab: string) {
-    if (
-      tab === "overview" ||
-      tab === "services" ||
-      tab === "ports" ||
-      tab === "checks" ||
-      tab === "logs" ||
-      tab === "settings"
-    ) {
-      activeTab = tab;
-    }
+    const next = SERVER_TABS.find((id) => id === tab);
+    if (next) activeTab = next;
   }
 
   // Disconnected as this page already reads it for access and drive health.
@@ -676,29 +684,6 @@
     }
     return items;
   });
-
-  // On a phone the section tabs are one row that scrolls sideways. Keep the
-  // current tab in view by scrolling the row only (never the page): a tab cut
-  // off at the edge brings the tab before it to the row's start.
-  let tabStrip = $state<HTMLElement>();
-  $effect(() => {
-    void activeTab;
-    const strip = tabStrip;
-    if (!strip || strip.scrollWidth <= strip.clientWidth) return;
-    const tab = strip.querySelector<HTMLElement>('[aria-selected="true"]');
-    if (!tab) return;
-    const box = strip.getBoundingClientRect();
-    const rect = tab.getBoundingClientRect();
-    if (rect.left >= box.left - 1 && rect.right <= box.right + 1) return;
-    const anchor = (tab.previousElementSibling as HTMLElement | null) ?? tab;
-    const target = anchor.getBoundingClientRect();
-    const rtl = getComputedStyle(strip).direction === "rtl";
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    strip.scrollBy({
-      left: rtl ? target.right - box.right : target.left - box.left,
-      behavior: reduced ? "auto" : "smooth",
-    });
-  });
 </script>
 
 <svelte:head>
@@ -710,10 +695,10 @@
   data-testid="server-details-page"
   aria-busy={loading || refreshing}
 >
-  <Button variant="ghost" class="mb-6" onclick={() => goto(backHref())}>
+  <LinkButton variant="ghost" class="mb-6" href={backHref()}>
     <ArrowLeft class="h-4 w-4" />
     {tr("ui.stacksIdServersServerId.backToOperations")}
-  </Button>
+  </LinkButton>
 
   {#if loading && !details}
     <LoadingNote
@@ -742,961 +727,944 @@
         retrying={refreshing}
       />
     {/if}
-    <nav
-      class="mb-6 border-b border-border"
-      aria-label={tr("ui.stacksIdServersServerId.serverDetailSections")}
-      data-testid="server-details-tabs"
+    <Tabs
+      tabs={serverTabs}
+      value={activeTab}
+      onchange={setTab}
+      label={tr("ui.stacksIdServersServerId.serverDetailSections")}
+      testId="server-tab"
+      class="server-details-tabs"
     >
-      <!-- Phones: one row that scrolls sideways (no scrollbar, 44 px tabs,
-           focus ring inside the clip); from 48rem the strip wraps as before. -->
-      <div
-        bind:this={tabStrip}
-        class="flex flex-nowrap gap-1 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden min-[48rem]:flex-wrap min-[48rem]:overflow-visible"
-        role="tablist"
-      >
-        {#each ["overview", "services", "ports", "checks", "logs", "settings"] as tab (tab)}
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab}
-            class="min-h-11 shrink-0 whitespace-nowrap px-3 py-2 text-sm focus-visible:-outline-offset-2 min-[48rem]:min-h-0 min-[48rem]:focus-visible:outline-offset-2 {activeTab === tab
-              ? 'border-b-2 border-primary text-foreground'
-              : 'text-muted-foreground hover:text-foreground'}"
-            data-testid={`server-tab-${tab}`}
-            onclick={() => setTab(tab)}
-          >
-            {tr(`serverPage.tab.${tab}`)}
-          </button>
-        {/each}
-      </div>
-    </nav>
-
-    {#if activeTab === "overview"}
-      <header data-kx="plate" class="mb-6 p-5">
-        <div
-          class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between"
-        >
-          <div class="min-w-0">
-            <div class="mb-2 flex flex-wrap items-center gap-2">
-              <span
-                data-kx="status"
-                data-status={bindingRepair ? "warn" : statusKind(details.server.health.state)}
-                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+      {#snippet panel(tab)}
+        {#if details}
+          {#if tab === "overview"}
+            <header data-kx="plate" class="mb-6 p-5">
+              <div
+                class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between"
               >
-                {bindingRepair ? tr("guard.repair.title") : formatStatus(details.server.health.state)}
-              </span>
-              <span
-                data-kx="tag"
-                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                >{details.server.role}</span
-              >
-              <span
-                data-kx="tag"
-                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-              >
-                {details.server.assignment}
-              </span>
-              <GuardBadge
-                server={canonicalServer}
-                capabilities={details.server.capabilities}
-              />
-            </div>
-            <div class="flex items-center justify-between gap-2">
-              <h1 class="min-w-0 truncate text-2xl font-semibold text-foreground">
-                {details.server.hostname}
-              </h1>
-              <div class="shrink-0" data-testid="server-actions-menu">
-                <EntityActionMenu
-                  actions={serverMenuActions}
-                  label={tr("ui.stacksIdServersServerId.moreActions", {
-                    name: details.server.hostname || serverId || "",
-                  })}
-                  size={40}
-                />
-              </div>
-            </div>
-            <p class="mt-1 text-sm text-muted-foreground">
-              {serverOSLabel()}
-              - {details.server.ip || tr("serverPage.noIp")}
-            </p>
-          </div>
-        </div>
-      </header>
-
-      {#if bindingRepair && canonicalServer}
-        <div class="mb-6">
-          <GuardBindingRepair serverId={canonicalServer.id} />
-        </div>
-      {/if}
-
-      <div class="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div data-kx="plate" class="p-4">
-          <div class="mb-3 flex items-center justify-between">
-            <span class="text-sm text-muted-foreground">CPU</span>
-            <Gauge class="h-4 w-4 text-primary" />
-          </div>
-          <p class="text-2xl font-semibold text-foreground">
-            {formatMetric(details.health.cpu_percent)}
-          </p>
-        </div>
-        <div data-kx="plate" class="p-4">
-          <div class="mb-3 flex items-center justify-between">
-            <span class="text-sm text-muted-foreground">{tr("ui.stacksIdServersServerId.memory")}</span>
-            <Server class="h-4 w-4 text-success" />
-          </div>
-          <p class="text-2xl font-semibold text-foreground">
-            {formatMetric(details.health.memory_percent)}
-          </p>
-        </div>
-        <div data-kx="plate" class="p-4">
-          <div class="mb-3 flex items-center justify-between">
-            <span class="text-sm text-muted-foreground">{tr("ui.stacksIdServersServerId.disk")}</span>
-            <HardDrive class="h-4 w-4 text-info" />
-          </div>
-          <p class="text-2xl font-semibold text-foreground">
-            {formatMetric(details.health.disk_percent)}
-          </p>
-        </div>
-        <div data-kx="plate" class="p-4">
-          <div class="mb-3 flex items-center justify-between">
-            <span class="text-sm text-muted-foreground">{tr("ui.stacksIdServersServerId.preChecks")}</span>
-            <ListChecks class="h-4 w-4 text-warning" />
-          </div>
-          <p class="text-2xl font-semibold text-foreground">
-            {details.checks.length}
-          </p>
-        </div>
-      </div>
-    {/if}
-
-    {#if actionError}
-      <ErrorCallout class="mb-6" message={actionError} />
-    {/if}
-
-    {#if activeTab === "overview"}
-      <DriveHealth
-        serverId={serverId || ""}
-        refreshKey={driveRefreshKey}
-        disconnected={canonicalServer?.connection.state === "offline" ||
-          canonicalServer?.connection.state === "revoked"}
-      />
-      <GuardPanel
-        server={canonicalServer}
-        capabilities={details.server.capabilities}
-        serverName={details.server.hostname}
-        stackId={stackId}
-        agentId={details.server.agent_id}
-        canDetach={canDetachSelfOwnedServer}
-        onChanged={() => load()}
-        onDetached={() => goto("/dashboard")}
-      />
-      <div class="mb-6">
-        <ServerNetworkCard
-          serverId={serverId || ""}
-          unreachable={canonicalServer?.connection.state === "stale" ||
-            canonicalServer?.connection.state === "offline"}
-        />
-      </div>
-      <div class="mb-6">
-        <ServerAvailabilityCard serverId={serverId || ""} />
-      </div>
-    {/if}
-
-    {#if activeTab === "overview"}
-      {#if canonicalServer}
-        <div class="mb-6">
-          {#key canonicalServer.id}
-            <ServerMaintenanceCard
-              serverId={canonicalServer.id}
-              serverName={canonicalServer.name || details.server.hostname}
-              allowedActions={canonicalServer.allowed_actions || []}
-              disabled={actionLoading !== null || lifecycleBusy}
-              onChanged={() => void load()}
-            />
-          {/key}
-        </div>
-      {/if}
-      {@const access = persistedAccessContext()}
-      <section class="grid gap-6 lg:grid-cols-2">
-        <div data-kx="plate" class="p-5">
-          <div class="mb-4 flex items-center gap-2">
-            <ShieldCheck class="h-5 w-5 text-primary" />
-            <h2 class="text-lg font-semibold text-foreground">{tr("ui.stacksCreatingCreationLease.access")}</h2>
-          </div>
-          <ServerAccessActions
-            serverId={serverId || ""}
-            serverName={details.server.hostname || serverId || tr("ui.servicesApplicationId.server")}
-            unavailable={canonicalServer?.connection.state === "offline" ||
-              canonicalServer?.connection.state === "revoked"}
-            unavailableReason={canonicalServer
-              ? tr("ui.serverDetail.connectionState", {
-                state: formatStatus(canonicalServer.connection.state),
-              })
-              : tr("ui.stacksIdServersServerId.canonicalServerAccessIsNot")}
-          />
-          {#if managedLeaseId()}
-            <dl class="grid grid-cols-2 gap-3 text-sm">
-              <div class="rounded-lg bg-muted/40 p-3">
-                <dt class="text-muted-foreground">{tr("ui.stacksCreatingCreationLease.host")}</dt>
-                <dd class="mt-1 break-all font-mono text-foreground">
-                  {access.host || "pending"}
-                </dd>
-              </div>
-              <div class="rounded-lg bg-muted/40 p-3">
-                <dt class="text-muted-foreground">SSH</dt>
-                <dd class="mt-1 font-mono text-foreground">
-                  {access.user || "user pending"}@{access.host ||
-                    "host pending"}:{access.port}
-                </dd>
-              </div>
-            </dl>
-            <p class="mt-3 text-sm text-muted-foreground">
-              {tr("ui.stacksIdServersServerId.managedRuntimeLeaseContext")}
-            </p>
-          {:else}
-            <p class="text-sm text-muted-foreground">
-              {tr("ui.stacksIdServersServerId.thisServerIsRegisteredThrough")}
-            </p>
-          {/if}
-        </div>
-
-        <div data-kx="plate" class="p-5">
-          <div class="mb-4 flex items-center gap-2">
-            <Server class="h-5 w-5 text-primary" />
-            <h2 class="text-lg font-semibold text-foreground">{tr("ui.stacksIdServersServerId.metadata")}</h2>
-          </div>
-          <dl class="grid grid-cols-2 gap-3 text-sm">
-            <div class="rounded-lg bg-muted/40 p-3">
-              <dt class="text-muted-foreground">{tr("ui.stacksIdServersServerId.agentId")}</dt>
-              <dd class="mt-1 break-all font-mono text-foreground">
-                {details.server.agent_id}
-              </dd>
-            </div>
-            <div class="rounded-lg bg-muted/40 p-3">
-              <dt class="text-muted-foreground">{tr("ui.stacksIdServersServerId.lastSeen")}</dt>
-              <dd class="mt-1 text-foreground">
-                {details.server.last_seen || stateLabel("unknown")}
-              </dd>
-            </div>
-            <div class="rounded-lg bg-muted/40 p-3">
-              <dt class="text-muted-foreground">{tr("ui.stacksIdServersServerId.cpuCores")}</dt>
-              <dd class="mt-1 text-foreground">
-                {details.server.capabilities.cpu_cores || stateLabel("unknown")}
-              </dd>
-            </div>
-            <div class="rounded-lg bg-muted/40 p-3">
-              <dt class="text-muted-foreground">RAM</dt>
-              <dd class="mt-1 text-foreground">
-                {details.server.capabilities.ram_mb
-                  ? `${details.server.capabilities.ram_mb} MB`
-                  : "unknown"}
-              </dd>
-            </div>
-            <div class="rounded-lg bg-muted/40 p-3">
-              <dt class="text-muted-foreground">Docker</dt>
-              <dd class="mt-1 text-foreground">
-                {details.server.capabilities.docker_version || stateLabel("unknown")}
-              </dd>
-            </div>
-            <div class="rounded-lg bg-muted/40 p-3">
-              <dt class="text-muted-foreground">{tr("ui.stacksCreatingCreationLease.provider")}</dt>
-              <dd class="mt-1 text-foreground">
-                {details.server.capabilities.provider || stateLabel("unknown")}
-              </dd>
-            </div>
-            <div class="rounded-lg bg-muted/40 p-3">
-              <dt class="text-muted-foreground">{tr("ui.stacksIdServersServerId.operatingSystem")}</dt>
-              <dd class="mt-1 text-foreground">
-                {details.server.os || stateLabel("unknown")}
-                {details.server.os_version
-                  ? ` ${details.server.os_version}`
-                  : ""}
-              </dd>
-            </div>
-            <div class="rounded-lg bg-muted/40 p-3">
-              <dt class="text-muted-foreground">{tr("ui.stacksIdServersServerId.architecture")}</dt>
-              <dd class="mt-1 text-foreground">
-                {details.server.arch || stateLabel("unknown")}
-              </dd>
-            </div>
-          </dl>
-        </div>
-
-        <StackKitOperatorPanel server={canonicalServer} stackId={stackId || ""} agentId={details.server.agent_id || ""} disabled={actionLoading !== null} onBusy={(busy) => lifecycleBusy = busy} onChanged={() => load()} />
-
-        <div data-kx="plate" class="p-5" data-testid="server-stackkit-details">
-          <div class="mb-4 flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
-              <ClipboardCheck class="h-5 w-5 text-primary" />
-              <h2 class="text-lg font-semibold text-foreground">StackKit</h2>
-            </div>
-            {#if details.server.stackkit}
-              <span
-                data-kx="status"
-                data-status={statusKind(details.server.stackkit.state)}
-                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-              >
-                {formatStatus(details.server.stackkit.state)}
-              </span>
-            {/if}
-          </div>
-          {#if details.server.stackkit}
-            <p class="font-medium text-foreground">{stackKitName()}</p>
-            <p class="mt-1 text-sm text-muted-foreground">
-              {stackKitVariant()}
-            </p>
-            <p class="mt-4 text-xs text-muted-foreground">
-              {tr("ui.serverDetail.evidence", { sources: details.server.stackkit.sources.length ? details.server.stackkit.sources.join(", ") : tr("ui.serverDetail.sourceNotReported") })}
-            </p>
-            {#if details.server.stackkit.state !== "observed"}
-              <p
-                class="mt-3 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-muted-foreground"
-              >
-                {tr("ui.stacksIdServersServerId.thisIsConfiguredStackkitIntent")}
-              </p>
-            {/if}
-          {:else}
-            <p class="text-sm text-muted-foreground">
-              {tr("ui.stacksIdServersServerId.noStackkitDeploymentEvidenceHas")}
-            </p>
-          {/if}
-        </div>
-
-        <div data-kx="plate" class="p-5" data-testid="server-network-details">
-          <div class="mb-4 flex items-center gap-2">
-            <Server class="h-5 w-5 text-primary" />
-            <h2 class="text-lg font-semibold text-foreground">
-              {tr("ui.stacksIdServersServerId.addressesDomains")}
-            </h2>
-          </div>
-          {#if serverAddresses().length}
-            <div class="space-y-2">
-              {#each serverAddresses() as address (`${address.scope}:${address.address}`)}
-                <div class="rounded-lg bg-muted/40 p-3 text-sm">
-                  <div
-                    class="flex flex-wrap items-center justify-between gap-2"
-                  >
-                    <span class="break-all font-mono text-foreground">
-                      {address.address}
+                <div class="min-w-0">
+                  <div class="mb-2 flex flex-wrap items-center gap-2">
+                    <span
+                      data-kx="status"
+                      data-status={bindingRepair ? "warn" : statusKind(details.server.health.state)}
+                      class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                    >
+                      {bindingRepair ? tr("guard.repair.title") : formatStatus(details.server.health.state)}
                     </span>
                     <span
                       data-kx="tag"
                       class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                      >{details.server.role}</span
                     >
-                      {address.scope || "address"}
-                    </span>
-                  </div>
-                  <p class="mt-1 text-xs text-muted-foreground">
-                    {address.provenance || "source not reported"}
-                  </p>
-                </div>
-              {/each}
-            </div>
-          {:else}
-            <p class="text-sm text-muted-foreground">
-              {tr("ui.stacksIdServersServerId.noHostAddressHasBeen")}
-            </p>
-          {/if}
-          <div class="mt-4 flex flex-wrap gap-2" data-testid="server-domains">
-            {#each details.server.domains || [] as domain (domain)}
-              <span
-                data-kx="tag"
-                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium break-all"
-                >{domain}</span
-              >
-            {:else}
-              <span class="text-sm text-muted-foreground">
-                {tr("ui.stacksIdServersServerId.noServiceDomainsReported")}
-              </span>
-            {/each}
-          </div>
-        </div>
-
-        <div
-          data-kx="plate"
-          class="p-5 lg:col-span-2"
-          data-testid="server-service-endpoints"
-        >
-          <div class="mb-4 flex items-center gap-2">
-            <Activity class="h-5 w-5 text-info" />
-            <h2 class="text-lg font-semibold text-foreground">
-              {tr("ui.stacksIdServersServerId.serviceEndpoints")}
-            </h2>
-          </div>
-          {#if details.server.service_endpoints?.length}
-            <div class="grid gap-3 md:grid-cols-2">
-              {#each details.server.service_endpoints as endpoint (endpoint.url)}
-                {@const href = safeEndpointHref(endpoint)}
-                <div class="min-w-0 rounded-lg bg-muted/40 p-3 text-sm">
-                  <div
-                    class="flex flex-wrap items-center justify-between gap-2"
-                  >
-                    <p class="font-medium text-foreground">
-                      {endpoint.name || endpoint.service_key || tr("ui.services.service")}
-                    </p>
                     <span
-                      data-kx="status"
-                      data-status={statusKind(endpoint.health || "unknown")}
+                      data-kx="tag"
                       class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
                     >
-                      {formatStatus(endpoint.health || "unknown")}
+                      {details.server.assignment}
                     </span>
+                    <GuardBadge
+                      server={canonicalServer}
+                      capabilities={details.server.capabilities}
+                    />
                   </div>
-                  {#if href}
-                    <a
-                      class="mt-2 block truncate font-mono text-primary underline-offset-4 hover:underline"
-                      {href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title={endpoint.url}
+                  <div class="flex items-center justify-between gap-2">
+                    <h1 class="min-w-0 truncate text-2xl font-semibold text-foreground">
+                      {details.server.hostname}
+                    </h1>
+                    <div class="shrink-0" data-testid="server-actions-menu">
+                      <EntityActionMenu
+                        actions={serverMenuActions}
+                        label={tr("ui.stacksIdServersServerId.moreActions", {
+                          name: details.server.hostname || serverId || "",
+                        })}
+                        size={40}
+                      />
+                    </div>
+                  </div>
+                  <p class="mt-1 text-sm text-muted-foreground">
+                    {serverOSLabel()}
+                    - {details.server.ip || tr("serverPage.noIp")}
+                  </p>
+                </div>
+              </div>
+            </header>
+
+            {#if bindingRepair && canonicalServer}
+              <div class="mb-6">
+                <GuardBindingRepair serverId={canonicalServer.id} />
+              </div>
+            {/if}
+
+            <div class="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div data-kx="plate" class="p-4">
+                <div class="mb-3 flex items-center justify-between">
+                  <span class="text-sm text-muted-foreground">CPU</span>
+                  <Gauge class="h-4 w-4 text-primary" />
+                </div>
+                <p class="text-2xl font-semibold text-foreground">
+                  {formatMetric(details.health.cpu_percent)}
+                </p>
+              </div>
+              <div data-kx="plate" class="p-4">
+                <div class="mb-3 flex items-center justify-between">
+                  <span class="text-sm text-muted-foreground">{tr("ui.stacksIdServersServerId.memory")}</span>
+                  <Server class="h-4 w-4 text-success" />
+                </div>
+                <p class="text-2xl font-semibold text-foreground">
+                  {formatMetric(details.health.memory_percent)}
+                </p>
+              </div>
+              <div data-kx="plate" class="p-4">
+                <div class="mb-3 flex items-center justify-between">
+                  <span class="text-sm text-muted-foreground">{tr("ui.stacksIdServersServerId.disk")}</span>
+                  <HardDrive class="h-4 w-4 text-info" />
+                </div>
+                <p class="text-2xl font-semibold text-foreground">
+                  {formatMetric(details.health.disk_percent)}
+                </p>
+              </div>
+              <div data-kx="plate" class="p-4">
+                <div class="mb-3 flex items-center justify-between">
+                  <span class="text-sm text-muted-foreground">{tr("ui.stacksIdServersServerId.preChecks")}</span>
+                  <ListChecks class="h-4 w-4 text-warning" />
+                </div>
+                <p class="text-2xl font-semibold text-foreground">
+                  {details.checks.length}
+                </p>
+              </div>
+            </div>
+          {/if}
+
+          {#if actionError}
+            <ErrorCallout class="mb-6" message={actionError} />
+          {/if}
+
+          {#if tab === "overview"}
+            <DriveHealth
+              serverId={serverId || ""}
+              refreshKey={driveRefreshKey}
+              disconnected={canonicalServer?.connection.state === "offline" ||
+                canonicalServer?.connection.state === "revoked"}
+            />
+            <GuardPanel
+              server={canonicalServer}
+              capabilities={details.server.capabilities}
+              serverName={details.server.hostname}
+              stackId={stackId}
+              agentId={details.server.agent_id}
+              canDetach={canDetachSelfOwnedServer}
+              onChanged={() => load()}
+              onDetached={() => goto("/dashboard")}
+            />
+            <div class="mb-6">
+              <ServerNetworkCard
+                serverId={serverId || ""}
+                unreachable={canonicalServer?.connection.state === "stale" ||
+                  canonicalServer?.connection.state === "offline"}
+              />
+            </div>
+            <div class="mb-6">
+              <ServerAvailabilityCard serverId={serverId || ""} />
+            </div>
+          {/if}
+
+          {#if tab === "overview"}
+            {#if canonicalServer}
+              <div class="mb-6">
+                {#key canonicalServer.id}
+                  <ServerMaintenanceCard
+                    serverId={canonicalServer.id}
+                    serverName={canonicalServer.name || details.server.hostname}
+                    allowedActions={canonicalServer.allowed_actions || []}
+                    disabled={actionLoading !== null || lifecycleBusy}
+                    onChanged={() => void load()}
+                  />
+                {/key}
+              </div>
+            {/if}
+            {@const access = persistedAccessContext()}
+            <section class="grid gap-6 lg:grid-cols-2">
+              <div data-kx="plate" class="p-5">
+                <div class="mb-4 flex items-center gap-2">
+                  <ShieldCheck class="h-5 w-5 text-primary" />
+                  <h2 class="text-lg font-semibold text-foreground">{tr("ui.stacksCreatingCreationLease.access")}</h2>
+                </div>
+                <ServerAccessActions
+                  serverId={serverId || ""}
+                  serverName={details.server.hostname || serverId || tr("ui.servicesApplicationId.server")}
+                  unavailable={canonicalServer?.connection.state === "offline" ||
+                    canonicalServer?.connection.state === "revoked"}
+                  unavailableReason={canonicalServer
+                    ? tr("ui.serverDetail.connectionState", {
+                      state: formatStatus(canonicalServer.connection.state),
+                    })
+                    : tr("ui.stacksIdServersServerId.canonicalServerAccessIsNot")}
+                />
+                {#if managedLeaseId()}
+                  <dl class="grid grid-cols-2 gap-3 text-sm">
+                    <div class="rounded-lg bg-muted/40 p-3">
+                      <dt class="text-muted-foreground">{tr("ui.stacksCreatingCreationLease.host")}</dt>
+                      <dd class="mt-1 break-all font-mono text-foreground">
+                        {access.host || "pending"}
+                      </dd>
+                    </div>
+                    <div class="rounded-lg bg-muted/40 p-3">
+                      <dt class="text-muted-foreground">SSH</dt>
+                      <dd class="mt-1 font-mono text-foreground">
+                        {access.user || "user pending"}@{access.host ||
+                          "host pending"}:{access.port}
+                      </dd>
+                    </div>
+                  </dl>
+                  <p class="mt-3 text-sm text-muted-foreground">
+                    {tr("ui.stacksIdServersServerId.managedRuntimeLeaseContext")}
+                  </p>
+                {:else}
+                  <p class="text-sm text-muted-foreground">
+                    {tr("ui.stacksIdServersServerId.thisServerIsRegisteredThrough")}
+                  </p>
+                {/if}
+              </div>
+
+              <div data-kx="plate" class="p-5">
+                <div class="mb-4 flex items-center gap-2">
+                  <Server class="h-5 w-5 text-primary" />
+                  <h2 class="text-lg font-semibold text-foreground">{tr("ui.stacksIdServersServerId.metadata")}</h2>
+                </div>
+                <dl class="grid grid-cols-2 gap-3 text-sm">
+                  <div class="rounded-lg bg-muted/40 p-3">
+                    <dt class="text-muted-foreground">{tr("ui.stacksIdServersServerId.agentId")}</dt>
+                    <dd class="mt-1 break-all font-mono text-foreground">
+                      {details.server.agent_id}
+                    </dd>
+                  </div>
+                  <div class="rounded-lg bg-muted/40 p-3">
+                    <dt class="text-muted-foreground">{tr("ui.stacksIdServersServerId.lastSeen")}</dt>
+                    <dd class="mt-1 text-foreground">
+                      {details.server.last_seen || stateLabel("unknown")}
+                    </dd>
+                  </div>
+                  <div class="rounded-lg bg-muted/40 p-3">
+                    <dt class="text-muted-foreground">{tr("ui.stacksIdServersServerId.cpuCores")}</dt>
+                    <dd class="mt-1 text-foreground">
+                      {details.server.capabilities.cpu_cores || stateLabel("unknown")}
+                    </dd>
+                  </div>
+                  <div class="rounded-lg bg-muted/40 p-3">
+                    <dt class="text-muted-foreground">RAM</dt>
+                    <dd class="mt-1 text-foreground">
+                      {details.server.capabilities.ram_mb
+                        ? `${details.server.capabilities.ram_mb} MB`
+                        : "unknown"}
+                    </dd>
+                  </div>
+                  <div class="rounded-lg bg-muted/40 p-3">
+                    <dt class="text-muted-foreground">Docker</dt>
+                    <dd class="mt-1 text-foreground">
+                      {details.server.capabilities.docker_version || stateLabel("unknown")}
+                    </dd>
+                  </div>
+                  <div class="rounded-lg bg-muted/40 p-3">
+                    <dt class="text-muted-foreground">{tr("ui.stacksCreatingCreationLease.provider")}</dt>
+                    <dd class="mt-1 text-foreground">
+                      {details.server.capabilities.provider || stateLabel("unknown")}
+                    </dd>
+                  </div>
+                  <div class="rounded-lg bg-muted/40 p-3">
+                    <dt class="text-muted-foreground">{tr("ui.stacksIdServersServerId.operatingSystem")}</dt>
+                    <dd class="mt-1 text-foreground">
+                      {details.server.os || stateLabel("unknown")}
+                      {details.server.os_version
+                        ? ` ${details.server.os_version}`
+                        : ""}
+                    </dd>
+                  </div>
+                  <div class="rounded-lg bg-muted/40 p-3">
+                    <dt class="text-muted-foreground">{tr("ui.stacksIdServersServerId.architecture")}</dt>
+                    <dd class="mt-1 text-foreground">
+                      {details.server.arch || stateLabel("unknown")}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+
+              <StackKitOperatorPanel server={canonicalServer} stackId={stackId || ""} agentId={details.server.agent_id || ""} disabled={actionLoading !== null} onBusy={(busy) => lifecycleBusy = busy} onChanged={() => load()} />
+
+              <div data-kx="plate" class="p-5" data-testid="server-stackkit-details">
+                <div class="mb-4 flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2">
+                    <ClipboardCheck class="h-5 w-5 text-primary" />
+                    <h2 class="text-lg font-semibold text-foreground">StackKit</h2>
+                  </div>
+                  {#if details.server.stackkit}
+                    <span
+                      data-kx="status"
+                      data-status={statusKind(details.server.stackkit.state)}
+                      class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
                     >
-                      {endpoint.url}
-                    </a>
-                  {:else}
-                    <p class="mt-2 break-all font-mono text-muted-foreground">
-                      {endpoint.url}
+                      {formatStatus(details.server.stackkit.state)}
+                    </span>
+                  {/if}
+                </div>
+                {#if details.server.stackkit}
+                  <p class="font-medium text-foreground">{stackKitName()}</p>
+                  <p class="mt-1 text-sm text-muted-foreground">
+                    {stackKitVariant()}
+                  </p>
+                  <p class="mt-4 text-xs text-muted-foreground">
+                    {tr("ui.serverDetail.evidence", { sources: details.server.stackkit.sources.length ? details.server.stackkit.sources.join(", ") : tr("ui.serverDetail.sourceNotReported") })}
+                  </p>
+                  {#if details.server.stackkit.state !== "observed"}
+                    <p
+                      class="mt-3 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-muted-foreground"
+                    >
+                      {tr("ui.stacksIdServersServerId.thisIsConfiguredStackkitIntent")}
                     </p>
                   {/if}
-                  <p class="mt-2 text-xs text-muted-foreground">
-                    {endpoint.visibility || "visibility unknown"} · {endpoint.provenance ||
-                      endpoint.source}
+                {:else}
+                  <p class="text-sm text-muted-foreground">
+                    {tr("ui.stacksIdServersServerId.noStackkitDeploymentEvidenceHas")}
                   </p>
+                {/if}
+              </div>
+
+              <div data-kx="plate" class="p-5" data-testid="server-network-details">
+                <div class="mb-4 flex items-center gap-2">
+                  <Server class="h-5 w-5 text-primary" />
+                  <h2 class="text-lg font-semibold text-foreground">
+                    {tr("ui.stacksIdServersServerId.addressesDomains")}
+                  </h2>
                 </div>
-              {/each}
-            </div>
-          {:else}
-            <p class="text-sm text-muted-foreground">
-              {tr("ui.stacksIdServersServerId.noObservedServiceEndpointsHave")}
-            </p>
-          {/if}
-        </div>
-
-        <div data-kx="plate" class="p-5">
-          <div class="mb-4 flex items-center gap-2">
-            <CheckCircle2 class="h-5 w-5 text-success" />
-            <h2 class="text-lg font-semibold text-foreground">{tr("ui.services.health")}</h2>
-          </div>
-          <p class="text-sm text-muted-foreground">
-            {tr("ui.serverDetail.healthSource", { source: details.health.source, backend: details.monitoring.queryBackend })}
-          </p>
-          {#if details.health.notes?.length}
-            <div class="mt-4 space-y-2">
-              {#each details.health.notes as note (note)}
-                <p
-                  class="rounded-lg bg-muted/40 p-3 text-sm text-muted-foreground"
-                >
-                  {note}
-                </p>
-              {/each}
-            </div>
-          {/if}
-        </div>
-      </section>
-    {:else if activeTab === "services"}
-      <!-- Boxless section (operator direction 2026-08-19) -->
-      <section>
-        <div class="mb-4 flex items-center gap-2">
-          <ClipboardCheck class="h-5 w-5 text-info" />
-          <h2 class="text-lg font-semibold text-foreground">{tr("ui.services.services")}</h2>
-        </div>
-        {#if details.services.length === 0}
-          <p class="text-sm text-muted-foreground">
-            {tr("ui.stacksIdServersServerId.noServicePlacementIsRecorded")}
-          </p>
-        {:else}
-          <div class="grid gap-2 md:grid-cols-2">
-            {#each details.services as service (service.id || service.name)}
-              <BrandLogoScope
-                domain={brandDomainForTool(
-                  service.name,
-                  service.display_name,
-                  service.type,
-                )}
-              >
-                <ServiceCardCompact
-                  name={serviceCardName(service)}
-                  meta={serviceCardMeta(service)}
-                  icon={BrandLogoIcon}
-                  placement={serviceCardPlacement(service)}
-                  status={serviceCardStatus(service)}
-                  showGrip={false}
-                  onOpen={service.url
-                    ? () => openServiceUrl(service)
-                    : undefined}
-                />
-              </BrandLogoScope>
-            {/each}
-          </div>
-        {/if}
-      </section>
-    {:else if activeTab === "ports"}
-      <section id="port-inventory" data-testid="server-port-inventory">
-        <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div class="flex items-center gap-2">
-              <Activity class="h-5 w-5 text-info" />
-              <h2 class="text-lg font-semibold text-foreground">
-                {tr("ui.stacksIdServersServerId.portAllocations")}
-              </h2>
-            </div>
-            <p class="mt-1 text-sm text-muted-foreground">
-              {tr("ui.stacksIdServersServerId.desiredListenersDurableReservationsAnd")}
-            </p>
-          </div>
-          {#if portInventory?.observed_at}
-            <p class="text-xs text-muted-foreground">
-              {tr("ui.serverDetail.observedAt", { time: formatDateTime(portInventory.observed_at) })}
-            </p>
-          {/if}
-        </div>
-
-        {#if portInventoryError}
-          <div class="rounded-lg border border-warning/40 bg-warning/10 p-4">
-            <p class="font-medium text-foreground">
-              {tr("ui.stacksIdServersServerId.portInventoryIsNotAvailable")}
-            </p>
-            <p class="mt-1 text-sm text-muted-foreground">
-              {portInventoryError}
-            </p>
-            <Button
-              variant="secondary"
-              class="mt-3"
-              onclick={() => void load()}
-              disabled={refreshing}
-            >
-              <RefreshCw class="h-4 w-4 {refreshing ? 'animate-spin' : ''}" />
-              {refreshing ? tr("ui.monitoring.refreshing") : tr("ui.homelabDashboardPage.refresh")}
-            </Button>
-          </div>
-        {:else if !portInventory || portInventory.allocations.length === 0}
-          <div class="rounded-lg border border-border bg-background/40 p-4">
-            <p class="font-medium text-foreground">
-              {portInventory?.observed_at
-                ? portInventory.listeners_complete
-                  ? tr("ui.stacksIdServersServerId.noPortAllocationsRecorded")
-                  : tr("ui.stacksIdServersServerId.portEvidenceIsPartial")
-                : tr("ui.stacksIdServersServerId.noPortEvidenceYet")}
-            </p>
-            <p class="mt-1 text-sm text-muted-foreground">
-              {portInventory?.observed_at
-                ? portInventory.listeners_complete
-                  ? tr("ui.stacksIdServersServerId.noCompilerDeclaredReservationOr")
-                  : tr("ui.stacksIdServersServerId.noDesiredListenerIsReserved")
-                : tr("ui.stacksIdServersServerId.noDesiredListenerIsReserved2")}
-            </p>
-          </div>
-        {:else}
-          <div class="overflow-x-auto rounded-lg border border-border">
-            <table class="w-full min-w-[760px] text-left text-sm">
-              <thead
-                class="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground"
-              >
-                <tr>
-                  <th class="px-4 py-3 font-medium">{tr("ui.stacksIdServersServerId.listener")}</th>
-                  <th class="px-4 py-3 font-medium">{tr("ui.stacksIdServersServerId.intent")}</th>
-                  <th class="px-4 py-3 font-medium">{tr("ui.stacksIdServersServerId.reservation")}</th>
-                  <th class="px-4 py-3 font-medium">{tr("ui.services.observed")}</th>
-                  <th class="px-4 py-3 font-medium">{tr("ui.stacksIdServersServerId.exposed")}</th>
-                  <th class="px-4 py-3 font-medium">{tr("ui.stacksIdServersServerId.drift")}</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-border">
-                {#each portInventory.allocations as allocation (allocation.id)}
-                  <tr class="bg-background/30 align-top">
-                    <td class="px-4 py-3">
-                      <p class="font-mono font-medium text-foreground">
-                        {allocation.bind_address}:{allocation.port}/{allocation.transport}
-                      </p>
-                      <p class="mt-1 text-xs text-muted-foreground">
-                        {allocation.node_ref ||
-                          (allocation.desired
-                            ? tr("serverPage.primaryServer")
-                            : tr("serverPage.runtimeOnly"))}
-                      </p>
-                    </td>
-                    <td class="px-4 py-3 text-foreground">
-                      <p>
-                        {allocation.desired
-                          ? formatStatus(allocation.exposure)
-                          : tr("ui.stacksIdServersServerId.notDeclared")}
-                      </p>
-                      {#if allocation.kit_deployment_id}
-                        <p
-                          class="mt-1 max-w-40 truncate text-xs text-muted-foreground"
-                          title={allocation.kit_deployment_id}
+                {#if serverAddresses().length}
+                  <div class="space-y-2">
+                    {#each serverAddresses() as address (`${address.scope}:${address.address}`)}
+                      <div class="rounded-lg bg-muted/40 p-3 text-sm">
+                        <div
+                          class="flex flex-wrap items-center justify-between gap-2"
                         >
-                          {allocation.kit_deployment_id}
+                          <span class="break-all font-mono text-foreground">
+                            {address.address}
+                          </span>
+                          <span
+                            data-kx="tag"
+                            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                          >
+                            {address.scope || "address"}
+                          </span>
+                        </div>
+                        <p class="mt-1 text-xs text-muted-foreground">
+                          {address.provenance || "source not reported"}
                         </p>
-                      {/if}
-                    </td>
-                    <td class="px-4 py-3">
-                      <span
-                        data-kx="status"
-                        data-status={statusKind(
-                          allocation.claim_state ||
-                            allocation.reservation_state ||
-                            "unknown",
-                        )}
-                        class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
-                      >
-                        {formatStatus(
-                          allocation.claim_state ||
-                            allocation.reservation_state ||
-                            "unknown",
-                        )}
-                      </span>
-                    </td>
-                    <td class="px-4 py-3">
-                      <span
-                        data-kx="status"
-                        data-status={statusKind(allocation.observed_state)}
-                        class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
-                      >
-                        {formatStatus(allocation.observed_state)}
-                      </span>
-                    </td>
-                    <td class="px-4 py-3">
-                      <span
-                        data-kx="status"
-                        data-status={statusKind(allocation.exposed_state)}
-                        class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
-                      >
-                        {formatStatus(allocation.exposed_state)}
-                      </span>
-                    </td>
-                    <td class="px-4 py-3">
-                      <span
-                        data-kx="status"
-                        data-status={statusKind(allocation.drift_state)}
-                        class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
-                      >
-                        {formatStatus(allocation.drift_state)}
-                      </span>
-                    </td>
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
-          </div>
-          {#if !portInventory.listeners_complete || !portInventory.exposures_complete}
-            <p class="mt-3 text-sm text-muted-foreground">
-              {tr("ui.stacksIdServersServerId.runtimeEvidenceIsPartialUnknown")}
-            </p>
-          {/if}
-        {/if}
-      </section>
-    {:else if activeTab === "checks"}
-      <!-- Boxless section (operator direction 2026-08-19) -->
-      <section>
-        <div class="mb-4 flex items-center gap-2">
-          <ListChecks class="h-5 w-5 text-warning" />
-          <h2 class="text-lg font-semibold text-foreground">{tr("ui.stacksIdServersServerId.checks")}</h2>
-        </div>
-        {#if details.checks.length === 0}
-          <p class="text-sm text-muted-foreground">
-            {tr("ui.stacksIdServersServerId.noPreCheckResultIs")}
-          </p>
-        {:else}
-          <div class="space-y-3">
-            {#each details.checks as check (check.id)}
-              <div class="rounded-lg border border-border bg-background/40 p-3">
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                  <p class="font-medium text-foreground">{check.check_type}</p>
-                  <span
-                    data-kx="status"
-                    data-status={statusKind(check.status)}
-                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                    >{formatStatus(check.status)}</span
-                  >
-                </div>
-                {#if check.message}
-                  <p class="mt-1 text-sm text-muted-foreground">
-                    {check.message}
-                  </p>
-                {/if}
-              </div>
-            {/each}
-          </div>
-        {/if}
-      </section>
-    {:else if activeTab === "logs"}
-      <!-- Boxless section (operator direction 2026-08-19) -->
-      <section>
-        <div class="mb-4 flex items-center gap-2">
-          <TerminalSquare class="h-5 w-5 text-primary" />
-          <h2 class="text-lg font-semibold text-foreground">{tr("ui.stacksIdServersServerId.logs")}</h2>
-        </div>
-        {#if runtimeLogsError}
-          <p class="mb-3 text-sm text-warning">{runtimeLogsError}</p>
-        {/if}
-        {#if runtimeLogs.length > 0}
-          <div
-            class="mb-5 max-h-[32rem] space-y-2 overflow-y-auto font-mono text-xs"
-            data-testid="runtime-live-logs"
-          >
-            {#each runtimeLogs as log (runtimeLogKey(log))}
-              <div class="rounded-lg border border-border bg-background/60 p-3">
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                  <span class={runtimeLogLevelClass(log.level)}
-                    >{log.level.toUpperCase()} · {log.source || "runtime"}</span
-                  >
-                  <span class="text-muted-foreground"
-                    >{formatDateTime(log.timestamp)}</span
-                  >
-                </div>
-                <p class="mt-1 whitespace-pre-wrap break-words text-foreground">
-                  {log.message}
-                </p>
-                {#if log.job_id}
-                  <p class="mt-1 text-muted-foreground">{tr("ui.serverDetail.jobLabel", { id: log.job_id })}</p>
-                {/if}
-              </div>
-            {/each}
-          </div>
-        {:else if details.logs.length === 0}
-          <p class="text-sm text-muted-foreground">
-            {tr("ui.stacksIdServersServerId.noServerInstallerOrStackkits")}
-          </p>
-        {/if}
-        {#if details.logs.length > 0}
-          <h3 class="mb-2 text-sm font-medium text-muted-foreground">
-            {tr("ui.stacksIdServersServerId.activityHistory")}
-          </h3>
-          <div class="space-y-2">
-            {#each details.logs as log (log.id || `${log.created}-${log.action}`)}
-              <div class="rounded-lg bg-muted/40 p-3 text-sm">
-                <div class="flex items-center justify-between gap-3">
-                  <p class="font-medium text-foreground">{log.action}</p>
-                  <span class="text-xs text-muted-foreground">
-                    {String(log.created || "")}
-                  </span>
-                </div>
-                <p class="mt-1 text-muted-foreground">
-                  {String(log.details || "")}
-                </p>
-              </div>
-            {/each}
-          </div>
-        {/if}
-      </section>
-    {:else}
-      <section
-        class="space-y-6"
-        aria-labelledby="server-settings-heading"
-        data-testid="server-settings-panel"
-      >
-        <!-- Boxless heading block (operator direction 2026-08-19) -->
-        <div>
-          <div class="flex items-center gap-2">
-            <Settings2 class="h-5 w-5 text-primary" />
-            <h1
-              id="server-settings-heading"
-              class="text-lg font-semibold text-foreground"
-            >
-              {tr("ui.stacksIdServersServerId.serverSettings")}
-            </h1>
-          </div>
-          <p class="mt-2 text-sm text-muted-foreground">
-            {tr("ui.stacksIdServersServerId.manageSettingsThatAffectThis")}
-          </p>
-        </div>
-
-        {#if isManagedRuntimeCleanupStarted && managedLeaseId()}
-          <ManagedRuntimeRecreatePanel
-            stackId={stackId || ""}
-            leaseId={managedLeaseId()}
-            serverName={details.server.hostname}
-          />
-        {/if}
-
-        <div
-          class="rounded-lg border border-destructive/40 bg-destructive/5 p-5"
-          data-testid="server-danger-zone"
-        >
-          <div class="flex items-start gap-3">
-            <Trash2 class="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-            <div class="min-w-0 flex-1">
-              {#if managedLeaseId()}
-                {#if isManagedRuntimeCleanupStarted}
-                  <h2 class="text-lg font-semibold text-foreground">
-                    {isDecommissionedManagedRuntime
-                      ? tr("ui.stacksIdServersServerId.serverGenerationDecommissioned")
-                      : tr("ui.stacksIdServersServerId.serverCleanupInProgress")}
-                  </h2>
-                  <p class="mt-2 max-w-3xl text-sm text-muted-foreground">
-                    {tr("ui.stacksIdServersServerId.theOldProviderGenerationCannot")}
-                  </p>
-                {:else if hasLegacyOrUnboundCustody()}
-                  <h2 class="text-lg font-semibold text-foreground">
-                    {tr("ui.stacksIdServersServerId.resolveStaleCustodyRecord")}
-                  </h2>
-                  <p class="mt-2 max-w-3xl text-sm text-muted-foreground">
-                    {tr("ui.stacksIdServersServerId.thisServerIsALegacy")}
-                  </p>
-
-                  {#if showCustodyResolutionConfirmation}
-                    <div
-                      class="mt-4 rounded-lg border border-warning/40 bg-warning/10 p-4"
-                      data-testid="server-custody-resolution-confirmation"
-                    >
-                      <p class="text-sm font-medium text-foreground">
-                        {tr("ui.serverDetail.confirmProviderRemoval", { name: details.server.hostname })}
-                      </p>
-                      <p class="mt-1 text-sm text-muted-foreground">
-                        {tr("ui.stacksIdServersServerId.thisOnlyArchivesTheStale")}
-                      </p>
-                      <div class="mt-4 flex flex-wrap gap-2">
-                        <Button
-                          variant="secondary"
-                          testId="server-custody-resolution-confirm-button"
-                          onclick={resolveCustody}
-                          disabled={actionLoading !== null}
-                        >
-                          <Trash2 class="h-4 w-4" />
-                          {actionLoading === "resolve-custody"
-                            ? tr("ui.custodyLeasesPanel.resolving")
-                            : tr("ui.homelabDashboardPage.resolveRecord")}
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          onclick={() =>
-                            (showCustodyResolutionConfirmation = false)}
-                          disabled={actionLoading !== null}
-                        >
-                          {tr("ui.importExportModal.cancel")}
-                        </Button>
                       </div>
-                    </div>
+                    {/each}
+                  </div>
+                {:else}
+                  <p class="text-sm text-muted-foreground">
+                    {tr("ui.stacksIdServersServerId.noHostAddressHasBeen")}
+                  </p>
+                {/if}
+                <div class="mt-4 flex flex-wrap gap-2" data-testid="server-domains">
+                  {#each details.server.domains || [] as domain (domain)}
+                    <span
+                      data-kx="tag"
+                      class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium break-all"
+                      >{domain}</span
+                    >
                   {:else}
+                    <span class="text-sm text-muted-foreground">
+                      {tr("ui.stacksIdServersServerId.noServiceDomainsReported")}
+                    </span>
+                  {/each}
+                </div>
+              </div>
+
+              <div
+                data-kx="plate"
+                class="p-5 lg:col-span-2"
+                data-testid="server-service-endpoints"
+              >
+                <div class="mb-4 flex items-center gap-2">
+                  <Activity class="h-5 w-5 text-info" />
+                  <h2 class="text-lg font-semibold text-foreground">
+                    {tr("ui.stacksIdServersServerId.serviceEndpoints")}
+                  </h2>
+                </div>
+                {#if details.server.service_endpoints?.length}
+                  <div class="grid gap-3 md:grid-cols-2">
+                    {#each details.server.service_endpoints as endpoint (endpoint.url)}
+                      {@const href = safeEndpointHref(endpoint)}
+                      <div class="min-w-0 rounded-lg bg-muted/40 p-3 text-sm">
+                        <div
+                          class="flex flex-wrap items-center justify-between gap-2"
+                        >
+                          <p class="font-medium text-foreground">
+                            {endpoint.name || endpoint.service_key || tr("ui.services.service")}
+                          </p>
+                          <span
+                            data-kx="status"
+                            data-status={statusKind(endpoint.health || "unknown")}
+                            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                          >
+                            {formatStatus(endpoint.health || "unknown")}
+                          </span>
+                        </div>
+                        {#if href}
+                          <a
+                            class="mt-2 block truncate font-mono text-primary underline-offset-4 hover:underline"
+                            {href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={endpoint.url}
+                          >
+                            {endpoint.url}
+                          </a>
+                        {:else}
+                          <p class="mt-2 break-all font-mono text-muted-foreground">
+                            {endpoint.url}
+                          </p>
+                        {/if}
+                        <p class="mt-2 text-xs text-muted-foreground">
+                          {endpoint.visibility || "visibility unknown"} · {endpoint.provenance ||
+                            endpoint.source}
+                        </p>
+                      </div>
+                    {/each}
+                  </div>
+                {:else}
+                  <p class="text-sm text-muted-foreground">
+                    {tr("ui.stacksIdServersServerId.noObservedServiceEndpointsHave")}
+                  </p>
+                {/if}
+              </div>
+
+              <div data-kx="plate" class="p-5">
+                <div class="mb-4 flex items-center gap-2">
+                  <CheckCircle2 class="h-5 w-5 text-success" />
+                  <h2 class="text-lg font-semibold text-foreground">{tr("ui.services.health")}</h2>
+                </div>
+                <p class="text-sm text-muted-foreground">
+                  {tr("ui.serverDetail.healthSource", { source: details.health.source, backend: details.monitoring.queryBackend })}
+                </p>
+                {#if details.health.notes?.length}
+                  <div class="mt-4 space-y-2">
+                    {#each details.health.notes as note (note)}
+                      <p
+                        class="rounded-lg bg-muted/40 p-3 text-sm text-muted-foreground"
+                      >
+                        {note}
+                      </p>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+            </section>
+          {:else if tab === "services"}
+            <!-- Boxless section (operator direction 2026-08-19) -->
+            <section>
+              <div class="mb-4 flex items-center gap-2">
+                <ClipboardCheck class="h-5 w-5 text-info" />
+                <h2 class="text-lg font-semibold text-foreground">{tr("ui.services.services")}</h2>
+              </div>
+              {#if details.services.length === 0}
+                <EmptyState
+                  size="inline"
+                  title={tr("ui.stacksIdServersServerId.noServicePlacementIsRecorded")}
+                />
+              {:else}
+                <div class="grid gap-2 md:grid-cols-2">
+                  {#each details.services as service (service.id || service.name)}
+                    <BrandLogoScope
+                      domain={brandDomainForTool(
+                        service.name,
+                        service.display_name,
+                        service.type,
+                      )}
+                    >
+                      <ServiceCardCompact
+                        name={serviceCardName(service)}
+                        meta={serviceCardMeta(service)}
+                        icon={BrandLogoIcon}
+                        placement={serviceCardPlacement(service)}
+                        status={serviceCardStatus(service)}
+                        showGrip={false}
+                        onOpen={service.url
+                          ? () => openServiceUrl(service)
+                          : undefined}
+                      />
+                    </BrandLogoScope>
+                  {/each}
+                </div>
+              {/if}
+            </section>
+          {:else if tab === "ports"}
+            <section id="port-inventory" data-testid="server-port-inventory">
+              <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <Activity class="h-5 w-5 text-info" />
+                    <h2 class="text-lg font-semibold text-foreground">
+                      {tr("ui.stacksIdServersServerId.portAllocations")}
+                    </h2>
+                  </div>
+                  <p class="mt-1 text-sm text-muted-foreground">
+                    {tr("ui.stacksIdServersServerId.desiredListenersDurableReservationsAnd")}
+                  </p>
+                </div>
+                {#if portInventory?.observed_at}
+                  <p class="text-xs text-muted-foreground">
+                    {tr("ui.serverDetail.observedAt", { time: formatDateTime(portInventory.observed_at) })}
+                  </p>
+                {/if}
+              </div>
+
+              {#if portInventoryError}
+                <ErrorState
+                  size="inline"
+                  title={tr("ui.stacksIdServersServerId.portInventoryIsNotAvailable")}
+                  description={portInventoryError}
+                >
+                  {#snippet actions()}
                     <Button
                       variant="secondary"
-                      class="mt-4"
-                      testId="server-custody-resolution-button"
-                      onclick={() => (showCustodyResolutionConfirmation = true)}
-                      disabled={actionLoading !== null}
+                      onclick={() => void load()}
+                      disabled={refreshing}
                     >
-                      <Trash2 class="h-4 w-4" />
-                      {tr("ui.stacksIdServersServerId.resolveStaleRecord")}
+                      <RefreshCw class="h-4 w-4 {refreshing ? 'animate-spin' : ''}" />
+                      {refreshing ? tr("ui.monitoring.refreshing") : tr("ui.homelabDashboardPage.refresh")}
                     </Button>
-                  {/if}
-                {:else}
-                  <h2 class="text-lg font-semibold text-foreground">
-                    {tr("ui.stacksIdServersServerId.decommissionServer")}
-                  </h2>
-                  <p class="mt-2 max-w-3xl text-sm text-muted-foreground">
-                    {trParts("ui.serverDetail.decommissionIntro")[0]}<strong class="font-medium text-foreground">
-                      {details.server.hostname}
-                    </strong>{trParts("ui.serverDetail.decommissionIntro")[1]}
-                  </p>
-
-                  {#if showDecommissionConfirmation}
-                    <div
-                      class="mt-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4"
-                      data-testid="server-decommission-confirmation"
+                  {/snippet}
+                </ErrorState>
+              {:else if !portInventory || portInventory.allocations.length === 0}
+                <EmptyState
+                  size="inline"
+                  title={portInventory?.observed_at
+                    ? portInventory.listeners_complete
+                      ? tr("ui.stacksIdServersServerId.noPortAllocationsRecorded")
+                      : tr("ui.stacksIdServersServerId.portEvidenceIsPartial")
+                    : tr("ui.stacksIdServersServerId.noPortEvidenceYet")}
+                  description={portInventory?.observed_at
+                    ? portInventory.listeners_complete
+                      ? tr("ui.stacksIdServersServerId.noCompilerDeclaredReservationOr")
+                      : tr("ui.stacksIdServersServerId.noDesiredListenerIsReserved")
+                    : tr("ui.stacksIdServersServerId.noDesiredListenerIsReserved2")}
+                />
+              {:else}
+                <div class="overflow-x-auto rounded-lg border border-border">
+                  <table class="w-full min-w-[760px] text-left text-sm">
+                    <thead
+                      class="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground"
                     >
-                      <p class="text-sm font-medium text-foreground">
-                        {tr("ui.serverDetail.confirmDecommissionFor", { name: details.server.hostname })}
+                      <tr>
+                        <th class="px-4 py-3 font-medium">{tr("ui.stacksIdServersServerId.listener")}</th>
+                        <th class="px-4 py-3 font-medium">{tr("ui.stacksIdServersServerId.intent")}</th>
+                        <th class="px-4 py-3 font-medium">{tr("ui.stacksIdServersServerId.reservation")}</th>
+                        <th class="px-4 py-3 font-medium">{tr("ui.services.observed")}</th>
+                        <th class="px-4 py-3 font-medium">{tr("ui.stacksIdServersServerId.exposed")}</th>
+                        <th class="px-4 py-3 font-medium">{tr("ui.stacksIdServersServerId.drift")}</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                      {#each portInventory.allocations as allocation (allocation.id)}
+                        <tr class="bg-background/30 align-top">
+                          <td class="px-4 py-3">
+                            <p class="font-mono font-medium text-foreground">
+                              {allocation.bind_address}:{allocation.port}/{allocation.transport}
+                            </p>
+                            <p class="mt-1 text-xs text-muted-foreground">
+                              {allocation.node_ref ||
+                                (allocation.desired
+                                  ? tr("serverPage.primaryServer")
+                                  : tr("serverPage.runtimeOnly"))}
+                            </p>
+                          </td>
+                          <td class="px-4 py-3 text-foreground">
+                            <p>
+                              {allocation.desired
+                                ? formatStatus(allocation.exposure)
+                                : tr("ui.stacksIdServersServerId.notDeclared")}
+                            </p>
+                            {#if allocation.kit_deployment_id}
+                              <p
+                                class="mt-1 max-w-40 truncate text-xs text-muted-foreground"
+                                title={allocation.kit_deployment_id}
+                              >
+                                {allocation.kit_deployment_id}
+                              </p>
+                            {/if}
+                          </td>
+                          <td class="px-4 py-3">
+                            <span
+                              data-kx="status"
+                              data-status={statusKind(
+                                allocation.claim_state ||
+                                  allocation.reservation_state ||
+                                  "unknown",
+                              )}
+                              class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
+                            >
+                              {formatStatus(
+                                allocation.claim_state ||
+                                  allocation.reservation_state ||
+                                  "unknown",
+                              )}
+                            </span>
+                          </td>
+                          <td class="px-4 py-3">
+                            <span
+                              data-kx="status"
+                              data-status={statusKind(allocation.observed_state)}
+                              class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
+                            >
+                              {formatStatus(allocation.observed_state)}
+                            </span>
+                          </td>
+                          <td class="px-4 py-3">
+                            <span
+                              data-kx="status"
+                              data-status={statusKind(allocation.exposed_state)}
+                              class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
+                            >
+                              {formatStatus(allocation.exposed_state)}
+                            </span>
+                          </td>
+                          <td class="px-4 py-3">
+                            <span
+                              data-kx="status"
+                              data-status={statusKind(allocation.drift_state)}
+                              class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
+                            >
+                              {formatStatus(allocation.drift_state)}
+                            </span>
+                          </td>
+                        </tr>
+                      {/each}
+                    </tbody>
+                  </table>
+                </div>
+                {#if !portInventory.listeners_complete || !portInventory.exposures_complete}
+                  <p class="mt-3 text-sm text-muted-foreground">
+                    {tr("ui.stacksIdServersServerId.runtimeEvidenceIsPartialUnknown")}
+                  </p>
+                {/if}
+              {/if}
+            </section>
+          {:else if tab === "checks"}
+            <!-- Boxless section (operator direction 2026-08-19) -->
+            <section>
+              <div class="mb-4 flex items-center gap-2">
+                <ListChecks class="h-5 w-5 text-warning" />
+                <h2 class="text-lg font-semibold text-foreground">{tr("ui.stacksIdServersServerId.checks")}</h2>
+              </div>
+              {#if details.checks.length === 0}
+                <EmptyState
+                  size="inline"
+                  title={tr("ui.stacksIdServersServerId.noPreCheckResultIs")}
+                />
+              {:else}
+                <div class="space-y-3">
+                  {#each details.checks as check (check.id)}
+                    <div class="rounded-lg border border-border bg-background/40 p-3">
+                      <div class="flex flex-wrap items-center justify-between gap-2">
+                        <p class="font-medium text-foreground">{check.check_type}</p>
+                        <span
+                          data-kx="status"
+                          data-status={statusKind(check.status)}
+                          class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                          >{formatStatus(check.status)}</span
+                        >
+                      </div>
+                      {#if check.message}
+                        <p class="mt-1 text-sm text-muted-foreground">
+                          {check.message}
+                        </p>
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </section>
+          {:else if tab === "logs"}
+            <!-- Boxless section (operator direction 2026-08-19) -->
+            <section>
+              <div class="mb-4 flex items-center gap-2">
+                <TerminalSquare class="h-5 w-5 text-primary" />
+                <h2 class="text-lg font-semibold text-foreground">{tr("ui.stacksIdServersServerId.logs")}</h2>
+              </div>
+              {#if runtimeLogsError}
+                <p class="mb-3 text-sm text-warning">{runtimeLogsError}</p>
+              {/if}
+              {#if runtimeLogs.length > 0}
+                <div
+                  class="mb-5 max-h-[32rem] space-y-2 overflow-y-auto font-mono text-xs"
+                  data-testid="runtime-live-logs"
+                >
+                  {#each runtimeLogs as log (runtimeLogKey(log))}
+                    <div class="rounded-lg border border-border bg-background/60 p-3">
+                      <div class="flex flex-wrap items-center justify-between gap-2">
+                        <span class={runtimeLogLevelClass(log.level)}
+                          >{log.level.toUpperCase()} · {log.source || "runtime"}</span
+                        >
+                        <span class="text-muted-foreground"
+                          >{formatDateTime(log.timestamp)}</span
+                        >
+                      </div>
+                      <p class="mt-1 whitespace-pre-wrap break-words text-foreground">
+                        {log.message}
                       </p>
-                      <p class="mt-1 text-sm text-muted-foreground">
-                        {tr("ui.stacksIdServersServerId.servicesOnThisServerMay")}
+                      {#if log.job_id}
+                        <p class="mt-1 text-muted-foreground">{tr("ui.serverDetail.jobLabel", { id: log.job_id })}</p>
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              {:else if details.logs.length === 0}
+                <EmptyState
+                  size="inline"
+                  title={tr("ui.stacksIdServersServerId.noServerInstallerOrStackkits")}
+                />
+              {/if}
+              {#if details.logs.length > 0}
+                <h3 class="mb-2 text-sm font-medium text-muted-foreground">
+                  {tr("ui.stacksIdServersServerId.activityHistory")}
+                </h3>
+                <div class="space-y-2">
+                  {#each details.logs as log (log.id || `${log.created}-${log.action}`)}
+                    <div class="rounded-lg bg-muted/40 p-3 text-sm">
+                      <div class="flex items-center justify-between gap-3">
+                        <p class="font-medium text-foreground">{log.action}</p>
+                        <span class="text-xs text-muted-foreground">
+                          {String(log.created || "")}
+                        </span>
+                      </div>
+                      <p class="mt-1 text-muted-foreground">
+                        {String(log.details || "")}
                       </p>
-                      <div class="mt-4 flex flex-wrap gap-2">
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </section>
+          {:else}
+            <section
+              class="space-y-6"
+              aria-labelledby="server-settings-heading"
+              data-testid="server-settings-panel"
+            >
+              <!-- Boxless heading block (operator direction 2026-08-19) -->
+              <div>
+                <div class="flex items-center gap-2">
+                  <Settings2 class="h-5 w-5 text-primary" />
+                  <h1
+                    id="server-settings-heading"
+                    class="text-lg font-semibold text-foreground"
+                  >
+                    {tr("ui.stacksIdServersServerId.serverSettings")}
+                  </h1>
+                </div>
+                <p class="mt-2 text-sm text-muted-foreground">
+                  {tr("ui.stacksIdServersServerId.manageSettingsThatAffectThis")}
+                </p>
+              </div>
+
+              {#if isManagedRuntimeCleanupStarted && managedLeaseId()}
+                <ManagedRuntimeRecreatePanel
+                  stackId={stackId || ""}
+                  leaseId={managedLeaseId()}
+                  serverName={details.server.hostname}
+                />
+              {/if}
+
+              <div
+                class="rounded-lg border border-destructive/40 bg-destructive/5 p-5"
+                data-testid="server-danger-zone"
+              >
+                <div class="flex items-start gap-3">
+                  <Trash2 class="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+                  <div class="min-w-0 flex-1">
+                    {#if managedLeaseId()}
+                      {#if isManagedRuntimeCleanupStarted}
+                        <h2 class="text-lg font-semibold text-foreground">
+                          {isDecommissionedManagedRuntime
+                            ? tr("ui.stacksIdServersServerId.serverGenerationDecommissioned")
+                            : tr("ui.stacksIdServersServerId.serverCleanupInProgress")}
+                        </h2>
+                        <p class="mt-2 max-w-3xl text-sm text-muted-foreground">
+                          {tr("ui.stacksIdServersServerId.theOldProviderGenerationCannot")}
+                        </p>
+                      {:else if hasLegacyOrUnboundCustody()}
+                        <h2 class="text-lg font-semibold text-foreground">
+                          {tr("ui.stacksIdServersServerId.resolveStaleCustodyRecord")}
+                        </h2>
+                        <p class="mt-2 max-w-3xl text-sm text-muted-foreground">
+                          {tr("ui.stacksIdServersServerId.thisServerIsALegacy")}
+                        </p>
+
+                        {#if showCustodyResolutionConfirmation}
+                          <div
+                            class="mt-4 rounded-lg border border-warning/40 bg-warning/10 p-4"
+                            data-testid="server-custody-resolution-confirmation"
+                          >
+                            <p class="text-sm font-medium text-foreground">
+                              {tr("ui.serverDetail.confirmProviderRemoval", { name: details.server.hostname })}
+                            </p>
+                            <p class="mt-1 text-sm text-muted-foreground">
+                              {tr("ui.stacksIdServersServerId.thisOnlyArchivesTheStale")}
+                            </p>
+                            <div class="mt-4 flex flex-wrap gap-2">
+                              <Button
+                                variant="secondary"
+                                testId="server-custody-resolution-confirm-button"
+                                onclick={resolveCustody}
+                                disabled={actionLoading !== null}
+                              >
+                                <Trash2 class="h-4 w-4" />
+                                {actionLoading === "resolve-custody"
+                                  ? tr("ui.custodyLeasesPanel.resolving")
+                                  : tr("ui.homelabDashboardPage.resolveRecord")}
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                onclick={() =>
+                                  (showCustodyResolutionConfirmation = false)}
+                                disabled={actionLoading !== null}
+                              >
+                                {tr("ui.importExportModal.cancel")}
+                              </Button>
+                            </div>
+                          </div>
+                        {:else}
+                          <Button
+                            variant="secondary"
+                            class="mt-4"
+                            testId="server-custody-resolution-button"
+                            onclick={() => (showCustodyResolutionConfirmation = true)}
+                            disabled={actionLoading !== null}
+                          >
+                            <Trash2 class="h-4 w-4" />
+                            {tr("ui.stacksIdServersServerId.resolveStaleRecord")}
+                          </Button>
+                        {/if}
+                      {:else}
+                        <h2 class="text-lg font-semibold text-foreground">
+                          {tr("ui.stacksIdServersServerId.decommissionServer")}
+                        </h2>
+                        <p class="mt-2 max-w-3xl text-sm text-muted-foreground">
+                          {trParts("ui.serverDetail.decommissionIntro")[0]}<strong class="font-medium text-foreground">
+                            {details.server.hostname}
+                          </strong>{trParts("ui.serverDetail.decommissionIntro")[1]}
+                        </p>
+
+                        {#if showDecommissionConfirmation}
+                          <div
+                            class="mt-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4"
+                            data-testid="server-decommission-confirmation"
+                          >
+                            <p class="text-sm font-medium text-foreground">
+                              {tr("ui.serverDetail.confirmDecommissionFor", { name: details.server.hostname })}
+                            </p>
+                            <p class="mt-1 text-sm text-muted-foreground">
+                              {tr("ui.stacksIdServersServerId.servicesOnThisServerMay")}
+                            </p>
+                            <div class="mt-4 flex flex-wrap gap-2">
+                              <Button
+                                variant="destructive"
+                                testId="server-decommission-confirm-button"
+                                onclick={decommissionServer}
+                                disabled={actionLoading !== null}
+                              >
+                                <Trash2 class="h-4 w-4" />
+                                {actionLoading === "decommission"
+                                  ? tr("ui.custodyLeasesPanel.decommissioning")
+                                  : tr("ui.stacksIdServersServerId.confirmDecommission")}
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                onclick={() => (showDecommissionConfirmation = false)}
+                                disabled={actionLoading !== null}
+                              >
+                                {tr("ui.importExportModal.cancel")}
+                              </Button>
+                            </div>
+                          </div>
+                        {:else}
+                          <Button
+                            variant="destructive"
+                            class="mt-4"
+                            testId="server-decommission-button"
+                            onclick={() => (showDecommissionConfirmation = true)}
+                            disabled={actionLoading !== null}
+                          >
+                            <Trash2 class="h-4 w-4" />
+                            {tr("ui.stacksIdServersServerId.decommissionServer")}
+                          </Button>
+                        {/if}
+                      {/if}
+                    {:else if canDetachSelfOwnedServer}
+                      <h2 class="text-lg font-semibold text-foreground">
+                        {tr("ui.stacksIdServersServerId.detachSelfOwnedServer")}
+                      </h2>
+                      <p class="mt-2 max-w-3xl text-sm text-muted-foreground">
+                        {trParts("ui.serverDetail.detachIntro")[0]}<strong class="font-medium text-foreground">
+                          {details.server.hostname}
+                        </strong>{trParts("ui.serverDetail.detachIntro")[1]}
+                      </p>
+
+                      {#if showDetachConfirmation}
+                        <div
+                          class="mt-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4"
+                          data-testid="server-detach-confirmation"
+                        >
+                          <p class="text-sm font-medium text-foreground">
+                            {tr("ui.serverDetail.confirmDetachFor", { name: details.server.hostname })}
+                          </p>
+                          <p class="mt-1 text-sm text-muted-foreground">
+                            {tr("ui.stacksIdServersServerId.theAgentIdentityWillBe")}
+                          </p>
+                          <div class="mt-4 flex flex-wrap gap-2">
+                            <Button
+                              variant="destructive"
+                              testId="server-detach-confirm-button"
+                              onclick={detachServer}
+                              disabled={actionLoading !== null}
+                            >
+                              <Trash2 class="h-4 w-4" />
+                              {actionLoading === "detach"
+                                ? tr("ui.stacksIdServersServerId.detaching")
+                                : tr("ui.stacksIdServersServerId.confirmDetach")}
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              onclick={() => (showDetachConfirmation = false)}
+                              disabled={actionLoading !== null}
+                            >
+                              {tr("ui.importExportModal.cancel")}
+                            </Button>
+                          </div>
+                        </div>
+                      {:else}
                         <Button
                           variant="destructive"
-                          testId="server-decommission-confirm-button"
-                          onclick={decommissionServer}
+                          class="mt-4"
+                          testId="server-detach-button"
+                          onclick={() => (showDetachConfirmation = true)}
                           disabled={actionLoading !== null}
                         >
                           <Trash2 class="h-4 w-4" />
-                          {actionLoading === "decommission"
-                            ? tr("ui.custodyLeasesPanel.decommissioning")
-                            : tr("ui.stacksIdServersServerId.confirmDecommission")}
+                          {tr("ui.stacksIdServersServerId.detachServer")}
                         </Button>
-                        <Button
-                          variant="secondary"
-                          onclick={() => (showDecommissionConfirmation = false)}
-                          disabled={actionLoading !== null}
-                        >
-                          {tr("ui.importExportModal.cancel")}
-                        </Button>
-                      </div>
-                    </div>
-                  {:else}
-                    <Button
-                      variant="destructive"
-                      class="mt-4"
-                      testId="server-decommission-button"
-                      onclick={() => (showDecommissionConfirmation = true)}
-                      disabled={actionLoading !== null}
-                    >
-                      <Trash2 class="h-4 w-4" />
-                      {tr("ui.stacksIdServersServerId.decommissionServer")}
-                    </Button>
-                  {/if}
-                {/if}
-              {:else if canDetachSelfOwnedServer}
-                <h2 class="text-lg font-semibold text-foreground">
-                  {tr("ui.stacksIdServersServerId.detachSelfOwnedServer")}
-                </h2>
-                <p class="mt-2 max-w-3xl text-sm text-muted-foreground">
-                  {trParts("ui.serverDetail.detachIntro")[0]}<strong class="font-medium text-foreground">
-                    {details.server.hostname}
-                  </strong>{trParts("ui.serverDetail.detachIntro")[1]}
-                </p>
-
-                {#if showDetachConfirmation}
-                  <div
-                    class="mt-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4"
-                    data-testid="server-detach-confirmation"
-                  >
-                    <p class="text-sm font-medium text-foreground">
-                      {tr("ui.serverDetail.confirmDetachFor", { name: details.server.hostname })}
-                    </p>
-                    <p class="mt-1 text-sm text-muted-foreground">
-                      {tr("ui.stacksIdServersServerId.theAgentIdentityWillBe")}
-                    </p>
-                    <div class="mt-4 flex flex-wrap gap-2">
-                      <Button
-                        variant="destructive"
-                        testId="server-detach-confirm-button"
-                        onclick={detachServer}
-                        disabled={actionLoading !== null}
-                      >
-                        <Trash2 class="h-4 w-4" />
-                        {actionLoading === "detach"
-                          ? tr("ui.stacksIdServersServerId.detaching")
-                          : tr("ui.stacksIdServersServerId.confirmDetach")}
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        onclick={() => (showDetachConfirmation = false)}
-                        disabled={actionLoading !== null}
-                      >
-                        {tr("ui.importExportModal.cancel")}
-                      </Button>
-                    </div>
+                      {/if}
+                    {:else}
+                      <p class="mt-2 text-sm text-muted-foreground">
+                        {tr("ui.stacksIdServersServerId.thisServerHasNoManaged")}
+                      </p>
+                    {/if}
                   </div>
-                {:else}
-                  <Button
-                    variant="destructive"
-                    class="mt-4"
-                    testId="server-detach-button"
-                    onclick={() => (showDetachConfirmation = true)}
-                    disabled={actionLoading !== null}
-                  >
-                    <Trash2 class="h-4 w-4" />
-                    {tr("ui.stacksIdServersServerId.detachServer")}
-                  </Button>
-                {/if}
-              {:else}
-                <p class="mt-2 text-sm text-muted-foreground">
-                  {tr("ui.stacksIdServersServerId.thisServerHasNoManaged")}
-                </p>
-              {/if}
-            </div>
-          </div>
-        </div>
-      </section>
-    {/if}
+                </div>
+              </div>
+            </section>
+          {/if}
+        {/if}
+      {/snippet}
+    </Tabs>
   {/if}
 </div>

@@ -165,18 +165,18 @@ settings:
 overrides:
   vite: npm:@voidzero-dev/vite-plus-core@1.4.0
   vite-plus: 1.4.0
-  '@kombify/notifications': file:third_party/npm/cloud-notifications-0.5.0.tgz
+  '@kombify/notifications': file:third_party/npm/cloud-notifications-0.5.5.tgz
   '@kombify/tsconfig': file:third_party/npm/tsconfig-0.1.1.tgz
-  '@kombiverselabs/ai-sdk': file:third_party/npm/ai-sdk-0.16.6.tgz
-  '@kombiverselabs/cloud-notifications': file:third_party/npm/cloud-notifications-0.5.0.tgz
-  '@kombiverselabs/design': file:third_party/npm/design-0.11.17.tgz
-  '@kombiverselabs/embed': file:third_party/npm/embed-0.16.6.tgz
-  '@kombiverselabs/execution-contracts': file:third_party/npm/execution-contracts-0.16.6.tgz
+  '@kombiverselabs/ai-sdk': file:third_party/npm/ai-sdk-0.16.16.tgz
+  '@kombiverselabs/cloud-notifications': file:third_party/npm/cloud-notifications-0.5.5.tgz
+  '@kombiverselabs/design': file:third_party/npm/design-0.12.1.tgz
+  '@kombiverselabs/embed': file:third_party/npm/embed-0.16.16.tgz
+  '@kombiverselabs/execution-contracts': file:third_party/npm/execution-contracts-0.16.16.tgz
   '@kombiverselabs/observability': file:third_party/npm/observability-0.76.17.tgz
-  '@kombiverselabs/onboarding-core': file:third_party/npm/onboarding-core-0.11.17.tgz
-  '@kombiverselabs/speechkit-voiceagent-client': file:third_party/npm/speechkit-voiceagent-client-0.79.13.tgz
+  '@kombiverselabs/onboarding-core': file:third_party/npm/onboarding-core-0.12.1.tgz
+  '@kombiverselabs/speechkit-voiceagent-client': file:third_party/npm/speechkit-voiceagent-client-0.80.3.tgz
   '@kombiverselabs/tsconfig': file:third_party/npm/tsconfig-0.1.1.tgz
-  '@kombiverselabs/ui': file:third_party/npm/ui-0.11.17.tgz
+  '@kombiverselabs/ui': file:third_party/npm/ui-0.12.1.tgz
   cookie@<0.7.0: '>=0.7.2'
   ws@>=8.0.0 <8.21.0: '>=8.22.0'
   undici@>=7.0.0 <7.28.0: '>=7.30.1'
@@ -195,20 +195,20 @@ importers:
         specifier: ^2.28.2
         version: 2.28.2
       '@kombiverselabs/design':
-        specifier: file:third_party/npm/design-0.11.17.tgz
-        version: file:third_party/npm/design-0.11.17.tgz
+        specifier: file:third_party/npm/design-0.12.1.tgz
+        version: file:third_party/npm/design-0.12.1.tgz
       '@kombiverselabs/embed':
-        specifier: file:third_party/npm/embed-0.16.6.tgz
-        version: file:third_party/npm/embed-0.16.6.tgz(ws@8.22.0)
+        specifier: file:third_party/npm/embed-0.16.16.tgz
+        version: file:third_party/npm/embed-0.16.16.tgz(ws@8.22.0)
       '@kombiverselabs/observability':
         specifier: file:third_party/npm/observability-0.76.17.tgz
         version: file:third_party/npm/observability-0.76.17.tgz(@sentry/cloudflare@10.76.1)(@sentry/sveltekit@10.76.1(@opentelemetry/core@2.10.0(@opentelemetry/api@1.9.1))(@sveltejs/kit@3.0.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@7.3.1(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(svelte@5.57.2(@typescript-eslint/types@8.71.1)))(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(svelte@5.57.2(@typescript-eslint/types@8.71.1))(typescript@6.0.3))(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(supports-color@7.2.0)(svelte@5.57.2(@typescript-eslint/types@8.71.1)))
       '@kombiverselabs/onboarding-core':
-        specifier: file:third_party/npm/onboarding-core-0.11.17.tgz
-        version: file:third_party/npm/onboarding-core-0.11.17.tgz
+        specifier: file:third_party/npm/onboarding-core-0.12.1.tgz
+        version: file:third_party/npm/onboarding-core-0.12.1.tgz
       '@kombiverselabs/ui':
-        specifier: file:third_party/npm/ui-0.11.17.tgz
-        version: file:third_party/npm/ui-0.11.17.tgz(@kombiverselabs/design@file:third_party/npm/design-0.11.17.tgz)(@kombiverselabs/onboarding-core@file:third_party/npm/onboarding-core-0.11.17.tgz)(lucide-react@1.53.0(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(svelte@5.57.2(@typescript-eslint/types@8.71.1))
+        specifier: file:third_party/npm/ui-0.12.1.tgz
+        version: file:third_party/npm/ui-0.12.1.tgz(@kombiverselabs/design@file:third_party/npm/design-0.12.1.tgz)(@kombiverselabs/onboarding-core@file:third_party/npm/onboarding-core-0.12.1.tgz)(lucide-react@1.53.0(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(svelte@5.57.2(@typescript-eslint/types@8.71.1))
       '@lucide/svelte':
         specifier: 1.53.0
         version: 1.53.0(svelte@5.57.2(@typescript-eslint/types@8.71.1))
@@ -226,7 +226,7 @@ importers:
         version: 1.18.0
       autoprefixer:
         specifier: ^10.6.1
-        version: 10.6.1(postcss@8.5.29)
+        version: 10.6.1(postcss@8.5.32)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -235,7 +235,7 @@ importers:
         version: 0.12.8(svelte@5.57.2(@typescript-eslint/types@8.71.1))
       postcss:
         specifier: ^8.5.29
-        version: 8.5.29
+        version: 8.5.32
       tailwind-merge:
         specifier: ^3.7.0
         version: 3.7.0
@@ -253,23 +253,23 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.13.0(jiti@2.7.0)(supports-color@7.2.0))
       '@kombify/notifications':
-        specifier: file:third_party/npm/cloud-notifications-0.5.0.tgz
-        version: '@kombiverselabs/cloud-notifications@file:third_party/npm/cloud-notifications-0.5.0.tgz'
+        specifier: file:third_party/npm/cloud-notifications-0.5.5.tgz
+        version: '@kombiverselabs/cloud-notifications@file:third_party/npm/cloud-notifications-0.5.5.tgz'
       '@kombify/tsconfig':
         specifier: file:third_party/npm/tsconfig-0.1.1.tgz
         version: '@kombiverselabs/tsconfig@file:third_party/npm/tsconfig-0.1.1.tgz'
       '@kombiverselabs/execution-contracts':
-        specifier: file:third_party/npm/execution-contracts-0.16.6.tgz
-        version: file:third_party/npm/execution-contracts-0.16.6.tgz
+        specifier: file:third_party/npm/execution-contracts-0.16.16.tgz
+        version: file:third_party/npm/execution-contracts-0.16.16.tgz
       '@kombiverselabs/speechkit-voiceagent-client':
-        specifier: file:third_party/npm/speechkit-voiceagent-client-0.79.13.tgz
-        version: file:third_party/npm/speechkit-voiceagent-client-0.79.13.tgz(ws@8.22.0)
+        specifier: file:third_party/npm/speechkit-voiceagent-client-0.80.3.tgz
+        version: file:third_party/npm/speechkit-voiceagent-client-0.80.3.tgz(ws@8.22.0)
       '@playwright/test':
         specifier: ^1.64.0
         version: 1.64.0
       '@sveltejs/adapter-static':
-        specifier: 4.0.0
-        version: 4.0.0(@sveltejs/kit@3.0.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@7.3.1(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(svelte@5.57.2(@typescript-eslint/types@8.71.1)))(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(svelte@5.57.2(@typescript-eslint/types@8.71.1))(typescript@6.0.3))
+        specifier: 4.0.1
+        version: 4.0.1(@sveltejs/kit@3.0.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@7.3.1(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(svelte@5.57.2(@typescript-eslint/types@8.71.1)))(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(svelte@5.57.2(@typescript-eslint/types@8.71.1))(typescript@6.0.3))
       '@sveltejs/kit':
         specifier: 3.0.1
         version: 3.0.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@7.3.1(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(svelte@5.57.2(@typescript-eslint/types@8.71.1)))(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(svelte@5.57.2(@typescript-eslint/types@8.71.1))(typescript@6.0.3)
@@ -563,25 +563,25 @@ packages:
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
 
-  '@kombiverselabs/ai-sdk@file:third_party/npm/ai-sdk-0.16.6.tgz':
-    resolution: {integrity: sha512-KicOhG8vpetEzPz0nPPRvw7oq27CyG8agR21oueubEzrIRQ43CInfdBIn8mxXliVEJ9HeFwTmHx89mJfNkbzVw==, tarball: file:third_party/npm/ai-sdk-0.16.6.tgz}
-    version: 0.16.6
+  '@kombiverselabs/ai-sdk@file:third_party/npm/ai-sdk-0.16.16.tgz':
+    resolution: {integrity: sha512-y0ZhILdHRoWb15Zp8g2QwC0gqBjmeqo4xiqiscBfyfTln8AX6/FOElQ9gHjR9CCmZCL2s8XfVw9XbQMCv3hgQQ==, tarball: file:third_party/npm/ai-sdk-0.16.16.tgz}
+    version: 0.16.16
 
-  '@kombiverselabs/cloud-notifications@file:third_party/npm/cloud-notifications-0.5.0.tgz':
-    resolution: {integrity: sha512-hM/n/GxnpzKpZOPlHZxUhdEu1/FY4UieyoiqEmsWtcEdAtMeOCWBMY8yy7qgKShr5R5QjMSZcevV0Sdn6BL+sQ==, tarball: file:third_party/npm/cloud-notifications-0.5.0.tgz}
-    version: 0.5.0
+  '@kombiverselabs/cloud-notifications@file:third_party/npm/cloud-notifications-0.5.5.tgz':
+    resolution: {integrity: sha512-7+LwMKVzlCVHphUPasg3fOnh5n+Vj1+XhuvJTULHOH/+WjrY69FpeYcyBpIbPnfUHK3qtKClc0gdi/Nm9OkDDA==, tarball: file:third_party/npm/cloud-notifications-0.5.5.tgz}
+    version: 0.5.5
 
-  '@kombiverselabs/design@file:third_party/npm/design-0.11.17.tgz':
-    resolution: {integrity: sha512-nJnKcth3l50iYGvTeb/C/8UkalFHZcOqP1ctsCM02Ll0Orb2wwlbm98CtqnUSZgeTkxn1aqBwdqCuEldL/frtQ==, tarball: file:third_party/npm/design-0.11.17.tgz}
-    version: 0.11.17
+  '@kombiverselabs/design@file:third_party/npm/design-0.12.1.tgz':
+    resolution: {integrity: sha512-CSSimE2LetvkEpRB2nvt/3/ExRNyouA0LK0tJx8q8B156KjKytlGRK6TH0QBicOERleQMc2n+hOf6xO/MBnb6w==, tarball: file:third_party/npm/design-0.12.1.tgz}
+    version: 0.12.1
 
-  '@kombiverselabs/embed@file:third_party/npm/embed-0.16.6.tgz':
-    resolution: {integrity: sha512-BB2Olupf419kXrDAag0bFm9q7gv3/Jsev4RdblBBSE2RAARLY+Sy0qYZyMonbR5MDeYoXKJqE4TOBOc3ItaS6A==, tarball: file:third_party/npm/embed-0.16.6.tgz}
-    version: 0.16.6
+  '@kombiverselabs/embed@file:third_party/npm/embed-0.16.16.tgz':
+    resolution: {integrity: sha512-4UjDb+4hMTJ/uTnKNuBIEuhSO9DpEQKAWEv/vbxp/ERH1FuCB/WRTLNSHFu3ZmFUuuC6cNuC2H+cKAxXyRHhkw==, tarball: file:third_party/npm/embed-0.16.16.tgz}
+    version: 0.16.16
 
-  '@kombiverselabs/execution-contracts@file:third_party/npm/execution-contracts-0.16.6.tgz':
-    resolution: {integrity: sha512-aMy45SipBE4IElGuGf+nwWz27xP/smhWwT3v6ZbFM1dM+u5x8UQlL9pe0fndJfQ5pNj4mytW7z26Ib4U54G5pg==, tarball: file:third_party/npm/execution-contracts-0.16.6.tgz}
-    version: 0.16.6
+  '@kombiverselabs/execution-contracts@file:third_party/npm/execution-contracts-0.16.16.tgz':
+    resolution: {integrity: sha512-ST8knLDnxKJxruBNsTSOrKETbCcoU73Qgssbvk+u3NbXsTajeby0kgOHZoijfe+stVzXfae0AqsWEej+/inHxQ==, tarball: file:third_party/npm/execution-contracts-0.16.16.tgz}
+    version: 0.16.16
 
   '@kombiverselabs/observability@file:third_party/npm/observability-0.76.17.tgz':
     resolution: {integrity: sha512-m1uNmj0zkUHLMFoT99Qg1k7U8IWsMdMZi+UqVNV7XxfguOkDMfcH8sc+A8ZPl7Z16fkM+6JxQe/kkh0dmtYG3A==, tarball: file:third_party/npm/observability-0.76.17.tgz}
@@ -602,13 +602,13 @@ packages:
       posthog-node:
         optional: true
 
-  '@kombiverselabs/onboarding-core@file:third_party/npm/onboarding-core-0.11.17.tgz':
-    resolution: {integrity: sha512-Tul+iOoTKu9AgUgaCb/AAlbF2QO0CffDakWfUz8HZ2TceK8zJT14Pzfyh70uo6tfddzYY7sYr2WPauD4+arcgA==, tarball: file:third_party/npm/onboarding-core-0.11.17.tgz}
-    version: 0.11.17
+  '@kombiverselabs/onboarding-core@file:third_party/npm/onboarding-core-0.12.1.tgz':
+    resolution: {integrity: sha512-5ePxvuJMlfxoKnZQt2XkOngjAiXEpQVVAQBSZr1oqopDVIX1jT/+gEbOVx8Z2HXMrfQGjtkvjzXulKFXp3aaXQ==, tarball: file:third_party/npm/onboarding-core-0.12.1.tgz}
+    version: 0.12.1
 
-  '@kombiverselabs/speechkit-voiceagent-client@file:third_party/npm/speechkit-voiceagent-client-0.79.13.tgz':
-    resolution: {integrity: sha512-J4jcFy4uSpOfxCa0+aIyndiDQfOl94jP1bpM+xtkTuMF1tCh7+WnOSRaOdwMXxdfR6oo29fPlwQBlbBCEgU6ng==, tarball: file:third_party/npm/speechkit-voiceagent-client-0.79.13.tgz}
-    version: 0.79.13
+  '@kombiverselabs/speechkit-voiceagent-client@file:third_party/npm/speechkit-voiceagent-client-0.80.3.tgz':
+    resolution: {integrity: sha512-ozbBUyPgbphtx4/Rsz8rgl6sCg8WayCoLC0egLWy3QoxtnuFZaRAzxTOENPxARHYuhtRONjU/77sQv/njYjimA==, tarball: file:third_party/npm/speechkit-voiceagent-client-0.80.3.tgz}
+    version: 0.80.3
     engines: {node: '>=24.22.1 <25 || >=26.12.1'}
     peerDependencies:
       ws: '>=8.21.3'
@@ -620,12 +620,12 @@ packages:
     resolution: {integrity: sha512-fgQrM+OGWwhZQBaCABEvLu5Ge05z/4JgBilYe1jmXEd9P2W+W67M8WItODMZVGKQ4vSo95zstFPWH7FeBBK8rg==, tarball: file:third_party/npm/tsconfig-0.1.1.tgz}
     version: 0.1.1
 
-  '@kombiverselabs/ui@file:third_party/npm/ui-0.11.17.tgz':
-    resolution: {integrity: sha512-8CtVER0KBUBRKormkaMmGNgqnlTACIq0ik+dM7h2hBThBMImGMptj+EtsaG7ktIXhjI3YMKUI0M6KSxMrzMUgQ==, tarball: file:third_party/npm/ui-0.11.17.tgz}
-    version: 0.11.17
+  '@kombiverselabs/ui@file:third_party/npm/ui-0.12.1.tgz':
+    resolution: {integrity: sha512-sheWxynaW00k4ejvT/S3+wwRM+7cijrEnsD6iI1UP8mPBvXR5JYR82UpR587KcXxsIfl67tkC1Lqi0ALrKZ3Aw==, tarball: file:third_party/npm/ui-0.12.1.tgz}
+    version: 0.12.1
     peerDependencies:
-      '@kombiverselabs/design': 0.11.17
-      '@kombiverselabs/onboarding-core': 0.11.17
+      '@kombiverselabs/design': 0.12.1
+      '@kombiverselabs/onboarding-core': 0.12.1
       lucide-react: ^1.53.0
       react: ^19.3.0
       react-dom: ^19.3.0
@@ -1168,8 +1168,8 @@ packages:
     peerDependencies:
       acorn: ^8.9.0
 
-  '@sveltejs/adapter-static@4.0.0':
-    resolution: {integrity: sha512-aF1J23R1ebKqUxQ4/qLr/Lxu63NFmLAtg8UZl3HFLxaoA1D/nhTVGcD9lTqx65iUbjNR2iOL0TgOxSX82x6Paw==}
+  '@sveltejs/adapter-static@4.0.1':
+    resolution: {integrity: sha512-svOU1OcBiJ9Kn1cdxHDmJIsBy1/iQe9STPvUFkO2/iinxPFS7r8fc9TiCaWWUgbrE+7ox6Bt4MURv3RPi7sunQ==}
     peerDependencies:
       '@sveltejs/kit': ^3.0.0-next.0
 
@@ -2435,10 +2435,6 @@ packages:
   postcss-value-parser@4.2.0:
     resolution: {integrity: sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ==}
 
-  postcss@8.5.29:
-    resolution: {integrity: sha512-49cGhUbXj8Qenv0iTMxA1cFBzxXoctpC9Ujd77t1WcbJIr6nF/eI7g/8MgxrYldFRuAXvja7xQRwavoW7kgrxQ==}
-    engines: {node: ^10 || ^12 || >=14}
-
   postcss@8.5.32:
     resolution: {integrity: sha512-LJlKCCAUFKOuZxipUdYw1NzIITEsPcgyOG9LkvRJvuKj/bRzbuRY0ARXvL0pWGpsZvn8jku+LMep2eU0seHp8g==}
     engines: {node: ^10 || ^12 || >=14}
@@ -3099,26 +3095,26 @@ snapshots:
 
   '@keyv/serialize@1.1.1': {}
 
-  '@kombiverselabs/ai-sdk@file:third_party/npm/ai-sdk-0.16.6.tgz(ws@8.22.0)':
+  '@kombiverselabs/ai-sdk@file:third_party/npm/ai-sdk-0.16.16.tgz(ws@8.22.0)':
     dependencies:
       '@ag-ui/core': 1.0.3(zod@4.6.7)
-      '@kombiverselabs/execution-contracts': file:third_party/npm/execution-contracts-0.16.6.tgz
-      '@kombiverselabs/speechkit-voiceagent-client': file:third_party/npm/speechkit-voiceagent-client-0.79.13.tgz(ws@8.22.0)
+      '@kombiverselabs/execution-contracts': file:third_party/npm/execution-contracts-0.16.16.tgz
+      '@kombiverselabs/speechkit-voiceagent-client': file:third_party/npm/speechkit-voiceagent-client-0.80.3.tgz(ws@8.22.0)
       zod: 4.6.7
     transitivePeerDependencies:
       - ws
 
-  '@kombiverselabs/cloud-notifications@file:third_party/npm/cloud-notifications-0.5.0.tgz': {}
+  '@kombiverselabs/cloud-notifications@file:third_party/npm/cloud-notifications-0.5.5.tgz': {}
 
-  '@kombiverselabs/design@file:third_party/npm/design-0.11.17.tgz': {}
+  '@kombiverselabs/design@file:third_party/npm/design-0.12.1.tgz': {}
 
-  '@kombiverselabs/embed@file:third_party/npm/embed-0.16.6.tgz(ws@8.22.0)':
+  '@kombiverselabs/embed@file:third_party/npm/embed-0.16.16.tgz(ws@8.22.0)':
     dependencies:
-      '@kombiverselabs/ai-sdk': file:third_party/npm/ai-sdk-0.16.6.tgz(ws@8.22.0)
+      '@kombiverselabs/ai-sdk': file:third_party/npm/ai-sdk-0.16.16.tgz(ws@8.22.0)
     transitivePeerDependencies:
       - ws
 
-  '@kombiverselabs/execution-contracts@file:third_party/npm/execution-contracts-0.16.6.tgz':
+  '@kombiverselabs/execution-contracts@file:third_party/npm/execution-contracts-0.16.16.tgz':
     dependencies:
       '@noble/curves': 1.9.7
       '@noble/hashes': 1.8.0
@@ -3128,19 +3124,19 @@ snapshots:
       '@sentry/cloudflare': 10.76.1
       '@sentry/sveltekit': 10.76.1(@opentelemetry/core@2.10.0(@opentelemetry/api@1.9.1))(@sveltejs/kit@3.0.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@7.3.1(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(svelte@5.57.2(@typescript-eslint/types@8.71.1)))(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(svelte@5.57.2(@typescript-eslint/types@8.71.1))(typescript@6.0.3))(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(supports-color@7.2.0)(svelte@5.57.2(@typescript-eslint/types@8.71.1))
 
-  '@kombiverselabs/onboarding-core@file:third_party/npm/onboarding-core-0.11.17.tgz': {}
+  '@kombiverselabs/onboarding-core@file:third_party/npm/onboarding-core-0.12.1.tgz': {}
 
-  '@kombiverselabs/speechkit-voiceagent-client@file:third_party/npm/speechkit-voiceagent-client-0.79.13.tgz(ws@8.22.0)':
+  '@kombiverselabs/speechkit-voiceagent-client@file:third_party/npm/speechkit-voiceagent-client-0.80.3.tgz(ws@8.22.0)':
     optionalDependencies:
       ws: 8.22.0
 
   '@kombiverselabs/tsconfig@file:third_party/npm/tsconfig-0.1.1.tgz': {}
 
-  '@kombiverselabs/ui@file:third_party/npm/ui-0.11.17.tgz(@kombiverselabs/design@file:third_party/npm/design-0.11.17.tgz)(@kombiverselabs/onboarding-core@file:third_party/npm/onboarding-core-0.11.17.tgz)(lucide-react@1.53.0(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(svelte@5.57.2(@typescript-eslint/types@8.71.1))':
+  '@kombiverselabs/ui@file:third_party/npm/ui-0.12.1.tgz(@kombiverselabs/design@file:third_party/npm/design-0.12.1.tgz)(@kombiverselabs/onboarding-core@file:third_party/npm/onboarding-core-0.12.1.tgz)(lucide-react@1.53.0(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(svelte@5.57.2(@typescript-eslint/types@8.71.1))':
     dependencies:
-      '@kombify/notifications': '@kombiverselabs/cloud-notifications@file:third_party/npm/cloud-notifications-0.5.0.tgz'
-      '@kombiverselabs/design': file:third_party/npm/design-0.11.17.tgz
-      '@kombiverselabs/onboarding-core': file:third_party/npm/onboarding-core-0.11.17.tgz
+      '@kombify/notifications': '@kombiverselabs/cloud-notifications@file:third_party/npm/cloud-notifications-0.5.5.tgz'
+      '@kombiverselabs/design': file:third_party/npm/design-0.12.1.tgz
+      '@kombiverselabs/onboarding-core': file:third_party/npm/onboarding-core-0.12.1.tgz
       '@lucide/svelte': 1.61.0(svelte@5.57.2(@typescript-eslint/types@8.71.1))
       svelte: 5.57.2(@typescript-eslint/types@8.71.1)
     optionalDependencies:
@@ -3543,7 +3539,7 @@ snapshots:
     dependencies:
       acorn: 8.18.0
 
-  '@sveltejs/adapter-static@4.0.0(@sveltejs/kit@3.0.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@7.3.1(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(svelte@5.57.2(@typescript-eslint/types@8.71.1)))(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(svelte@5.57.2(@typescript-eslint/types@8.71.1))(typescript@6.0.3))':
+  '@sveltejs/adapter-static@4.0.1(@sveltejs/kit@3.0.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@7.3.1(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(svelte@5.57.2(@typescript-eslint/types@8.71.1)))(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(svelte@5.57.2(@typescript-eslint/types@8.71.1))(typescript@6.0.3))':
     dependencies:
       '@sveltejs/kit': 3.0.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@7.3.1(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(svelte@5.57.2(@typescript-eslint/types@8.71.1)))(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(svelte@5.57.2(@typescript-eslint/types@8.71.1))(typescript@6.0.3)
 
@@ -3641,7 +3637,7 @@ snapshots:
       '@alloc/quick-lru': 5.2.0
       '@tailwindcss/node': 4.3.3
       '@tailwindcss/oxide': 4.3.3
-      postcss: 8.5.29
+      postcss: 8.5.32
       tailwindcss: 4.3.3
 
   '@tailwindcss/vite@4.3.3(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))':
@@ -3970,13 +3966,13 @@ snapshots:
 
   assertion-error@2.0.1: {}
 
-  autoprefixer@10.6.1(postcss@8.5.29):
+  autoprefixer@10.6.1(postcss@8.5.32):
     dependencies:
       browserslist: 4.29.3
       caniuse-lite: 1.0.30001815
       fraction.js: 5.3.4
       picocolors: 1.1.1
-      postcss: 8.5.29
+      postcss: 8.5.32
       postcss-value-parser: 4.2.0
 
   axobject-query@4.1.0: {}
@@ -4098,9 +4094,9 @@ snapshots:
       esutils: 2.0.3
       globals: 16.5.0
       known-css-properties: 0.37.0
-      postcss: 8.5.29
-      postcss-load-config: 3.1.4(postcss@8.5.29)
-      postcss-safe-parser: 7.0.1(postcss@8.5.29)
+      postcss: 8.5.32
+      postcss-load-config: 3.1.4(postcss@8.5.32)
+      postcss-safe-parser: 7.0.1(postcss@8.5.32)
       semver: 7.8.5
       svelte-eslint-parser: 1.8.0(svelte@5.57.2(@typescript-eslint/types@8.71.1))
     optionalDependencies:
@@ -4638,20 +4634,20 @@ snapshots:
 
   pngjs@7.0.0: {}
 
-  postcss-load-config@3.1.4(postcss@8.5.29):
+  postcss-load-config@3.1.4(postcss@8.5.32):
     dependencies:
       lilconfig: 2.1.0
       yaml: 1.10.3
     optionalDependencies:
-      postcss: 8.5.29
+      postcss: 8.5.32
 
-  postcss-safe-parser@7.0.1(postcss@8.5.29):
+  postcss-safe-parser@7.0.1(postcss@8.5.32):
     dependencies:
-      postcss: 8.5.29
+      postcss: 8.5.32
 
-  postcss-scss@4.0.9(postcss@8.5.29):
+  postcss-scss@4.0.9(postcss@8.5.32):
     dependencies:
-      postcss: 8.5.29
+      postcss: 8.5.32
 
   postcss-selector-parser@7.1.5:
     dependencies:
@@ -4659,12 +4655,6 @@ snapshots:
       util-deprecate: 1.0.2
 
   postcss-value-parser@4.2.0: {}
-
-  postcss@8.5.29:
-    dependencies:
-      nanoid: 3.3.20
-      picocolors: 1.1.1
-      source-map-js: 1.2.2
 
   postcss@8.5.32:
     dependencies:
@@ -4783,8 +4773,8 @@ snapshots:
       eslint-scope: 8.4.0
       eslint-visitor-keys: 4.2.1
       espree: 10.4.0
-      postcss: 8.5.29
-      postcss-scss: 4.0.9(postcss@8.5.29)
+      postcss: 8.5.32
+      postcss-scss: 4.0.9(postcss@8.5.32)
       postcss-selector-parser: 7.1.5
       semver: 7.8.5
     optionalDependencies:

@@ -3,6 +3,7 @@ package controlplane
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -148,6 +149,41 @@ func (s *PostgresStore) ListStacksByTenant(ctx context.Context, tenantID string)
 		return nil, err
 	}
 	return out, nil
+}
+
+func (s *PostgresStore) ListOwnerHomelabSpecs(ctx context.Context, tenantID, ownerSubjectID, homelabID string) ([]OwnerStackSpec, error) {
+	if s == nil || s.db == nil || strings.TrimSpace(tenantID) == "" || strings.TrimSpace(ownerSubjectID) == "" || strings.TrimSpace(homelabID) == "" {
+		return nil, fmt.Errorf("controlplane: owner Homelab scope required")
+	}
+	var out []OwnerStackSpec
+	err := s.withTenant(ctx, tenantID, func(tx *sql.Tx) error {
+		rows, err := tx.QueryContext(ctx, `
+			SELECT COALESCE(homelab_id, ''), config_json->'stack_spec_v2'
+			FROM stacks
+			WHERE tenant_id = $1 AND owner_subject_id = $2 AND deleted_at IS NULL
+				AND (homelab_id = $3 OR homelab_id IS NULL)
+		`, tenantID, ownerSubjectID, homelabID)
+		if err != nil {
+			return err
+		}
+		defer func() { _ = rows.Close() }()
+		for rows.Next() {
+			var homelab string
+			var raw []byte
+			if err := rows.Scan(&homelab, &raw); err != nil {
+				return err
+			}
+			var spec any
+			if len(raw) > 0 {
+				if err := json.Unmarshal(raw, &spec); err != nil {
+					return err
+				}
+			}
+			out = append(out, OwnerStackSpec{HomelabID: homelab, Spec: spec})
+		}
+		return rows.Err()
+	})
+	return out, err
 }
 
 func (s *PostgresStore) SoftDeleteStack(ctx context.Context, tenantID, stackID string) error {

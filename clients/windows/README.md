@@ -161,6 +161,21 @@ Provider lifecycle, signed updates and backup/restore remain separate evidence.
 The local debugging setting exists only in the smoke process environment and
 is restored during cleanup. See the [official WebView2 integration](https://playwright.dev/docs/webview2).
 
+Client contracts (both editions, no installer is copied or run):
+
+```powershell
+dotnet run --project clients\windows\Kombify.TechStack.Client.ContractTests -c Release -p:DesktopEdition=Local
+dotnet run --project clients\windows\Kombify.TechStack.Client.ContractTests -c Release -p:DesktopEdition=Cloud
+```
+
+The executable is a console program, not a `dotnet test` project. It needs a
+Windows logon with Credential Manager and CNG; each edition runs only its own
+contracts (Standalone: the local device-session entry, the local state root and
+rollback recovery; Connected: Cloud authority, Connect enrollment and the cloud
+update feed), prints one PASS or FAIL line per assertion, and exits non-zero
+after all of them ran. `scripts\windows-client-contracts-check.ps1` runs both
+editions and is what CI's `windows-connect-contracts` scope runs.
+
 Signed updates (DESKTOP-FOUNDATION-STANDARD.md §5.7):
 
 - The shipped installation (Setup.exe/MSI under `%ProgramFiles%\kombify\techstack`)

@@ -94,6 +94,12 @@ func loadApplicationPolicy(ctx context.Context, q PrivilegeQuerier, requireFunct
 		// Migration 176: a pin retires only through the provider-absence
 		// trigger; the runtime reads the record to drop a retired file pin.
 		"runtime_host_key_pin_retirements": "SELECT",
+		// Migration 129: the native Windows login. The attempt rows exist
+		// before anyone is signed in, so they have no tenant and no row
+		// security; the handlers insert, answer and consume one attempt and
+		// delete expired ones. Without this entry the application role has no
+		// privilege on the table and POST /api/v2/auth/native/start answers 503.
+		"native_login_handoffs": "SELECT,INSERT,UPDATE,DELETE",
 	}
 	for rows.Next() {
 		var oid int64

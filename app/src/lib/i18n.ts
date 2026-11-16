@@ -434,7 +434,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "common.recommended": "recommended",
 
     // Wizard
-    "wizard.title": "Create kombify-Techstack",
+    "wizard.title": "Create Techstack",
     "wizard.selfDisclosure.review.title": "Use the answers from this link?",
     "wizard.selfDisclosure.review.body":
       "The link you opened carries these answers about you. Techstack saves them to your profile and uses them for your recommendations only when you choose “Use these answers”. Nothing is saved yet.",
@@ -1423,7 +1423,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "common.recommended": "empfohlen",
 
     // Wizard
-    "wizard.title": "kombify-Techstack erstellen",
+    "wizard.title": "Techstack erstellen",
     "wizard.selfDisclosure.review.title":
       "Die Angaben aus diesem Link übernehmen?",
     "wizard.selfDisclosure.review.body":
