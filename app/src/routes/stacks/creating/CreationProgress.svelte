@@ -4,6 +4,10 @@
   import { NEW_SERVER_CREATION_HREF } from "#lib/server-links.js";
   import GroupedTaskList from "#lib/components/ui/GroupedTaskList.svelte";
   import ErrorCallout from "#lib/components/ui/ErrorCallout.svelte";
+  import { Info } from "@lucide/svelte";
+  import { onMount } from "svelte";
+  import { operatorExperience } from "#lib/stores/operatorExperience.svelte.js";
+  import CreationFailure from "./CreationFailure.svelte";
 
   interface Props {
     /** While the run works the list is a reel centred on the active phase. */
@@ -13,13 +17,26 @@
   let { focused = false }: Props = $props();
 
   // The waiting and pairing cards carry their own status; the reel only
-  // details ordinary running steps.
+  // details ordinary running steps, or the failure inside the failed phase.
   let showStepDetail = $derived(
     focused &&
+      !creation.hasFailed &&
       !creation.agentPairingWaiting &&
       !creation.waitingForManagedRuntime &&
       Boolean(creation.currentStepInfo || creation.currentStepMessage),
   );
+  let showFailure = $derived(focused && creation.hasFailed);
+
+  // The onboarding answer decides how much of the machinery shows unasked:
+  // a technical audience gets the "how it works" lines open, everyone else
+  // keeps them behind the info buttons.
+  onMount(() => void operatorExperience.load());
+  let technical = $derived(
+    operatorExperience.experience === "techie" ||
+      operatorExperience.experience === "expert",
+  );
+  let stepTechOpen = $state<boolean | undefined>(undefined);
+  let stepTechShown = $derived(stepTechOpen ?? technical);
 </script>
 
 {#snippet stepDetail()}
@@ -44,15 +61,32 @@
   {#if creation.currentStepInfo?.detail}
     <!-- How it works is for people who ask; the lines above are enough to
          follow along. -->
-    <details class="mt-3 text-xs text-muted-foreground">
-      <summary class="cursor-pointer select-none">
-        {tr("creation.technical.summary")}
-      </summary>
-      <p class="mt-1 leading-relaxed">
+    <button
+      type="button"
+      class="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-primary"
+      aria-expanded={stepTechShown}
+      data-testid="creation-step-info"
+      onclick={() => (stepTechOpen = !stepTechShown)}
+    >
+      <Info size={14} strokeWidth={1.8} aria-hidden="true" />
+      {tr("creation.technical.summary")}
+    </button>
+    {#if stepTechShown}
+      <p class="mt-1 text-xs leading-relaxed text-muted-foreground">
         {creation.currentStepInfo.detail}
       </p>
-    </details>
+    {/if}
   {/if}
+{/snippet}
+
+{#snippet failureDetail()}
+  <CreationFailure part="help" />
+{/snippet}
+
+{#snippet failureActions()}
+  <div class="mt-4">
+    <CreationFailure part="actions" />
+  </div>
 {/snippet}
 
 <!-- Progress card with the phase list -->
@@ -107,7 +141,7 @@
   {/if}
 
   <!-- Progress bar -->
-  <div class="mb-8">
+  <div class="mb-5">
     <div class="flex justify-between text-sm mb-2">
       <span class="flex items-center gap-2">
         <span class="text-muted-foreground" id="creation-progress-label"
@@ -148,7 +182,13 @@
     timeline={creation.taskTimeline}
     now={creation.progressClock}
     {focused}
-    activeDetail={showStepDetail ? stepDetail : undefined}
+    {technical}
+    activeDetail={showFailure
+      ? failureDetail
+      : showStepDetail
+        ? stepDetail
+        : undefined}
+    footer={showFailure ? failureActions : undefined}
   />
   {#if creation.applianceReceipt}
     <p class="mt-4 text-sm text-muted-foreground" role="status">
@@ -157,14 +197,12 @@
   {/if}
 
   <!-- Footer hint for in-progress -->
-  {#if !creation.isComplete && !creation.hasFailed}
+  {#if !creation.isComplete && !creation.hasFailed && (creation.waitingForManagedRuntime || creation.agentPairingWaiting)}
     <p class="text-center text-muted-foreground text-xs mt-4">
       {#if creation.waitingForManagedRuntime}
         {tr("ui.stacksCreatingCreationProgress.theNextCheckIsScheduled")}
       {:else if creation.agentPairingWaiting}
         {tr("ui.stacksCreatingCreationProgress.thisPageChecksTheReal")}
-      {:else}
-        {tr("ui.stacksCreatingCreationProgress.thisCanTakeAFew")}
       {/if}
     </p>
   {/if}

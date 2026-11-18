@@ -11,6 +11,8 @@ internal static class DesktopEdition
     public const string InstallerFileName = "kombify-Techstack-Cloud-Setup.exe";
     public const string VerifierFileName = "kombify-techstack-cloud-updater.exe";
     public const string InstallDirectoryName = "techstack-cloud";
+    // The edition's own URL scheme for open-in-app (kombify-techstack-<variant>, AppLink v2).
+    public const string ActivationScheme = "kombify-techstack-cloud";
     public static bool IsLocal => false;
 #else
     public const string Name = "local";
@@ -19,6 +21,7 @@ internal static class DesktopEdition
     public const string InstallerFileName = "kombify-Techstack-Setup.exe";
     public const string VerifierFileName = "techstack.exe";
     public const string InstallDirectoryName = "techstack";
+    public const string ActivationScheme = "kombify-techstack";
     public static bool IsLocal => true;
 #endif
 }

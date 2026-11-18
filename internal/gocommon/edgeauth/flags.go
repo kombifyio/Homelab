@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -37,9 +38,68 @@ const (
 	HeaderFlagsKeyID = "X-Kombify-Flags-Key-ID"
 
 	decisionSignatureVersionV2 = "v2"
+
+	// FlagEvaluationStatePrefix and FlagUnavailablePrefix name the reserved
+	// keys of the signed flags map that carry the evaluation state
+	// (kombify-Gateway docs/API_REFERENCE.md "Signed flag envelope"): exactly
+	// one "$flag_evaluation:<state>" and one "$flag_unavailable:<key>" per key
+	// the Gateway could not evaluate, each true. Verification moves every "$"
+	// key out of Flags.
+	FlagEvaluationStatePrefix = "$flag_evaluation:"
+	FlagUnavailablePrefix     = "$flag_unavailable:"
 )
 
-// FlagSet is the verified set of per-request flags and budgets from the edge.
+// FlagEvaluationState says how complete the Gateway's flag evaluation behind
+// a verified FlagSet was.
+type FlagEvaluationState string
+
+const (
+	// FlagEvaluationComplete: every evaluated flag has a provider answer, so a
+	// false value is a denial.
+	FlagEvaluationComplete FlagEvaluationState = "complete"
+	// FlagEvaluationFailed: the evaluation is incomplete; a false value and
+	// every key in UnavailableFlags is not an answer.
+	FlagEvaluationFailed FlagEvaluationState = "failed"
+	// FlagEvaluationNotEvaluated: the Gateway evaluated no flag for this hop.
+	FlagEvaluationNotEvaluated FlagEvaluationState = "not_evaluated"
+	// FlagEvaluationUnstated: no readable state, as from a producer that
+	// predates it, an application-built set or an expired one.
+	FlagEvaluationUnstated FlagEvaluationState = ""
+)
+
+// FlagDecision is one flag as an origin may act on it. Only FlagDenied means
+// "turned off"; FlagFailed means the Gateway could not evaluate it.
+type FlagDecision int
+
+const (
+	// FlagUnanswered: no current signed answer (absent key, nothing
+	// evaluated, stateless, expired or application-built set).
+	FlagUnanswered FlagDecision = iota
+	// FlagGranted: the signed value is true.
+	FlagGranted
+	// FlagDenied: a complete evaluation answered false.
+	FlagDenied
+	// FlagFailed: the evaluation of this flag, or the whole evaluation, failed.
+	FlagFailed
+)
+
+func (d FlagDecision) String() string {
+	switch d {
+	case FlagGranted:
+		return "granted"
+	case FlagDenied:
+		return "denied"
+	case FlagFailed:
+		return "failed"
+	default:
+		return "unanswered"
+	}
+}
+
+// FlagSet is a snapshot of per-request flags and budgets from the edge.
+// Verified sets retain their original signature window across copies. Read
+// request authority through Bool, FlagsFromContext, or VerifiedBudget; the
+// exported maps alone are snapshots, not proof of current authority.
 type FlagSet struct {
 	Flags   map[string]bool
 	Budgets map[string]json.RawMessage
@@ -49,6 +109,19 @@ type FlagSet struct {
 	// a commercial decision as verified against the request-bound v2 envelope.
 	decisionBinding *DecisionBinding
 	decisionDigest  [sha256.Size]byte
+	validFrom       time.Time
+	validUntil      time.Time
+	// decision is what verification saw, never changed afterwards and shared
+	// by copies. Decision reads only this, so an application-built set or a
+	// later change of Flags cannot grant.
+	decision *flagDecisionSnapshot
+}
+
+// flagDecisionSnapshot is immutable after verification.
+type flagDecisionSnapshot struct {
+	flags       map[string]bool
+	state       FlagEvaluationState
+	unavailable []string
 }
 
 // DecisionBinding is the immutable provenance of a request-bound v2 flag and
@@ -74,7 +147,7 @@ type DecisionBinding struct {
 // assembled by application code or restored from a job payload has no such
 // provenance and must fail closed for cost-bearing authorization.
 func (f FlagSet) VerifiedDecisionBinding() (DecisionBinding, bool) {
-	if f.decisionBinding == nil || f.decisionDigest == ([sha256.Size]byte{}) || f.decisionDigest != flagSetDigest(f) {
+	if !f.validAt(time.Now()) || f.decisionBinding == nil || f.decisionDigest == ([sha256.Size]byte{}) || f.decisionDigest != flagSetDigest(f) {
 		return DecisionBinding{}, false
 	}
 	return *f.decisionBinding, true
@@ -95,9 +168,13 @@ func (f FlagSet) VerifiedBudget(key string) (json.RawMessage, DecisionBinding, b
 	return append(json.RawMessage(nil), raw...), binding, true
 }
 
-// Bool returns the flag value, or def if absent (fail-closed: callers pass false
-// for entitlement flags).
+// Bool returns the flag value, or def if absent. A verified set outside its
+// signature window returns false even when def is true. Application-created
+// release flags have no signature window; they confer no commercial provenance.
 func (f FlagSet) Bool(key string, def bool) bool {
+	if !f.validAt(time.Now()) {
+		return false
+	}
 	if f.Flags == nil {
 		return def
 	}
@@ -107,6 +184,133 @@ func (f FlagSet) Bool(key string, def bool) bool {
 	return def
 }
 
+// EvaluationState returns the signed evaluation state of a verified set
+// within its signature window, otherwise FlagEvaluationUnstated.
+func (f FlagSet) EvaluationState() FlagEvaluationState {
+	if f.decision == nil || !f.validAt(time.Now()) {
+		return FlagEvaluationUnstated
+	}
+	return f.decision.state
+}
+
+// UnavailableFlags returns a copy of the keys the Gateway could not evaluate.
+func (f FlagSet) UnavailableFlags() []string {
+	if f.decision == nil || !f.validAt(time.Now()) {
+		return nil
+	}
+	return append([]string(nil), f.decision.unavailable...)
+}
+
+// Decision tells a denial from a failed evaluation for one flag. It answers
+// from the snapshot verification took, so only a set this package verified
+// grants or denies: an application-built set, and a key added to or changed
+// in Flags afterwards, answer what was signed or FlagUnanswered. It keeps the
+// signature window: an expired set answers nothing.
+func (f FlagSet) Decision(key string) FlagDecision {
+	snapshot := f.decision
+	if snapshot == nil || !f.validAt(time.Now()) {
+		return FlagUnanswered
+	}
+	value, ok := snapshot.flags[key]
+	if !ok {
+		return FlagUnanswered
+	}
+	for _, unavailable := range snapshot.unavailable {
+		if unavailable == key {
+			return FlagFailed
+		}
+	}
+	switch {
+	case value:
+		return FlagGranted
+	case snapshot.state == FlagEvaluationComplete:
+		return FlagDenied
+	case snapshot.state == FlagEvaluationFailed:
+		return FlagFailed
+	default:
+		return FlagUnanswered
+	}
+}
+
+// WithFlagEvaluation returns flags for a signer with the evaluation state in
+// the reserved keys. Caller keys starting with "$" are dropped; unavailable
+// keys are de-duplicated.
+func WithFlagEvaluation(flags map[string]bool, state FlagEvaluationState, unavailable ...string) map[string]bool {
+	out := make(map[string]bool, len(flags)+1+len(unavailable))
+	for key, value := range flags {
+		if !strings.HasPrefix(key, "$") {
+			out[key] = value
+		}
+	}
+	out[FlagEvaluationStatePrefix+string(state)] = true
+	for _, key := range sortedUnique(unavailable) {
+		out[FlagUnavailablePrefix+key] = true
+	}
+	return out
+}
+
+func sortedUnique(keys []string) []string {
+	seen := make(map[string]struct{}, len(keys))
+	out := make([]string, 0, len(keys))
+	for _, key := range keys {
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, key)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// bindFlagEvaluation moves every reserved "$" key out of Flags and takes the
+// decision snapshot. A state is readable only as exactly one known
+// "$flag_evaluation:<state>" set to true; a missing, unknown or contradictory
+// reserved entry is unstated, never an error: it cannot deny anything.
+func (f *FlagSet) bindFlagEvaluation() {
+	var states, unavailable []string
+	malformed := false
+	for key, value := range f.Flags {
+		if !strings.HasPrefix(key, "$") {
+			continue
+		}
+		delete(f.Flags, key)
+		switch {
+		case strings.HasPrefix(key, FlagEvaluationStatePrefix) && value:
+			states = append(states, strings.TrimPrefix(key, FlagEvaluationStatePrefix))
+		case strings.HasPrefix(key, FlagUnavailablePrefix) && value && len(key) > len(FlagUnavailablePrefix):
+			unavailable = append(unavailable, strings.TrimPrefix(key, FlagUnavailablePrefix))
+		default:
+			malformed = true
+		}
+	}
+	snapshot := &flagDecisionSnapshot{flags: make(map[string]bool, len(f.Flags)), state: FlagEvaluationUnstated}
+	for key, value := range f.Flags {
+		snapshot.flags[key] = value
+	}
+	if !malformed && len(states) == 1 {
+		switch state := FlagEvaluationState(states[0]); state {
+		case FlagEvaluationComplete, FlagEvaluationFailed, FlagEvaluationNotEvaluated:
+			snapshot.state, snapshot.unavailable = state, sortedUnique(unavailable)
+		}
+	}
+	f.decision = snapshot
+}
+
+// validAt uses the same inclusive window as ingress timestamp validation.
+// The zero window belongs only to application-created, non-authoritative flags.
+func (f FlagSet) validAt(now time.Time) bool {
+	return f.validUntil.IsZero() || (!now.Before(f.validFrom) && !now.After(f.validUntil))
+}
+
+func (f *FlagSet) setValidity(issuedAt time.Time, window time.Duration) {
+	if window <= 0 {
+		window = defaultSignatureWindow
+	}
+	f.validFrom = issuedAt.Add(-window)
+	f.validUntil = issuedAt.Add(window)
+}
+
 type flagsCtxKey struct{}
 
 // FlagsToContext stores a verified FlagSet for downstream handlers.
@@ -114,10 +318,14 @@ func FlagsToContext(ctx context.Context, fs FlagSet) context.Context {
 	return context.WithValue(ctx, flagsCtxKey{}, cloneFlagSet(fs))
 }
 
-// FlagsFromContext retrieves a FlagSet previously stored by FlagsToContext.
+// FlagsFromContext retrieves a detached snapshot only while its original
+// signature window is valid. Copying or reattaching a set never renews it.
 func FlagsFromContext(ctx context.Context) (FlagSet, bool) {
 	fs, ok := ctx.Value(flagsCtxKey{}).(FlagSet)
-	return cloneFlagSet(fs), ok
+	if !ok || !fs.validAt(time.Now()) {
+		return FlagSet{}, false
+	}
+	return cloneFlagSet(fs), true
 }
 
 func cloneFlagSet(in FlagSet) FlagSet {
@@ -125,6 +333,9 @@ func cloneFlagSet(in FlagSet) FlagSet {
 		Flags:          make(map[string]bool, len(in.Flags)),
 		Budgets:        make(map[string]json.RawMessage, len(in.Budgets)),
 		decisionDigest: in.decisionDigest,
+		validFrom:      in.validFrom,
+		validUntil:     in.validUntil,
+		decision:       in.decision,
 	}
 	for key, value := range in.Flags {
 		out.Flags[key] = value
@@ -184,7 +395,9 @@ type DecisionVerifyConfig struct {
 	ExpectedAudience     string
 	ExpectedPublicPrefix string
 	SignatureWindow      time.Duration
-	Now                  func() time.Time
+	// Now selects the ingress validation clock only. Retained FlagSet authority
+	// always expires against the wall clock, including after request detachment.
+	Now func() time.Time
 	// IdentityConfig verifies the exact Edge identity envelope whose
 	// signature/timestamp/nonce are bound into the decision signature. It must
 	// use the Edge identity keys, which may differ from the decision keys.
@@ -329,7 +542,15 @@ func VerifyDecisionHeadersWithKeys(r *http.Request, cfg DecisionVerifyConfig) (F
 	if !verifyDecisionEnvelopeSignature(r.Method, envelope, keys) {
 		return FlagSet{}, fmt.Errorf("edge_decision_signature_invalid")
 	}
-	return decodeVerifiedDecision(r.Method, envelope)
+	window := cfg.SignatureWindow
+	if window <= 0 {
+		window = defaultSignatureWindow
+	}
+	// The identity is independently verified; a decision cannot outlive it.
+	if identityWindow := cfg.IdentityConfig.SignatureWindow; identityWindow > 0 && identityWindow < window {
+		window = identityWindow
+	}
+	return decodeVerifiedDecision(r.Method, envelope, window)
 }
 
 type decisionVerificationKeys struct {
@@ -456,7 +677,7 @@ func verifyDecisionEnvelopeSignature(method string, envelope decisionEnvelope, k
 	return false
 }
 
-func decodeVerifiedDecision(method string, envelope decisionEnvelope) (FlagSet, error) {
+func decodeVerifiedDecision(method string, envelope decisionEnvelope, window time.Duration) (FlagSet, error) {
 	fs := FlagSet{Flags: map[string]bool{}, Budgets: map[string]json.RawMessage{}}
 	if err := json.Unmarshal([]byte(envelope.flagsJSON), &fs.Flags); err != nil {
 		return FlagSet{}, fmt.Errorf("edge_flags_payload_invalid")
@@ -464,6 +685,7 @@ func decodeVerifiedDecision(method string, envelope decisionEnvelope) (FlagSet, 
 	if err := json.Unmarshal([]byte(envelope.budgetsJSON), &fs.Budgets); err != nil {
 		return FlagSet{}, fmt.Errorf("edge_budgets_payload_invalid")
 	}
+	fs.bindFlagEvaluation()
 	issuedSeconds, _ := strconv.ParseInt(envelope.timestamp, 10, 64)
 	fs.decisionBinding = &DecisionBinding{
 		Version: decisionSignatureVersionV2, KeyID: envelope.keyID,
@@ -472,6 +694,7 @@ func decodeVerifiedDecision(method string, envelope decisionEnvelope) (FlagSet, 
 		RequestID: envelope.requestID, EdgeKeyID: envelope.edgeKeyID, Nonce: envelope.nonce,
 		IssuedAt: time.Unix(issuedSeconds, 0).UTC(),
 	}
+	fs.setValidity(fs.decisionBinding.IssuedAt, window)
 	fs.decisionDigest = flagSetDigest(fs)
 	return fs, nil
 }
@@ -593,6 +816,9 @@ func verifyFlagHeaders(r *http.Request, cfg FlagVerifyConfig, rejectDuplicateIDs
 	if err := json.Unmarshal([]byte(budgetsJSON), &fs.Budgets); err != nil {
 		return FlagSet{}, fmt.Errorf("edge_budgets_payload_invalid")
 	}
+	fs.bindFlagEvaluation()
+	issuedSeconds, _ := strconv.ParseInt(timestamp, 10, 64)
+	fs.setValidity(time.Unix(issuedSeconds, 0), cfg.SignatureWindow)
 	return fs, nil
 }
 

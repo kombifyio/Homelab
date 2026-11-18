@@ -1,4 +1,12 @@
 export const es: Record<string, string> = {
+  "ui.stacksCreatingCreationFailure.whatYouCanDo": "Qué puedes hacer",
+  "ui.stacksCreatingCreationProgress.failedSubtitle": "Un paso no terminó. La lista muestra dónde se detuvo y qué puedes hacer.",
+  "ui.groupedTaskList.howItWorks": "Cómo funciona: {phase}",
+  "ui.taskStatus.phaseTechnical.verify": "Confirma los servicios protegidos por inicio de sesión y las señales de monitorización y ejecuta un simulacro de restauración de los servicios predeterminados.",
+  "ui.taskStatus.phaseTechnical.rollout": "Primero ejecuta una actualización simulada; después la CLI de StackKits prepara el host (Docker, OpenTofu, Terramate, monitorización), aplica el Cloud Kit y lee el inventario de servicios.",
+  "ui.taskStatus.phaseTechnical.generate": "Genera la unified spec a partir de tu intención y los valores de StackKit, la guarda y renderiza la infraestructura como código de StackKit (OpenTofu, Compose).",
+  "ui.taskStatus.phaseTechnical.provision": "Crea o vincula el lease de VM de tu suscripción, espera a que el VPS responda por SSH, conecta el runtime e inicia la entrega de telemetría.",
+  "ui.taskStatus.phaseTechnical.configure": "Valida funciones, modo de acceso e inicio de sesión, elige una plantilla de StackKit y genera la especificación de despliegue de StackKit.",
   "ui.homelab.firstServerHint": "Conecta un servidor que ya tengas o configura uno nuevo. Tus servidores aparecerán aquí.",
   "ui.homelab.installedUseCases": "Casos de uso instalados",
   "ui.homelab.transferHint": "Importa una configuración de stack o exporta el stack seleccionado.",
@@ -2403,7 +2411,7 @@ export const es: Record<string, string> = {
     "Abre el último trabajo de destrucción para ver el error propio del proveedor",
   "ui.providerErrors.providerMessage": "Mensaje del proveedor: {summary}",
   "ui.providerErrors.reloadThePageAndTry":
-    "Recarga la página e inténtalo de nuevo",
+    "Inténtalo de nuevo. Muchos problemas se resuelven en el segundo intento.",
   "ui.providerErrors.resolveTheKombifyMeOr":
     "Resuelve el bloqueo de kombify.me o de StackKits y reintenta solo el despliegue de StackKit",
   "ui.providerErrors.retryAdditionalNodeAFoundation":
@@ -2418,7 +2426,7 @@ export const es: Record<string, string> = {
     "Reintenta el despliegue solo cuando SSH, Docker y la Runtime Action de StackKits sean estables en el servidor de destino",
   "ui.providerErrors.reviewTheLogsWithDocker":
     "Revisa los registros con 'docker compose logs techstack'",
-  "ui.providerErrors.reviewTheServerLogs": "Revisa los registros del servidor",
+  "ui.providerErrors.reviewTheServerLogs": "¿Sigue sin funcionar? Pregunta a kombify o abre los detalles técnicos y envíalos al soporte.",
   "ui.providerErrors.runtimeActionStackkitRollout":
     "Runtime Action stackkit_rollout",
   "ui.providerErrors.serviceConflictDetected":
@@ -2925,6 +2933,74 @@ export const es: Record<string, string> = {
   "ui.settings.cleanUpTestResidue": "Limpiar residuos de pruebas",
   "ui.settings.cleanupFailed": "Error en la limpieza",
   "ui.settings.cleanupReviewFailed": "Error al revisar la limpieza",
+  "ui.settings.companion": "Companion",
+  "companion.settings.sections.companion": "Companion",
+  "companion.settings.sections.kubi": "Kubi",
+  "companion.settings.sections.dictation": "Dictado",
+  "companion.settings.sections.assistant": "Asistente de voz",
+  "companion.settings.sections.screenshot": "Captura de pantalla",
+  "companion.settings.sections.pill": "Botones",
+  "companion.settings.sections.account": "Cuenta",
+  "companion.settings.rows.enabled": "Companion en este equipo",
+  "companion.settings.rows.startWithWindows": "Iniciar con Windows",
+  "companion.settings.rows.showKubi": "Mostrar a Kubi",
+  "companion.settings.rows.voiceAnimation": "Animación de voz",
+  "companion.settings.rows.shortcut": "Atajo",
+  "companion.settings.rows.dictationBehavior": "Modo del atajo",
+  "companion.settings.rows.microphone": "Micrófono",
+  "companion.settings.rows.screenshotDestination": "Guardar en",
+  "companion.settings.rows.screenshotFolder": "Carpeta",
+  "companion.settings.rows.account": "Cuenta de kombify",
+  "companion.settings.rows.consent": "Procesamiento de voz",
+  "companion.settings.values.on": "Activado",
+  "companion.settings.values.off": "Desactivado",
+  "companion.settings.values.holdToTalk": "Mantener para hablar",
+  "companion.settings.values.toggle": "Pulsar para hablar",
+  "companion.settings.values.systemMicrophone": "Predeterminado del sistema",
+  "companion.settings.values.notSignedIn": "Sin sesión iniciada",
+  "companion.settings.values.chordNone": "Sin definir",
+  "companion.settings.status.saving": "Guardando",
+  "companion.settings.status.recording": "Grabando atajo",
+  "companion.settings.voiceAnimations.kombify": "kombify",
+  "companion.settings.voiceAnimations.neutral": "Neutra",
+  "companion.settings.destinations.device": "Este dispositivo",
+  "companion.settings.quick.open": "Abrir en el editor",
+  "companion.settings.quick.folder": "Mostrar en la carpeta",
+  "companion.settings.quick.delete": "Eliminar",
+  "companion.settings.pill.chat": "Chat",
+  "companion.settings.pill.microphone": "Micrófono",
+  "companion.settings.pill.dictate": "Dictado",
+  "companion.settings.pill.assistant": "Asistente de voz",
+  "companion.settings.pill.feed": "Feed",
+  "companion.settings.pill.screenshot": "Captura de pantalla",
+  "companion.settings.links.appearance": "Diseño en kombify Cloud",
+  "companion.settings.links.companion": "Companion en kombify Cloud",
+  "companion.settings.actions.choose": "Elegir",
+  "companion.settings.actions.open": "Abrir",
+  "companion.settings.actions.removeShortcut": "Quitar atajo",
+  "companion.settings.refusals.notAvailable": "No disponible",
+  "companion.settings.refusals.invalidValue": "No es posible",
+  "companion.settings.refusals.shortcutInvalid": "Atajo no válido",
+  "companion.settings.refusals.inUseBy": "En uso: {name}",
+  "companion.settings.refusals.alreadyInUse": "Ya en uso",
+  "companion.settings.refusals.notSaved": "No guardado",
+  "companion.settings.reasons.loading": "Cargando",
+  "companion.settings.reasons.unreachable": "Sin conexión",
+  "companion.settings.reasons.off": "Companion está desactivado",
+  "companion.settings.reasons.signIn": "Requiere iniciar sesión",
+  "companion.settings.reasons.notEnabled": "No habilitado para esta cuenta",
+  "companion.settings.reasons.consentMissing": "Requiere consentimiento para el procesamiento de voz",
+  "companion.settings.keys.ctrl": "Ctrl",
+  "companion.settings.keys.alt": "Alt",
+  "companion.settings.keys.shift": "Mayús",
+  "companion.settings.keys.win": "Win",
+  "companion.settings.keys.space": "Espacio",
+  "companion.settings.keys.enter": "Intro",
+  "companion.settings.keys.esc": "Esc",
+  "companion.settings.keys.tab": "Tab",
+  "companion.settings.keys.backspace": "Retroceso",
+  "companion.settings.keys.mouse-x1": "Ratón 4",
+  "companion.settings.keys.mouse-x2": "Ratón 5",
   "ui.settings.dangerZone": "Zona de peligro",
   "ui.settings.dashboard": "Panel",
   "ui.settings.dashboardLayout": "Diseño del panel",
@@ -3792,7 +3868,7 @@ export const es: Record<string, string> = {
   "ui.taskStatus.compilingEverythingIntoAFinal":
     "Compilando todo en una especificación final del despliegue de StackKits.",
   "ui.taskStatus.configureStackKitDeployment":
-    "Configurar el despliegue de StackKit",
+    "Planificar tu configuración",
   "ui.taskStatus.configuringAccessProfilesReverseProxy":
     "Configurando perfiles de acceso, proxy inverso, DNS y red interna.",
   "ui.taskStatus.configuringAuthentication": "Configurando la autenticación",
@@ -3802,7 +3878,7 @@ export const es: Record<string, string> = {
   "ui.taskStatus.configuringSingleSignOnUser":
     "Configurando el inicio de sesión único, las cuentas de usuario y el control de acceso.",
   "ui.taskStatus.confirmingServicesAndValidatingThe":
-    "Confirmando los servicios y validando el simulacro de restauración",
+    "Probamos tus apps y restauramos una copia de seguridad de prueba.",
   "ui.taskStatus.confirmingThatTheBoundManaged":
     "Confirmando que la CLI de StackKits puede acceder al VPS gestionado vinculado.",
   "ui.taskStatus.confirmingVPSTarget": "Confirmando el destino VPS",
@@ -3820,7 +3896,7 @@ export const es: Record<string, string> = {
   "ui.taskStatus.findingTheBestStackKitFor":
     "Buscando el mejor StackKit para ti",
   "ui.taskStatus.generateDeploymentArtifacts":
-    "Generar artefactos del despliegue",
+    "Preparar los archivos de instalación",
   "ui.taskStatus.generatingDeploymentSpec":
     "Generando la especificación del despliegue",
   "ui.taskStatus.generatingStackKitIaC": "Generando la IaC de StackKit",
@@ -3858,19 +3934,19 @@ export const es: Record<string, string> = {
   "ui.taskStatus.preparingTheRuntimeMetadataUsed":
     "Preparando la información en la que se basan la monitorización y el mantenimiento diario de tu Homelab.",
   "ui.taskStatus.preparingToolsApplyingTheStackKit":
-    "Preparando herramientas, aplicando el StackKit y leyendo servicios",
-  "ui.taskStatus.provisionManagedRuntime": "Aprovisionar el runtime gestionado",
+    "Instalamos las herramientas y tus apps en tu servidor.",
+  "ui.taskStatus.provisionManagedRuntime": "Preparar tu servidor",
   "ui.taskStatus.readingServiceInventory": "Leyendo el inventario de servicios",
   "ui.taskStatus.renderingStackKitsArtifactsAfterVPS":
-    "Renderizando los artefactos de StackKits cuando el VPS esté listo",
+    "Convertimos tu plan en archivos que tu servidor puede usar.",
   "ui.taskStatus.renderingTheStackKitInfrastructureFiles":
     "Renderizando los archivos de infraestructura de StackKit que necesita el adaptador de despliegue.",
   "ui.taskStatus.requestingManagedCloudNode":
     "Solicitando un servidor de nube gestionado",
   "ui.taskStatus.requestingManagedNode": "Solicitando un servidor gestionado",
   "ui.taskStatus.reservingTheSubscriptionVMConnecting":
-    "Reservando la VM de suscripción, conectando el runtime y preparando la telemetría",
-  "ui.taskStatus.rollOutCloudKit": "Desplegar Cloud Kit",
+    "Reservamos tu servidor en la nube y nos conectamos a él.",
+  "ui.taskStatus.rollOutCloudKit": "Instalar tu Cloud Kit",
   "ui.taskStatus.rollingOutCloudKit": "Desplegando Cloud Kit",
   "ui.taskStatus.settingUpPart": "Configurando la parte {position} de {total}",
   "ui.taskStatus.settingUpPartNamed":
@@ -3925,7 +4001,7 @@ export const es: Record<string, string> = {
   "ui.taskStatus.thisStackKitDeploymentConfigurationIs":
     "La configuración de este despliegue de StackKit se guarda de forma segura y se puede exportar o modificar más tarde desde el panel.",
   "ui.taskStatus.validatingChoicesAndBuildingThe":
-    "Validando las elecciones y creando la especificación del despliegue",
+    "Comprobamos tus elecciones y anotamos lo que se instalará.",
   "ui.taskStatus.validatingConfiguration": "Validando la configuración",
   "ui.taskStatus.validatingTheBackupAndRestore":
     "Validando la ruta de copia de seguridad y restauración antes de marcar el despliegue de StackKit como verificado.",
@@ -3933,7 +4009,7 @@ export const es: Record<string, string> = {
     "Comprobando que la actualización funciona antes de aplicarla a tu servidor.",
   "ui.taskStatus.verificationConfirmsThatTheStackKit":
     "La verificación confirma que el despliegue de StackKit es utilizable, no solo que se generaron archivos.",
-  "ui.taskStatus.verifyRollout": "Verificar el despliegue",
+  "ui.taskStatus.verifyRollout": "Comprobar que todo funciona",
   "ui.taskStatus.verifyingLoginProtectedServices":
     "Verificando los servicios protegidos con inicio de sesión",
   "ui.taskStatus.verifyingServices": "Verificando los servicios",

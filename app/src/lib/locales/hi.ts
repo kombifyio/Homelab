@@ -1,4 +1,12 @@
 export const hi: Record<string, string> = {
+  "ui.stacksCreatingCreationFailure.whatYouCanDo": "आप क्या कर सकते हैं",
+  "ui.stacksCreatingCreationProgress.failedSubtitle": "एक चरण पूरा नहीं हुआ। नीचे की सूची बताती है कि काम कहाँ रुका और आप क्या कर सकते हैं।",
+  "ui.groupedTaskList.howItWorks": "यह कैसे काम करता है: {phase}",
+  "ui.taskStatus.phaseTechnical.verify": "लॉगिन-सुरक्षित सेवाओं और मॉनिटरिंग संकेतों की पुष्टि करता है, फिर डिफ़ॉल्ट सेवाओं पर रिस्टोर ड्रिल चलाता है।",
+  "ui.taskStatus.phaseTechnical.rollout": "पहले एक सिम्युलेटेड अपडेट चलाता है, फिर StackKits CLI होस्ट तैयार करता है (Docker, OpenTofu, Terramate, मॉनिटरिंग), Cloud Kit लागू करता है और सर्विस इन्वेंटरी पढ़ता है।",
+  "ui.taskStatus.phaseTechnical.generate": "आपकी पसंद और StackKit डिफ़ॉल्ट से यूनिफ़ाइड स्पेक बनाकर सहेजता है और StackKit इंफ्रास्ट्रक्चर-ऐज़-कोड (OpenTofu, Compose) रेंडर करता है।",
+  "ui.taskStatus.phaseTechnical.provision": "आपकी सदस्यता का VM लीज़ बनाता या जोड़ता है, VPS के SSH पर जवाब देने का इंतज़ार करता है, रनटाइम जोड़ता है और टेलीमेट्री हैंडऑफ़ शुरू करता है।",
+  "ui.taskStatus.phaseTechnical.configure": "फ़ीचर, एक्सेस मोड और साइन-इन सेटिंग्स जाँचता है, StackKit टेम्पलेट चुनता है और StackKit डिप्लॉयमेंट स्पेक बनाता है।",
   "ui.homelab.firstServerHint": "मौजूदा सर्वर कनेक्ट करें या नया सेट अप करें। आपके सर्वर यहाँ दिखाई देंगे।",
   "ui.homelab.installedUseCases": "इंस्टॉल किए गए उपयोग के मामले",
   "ui.homelab.transferHint": "स्टैक कॉन्फ़िगरेशन आयात करें या चुना गया स्टैक निर्यात करें।",
@@ -2348,7 +2356,7 @@ export const hi: Record<string, string> = {
   "ui.providerErrors.openTheLatestDestroyJob":
     "प्रदाता की अपनी त्रुटि के लिए सबसे नया डिस्ट्रॉय जॉब खोलिए",
   "ui.providerErrors.providerMessage": "प्रदाता का संदेश: {summary}",
-  "ui.providerErrors.reloadThePageAndTry": "पेज रीलोड कीजिए और फिर कोशिश कीजिए",
+  "ui.providerErrors.reloadThePageAndTry": "फिर से कोशिश करें। कई समस्याएँ दूसरी कोशिश में ठीक हो जाती हैं।",
   "ui.providerErrors.resolveTheKombifyMeOr":
     "kombify.me या StackKits की रुकावट दूर कीजिए, फिर सिर्फ़ StackKit रोलआउट दोबारा आज़माइए",
   "ui.providerErrors.retryAdditionalNodeAFoundation":
@@ -2363,7 +2371,7 @@ export const hi: Record<string, string> = {
     "रोलआउट तभी दोबारा आज़माइए जब लक्ष्य सर्वर पर SSH, Docker और StackKits Runtime Action स्थिर हों",
   "ui.providerErrors.reviewTheLogsWithDocker":
     "'docker compose logs techstack' से लॉग देखिए",
-  "ui.providerErrors.reviewTheServerLogs": "सर्वर लॉग देखिए",
+  "ui.providerErrors.reviewTheServerLogs": "अब भी नहीं हुआ? kombify से पूछें, या तकनीकी विवरण खोलकर सपोर्ट को भेजें।",
   "ui.providerErrors.runtimeActionStackkitRollout":
     "Runtime Action stackkit_rollout",
   "ui.providerErrors.serviceConflictDetected": "सेवा टकराव पाया गया",
@@ -2853,6 +2861,74 @@ export const hi: Record<string, string> = {
   "ui.settings.cleanUpTestResidue": "परीक्षण के अवशेष साफ़ करें",
   "ui.settings.cleanupFailed": "क्लीनअप विफल रहा",
   "ui.settings.cleanupReviewFailed": "क्लीनअप की समीक्षा विफल रही",
+  "ui.settings.companion": "Companion",
+  "companion.settings.sections.companion": "Companion",
+  "companion.settings.sections.kubi": "Kubi",
+  "companion.settings.sections.dictation": "डिक्टेशन",
+  "companion.settings.sections.assistant": "वॉइस असिस्टेंट",
+  "companion.settings.sections.screenshot": "स्क्रीनशॉट",
+  "companion.settings.sections.pill": "बटन",
+  "companion.settings.sections.account": "खाता",
+  "companion.settings.rows.enabled": "इस कंप्यूटर पर Companion",
+  "companion.settings.rows.startWithWindows": "Windows के साथ शुरू करें",
+  "companion.settings.rows.showKubi": "Kubi दिखाएँ",
+  "companion.settings.rows.voiceAnimation": "आवाज़ एनिमेशन",
+  "companion.settings.rows.shortcut": "शॉर्टकट",
+  "companion.settings.rows.dictationBehavior": "शॉर्टकट मोड",
+  "companion.settings.rows.microphone": "माइक्रोफ़ोन",
+  "companion.settings.rows.screenshotDestination": "यहाँ सहेजें",
+  "companion.settings.rows.screenshotFolder": "फ़ोल्डर",
+  "companion.settings.rows.account": "kombify खाता",
+  "companion.settings.rows.consent": "वाक् प्रसंस्करण",
+  "companion.settings.values.on": "चालू",
+  "companion.settings.values.off": "बंद",
+  "companion.settings.values.holdToTalk": "बोलने के लिए दबाए रखें",
+  "companion.settings.values.toggle": "बोलने के लिए दबाएँ",
+  "companion.settings.values.systemMicrophone": "सिस्टम डिफ़ॉल्ट",
+  "companion.settings.values.notSignedIn": "साइन इन नहीं है",
+  "companion.settings.values.chordNone": "सेट नहीं",
+  "companion.settings.status.saving": "सहेजा जा रहा है",
+  "companion.settings.status.recording": "शॉर्टकट रिकॉर्ड हो रहा है",
+  "companion.settings.voiceAnimations.kombify": "kombify",
+  "companion.settings.voiceAnimations.neutral": "तटस्थ",
+  "companion.settings.destinations.device": "यह डिवाइस",
+  "companion.settings.quick.open": "एडिटर में खोलें",
+  "companion.settings.quick.folder": "फ़ोल्डर में दिखाएँ",
+  "companion.settings.quick.delete": "हटाएँ",
+  "companion.settings.pill.chat": "चैट",
+  "companion.settings.pill.microphone": "माइक्रोफ़ोन",
+  "companion.settings.pill.dictate": "डिक्टेशन",
+  "companion.settings.pill.assistant": "वॉइस असिस्टेंट",
+  "companion.settings.pill.feed": "फ़ीड",
+  "companion.settings.pill.screenshot": "स्क्रीनशॉट",
+  "companion.settings.links.appearance": "kombify Cloud में डिज़ाइन",
+  "companion.settings.links.companion": "kombify Cloud में Companion",
+  "companion.settings.actions.choose": "चुनें",
+  "companion.settings.actions.open": "खोलें",
+  "companion.settings.actions.removeShortcut": "शॉर्टकट हटाएँ",
+  "companion.settings.refusals.notAvailable": "उपलब्ध नहीं",
+  "companion.settings.refusals.invalidValue": "संभव नहीं",
+  "companion.settings.refusals.shortcutInvalid": "शॉर्टकट मान्य नहीं",
+  "companion.settings.refusals.inUseBy": "उपयोग में: {name}",
+  "companion.settings.refusals.alreadyInUse": "पहले से उपयोग में",
+  "companion.settings.refusals.notSaved": "सहेजा नहीं गया",
+  "companion.settings.reasons.loading": "लोड हो रहा है",
+  "companion.settings.reasons.unreachable": "पहुँच योग्य नहीं",
+  "companion.settings.reasons.off": "Companion बंद है",
+  "companion.settings.reasons.signIn": "साइन इन आवश्यक है",
+  "companion.settings.reasons.notEnabled": "इस खाते के लिए सक्षम नहीं",
+  "companion.settings.reasons.consentMissing": "वाक् प्रसंस्करण के लिए सहमति आवश्यक है",
+  "companion.settings.keys.ctrl": "Ctrl",
+  "companion.settings.keys.alt": "Alt",
+  "companion.settings.keys.shift": "Shift",
+  "companion.settings.keys.win": "Win",
+  "companion.settings.keys.space": "स्पेस",
+  "companion.settings.keys.enter": "Enter",
+  "companion.settings.keys.esc": "Esc",
+  "companion.settings.keys.tab": "Tab",
+  "companion.settings.keys.backspace": "Backspace",
+  "companion.settings.keys.mouse-x1": "माउस 4",
+  "companion.settings.keys.mouse-x2": "माउस 5",
   "ui.settings.dangerZone": "खतरनाक क्षेत्र",
   "ui.settings.dashboard": "डैशबोर्ड",
   "ui.settings.dashboardLayout": "डैशबोर्ड लेआउट",
@@ -3688,7 +3764,7 @@ export const hi: Record<string, string> = {
   "ui.taskStatus.compilingEverythingIntoAFinal":
     "सब कुछ एक अंतिम StackKits डिप्लॉयमेंट स्पेसिफ़िकेशन में कंपाइल किया जा रहा है।",
   "ui.taskStatus.configureStackKitDeployment":
-    "StackKit डिप्लॉयमेंट कॉन्फ़िगर करें",
+    "अपना सेटअप प्लान करें",
   "ui.taskStatus.configuringAccessProfilesReverseProxy":
     "एक्सेस प्रोफ़ाइल, रिवर्स प्रॉक्सी, DNS और आंतरिक नेटवर्किंग कॉन्फ़िगर की जा रही है।",
   "ui.taskStatus.configuringAuthentication": "ऑथेंटिकेशन कॉन्फ़िगर हो रहा है",
@@ -3699,7 +3775,7 @@ export const hi: Record<string, string> = {
   "ui.taskStatus.configuringSingleSignOnUser":
     "सिंगल साइन-ऑन, उपयोगकर्ता खाते और पहुँच नियंत्रण कॉन्फ़िगर हो रहे हैं।",
   "ui.taskStatus.confirmingServicesAndValidatingThe":
-    "सेवाओं की पुष्टि और रिस्टोर ड्रिल का सत्यापन हो रहा है",
+    "आपके ऐप टेस्ट हो रहे हैं और बैकअप से टेस्ट रिस्टोर किया जा रहा है।",
   "ui.taskStatus.confirmingThatTheBoundManaged":
     "पुष्टि हो रही है कि बंधे हुए प्रबंधित VPS तक StackKits CLI पहुँच सकता है।",
   "ui.taskStatus.confirmingVPSTarget": "VPS लक्ष्य की पुष्टि हो रही है",
@@ -3717,7 +3793,7 @@ export const hi: Record<string, string> = {
   "ui.taskStatus.findingTheBestStackKitFor":
     "आपके लिए सबसे अच्छा StackKit खोजा जा रहा है",
   "ui.taskStatus.generateDeploymentArtifacts":
-    "डिप्लॉयमेंट आर्टिफ़ैक्ट जनरेट करें",
+    "इंस्टॉल फ़ाइलें तैयार करें",
   "ui.taskStatus.generatingDeploymentSpec": "डिप्लॉयमेंट स्पेक जनरेट हो रहा है",
   "ui.taskStatus.generatingStackKitIaC": "StackKit IaC जनरेट हो रहा है",
   "ui.taskStatus.generatingUnifiedSpec": "एकीकृत स्पेक जनरेट हो रहा है",
@@ -3753,19 +3829,19 @@ export const hi: Record<string, string> = {
   "ui.taskStatus.preparingTheRuntimeMetadataUsed":
     "वह जानकारी तैयार की जा रही है जिस पर मॉनिटरिंग और आपके Homelab की रोज़मर्रा की देखभाल निर्भर है।",
   "ui.taskStatus.preparingToolsApplyingTheStackKit":
-    "टूल तैयार हो रहे हैं, StackKit लागू हो रहा है और सेवाएँ पढ़ी जा रही हैं",
-  "ui.taskStatus.provisionManagedRuntime": "प्रबंधित रनटाइम प्रोविज़न करें",
+    "आपके सर्वर पर टूल और आपके ऐप इंस्टॉल हो रहे हैं।",
+  "ui.taskStatus.provisionManagedRuntime": "अपना सर्वर तैयार करें",
   "ui.taskStatus.readingServiceInventory": "सेवा इन्वेंटरी पढ़ी जा रही है",
   "ui.taskStatus.renderingStackKitsArtifactsAfterVPS":
-    "VPS तैयार होने के बाद StackKits आर्टिफ़ैक्ट रेंडर हो रहे हैं",
+    "आपके प्लान से ऐसी फ़ाइलें बन रही हैं जिन्हें आपका सर्वर इस्तेमाल कर सके।",
   "ui.taskStatus.renderingTheStackKitInfrastructureFiles":
     "रोलआउट एडाप्टर के लिए ज़रूरी StackKit इन्फ्रास्ट्रक्चर फ़ाइलें रेंडर हो रही हैं।",
   "ui.taskStatus.requestingManagedCloudNode":
     "प्रबंधित क्लाउड सर्वर का अनुरोध हो रहा है",
   "ui.taskStatus.requestingManagedNode": "प्रबंधित सर्वर का अनुरोध हो रहा है",
   "ui.taskStatus.reservingTheSubscriptionVMConnecting":
-    "सब्सक्रिप्शन VM आरक्षित हो रही है, रनटाइम कनेक्ट हो रहा है और टेलीमेट्री तैयार हो रही है",
-  "ui.taskStatus.rollOutCloudKit": "Cloud Kit रोल आउट करें",
+    "आपका क्लाउड सर्वर रिज़र्व करके उससे जुड़ा जा रहा है।",
+  "ui.taskStatus.rollOutCloudKit": "अपना Cloud Kit इंस्टॉल करें",
   "ui.taskStatus.rollingOutCloudKit": "Cloud Kit रोल आउट हो रहा है",
   "ui.taskStatus.settingUpPart": "भाग {position} / {total} सेट अप हो रहा है",
   "ui.taskStatus.settingUpPartNamed":
@@ -3818,7 +3894,7 @@ export const hi: Record<string, string> = {
   "ui.taskStatus.thisStackKitDeploymentConfigurationIs":
     "यह StackKit डिप्लॉयमेंट कॉन्फ़िगरेशन सुरक्षित रूप से सहेजा जाता है और बाद में डैशबोर्ड से एक्सपोर्ट या संशोधित किया जा सकता है।",
   "ui.taskStatus.validatingChoicesAndBuildingThe":
-    "चुनावों का सत्यापन और डिप्लॉयमेंट स्पेक बनाया जा रहा है",
+    "आपके चुनाव जाँचे जा रहे हैं और तय हो रहा है कि क्या इंस्टॉल होगा।",
   "ui.taskStatus.validatingConfiguration": "कॉन्फ़िगरेशन सत्यापित हो रहा है",
   "ui.taskStatus.validatingTheBackupAndRestore":
     "StackKit डिप्लॉयमेंट को सत्यापित चिह्नित करने से पहले बैकअप और रिस्टोर मार्ग सत्यापित हो रहा है।",
@@ -3826,7 +3902,7 @@ export const hi: Record<string, string> = {
     "अपडेट को आपके सर्वर पर लागू करने से पहले जाँचा जा रहा है कि वह काम करता है।",
   "ui.taskStatus.verificationConfirmsThatTheStackKit":
     "सत्यापन पुष्टि करता है कि StackKit डिप्लॉयमेंट उपयोग योग्य है, सिर्फ़ यह नहीं कि फ़ाइलें जनरेट हो गईं।",
-  "ui.taskStatus.verifyRollout": "रोलआउट सत्यापित करें",
+  "ui.taskStatus.verifyRollout": "जाँचें कि सब ठीक चल रहा है",
   "ui.taskStatus.verifyingLoginProtectedServices":
     "लॉगिन-सुरक्षित सेवाएँ सत्यापित हो रही हैं",
   "ui.taskStatus.verifyingServices": "सेवाएँ सत्यापित हो रही हैं",

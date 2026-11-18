@@ -14,6 +14,7 @@
    */
   import { onDestroy, tick, type Snippet } from "svelte";
   import { fade, slide } from "svelte/transition";
+  import { Info } from "@lucide/svelte";
   import type { Task, TaskTimeline } from "#lib/wizard/index.js";
   import {
     computeGroupStatuses,
@@ -32,6 +33,13 @@
     focused?: boolean;
     /** Extra detail shown inside the active phase card in focused mode. */
     activeDetail?: Snippet;
+    /**
+     * The person asked for the technical view in their onboarding: each
+     * phase shows how it works without a click on its info button.
+     */
+    technical?: boolean;
+    /** Shown below the reel, outside the scrolling window (actions). */
+    footer?: Snippet;
   }
 
   let {
@@ -41,7 +49,15 @@
     class: className = "",
     focused = false,
     activeDetail,
+    technical = false,
+    footer,
   }: Props = $props();
+
+  // Phases whose "how it works" line the person toggled with the info button.
+  let techOpen = $state<Record<string, boolean>>({});
+  function isTechOpen(id: string): boolean {
+    return techOpen[id] ?? technical;
+  }
 
   let groupStatuses = $derived(computeGroupStatuses(tasks));
 
@@ -58,6 +74,8 @@
 
   let viewport = $state<HTMLDivElement>();
   let track = $state<HTMLDivElement>();
+  let spacer = $state<HTMLDivElement>();
+  let container = $state<HTMLDivElement>();
   let slots: HTMLDivElement[] = $state([]);
   // Set while the user scrolls the reel themselves; auto-centring waits.
   let browsing = false;
@@ -90,8 +108,13 @@
   function centreActive(smooth = true) {
     const slot = slots[activeIndex];
     if (!viewport || !slot) return;
+    // A card taller than the window (a failure with its help) shows from its
+    // top; any other card sits in the middle.
+    const edge = edgeSize();
     const top =
-      slot.offsetTop + slot.offsetHeight / 2 - viewport.clientHeight / 2;
+      slot.offsetHeight > viewport.clientHeight - 2 * edge
+        ? slot.offsetTop - edge
+        : slot.offsetTop + slot.offsetHeight / 2 - viewport.clientHeight / 2;
     viewport.scrollTo({
       top,
       behavior: smooth && !reducedMotion() ? "smooth" : "auto",
@@ -118,6 +141,81 @@
     if (index >= 0 && index !== activeIndex) startBrowsing();
   }
 
+  function edgeSize(): number {
+    return spacer?.offsetHeight ?? 0;
+  }
+
+  // The outermost ancestor that scrolls the page (the app shell nests
+  // several), or the document itself.
+  function scrollParent(node: HTMLElement): HTMLElement {
+    let found: HTMLElement | null = null;
+    let el = node.parentElement;
+    while (el && el !== document.body) {
+      const { overflowY } = getComputedStyle(el);
+      if (overflowY === "auto" || overflowY === "scroll") found = el;
+      el = el.parentElement;
+    }
+    return found ?? (document.scrollingElement as HTMLElement);
+  }
+
+  // Height of what follows the page inside the scroller (the app footer).
+  function trailingHeight(scroller: HTMLElement, node: HTMLElement): number {
+    let branch: Element | null = node;
+    while (branch && branch.parentElement !== scroller) {
+      branch = branch.parentElement;
+    }
+    let total = 0;
+    for (let next = branch?.nextElementSibling; next; next = next.nextElementSibling) {
+      total += next.getBoundingClientRect().height;
+    }
+    return total;
+  }
+
+  // The reel is never taller than its phases, and never pushes the page
+  // past the bottom of the screen: the window shrinks to what is left
+  // below its top edge, so the page itself needs no scrollbar.
+  function fitHeight() {
+    if (!viewport || !track || !container) return;
+    const natural = track.offsetHeight + 2 * edgeSize();
+    let height = natural;
+    if (window.matchMedia("(min-width: 1024px)").matches) {
+      const scroller = scrollParent(viewport);
+      const isDocument = scroller === document.scrollingElement;
+      const scrollerTop = isDocument ? 0 : scroller.getBoundingClientRect().top;
+      const viewportHeight = isDocument
+        ? window.innerHeight
+        : scroller.clientHeight;
+      const rect = viewport.getBoundingClientRect();
+      const top = rect.top - scrollerTop + scroller.scrollTop;
+      // What sits below the reel inside its card, the page padding and
+      // anything the shell puts after the page.
+      const card = viewport.closest<HTMLElement>("[data-kx='plate']") ?? container;
+      const below =
+        card.getBoundingClientRect().bottom -
+        rect.bottom +
+        PAGE_GAP +
+        trailingHeight(scroller, viewport);
+      const available = viewportHeight - top - below;
+      height = Math.min(natural, Math.max(available, MIN_REEL));
+    } else {
+      height = Math.min(natural, Math.max(window.innerHeight * 0.6, MIN_REEL));
+    }
+    viewport.style.setProperty("--task-reel-height", `${Math.round(height)}px`);
+  }
+
+  const MIN_REEL = 240;
+  const PAGE_GAP = 32;
+
+  $effect(() => {
+    if (!focused) return;
+    const onResize = () => {
+      fitHeight();
+      if (!browsing) centreActive(false);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  });
+
   // Re-centre when the active phase changes.
   $effect(() => {
     if (!focused) return;
@@ -132,12 +230,18 @@
     if (!focused || !track) return;
     let first = true;
     const observer = new ResizeObserver(() => {
+      fitHeight();
       if (!browsing) centreActive(!first);
       first = false;
       scheduleDepth();
     });
     observer.observe(track);
     if (viewport) observer.observe(viewport);
+    // The card around the reel (failure actions) and the page above it
+    // (a heading that changes) move the space the reel may take.
+    if (container) observer.observe(container);
+    const shell = viewport ? scrollParent(viewport).firstElementChild : null;
+    if (shell) observer.observe(shell);
     return () => observer.disconnect();
   });
 
@@ -256,7 +360,9 @@
           : "border-border"}
   {@const opacityClass =
     gs.status === "completed" && !gs.attention && !active ? "opacity-70" : ""}
-  {@const detail = active && activeDetail && gs.status !== "failed"}
+  {@const detail = active && activeDetail}
+  {@const techText = gs.group.technical}
+  {@const techShown = techText ? isTechOpen(gs.group.id) : false}
   <div
     data-testid="task-group"
     data-group-id={gs.group.id}
@@ -309,7 +415,7 @@
         {/if}
       </div>
 
-      <div class="flex-1 min-w-0">
+      <div class="flex-1 min-w-0" class:me-8={Boolean(techText)}>
         <div class="flex items-center gap-2 mb-0.5">
           <h4
             class="font-medium text-sm leading-tight"
@@ -327,8 +433,12 @@
             {badgeLabel(gs)}
           </span>
         </div>
-        {#if detail}
-          <p class="text-xs text-muted-foreground truncate">
+        {#if gs.status === "failed" && gs.failedTask?.errorMessage}
+          <p class="text-xs text-destructive">
+            {gs.failedTask.errorMessage}
+          </p>
+        {:else if detail}
+          <p class="text-xs text-muted-foreground">
             {gs.group.description}
           </p>
         {:else if gs.status === "running"}
@@ -336,10 +446,6 @@
             {gs.runningTask?.message ||
               gs.runningTask?.label ||
               gs.group.description}
-          </p>
-        {:else if gs.status === "failed" && gs.failedTask?.errorMessage}
-          <p class="text-xs text-destructive truncate">
-            {gs.failedTask.errorMessage}
           </p>
         {:else}
           <p class="text-xs text-muted-foreground truncate">
@@ -395,6 +501,34 @@
       </svg>
     </button>
 
+    {#if techText}
+      <!-- How the phase works, for people who want to know: one info button
+           next to the chevron; open from the start for a technical audience. -->
+      <button
+        type="button"
+        class="phase-info absolute end-10 top-3.5"
+        aria-label={tr("ui.groupedTaskList.howItWorks", {
+          phase: gs.group.label,
+        })}
+        aria-expanded={techShown}
+        aria-controls={`group-${gs.group.id}-tech`}
+        data-testid="task-group-info"
+        onclick={() => (techOpen[gs.group.id] = !techShown)}
+      >
+        <Info size={15} strokeWidth={1.8} aria-hidden="true" />
+      </button>
+      {#if techShown}
+        <p
+          id={`group-${gs.group.id}-tech`}
+          class="-mt-2 px-4 pb-3 ps-16 text-xs leading-relaxed text-muted-foreground"
+          data-testid="task-group-tech"
+          transition:slide={{ duration: 150 }}
+        >
+          {techText}
+        </p>
+      {/if}
+    {/if}
+
     {#if open}
       <div
         id={`group-${gs.group.id}-details`}
@@ -445,6 +579,7 @@
 {/snippet}
 
 {#if focused}
+  <div bind:this={container} class="task-reel-frame">
   <!-- The listeners only notice that the user browses the reel; every
        action stays on the phase buttons. -->
   <div
@@ -463,7 +598,7 @@
       if (browsing) returnLater(2500);
     }}
   >
-    <div class="task-reel-spacer" aria-hidden="true"></div>
+    <div bind:this={spacer} class="task-reel-spacer" aria-hidden="true"></div>
     <div bind:this={track} class="grouped-task-list flex flex-col gap-3">
       {#each groupStatuses as gs, i (gs.group.id)}
         <div
@@ -476,6 +611,8 @@
       {/each}
     </div>
     <div class="task-reel-spacer" aria-hidden="true"></div>
+  </div>
+  {@render footer?.()}
   </div>
 {:else}
   <div class="grouped-task-list flex flex-col gap-3 {className}">
@@ -515,18 +652,21 @@
      the window let the first and last phase reach the centre. */
   .task-reel {
     position: relative;
-    height: var(--task-reel-height, clamp(26rem, 62vh, 38rem));
+    height: var(--task-reel-height, auto);
     overflow-y: auto;
     scrollbar-width: none;
     padding-inline: 0.75rem;
     margin-inline: -0.75rem;
+    /* The fog is as deep as the spacer, so the first and last phase are
+       fully readable at the ends of the reel. */
     mask-image: linear-gradient(
       to bottom,
       transparent 0,
-      #000 14%,
-      #000 86%,
+      #000 var(--reel-edge),
+      #000 calc(100% - var(--reel-edge)),
       transparent 100%
     );
+    --reel-edge: 2rem;
   }
 
   .task-reel::-webkit-scrollbar {
@@ -534,7 +674,26 @@
   }
 
   .task-reel-spacer {
-    height: 50%;
+    height: var(--reel-edge);
+  }
+
+  .phase-info {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    color: var(--muted-foreground);
+    cursor: help;
+    transition: color 150ms;
+  }
+  .phase-info:hover,
+  .phase-info[aria-expanded="true"] {
+    color: var(--primary);
+  }
+  .phase-info:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
   }
 
   .task-reel-slot {

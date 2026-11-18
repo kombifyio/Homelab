@@ -71,7 +71,7 @@
     <span class="text-sm font-medium">{creation.creationHeaderLabel}</span>
   </div>
   <h1
-    class="text-2xl font-semibold text-foreground mb-3 min-h-[3.5rem] leading-tight"
+    class="text-2xl font-semibold text-foreground mb-2 min-h-[3.5rem] leading-tight lg:min-h-0"
     data-testid="creation-heading"
   >
     {#if creation.isComplete}
@@ -110,6 +110,8 @@
       {tr("ui.stacksCreatingCreationProgress.theNextManagedRuntimeCheck")}
     {:else if creation.agentPairingWaiting}
       {tr("ui.stacksCreatingCreationProgress.theRegistrationRequestIsReady")}
+    {:else if creation.hasFailed}
+      {tr("ui.stacksCreatingCreationProgress.failedSubtitle")}
     {:else}
       {tr("ui.stacksCreatingCreationProgress.thisMayTakeAFew")}
     {/if}

@@ -14,10 +14,40 @@ namespace Kombify.TechStack.Client;
 
 internal static class Program
 {
+    // Held for the life of the process: its existence tells a later start that a client is running.
+    private static Mutex? s_runningInstance;
+
+    // The only switch of the client's URL handler: `"exe" --activate "<url>"`.
+    internal const string ActivationSwitch = "--activate";
+
     [STAThread]
     private static void Main(string[] args)
     {
-        var config = ClientConfig.Load(args);
+        // Windows starts the client for kombify-techstack://open/?route=... as `exe --activate <url>`.
+        // Exactly the one argument after --activate is the URL; nothing else on that command line is read
+        // (a URL with an unencoded quote or space must not become switches such as --url or --runtime-exe),
+        // and the configuration loads as for a start without arguments.
+        var activation = args.Length >= 1 && args[0] == ActivationSwitch;
+        var activationRoute = activation && args.Length >= 2
+            ? ClientActivation.RouteFromArguments([args[1]], DesktopEdition.ActivationScheme) : null;
+        var mutexName = @"Local\kombify-techstack-client-" + DesktopEdition.ActivationScheme;
+        // A running client gets the route and this start exits. Without one (or while an elevated instance
+        // holds the name, which this process may not open) it starts normally and opens the route itself.
+        if (activation)
+        {
+            var running = false;
+            try
+            {
+                running = Mutex.TryOpenExisting(mutexName, out var existing);
+                existing?.Dispose();
+            }
+            catch (Exception error) when (error is UnauthorizedAccessException or IOException or WaitHandleCannotBeOpenedException) { }
+            if (running && ClientActivation.HandOffAsync(CompanionProduct.Techstack, DesktopEdition.ActivationScheme, activationRoute)
+                .GetAwaiter().GetResult()) return;
+        }
+        try { s_runningInstance = new Mutex(false, mutexName); }
+        catch (Exception error) when (error is UnauthorizedAccessException or IOException or WaitHandleCannotBeOpenedException) { }
+        var config = ClientConfig.Load(activation ? [] : args);
         // A verified staged update is applied before anything else starts.
         if (ClientUpdater.TryApplyStagedUpdate(config, out var startupBlockReason))
         {
@@ -38,7 +68,9 @@ internal static class Program
             return;
         }
 #endif
-        Application.Run(new ClientWindow(config));
+        var window = new ClientWindow(config);
+        window.SetStartRoute(activationRoute);
+        Application.Run(window);
     }
 }
 
@@ -500,7 +532,7 @@ internal sealed partial class ClientWindow : Form
                 }
             }
 
-            _webView.CoreWebView2.Navigate(_boundServerProfile?.BaseUrl ?? _config.InitialUrl());
+            _webView.CoreWebView2.Navigate(InitialDocumentUrl());
             _ = ClientUpdater.CheckAndStageAsync(_config, ResolveRuntimeExecutablePath());
         }
         catch (Exception ex)

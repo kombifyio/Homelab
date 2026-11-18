@@ -1,0 +1,7 @@
+{
+  "$comment": "The desktop Companion installer the Techstack Windows installer carries (platform-pqq2ai, owner order 2026-11-14): kombify's own per-user MSI, read by the release job from its pinned prerelease (companion-desktop-v<version>) with a short-lived read-only token, verified by size and sha256 when it is staged (scripts/package-windows-client.ps1) and again by the client right before it runs msiexec. The client installs it only when a person switches the Companion on in Settings and none is installed. This is the one place that names the version, size and digest: a new Companion version changes only this file.",
+  "version": "0.1.0",
+  "file": "kombify-companion-0.1.0-x64.msi",
+  "size": 18944000,
+  "sha256": "73c0c333a65ea4ebc57a918c0eb45a81e087386b7d04f81d977f08c9eba3bed7"
+}
