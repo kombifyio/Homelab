@@ -10,20 +10,27 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Kombify.Client.Shell;
 
-// Native client of Companion AppLink v1 (workspace
-// platform/standards/companion-applink.v1.md and its JSON schema; Go reference
-// kombify-AI-Platform speechkit/app/host/applink). Each request is one verified
-// connection to the per-user/session pipe; no token, account or credential is
-// ever sent or received. The shell never downloads the Companion; the only
-// install it runs is CompanionInstaller's, of the installer a client carries.
+// Native client of Companion AppLink v2 (workspace
+// platform/standards/companion-applink.v2.md, which the program's v2 change
+// publishes; until then the program lane's settings contract 2.1; Go reference
+// kombify-AI-Platform speechkit/app/host/applink). v2 replaces v1 outright: one
+// pipe, version 2, every v1 operation unchanged except the version, plus the
+// settings operations. Each request is one verified connection to the
+// per-user/session pipe; no token, account or credential is ever sent or
+// received. The shell never downloads the Companion; the only install it runs is
+// CompanionInstaller's, of the installer a client carries.
 
 /// <summary>Installed, running and enabled are independent; enabled is local device state only.</summary>
 public sealed record CompanionStatus(bool Installed, bool Running, bool Enabled);
 
-/// <summary>A named AppLink failure. The message is the code; no OS error, path or value crosses it.</summary>
-public sealed class CompanionAppLinkException(string code) : Exception(code)
+/// <summary>
+/// A named AppLink failure. The message is the code; no OS error, path or value crosses it.
+/// <see cref="With"/> is set only for <c>shortcut_conflict</c> (the other key) and <c>shortcut_taken</c> (<c>windows</c>).
+/// </summary>
+public sealed class CompanionAppLinkException(string code, string? with = null) : Exception(code)
 {
     public string Code { get; } = code;
+    public string? With { get; } = with;
 }
 
 /// <summary>Wire and local error codes of the contract ("Errors and versioning").</summary>
@@ -51,11 +58,24 @@ public static class CompanionAppLinkError
     public const string TransportUnavailable = "transport_unavailable";
     public const string NotRunning = "not_running";
 
+    // settings.set refusals (AppLink v2 "Write")
+    public const string UnknownKey = "unknown_key";
+    public const string InvalidValue = "invalid_value";
+    public const string ShortcutInvalid = "shortcut_invalid";
+    public const string ShortcutConflict = "shortcut_conflict";
+    public const string ShortcutTaken = "shortcut_taken";
+    public const string NotAvailable = "not_available";
+    public const string NotSaved = "not_saved";
+
     internal static readonly HashSet<string> Wire = new(StringComparer.Ordinal)
     {
         InvalidRequest, UnsupportedVersion, UnsupportedOperation, Disabled,
         NotForeground, HostUnavailable, RateLimited, PeerDenied,
+        UnknownKey, InvalidValue, ShortcutInvalid, ShortcutConflict, ShortcutTaken, NotAvailable, NotSaved,
     };
+
+    /// <summary>The refusals whose answer names the holder of the chord in <c>with</c>.</summary>
+    internal static bool CarriesWith(string code) => code is ShortcutConflict or ShortcutTaken;
 }
 
 /// <summary>The products a context report or an open-in-app target may name (a claim, not OS evidence).</summary>
@@ -106,22 +126,28 @@ public sealed record CompanionPage
 }
 
 /// <summary>
-/// The app side of Companion AppLink v1 on Windows: discovery, the shared device
-/// switch (starting the registered Companion in the background on enable) and
-/// foreground context reports. Every call refuses an elevated, low-integrity or
+/// The app side of Companion AppLink v2 on Windows: discovery, the shared device
+/// switch (starting the registered Companion in the background on enable),
+/// foreground context reports, and the Companion's settings (read, write one key,
+/// watch for changes). Every call refuses an elevated, low-integrity or
 /// AppContainer caller before it reads or changes anything, and verifies the
 /// pipe server (same user and session, medium integrity, registered executable)
 /// before writing a byte to it.
 /// </summary>
 public static partial class CompanionAppLink
 {
-    public const int Version = 1;
-    public const int MaxFrameBytes = 8192;
+    public const int Version = 2;
+    /// <summary>Largest request frame including its LF.</summary>
+    public const int MaxRequestBytes = 8192;
+    /// <summary>Largest response frame including its LF (a settings snapshot).</summary>
+    public const int MaxResponseBytes = 65536;
     public const string RegistrationKey = @"Software\kombify\CompanionDesktop";
     public const string BackgroundArgument = "--companion-background";
 
     private const int MaxDepth = 12;
     private static readonly TimeSpan RequestDeadline = TimeSpan.FromSeconds(2);
+    /// <summary>The host answers a watch after 25 s without a change; the client gives it 30 s.</summary>
+    private static readonly TimeSpan WatchDeadline = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan StartWait = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan StartPoll = TimeSpan.FromMilliseconds(100);
 
@@ -157,8 +183,9 @@ public static partial class CompanionAppLink
         var enabled = EnabledPreference();
         try
         {
-            var response = await CallAsync(StatusRequest(), "status", cancellationToken).ConfigureAwait(false);
-            return response.Status ?? throw Fail(CompanionAppLinkError.InvalidResponse);
+            var response = await CallAsync(StatusRequest(), "status", Result.Status, RequestDeadline, cancellationToken)
+                .ConfigureAwait(false);
+            return response.Status!;
         }
         catch (CompanionAppLinkException error) when (error.Code == CompanionAppLinkError.NotRunning)
         {
@@ -168,12 +195,157 @@ public static partial class CompanionAppLink
     }
 
     /// <summary>
-    /// Switches the shared device setting. A running host applies it; while stopped
-    /// the preference is written and, on enable only, the registered executable is
-    /// started directly with <see cref="BackgroundArgument"/> and awaited for at most
-    /// five seconds. Not installed is <c>not_installed</c>, never a download.
+    /// Switches the shared device setting for <paramref name="product"/>. Switching on first
+    /// writes this client's registration (<see cref="CompanionClientRegistration.Register(string)"/>,
+    /// AppLink v2 registration), so the Companion can match the OS-proven image of the client that switched it
+    /// on. A running host applies the switch (<c>settings.set enabled</c>); while stopped the preference
+    /// is written and, on enable only, the registered executable is started directly with
+    /// <see cref="BackgroundArgument"/> and awaited for at most five seconds, then told
+    /// <c>settings.set enabled=true</c> so it records this client as the one that switched it on.
+    /// Not installed is <c>not_installed</c>, never a download.
     /// </summary>
-    public static async Task<CompanionStatus> SetEnabledAsync(bool enabled, CancellationToken cancellationToken = default)
+    public static async Task<CompanionStatus> SetEnabledAsync(string product, bool enabled, CancellationToken cancellationToken = default)
+    {
+        RequireEligibleCaller();
+        if (!CompanionProduct.Valid(product)) throw Fail(CompanionAppLinkError.InvalidRequest);
+        if (enabled) CompanionClientRegistration.Register(product);
+        if (await SwitchStoppedAsync(enabled, cancellationToken).ConfigureAwait(false) is { } local)
+            return enabled ? (await RecordSwitchOnAsync(cancellationToken).ConfigureAwait(false))?.Status ?? local : local;
+        var response = await CallAsync(SettingsSetRequest(CompanionSettingKey.Enabled, enabled), "set", Result.Settings,
+            RequestDeadline, cancellationToken).ConfigureAwait(false);
+        return response.Settings!.Status;
+    }
+
+    /// <summary>
+    /// Sends one foreground metadata report. The calling process must own the
+    /// foreground top-level window; the host admits one report per peer per two
+    /// seconds (<c>rate_limited</c>) and expires it after five.
+    /// </summary>
+    public static async Task ReportContextAsync(string product, CompanionContext context, CancellationToken cancellationToken = default)
+    {
+        RequireEligibleCaller();
+        if (!CompanionProduct.Valid(product) || !ValidContext(context)) throw Fail(CompanionAppLinkError.InvalidRequest);
+        await CallAsync(ContextRequest(product, context), "context", Result.Accepted, RequestDeadline, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// <c>settings.get</c>: the Companion's settings snapshot (AppLink v2 "Read"). Not installed and
+    /// installed-but-stopped are snapshots too, built here with revision 0, no running program,
+    /// the device preference as <c>enabled</c> and only the <c>enabled</c> value, so a client shows
+    /// just the switch. Access, busy, version and peer failures stay <see cref="CompanionAppLinkException"/>.
+    /// </summary>
+    public static async Task<CompanionSettings> GetSettingsAsync(CancellationToken cancellationToken = default)
+    {
+        RequireEligibleCaller();
+        if (Registration() is null) return CompanionSettings.Stopped(installed: false, enabled: false);
+        var enabled = EnabledPreference();
+        try
+        {
+            var response = await CallAsync(SettingsGetRequest(), "settings", Result.Settings, RequestDeadline, cancellationToken)
+                .ConfigureAwait(false);
+            return response.Settings!;
+        }
+        catch (CompanionAppLinkException error) when (error.Code == CompanionAppLinkError.NotRunning)
+        {
+            return CompanionSettings.Stopped(installed: true, enabled);
+        }
+    }
+
+    /// <summary>
+    /// <c>settings.set</c> of one boolean key (AppLink v2 "Write"). Never throws a
+    /// <see cref="CompanionAppLinkException"/>: a refusal of the Companion, of this
+    /// library (elevated caller, not installed, not running) or of the transport is a
+    /// <see cref="CompanionSettingResult"/> with <see cref="CompanionSettingResult.Refusal"/>.
+    /// Only the caller's own cancellation throws. <c>enabled</c> goes the way of
+    /// <see cref="SetEnabledAsync"/> (registration, start while stopped) and answers with the snapshot after it.
+    /// </summary>
+    public static Task<CompanionSettingResult> SetSettingAsync(string product, string key, bool value,
+        CancellationToken cancellationToken = default) =>
+        SetAsync(product, key, value, cancellationToken);
+
+    /// <summary><c>settings.set</c> of one string key (<c>enum</c>, <c>chord</c>, <c>path</c>); the same rules as the boolean form.</summary>
+    public static Task<CompanionSettingResult> SetSettingAsync(string product, string key, string value,
+        CancellationToken cancellationToken = default) =>
+        SetAsync(product, key, value, cancellationToken);
+
+    /// <summary>
+    /// <c>settings.watch</c>: waits until the snapshot's revision is above <paramref name="after"/>
+    /// and returns it; after 25 s without a change the host returns <paramref name="after"/> itself.
+    /// A rise means: call <see cref="GetSettingsAsync"/>, then watch again. A stopped program or a
+    /// lost transport is a <see cref="CompanionAppLinkException"/> (<c>not_running</c>,
+    /// <c>transport_unavailable</c>); <see cref="CompanionSettingsWatcher"/> runs this loop with the
+    /// contract's back-off. Watch only while the Companion section is shown.
+    /// </summary>
+    public static async Task<ulong> WatchSettingsAsync(ulong after, CancellationToken cancellationToken = default)
+    {
+        RequireEligibleCaller();
+        if (Registration() is null) throw Fail(CompanionAppLinkError.NotInstalled);
+        var response = await CallAsync(WatchRequest(after), "watch", Result.Revision, WatchDeadline, cancellationToken)
+            .ConfigureAwait(false);
+        if (response.Revision < after) throw Fail(CompanionAppLinkError.InvalidResponse);
+        return response.Revision!.Value;
+    }
+
+    /// <summary>True when a top-level window of this process is the foreground window.</summary>
+    public static bool OwnsForegroundWindow()
+    {
+        var window = AppLinkNative.GetForegroundWindow();
+        if (window == IntPtr.Zero) return false;
+        _ = AppLinkNative.GetWindowThreadProcessId(window, out var pid);
+        return pid == (uint)Environment.ProcessId;
+    }
+
+    private static async Task<CompanionSettingResult> SetAsync(string product, string key, object value,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            RequireEligibleCaller();
+            if (!CompanionProduct.Valid(product) || !ValidCode(key)) return Refused(CompanionAppLinkError.InvalidRequest);
+            if (value is string text && !CompanionSettings.ValidText(text, CompanionSettings.MaxValueChars))
+                return Refused(CompanionAppLinkError.InvalidValue);
+            if (key == CompanionSettingKey.Enabled)
+            {
+                if (value is not bool enabled) return Refused(CompanionAppLinkError.InvalidValue);
+                if (enabled) CompanionClientRegistration.Register(product);
+                if (await SwitchStoppedAsync(enabled, cancellationToken).ConfigureAwait(false) is not null)
+                {
+                    var recorded = enabled ? await RecordSwitchOnAsync(cancellationToken).ConfigureAwait(false) : null;
+                    return new CompanionSettingResult(recorded ?? await GetSettingsAsync(cancellationToken).ConfigureAwait(false));
+                }
+            }
+            else if (key == CompanionSettingKey.ScreenshotFolder && value is string folder && !LocalFolderPath(folder))
+            {
+                return Refused(CompanionAppLinkError.InvalidValue); // the host refuses the same; nothing is sent
+            }
+            if (Registration() is null) return Refused(CompanionAppLinkError.NotInstalled);
+            var response = await CallAsync(SettingsSetRequest(key, value), "set", Result.Settings, RequestDeadline,
+                cancellationToken).ConfigureAwait(false);
+            return new CompanionSettingResult(response.Settings);
+        }
+        catch (CompanionAppLinkException error)
+        {
+            return Refused(error.Code, error.With);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            return Refused(CompanionAppLinkError.TransportUnavailable);
+        }
+    }
+
+    private static CompanionSettingResult Refused(string code, string? with = null) => new(null, code, with);
+
+    /// <summary>
+    /// The switch while the program is stopped (v1 <c>Client.SetEnabled</c>): writes
+    /// <c>Enabled</c> and, on enable, starts the registered executable and waits for its pipe.
+    /// Null when a host is running (or running but unreconciled): the caller sends the switch over the pipe.
+    /// </summary>
+    private static async Task<CompanionStatus?> SwitchStoppedAsync(bool enabled, CancellationToken cancellationToken)
     {
         CompanionStatus state;
         try
@@ -184,10 +356,10 @@ public static partial class CompanionAppLink
         {
             // A running host whose reconciliation failed stays reachable for an
             // explicit switch; never treat it as stopped or start a second one.
-            return await SwitchAsync(enabled, cancellationToken).ConfigureAwait(false);
+            return null;
         }
         if (!state.Installed) throw Fail(CompanionAppLinkError.NotInstalled);
-        if (state.Running) return await SwitchAsync(enabled, cancellationToken).ConfigureAwait(false);
+        if (state.Running) return null;
 
         SetPreference(enabled);
         state = state with { Enabled = enabled };
@@ -218,64 +390,82 @@ public static partial class CompanionAppLink
     }
 
     /// <summary>
-    /// Sends one foreground metadata report. The calling process must own the
-    /// foreground top-level window; the host admits one report per peer per two
-    /// seconds (<c>rate_limited</c>) and expires it after five.
+    /// After this library started a stopped Companion: <c>settings.set enabled=true</c> on the now
+    /// running program, so it records the requesting client (its OS-proven image against the
+    /// registration) as the one that switched it on. The program is already on, so the write changes
+    /// no value. Best effort: when it is refused or the transport fails the Companion stays on and only
+    /// the record is missing (Kubi's "Settings" then opens the first registered client); null then.
     /// </summary>
-    public static async Task ReportContextAsync(string product, CompanionContext context, CancellationToken cancellationToken = default)
+    private static async Task<CompanionSettings?> RecordSwitchOnAsync(CancellationToken cancellationToken)
     {
-        RequireEligibleCaller();
-        if (!CompanionProduct.Valid(product) || !ValidContext(context)) throw Fail(CompanionAppLinkError.InvalidRequest);
-        var response = await CallAsync(ContextRequest(product, context), "context", cancellationToken).ConfigureAwait(false);
-        if (response.Accepted != true) throw Fail(CompanionAppLinkError.InvalidResponse);
-    }
-
-    /// <summary>True when a top-level window of this process is the foreground window.</summary>
-    public static bool OwnsForegroundWindow()
-    {
-        var window = AppLinkNative.GetForegroundWindow();
-        if (window == IntPtr.Zero) return false;
-        _ = AppLinkNative.GetWindowThreadProcessId(window, out var pid);
-        return pid == (uint)Environment.ProcessId;
-    }
-
-    private static async Task<CompanionStatus> SwitchAsync(bool enabled, CancellationToken cancellationToken)
-    {
-        var response = await CallAsync(SwitchRequest(enabled), "switch", cancellationToken).ConfigureAwait(false);
-        return response.Status ?? throw Fail(CompanionAppLinkError.InvalidResponse);
+        try
+        {
+            var response = await CallAsync(SettingsSetRequest(CompanionSettingKey.Enabled, true), "set", Result.Settings,
+                RequestDeadline, cancellationToken).ConfigureAwait(false);
+            return response.Settings;
+        }
+        catch (CompanionAppLinkException)
+        {
+            return null;
+        }
     }
 
     internal static CompanionAppLinkException Fail(string code) => new(code);
 
-    private static void RequireEligibleCaller()
+    internal static void RequireEligibleCaller()
     {
         if (Eligibility(LocalPeer()) is { } code) throw Fail(code);
     }
 
-    private static string? Eligibility(Peer peer) =>
+    internal static string? Eligibility(Peer peer) =>
         peer.Integrity >= 0x3000 ? CompanionAppLinkError.ElevatedPeerRefused
         : peer.Integrity < 0x2000 || peer.AppContainer ? CompanionAppLinkError.PeerDenied
         : null;
 
     // ── Transport: one verified connection per request ────────────────────
 
-    private static async Task<WireResponse> CallAsync(byte[] frame, string id, CancellationToken cancellationToken)
+    private enum Result { Status, Accepted, Settings, Revision }
+
+    private static async Task<WireResponse> CallAsync(byte[] frame, string id, Result expected, TimeSpan limit,
+        CancellationToken cancellationToken)
     {
-        if (frame.Length + 1 > MaxFrameBytes) throw Fail(CompanionAppLinkError.InvalidRequest);
+        if (frame.Length + 1 > MaxRequestBytes) throw Fail(CompanionAppLinkError.InvalidRequest);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(RequestDeadline);
-        using var pipe = await DialAsync(deadline.Token).ConfigureAwait(false);
+        deadline.CancelAfter(limit);
+        var me = LocalPeer();
+        var (pipe, _) = await DialAsync(Endpoint(me), AdmitCompanion, deadline.Token).ConfigureAwait(false);
         byte[] line;
+        using (pipe)
+        {
+            line = await ExchangeAsync(pipe, frame, MaxResponseBytes, deadline.Token, cancellationToken).ConfigureAwait(false);
+        }
+        var response = ParseResponse(line);
+        if (response.Error == CompanionAppLinkError.PeerDenied && response.Id.Length == 0)
+            throw Fail(CompanionAppLinkError.PeerDenied); // the host's fixed pre-request refusal
+        if (!string.Equals(response.Id, id, StringComparison.Ordinal)) throw Fail(CompanionAppLinkError.InvalidResponse);
+        if (response.Error is { } error) throw new CompanionAppLinkException(error, response.With);
+        var kind = response.Status is not null ? Result.Status
+            : response.Accepted is not null ? Result.Accepted
+            : response.Settings is not null ? Result.Settings
+            : Result.Revision;
+        if (kind != expected) throw Fail(CompanionAppLinkError.InvalidResponse); // an answer of another operation
+        return response;
+    }
+
+    /// <summary>Writes one LF-terminated request and reads one LF-terminated answer of at most <paramref name="maxBytes"/>.</summary>
+    internal static async Task<byte[]> ExchangeAsync(Stream pipe, byte[] frame, int maxBytes, CancellationToken deadline,
+        CancellationToken caller)
+    {
         try
         {
             var request = new byte[frame.Length + 1];
             frame.CopyTo(request, 0);
             request[^1] = (byte)'\n';
-            await pipe.WriteAsync(request, deadline.Token).ConfigureAwait(false);
-            await pipe.FlushAsync(deadline.Token).ConfigureAwait(false);
-            line = await ReadFrameAsync(pipe, deadline.Token).ConfigureAwait(false);
+            await pipe.WriteAsync(request, deadline).ConfigureAwait(false);
+            await pipe.FlushAsync(deadline).ConfigureAwait(false);
+            return await ReadFrameAsync(pipe, maxBytes, deadline).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (!caller.IsCancellationRequested)
         {
             throw Fail(CompanionAppLinkError.TransportUnavailable);
         }
@@ -288,17 +478,12 @@ public static partial class CompanionAppLink
         {
             throw Fail(CompanionAppLinkError.TransportUnavailable);
         }
-        var response = ParseResponse(line);
-        if (response.Error == CompanionAppLinkError.PeerDenied && response.Id.Length == 0)
-            throw Fail(CompanionAppLinkError.PeerDenied); // the host's fixed pre-request refusal
-        if (!string.Equals(response.Id, id, StringComparison.Ordinal)) throw Fail(CompanionAppLinkError.InvalidResponse);
-        if (response.Error is { } error) throw Fail(error);
-        return response;
     }
 
-    private static async Task<byte[]> ReadFrameAsync(Stream pipe, CancellationToken cancellationToken)
+    /// <summary>One frame ending in LF and nothing after it; the LF counts against <paramref name="maxBytes"/>.</summary>
+    internal static async Task<byte[]> ReadFrameAsync(Stream pipe, int maxBytes, CancellationToken cancellationToken)
     {
-        var buffer = new byte[MaxFrameBytes];
+        var buffer = new byte[maxBytes];
         var length = 0;
         while (length < buffer.Length)
         {
@@ -316,11 +501,24 @@ public static partial class CompanionAppLink
         throw Fail(CompanionAppLinkError.InvalidResponse); // oversize frame
     }
 
-    private static async Task<NamedPipeClientStream> DialAsync(CancellationToken cancellationToken)
+    /// <summary>The Companion's pipe server: same user and session, medium integrity, the registered executable.</summary>
+    private static bool AdmitCompanion(Peer me, Peer server)
+    {
+        var registered = Registration();
+        return server.Sid == me.Sid && server.Session == me.Session && Eligibility(server) is null
+            && registered is not null && string.Equals(server.Executable, registered, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Opens <paramref name="name"/> at identification level and admits the server process by OS
+    /// evidence before any byte is written. A missing pipe is <c>not_running</c>; a refused
+    /// server is <c>peer_denied</c>. Returns the connected stream and the server's process id.
+    /// </summary>
+    internal static async Task<(NamedPipeClientStream Pipe, uint ServerPid)> DialAsync(string name,
+        Func<Peer, Peer, bool> admit, CancellationToken cancellationToken)
     {
         var me = LocalPeer();
         if (Eligibility(me) is { } refused) throw Fail(refused);
-        var name = Endpoint(me);
         SafePipeHandle handle;
         while (true)
         {
@@ -352,13 +550,10 @@ public static partial class CompanionAppLink
         {
             if (!AppLinkNative.GetNamedPipeServerProcessId(handle, out var serverPid))
                 throw Fail(CompanionAppLinkError.PeerDenied);
-            var server = ProcessPeer(serverPid);
-            var registered = Registration();
-            if (server.Sid != me.Sid || server.Session != me.Session || Eligibility(server) is not null
-                || registered is null || !string.Equals(server.Executable, registered, StringComparison.OrdinalIgnoreCase))
+            if (!admit(me, ProcessPeer(serverPid)))
                 throw Fail(CompanionAppLinkError.PeerDenied); // no application bytes go to a foreign server
             pipe = new NamedPipeClientStream(PipeDirection.InOut, isAsync: true, isConnected: true, handle);
-            return pipe;
+            return (pipe, serverPid);
         }
         catch (Exception error) when (error is not CompanionAppLinkException)
         {
@@ -375,15 +570,15 @@ public static partial class CompanionAppLink
     }
 
     private static string Endpoint(Peer peer) =>
-        $@"\\.\pipe\kombify.companion.applink.v1.{peer.Sid}.{peer.Session}";
+        $@"\\.\pipe\kombify.companion.applink.v2.{peer.Sid}.{peer.Session}";
 
     // ── OS evidence (never read from a message) ────────────────────────────
 
-    private readonly record struct Peer(uint Pid, uint Session, string Sid, uint Integrity, bool AppContainer, string Executable);
+    internal readonly record struct Peer(uint Pid, uint Session, string Sid, uint Integrity, bool AppContainer, string Executable);
 
-    private static Peer LocalPeer() => ProcessPeer((uint)Environment.ProcessId);
+    internal static Peer LocalPeer() => ProcessPeer((uint)Environment.ProcessId);
 
-    private static Peer ProcessPeer(uint pid)
+    internal static Peer ProcessPeer(uint pid)
     {
         using var process = AppLinkNative.OpenProcess(AppLinkNative.ProcessQueryLimitedInformation, false, pid);
         if (process.IsInvalid) throw Fail(CompanionAppLinkError.PeerDenied);
@@ -520,11 +715,19 @@ public static partial class CompanionAppLink
     internal static bool LocalExecutablePath(string path) => LocalFilePath(path, ".exe");
 
     /// <summary>The same rule for any extension (the carried Companion installer is an .msi).</summary>
-    internal static bool LocalFilePath(string path, string extension)
+    internal static bool LocalFilePath(string path, string extension) =>
+        path.EndsWith(extension, StringComparison.OrdinalIgnoreCase) && LocalPath(path);
+
+    /// <summary>
+    /// The same rule for a folder (<c>screenshot.folder</c>): drive-absolute, local drive, no dot or
+    /// empty component, no trailing separator. Whether it exists is the host's decision.
+    /// </summary>
+    internal static bool LocalFolderPath(string path) => LocalPath(path);
+
+    private static bool LocalPath(string path)
     {
         if (path.Length < 4 || path.Length > 32767 || !char.IsAsciiLetter(path[0]) || path[1] != ':' || path[2] != '\\'
-            || path.AsSpan(3).IndexOfAny('/', ':') >= 0 || path.Contains('\0')
-            || !path.EndsWith(extension, StringComparison.OrdinalIgnoreCase))
+            || path.AsSpan(3).IndexOfAny('/', ':') >= 0 || path.Contains('\0'))
             return false;
         foreach (var part in path[3..].Split('\\'))
             if (part.Length == 0 || part is "." or ".." || part.EndsWith('.') || part.EndsWith(' ')) return false;
@@ -623,7 +826,7 @@ public static partial class CompanionAppLink
         return variables;
     }
 
-    // ── Wire: strict v1 frames ─────────────────────────────────────────────
+    // ── Wire: strict v2 frames ─────────────────────────────────────────────
 
     [GeneratedRegex(@"\A[A-Za-z0-9._:@/+\-]{1,160}\z", RegexOptions.CultureInvariant)]
     private static partial Regex CodePattern();
@@ -682,10 +885,23 @@ public static partial class CompanionAppLink
         Envelope(w, "status", "status.get");
     });
 
-    private static byte[] SwitchRequest(bool enabled) => Frame(w =>
+    private static byte[] SettingsGetRequest() => Frame(w =>
     {
-        Envelope(w, "switch", "switch.set");
-        w.WriteBoolean("enabled", enabled);
+        Envelope(w, "settings", "settings.get");
+    });
+
+    private static byte[] SettingsSetRequest(string key, object value) => Frame(w =>
+    {
+        Envelope(w, "set", "settings.set");
+        w.WriteString("key", key);
+        if (value is bool flag) w.WriteBoolean("value", flag);
+        else w.WriteString("value", (string)value);
+    });
+
+    private static byte[] WatchRequest(ulong after) => Frame(w =>
+    {
+        Envelope(w, "watch", "settings.watch");
+        w.WriteNumber("after", after);
     });
 
     private static byte[] ContextRequest(string product, CompanionContext context) => Frame(w =>
@@ -748,14 +964,17 @@ public static partial class CompanionAppLink
         return output.WrittenSpan.ToArray();
     }
 
-    private sealed record WireResponse(string Id, CompanionStatus? Status, bool? Accepted, string? Error);
+    private sealed record WireResponse(string Id, CompanionStatus? Status, bool? Accepted, CompanionSettings? Settings,
+        ulong? Revision, string? Error, string? With);
 
     private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
     /// <summary>
-    /// Exactly the v1 response shapes: valid UTF-8, depth at most 12, no duplicate
-    /// keys, no null, no empty string except an error response id, no unknown or
-    /// case-variant property, no trailing value, exactly one result.
+    /// Exactly the v2 response shapes: valid UTF-8, depth at most 12, no duplicate
+    /// keys, no null, no unknown or case-variant property, no trailing value,
+    /// exactly one result (<c>status</c>, <c>accepted</c>, <c>settings</c>,
+    /// <c>revision</c> or <c>error</c>), <c>with</c> only beside the two shortcut refusals.
+    /// An empty <c>id</c> is admitted only on an error response.
     /// </summary>
     private static WireResponse ParseResponse(byte[] frame)
     {
@@ -766,8 +985,10 @@ public static partial class CompanionAppLink
             using var document = JsonDocument.Parse(frame, new JsonDocumentOptions { MaxDepth = MaxDepth + 1 });
             var root = document.RootElement;
             if (root.ValueKind != JsonValueKind.Object) throw Fail(CompanionAppLinkError.InvalidResponse);
-            string? id = null, error = null;
+            string? id = null, error = null, with = null;
             CompanionStatus? status = null;
+            CompanionSettings? settings = null;
+            ulong? revision = null;
             bool? accepted = null;
             var version = false;
             foreach (var property in root.EnumerateObject())
@@ -775,7 +996,7 @@ public static partial class CompanionAppLink
                 switch (property.Name)
                 {
                     case "version":
-                        version = property.Value.ValueKind == JsonValueKind.Number && property.Value.GetRawText() == "1";
+                        version = property.Value.ValueKind == JsonValueKind.Number && property.Value.GetRawText() == "2";
                         break;
                     case "id" when property.Value.ValueKind == JsonValueKind.String:
                         id = property.Value.GetString();
@@ -786,21 +1007,34 @@ public static partial class CompanionAppLink
                     case "accepted" when property.Value.ValueKind == JsonValueKind.True:
                         accepted = true;
                         break;
+                    case "settings" when property.Value.ValueKind == JsonValueKind.Object:
+                        settings = CompanionSettings.Parse(property.Value);
+                        break;
+                    case "revision":
+                        revision = CompanionSettings.ParseRevision(property.Value);
+                        break;
                     case "error" when property.Value.ValueKind == JsonValueKind.String
                         && CompanionAppLinkError.Wire.Contains(property.Value.GetString()!):
                         error = property.Value.GetString();
+                        break;
+                    case "with" when property.Value.ValueKind == JsonValueKind.String && ValidCode(property.Value.GetString()):
+                        with = property.Value.GetString();
                         break;
                     default:
                         throw Fail(CompanionAppLinkError.InvalidResponse);
                 }
             }
-            var results = (status is null ? 0 : 1) + (accepted is null ? 0 : 1) + (error is null ? 0 : 1);
+            var results = (status is null ? 0 : 1) + (accepted is null ? 0 : 1) + (settings is null ? 0 : 1)
+                + (revision is null ? 0 : 1) + (error is null ? 0 : 1);
             if (!version || id is null || results != 1) throw Fail(CompanionAppLinkError.InvalidResponse);
             if (error is null ? !ValidCode(id) : id.Length > 160) throw Fail(CompanionAppLinkError.InvalidResponse);
-            return new WireResponse(id, status, accepted, error);
+            // with names the holder of the chord, and only on the two refusals that have one.
+            if ((with is not null) != (error is not null && CompanionAppLinkError.CarriesWith(error)))
+                throw Fail(CompanionAppLinkError.InvalidResponse);
+            return new WireResponse(id, status, accepted, settings, revision, error, with);
         }
         catch (Exception error) when (error is JsonException or DecoderFallbackException or ArgumentException
-            or InvalidOperationException or FormatException)
+            or InvalidOperationException or FormatException or OverflowException)
         {
             throw Fail(CompanionAppLinkError.InvalidResponse);
         }
@@ -831,14 +1065,14 @@ public static partial class CompanionAppLink
 
     /// <summary>
     /// Structural pass before typed reading: duplicate keys, null, depth and
-    /// trailing values. Empty strings are allowed here only as the value of a
-    /// root <c>id</c>; the typed pass admits that only on an error response.
+    /// trailing values. Empty strings are judged by the typed pass, field by field:
+    /// v2 has legitimate ones (a chord or microphone of <c>""</c>, the label while
+    /// signed out), and a root <c>id</c> may be empty only on an error response.
     /// </summary>
     private static void Scan(ReadOnlySpan<byte> frame)
     {
         var reader = new Utf8JsonReader(frame, new JsonReaderOptions { MaxDepth = MaxDepth + 1 });
         var keys = new Stack<HashSet<string>>();
-        string? property = null;
         while (reader.Read())
         {
             if (reader.CurrentDepth > MaxDepth) throw Fail(CompanionAppLinkError.InvalidResponse);
@@ -851,16 +1085,11 @@ public static partial class CompanionAppLink
                     keys.Pop();
                     break;
                 case JsonTokenType.PropertyName:
-                    property = reader.GetString()!;
-                    if (!keys.Peek().Add(property)) throw Fail(CompanionAppLinkError.InvalidResponse);
-                    continue;
+                    if (!keys.Peek().Add(reader.GetString()!)) throw Fail(CompanionAppLinkError.InvalidResponse);
+                    break;
                 case JsonTokenType.Null:
                     throw Fail(CompanionAppLinkError.InvalidResponse);
-                case JsonTokenType.String when reader.GetString()!.Length == 0:
-                    if (!(property == "id" && reader.CurrentDepth == 1)) throw Fail(CompanionAppLinkError.InvalidResponse);
-                    break;
             }
-            property = null;
         }
         if (keys.Count != 0) throw Fail(CompanionAppLinkError.InvalidResponse);
     }
@@ -948,6 +1177,9 @@ public sealed class CompanionForegroundReporter(string product, Func<CompanionCo
 public static partial class CompanionOpenInApp
 {
     public const string AppsKey = @"Software\kombify\AppLink\Apps";
+
+    /// <summary>The route Kubi's "Settings" entry opens (AppLink v2); each client maps it to its Companion section.</summary>
+    public const string SettingsRoute = "/settings/companion";
 
     [GeneratedRegex(@"\A[a-z0-9-]{1,80}\z", RegexOptions.CultureInvariant)]
     private static partial Regex SchemePattern();

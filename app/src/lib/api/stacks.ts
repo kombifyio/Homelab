@@ -647,15 +647,30 @@ export interface StackPruneResponse {
   warnings?: string[];
 }
 
+/** The server a provider really provisions for one offering. */
+export interface MonthlyRuntimePackage {
+  vcpus?: number;
+  memory_mb?: number;
+  disk_gb?: number;
+  region?: string;
+}
+
 export interface MonthlyRuntimeOffering {
   id: string;
   name: string;
   billing_cadence: string;
   image?: string;
+  /**
+   * The generic size of the offering (the custom size of a provider without a
+   * fixed package). A provider with a fixed package provisions that package,
+   * which can differ: show `provider_packages`, never these three, as the size.
+   */
   vcpus?: number;
   memory_mb?: number;
   disk_gb?: number;
   region?: string;
+  /** Provider id to the package it provisions; absent where it has none for this offering. */
+  provider_packages?: Record<string, MonthlyRuntimePackage>;
 }
 
 export interface MonthlyRuntimeStatus {

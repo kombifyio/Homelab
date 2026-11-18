@@ -15,6 +15,9 @@
   import LoadingNote from "#lib/components/ui/LoadingNote.svelte";
   import { CreationPageFrame } from "#lib/components/wizard/index.js";
   import { getKitDeployment } from "#lib/api/stacks.js";
+  import { getHomelab } from "#lib/api/homelab.js";
+  import { CANONICAL_USE_CASE_GOALS } from "#lib/wizard/standardBundle.js";
+  import { useCaseTitle } from "#lib/wizard/creationGoalText.js";
   import { parseApiError } from "#lib/api/errors.js";
   import type {
     LayoutRecommendationAcceptance,
@@ -67,6 +70,7 @@
     }),
   );
   let homelabName = $state("");
+  let deferredGoals = $state<string[]>([]);
   let loading = $state(true);
   let loadError = $state<string | null>(null);
 
@@ -80,6 +84,20 @@
     try {
       const deployment = await getKitDeployment(stackId);
       homelabName = deployment?.name ?? "";
+      // Profile wishes are non-executable. The owner starts one explicitly;
+      // the ordinary wizard still checks catalog, placement and admission.
+      const home = await getHomelab().catch(() => null);
+      const wizard = home?.homelab?.intent.wizard;
+      if (wizard && typeof wizard === "object" && "profile_expansions" in wizard) {
+        const profiles = (wizard as { profile_expansions?: unknown }).profile_expansions;
+        if (Array.isArray(profiles)) {
+          deferredGoals = [...new Set(profiles.flatMap((profile) =>
+            Array.isArray(profile?.deferred_goals)
+              ? profile.deferred_goals.filter((goal: unknown): goal is string => typeof goal === "string")
+              : [],
+          ))];
+        }
+      }
     } catch (err) {
       loadError =
         parseApiError(err).message ||
@@ -134,6 +152,24 @@
         {tr("layout.addUseCases.subtitle")}
       </p>
     </header>
+    {#if deferredGoals.length > 0}
+      <section class="mb-6 rounded-lg border border-border p-4" aria-label={tr("layout.expansion.title")}>
+        <h2 class="font-semibold">{tr("layout.expansion.title")}</h2>
+        <p class="mt-1 text-sm text-muted-foreground">{tr("layout.expansion.body")}</p>
+        <ul class="mt-3 flex flex-wrap gap-3">
+          {#each deferredGoals as goal (goal)}
+            <li>
+              {#if (CANONICAL_USE_CASE_GOALS as readonly string[]).includes(goal)}
+                <a class="text-sm underline" href={`/stacks/${encodeURIComponent(stackId)}/use-cases/new?goals=${encodeURIComponent(goal)}`}>{useCaseTitle(goal)}</a>
+              {:else}
+                <span class="text-sm text-muted-foreground">{useCaseTitle(goal)} � {tr("layout.expansion.pending")}</span>
+              {/if}
+            </li>
+          {/each}
+        </ul>
+        <a class="mt-3 inline-block text-sm underline" href={`/stacks/${encodeURIComponent(stackId)}/servers/new`}>{tr("layout.expansion.server")}</a>
+      </section>
+    {/if}
     <CreationPageFrame
       process={run.process}
       initialConfig={config}

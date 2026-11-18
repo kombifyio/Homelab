@@ -6,7 +6,9 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"regexp"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 
@@ -47,18 +49,94 @@ type runtimeSummary struct {
 }
 
 type configuredUseCase struct {
-	Goal     string         `json:"goal"`
-	Status   string         `json:"status"`
-	Settings map[string]any `json:"settings,omitempty"`
+	Goal        string         `json:"goal"`
+	Status      string         `json:"status"`
+	Settings    map[string]any `json:"settings,omitempty"`
+	PlannedApps []plannedApp   `json:"planned_apps,omitempty"`
+	// Failure is present only for a failed or blocked use case whose cause
+	// Techstack recorded. It carries closed reason vocabulary and identifiers,
+	// never backend prose, hosts, paths or log lines.
+	Failure *useCaseFailure `json:"failure,omitempty"`
+}
+
+// useCaseFailure is the machine-readable why behind a failed or blocked
+// configured use case. Code is the job's recorded reason_code (the run's
+// error_reason when no job was dispatched; "capability_blocked" or
+// "goal_unmapped" for a blocked goal). DetailCode is the pinned StackKits
+// reason code when one was reported. Step is the failed rollout step (or the
+// blocking capability). OperationID is the rollout job id, or the run id when
+// no job exists. The affected application is not recorded per use case, so
+// there is no app field; Cloud maps the goal to its planned apps.
+type useCaseFailure struct {
+	Code        string `json:"code"`
+	DetailCode  string `json:"detail_code,omitempty"`
+	Step        string `json:"step,omitempty"`
+	OccurredAt  string `json:"occurred_at,omitempty"`
+	OperationID string `json:"operation_id,omitempty"`
+	Retryable   bool   `json:"retryable"`
+}
+
+// failureCodePattern keeps only closed identifiers such as "provision_failed"
+// or "use-case-access"; anything else is dropped.
+var failureCodePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_.-]{0,63}$`)
+
+func failureToken(value any) string {
+	text, _ := value.(string)
+	text = strings.TrimSpace(text)
+	if failureCodePattern.MatchString(text) {
+		return text
+	}
+	return ""
+}
+
+func failureTime(value time.Time) string {
+	if value.IsZero() {
+		return ""
+	}
+	return value.UTC().Format(time.RFC3339)
+}
+
+// jobFailure projects the failed job's recorded outcome (job.Step and the
+// Result keys reason_code, retryable and support_context.{failed_step,
+// stackkit_reason_code} written by pkg/jobs/job_outcome.go) into the wire shape.
+func jobFailure(job *controlplane.Job) *useCaseFailure {
+	failure := &useCaseFailure{
+		Code:        failureToken(job.Result["reason_code"]),
+		Step:        failureToken(job.Step),
+		OperationID: job.ID,
+	}
+	if job.CompletedAt != nil {
+		failure.OccurredAt = failureTime(*job.CompletedAt)
+	}
+	if failure.OccurredAt == "" {
+		failure.OccurredAt = failureTime(job.UpdatedAt)
+	}
+	failure.Retryable, _ = job.Result["retryable"].(bool)
+	support, _ := job.Result["support_context"].(map[string]any)
+	failure.DetailCode = failureToken(support["stackkit_reason_code"])
+	if failure.Step == "" {
+		failure.Step = failureToken(support["failed_step"])
+	}
+	if failure.Code == "" {
+		failure.Code = "job_" + failureToken(job.State)
+	}
+	return failure
+}
+
+type plannedApp struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 type configuredWizardIntent struct {
 	Goals               []string                  `json:"goals"`
 	UnmappedGoals       []string                  `json:"unmapped_goals"`
 	UseCaseSettings     map[string]map[string]any `json:"use_case_settings"`
+	UseCaseSetupAnswers json.RawMessage           `json:"use_case_setup_answers"`
 	LastRunID           string                    `json:"last_run_id"`
 	BlockedCapabilities []struct {
-		UseCase string `json:"use_case"`
+		UseCase    string `json:"use_case"`
+		Capability string `json:"capability"`
 	} `json:"blocked_capabilities"`
 }
 
@@ -86,18 +164,25 @@ func (h inventoryHandlers) configuredUseCases(e *httpx.Event, ctx context.Contex
 		httpx.RecordDependencyFailure(e, "runtime_summary.homelab", errors.New("invalid wizard intent"))
 		return nil
 	}
+	var setupAnswers map[string]map[string][]string
+	// Malformed legacy answers must not hide otherwise valid goals and status.
+	_ = json.Unmarshal(wizard.UseCaseSetupAnswers, &setupAnswers)
 	goals := make([]configuredUseCase, 0, len(wizard.Goals))
 	if len(wizard.Goals) == 0 {
 		return goals
 	}
 	blocked := map[string]bool{}
+	blockedFailure := map[string]*useCaseFailure{}
+	blockedAt := failureTime(homelab.UpdatedAt)
 	for _, goal := range wizard.UnmappedGoals {
 		blocked[goal] = true
+		blockedFailure[goal] = &useCaseFailure{Code: "goal_unmapped", Step: "intent_projection", OccurredAt: blockedAt}
 	}
 	for _, capability := range wizard.BlockedCapabilities {
 		blocked[capability.UseCase] = true
+		blockedFailure[capability.UseCase] = &useCaseFailure{Code: "capability_blocked", Step: failureToken(capability.Capability), OccurredAt: blockedAt}
 	}
-	runGoals, runStatus := h.latestConfiguredRun(e, ctx, scope, homelab.ID, wizard.LastRunID)
+	runGoals, runStatus, runFailure := h.latestConfiguredRun(e, ctx, scope, homelab.ID, wizard.LastRunID)
 	catalog, err := stackkitrelease.ResolveUseCaseCatalog()
 	if err != nil {
 		httpx.RecordDependencyFailure(e, "runtime_summary.use_case_catalog", err)
@@ -111,8 +196,12 @@ func (h inventoryHandlers) configuredUseCases(e *httpx.Event, ctx context.Contex
 		item := configuredUseCase{Goal: goal, Status: "unknown"}
 		if blocked[goal] {
 			item.Status = "blocked"
+			item.Failure = blockedFailure[goal]
 		} else if runGoals[goal] {
 			item.Status = runStatus
+			if runStatus == "failed" {
+				item.Failure = runFailure
+			}
 		}
 		// Saved Wizard goals are historical. Only discard one when the current
 		// catalog and every owned spec establish that none of its native
@@ -127,7 +216,8 @@ func (h inventoryHandlers) configuredUseCases(e *httpx.Event, ctx context.Contex
 				for _, ref := range refs {
 					if ref != "" {
 						known = true
-						present = present || workloads[ref]
+						_, found := workloads[ref]
+						present = present || found
 					}
 				}
 				if known && !present {
@@ -135,14 +225,10 @@ func (h inventoryHandlers) configuredUseCases(e *httpx.Event, ctx context.Contex
 				}
 			}
 		}
-		if saved := wizard.UseCaseSettings[goal]; len(saved) > 0 && err == nil {
-			useCase, _ := catalog.FindUseCase(goal)
-			item.Settings = make(map[string]any)
-			for id, value := range saved {
-				setting, ok := useCase.FindSetting(id)
-				if ok && (setting.Kind == "choice" || setting.Kind == "toggle") && setting.AcceptsSettingValue(value) {
-					item.Settings[id] = value
-				}
+		if err == nil {
+			if useCase, ok := catalog.FindUseCase(goal); ok {
+				item.Settings = configuredSettings(useCase, wizard.UseCaseSettings[goal], setupAnswers[goal])
+				item.PlannedApps = configuredPlannedApps(useCase, workloads)
 			}
 		}
 		goals = append(goals, item)
@@ -150,7 +236,7 @@ func (h inventoryHandlers) configuredUseCases(e *httpx.Event, ctx context.Contex
 	return goals
 }
 
-func (h inventoryHandlers) ownerDesiredWorkloads(e *httpx.Event, ctx context.Context, scope inventoryScope, homelabID string) (map[string]bool, bool) {
+func (h inventoryHandlers) ownerDesiredWorkloads(e *httpx.Event, ctx context.Context, scope inventoryScope, homelabID string) (map[string]map[string]bool, bool) {
 	if h.ownerStackSpecs == nil {
 		return nil, false
 	}
@@ -163,42 +249,130 @@ func (h inventoryHandlers) ownerDesiredWorkloads(e *httpx.Event, ctx context.Con
 	if len(stacks) == 0 {
 		return nil, false
 	}
-	workloads := map[string]bool{}
+	workloads := map[string]map[string]bool{}
+	complete := true
 	for _, stack := range stacks {
 		if stack.HomelabID != homelabID {
-			return nil, false
+			complete = false
+			continue
 		}
 		spec, ok := stack.Spec.(map[string]any)
 		if !ok || specv2.RequireCanonicalV2(spec) != nil {
-			return nil, false
+			complete = false
+			continue
 		}
 		selected, ok := spec["workloads"].(map[string]any)
 		if !ok {
-			return nil, false
+			complete = false
+			continue
 		}
-		for ref := range selected {
-			workloads[ref] = true
+		for ref, raw := range selected {
+			if workloads[ref] == nil {
+				workloads[ref] = map[string]bool{}
+			}
+			entry, ok := raw.(map[string]any)
+			if !ok {
+				continue
+			}
+			if enabled, exists := entry["enabled"]; exists && enabled != true {
+				continue
+			}
+			if alternative, ok := entry["alternative"].(string); ok && alternative != "" {
+				workloads[ref][alternative] = true
+			}
 		}
 	}
-	return workloads, true
+	return workloads, complete
+}
+
+// Only the guide's extras groups carry positive toggle IDs. An absent ID
+// is not a negative answer, and explicit validated scalar values win.
+var configuredExtrasGroup = regexp.MustCompile(`^extras(?:-[0-9]+)?$`)
+
+func configuredSettings(useCase stackkitrelease.UseCase, saved map[string]any, answers map[string][]string) map[string]any {
+	settings := map[string]any{}
+	for id, value := range saved {
+		setting, ok := useCase.FindSetting(id)
+		if ok && (setting.Kind == "choice" || setting.Kind == "toggle") && setting.AcceptsSettingValue(value) {
+			settings[id] = value
+		}
+	}
+	for id, values := range answers {
+		if setting, ok := useCase.FindSetting(id); ok && setting.Kind == "choice" && len(values) == 1 && setting.AcceptsSettingValue(values[0]) {
+			if _, exists := settings[id]; !exists {
+				settings[id] = values[0]
+			}
+		}
+		if !configuredExtrasGroup.MatchString(id) {
+			continue
+		}
+		for _, value := range values {
+			setting, ok := useCase.FindSetting(value)
+			if !ok || setting.Kind != "toggle" {
+				continue
+			}
+			if _, exists := settings[value]; !exists {
+				settings[value] = true
+			}
+		}
+	}
+	return settings
+}
+
+func configuredPlannedApps(useCase stackkitrelease.UseCase, workloads map[string]map[string]bool) []plannedApp {
+	seen := map[string]plannedApp{}
+	candidates := []struct {
+		ref          string
+		alternatives []stackkitrelease.UseCaseAlternative
+	}{{useCase.WorkloadRef, useCase.Alternatives}}
+	for _, addon := range useCase.AddOns {
+		candidates = append(candidates, struct {
+			ref          string
+			alternatives []stackkitrelease.UseCaseAlternative
+		}{addon.ID, addon.Alternatives})
+	}
+	for _, candidate := range candidates {
+		if candidate.ref == "" {
+			continue
+		}
+		for _, alternative := range candidate.alternatives {
+			if alternative.ID == "" || !workloads[candidate.ref][alternative.ID] {
+				continue
+			}
+			name := alternative.ID
+			for _, component := range useCase.Components {
+				if component.ID == alternative.ID && strings.TrimSpace(component.Name) != "" {
+					name = component.Name
+					break
+				}
+			}
+			seen[alternative.ID] = plannedApp{ID: alternative.ID, Name: name}
+		}
+	}
+	result := make([]plannedApp, 0, len(seen))
+	for _, app := range seen {
+		result = append(result, app)
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
+	return result
 }
 
 // Attribute a job only to the exact latest saved run and its explicit goals.
 // Multiple-job changes and missing or uncertain replacement jobs stay unknown.
-func (h inventoryHandlers) latestConfiguredRun(e *httpx.Event, ctx context.Context, scope inventoryScope, homelabID, lastID string) (map[string]bool, string) {
+func (h inventoryHandlers) latestConfiguredRun(e *httpx.Event, ctx context.Context, scope inventoryScope, homelabID, lastID string) (map[string]bool, string, *useCaseFailure) {
 	goals := map[string]bool{}
 	if h.wizardRuns == nil || lastID == "" {
-		return goals, "unknown"
+		return goals, "unknown", nil
 	}
 	run, err := h.wizardRuns.GetLatestWizardRunByOwner(ctx, scope.tenantID, scope.ownerID)
 	if err != nil {
 		if !errors.Is(err, controlplane.ErrNotFound) {
 			httpx.RecordDependencyFailure(e, "runtime_summary.wizard_run", err)
 		}
-		return goals, "unknown"
+		return goals, "unknown", nil
 	}
 	if run == nil || run.ID != lastID || run.HomelabID != homelabID || run.StackID == "" {
-		return goals, "unknown"
+		return goals, "unknown", nil
 	}
 	intent, _ := run.Intent["intent"].(map[string]any)
 	values, _ := intent["goals"].([]any)
@@ -208,25 +382,29 @@ func (h inventoryHandlers) latestConfiguredRun(e *httpx.Event, ctx context.Conte
 		}
 	}
 	if len(goals) == 0 {
-		return goals, "unknown"
+		return goals, "unknown", nil
 	}
 	if run.JobID == "" {
 		if run.ErrorReason == "projection_pending" || run.ErrorReason == controlplane.WizardIntentProjectionPending {
-			return goals, "pending"
+			return goals, "pending", nil
 		}
 		if run.Status == "failed" {
-			return goals, "failed"
+			failure := &useCaseFailure{Code: failureToken(run.ErrorReason), OperationID: run.ID, OccurredAt: failureTime(run.UpdatedAt)}
+			if failure.Code == "" {
+				failure.Code = "run_failed"
+			}
+			return goals, "failed", failure
 		}
-		return goals, "unknown"
+		return goals, "unknown", nil
 	}
 	if h.jobs == nil {
-		return goals, "unknown"
+		return goals, "unknown", nil
 	}
 	if raw := run.Result["job_ids"]; raw != nil {
 		encoded, err := json.Marshal(raw)
 		var ids []string
 		if err != nil || json.Unmarshal(encoded, &ids) != nil || len(ids) > 1 || len(ids) == 1 && ids[0] != run.JobID {
-			return goals, "unknown"
+			return goals, "unknown", nil
 		}
 	}
 	id := run.JobID
@@ -236,7 +414,7 @@ func (h inventoryHandlers) latestConfiguredRun(e *httpx.Event, ctx context.Conte
 			if err != nil {
 				httpx.RecordDependencyFailure(e, "runtime_summary.wizard_job", err)
 			}
-			return goals, "unknown"
+			return goals, "unknown", nil
 		}
 		if next := jobs.SupersededByJobID(job.ID, job.Result); next != "" {
 			id = next
@@ -244,14 +422,14 @@ func (h inventoryHandlers) latestConfiguredRun(e *httpx.Event, ctx context.Conte
 		}
 		switch job.State {
 		case "pending", "waiting", "running":
-			return goals, "pending"
+			return goals, "pending", nil
 		case "failed", "canceled", "cancelled":
-			return goals, "failed"
+			return goals, "failed", jobFailure(job)
 		default:
-			return goals, "unknown"
+			return goals, "unknown", nil
 		}
 	}
-	return goals, "unknown"
+	return goals, "unknown", nil
 }
 
 // cloudReadSurface names one private Cloud servicecall read model and the

@@ -50,6 +50,10 @@ func (h wizardRunHandlers) runWizardFound(e *httpx.Event, run *wizardRunState) e
 	// handoff shape. The Architecture v2 projection in StackSpecV2 is the
 	// document the pinned CLI executes.
 	normalized.UserConfig["stackkit"] = run.request.Intent.KitAssignment.KitSlug
+	if len(run.capacityFailures) > 0 {
+		normalized.UserConfig["initial_capacity_failures"] = run.capacityFailures
+		normalized.UserConfig["initial_requested_intent"] = run.request.Intent
+	}
 	if strings.TrimSpace(run.request.Intent.Server.ExistingServerID) != "" {
 		return h.runWizardExistingServer(e, run, projection, normalized)
 	}
@@ -327,7 +331,26 @@ func (h wizardRunHandlers) projectFoundSpec(e *httpx.Event, run *wizardRunState)
 			))
 		return nil, true
 	}
-	projection, handled := h.projectAndValidate(e, seed, run.request.Intent, run)
+	runtimeIntent, capacityErr := initialManagedCapacityIntent(run)
+	if errors.Is(capacityErr, unifier.ErrInitialCapacityCore) {
+		_ = httpx.Error(e, http.StatusUnprocessableEntity, ksapi.ErrCodeValidation, "The chosen server cannot host the required StackKit core", map[string]any{"reason_code": "capacity_core_memory"})
+		return nil, true
+	}
+	if capacityErr != nil {
+		// Unavailable advisory estimates do not become a new creation gate. The
+		// unchanged desired selection still passes every pinned runtime admission.
+		logger.Default().Warn("wizard_capacity_assessment_unavailable", "error", capacityErr, "run_id", run.runID)
+		runtimeIntent = run.request.Intent
+		run.capacityFailures = nil
+	}
+	// Validate all desired choices before removing a memory-only failure. The
+	// subset must never hide a rejected access, capability or compiler input.
+	if len(run.capacityFailures) > 0 {
+		if _, handled := h.projectAndValidate(e, seed, run.request.Intent, run); handled {
+			return nil, true
+		}
+	}
+	projection, handled := h.projectAndValidate(e, seed, runtimeIntent, run)
 	if !handled {
 		run.captureGoalActivations(projection)
 	}
@@ -1212,6 +1235,54 @@ func (h wizardRunHandlers) persistWizardHomelabIntent(ctx context.Context, run *
 			wizard = map[string]any{}
 		}
 		wizard["goals"] = mergeWizardGoals(wizardStringValues(wizard["goals"]), run.request.Intent.Goals)
+		// Deferred wishes never enter the projection or unmapped backlog.
+		// A completed change-set receipt, not a saved projection, clears them.
+		var expansions []specv2.ProfileExpansion
+		if raw, err := json.Marshal(wizard["profile_expansions"]); err == nil {
+			_ = json.Unmarshal(raw, &expansions)
+		}
+		// A new wish supersedes receipts for that wish, so an earlier success
+		// cannot hide a later explicit choice.
+		if len(decisions.ProfileExpansions) > 0 {
+			attempts := profileAttempts(wizard[profileExpansionAttemptsKey])
+			var keep []profileExpansionAttempt
+			for _, attempt := range attempts {
+				var goals []string
+				for _, goal := range attempt.Goals {
+					replaced := false
+					for _, incoming := range decisions.ProfileExpansions {
+						replaced = replaced || slices.Contains(incoming.DeferredGoals, goal)
+					}
+					if !replaced {
+						goals = append(goals, goal)
+					}
+				}
+				if len(goals) > 0 {
+					attempt.Goals = goals
+					keep = append(keep, attempt)
+				}
+			}
+			if len(keep) == 0 {
+				delete(wizard, profileExpansionAttemptsKey)
+			} else {
+				wizard[profileExpansionAttemptsKey] = keep
+			}
+		}
+		for _, incoming := range decisions.ProfileExpansions {
+			found := false
+			for i := range expansions {
+				if expansions[i].Profile == incoming.Profile {
+					expansions[i].DeferredGoals = mergeWizardGoals(expansions[i].DeferredGoals, incoming.DeferredGoals)
+					found = true
+				}
+			}
+			if !found {
+				expansions = append(expansions, incoming)
+			}
+		}
+		if len(expansions) > 0 {
+			wizard["profile_expansions"] = expansions
+		}
 		// Decisions ride beside the goals they belong to, merged per use case so a
 		// later run that mentions one use case does not erase the others' choices.
 		if len(decisions.UseCaseSettings) > 0 {

@@ -160,6 +160,47 @@ export interface WizardRecommendationRequest {
   compute_profile?: string;
   use_case_settings?: Record<string, Record<string, string | boolean>>;
   use_case_capabilities?: Record<string, Record<string, string>>;
+  /** The size of a server that is not enrolled (a hypervisor guest); advisory planning evidence. */
+  server_capacity?: { ram_mb: number; cpu_cores?: number; disk_gb?: number };
+  /** The managed size; the backend sizes it through the provider's package. */
+  runtime_offering_id?: string;
+  /** The kit the server will run (`cloud-kit`, `basement-kit`): its core needs differ. */
+  kit_slug?: string;
+}
+
+/**
+ * Advice on whether the selected use cases fit the chosen server. All memory is
+ * MiB; it never gates a run (a use case that cannot be installed fails alone
+ * at rollout). `unknown` means the released facts or the server size are missing.
+ */
+export interface WizardCapacity {
+  status: "fits" | "warning" | "unknown";
+  advisory: true;
+  source: string;
+  model: string;
+  available_ram_mb: number;
+  required_ram_mb: number;
+  resident_ram_mb: number;
+  /** Null while a peak is unknown, never a made-up zero. */
+  working_increment_ram_mb: number | null;
+  concurrent_workloads: number;
+  /** A sizing requirement, not a size a provider sells. */
+  suggested_ram_mb: number;
+  /**
+   * The provider's own offering (its real package, never the generic offering
+   * row) that carries the selection, and the memory that package really has.
+   */
+  suggested_offering_id?: string;
+  suggested_offering_ram_mb?: number;
+  /** Use cases whose omission makes the selection fit. */
+  omit_goals: string[];
+  reasons: Array<{ code: string; message: string; source?: string }>;
+  per_use_case?: Array<{
+    goal: string;
+    resident_ram_mb: number;
+    working_increment_ram_mb: number | null;
+    required_ram_mb: number;
+  }>;
 }
 
 /** Server guidance for a selection; never blocks one. */
@@ -209,6 +250,9 @@ export interface ServerFit {
     architecture?: string;
     amd64_level?: string;
   };
+  memory_peak:
+    | { status: "available"; estimated_gib: number; available_gib: number; warning: boolean }
+    | { status: "unknown"; warning: false };
   deficits: ServerFitReason[];
   unknowns: ServerFitReason[];
 }
@@ -225,6 +269,7 @@ export interface WizardRecommendationResult {
   stale_inputs: string[];
   recommendations: WizardRecommendation[];
   selection?: WizardSelectionGuidance;
+  capacity?: WizardCapacity;
 }
 
 export interface SmartHomeContext {

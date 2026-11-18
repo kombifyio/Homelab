@@ -34,6 +34,7 @@ import {
   normalizeInstallableKitSlug,
 } from "./standardBundle";
 
+import { profileExpansionGoals } from "./creationTemplates.js";
 import { tr } from "#lib/i18n.svelte.js";
 import { remoteSshKeyLabel } from "./remote-credential";
 import { useCaseTitle } from "./creationGoalText";
@@ -47,6 +48,16 @@ export class WizardInputError extends Error {
     super(message);
     this.name = "WizardInputError";
   }
+}
+
+/** Save profile wishes separately; selecting a profile never installs them. */
+function profileExpansions(config: StackConfig, selected: readonly string[]) {
+  const profiles = ["infinity", "self-employed"] as const;
+  const result = profiles.filter((profile) => config.creationProfiles?.[profile]).map((profile) => ({
+    profile,
+    deferred_goals: profileExpansionGoals(profile).filter((goal) => !selected.includes(goal)),
+  }));
+  return result.length ? result : undefined;
 }
 
 /** The wizard's fallback deployment name (CreationPageFrame has no name input). */
@@ -380,6 +391,7 @@ export function buildFoundRunRequest(
       kit_slug: normalizeRunKitSlug(config),
     },
   };
+  intent.profile_expansions = profileExpansions(config, intent.goals ?? []);
   intent.use_case_setup_answers = runUseCaseSetupAnswers(
     config,
     intent.goals ?? [],
@@ -445,6 +457,7 @@ export function buildJoinRunRequest(
       kit_slug: normalizeRunKitSlug(config),
     },
   };
+  intent.profile_expansions = profileExpansions(config, intent.goals ?? []);
   intent.use_case_setup_answers = runUseCaseSetupAnswers(
     config,
     intent.goals ?? [],
@@ -491,6 +504,7 @@ export function buildExtendRunRequest(
     server: {},
     kit_assignment: { mode: "extend", kit_deployment_id: deploymentId },
   };
+  intent.profile_expansions = profileExpansions(config, goals);
   intent.use_case_setup_answers = runUseCaseSetupAnswers(config, goals);
   const settings = runUseCaseSettings(config, goals);
   if (settings) intent.use_case_settings = settings;

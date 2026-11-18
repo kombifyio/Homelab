@@ -264,3 +264,26 @@ func signedCapacityContext(t *testing.T, providerID string, budget json.RawMessa
 	}
 	return edgeauth.FlagsToContext(t.Context(), decisions)
 }
+
+func TestManagedRuntimeOfferingsAdvertiseActualProviderPackages(t *testing.T) {
+	service := &Service{}
+	for _, offering := range service.Offerings() {
+		for provider, advertised := range offering.ProviderPackages {
+			pkg, err := PackageForProvider(provider, string(offering.ID))
+			if err != nil || advertised.MemoryMB != pkg.MemoryMB || advertised.VCPUs != pkg.VCPUs || advertised.DiskGB != pkg.DiskGB {
+				t.Fatalf("advertised package differs from provisioned package: %s/%s advertised=%+v actual=%+v error=%v", provider, offering.ID, advertised, pkg, err)
+			}
+		}
+		if string(offering.ID) == "monthly-runtime-standard" {
+			ionos := offering.ProviderPackages[ProviderIONOS]
+			if offering.MemoryMB != 8192 || ionos.MemoryMB != 4096 || ionos.VCPUs != 2 || ionos.DiskGB != 120 {
+				t.Fatalf("Standard must distinguish generic from IONOS Basic Cube S: %+v", offering)
+			}
+		}
+		if string(offering.ID) == "monthly-runtime-large" {
+			if _, exists := offering.ProviderPackages[ProviderCentron]; exists {
+				t.Fatal("unsupported Centron Large package was advertised")
+			}
+		}
+	}
+}

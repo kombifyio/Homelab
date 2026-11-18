@@ -1,7 +1,17 @@
 // Draft only: do not add this catalog to locale negotiation until translation QA is admitted.
 import { ownApplicationMessagesMore } from "../services/own-application-messages-more";
+import { capacityMessages } from "../wizard/capacity-messages";
 
 export const frPending: Record<string, string> = {
+  "wizard.server.fit.peakWarning": "Pic estimé des applications choisies : {estimated} GiB ; capacité du serveur : {available} GiB. Il inclut l’utilisation actuelle observée, mais exclut la plateforme de base d’un nouveau serveur.",
+  "wizard.server.fit.peakAction": "Vous pouvez réduire le nombre d’applications ou ajouter de la mémoire à ce serveur.",
+  "wizard.server.fit.peakUnknown": "L’estimation du pic est indisponible faute de preuves complètes ou de données d’utilisation actuelle.",
+  "layout.expansion.title": "Vos souhaits d’extension enregistrés",
+  "layout.expansion.body": "Choisissez un élément à examiner. La disponibilité et la capacité du serveur sont vérifiées avant la configuration.",
+  "layout.expansion.pending": "Pas encore disponible",
+  "layout.expansion.server": "Examiner un autre serveur",
+  "layout.expansion.size": "Taille du serveur",
+  "layout.expansion.entitlement": "Votre offre est vérifiée lors de la confirmation.",
   "wizard.server.fit.actionChange": "Choisissez un autre serveur ou modifiez les cas d’usage.",
   "wizard.server.fit.actionCheck": "Connectez ou choisissez un serveur et vérifiez lorsque ses données sont disponibles.",
   "wizard.server.fit.amounts": "{required} {unit} nécessaires, {available} {unit} disponibles",
@@ -29,6 +39,7 @@ export const frPending: Record<string, string> = {
   "wizard.server.fit.unconfirmed": "Non confirmé : {reason}",
   "wizard.server.fit.unknown": "Compatibilité inconnue",
   ...ownApplicationMessagesMore.fr,
+  ...capacityMessages.fr,
   "ui.serviceCards.update.strip": "{to} disponible · {note}",
   "ui.serviceCards.status.running": "En marche",
   "ui.serviceCards.status.degraded": "Dégradé",
@@ -5060,6 +5071,8 @@ export const frPending: Record<string, string> = {
   "wizard.templates.selfEmployed.title": "Se lancer à son compte",
   "wizard.templates.selfEmployed.description":
     "Fichiers, mots de passe, messagerie, automatisations et assistant IA pour votre propre activité.",
+  "wizard.templates.startsWith": "Commence avec",
+  "wizard.templates.expandLater": "À ajouter plus tard",
   "wizard.templates.notYetAvailable": "{count} pas encore disponibles",
   "wizard.templates.partOf": "Fait partie de : {profiles}",
   "wizard.hints.tip.local_ai_needs_stronger_device":

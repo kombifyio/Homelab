@@ -22,6 +22,7 @@
   import CreationTemplates from "./CreationTemplates.svelte";
   import {
     CREATION_TEMPLATES,
+    STANDARD_STARTS,
     goalTemplates,
     liveTemplates,
     templateHolds,
@@ -94,22 +95,93 @@
   ]);
   const chosen = $derived(available.filter(isSelected));
 
-  // Profiles are a preselection, nothing more: which are on lives only on
-  // this screen and never reaches the configuration, its draft or a handoff.
-  // Only the chosen use cases count.
+  const creation = useCreationContext();
+  const standardStart = $derived(
+    creation.features.isEnabled("server_hardware_fit"),
+  );
+
+  // The standard starting profile and its added goals travel with the draft;
+  // only explicitly selected use cases enter the creation run.
   let switchedOn = $state<CreationTemplateId[]>([]);
   const profiles = $derived(
     CREATION_TEMPLATES.map((template) => ({
       template,
-      selection: templateSelection(template, allCards),
+      selection: templateSelection(template, allCards, standardStart),
     })).filter(({ selection }) => selection.goals.length > 0),
   );
   const selections = $derived(
-    new Map(profiles.map(({ template, selection }) => [template.id, selection])),
+    new Map(
+      profiles.map(({ template, selection }) => [template.id, selection]),
+    ),
   );
-  const live = $derived(liveTemplates(switchedOn, selections, config.goals));
+  const live = $derived(
+    liveTemplates(
+      standardStart
+        ? Object.keys(config.creationProfiles ?? {}).filter(
+            (id): id is CreationTemplateId =>
+              CREATION_TEMPLATES.some((template) => template.id === id),
+          )
+        : switchedOn,
+      selections,
+      config.goals,
+    ),
+  );
 
   function toggleProfile(id: CreationTemplateId) {
+    if (standardStart) {
+      const selection = selections.get(id);
+      if (!selection) return;
+      config.creationProfiles ??= {};
+      if (live.includes(id)) {
+        const added = config.creationProfiles[id]?.added ?? [];
+        delete config.creationProfiles[id];
+        const held = new Set(
+          live
+            .filter((other) => other !== id)
+            .flatMap((other) => selections.get(other)?.goals ?? []),
+        );
+        for (const goal of added) {
+          const successor = live.find(
+            (other) =>
+              other !== id && templateHolds(selections.get(other), goal),
+          );
+          if (successor) config.creationProfiles[successor]?.added.push(goal);
+          else if (!held.has(goal)) onGoalChange(goal, false);
+        }
+      } else {
+        const added = selection.goals.filter((goal) => !config.goals?.[goal]);
+        config.creationProfiles[id] = { added, skipped: selection.skipped };
+        for (const goal of selection.goals) {
+          // Never replace an existing choice or an explicit setting.
+          if (!config.goals?.[goal]) {
+            const card = allCards.find(
+              (item) => item.question?.configKey === goal,
+            );
+            const values = config.useCaseSettings?.[goal] ?? {};
+            const settings: Record<string, string> = {
+              ...(goal === "photos" ? { backend: "immich-lite" } : {}),
+              ...(goal === "smart-home"
+                ? { "operating-form": "container" }
+                : {}),
+              ...(goal === "mail" ? { hosting: "existing" } : {}),
+            };
+            for (const [setting, value] of Object.entries(settings)) {
+              if (
+                values[setting] === undefined &&
+                supportsCreationChoice(
+                  runtimeCatalog.get(card?.id ?? ""),
+                  setting,
+                  value,
+                )
+              )
+                onSettingChange(goal, setting, value);
+            }
+          }
+          onGoalChange(goal, true);
+        }
+      }
+      return;
+    }
     const next = toggleTemplate(id, live, selections);
     switchedOn = next.on;
     for (const goal of next.select) onGoalChange(goal, true);
@@ -119,7 +191,14 @@
   // A use case taken away by hand leaves the selection, and every profile
   // that held it is no longer on, also when the use case comes back.
   function changeGoal(goal: GoalConfigKey, value: boolean) {
+    const previouslyLive = live;
     onGoalChange(goal, value);
+    if (!value && standardStart && config.creationProfiles) {
+      for (const id of previouslyLive) {
+        if (templateHolds(selections.get(id), goal))
+          delete config.creationProfiles[id];
+      }
+    }
     if (!value)
       switchedOn = switchedOn.filter(
         (id) => !templateHolds(selections.get(id), goal),
@@ -142,7 +221,6 @@
       }),
     };
   }
-  const creation = useCreationContext();
   let presentation = $state<CreationPresentation>(readPresentation());
   let initial = $state<string | undefined>();
   let root = $state<HTMLDivElement>();
@@ -238,6 +316,9 @@
         <CreationTemplates
           templates={profiles}
           {live}
+          {standardStart}
+          expansion={STANDARD_STARTS}
+          cards={allCards}
           ontoggle={toggleProfile}
         />
       {/snippet}

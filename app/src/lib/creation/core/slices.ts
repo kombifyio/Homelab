@@ -9,6 +9,7 @@ export type GoalsSlice = Pick<
   StackConfig,
   | "goals"
   | "useCaseSettings"
+  | "creationProfiles"
   | "useCaseCapabilities"
   | "useCaseSetupAnswers"
   | "useCaseAccess"

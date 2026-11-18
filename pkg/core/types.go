@@ -626,17 +626,20 @@ type DecisionReason struct {
 }
 
 // WizardRecommendationRequest is the closed public input for a Wizard
-// recommendation evaluation. Tenant, owner, kit, and decision context are
-// deliberately absent: the route derives those from the authenticated
-// request and the canonical registry.
+// recommendation evaluation. Tenant, owner and decision context are derived
+// from authentication and registry. KitSlug is advisory capacity context only.
 type WizardRecommendationRequest struct {
-	IONOSMemoryEnabled bool                    `json:"-"`
-	ServerFit          *WizardServerFitRequest `json:"server_fit,omitempty"`
-	Goals              []string                `json:"goals"`
-	Services           []string                `json:"services"`
-	DeploymentLane     string                  `json:"deployment_lane"`
-	ProviderID         string                  `json:"provider_id,omitempty"`
-	Surface            string                  `json:"surface"`
+	KitSlug             string                  `json:"kit_slug,omitempty"`
+	ServerCapacity      *WizardServerCapacity   `json:"server_capacity,omitempty"`
+	RuntimeOfferingID   string                  `json:"runtime_offering_id,omitempty"`
+	ConcurrentWorkloads int                     `json:"concurrent_workloads,omitempty"`
+	IONOSMemoryEnabled  bool                    `json:"-"`
+	ServerFit           *WizardServerFitRequest `json:"server_fit,omitempty"`
+	Goals               []string                `json:"goals"`
+	Services            []string                `json:"services"`
+	DeploymentLane      string                  `json:"deployment_lane"`
+	ProviderID          string                  `json:"provider_id,omitempty"`
+	Surface             string                  `json:"surface"`
 	// SelectionIntent "all" asks which of AvailableGoals the full-homelab
 	// template should preselect for this operator; empty asks for none.
 	SelectionIntent string `json:"selection_intent,omitempty"`
@@ -672,6 +675,14 @@ type WizardServerFitFact struct {
 	Unit      string  `json:"unit,omitempty"`
 }
 
+// WizardMemoryPeak is a forecast for selected workloads, not a whole-stack measurement.
+type WizardMemoryPeak struct {
+	Status       string  `json:"status"` // available or unknown
+	EstimatedGiB float64 `json:"estimated_gib,omitempty"`
+	AvailableGiB float64 `json:"available_gib,omitempty"`
+	Warning      bool    `json:"warning"`
+}
+
 // WizardServerFit evaluates only released selected-workload footprints. It is not runtime acceptance.
 type WizardServerFit struct {
 	Status        string                `json:"status"`
@@ -684,6 +695,7 @@ type WizardServerFit struct {
 	Location      string                `json:"location,omitempty"`
 	ServerID      string                `json:"server_id,omitempty"`
 	CatalogSource string                `json:"catalog_source,omitempty"`
+	MemoryPeak    WizardMemoryPeak      `json:"memory_peak"`
 	Specs         WizardServerFitSpecs  `json:"specs"`
 	Deficits      []WizardServerFitFact `json:"deficits"`
 	Unknowns      []WizardServerFitFact `json:"unknowns"`
@@ -732,6 +744,7 @@ type WizardRecommendation struct {
 // both Wizard depths. DecisionContext is always server-constructed and its
 // hash binds the recommendation to the evidence used for evaluation.
 type WizardRecommendationResponse struct {
+	Capacity            *WizardCapacityAssessment  `json:"capacity,omitempty"`
 	ServerFit           *WizardServerFit           `json:"server_fit,omitempty"`
 	Status              WizardRecommendationStatus `json:"status"`
 	GeneratedAt         time.Time                  `json:"generated_at"`

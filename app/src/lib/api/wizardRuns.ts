@@ -19,6 +19,8 @@ export interface WizardIntent {
   name: string;
   domain_base?: string;
   goals?: string[];
+  /** Saved wishes; these never install workloads or order a server. */
+  profile_expansions?: { profile: "infinity" | "self-employed"; deferred_goals: string[] }[];
   server: {
     /** Existing enrolled canonical server; the backend revalidates ownership and readiness. */
     existing_server_id?: string;

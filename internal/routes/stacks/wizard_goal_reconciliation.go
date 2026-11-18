@@ -37,6 +37,7 @@ func (h wizardRunHandlers) loadStoredWizardGoals(ctx context.Context, run *wizar
 		}
 		return err
 	}
+	homelab = h.crud.reconcileProfileExpansions(ctx, run.tenantID, run.ownerID, homelab)
 	run.homelab = homelab
 	wizard, _ := homelab.Intent["wizard"].(map[string]any)
 	stored, err := wizardIntentFromDocument(wizard)

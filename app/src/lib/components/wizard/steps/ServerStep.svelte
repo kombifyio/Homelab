@@ -11,6 +11,11 @@
   import { ServerRegistryPanel } from "../index";
   import ServerProvisioningStep from "../ServerProvisioningStep.svelte";
   import HomelabServerChoice from "../HomelabServerChoice.svelte";
+  import CapacityHint from "../CapacityHint.svelte";
+  import type {
+    CapacityHint as CapacityHintModel,
+    CapacitySize,
+  } from "#lib/wizard/capacity-view.js";
   import ServerFitNotice from "../ServerFitNotice.svelte";
   import type { WizardPreviewState } from "#lib/wizard/WizardPreviewController.js";
   import type { HomelabServerSelection } from "#lib/creation/homelab-servers.js";
@@ -36,6 +41,10 @@
     stepNumber?: number;
     /** The person's existing servers, offered before a new one. */
     homelab?: HomelabServerSelection;
+    /** Whether the selected use cases fit this server (advice, never a gate). */
+    capacityHint?: CapacityHintModel;
+    onCapacitySize?: (size: CapacitySize) => void;
+    onCapacityOmit?: (goal: string) => void;
     fitEnabled?: boolean;
     recommendationState?: WizardPreviewState;
   }
@@ -55,6 +64,9 @@
     onselectionchange,
     stepNumber = 2,
     homelab,
+    capacityHint,
+    onCapacitySize,
+    onCapacityOmit,
     fitEnabled = false,
     recommendationState,
   }: Props = $props();
@@ -123,6 +135,13 @@
       {joinSurface}
       substepOffset={homelabShown ? 1 : 0}
     />
+    {#if capacityHint}
+      <CapacityHint
+        hint={capacityHint}
+        onsize={onCapacitySize}
+        onomit={onCapacityOmit}
+      />
+    {/if}
   {/if}
 
   {#if fitEnabled}

@@ -9,12 +9,18 @@ namespace Kombify.Client.Shell;
 // Installs the desktop Companion from the one installer a kombify Windows client
 // carries beside itself (platform-2oj0se). The client pins that installer by
 // version and SHA-256 and builds it into its own installer; nothing is ever
-// downloaded. The install is per user and never elevated, runs only when no
-// Companion is registered with Windows Installer (an installed one, newer or
-// older, is never replaced here), and verifies the pinned digest on a handle
+// downloaded. The install is per user and never elevated. Whether a Companion is
+// already there is Windows Installer's answer under the fixed UpgradeCode
+// (AppLink v2 "Installation, registration, removal"): the same or a newer version is left as it is, an
+// older one is upgraded in place by the MSI's own MajorUpgrade, none is
+// installed. The MSI is the hidden system component of the contract (no Start
+// menu entry, no Apps list entry). The pinned digest is verified on a handle
 // that refuses writers until msiexec has exited.
 
-/// <summary>The carried Companion installer: an absolute local .msi path, its version and pinned SHA-256 (lowercase hex).</summary>
+/// <summary>
+/// The carried Companion installer: an absolute local .msi path, its version (<c>major.minor.build</c>,
+/// the MSI ProductVersion) and pinned SHA-256 (lowercase hex).
+/// </summary>
 public sealed record CompanionPayload(string Path, string Version, string Sha256);
 
 /// <summary>
@@ -23,7 +29,7 @@ public sealed record CompanionPayload(string Path, string Version, string Sha256
 /// </summary>
 public sealed record CompanionInstallResult(string Code, int? ExitCode = null)
 {
-    /// <summary>A Companion is registered now: installed by this attempt or already there.</summary>
+    /// <summary>A Companion of the payload's version or newer is registered now: installed or upgraded by this attempt, or already there.</summary>
     public bool Registered => Code is CompanionInstallCode.Installed or CompanionInstallCode.AlreadyRegistered;
 
     /// <summary>
@@ -46,6 +52,8 @@ public static class CompanionInstallCode
     public const string InstallCancelled = "install_cancelled";
     public const string InstallFailed = "install_failed";
     public const string InstallTimeout = "install_timeout";
+    /// <summary>Windows Installer could not say which Companion is installed; nothing was run.</summary>
+    public const string InstallerUnknown = "installer_unknown";
 }
 
 public static class CompanionInstaller
@@ -67,28 +75,41 @@ public static class CompanionInstaller
     }
 
     /// <summary>
-    /// True when Windows Installer knows a Companion product for this user or the
-    /// machine, of any version. Also true when Windows Installer cannot answer, so
-    /// an unknown state never offers an install.
+    /// The highest Companion version Windows Installer has registered under the UpgradeCode
+    /// for this user or the machine; null when none is. Throws <see cref="InvalidOperationException"/>
+    /// when Windows Installer cannot answer.
     /// </summary>
-    public static bool IsProductRegistered()
+    public static Version? InstalledVersion()
     {
-        var product = new StringBuilder(39);
-        var result = MsiNative.MsiEnumRelatedProducts(UpgradeCode, 0, 0, product);
-        return result != MsiNative.ErrorNoMoreItems;
+        Version? highest = null;
+        for (uint index = 0; ; index++)
+        {
+            var product = new StringBuilder(39);
+            var result = MsiNative.MsiEnumRelatedProducts(UpgradeCode, 0, index, product);
+            if (result == MsiNative.ErrorNoMoreItems) return highest;
+            if (result != MsiNative.ErrorSuccess || index > 64) throw new InvalidOperationException("msi_enum");
+            var buffer = new StringBuilder(64);
+            var length = (uint)buffer.Capacity;
+            if (MsiNative.MsiGetProductInfo(product.ToString(), "VersionString", buffer, ref length) != MsiNative.ErrorSuccess
+                || ParseVersion(buffer.ToString()) is not { } version)
+                throw new InvalidOperationException("msi_version");
+            if (highest is null || version > highest) highest = version;
+        }
     }
 
     /// <summary>
     /// The install offer of rule 5 without the interface read the caller owns: an
-    /// eligible (medium-integrity, not elevated) caller, no registered Companion,
-    /// and the carried payload present with the pinned digest. Enumerates Windows
-    /// Installer and may hash the payload, so call it off the UI thread. Never throws.
+    /// eligible (medium-integrity, not elevated) caller, no Companion of the payload's
+    /// version or newer registered with Windows Installer, and the carried payload present
+    /// with the pinned digest. Enumerates Windows Installer and may hash the payload, so
+    /// call it off the UI thread. Never throws.
     /// </summary>
     public static bool CanInstall(CompanionPayload payload)
     {
         try
         {
-            return CompanionAppLink.IsCallerEligible() && !IsProductRegistered() && PayloadMatches(payload);
+            return CompanionAppLink.IsCallerEligible() && Presence(payload) is Present.None or Present.Older
+                && PayloadMatches(payload);
         }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
@@ -120,8 +141,12 @@ public static class CompanionInstaller
         try
         {
             if (!CompanionAppLink.IsCallerEligible()) return new(CompanionInstallCode.CallerRefused);
-            if (IsProductRegistered()) return new(CompanionInstallCode.AlreadyRegistered);
             if (!ValidPayload(payload)) return new(CompanionInstallCode.PayloadMissing);
+            switch (Presence(payload))
+            {
+                case Present.SameOrNewer: return new(CompanionInstallCode.AlreadyRegistered);
+                case Present.Unknown: return new(CompanionInstallCode.InstallerUnknown);
+            }
             if (!PrepareLog(logPath)) return new(CompanionInstallCode.LogUnavailable);
 
             try
@@ -162,7 +187,7 @@ public static class CompanionInstaller
             if (exit == ErrorInstallUserExit) return new(CompanionInstallCode.InstallCancelled, exit);
             // 3010 and 1641: installed, a restart is pending (the Companion needs none).
             var succeeded = exit is 0 or 3010 or 1641;
-            return succeeded && IsProductRegistered()
+            return succeeded && Presence(payload) == Present.SameOrNewer
                 ? new(CompanionInstallCode.Installed, exit)
                 : new(CompanionInstallCode.InstallFailed, exit);
         }
@@ -238,8 +263,46 @@ public static class CompanionInstaller
     // The reparse-point walk runs before the handle is opened; a same-user process could swap a component in
     // between, which gains nothing: the digest is checked on the opened handle, and the install runs as that user.
     private static bool ValidPayload(CompanionPayload payload) =>
-        payload.Sha256.Length == 64 && payload.Sha256.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f')
+        ParseVersion(payload.Version) is not null && payload.Sha256.Length == 64 && payload.Sha256.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f')
         && CompanionAppLink.LocalFilePath(payload.Path, ".msi") && CompanionAppLink.WithoutReparsePoints(payload.Path);
+
+    private enum Present { None, Older, SameOrNewer, Unknown }
+
+    /// <summary>Windows Installer's answer for the payload's version; an unknown state never installs.</summary>
+    private static Present Presence(CompanionPayload payload)
+    {
+        if (ParseVersion(payload.Version) is not { } carried) return Present.Unknown;
+        Version? installed;
+        try
+        {
+            installed = InstalledVersion();
+        }
+        catch (InvalidOperationException)
+        {
+            return Present.Unknown;
+        }
+        return installed is null ? Present.None : installed >= carried ? Present.SameOrNewer : Present.Older;
+    }
+
+    /// <summary>
+    /// An MSI ProductVersion: <c>major.minor.build</c> (an optional fourth field is ignored, as
+    /// Windows Installer ignores it for upgrades), each field decimal digits within MSI's limits.
+    /// </summary>
+    internal static Version? ParseVersion(string? text)
+    {
+        if (text is null || text.Length > 32) return null;
+        var parts = text.Split('.');
+        if (parts.Length is < 3 or > 4) return null;
+        var fields = new int[3];
+        for (var i = 0; i < parts.Length; i++)
+        {
+            if (parts[i].Length is 0 or > 5 || !parts[i].All(char.IsAsciiDigit)) return null;
+            var value = int.Parse(parts[i], System.Globalization.CultureInfo.InvariantCulture);
+            if (i < 3) fields[i] = value;
+        }
+        if (fields[0] > 255 || fields[1] > 255 || fields[2] > 65535) return null;
+        return new Version(fields[0], fields[1], fields[2]);
+    }
 
     private static bool DigestMatches(FileStream package, string sha256)
     {
@@ -251,8 +314,12 @@ public static class CompanionInstaller
 
 internal static class MsiNative
 {
+    public const uint ErrorSuccess = 0;
     public const uint ErrorNoMoreItems = 259;
 
     [DllImport("msi.dll", EntryPoint = "MsiEnumRelatedProductsW", CharSet = CharSet.Unicode)]
     public static extern uint MsiEnumRelatedProducts(string upgradeCode, uint reserved, uint index, StringBuilder productBuffer);
+
+    [DllImport("msi.dll", EntryPoint = "MsiGetProductInfoW", CharSet = CharSet.Unicode)]
+    public static extern uint MsiGetProductInfo(string product, string property, StringBuilder valueBuffer, ref uint length);
 }

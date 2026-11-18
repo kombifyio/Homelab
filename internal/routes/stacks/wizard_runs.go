@@ -504,6 +504,7 @@ func wizardRunJobSnapshot(job *controlplane.Job) map[string]any {
 
 // wizardRunState threads the per-run facts through the flow helpers.
 type wizardRunState struct {
+	capacityFailures    []map[string]any
 	blockedCapabilities []wizardBlockedCapability
 	ionosMemoryEnabled  bool
 	runID               string
@@ -761,6 +762,33 @@ func (h wizardRunHandlers) prepareWizardRun(e *httpx.Event, run *wizardRunState)
 				"The owner's stored Wizard goals could not be read; no projection was attempted.",
 			))
 		return true
+	}
+	// A saved wish is realized through the verified add-use-case lifecycle.
+	// Adding a server remains independent and never silently consumes it.
+	if run.effectiveKind == specv2.RunKindExpansion && run.homelab != nil {
+		wizard, _ := run.homelab.Intent["wizard"].(map[string]any)
+		stored, err := wizardIntentFromDocument(wizard)
+		if err != nil {
+			_ = httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Saved expansion wishes could not be read", nil)
+			return true
+		}
+		for _, profile := range stored.ProfileExpansions {
+			for _, goal := range run.explicitIntent.Goals {
+				if !slices.Contains(profile.DeferredGoals, goal) {
+					continue
+				}
+				if run.request.Intent.KitAssignment.Mode != wizardRunKindExtend {
+					_ = httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "Add this use case after the server is ready", wizardRunDetails(
+						"profile_expansion_requires_use_case", false, "Review the use case", "The server can be added separately; use Add use cases to review and place this saved wish."))
+					return true
+				}
+				if run.request.Intent.LayoutRecommendation == nil {
+					_ = httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "Review the server distribution first", wizardRunDetails(
+						"layout_recommendation_unverifiable", true, "Review the distribution", "No use case was added; confirm a verified distribution first."))
+					return true
+				}
+			}
+		}
 	}
 	if err := validateUseCaseSettingsAgainstCatalog(run.request.Intent); err != nil {
 		_ = httpx.Error(e, http.StatusBadRequest, ksapi.ErrCodeValidation,

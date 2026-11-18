@@ -2,13 +2,17 @@ package routes
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
 	commonedgeauth "github.com/kombifyio/techstack/internal/gocommon/edgeauth"
+	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
+	"github.com/kombifyio/techstack/pkg/httpx"
 
 	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/kombifyio/techstack/pkg/identity"
@@ -479,4 +483,73 @@ func TestInventoryOwnerOperatesOwnServerWithoutAServerGrant(t *testing.T) {
 func isInventoryDenied(err error) bool {
 	var inventoryErr *inventoryError
 	return errors.As(err, &inventoryErr) && inventoryErr.reasonCode == "inventory_access_denied"
+}
+
+// The signed Cloud read projects owner intent independently of runtime inventory.
+func TestRuntimeSummaryProjectsSavedPlanAfterFailedJob(t *testing.T) {
+	ctx := t.Context()
+	store := controlplane.NewMemoryStore()
+	intent := map[string]any{"wizard": map[string]any{"goals": []any{"photos", "media", "files", "documents"}, "last_run_id": "run-1", "use_case_settings": map[string]any{"photos": map[string]any{"machine-learning": false}}, "use_case_setup_answers": map[string]any{"photos": map[string]any{"library-volume": []any{"dedicated-disk"}, "extras": []any{"machine-learning", "public-sharing"}}, "media": map[string]any{"extras-2": []any{"music-server"}}}}}
+	if _, err := store.CreateHomelab(ctx, controlplane.CreateHomelabRequest{ID: "home-1", TenantID: "tenant-1", OwnerSubjectID: "owner-1", Name: "Home", Intent: intent}); err != nil {
+		t.Fatal(err)
+	}
+	spec := map[string]any{"apiVersion": "stackkit/v2alpha1", "kind": "StackSpec", "kit": map[string]any{"slug": "basement-kit"}, "workloads": map[string]any{"photos": map[string]any{"enabled": true, "alternative": "immich-lite", "params": map[string]any{"token": "never-return"}}, "media": map[string]any{"alternative": "jellyfin"}, "files": map[string]any{"alternative": "cloudreve"}, "documents": map[string]any{"enabled": false, "alternative": "paperless-ngx"}}}
+	foreignSpec := map[string]any{"apiVersion": "stackkit/v2alpha1", "kind": "StackSpec", "kit": map[string]any{"slug": "basement-kit"}, "workloads": map[string]any{"documents": map[string]any{"alternative": "paperless-ngx"}}}
+	for _, req := range []controlplane.CreateStackRequest{{ID: "owned", TenantID: "tenant-1", OwnerSubjectID: "owner-1", HomelabID: "home-1", Name: "owned", Config: map[string]any{"stack_spec_v2": spec}}, {ID: "legacy", TenantID: "tenant-1", OwnerSubjectID: "owner-1", Name: "legacy"}, {ID: "foreign", TenantID: "tenant-1", OwnerSubjectID: "other", HomelabID: "home-1", Name: "foreign", Config: map[string]any{"stack_spec_v2": foreignSpec}}} {
+		if _, err := store.CreateStack(ctx, req); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := store.UpsertWizardRun(ctx, controlplane.WizardRun{ID: "run-1", RequestSHA256: "fixture", RunKind: "create", RequestedRunKind: "create", Status: "failed", TenantID: "tenant-1", OwnerSubjectID: "owner-1", HomelabID: "home-1", StackID: "owned", JobID: "job-1", Intent: map[string]any{"intent": map[string]any{"goals": []any{"photos", "media", "files", "documents"}}}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.UpsertJob(ctx, controlplane.UpsertJobRequest{ID: "job-1", TenantID: "tenant-1", StackID: "owned", State: "failed", Step: "stackkit_rollout", Result: map[string]any{"reason_code": "provision_failed", "retryable": true, "user_guidance": map[string]any{"body": "host db.internal /var/log leak"}, "support_context": map[string]any{"failed_step": "other", "stackkit_reason_code": "acme_rate_limited", "target_id": "db.internal"}}}); err != nil {
+		t.Fatal(err)
+	}
+	const secret = "runtime-summary-fixture-secret"
+	router := httpx.NewRouter()
+	RegisterInventoryRoutes(router, InventoryRouteConfig{RuntimeSummaryContext: func(ctx context.Context, tenant, owner string) (context.Context, string, error) {
+		return ctx, tenant, nil
+	}, ReadStore: store, Homelabs: store, WizardRuns: store, Jobs: store, OwnerStackSpecs: store, ServiceAuthSecret: secret, Now: time.Now})
+	token, err := servicecall.IssueToken(servicecall.Config{ServiceName: "cloud", Secret: secret, TokenTTL: time.Minute}, "techstack", &servicecall.OnBehalfOf{Sub: "owner-1", OrgID: "tenant-1"}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/internal/runtime/summary", nil)
+	req.Header.Set(servicecall.HeaderServiceAuth, token)
+	rec := httptest.NewRecorder()
+	router.BuildMux().ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", rec.Code, rec.Body.String())
+	}
+	var result struct {
+		Configured []configuredUseCase `json:"configured_use_cases"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	items := map[string]configuredUseCase{}
+	for _, item := range result.Configured {
+		items[item.Goal] = item
+	}
+	for _, id := range []string{"photos", "media", "files", "documents"} {
+		if items[id].Status != "failed" {
+			t.Errorf("%s status = %q", id, items[id].Status)
+		}
+	}
+	if items["photos"].Settings["library-volume"] != "dedicated-disk" || items["photos"].Settings["machine-learning"] != false || items["photos"].Settings["public-sharing"] != true || items["media"].Settings["music-server"] != true {
+		t.Errorf("settings = %#v / %#v", items["photos"].Settings, items["media"].Settings)
+	}
+	for goal, want := range map[string]string{"photos": "immich-lite", "media": "jellyfin", "files": "cloudreve"} {
+		apps := items[goal].PlannedApps
+		if len(apps) != 1 || apps[0].ID != want {
+			t.Errorf("%s apps = %#v", goal, apps)
+		}
+	}
+	if f := items["photos"].Failure; f == nil || f.Code != "provision_failed" || f.DetailCode != "acme_rate_limited" || f.Step != "stackkit_rollout" || f.OperationID != "job-1" || !f.Retryable || f.OccurredAt == "" || strings.Contains(rec.Body.String(), "db.internal") {
+		t.Errorf("failure = %#v in %s", f, rec.Body.String())
+	}
+	if len(items["documents"].PlannedApps) != 0 || strings.Contains(rec.Body.String(), "never-return") {
+		t.Errorf("unexpected app or private params: %s", rec.Body.String())
+	}
 }

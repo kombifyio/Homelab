@@ -41,6 +41,7 @@ func (h crudRouteHandlers) getHomelab(e *httpx.Event) error {
 	homelab, homelabErr := h.homelabStore.GetHomelabByOwner(e.Request.Context(), tenantID, ownerID)
 	switch {
 	case homelabErr == nil:
+		homelab = h.reconcileProfileExpansions(e.Request.Context(), tenantID, ownerID, homelab)
 		homelabPayload = homelabItem(homelab)
 	case !errors.Is(homelabErr, controlplane.ErrNotFound):
 		return httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to resolve homelab", nil)

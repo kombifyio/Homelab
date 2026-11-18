@@ -75,6 +75,11 @@ func (h wizardRunHandlers) runWizardRunningExtend(e *httpx.Event, run *wizardRun
 			return nil
 		}
 	}
+	// Record the deterministic group before the desired-state write: a crash or partial
+	// enqueue must not lose the link needed to reconcile successful execution.
+	if err := h.recordProfileExpansionAttempt(e.Request.Context(), run, stack.ID, checkpoint); err != nil {
+		return wizardExtendUnavailable(e, "The expansion outcome could not be tracked; retry with the same Idempotency-Key")
+	}
 	currentDigest := wizardExtendSpecDigest(base)
 	candidateDigest := wizardExtendSpecDigest(checkpoint.Projection.Spec)
 	if currentDigest != candidateDigest {

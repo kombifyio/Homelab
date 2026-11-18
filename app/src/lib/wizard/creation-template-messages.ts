@@ -11,6 +11,8 @@ export const creationTemplateMessages = {
     "wizard.templates.selfEmployed.title": "Going self-employed",
     "wizard.templates.selfEmployed.description":
       "Files, passwords, mail, automations and an AI assistant for your own business.",
+    "wizard.templates.startsWith": "Starts with",
+    "wizard.templates.expandLater": "Expand later",
     "wizard.templates.notYetAvailable": "{count} not available yet",
     "wizard.templates.partOf": "Part of: {profiles}",
     "wizard.hints.tip.local_ai_needs_stronger_device":
@@ -26,6 +28,8 @@ export const creationTemplateMessages = {
     "wizard.templates.selfEmployed.title": "Selbstständig machen",
     "wizard.templates.selfEmployed.description":
       "Dateien, Passwörter, Mail, Automationen und ein KI-Assistent für dein eigenes Business.",
+    "wizard.templates.startsWith": "Startet mit",
+    "wizard.templates.expandLater": "Später erweitern",
     "wizard.templates.notYetAvailable": "{count} noch nicht verfügbar",
     "wizard.templates.partOf": "Gehört zu: {profiles}",
     "wizard.hints.tip.local_ai_needs_stronger_device":
@@ -41,6 +45,8 @@ export const creationTemplateMessages = {
     "wizard.templates.selfEmployed.title": "Trabajar por cuenta propia",
     "wizard.templates.selfEmployed.description":
       "Archivos, contraseñas, correo, automatizaciones y un asistente de IA para tu propio negocio.",
+    "wizard.templates.startsWith": "Comienza con",
+    "wizard.templates.expandLater": "Ampliar más tarde",
     "wizard.templates.notYetAvailable": "{count} aún no disponibles",
     "wizard.templates.partOf": "Forma parte de: {profiles}",
     "wizard.hints.tip.local_ai_needs_stronger_device":
@@ -56,6 +62,8 @@ export const creationTemplateMessages = {
     "wizard.templates.selfEmployed.title": "自主创业",
     "wizard.templates.selfEmployed.description":
       "为你自己的事业准备的文件、密码、邮件、自动化和 AI 助手。",
+    "wizard.templates.startsWith": "起步包含",
+    "wizard.templates.expandLater": "稍后扩展",
     "wizard.templates.notYetAvailable": "{count} 项暂不可用",
     "wizard.templates.partOf": "属于：{profiles}",
     "wizard.hints.tip.local_ai_needs_stronger_device":
@@ -71,6 +79,8 @@ export const creationTemplateMessages = {
     "wizard.templates.selfEmployed.title": "अपना काम शुरू करें",
     "wizard.templates.selfEmployed.description":
       "आपके अपने व्यवसाय के लिए फ़ाइलें, पासवर्ड, मेल, ऑटोमेशन और एक AI सहायक।",
+    "wizard.templates.startsWith": "शुरुआत में",
+    "wizard.templates.expandLater": "बाद में विस्तार करें",
     "wizard.templates.notYetAvailable": "{count} अभी उपलब्ध नहीं",
     "wizard.templates.partOf": "इसमें शामिल: {profiles}",
     "wizard.hints.tip.local_ai_needs_stronger_device":
@@ -86,6 +96,8 @@ export const creationTemplateMessages = {
     "wizard.templates.selfEmployed.title": "العمل الحر",
     "wizard.templates.selfEmployed.description":
       "ملفات وكلمات مرور وبريد وأتمتة ومساعد ذكاء اصطناعي لعملك الخاص.",
+    "wizard.templates.startsWith": "يبدأ بـ",
+    "wizard.templates.expandLater": "التوسعة لاحقًا",
     "wizard.templates.notYetAvailable": "{count} غير متاح بعد",
     "wizard.templates.partOf": "ضمن: {profiles}",
     "wizard.hints.tip.local_ai_needs_stronger_device":

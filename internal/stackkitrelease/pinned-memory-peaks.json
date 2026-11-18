@@ -1,0 +1,70 @@
+{
+  "sourceSha": "628475ccbbb646d09c7322e0da9f0ee7cc4bd942",
+  "catalogSha256": "f689072415f2f10da7afc5fcbb0945274020e431626efc6d680a06c2ea0fd463",
+  "peaksMiB": {
+    "stackkits-adguard-home-runtime/high": {
+      "peakMiB": 29.55,
+      "evidenceSha256": "1e6dac766ff4d76ace9d1b0221d3e74278ea6b78cb637f1d3a835aac46668457"
+    },
+    "stackkits-adguard-home-runtime/low": {
+      "peakMiB": 29.33,
+      "evidenceSha256": "62b1fc51abc3d3f24f752508c2b8c130055fa99c7e542c898afeea453b2ba00c"
+    },
+    "stackkits-adguard-home-runtime/standard": {
+      "peakMiB": 29.4,
+      "evidenceSha256": "75ebafda4563da554d1ca5c72d3367e31f5ba05ad6279b7143c75565d83ac52a"
+    },
+    "stackkits-cloudreve-runtime/low": {
+      "peakMiB": 155.7,
+      "evidenceSha256": "3dcd77df533ee958592e6f0b19005e10b9335f836fa8adec421382a8ad94ca04"
+    },
+    "stackkits-cloudreve-runtime/standard": {
+      "peakMiB": 108.9,
+      "evidenceSha256": "a48ffe116e42395439205a30136b97f7fdc2ffcdbc3d7679f344fbc87feaaff8"
+    },
+    "stackkits-guacamole-runtime/high": {
+      "peakMiB": 193.16,
+      "evidenceSha256": "9a92ed2e7792bde621d1119a5e19088215a6da3aa6ac8e9e3f8905b6ec660ece"
+    },
+    "stackkits-guacamole-runtime/low": {
+      "peakMiB": 204.21,
+      "evidenceSha256": "515612537531482727b82006a721a867c098b3200b32d1c29d2af158318ced29"
+    },
+    "stackkits-guacamole-runtime/standard": {
+      "peakMiB": 271.1,
+      "evidenceSha256": "6981941eeb3f04dc8118495518c71f3bab5ea9640968d5079c098e0ca69724ff"
+    },
+    "stackkits-home-assistant-runtime/low": {
+      "peakMiB": 436.9,
+      "evidenceSha256": "f0c5b8c56b61050a74b90b7629ec9932e38cc4bacca1b49fbcf4c6339f968018"
+    },
+    "stackkits-home-assistant-runtime/standard": {
+      "peakMiB": 425.2,
+      "evidenceSha256": "2ffbb118319b37a2128ace460ad11e824961bc56e8543aa840c29d338e1a078b"
+    },
+    "stackkits-immich-lite-runtime/low": {
+      "peakMiB": 1123.32,
+      "evidenceSha256": "8f221a8397d01e6cf5ad6454edd62e44c5e4016842047545ee1441e8e0fd24fd"
+    },
+    "stackkits-immich-runtime/standard": {
+      "peakMiB": 2916.93,
+      "evidenceSha256": "4516310633e626750c2a837bd6d122face2551d6c8fdbb6b038e9b5c047797f8"
+    },
+    "stackkits-jellyfin-runtime/standard": {
+      "peakMiB": 315.2,
+      "evidenceSha256": "3d1ee49631940c365d26e578526f7c517420ab2681b13ca202b689109c25186c"
+    },
+    "stackkits-vaultwarden-runtime/low": {
+      "peakMiB": 16.88,
+      "evidenceSha256": "851e10054ffacec6d0229a43cde386092c6b758752edd59b5a2ad119a19bc398"
+    },
+    "stackkits-vaultwarden-runtime/standard": {
+      "peakMiB": 26.76,
+      "evidenceSha256": "2a3012549775f1503f4a33e796f094b02ea16c9d77e629e5f6e1b77a1d57596e"
+    },
+    "stackkits-workpaths-runtime/standard": {
+      "peakMiB": 38.5,
+      "evidenceSha256": "92be29ba8121ccb0812c894f58149e3343edfb4167c6cf915069defc01435fab"
+    }
+  }
+}

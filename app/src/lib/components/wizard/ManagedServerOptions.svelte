@@ -16,6 +16,7 @@
   } from "#lib/api/stacks.js";
   import {
     getIonosDatacenterChoices,
+    readRuntimeOfferingID,
     type ManagedProviderID,
     type StackConfig,
   } from "#lib/wizard/index.js";
@@ -52,11 +53,26 @@
   const offering = $derived(
     offerings.find((item) => item.id === config.runtimeOfferingId),
   );
+  // The server this provider provisions for the offering. The generic row of
+  // the offering can say more (or less) than the provider sells, so it is never
+  // shown as the size: without the package no size is shown.
+  const providerPackage = $derived(
+    config.providerId ? offering?.provider_packages?.[config.providerId] : undefined,
+  );
   const datacenters = getIonosDatacenterChoices();
   const region = $derived(
     config.providerId === "ionos"
       ? datacenters.find((item) => item.value === config.ionosDatacenter)?.label
-      : offering?.region,
+      : providerPackage?.region,
+  );
+
+  const showsSpecs = $derived(
+    Boolean(
+      providerPackage?.vcpus ||
+        providerPackage?.memory_mb ||
+        providerPackage?.disk_gb ||
+        region,
+    ),
   );
 
   const pauseScope = $derived(managedCreationScope(config));
@@ -86,6 +102,21 @@
       onrefresh={() => managedCreationPauses.refresh(pauseScope)}
     />
   {/if}
+  {#if fitEnabled && !loading && !loadFailed}
+    <label class="block space-y-1 text-sm">
+      <span>{tr("layout.expansion.size")}</span>
+      <select class="w-full rounded-md border border-border bg-background p-2" value={config.runtimeOfferingId}
+        onchange={(event) => { config.runtimeOfferingId = readRuntimeOfferingID(event.currentTarget.value); }}>
+        {#if !offerings.some((item) => item.id === config.runtimeOfferingId && (item.id === "monthly-runtime-standard" || item.id === "monthly-runtime-premium"))}
+          <option value={config.runtimeOfferingId}>{config.runtimeOfferingId}</option>
+        {/if}
+        {#each offerings.filter((item) => item.id === "monthly-runtime-standard" || item.id === "monthly-runtime-premium") as item (item.id)}
+          <option value={item.id}>{item.name}</option>
+        {/each}
+      </select>
+      <span class="block text-muted-foreground">{tr("layout.expansion.entitlement")}</span>
+    </label>
+  {/if}
   <section class="server-summary">
     <header class="server-identity">
       {#if provider}
@@ -110,36 +141,36 @@
             {provider.label}<ArrowUpRight size={13} aria-hidden="true" /></a
           >{/if}
       </div>
-      <span class="included"
-        ><Check size={13} aria-hidden="true" />{tr(
-          "wizard.server.managed.available",
-        )}</span
-      >
+      {#if !fitEnabled}
+        <span class="included"><Check size={13} aria-hidden="true" />{tr("wizard.server.managed.available")}</span>
+      {/if}
     </header>
     <p class="description">{tr("wizard.server.cloud.info")}</p>
     {#if loading}
       <p class="loading" role="status">
         {tr("wizard.server.managed.loadingSpecs")}
       </p>
-    {:else if offering && !fitEnabled}
+    {:else if showsSpecs && !fitEnabled}
       <dl class="server-specs">
-        {#if offering.vcpus}<div>
+        {#if providerPackage?.vcpus}<div>
             <dt><Cpu size={15} aria-hidden="true" />vCPU</dt>
-            <dd>{offering.vcpus}</dd>
+            <dd>{providerPackage.vcpus}</dd>
           </div>{/if}
-        {#if offering.memory_mb}<div>
+        {#if providerPackage?.memory_mb}<div>
             <dt><MemoryStick size={15} aria-hidden="true" />RAM</dt>
             <dd>
-              {tr("ui.managed.sizeGiB", { size: offering.memory_mb / 1024 })}
+              {tr("ui.managed.sizeGiB", {
+                size: providerPackage.memory_mb / 1024,
+              })}
             </dd>
           </div>{/if}
-        {#if offering.disk_gb}<div>
+        {#if providerPackage?.disk_gb}<div>
             <dt>
               <HardDrive size={15} aria-hidden="true" />{tr(
                 "wizard.server.hypervisor.disk",
               )}
             </dt>
-            <dd>{tr("ui.managed.sizeGB", { size: offering.disk_gb })}</dd>
+            <dd>{tr("ui.managed.sizeGB", { size: providerPackage.disk_gb })}</dd>
           </div>{/if}
         {#if region}<div>
             <dt>

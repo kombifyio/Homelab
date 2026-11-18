@@ -106,6 +106,14 @@
         })}
       </p>
     {/if}
+    {#if fit.memory_peak?.status === "unknown"}
+      <p>{tr("wizard.server.fit.peakUnknown")}</p>
+    {:else if fit.memory_peak?.warning}
+      <p class="peak-warning" data-testid="server-memory-peak-warning">
+        {tr("wizard.server.fit.peakWarning", { estimated: fit.memory_peak.estimated_gib, available: fit.memory_peak.available_gib })}
+        {tr("wizard.server.fit.peakAction")}
+      </p>
+    {/if}
     {#if reasons.length}
       <ul>
         {#each reasons as reason (reason)}
@@ -160,6 +168,7 @@
   .fit[data-fit-status="does_not_fit"] {
     border-color: var(--destructive);
   }
+  .fit .peak-warning { color: var(--foreground); }
   .fit p,
   .fit ul {
     color: var(--muted-foreground);

@@ -343,6 +343,16 @@ export interface StackConfig {
    * a different default does not carry a stale copy.
    */
   useCaseSettings?: Record<string, Record<string, string | boolean>>;
+  /** Draft-only profile choices and goals introduced by each profile. */
+  creationProfiles?: Partial<
+    Record<
+      import("./creationTemplates.js").CreationTemplateId,
+      {
+        added: import("./standardBundle.js").GoalConfigKey[];
+        skipped?: import("./creationGoals.js").CreationGoalId[];
+      }
+    >
+  >;
   /** Capability selections per use case: an option id or "off". Explicit only. */
   useCaseCapabilities?: Record<string, Record<string, string>>;
   /**

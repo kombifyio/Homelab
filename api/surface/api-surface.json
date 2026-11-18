@@ -3,7 +3,7 @@
   "product": "techstack",
   "source": {
     "path": "api/openapi/techstack-v1.yaml",
-    "sha256": "e14ec8f49b91bf2f54a7027cf17ba0f53944e817c401cf39fec46b0f5ecb7687"
+    "sha256": "b62281e9013b5c95c5eca35616d45533f0f5e61be855d9841005e25900e27b66"
   },
   "envelope": "data",
   "cli": {
@@ -11170,7 +11170,7 @@
       "method": "GET",
       "path": "/api/v1/monthly-runtimes/offerings",
       "summary": "List monthly runtime offerings",
-      "description": "Returns public, provider-free subscription runtime offerings.",
+      "description": "Returns subscription offerings with actual provider package sizes. Generic sizing fields are custom-provider defaults; plans must use provider_packages for the selected provider.",
       "tags": [
         "Monthly Runtime"
       ],
@@ -11197,6 +11197,33 @@
               },
               "name": {
                 "type": "string"
+              },
+              "provider_packages": {
+                "additionalProperties": {
+                  "properties": {
+                    "disk_gb": {
+                      "type": "integer"
+                    },
+                    "memory_mb": {
+                      "type": "integer"
+                    },
+                    "region": {
+                      "type": "string"
+                    },
+                    "vcpus": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "vcpus",
+                    "memory_mb",
+                    "disk_gb",
+                    "region"
+                  ],
+                  "type": "object"
+                },
+                "description": "Actual provisioned sizes keyed by provider ID; an absent pair is unsupported. Plans use these fields instead of generic sizing.",
+                "type": "object"
               },
               "region": {
                 "type": "string"
@@ -32978,6 +33005,17 @@
           }
         },
         {
+          "name": "concurrent_workloads",
+          "in": "body",
+          "wireName": "concurrent_workloads",
+          "schema": {
+            "default": 2,
+            "maximum": 2,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        {
           "name": "deployment_lane",
           "in": "body",
           "wireName": "deployment_lane",
@@ -33002,10 +33040,31 @@
           }
         },
         {
+          "name": "kit_slug",
+          "in": "body",
+          "wireName": "kit_slug",
+          "description": "Advisory kit/core memory context",
+          "schema": {
+            "description": "Advisory kit/core memory context",
+            "never execution admission.": null,
+            "type": "string"
+          }
+        },
+        {
           "name": "provider_id",
           "in": "body",
           "wireName": "provider_id",
           "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "runtime_offering_id",
+          "in": "body",
+          "wireName": "runtime_offering_id",
+          "description": "Explicit planned provider offering; together with provider_id identifies its real package.",
+          "schema": {
+            "description": "Explicit planned provider offering; together with provider_id identifies its real package.",
             "type": "string"
           }
         },
@@ -33020,6 +33079,37 @@
               "all"
             ],
             "type": "string"
+          }
+        },
+        {
+          "name": "server_capacity",
+          "in": "body",
+          "wireName": "server_capacity",
+          "description": "Advisory planning capacity, never attested rollout facts.",
+          "schema": {
+            "additionalProperties": false,
+            "description": "Advisory planning capacity, never attested rollout facts.",
+            "properties": {
+              "cpu_cores": {
+                "maximum": 1024,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "disk_gb": {
+                "maximum": 1048576,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "ram_mb": {
+                "maximum": 1048576,
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "ram_mb"
+            ],
+            "type": "object"
           }
         },
         {
@@ -33132,6 +33222,105 @@
         "envelope": "data",
         "schema": {
           "properties": {
+            "capacity": {
+              "description": "Soft memory estimate in MiB; required_ram_mb is a lower bound when capacity_peak_unknown is present. No provisioning gate.",
+              "properties": {
+                "advisory": {
+                  "const": true,
+                  "type": "boolean"
+                },
+                "available_ram_mb": {
+                  "type": "integer"
+                },
+                "concurrent_workloads": {
+                  "type": "integer"
+                },
+                "model": {
+                  "type": "string"
+                },
+                "omit_goals": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "per_use_case": {
+                  "items": {
+                    "properties": {
+                      "goal": {
+                        "type": "string"
+                      },
+                      "required_ram_mb": {
+                        "type": "integer"
+                      },
+                      "resident_ram_mb": {
+                        "type": "integer"
+                      },
+                      "working_increment_ram_mb": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "reasons": {
+                  "items": {
+                    "properties": {
+                      "code": {
+                        "type": "string"
+                      },
+                      "message": {
+                        "type": "string"
+                      },
+                      "source": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "required_ram_mb": {
+                  "type": "integer"
+                },
+                "resident_ram_mb": {
+                  "type": "integer"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "fits",
+                    "warning",
+                    "unknown"
+                  ],
+                  "type": "string"
+                },
+                "suggested_offering_id": {
+                  "type": "string"
+                },
+                "suggested_offering_ram_mb": {
+                  "description": "Real package memory for suggested_offering_id",
+                  "resolved for the selected provider.": null,
+                  "type": "integer"
+                },
+                "suggested_ram_mb": {
+                  "type": "integer"
+                },
+                "working_increment_ram_mb": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "type": "object"
+            },
             "catalog_source": {
               "type": "string"
             },

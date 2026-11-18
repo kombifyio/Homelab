@@ -104,6 +104,7 @@ func (api *UnifierAPI) handleRecommendations(e *httpx.Event) error {
 		response.ServerFit.Status = "unknown"
 		response.ServerFit.Template, response.ServerFit.Location = "", ""
 		response.ServerFit.Specs = kscore.WizardServerFitSpecs{}
+		response.ServerFit.MemoryPeak = kscore.WizardMemoryPeak{Status: "unknown"}
 		response.ServerFit.Deficits = nil
 		response.ServerFit.Unknowns = append(response.ServerFit.Unknowns, kscore.WizardServerFitFact{Code: "provider_package_unavailable"})
 	}
@@ -122,6 +123,15 @@ func (api *UnifierAPI) handleRecommendations(e *httpx.Event) error {
 }
 
 func validateWizardRecommendationRequest(request kscore.WizardRecommendationRequest) string {
+	if request.ConcurrentWorkloads < 0 || request.ConcurrentWorkloads > 2 {
+		return "concurrent_workloads must be 1 or 2 when specified"
+	}
+	if len(request.Goals) > 32 {
+		return "at most 32 goals may be assessed"
+	}
+	if host := request.ServerCapacity; host != nil && (host.RAMMB <= 0 || host.RAMMB > 1048576 || host.CPUCores < 0 || host.CPUCores > 1024 || host.DiskGB < 0 || host.DiskGB > 1048576) {
+		return "server_capacity must contain a positive bounded ram_mb and non-negative cpu_cores and disk_gb"
+	}
 	if fit := request.ServerFit; fit != nil {
 		provider, offering, server := strings.TrimSpace(fit.ProviderID), strings.TrimSpace(fit.OfferingID), strings.TrimSpace(fit.ServerID)
 		if (server == "" && (provider == "" || offering == "")) || (server != "" && (provider != "" || offering != "")) {

@@ -828,7 +828,11 @@ components:
         configured_use_cases:
           type: array
           nullable: true
-          description: Owner-confirmed goals from Homelab intent, reconciled with the owner's current canonical desired StackSpecs when all needed authorities are available; null means intent could not be read. Blocked indicates an unmapped or blocked goal; pending or failed is attributed only to the exact latest run's requested goals and correlated operation. Unknown has no sufficiently correlated runtime evidence. Settings contain only catalog-validated choice and toggle values.
+          description: >-
+            Owner-confirmed goals from Homelab intent, reconciled with the owner's current canonical desired StackSpecs
+            when all needed authorities are available. Null means intent could not be read. Blocked indicates an unmapped
+            or blocked goal. Pending or failed is attributed only to the exact latest run's requested goals and correlated
+            operation. Unknown has no sufficiently correlated runtime evidence.
           items:
             type: object
             required: [goal, status]
@@ -837,7 +841,33 @@ components:
               status: { type: string, enum: [blocked, pending, failed, unknown] }
               settings:
                 type: object
-                additionalProperties: true
+                description: Catalog-validated choices and toggles from saved settings and saved guided answers. Explicit settings take precedence.
+                additionalProperties:
+                  oneOf:
+                    - type: string
+                    - type: boolean
+              planned_apps:
+                type: array
+                description: Catalog applications selected in canonical desired StackSpecs in this owner's homelab. Running applications are reported by services.
+                items:
+                  type: object
+                  required: [id, name]
+                  properties:
+                    id: { type: string, minLength: 1 }
+                    name: { type: string, minLength: 1 }
+              failure:
+                type: object
+                description: >-
+                  Present only for a failed or blocked goal whose cause Techstack recorded. Closed identifiers only
+                  (never messages, hosts, paths or logs). No application is recorded per goal.
+                required: [code, retryable]
+                properties:
+                  code: { type: string, pattern: "^[a-z0-9][a-z0-9_.-]{0,63}$", description: "Job reason_code, run error_reason, capability_blocked or goal_unmapped." }
+                  detail_code: { type: string, pattern: "^[a-z0-9][a-z0-9_.-]{0,63}$", description: Pinned StackKits reason code when reported. }
+                  step: { type: string, pattern: "^[a-z0-9][a-z0-9_.-]{0,63}$", description: Failed rollout step or blocking capability. }
+                  occurred_at: { type: string, format: date-time }
+                  operation_id: { type: string, description: Rollout job id, else wizard run id. }
+                  retryable: { type: boolean }
     RuntimeMonitoringEnvelope:
       type: object
       required: [version, generated_at, scope_state]
