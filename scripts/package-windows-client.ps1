@@ -89,7 +89,7 @@ if (-not [string]::IsNullOrWhiteSpace($CompanionInstaller)) {
     if (!(Test-Path -LiteralPath $companionSource -PathType Leaf)) { throw "CompanionInstaller ($CompanionInstaller) is not a file." }
     $companionCarryFile = Join-Path (Split-Path -Parent $companionSource) "companion-carry.json"
     if (!(Test-Path -LiteralPath $companionCarryFile -PathType Leaf)) {
-        throw "No companion-carry.json beside $companionSource: the Companion installer must come from scripts/read-companion-installer.ps1."
+        throw "No companion-carry.json beside ${companionSource}: the Companion installer must come from scripts/read-companion-installer.ps1."
     }
     $companion = Get-Content -Raw -LiteralPath $companionCarryFile | ConvertFrom-Json
     if ($companion.file -notmatch '^[A-Za-z0-9._-]+\.msi$' -or $companion.sha256 -notmatch '^[0-9a-f]{64}$' -or [long]$companion.size -le 0) {
