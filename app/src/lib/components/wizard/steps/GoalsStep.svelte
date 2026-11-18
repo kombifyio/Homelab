@@ -3,6 +3,11 @@
   import SmartHomeAdvice from "../SmartHomeAdvice.svelte";
   import WizardHintZone from "../WizardHintZone.svelte";
   import LayoutRecommendationPanel from "../LayoutRecommendationPanel.svelte";
+  import CapacityHint from "../CapacityHint.svelte";
+  import type {
+    CapacityHint as CapacityHintModel,
+    CapacitySize,
+  } from "#lib/wizard/capacity-view.js";
   import ErrorCallout from "#lib/components/ui/ErrorCallout.svelte";
   import LoadingNote from "#lib/components/ui/LoadingNote.svelte";
   import { tr } from "#lib/i18n.svelte.js";
@@ -35,6 +40,9 @@
     onGoalChange,
     onSettingChange,
     recommendationState = { phase: "idle" },
+    capacityHint,
+    onCapacitySize,
+    onCapacityOmit,
     useCaseCatalog = new Map(),
     catalogState = "ready",
     onCatalogReload,
@@ -61,6 +69,10 @@
       value: string | boolean,
     ) => void;
     recommendationState?: WizardPreviewState;
+    /** Whether the selection fits the chosen server (advice, never a gate). */
+    capacityHint?: CapacityHintModel;
+    onCapacitySize?: (size: CapacitySize) => void;
+    onCapacityOmit?: (goal: string) => void;
     useCaseCatalog?: Map<string, UseCaseCatalogView>;
     /**
      * Where the release catalog stands. Cards need it: without it every use
@@ -350,6 +362,13 @@
     {/if}
   {/if}
   <WizardHintZone state={recommendationState} onopen={onRecommendationOpen} />
+  {#if capacityHint}
+    <CapacityHint
+      hint={capacityHint}
+      onsize={onCapacitySize}
+      onomit={onCapacityOmit}
+    />
+  {/if}
   {#if layoutState.phase !== "idle"}
     <LayoutRecommendationPanel
       state={layoutState}

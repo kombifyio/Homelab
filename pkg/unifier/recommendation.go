@@ -104,6 +104,7 @@ func (a *WizardRecommendationAuthority) Recommend(input WizardRecommendationEval
 		response.ServerFit = EvaluateServerFit(req, input.Inventory)
 	}
 	response.Selection = GuideWizardSelection(req, input)
+	response.Capacity = AssessWizardCapacity(req)
 	spec := wizardRecommendationSpec(req)
 	decisionContext := buildWizardRecommendationDecisionContext(req, input, spec)
 	response.DecisionContext = decisionContext

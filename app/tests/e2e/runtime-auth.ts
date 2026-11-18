@@ -45,6 +45,7 @@ export interface RuntimeAuthOptions {
 
 export type RuntimeFixturePrefix =
   | "TEST_RIL_PRO_USER"
+  | "TEST_PRO_DOCUMENTS_MEDIA_USER"
   | "TEST_ALL_YOU_NEED_USER"
   | "TEST_FREE_USER"
   | RuntimeStaffFixturePrefix;
@@ -100,6 +101,9 @@ function canonicalRuntimeFixture(prefix: RuntimeFixturePrefix) {
   const password = process.env[`${prefix}_PASSWORD`];
   if (!email || !password) throw new Error(`Canonical shared fixture ${prefix} is not configured`);
   const totpSecret = process.env[`${prefix}_TOTP_SECRET`]?.trim() || undefined;
+  if (prefix === "TEST_PRO_DOCUMENTS_MEDIA_USER" && !totpSecret) {
+    throw new Error("The isolated Documents & media Pro fixture requires its enrolled authenticator");
+  }
   return { email, password, totpSecret };
 }
 
@@ -128,7 +132,7 @@ async function answerAuth0OtpChallenge(page: Page, totpSecret: string | undefine
   const accepted = await page
     .waitForURL((url) => !url.pathname.startsWith(OTP_CHALLENGE_PATH), { timeout: 15_000 })
     .then(() => true, () => false);
-  if (!accepted) throw new Error("Auth0 did not accept the staff fixture's authenticator code");
+  if (!accepted) throw new Error("Auth0 did not accept the fixture's authenticator code");
 }
 
 // RFC 6238 TOTP (SHA-1, 30 s, 6 digits) over a base32 seed.

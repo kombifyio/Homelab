@@ -87,6 +87,8 @@ type WorkloadFootprint struct {
 	// reservation: "measured", "upstream" or "policy" (empty when the
 	// release declares none).
 	ReservationProvenance string `json:"reservationProvenance,omitempty"`
+	// RecommendedProvenance qualifies whether the release budget came from resource evidence.
+	RecommendedProvenance UseCaseResourceProvenance `json:"recommendedProvenance,omitempty"`
 }
 
 // ErrWorkloadOmittedOnProfile reports that the release does not include the
@@ -151,6 +153,7 @@ func (catalog UseCaseCatalog) WorkloadFootprints(workload, alternative, profile,
 			}
 			footprint := WorkloadFootprint{Workload: workload, Alternative: alternative, Module: module.ID, ComputeProfile: profile, HostFloor: floor, Reservation: reservation, Recommended: facts.Recommended}
 			footprint.CPUReservationUnspecified = !reservation.cpuDeclared
+			footprint.RecommendedProvenance = facts.Provenance["recommended"]
 			if provenance, declared := facts.Provenance["reservation"]; declared {
 				footprint.ReservationProvenance = provenance.Source
 			}

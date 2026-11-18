@@ -4,6 +4,9 @@
 // i18n.ts.
 export const creationFlowMessages = {
   en: {
+    "wizard.server.fit.peakWarning": "Estimated selected-workload peak: {estimated} GiB; server capacity: {available} GiB. This estimate includes current observed use when available, but excludes the base platform on a new server.",
+    "wizard.server.fit.peakAction": "Consider fewer apps or adding memory to this server.",
+    "wizard.server.fit.peakUnknown": "A selected-workload peak estimate is unavailable because complete evidence or current usage is missing.",
     "wizard.server.fit.actionChange": "Choose another server or change the selected use cases.",
     "wizard.server.fit.actionCheck": "Connect or choose a server and check again when hardware is available.",
     "wizard.server.fit.amounts": "{required} {unit} needed, {available} {unit} available",
@@ -160,6 +163,9 @@ export const creationFlowMessages = {
       "If it keeps happening, contact support and share the technical details",
   },
   de: {
+    "wizard.server.fit.peakWarning": "Geschätzte Spitze der ausgewählten Anwendungen: {estimated} GiB; Serverkapazität: {available} GiB. Beobachtete aktuelle Nutzung ist enthalten, die Basisplattform eines neuen Servers nicht.",
+    "wizard.server.fit.peakAction": "Wähle bei Bedarf weniger Anwendungen oder erweitere den Arbeitsspeicher dieses Servers.",
+    "wizard.server.fit.peakUnknown": "Eine Spitzenschätzung für die Auswahl fehlt, weil vollständige Nachweise oder die aktuelle Nutzung fehlen.",
     "wizard.server.fit.actionChange": "Wähle einen anderen Server oder ändere die Anwendungsfälle.",
     "wizard.server.fit.actionCheck": "Verbinde oder wähle einen Server und prüfe erneut, sobald Hardwaredaten vorliegen.",
     "wizard.server.fit.amounts": "{required} {unit} benötigt, {available} {unit} verfügbar",
@@ -318,6 +324,9 @@ export const creationFlowMessages = {
       "Falls es wieder passiert, wende dich an den Support und nenne die technischen Details",
   },
   es: {
+    "wizard.server.fit.peakWarning": "Pico estimado de las aplicaciones elegidas: {estimated} GiB; capacidad del servidor: {available} GiB. Incluye el uso actual observado, pero no la plataforma base de un servidor nuevo.",
+    "wizard.server.fit.peakAction": "Considera elegir menos aplicaciones o ampliar la memoria de este servidor.",
+    "wizard.server.fit.peakUnknown": "No hay una estimación del pico porque faltan pruebas completas o el uso actual.",
     "wizard.server.fit.actionChange": "Elige otro servidor o cambia los casos de uso.",
     "wizard.server.fit.actionCheck": "Conecta o elige un servidor y vuelve a comprobar cuando haya datos.",
     "wizard.server.fit.amounts": "{required} {unit} necesarios, {available} {unit} disponibles",
@@ -475,6 +484,9 @@ export const creationFlowMessages = {
       "Si sigue ocurriendo, ponte en contacto con el soporte y comparte los detalles técnicos",
   },
   "zh-Hans": {
+    "wizard.server.fit.peakWarning": "所选应用的估计峰值：{estimated} GiB；服务器容量：{available} GiB。包含已观测的当前使用量，但不包含新服务器的基础平台。",
+    "wizard.server.fit.peakAction": "可以减少应用或扩展此服务器的内存。",
+    "wizard.server.fit.peakUnknown": "由于缺少完整证据或当前使用数据，无法估计所选应用的峰值。",
     "wizard.server.fit.actionChange": "请选择其他服务器或调整用例。",
     "wizard.server.fit.actionCheck": "请连接或选择服务器，并在硬件信息可用后重试。",
     "wizard.server.fit.amounts": "需要 {required} {unit}，可用 {available} {unit}",
@@ -624,6 +636,9 @@ export const creationFlowMessages = {
     "creation.failure.contactSupport": "如果问题持续，请联系支持并提供技术详情",
   },
   hi: {
+    "wizard.server.fit.peakWarning": "चुने गए ऐप्स का अनुमानित शिखर: {estimated} GiB; सर्वर क्षमता: {available} GiB। देखी गई मौजूदा खपत शामिल है, नए सर्वर का बेस प्लेटफ़ॉर्म नहीं।",
+    "wizard.server.fit.peakAction": "कम ऐप चुनें या इस सर्वर की मेमोरी बढ़ाएँ।",
+    "wizard.server.fit.peakUnknown": "पूरे प्रमाण या मौजूदा उपयोग के बिना शिखर का अनुमान उपलब्ध नहीं है।",
     "wizard.server.fit.actionChange": "दूसरा सर्वर चुनें या उपयोग बदलें।",
     "wizard.server.fit.actionCheck": "सर्वर जोड़ें या चुनें और हार्डवेयर जानकारी मिलने पर फिर जाँचें।",
     "wizard.server.fit.amounts": "{required} {unit} आवश्यक, {available} {unit} उपलब्ध",
@@ -780,6 +795,9 @@ export const creationFlowMessages = {
       "अगर यह बार-बार हो, तो सहायता से संपर्क करें और तकनीकी विवरण साझा करें",
   },
   ar: {
+    "wizard.server.fit.peakWarning": "الذروة المقدرة للتطبيقات المحددة: {estimated} GiB؛ سعة الخادم: {available} GiB. يشمل الاستخدام الحالي المرصود، ولا يشمل المنصة الأساسية لخادم جديد.",
+    "wizard.server.fit.peakAction": "يمكنك تقليل التطبيقات أو زيادة ذاكرة هذا الخادم.",
+    "wizard.server.fit.peakUnknown": "لا يتوفر تقدير للذروة بسبب نقص الأدلة الكاملة أو بيانات الاستخدام الحالي.",
     "wizard.server.fit.actionChange": "اختر خادماً آخر أو غيّر حالات الاستخدام.",
     "wizard.server.fit.actionCheck": "وصّل خادماً أو اختره وأعد الفحص عند توفر معلومات الأجهزة.",
     "wizard.server.fit.amounts": "المطلوب {required} {unit}، المتاح {available} {unit}",

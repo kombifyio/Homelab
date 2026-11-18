@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"sync"
@@ -68,8 +69,8 @@ func (o *Orchestrator) repairDegradedPublicTLS(tenantID string, job jobs.JobSnap
 	o.log.Info("public_tls_repair_enqueued", "stack_id", job.TargetID, "job_id", repairJobID, "source_job_id", job.ID)
 }
 
-// projectPublicTLSRepair replaces the stack's degraded components with the
-// outcome of a terminal repair job, leaving the rest of the projection as is.
+// projectPublicTLSRepair replaces only the public TLS outcome. Independent
+// component failures remain visible after a successful certificate repair.
 func (o *Orchestrator) projectPublicTLSRepair(tenantID string, job jobs.JobSnapshot) {
 	if job.Type != jobs.JobTypeStackKitLifecycle || job.Result == nil ||
 		!strings.EqualFold(stringFromAny(job.Payload["operation"]), jobs.StackKitLifecyclePublicTLSRepair) {
@@ -92,10 +93,48 @@ func (o *Orchestrator) projectPublicTLSRepair(tenantID string, job jobs.JobSnaps
 	for key, value := range current.RuntimeSummary {
 		summary[key] = value
 	}
-	summary[jobs.DegradedComponentsResultField] = components
+	// A certificate repair cannot clear unrelated capacity/component failures.
+	merged, mergeErr := mergePublicTLSRepairComponents(current.RuntimeSummary[jobs.DegradedComponentsResultField], components)
+	if mergeErr != nil {
+		o.log.Warn("public_tls_repair_projection_failed", "stack_id", job.TargetID, "error", mergeErr)
+		return
+	}
+	summary[jobs.DegradedComponentsResultField] = merged
 	if _, err := store.UpdateStackRuntime(o.ctx, tenantID, job.TargetID, controlplane.RuntimeUpdate{
 		RuntimeSummary: summary, DriftStatus: current.DriftStatus, DriftCheckedAt: current.DriftCheckedAt,
 	}); err != nil {
 		o.log.Warn("public_tls_repair_projection_failed", "stack_id", job.TargetID, "error", err)
 	}
+}
+
+func mergePublicTLSRepairComponents(previous, repaired any) ([]map[string]any, error) {
+	decode := func(raw any) ([]map[string]any, error) {
+		data, err := json.Marshal(raw)
+		if err != nil {
+			return nil, err
+		}
+		var items []map[string]any
+		err = json.Unmarshal(data, &items)
+		return items, err
+	}
+	old, err := decode(previous)
+	if err != nil {
+		return nil, err
+	}
+	next, err := decode(repaired)
+	if err != nil {
+		return nil, err
+	}
+	seen := map[string]bool{}
+	for _, item := range next {
+		seen[stringFromAny(item["component"])] = true
+	}
+	merged := make([]map[string]any, 0, len(old)+len(next))
+	for _, item := range old {
+		name := stringFromAny(item["component"])
+		if name != "public_tls" && !seen[name] {
+			merged = append(merged, item)
+		}
+	}
+	return append(merged, next...), nil
 }

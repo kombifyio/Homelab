@@ -7098,7 +7098,7 @@ paths:
       x-kombify-cli: { command: "monthly-runtimes offerings" }
       tags: [Monthly Runtime]
       summary: List monthly runtime offerings
-      description: Returns public, provider-free subscription runtime offerings.
+      description: Returns subscription offerings with actual provider package sizes. Generic sizing fields are custom-provider defaults; plans must use provider_packages for the selected provider.
       responses:
         "200":
           description: Monthly runtime offerings
@@ -8100,6 +8100,18 @@ paths:
                 deployment_lane: { type: string, enum: [saas, self-hosted] }
                 surface: { type: string, enum: [easy, techie] }
                 provider_id: { type: string }
+                runtime_offering_id: { type: string, description: Explicit planned provider offering; together with provider_id identifies its real package. }
+                kit_slug: { type: string, description: Advisory kit/core memory context, never execution admission. }
+                concurrent_workloads: { type: integer, minimum: 1, maximum: 2, default: 2 }
+                server_capacity:
+                  type: object
+                  additionalProperties: false
+                  required: [ram_mb]
+                  description: Advisory planning capacity, never attested rollout facts.
+                  properties:
+                    ram_mb: { type: integer, minimum: 1, maximum: 1048576 }
+                    cpu_cores: { type: integer, minimum: 0, maximum: 1024 }
+                    disk_gb: { type: integer, minimum: 0, maximum: 1048576 }
                 selection_intent: { type: string, enum: [all], description: "all asks which of available_goals the full-homelab template should preselect." }
                 available_goals: { type: array, items: { type: string }, description: Use cases the released catalog offers. }
                 compute_profile: { type: string }
@@ -8158,6 +8170,40 @@ paths:
                             deep_link: { type: object }
                       selection: { type: object, description: Preselection guidance when selection_intent is set. }
                       smart_home_recommendation: { type: object }
+                      capacity:
+                        type: object
+                        description: Soft memory estimate in MiB; required_ram_mb is a lower bound when capacity_peak_unknown is present. No provisioning gate.
+                        properties:
+                          status: { type: string, enum: [fits, warning, unknown] }
+                          advisory: { type: boolean, const: true }
+                          source: { type: string }
+                          model: { type: string }
+                          available_ram_mb: { type: integer }
+                          required_ram_mb: { type: integer }
+                          resident_ram_mb: { type: integer }
+                          working_increment_ram_mb: { type: [integer, "null"] }
+                          concurrent_workloads: { type: integer }
+                          suggested_ram_mb: { type: integer }
+                          suggested_offering_id: { type: string }
+                          suggested_offering_ram_mb: { type: integer, description: Real package memory for suggested_offering_id, resolved for the selected provider. }
+                          omit_goals: { type: array, items: { type: string } }
+                          reasons:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                code: { type: string }
+                                message: { type: string }
+                                source: { type: string }
+                          per_use_case:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                goal: { type: string }
+                                resident_ram_mb: { type: integer }
+                                working_increment_ram_mb: { type: [integer, "null"] }
+                                required_ram_mb: { type: integer }
                   meta: { $ref: "#/components/schemas/ResponseMeta" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -15613,6 +15659,17 @@ components:
         disk_gb:
           type: integer
           example: 160
+        provider_packages:
+          type: object
+          description: Actual provisioned sizes keyed by provider ID; an absent pair is unsupported. Plans use these fields instead of generic sizing.
+          additionalProperties:
+            type: object
+            required: [vcpus, memory_mb, disk_gb, region]
+            properties:
+              vcpus: { type: integer }
+              memory_mb: { type: integer }
+              disk_gb: { type: integer }
+              region: { type: string }
         region:
           type: string
           example: de-fra

@@ -6,6 +6,7 @@ package stackkitrelease
 // second, hand-written map of what a use case is built from.
 
 import (
+	"crypto/sha256"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -508,6 +509,7 @@ type UseCaseCatalogRelease struct {
 
 // UseCaseCatalog is the decoded release projection.
 type UseCaseCatalog struct {
+	RawSHA256                 string                                   `json:"-"`
 	Candidate                 *guardrelease.PreviewCandidateProvenance `json:"candidate,omitempty"`
 	RetainedRemovalCandidates bool                                     `json:"retained_removal_candidates"`
 	Release                   UseCaseCatalogRelease                    `json:"release"`
@@ -631,7 +633,12 @@ func DecodeUseCaseCatalog(data []byte) (UseCaseCatalog, error) {
 		return UseCaseCatalog{}, fmt.Errorf("stackkitrelease: unsupported StackKits use-case catalog schema %q", document.SchemaVersion)
 	}
 
-	return projectUseCaseCatalog(document)
+	catalog, err := projectUseCaseCatalog(document)
+	if err != nil {
+		return UseCaseCatalog{}, err
+	}
+	catalog.RawSHA256 = fmt.Sprintf("%x", sha256.Sum256(data))
+	return catalog, nil
 }
 
 func projectUseCaseCatalog(document useCaseCatalogDocument) (UseCaseCatalog, error) {

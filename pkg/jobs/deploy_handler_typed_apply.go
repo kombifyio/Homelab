@@ -18,6 +18,7 @@ import (
 	"github.com/kombifyio/techstack/pkg/api/agentpb"
 	"github.com/kombifyio/techstack/pkg/identity"
 	"github.com/kombifyio/techstack/pkg/originca"
+	"github.com/kombifyio/techstack/pkg/specv2"
 	"github.com/kombifyio/techstack/pkg/stackkitcommand"
 )
 
@@ -157,6 +158,7 @@ func (r *deployRollout) runTypedStackKitApply(ctx context.Context) (map[string]i
 		r.collectRuntimeDiagnostics(ctx, nil, r.actionReq, "stackkit_rollout", reason, time.Since(started), err)
 		return result, err
 	}
+	result = specv2.WithInitialCapacityFailures(result, r.job.Snapshot().Payload)
 	// Later operator operations (verify, drift, backup, ...) must address the
 	// StackSpec and kit this rollout applied, not the CLI default path.
 	r.job.mutateResult(func(jobResult map[string]interface{}) {

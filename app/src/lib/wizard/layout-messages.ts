@@ -6,6 +6,12 @@
 // the server's English text. Merged into every locale by i18n.ts.
 export const layoutMessages = {
   en: {
+    "layout.expansion.title": "Your saved expansion wishes",
+    "layout.expansion.body": "Choose an item to review it. Availability and server fit are checked before setup.",
+    "layout.expansion.pending": "Not available yet",
+    "layout.expansion.server": "Review another server",
+    "layout.expansion.size": "Server size",
+    "layout.expansion.entitlement": "Your plan is checked when you confirm.",
     "layout.panel.title": "Recommended distribution",
     "layout.panel.intro":
       "kombify suggests which server runs each app. Finishing this setup accepts it.",
@@ -223,6 +229,12 @@ export const layoutMessages = {
       "The size of the apps you picked isn't known yet, so the fit isn't checked.",
   },
   de: {
+    "layout.expansion.title": "Deine gespeicherten Erweiterungswünsche",
+    "layout.expansion.body": "Wähle einen Wunsch zur Prüfung. Verfügbarkeit und Serverkapazität werden vor der Einrichtung geprüft.",
+    "layout.expansion.pending": "Noch nicht verfügbar",
+    "layout.expansion.server": "Weiteren Server prüfen",
+    "layout.expansion.size": "Servergröße",
+    "layout.expansion.entitlement": "Dein Tarif wird bei der Bestätigung geprüft.",
     "layout.panel.title": "Empfohlene Verteilung",
     "layout.panel.intro":
       "kombify schlägt vor, auf welchem Server welche App läuft. Wenn du diese Einrichtung abschließt, übernimmst du den Vorschlag.",
@@ -443,6 +455,12 @@ export const layoutMessages = {
       "Die Größe der gewählten Apps ist noch nicht bekannt, deshalb wird nicht geprüft, ob alles passt.",
   },
   es: {
+    "layout.expansion.title": "Tus ampliaciones guardadas",
+    "layout.expansion.body": "Elige una opción para revisarla. Se comprueban la disponibilidad y el servidor antes de configurarla.",
+    "layout.expansion.pending": "Aún no disponible",
+    "layout.expansion.server": "Revisar otro servidor",
+    "layout.expansion.size": "Tamaño del servidor",
+    "layout.expansion.entitlement": "Tu plan se comprueba al confirmar.",
     "layout.panel.title": "Distribución recomendada",
     "layout.panel.intro":
       "kombify te sugiere qué servidor ejecuta cada app. Al terminar esta configuración, aceptas la sugerencia.",
@@ -661,6 +679,12 @@ export const layoutMessages = {
       "Todavía no se conoce el tamaño de las apps que elegiste, así que no se comprueba si encajan.",
   },
   "zh-Hans": {
+    "layout.expansion.title": "已保存的扩展意愿",
+    "layout.expansion.body": "选择一项进行查看。设置前会检查可用性和服务器容量。",
+    "layout.expansion.pending": "尚不可用",
+    "layout.expansion.server": "查看其他服务器",
+    "layout.expansion.size": "服务器规格",
+    "layout.expansion.entitlement": "确认时会检查你的套餐。",
     "layout.panel.title": "推荐的分配方案",
     "layout.panel.intro":
       "kombify 会建议每个应用运行在哪台服务器上。完成本次设置即表示接受该建议。",
@@ -858,6 +882,12 @@ export const layoutMessages = {
       "你所选应用的大小暂时未知，所以尚未检查是否放得下。",
   },
   hi: {
+    "layout.expansion.title": "आपकी सहेजी गई विस्तार इच्छाएँ",
+    "layout.expansion.body": "समीक्षा के लिए एक विकल्प चुनें। सेटअप से पहले उपलब्धता और सर्वर क्षमता जाँची जाती है।",
+    "layout.expansion.pending": "अभी उपलब्ध नहीं",
+    "layout.expansion.server": "दूसरा सर्वर देखें",
+    "layout.expansion.size": "सर्वर का आकार",
+    "layout.expansion.entitlement": "पुष्टि पर आपके प्लान की जाँच होगी।",
     "layout.panel.title": "सुझाई गई व्यवस्था",
     "layout.panel.intro":
       "kombify सुझाव देता है कि हर ऐप किस सर्वर पर चले। यह सेटअप पूरा करने पर आप इसे स्वीकार कर लेते हैं।",
@@ -1072,6 +1102,12 @@ export const layoutMessages = {
       "आपके चुने ऐप्स का आकार अभी पता नहीं है, इसलिए फ़िट होने की जाँच नहीं हुई।",
   },
   ar: {
+    "layout.expansion.title": "طلبات التوسعة المحفوظة",
+    "layout.expansion.body": "اختر عنصرًا لمراجعته. يُتحقق من التوفر وسعة الخادم قبل الإعداد.",
+    "layout.expansion.pending": "غير متاح بعد",
+    "layout.expansion.server": "مراجعة خادم آخر",
+    "layout.expansion.size": "حجم الخادم",
+    "layout.expansion.entitlement": "تُتحقق أهليتك عند التأكيد.",
     "layout.panel.title": "التوزيع الموصى به",
     "layout.panel.intro":
       "يقترح kombify أي خادم يشغّل كل تطبيق. بإنهاء هذا الإعداد تقبل الاقتراح.",

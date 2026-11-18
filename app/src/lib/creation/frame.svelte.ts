@@ -14,6 +14,17 @@ import {
   type UseCaseCatalogView,
 } from "#lib/api/useCaseCatalog.js";
 import {
+  capacityHint,
+  capacityRequestHost,
+  type CapacityHint,
+  type CapacitySize,
+} from "#lib/wizard/capacity-view.js";
+import type {
+  WizardCapacity,
+  WizardRecommendationRequest,
+} from "#lib/api/unifier.js";
+import { wizardRequestKey } from "#lib/wizard/WizardPreviewController.js";
+import {
   LayoutPreviewController,
   acceptedLayoutFromPreview,
   layoutPreviewView,
@@ -803,15 +814,16 @@ export class CreationFrame {
     });
   }
 
-  #followRecommendations() {
-    $effect(() => {
-      if (this.process.reusesOwner) return;
+  /** The question the recommendations are asked now; null where none is asked. */
+  readonly #recommendationRequest = $derived.by<WizardRecommendationRequest | null>(
+    () => {
+      if (this.process.reusesOwner) return null;
       const config = this.config;
       const server = config.serverProvisioning;
       const smartHome = config.useCaseSettings?.["smart-home"];
       const selectedServer = this.options.homelab?.selected;
       const fitEnabled = this.context.features.isEnabled("server_hardware_fit");
-      this.#recommendations.update({
+      return {
         smart_home_settings: smartHome,
         smart_home_context: {
           existing: smartHome?.["instance-origin"] === "existing",
@@ -836,6 +848,7 @@ export class CreationFrame {
         ...(server.mode === "kombify-cloud"
           ? { provider_id: config.providerId }
           : {}),
+        ...capacityRequestHost(config),
         ...(fitEnabled && selectedServer
           ? { server_fit: { server_id: selectedServer } }
           : fitEnabled &&
@@ -849,9 +862,67 @@ export class CreationFrame {
               }
             : {}),
         surface: "easy",
-      });
+      };
+    },
+  );
+
+  #followRecommendations() {
+    $effect(() => {
+      const request = this.#recommendationRequest;
+      if (request) this.#recommendations.update(request);
     });
   }
+
+  /**
+   * Whether the selected use cases fit the chosen server, as advice (never a
+   * gate): the capacity of the recommendations answer to exactly this
+   * selection and server; while a changed question is being asked there is no
+   * answer, never the earlier one.
+   */
+  readonly #capacityAnswer = $derived.by<
+    { assessed: boolean; capacity?: WizardCapacity } | undefined
+  >(() => {
+    const request = this.#recommendationRequest;
+    const state = this.recommendationState;
+    // A server whose size is not known yet (to be connected, one-liner) or
+    // nothing selected gets no advice: the answer would be about another question.
+    if (
+      !request ||
+      Object.keys(capacityRequestHost(this.config)).length === 0 ||
+      selectedCanonicalUseCasesFromGoals(this.config.goals).length === 0
+    )
+      return undefined;
+    // Only the answer to the question on screen now counts: while a changed
+    // selection or server is being asked (or before the state caught up with
+    // it) nothing is shown, never the earlier answer.
+    if (state.phase === "idle" || state.key !== wizardRequestKey(request))
+      return undefined;
+    if (state.phase === "resolved")
+      return { assessed: true, capacity: state.result.capacity };
+    // A failed answer is not a fit, and is said so.
+    return state.phase === "degraded" ? { assessed: true } : undefined;
+  });
+  readonly capacityHint = $derived.by<CapacityHint | undefined>(() => {
+    const answer = this.#capacityAnswer;
+    if (!answer) return undefined;
+    return capacityHint(answer.capacity, {
+      currentOfferingId: this.config.runtimeOfferingId,
+      managed: this.config.serverProvisioning.mode === "kombify-cloud",
+      assessed: answer.assessed,
+    });
+  });
+  /** "Use this size": the larger managed size carries the selection. */
+  useCapacitySize = (size: CapacitySize) => {
+    if (this.interacted) this.userEdited = true;
+    this.config.runtimeOfferingId = size.id;
+  };
+  /** "Leave out": the use case is not selected; the answer follows the selection. */
+  leaveOutForCapacity = (goal: string) => {
+    const selected = selectedCanonicalUseCasesFromGoals(this.config.goals).find(
+      (key) => key === goal,
+    );
+    if (selected) this.setGoal(selected, false);
+  };
 
   get recommendedStackKit(): string | undefined {
     const state = this.recommendationState;

@@ -6,6 +6,7 @@
     CreationTemplateId,
     TemplateSelection,
   } from "#lib/wizard/creationTemplates.js";
+  import type { CreationGoal } from "#lib/wizard/creationGoals.js";
   import { tr } from "#lib/i18n.svelte.js";
 
   /**
@@ -18,11 +19,17 @@
     templates,
     live,
     ontoggle,
+    standardStart,
+    expansion,
+    cards,
   }: {
     templates: { template: CreationTemplate; selection: TemplateSelection }[];
     /** The profiles that are on. */
     live: readonly CreationTemplateId[];
     ontoggle: (id: CreationTemplateId) => void;
+    standardStart: boolean;
+    expansion: Record<CreationTemplateId, { expansion: readonly string[] }>;
+    cards: CreationGoal[];
   } = $props();
 
   // Templates name their icon in data, so a new template needs no change here.
@@ -58,6 +65,44 @@
         <span>{tr(template.titleKey)}</span>
       </button>
     {/each}
+    {#if standardStart}
+      {#each templates.filter( ({ template }) => live.includes(template.id) ) as { template, selection } (template.id)}
+        {@const later = [
+          ...new Set([
+            ...expansion[template.id].expansion,
+            ...selection.skipped,
+          ]),
+        ]}
+        <p
+          class="expansion"
+          data-testid={`creation-template-start-${template.id}`}
+        >
+          {tr("wizard.templates.startsWith")}: {selection.goals
+            .map((goal) => {
+              const card = cards.find(
+                (item) => item.question?.configKey === goal,
+              );
+              return card?.question ? tr(card.question.titleKey) : goal;
+            })
+            .join(", ")}
+        </p>
+        {#if later.length}
+          <p
+            class="expansion"
+            data-testid={`creation-template-expansion-${template.id}`}
+          >
+            {tr("wizard.templates.expandLater")}: {later
+              .map((id) => {
+                const card = cards.find((item) => item.id === id);
+                return card?.question
+                  ? tr(card.question.titleKey)
+                  : tr(`wizard.preview.${id}.title`);
+              })
+              .join(", ")}
+          </p>
+        {/if}
+      {/each}
+    {/if}
   </div>
 {/if}
 
@@ -67,6 +112,12 @@
     flex-wrap: wrap;
     justify-content: center;
     gap: 8px;
+  }
+  .expansion {
+    width: 100%;
+    text-align: center;
+    color: var(--muted-foreground);
+    font-size: 13px;
   }
   .template {
     display: inline-flex;
@@ -107,6 +158,12 @@
     color: currentColor;
   }
   @media (prefers-reduced-motion: reduce) {
+    .expansion {
+      width: 100%;
+      text-align: center;
+      color: var(--muted-foreground);
+      font-size: 13px;
+    }
     .template {
       transition: none;
     }

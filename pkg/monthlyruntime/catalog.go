@@ -39,14 +39,24 @@ const (
 // provisions that package instead; PackageForProvider is the only size a
 // provider adapter may use.
 type Offering struct {
-	ID             serverruntime.RuntimeOfferingID `json:"id"`
-	Name           string                          `json:"name"`
-	BillingCadence serverruntime.BillingCadence    `json:"billing_cadence"`
-	Image          string                          `json:"image"`
-	VCPUs          int                             `json:"vcpus"`
-	MemoryMB       int                             `json:"memory_mb"`
-	DiskGB         int                             `json:"disk_gb"`
-	Region         string                          `json:"region"`
+	ID               serverruntime.RuntimeOfferingID `json:"id"`
+	Name             string                          `json:"name"`
+	BillingCadence   serverruntime.BillingCadence    `json:"billing_cadence"`
+	Image            string                          `json:"image"`
+	VCPUs            int                             `json:"vcpus"`
+	MemoryMB         int                             `json:"memory_mb"`
+	DiskGB           int                             `json:"disk_gb"`
+	Region           string                          `json:"region"`
+	ProviderPackages map[string]OfferingPackage      `json:"provider_packages,omitempty"`
+}
+
+// OfferingPackage is the actual machine advertised for a chosen provider.
+// These fields are resolved from PackageForProvider, never the generic row.
+type OfferingPackage struct {
+	VCPUs    int    `json:"vcpus"`
+	MemoryMB int    `json:"memory_mb"`
+	DiskGB   int    `json:"disk_gb"`
+	Region   string `json:"region"`
 }
 
 func Catalog() []Offering {

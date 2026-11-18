@@ -4,7 +4,7 @@
   "source": {
     "product": "techstack",
     "path": "api/openapi/techstack-v1.yaml",
-    "sha256": "e14ec8f49b91bf2f54a7027cf17ba0f53944e817c401cf39fec46b0f5ecb7687"
+    "sha256": "b62281e9013b5c95c5eca35616d45533f0f5e61be855d9841005e25900e27b66"
   },
   "tools": [
     {
@@ -8030,7 +8030,7 @@
       "toolName": "list_monthly_runtime_offerings",
       "alias": "techstack.list_monthly_runtime_offerings",
       "title": "List monthly runtime offerings",
-      "description": "Returns public, provider-free subscription runtime offerings.",
+      "description": "Returns subscription offerings with actual provider package sizes. Generic sizing fields are custom-provider defaults; plans must use provider_packages for the selected provider.",
       "inputSchema": {
         "additionalProperties": false,
         "properties": {},
@@ -10490,6 +10490,12 @@
           "compute_profile": {
             "type": "string"
           },
+          "concurrent_workloads": {
+            "default": 2,
+            "maximum": 2,
+            "minimum": 1,
+            "type": "integer"
+          },
           "deployment_lane": {
             "enum": [
               "saas",
@@ -10503,7 +10509,16 @@
             },
             "type": "array"
           },
+          "kit_slug": {
+            "description": "Advisory kit/core memory context",
+            "never execution admission.": null,
+            "type": "string"
+          },
           "provider_id": {
+            "type": "string"
+          },
+          "runtime_offering_id": {
+            "description": "Explicit planned provider offering; together with provider_id identifies its real package.",
             "type": "string"
           },
           "selection_intent": {
@@ -10512,6 +10527,31 @@
               "all"
             ],
             "type": "string"
+          },
+          "server_capacity": {
+            "additionalProperties": false,
+            "description": "Advisory planning capacity, never attested rollout facts.",
+            "properties": {
+              "cpu_cores": {
+                "maximum": 1024,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "disk_gb": {
+                "maximum": 1048576,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "ram_mb": {
+                "maximum": 1048576,
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "ram_mb"
+            ],
+            "type": "object"
           },
           "services": {
             "items": {

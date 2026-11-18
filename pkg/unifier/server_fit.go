@@ -17,7 +17,7 @@ func EvaluateServerFit(request core.WizardRecommendationRequest, inventory Wizar
 	if choice == nil {
 		return nil
 	}
-	fit := &core.WizardServerFit{Status: "unknown", Scope: "selected_workloads", Advisories: []core.WizardServerFitFact{{Code: "base_stack_capacity"}}, Deficits: []core.WizardServerFitFact{}, Unknowns: []core.WizardServerFitFact{}}
+	fit := &core.WizardServerFit{MemoryPeak: core.WizardMemoryPeak{Status: "unknown"}, Status: "unknown", Scope: "selected_workloads", Advisories: []core.WizardServerFitFact{{Code: "base_stack_capacity"}}, Deficits: []core.WizardServerFitFact{}, Unknowns: []core.WizardServerFitFact{}}
 	addUnknown := func(code, workload, module string) {
 		fit.Unknowns = append(fit.Unknowns, core.WizardServerFitFact{Code: code, Workload: workload, Module: module})
 	}
@@ -113,6 +113,7 @@ func EvaluateServerFit(request core.WizardRecommendationRequest, inventory Wizar
 	}
 	selectionNeed := selectionStorageNeed(footprints)
 	for _, footprint := range footprints {
+
 		short, missing := footprintFits(footprint, worker, stackkitrelease.UseCaseResources{}, selectionNeed)
 		for _, code := range short {
 			if code == "accelerator" && cap.GPU == nil {
@@ -159,8 +160,10 @@ func EvaluateServerFit(request core.WizardRecommendationRequest, inventory Wizar
 	if storage > 0 && total.StorageGB+storageUsed > storage {
 		fit.Deficits = append(fit.Deficits, core.WizardServerFitFact{Code: "selection_storage", Required: total.StorageGB + storageUsed, Available: storage, Unit: "GB"})
 	}
+	fit.MemoryPeak = estimateMemoryPeak(catalog, footprints, worker, len(request.Services) == 0)
 	if fit.Evidence == "observed" && (inventory.State == "unavailable" || inventory.StaleWorkerIDs[worker.ID] || !strings.EqualFold(worker.Status, "online")) {
 		fit.Status = "stale"
+		fit.MemoryPeak = core.WizardMemoryPeak{Status: "unknown"}
 		return fit
 	}
 	if len(fit.Deficits) > 0 {
@@ -169,4 +172,27 @@ func EvaluateServerFit(request core.WizardRecommendationRequest, inventory Wizar
 		fit.Status = "fits"
 	}
 	return fit
+}
+
+// estimateMemoryPeak sums source-bound module evidence. This is an estimate
+// of combined workload peaks, not a measurement of simultaneous whole-host use.
+func estimateMemoryPeak(catalog stackkitrelease.UseCaseCatalog, footprints []stackkitrelease.WorkloadFootprint, worker core.Worker, completeSelection bool) core.WizardMemoryPeak {
+	unknown := core.WizardMemoryPeak{Status: "unknown"}
+	if len(footprints) == 0 || !completeSelection || !worker.UsageObserved || worker.Capabilities.RAM <= 0 {
+		return unknown
+	}
+	peak := float64(worker.Usage.RAM) / 1024
+	for _, footprint := range footprints {
+		mib, ok := stackkitrelease.MeasuredMemoryPeak(catalog, footprint)
+		if !ok || footprint.Accelerator != nil {
+			return unknown
+		}
+		peak += mib / 1024
+	}
+	available := float64(worker.Capabilities.RAM) / 1024
+	return memoryPeakResult(peak, available)
+}
+
+func memoryPeakResult(peak, available float64) core.WizardMemoryPeak {
+	return core.WizardMemoryPeak{Status: "available", EstimatedGiB: math.Ceil(peak*100) / 100, AvailableGiB: available, Warning: peak > available*1.25}
 }

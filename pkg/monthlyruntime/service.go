@@ -289,7 +289,23 @@ type RuntimeResponse struct {
 }
 
 func (s *Service) Offerings() []Offering {
-	return Catalog()
+	offerings := Catalog()
+	for i := range offerings {
+		offering := &offerings[i]
+		offering.ProviderPackages = map[string]OfferingPackage{}
+		for _, provider := range []string{ProviderIONOS, ProviderCentron} {
+			pkg, err := PackageForProvider(provider, string(offering.ID))
+			if err != nil {
+				continue // An unqualified provider/offering pair is not advertised.
+			}
+			region := pkg.Location
+			if region == "" {
+				region = offering.Region
+			}
+			offering.ProviderPackages[provider] = OfferingPackage{VCPUs: pkg.VCPUs, MemoryMB: pkg.MemoryMB, DiskGB: pkg.DiskGB, Region: region}
+		}
+	}
+	return offerings
 }
 
 func (s *Service) Operations(ctx context.Context, req OperationsRequest) ([]vmleases.OperationEvent, error) {

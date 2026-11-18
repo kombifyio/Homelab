@@ -427,12 +427,12 @@ func (r *deployRollout) runRollout(ctx context.Context) error {
 		mergeStackKitOutputs(r.stackKitOutputs, result)
 		if components, ok := result[DegradedComponentsResultField]; ok {
 			r.job.mutateResult(func(jobResult map[string]interface{}) { jobResult[DegradedComponentsResultField] = components })
-			r.q.addLog(r.job, "warn", "Secure public access through the kombify.me address is not active yet; kombify installs its certificate automatically on this server")
+			r.q.addLog(r.job, "warn", "Some independent rollout components could not complete; inspect their individual reasons")
 		}
 		r.persistRuntimeProgress()
 		if runtimeActionStatusAllowed(rolloutStatus, string(runtimeaction.StatusCompletedDegraded)) {
-			completeDegradedRuntimeLifecyclePhase(r.job, runtimePhasePrepareApply, "StackKit core applied with retryable degraded components", map[string]interface{}{resultStatusField: rolloutStatus})
-			r.q.addLog(r.job, "warn", "StackKit core is available; one or more independent applications remain degraded and retryable")
+			completeDegradedRuntimeLifecyclePhase(r.job, runtimePhasePrepareApply, "StackKit core applied with independent component failures", map[string]interface{}{resultStatusField: rolloutStatus})
+			r.q.addLog(r.job, "warn", "StackKit core is available; one or more independent components need attention")
 		} else {
 			completeRuntimeLifecyclePhase(r.job, runtimePhasePrepareApply, "StackKit prepare/apply completed", map[string]interface{}{resultStatusField: rolloutStatus})
 		}

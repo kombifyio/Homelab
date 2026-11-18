@@ -13,6 +13,7 @@
     type DegradedComponentView,
   } from "./creation-controller.svelte.js";
   import {
+    isUseCaseCapacityFailure,
     degradedComponentMeaning,
     degradedComponentTitle,
     formatNextResumeAt,
@@ -66,10 +67,13 @@
   {#each rows as row (row.component || "lifecycle")}
     {@const repaired = row.repairStatus === "repaired"}
     {@const status = repairLabel(row)}
+    {@const failed = isUseCaseCapacityFailure(row)}
     <li
       class="rounded-xl border bg-card p-4 {repaired
         ? 'border-success/30'
-        : 'border-warning/40'}"
+        : failed
+          ? 'border-destructive/40'
+          : 'border-warning/40'}"
       data-testid="creation-degraded-component"
       data-component={row.component}
       data-repair-status={row.repairStatus ?? ""}
@@ -78,7 +82,9 @@
         <div
           class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full {repaired
             ? 'bg-success/10 text-success'
-            : 'bg-warning/15 text-warning'}"
+            : failed
+              ? 'bg-destructive/10 text-destructive'
+              : 'bg-warning/15 text-warning'}"
           aria-hidden="true"
         >
           {#if repaired}
@@ -94,7 +100,15 @@
             <h3 class="text-sm font-semibold text-foreground">
               {degradedComponentTitle(row.component)}
             </h3>
-            {#if status}
+            {#if failed}
+              <span
+                class="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive"
+                data-testid="creation-use-case-not-installed"
+                role="status"
+              >
+                {tr("capacity.rollout.status")}
+              </span>
+            {:else if status}
               <span
                 class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium {repaired
                   ? 'bg-success/10 text-success'

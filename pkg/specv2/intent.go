@@ -94,14 +94,16 @@ func IsKnownKitSlug(slug string) bool {
 // owns the projection onto the kit seed. Owner identity deliberately never
 // travels here — it is a separate custody handoff.
 type WizardIntent struct {
-	Schema        string        `json:"schema"`
-	RunKind       string        `json:"run_kind"`
-	HomelabID     string        `json:"homelab_id,omitempty"`
-	Name          string        `json:"name"`
-	DomainBase    string        `json:"domain_base,omitempty"`
-	Goals         []string      `json:"goals,omitempty"`
-	Server        ServerIntent  `json:"server"`
-	KitAssignment KitAssignment `json:"kit_assignment"`
+	Schema     string   `json:"schema"`
+	RunKind    string   `json:"run_kind"`
+	HomelabID  string   `json:"homelab_id,omitempty"`
+	Name       string   `json:"name"`
+	DomainBase string   `json:"domain_base,omitempty"`
+	Goals      []string `json:"goals,omitempty"`
+	// ProfileExpansions records deferred wishes separately from executable goals.
+	ProfileExpansions []ProfileExpansion `json:"profile_expansions,omitempty"`
+	Server            ServerIntent       `json:"server"`
+	KitAssignment     KitAssignment      `json:"kit_assignment"`
 	// Access preserves the operator's reachability and explicit publication
 	// decisions. Runtime activation is reported separately from this intent.
 	Access AccessIntent `json:"access,omitempty"`
@@ -132,6 +134,12 @@ type WizardIntent struct {
 	// was shown. The run revalidates it against a fresh snapshot before it
 	// writes any node binding (owner decision D2).
 	LayoutRecommendation *LayoutRecommendationAcceptance `json:"layout_recommendation,omitempty"`
+}
+
+// ProfileExpansion is a saved wish, never an instruction to install or order.
+type ProfileExpansion struct {
+	Profile       string   `json:"profile"`
+	DeferredGoals []string `json:"deferred_goals"`
 }
 
 // LayoutRecommendationAcceptance names the shown recommendation and the
@@ -246,6 +254,25 @@ func (intent WizardIntent) Validate() error {
 		}
 	default:
 		return fmt.Errorf("specv2: kit_assignment.mode must be %q, %q or %q", KitAssignmentFound, KitAssignmentJoin, KitAssignmentExtend)
+	}
+	profiles := map[string][]string{
+		"infinity":      {"photos", "media", "smart-home", "ai", "game", "network", "automation", "marketplace"},
+		"self-employed": {"automation", "ai"},
+	}
+	seenProfiles := map[string]bool{}
+	for _, expansion := range intent.ProfileExpansions {
+		allowed, ok := profiles[expansion.Profile]
+		if !ok || seenProfiles[expansion.Profile] {
+			return fmt.Errorf("specv2: invalid or repeated expansion profile %q", expansion.Profile)
+		}
+		seenProfiles[expansion.Profile] = true
+		seenGoals := map[string]bool{}
+		for _, goal := range expansion.DeferredGoals {
+			if !slices.Contains(allowed, goal) || seenGoals[goal] || slices.Contains(intent.Goals, goal) {
+				return fmt.Errorf("specv2: invalid deferred goal %q for %s", goal, expansion.Profile)
+			}
+			seenGoals[goal] = true
+		}
 	}
 	if layout := intent.LayoutRecommendation; layout != nil {
 		if intent.KitAssignment.Mode != KitAssignmentJoin && intent.KitAssignment.Mode != KitAssignmentExtend {

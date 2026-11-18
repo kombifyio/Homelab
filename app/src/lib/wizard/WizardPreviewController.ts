@@ -5,15 +5,26 @@ import {
 } from "#lib/api/unifier.js";
 
 import { tr } from "#lib/i18n.svelte.js";
+/**
+ * `key` names the request an answer belongs to (`wizardRequestKey`): a client
+ * compares it with the key of what is on screen now, so an answer to an earlier
+ * question is never shown as the answer to this one.
+ */
 export type WizardPreviewState =
   | { phase: "idle" }
-  | { phase: "loading"; previous?: WizardRecommendationResult }
-  | { phase: "resolved"; result: WizardRecommendationResult }
+  | { phase: "loading"; key: string; previous?: WizardRecommendationResult }
+  | { phase: "resolved"; key: string; result: WizardRecommendationResult }
   | {
       phase: "degraded";
+      key: string;
       previous?: WizardRecommendationResult;
       message: string;
     };
+
+/** The identity of a request as the controller asks it. */
+export function wizardRequestKey(request: WizardRecommendationRequest): string {
+  return JSON.stringify(normalizeRequest(request));
+}
 
 export type WizardRecommendationLoader = (
   request: WizardRecommendationRequest,
@@ -48,11 +59,11 @@ export class WizardPreviewController {
     const cached = request.server_fit ? undefined : this.#cache.get(key);
     if (cached) {
       this.#current = cached;
-      this.#onchange({ phase: "resolved", result: cached });
+      this.#onchange({ phase: "resolved", key, result: cached });
       return;
     }
 
-    this.#onchange({ phase: "loading", previous: this.#current });
+    this.#onchange({ phase: "loading", key, previous: this.#current });
     this.#timer = setTimeout(() => {
       this.#timer = null;
       const controller = new AbortController();
@@ -62,12 +73,13 @@ export class WizardPreviewController {
           if (controller.signal.aborted || sequence !== this.#sequence) return;
           if (!normalized.server_fit) this.#cache.set(key, result);
           this.#current = result;
-          this.#onchange({ phase: "resolved", result });
+          this.#onchange({ phase: "resolved", key, result });
         })
         .catch((error: unknown) => {
           if (controller.signal.aborted || sequence !== this.#sequence) return;
           this.#onchange({
             phase: "degraded",
+            key,
             previous: this.#current,
             message:
               error instanceof Error
@@ -127,6 +139,13 @@ function normalizeRequest(
     ...(request.use_case_capabilities
       ? { use_case_capabilities: request.use_case_capabilities }
       : {}),
+    ...(request.server_capacity
+      ? { server_capacity: request.server_capacity }
+      : {}),
+    ...(request.runtime_offering_id?.trim()
+      ? { runtime_offering_id: request.runtime_offering_id.trim() }
+      : {}),
+    ...(request.kit_slug?.trim() ? { kit_slug: request.kit_slug.trim() } : {}),
     surface: request.surface,
   };
 }

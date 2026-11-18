@@ -2,7 +2,8 @@ import type { CreationOperation } from "#lib/creation/core/index.js";
 import type { ServerProvisioningMode, Task } from "#lib/wizard/index.js";
 import { sanitizeSensitiveText } from "#lib/security/sensitive-data.js";
 
-import { tr, formatDateTime } from "#lib/i18n.svelte.js";
+import { tr, formatDateTime, formatNumber } from "#lib/i18n.svelte.js";
+import { useCaseTitle } from "#lib/wizard/creationGoalText.js";
 export type StackKitIdentityHandoff = {
   ownerUsername?: string;
   ownerEmail?: string;
@@ -331,6 +332,9 @@ export type DegradedComponent = {
   stage?: string;
   retryable: boolean;
   detail?: string;
+  /** Memory in GB of a use case that did not fit, when the result carries it. */
+  needGb?: number;
+  haveGb?: number;
   repair?: DegradedRepair;
 };
 
@@ -363,6 +367,13 @@ function parseDegradedRepair(value: unknown): DegradedRepair | undefined {
   };
 }
 
+function positiveNumber(value: unknown): number | undefined {
+  const parsed = typeof value === "string" ? Number(value) : value;
+  return typeof parsed === "number" && Number.isFinite(parsed) && parsed > 0
+    ? parsed
+    : undefined;
+}
+
 function parseDegradedComponents(value: unknown): DegradedComponent[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((raw) => {
@@ -370,12 +381,15 @@ function parseDegradedComponents(value: unknown): DegradedComponent[] {
     const component = getString(record, ["component"]).trim();
     if (!record || !component) return [];
     const detail = getString(record, ["detail"]);
+    const params = asRecord(record.params);
     return [
       {
         component,
         reasonCode: getString(record, ["reason_code", "reasonCode"]).trim(),
         stage: getString(record, ["stage"]).trim() || undefined,
         retryable: record.retryable === true,
+        needGb: positiveNumber(params?.need_gb),
+        haveGb: positiveNumber(params?.have_gb),
         detail: detail
           ? sanitizeSensitiveText(detail).slice(0, 300)
           : undefined,
@@ -440,8 +454,20 @@ export function markDegradedTasks(
   }));
 }
 
+const USE_CASE_COMPONENT_PREFIX = "use_case:";
+
+/** A use case that could not be installed for lack of memory; the server and the rest stay up. */
+export function isUseCaseCapacityFailure(component: DegradedComponent): boolean {
+  return (
+    component.component.startsWith(USE_CASE_COMPONENT_PREFIX) &&
+    component.reasonCode === "capacity_memory"
+  );
+}
+
 /** Short localized title of a degraded component. */
 export function degradedComponentTitle(component: string): string {
+  if (component.startsWith(USE_CASE_COMPONENT_PREFIX))
+    return useCaseTitle(component.slice(USE_CASE_COMPONENT_PREFIX.length));
   return component === "public_tls"
     ? tr("ui.stacksCreatingCreationDegraded.publicTlsTitle")
     : tr("ui.stacksCreatingCreationDegraded.genericTitle");
@@ -449,6 +475,14 @@ export function degradedComponentTitle(component: string): string {
 
 /** One line: what the degraded component means for the user right now. */
 export function degradedComponentMeaning(component: DegradedComponent): string {
+  if (isUseCaseCapacityFailure(component)) {
+    return component.needGb && component.haveGb
+      ? tr("capacity.rollout.reasonNumbers", {
+          need: formatNumber(component.needGb, { maximumFractionDigits: 1 }),
+          have: formatNumber(component.haveGb, { maximumFractionDigits: 1 }),
+        })
+      : tr("capacity.rollout.reason");
+  }
   if (component.reasonCode === "acme_rate_limited") {
     return tr("ui.stacksCreatingCreationDegraded.reasonAcmeRateLimited");
   }

@@ -1,4 +1,9 @@
-import type { CreationGoal, CreationGoalId } from "./creationGoals.js";
+import {
+  supportsCreationChoice,
+  type CreationGoal,
+  type CreationGoalId,
+} from "./creationGoals.js";
+import { installsService } from "#lib/api/useCaseCatalog.js";
 import type { GoalConfigKey } from "./standardBundle.js";
 
 /** Selection templates (profiles) above the use case cards: one click selects
@@ -55,6 +60,44 @@ export const CREATION_TEMPLATES = [
   goals: readonly CreationGoalId[] | "all";
 }[];
 
+/** A small, executable starting point; the remaining intentions stay visible. */
+export const STANDARD_STARTS: Record<
+  CreationTemplateId,
+  {
+    goals: readonly CreationGoalId[];
+    expansion: readonly CreationGoalId[];
+  }
+> = {
+  family: {
+    goals: ["files", "photos", "media", "vault", "smart-home"],
+    expansion: [],
+  },
+  "documents-media": { goals: ["files", "photos", "media"], expansion: [] },
+  "self-employed": {
+    goals: ["files", "vault", "mail"],
+    expansion: ["automation", "ai"],
+  },
+  infinity: {
+    goals: ["files", "vault", "mail", "dev"],
+    expansion: [
+      "photos",
+      "media",
+      "smart-home",
+      "ai",
+      "game",
+      "network",
+      "automation",
+      "marketplace",
+    ],
+  },
+};
+
+export function profileExpansionGoals(
+  id: CreationTemplateId,
+): readonly CreationGoalId[] {
+  return STANDARD_STARTS[id].expansion;
+}
+
 export type CreationTemplate = (typeof CREATION_TEMPLATES)[number];
 export type CreationTemplateId = CreationTemplate["id"];
 
@@ -68,22 +111,34 @@ export interface TemplateSelection {
 export function templateSelection(
   template: CreationTemplate,
   cards: CreationGoal[],
+  standardStart = false,
 ): TemplateSelection {
   const wanted = (id: CreationGoalId) =>
-    template.goals === "all" ||
-    (template.goals as readonly CreationGoalId[]).includes(id);
+    standardStart
+      ? STANDARD_STARTS[template.id].goals.includes(id)
+      : template.goals === "all" ||
+        (template.goals as readonly CreationGoalId[]).includes(id);
+  const eligible = (card: CreationGoal) =>
+    card.availability === "available" &&
+    !!card.question &&
+    (!standardStart ||
+      card.id !== "photos" ||
+      (supportsCreationChoice(card.catalog, "backend", "immich-lite") &&
+        card.catalog?.components.some(
+          (component) =>
+            component.id === "immich-lite" && installsService(component),
+        )));
   const goals = cards
-    .filter((card) => card.availability === "available" && wanted(card.id))
+    .filter((card) => eligible(card) && wanted(card.id))
     .flatMap((card) => (card.question ? [card.question.configKey] : []));
   const skipped = cards
-    .filter(
-      (card) =>
-        wanted(card.id) &&
-        (card.availability !== "available" || !card.question),
-    )
+    .filter((card) => wanted(card.id) && !eligible(card))
     .map((card) => card.id);
   return {
-    goals: template.goals === "all" ? [...goals, "everything"] : goals,
+    goals:
+      !standardStart && template.goals === "all"
+        ? [...goals, "everything"]
+        : goals,
     skipped,
   };
 }

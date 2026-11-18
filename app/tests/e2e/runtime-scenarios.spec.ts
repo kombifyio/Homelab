@@ -3,6 +3,7 @@ import { execFile, spawn } from "node:child_process";
 import { createReadStream } from "node:fs";
 import { createHash, randomUUID } from "node:crypto";
 import type { MonthlyRuntimeCleanupReadback } from "../../src/lib/api/stacks";
+import type { WizardRecommendationRequest, WizardRecommendationResult } from "../../src/lib/api/unifier";
 import type {
   ConfigureInstalledWorkloadRequest,
   UseCaseConfigurationView,
@@ -160,6 +161,48 @@ const MANAGED_RUNTIME_RETAIN_CONFIRMATION =
 const MANAGED_RUNTIME_RETAIN =
   String(process.env.TECHSTACK_RUNTIME_E2E_RETAIN_MANAGED ?? "").trim() ===
   MANAGED_RUNTIME_RETAIN_CONFIRMATION;
+const MANAGED_DOCUMENTS_MEDIA =
+  process.env.TECHSTACK_RUNTIME_E2E_MANAGED_PROFILE === "documents-media";
+const STANDARD_PROFILE_GOALS = {
+  family: ["files", "photos", "media", "vault", "smart-home"],
+  "documents-media": ["files", "photos", "media"],
+  "self-employed": ["files", "vault", "mail"],
+  infinity: ["files", "vault", "mail", "dev"],
+} as const;
+// Pinned catalog alternatives and their registry aliases; Mail is an existing
+// provider binding, not an application the starter installs.
+const STANDARD_PROFILE_APPLICATIONS: Record<string, { alternative: string; registryKeys: string[] }> = {
+  files: { alternative: "cloudreve", registryKeys: ["files", "cloudreve"] },
+  vault: { alternative: "vaultwarden", registryKeys: ["vault", "vaultwarden"] },
+  photos: { alternative: "immich-lite", registryKeys: ["photos", "immich-lite"] },
+  media: { alternative: "jellyfin", registryKeys: ["media", "jellyfin"] },
+  "smart-home": { alternative: "home-assistant", registryKeys: ["smart-home", "home-assistant"] },
+  dev: { alternative: "gitea", registryKeys: ["dev", "gitea"] },
+};
+function standardProfileApplication(goal: string) {
+  const application = STANDARD_PROFILE_APPLICATIONS[goal];
+  if (!application) throw new Error(`No pinned starter application for ${goal}`);
+  return application;
+}
+const standardSelection = (process.env.TECHSTACK_RUNTIME_E2E_MANAGED_PROFILE ?? "");
+const STANDARD_PROFILE = standardSelection.startsWith("standard-")
+  ? Object.keys(STANDARD_PROFILE_GOALS).find((id): id is keyof typeof STANDARD_PROFILE_GOALS => id === standardSelection.slice(9))
+  : undefined;
+if (standardSelection.startsWith("standard-") && !STANDARD_PROFILE) throw new Error("Unknown Standard Creation profile");
+const PROFILE_WINDOW = MANAGED_DOCUMENTS_MEDIA || Boolean(STANDARD_PROFILE);
+const MANAGED_DOCUMENTS_MEDIA_SCENARIO =
+  "kombify-cloud creates a monthly runtime lease via ionos and exposes runtime actions";
+const DOCUMENTS_MEDIA_FIXTURE = "TEST_PRO_DOCUMENTS_MEDIA_USER";
+const DOCUMENTS_MEDIA_GOALS = ["files", "media", "photos"];
+const DOCUMENTS_MEDIA_ALTERNATIVES = { files: "cloudreve", media: "jellyfin", photos: "immich" };
+const DOCUMENTS_MEDIA_OFFERING = "monthly-runtime-standard";
+const DOCUMENTS_MEDIA_PACKAGE = {
+  provider_id: "ionos",
+  offering_id: DOCUMENTS_MEDIA_OFFERING,
+  template: "Memory Cube S",
+  location: "de/fra/2",
+  specs: { cpu_cores: 2, memory_mb: 8192, disk_gb: 120 },
+};
 const RUNTIME_AUTH_OPTIONS = {
   productBase: PRODUCT_BASE,
   apiBase: API_BASE,
@@ -190,6 +233,7 @@ interface RuntimeWorkerRecord {
 
 interface RuntimeStackOperationServer {
   id: string;
+  server_id?: string;
   hostname: string;
   role?: string;
   status?: string;
@@ -204,6 +248,7 @@ interface RuntimeStackOperationServer {
   enrollment_status?: string;
   approved?: boolean;
   assignable?: boolean;
+  capabilities?: Record<string, unknown>;
 }
 
 interface RuntimeStackOperationService {
@@ -213,6 +258,7 @@ interface RuntimeStackOperationService {
   application_name?: string;
   application_key?: string;
   management_state?: string;
+  kit_deployment_id?: string;
   stack_id?: string;
   stack_name?: string;
   server_id?: string;
@@ -221,6 +267,7 @@ interface RuntimeStackOperationService {
   url?: string;
   desired_state?: string;
   observed_state?: string;
+  health_state?: string;
   observed_at?: string;
   allowed_actions?: string[];
   inventory_revision?: number;
@@ -632,7 +679,22 @@ async function createManagedRuntimeStackViaWizard(
     timeout: 30_000,
   });
 
-  await page.getByTestId("easy-feature-storage").click();
+  if (STANDARD_PROFILE) {
+    await page.getByTestId(`creation-template-${STANDARD_PROFILE}`).click();
+    await expect(page.getByTestId(`creation-template-start-${STANDARD_PROFILE}`)).toBeVisible();
+  } else if (MANAGED_DOCUMENTS_MEDIA) {
+    await page.getByTestId("creation-template-documents-media").click();
+    await page.getByTestId("wizard-next").click();
+    const photos = page.getByTestId("creation-goal-card-photos");
+    await expect(photos).toBeVisible();
+    const fullImmich = photos.getByRole("button").filter({
+      has: page.getByText("Immich", { exact: true }),
+    });
+    await fullImmich.click();
+    await expect(fullImmich).toHaveAttribute("aria-pressed", "true");
+  } else {
+    await page.getByTestId("easy-feature-storage").click();
+  }
   await leaveGoalsStep(page);
   await expect(page.getByTestId("easy-step-2")).toBeVisible();
   await page.getByTestId("server-branch-new").click();
@@ -727,6 +789,23 @@ async function createManagedRuntimeStackViaWizard(
     throw new Error(
       `Managed Wizard payload did not bind provider ${providerId}: ${JSON.stringify(redactObject(requestBody))}`,
     );
+  }
+  if (STANDARD_PROFILE) {
+    expect(intent.goals.slice().sort()).toEqual([...STANDARD_PROFILE_GOALS[STANDARD_PROFILE]].sort());
+    if (STANDARD_PROFILE === "infinity" || STANDARD_PROFILE === "self-employed") {
+      expect(intent.profile_expansions).toEqual(expect.arrayContaining([
+        expect.objectContaining({ profile: STANDARD_PROFILE, deferred_goals: expect.arrayContaining(["automation", "ai"]) }),
+      ]));
+    }
+    if (intent.goals.includes("photos")) expect(intent.use_case_settings?.photos?.backend).toBe("immich-lite");
+    if (intent.goals.includes("mail")) expect(intent.use_case_settings?.mail?.hosting).toBe("existing");
+  }
+  if (MANAGED_DOCUMENTS_MEDIA) {
+    expect(intent.goals, "Documents & media selects all three use cases").toEqual(
+      expect.arrayContaining(DOCUMENTS_MEDIA_GOALS),
+    );
+    expect(intent.goals).toHaveLength(DOCUMENTS_MEDIA_GOALS.length);
+    expect(intent.use_case_settings?.photos?.backend).toBe("immich");
   }
 
   const stackName = String(
@@ -1236,11 +1315,14 @@ async function waitForManagedRuntimeInventoryEvidence(args: {
       (item) => item.lease_id === args.leaseId,
     );
     const operationServices = lastOperations.services ?? [];
-    const registryServices = servicesForStack(
-      lastRegistry.services ?? [],
-      args.stackId,
-      args.stackName,
-    );
+    const services = lastRegistry.services ?? [];
+    const registryServices = MANAGED_DOCUMENTS_MEDIA
+      ? services.filter((service) =>
+        Boolean(server?.server_id) &&
+        service.kit_deployment_id === args.stackId &&
+        service.server_id === server?.server_id,
+      )
+      : servicesForStack(services, args.stackId, args.stackName);
     const runningServices = numericRuntimeKpi(
       lastOperations.kpis,
       "running_services",
@@ -1249,13 +1331,21 @@ async function waitForManagedRuntimeInventoryEvidence(args: {
       ...operationServices,
       ...registryServices,
     ]);
+    const documentsMediaReady = !MANAGED_DOCUMENTS_MEDIA || (
+      Number(server?.capabilities?.memory_total_bytes) > 0 &&
+      Number(server?.capabilities?.disk_total_bytes) > 0 &&
+      DOCUMENTS_MEDIA_GOALS.every((goal) =>
+        registryServices.some((service) => service.application_key === goal),
+      )
+    );
     if (
       worker &&
       server &&
       operationServices.length > 0 &&
       registryServices.length > 0 &&
       runningServices > 0 &&
-      serviceUrls.length > 0
+      serviceUrls.length > 0 &&
+      documentsMediaReady
     ) {
       // Enrollment is proven earlier by the monthly-runtime status. Here the
       // node must be approved, connected and bound to this stack.
@@ -1305,6 +1395,109 @@ async function waitForManagedRuntimeInventoryEvidence(args: {
   throw new Error(
     `Timed out waiting for managed-runtime inventory lease=${args.leaseId}; workers=${JSON.stringify(lastWorkers)} operations=${JSON.stringify(lastOperations)} registry=${JSON.stringify(lastRegistry)}`,
   );
+}
+
+async function assertProStandardDocumentsMediaRollout(args: {
+  session: GatewaySessionKeeper;
+  server: RuntimeStackOperationServer;
+  stackId: string;
+  release: string;
+  services: RuntimeStackOperationService[];
+}) {
+  const capabilities = args.server.capabilities;
+  expect(capabilities?.provider).toBe("ionos");
+  expect(capabilities?.cpu_cores).toBe(2);
+  expect(capabilities?.runtime_offering_id).toBe(DOCUMENTS_MEDIA_OFFERING);
+  const gibibyte = 1024 ** 3;
+  const memoryBytes = Number(capabilities?.memory_total_bytes);
+  const diskBytes = Number(capabilities?.disk_total_bytes);
+  // Guard observes usable guest memory and filesystem size after OS overhead.
+  expect(memoryBytes).toBeGreaterThanOrEqual(7.5 * gibibyte);
+  expect(memoryBytes).toBeLessThanOrEqual(8 * gibibyte);
+  expect(diskBytes).toBeGreaterThanOrEqual(100 * gibibyte);
+  expect(diskBytes).toBeLessThanOrEqual(120 * gibibyte);
+
+  const read = () => fetchRuntimeApi<UseCaseConfigurationView>(
+    args.session,
+    `/api/v1/stacks/${encodeURIComponent(args.stackId)}/use-cases/configuration`,
+    args.session.apiBase,
+  );
+  await expect.poll(async () => (await read()).expected_spec_hash, {
+    timeout: 60_000,
+  }).toMatch(/^sha256:[0-9a-f]{64}$/);
+  const inspected = await read();
+  expect(inspected.kit_deployment_id).toBe(args.stackId);
+  expect(args.release).toMatch(/^v\d+\.\d+\.\d+$/);
+  expect(inspected.release_version.replace(/^v/, "")).toBe(args.release.slice(1));
+  for (const [useCase, want] of Object.entries(DOCUMENTS_MEDIA_ALTERNATIVES)) {
+    const installed = inspected.use_cases.find((entry) => entry.id === useCase);
+    expect(installed?.workloads.map((workload) => workload.alternative)).toContain(want);
+  }
+  const registeredKeys = args.services.map((service) => service.application_key);
+  expect(registeredKeys).toEqual(expect.arrayContaining(DOCUMENTS_MEDIA_GOALS));
+  await attachJson("pro-standard-documents-media-rollout.json", {
+    provider: "ionos",
+    runtime_offering: DOCUMENTS_MEDIA_OFFERING,
+    release: inspected.release_version,
+    applied_spec_hash: inspected.expected_spec_hash,
+    observed_guest: { cpu_cores: 2, memory_bytes: memoryBytes, disk_bytes: diskBytes },
+    installed_alternatives: DOCUMENTS_MEDIA_ALTERNATIVES,
+    registered_application_keys: DOCUMENTS_MEDIA_GOALS,
+    scope: "package_and_application_rollout",
+  });
+}
+
+async function assertProStandardDocumentsMediaAuthority(session: GatewaySessionKeeper) {
+  const [, claims] = (await session.token()).split(".");
+  const identity = claims
+    ? lifecycleRecord(Buffer.from(claims, "base64url").toString("utf8"))
+    : {};
+  const fixtureSubject = process.env.TEST_PRO_DOCUMENTS_MEDIA_USER_ID?.trim();
+  if (!fixtureSubject || identity.sub !== fixtureSubject) {
+    throw new Error("The Gateway session is not the exact isolated Documents & media Pro fixture");
+  }
+  expect(identity["https://kombify.io/tier"], "the test owner is on real Pro").toBe("pro");
+  const admitted = await fetchRuntimeApi<{
+    provider_id?: string;
+    request_bound?: boolean;
+    admission_preflight?: boolean;
+  }>(
+    session,
+    "/api/v1/managed-runtimes/authority?provider_id=ionos",
+    session.apiBase,
+  );
+  expect(admitted).toMatchObject({
+    provider_id: "ionos",
+    request_bound: true,
+    admission_preflight: true,
+  });
+}
+
+async function assertProStandardDocumentsMediaPackage(session: GatewaySessionKeeper) {
+  const selection: WizardRecommendationRequest = {
+    surface: "easy",
+    deployment_lane: "saas",
+    goals: DOCUMENTS_MEDIA_GOALS,
+    services: [],
+    use_case_settings: { photos: { backend: "immich" } },
+    server_fit: { provider_id: "ionos", offering_id: DOCUMENTS_MEDIA_OFFERING },
+  };
+  const response = await authorizedFetch(
+    session,
+    runtimeApiUrl(session.apiBase, "/api/v1/unifier/recommendations"),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(selection),
+      signal: AbortSignal.timeout(30_000),
+    },
+  );
+  expect(response.status, "Memory Cube S authority readback").toBe(200);
+  const { data } = (await response.json()) as { data: WizardRecommendationResult };
+  expect(data?.server_fit, "the fixture must have the Memory Cube S flag before ordering").toMatchObject(
+    DOCUMENTS_MEDIA_PACKAGE,
+  );
+  await attachJson("pro-standard-documents-media-package.json", DOCUMENTS_MEDIA_PACKAGE);
 }
 
 async function runManagedServiceActionEvidence(args: {
@@ -2749,6 +2942,17 @@ function selectedMonthlyRuntimeLeaseProviders() {
 test.describe.serial("Runtime E2E scenarios", () => {
   test.use({ baseURL: PRODUCT_BASE });
   test.beforeEach(() => {
+    if (PROFILE_WINDOW) {
+      expect(test.info().title).toBe(MANAGED_DOCUMENTS_MEDIA_SCENARIO);
+      expect(process.env.TECHSTACK_RUNTIME_E2E_PROVIDER_ID).toBe("ionos");
+      expect(process.env.GITHUB_ACTIONS, "provider acceptance belongs to a governed test window").toBe("true");
+      expect(process.env.TECHSTACK_PRO_DOCUMENTS_MEDIA_WINDOW_ID).toMatch(/^[a-z0-9][a-z0-9-]{0,79}$/);
+      expect(process.env.GITHUB_SHA).toMatch(/^[a-f0-9]{40}$/);
+      expect(process.env.TECHSTACK_PRO_DOCUMENTS_MEDIA_CANDIDATE_SHA).toBe(process.env.GITHUB_SHA);
+      if (STANDARD_PROFILE) expect(process.env.TECHSTACK_E2E_EXPECTED_REVISION).toBe(process.env.GITHUB_SHA);
+      expect(MANAGED_RUNTIME_RETAIN).toBe(false);
+      expect(MANAGED_RUNTIME_RECOVERY_STACK_ID).toBe("");
+    }
     if (EXISTING_STACK_ID && test.info().title !== EXISTING_TARGET_SCENARIO) {
       throw new Error(
         "existing_target_select_only_stack_lifecycle_add_scenario",
@@ -3360,7 +3564,10 @@ test.describe.serial("Runtime E2E scenarios", () => {
         page,
       }) => {
         managedObservationPhase("setup", MANAGED_RUNTIME_BUDGETS.setupMs);
-        await authenticateRuntimeUser("cloud", page, RUNTIME_AUTH_OPTIONS);
+        await authenticateRuntimeUser("cloud", page, PROFILE_WINDOW ? {
+          ...RUNTIME_AUTH_OPTIONS,
+          fixturePrefix: DOCUMENTS_MEDIA_FIXTURE,
+        } : RUNTIME_AUTH_OPTIONS);
 
         if (MANAGED_RUNTIME_RECOVERY_STACK_ID) {
           managedObservationPhase(
@@ -3498,8 +3705,19 @@ test.describe.serial("Runtime E2E scenarios", () => {
           page,
           await captureGatewayApiSession(page),
         );
-        managedApi = session;
+        if (!PROFILE_WINDOW) managedApi = session;
         laneStartedAt = new Date().toISOString();
+        if (PROFILE_WINDOW) {
+          const health = await fetchRuntimeApi<{ revision?: string; release_channel?: string }>(
+            session, "/api/v1/health", session.apiBase,
+          );
+          expect(health, "the live target must serve the window's exact revision").toMatchObject({
+            revision: process.env.TECHSTACK_PRO_DOCUMENTS_MEDIA_CANDIDATE_SHA,
+            release_channel: "stable",
+          });
+          await assertProStandardDocumentsMediaAuthority(session);
+          if (MANAGED_DOCUMENTS_MEDIA) await assertProStandardDocumentsMediaPackage(session);
+        }
         advertisedStackkitsRelease = String(
           (
             await fetchRuntimeApi<{ release?: { tag?: string } }>(
@@ -3510,6 +3728,14 @@ test.describe.serial("Runtime E2E scenarios", () => {
           ).release?.tag ?? "",
         ).trim();
         baselineFootprint = await managedOwnerFootprint(session, session.apiBase, leaseProvider.id);
+        if (PROFILE_WINDOW) {
+          const centronFootprint = await managedOwnerFootprint(session, session.apiBase, "centron");
+          for (const footprint of [baselineFootprint, centronFootprint]) {
+            expect(footprint.stack_ids, "the fixture cannot own another managed stack").toEqual([]);
+            expect(footprint.server_ids, "the fixture cannot own another managed server").toEqual([]);
+          }
+        }
+        managedApi = session;
         logRuntimeE2E("creating managed lease stack through visible Wizard", {
           provider_id: leaseProvider.id,
         });
@@ -3743,6 +3969,57 @@ test.describe.serial("Runtime E2E scenarios", () => {
           stackName,
           leaseId,
         });
+        if (MANAGED_DOCUMENTS_MEDIA) {
+          await assertProStandardDocumentsMediaRollout({
+            session,
+            server: inventoryEvidence.stack_operations.matched_server,
+            stackId: stack.stack_id,
+            release: advertisedStackkitsRelease,
+            services: inventoryEvidence.service_registry.services,
+          });
+        }
+        if (STANDARD_PROFILE) {
+          const profile = STANDARD_PROFILE;
+          const server = inventoryEvidence.stack_operations.matched_server;
+          expect(server.capabilities?.cpu_cores).toBe(2);
+          const memory = Number(server.capabilities?.memory_total_bytes);
+          expect(memory).toBeGreaterThanOrEqual(3.5 * 1024 ** 3);
+          expect(memory).toBeLessThanOrEqual(4 * 1024 ** 3);
+          const configuration = await fetchRuntimeApi<UseCaseConfigurationView>(
+            session, `/api/v1/stacks/${encodeURIComponent(stack.stack_id)}/use-cases/configuration`, session.apiBase,
+          );
+          const applications = STANDARD_PROFILE_GOALS[profile].filter((goal) => goal !== "mail");
+          for (const goal of applications) {
+            const installed = configuration.use_cases.find((item) => item.id === goal);
+            expect(installed?.workloads.map((workload) => workload.alternative), `installed ${goal}`)
+              .toContain(standardProfileApplication(goal).alternative);
+          }
+          let savedMail: unknown;
+          if (STANDARD_PROFILE_GOALS[profile].some((goal) => goal === "mail")) {
+            const home = await fetchRuntimeApi<{ homelab?: { intent?: { wizard?: { use_case_settings?: { mail?: { hosting?: string } } } } } }>(
+              session, "/api/v1/homelab", session.apiBase,
+            );
+            savedMail = home.homelab?.intent?.wizard?.use_case_settings?.mail;
+            expect(savedMail, "the existing mail provider choice is saved").toMatchObject({ hosting: "existing" });
+          }
+          let observedServices: RuntimeStackOperationService[] = [];
+          await expect.poll(async () => {
+            const registry = await fetchRuntimeApi<RuntimeRegistryServicePayload>(session, "/api/v1/registry/services", session.apiBase);
+            observedServices = (registry.services ?? []).filter((service) =>
+              service.server_id === server.server_id && service.kit_deployment_id === stack.stack_id,
+            );
+            return applications.every((goal) => {
+              const aliases = standardProfileApplication(goal).registryKeys;
+              const services = observedServices.filter((service) => aliases.includes(service.application_key ?? ""));
+              return services.length > 0 && services.every((service) => service.health_state === "healthy");
+            });
+          }, { timeout: 180_000, message: "every starter application is registered and healthy on its server" }).toBe(true);
+          await attachJson(`standard-${profile}-starter.json`, {
+            profile, stack_id: stack.stack_id, lease_id: leaseId, server_id: server.server_id,
+            observed_guest: server.capabilities, use_cases: configuration.use_cases,
+            saved_mail: savedMail, services: observedServices,
+          });
+        }
         const managedServiceEvidence = await runManagedServiceActionEvidence({
           token: session,
           apiBase: session.apiBase,
