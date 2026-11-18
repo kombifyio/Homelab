@@ -162,7 +162,7 @@
               {#if (CANONICAL_USE_CASE_GOALS as readonly string[]).includes(goal)}
                 <a class="text-sm underline" href={`/stacks/${encodeURIComponent(stackId)}/use-cases/new?goals=${encodeURIComponent(goal)}`}>{useCaseTitle(goal)}</a>
               {:else}
-                <span class="text-sm text-muted-foreground">{useCaseTitle(goal)} � {tr("layout.expansion.pending")}</span>
+                <span class="text-sm text-muted-foreground">{useCaseTitle(goal)} · {tr("layout.expansion.pending")}</span>
               {/if}
             </li>
           {/each}

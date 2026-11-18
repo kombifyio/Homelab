@@ -1,8 +1,44 @@
 {
   "schemaVersion": "stackkits.release-notes/v1",
-  "version": "v0.57.16",
+  "version": "v0.57.17",
   "changelogUrl": "https://stackkit.cc/changelog",
   "releases": [
+    {
+      "version": "v0.57.17",
+      "date": "2026-11-18",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "android",
+          "text": "extend existing rack wake admission to Paperwork PR capture"
+        },
+        {
+          "kind": "added",
+          "scope": "photos",
+          "text": "add standalone Ente deployment"
+        },
+        {
+          "kind": "fixed",
+          "scope": "",
+          "text": "bound hosted StackKits release publication"
+        },
+        {
+          "kind": "fixed",
+          "scope": "dev",
+          "text": "show runnable local product checks"
+        },
+        {
+          "kind": "fixed",
+          "scope": "dev",
+          "text": "watch all StackKits CLI input trees"
+        },
+        {
+          "kind": "fixed",
+          "scope": "scaffold",
+          "text": "isolate additional module smoke routes"
+        }
+      ]
+    },
     {
       "version": "v0.57.16",
       "date": "2026-11-16",
@@ -1407,22 +1443,6 @@
           "kind": "fixed",
           "scope": "verify",
           "text": "verify Coolify API workloads through their owner observation"
-        }
-      ]
-    },
-    {
-      "version": "v0.54.19",
-      "date": "2026-11-01",
-      "entries": [
-        {
-          "kind": "fixed",
-          "scope": "pocketid",
-          "text": "a backup's in-place restart of the bound Pocket ID container no longer blocks household adds"
-        },
-        {
-          "kind": "fixed",
-          "scope": "public-tls",
-          "text": "an origin-certificate router ignores certificates ordered before it"
         }
       ]
     }
