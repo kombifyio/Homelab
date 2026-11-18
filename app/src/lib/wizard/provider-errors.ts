@@ -306,9 +306,7 @@ export const ERROR_TROUBLESHOOTING = {
     get steps() {
       return [
         tr("ui.providerErrors.reloadThePageAndTry"),
-        tr("ui.providerErrors.checkTheBrowserConsoleFor"),
         tr("ui.providerErrors.reviewTheServerLogs"),
-        tr("ui.providerErrors.createAGitHubIssueWith"),
       ];
     },
   },

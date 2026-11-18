@@ -11,6 +11,12 @@
     stackIdentityLabelFor,
   } from "#lib/components/open-core/index.js";
   import { NotificationPreferences } from "#lib/components/open-core/index.js";
+  import CompanionSettingsPanel from "#lib/components/settings/CompanionSettingsPanel.svelte";
+  import {
+    createCompanionAdapter,
+    hasCompanionBridge,
+    probeCompanion,
+  } from "#lib/client/companion-bridge.js";
   import { parseApiError } from "#lib/api/errors.js";
   import {
     applyOrphanCleanup,
@@ -69,11 +75,31 @@
     type StackIdentity,
   } from "#lib/stores/stackIdentity.js";
 
-  const activeTab = $derived(resolveSettingsTab(page.url.searchParams.get("tab")));
+  // The Companion tab exists only in the Windows client while it can show the desktop Companion:
+  // its native side answers the Companion bridge. A browser and the hosted web app never get it.
+  // "idle": not asked yet, or an aborted probe that has to be asked again.
+  let companionProbe = $state<"no" | "idle" | "probing" | "yes">("no");
+  const companionRequested = $derived(
+    page.url.searchParams.get("tab")?.trim().toLowerCase() === "companion",
+  );
+  const companionTab = $derived(
+    companionProbe === "yes" ||
+      ((companionProbe === "probing" || companionProbe === "idle") &&
+        companionRequested),
+  );
+  const companionAdapter = createCompanionAdapter();
+  const activeTab = $derived(
+    resolveSettingsTab(page.url.searchParams.get("tab"), companionTab),
+  );
   const settingsTabs: readonly SettingsTab[] = $derived([
     { slug: "account", label: tr("ui.settings.account"), scope: "shared" },
     { slug: "identity", label: tr("ui.settings.homelabIdentity"), scope: "shared" },
     { slug: "design", label: tr("ui.settings.appearance"), scope: "shared" },
+    ...(companionTab
+      ? ([
+          { slug: "companion", label: tr("ui.settings.companion"), scope: "shared" },
+        ] satisfies SettingsTab[])
+      : []),
     { slug: "notifications", label: tr("nav.notifications"), scope: "shared" },
     { slug: "homelab", label: tr("wizard.settings.title"), scope: "tool" },
   ]);
@@ -326,6 +352,29 @@
     deviceFinishChosen = theme.hasDeviceFinish();
     void loadStackIdentitySettings();
     void loadDeployments();
+  });
+
+  // The probe asks the shell once. An aborted probe (a tab switch while it was in flight) is never
+  // "unavailable": it goes back to idle and is asked again.
+  let leaving = false;
+  const probing = new AbortController();
+  function runCompanionProbe() {
+    if (leaving || !hasCompanionBridge()) return;
+    companionProbe = "probing";
+    void probeCompanion(probing.signal).then((available) => {
+      if (leaving) return;
+      companionProbe = available === null ? "idle" : available ? "yes" : "no";
+    });
+  }
+  onMount(() => {
+    if (hasCompanionBridge()) companionProbe = "idle";
+    return () => {
+      leaving = true;
+      probing.abort();
+    };
+  });
+  $effect(() => {
+    if (companionProbe === "idle") runCompanionProbe();
   });
 
   const finishValue = theme.finish;
@@ -603,6 +652,11 @@
         </div>
       </div>
     </SettingsSection>
+
+      {:else if activeTab === "companion"}
+    {#if companionTab}
+      <CompanionSettingsPanel adapter={companionAdapter} />
+    {/if}
 
       {:else if activeTab === "notifications"}
     <section id="notification-preferences">

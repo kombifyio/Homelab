@@ -1184,6 +1184,9 @@ public static partial class CompanionOpenInApp
     [GeneratedRegex(@"\A[a-z0-9-]{1,80}\z", RegexOptions.CultureInvariant)]
     private static partial Regex SchemePattern();
 
+    [GeneratedRegex(@"\A--[a-z][a-z-]{0,19}\z", RegexOptions.CultureInvariant)]
+    private static partial Regex ActivationSwitchPattern();
+
     /// <summary><c>kombify-&lt;product&gt;</c> or <c>kombify-&lt;product&gt;-&lt;suffix&gt;</c>, lowercase, at most 80 characters.</summary>
     public static bool ValidScheme(string product, string? scheme)
     {
@@ -1195,13 +1198,18 @@ public static partial class CompanionOpenInApp
     /// <summary>
     /// Writes the per-user Windows URL handler (<c>URL Protocol</c> marker and
     /// <c>shell\open\command</c> to this executable) and the AppLink
-    /// <c>Apps\&lt;product&gt;</c> <c>Scheme</c>. Refused for an elevated caller.
+    /// <c>Apps\&lt;product&gt;</c> <c>Scheme</c>. Refused for an elevated caller. With
+    /// <paramref name="activationSwitch"/> (for example <c>--activate</c>) the command is
+    /// <c>"exe" --activate "%1"</c>: a client whose command line has switches of its own reads
+    /// exactly the one argument after that switch as the URL and nothing else, so a URL that
+    /// carries an unencoded quote or space cannot become switches of the client.
     /// </summary>
-    public static void Register(string product, string scheme, string executablePath)
+    public static void Register(string product, string scheme, string executablePath, string? activationSwitch = null)
     {
         if (!CompanionAppLink.IsCallerEligible())
             throw CompanionAppLink.Fail(CompanionAppLinkError.ElevatedPeerRefused);
-        if (!ValidScheme(product, scheme) || !CompanionAppLink.LocalExecutablePath(executablePath))
+        if (!ValidScheme(product, scheme) || !CompanionAppLink.LocalExecutablePath(executablePath)
+            || (activationSwitch is not null && !ActivationSwitchPattern().IsMatch(activationSwitch)))
             throw CompanionAppLink.Fail(CompanionAppLinkError.InvalidRequest);
         try
         {
@@ -1212,7 +1220,9 @@ public static partial class CompanionOpenInApp
                 protocol.SetValue("URL Protocol", "", RegistryValueKind.String);
             }
             using (var command = root.CreateSubKey($@"Software\Classes\{scheme}\shell\open\command", writable: true))
-                command.SetValue("", $"\"{executablePath}\" \"%1\"", RegistryValueKind.String);
+                command.SetValue("", activationSwitch is null
+                    ? $"\"{executablePath}\" \"%1\""
+                    : $"\"{executablePath}\" {activationSwitch} \"%1\"", RegistryValueKind.String);
             using (var app = root.CreateSubKey($@"{AppsKey}\{product}", writable: true))
                 app.SetValue("Scheme", scheme, RegistryValueKind.String);
         }

@@ -36,6 +36,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The one pin of the carried Companion installer; the build scripts read the same file. -->
+    <EmbeddedResource Include="..\companion-carry.json" LogicalName="companion-carry.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="$(WebView2SdkVersion)" />
   </ItemGroup>
 

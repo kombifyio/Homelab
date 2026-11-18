@@ -8,7 +8,6 @@
   import CreationNextStep from "./CreationNextStep.svelte";
   import CreationRequirements from "./CreationRequirements.svelte";
   import CreationLease from "./CreationLease.svelte";
-  import CreationFailure from "./CreationFailure.svelte";
   import CreationRunStatus from "./CreationRunStatus.svelte";
   import CreationLeanBack from "./CreationLeanBack.svelte";
   import CreationHeader from "./CreationHeader.svelte";
@@ -57,7 +56,7 @@
 <div class="min-h-full w-full bg-background p-6 lg:p-8 overflow-x-hidden">
   <div class="mx-auto w-full max-w-7xl min-w-0">
     <div
-      class="mb-8 flex flex-col-reverse gap-6 lg:flex-row lg:items-start lg:justify-between"
+      class="mb-6 flex flex-col-reverse gap-6 lg:flex-row lg:items-start lg:justify-between"
     >
       <CreationHeader />
       {#if running}
@@ -65,17 +64,18 @@
       {/if}
     </div>
 
-    <!-- While the run works the progress reel is the main column and the
-         side column passes the wait with tips; once it ends the phase list
-         moves to the side and the outcome takes the main column. -->
+    <!-- While the run works, and when it fails, the progress reel is the
+         main column and the side column keeps its tips: a failure shows
+         inside the failed phase, so the page never jumps to another layout.
+         Only a finished run moves the phase list aside for the outcome. -->
     <div
       class="grid gap-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)]"
     >
       <aside class="order-2 min-w-0 lg:order-1 lg:sticky lg:top-8 lg:self-start">
-        {#if running}
-          <CreationGoodToKnow />
-        {:else}
+        {#if creation.isComplete}
           <CreationProgress />
+        {:else}
+          <CreationGoodToKnow />
         {/if}
       </aside>
 
@@ -109,10 +109,10 @@
               </div>
             </details>
           </div>
-        {:else if creation.hasFailed}
-          <CreationFailure />
         {:else}
-          <CreationRunStatus />
+          {#if running}
+            <CreationRunStatus />
+          {/if}
           <CreationProgress focused />
         {/if}
       </div>

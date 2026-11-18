@@ -546,7 +546,10 @@ export const STEP_DETAILS: Record<
 export interface TaskGroup {
   id: string;
   label: string;
+  /** What happens, in plain words. */
   description: string;
+  /** How it works, in the real terms; behind the phase's info button. */
+  technical?: string;
   taskIds: string[];
   /** Listed sub-steps; each one also covers the hidden tasks that follow it. */
   visibleTaskIds?: string[];
@@ -566,6 +569,9 @@ export const TASK_GROUPS: TaskGroup[] = [
     },
     get description() {
       return tr("ui.taskStatus.validatingChoicesAndBuildingThe");
+    },
+    get technical() {
+      return tr("ui.taskStatus.phaseTechnical.configure");
     },
     taskIds: [
       "validate",
@@ -587,6 +593,9 @@ export const TASK_GROUPS: TaskGroup[] = [
     },
     get description() {
       return tr("ui.taskStatus.reservingTheSubscriptionVMConnecting");
+    },
+    get technical() {
+      return tr("ui.taskStatus.phaseTechnical.provision");
     },
     taskIds: [
       "create_lease",
@@ -611,6 +620,9 @@ export const TASK_GROUPS: TaskGroup[] = [
     get description() {
       return tr("ui.taskStatus.renderingStackKitsArtifactsAfterVPS");
     },
+    get technical() {
+      return tr("ui.taskStatus.phaseTechnical.generate");
+    },
     taskIds: ["generate_unified", "persist_unified", "generate_iac"],
     visibleTaskIds: ["generate_unified", "generate_iac"],
   },
@@ -622,6 +634,9 @@ export const TASK_GROUPS: TaskGroup[] = [
     },
     get description() {
       return tr("ui.taskStatus.preparingToolsApplyingTheStackKit");
+    },
+    get technical() {
+      return tr("ui.taskStatus.phaseTechnical.rollout");
     },
     taskIds: [
       "simulate_update",
@@ -642,6 +657,9 @@ export const TASK_GROUPS: TaskGroup[] = [
     },
     get description() {
       return tr("ui.taskStatus.confirmingServicesAndValidatingThe");
+    },
+    get technical() {
+      return tr("ui.taskStatus.phaseTechnical.verify");
     },
     taskIds: ["verify_rollout", "restore_drill"],
   },

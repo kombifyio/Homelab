@@ -2,6 +2,14 @@
 // Merged into the main dictionary by i18n.ts (en, de) and locales/*.ts.
 export const screenMessages = {
   en: {
+    "ui.stacksCreatingCreationFailure.whatYouCanDo": "What you can do",
+    "ui.stacksCreatingCreationProgress.failedSubtitle": "One step did not finish. The list below shows where it stopped and what you can do.",
+    "ui.groupedTaskList.howItWorks": "How {phase} works",
+    "ui.taskStatus.phaseTechnical.verify": "Confirms login-protected services and monitoring signals, then runs a restore drill on the default services before the deployment counts as verified.",
+    "ui.taskStatus.phaseTechnical.rollout": "Runs a simulated update first, then the StackKits CLI prepares the host (Docker, OpenTofu, Terramate, monitoring), applies the Cloud Kit and reads the service inventory.",
+    "ui.taskStatus.phaseTechnical.generate": "Generates the unified spec from your intent and the StackKit defaults, stores it, and renders the StackKit infrastructure-as-code (OpenTofu, Compose).",
+    "ui.taskStatus.phaseTechnical.provision": "Creates or binds the VM lease of your subscription, waits until the VPS answers over SSH, connects the runtime and starts the telemetry handoff.",
+    "ui.taskStatus.phaseTechnical.configure": "Validates features, access mode and sign-in settings, matches a StackKit template and compiles everything into the StackKit deployment spec.",
     "ui.homelab.firstServerHint": "Connect a server you already have, or set up a new one. Your servers will appear here.",
     "ui.homelab.installedUseCases": "Installed use cases",
     "ui.homelab.transferHint": "Import a stack configuration or export the selected stack.",
@@ -1013,7 +1021,7 @@ export const screenMessages = {
     "ui.providerErrors.openTheLatestDestroyJob":
       "Open the latest destroy job for the provider's own error",
     "ui.providerErrors.providerMessage": "Provider message: {summary}",
-    "ui.providerErrors.reloadThePageAndTry": "Reload the page and try again",
+    "ui.providerErrors.reloadThePageAndTry": "Try again. Many problems clear up on a second attempt.",
     "ui.providerErrors.resolveTheKombifyMeOr":
       "Resolve the kombify.me or StackKits blocker, then retry only the StackKit rollout",
     "ui.providerErrors.retryAdditionalNodeAFoundation":
@@ -1028,7 +1036,7 @@ export const screenMessages = {
       "Retry the rollout only after SSH, Docker, and the StackKits Runtime Action are stable on the target server",
     "ui.providerErrors.reviewTheLogsWithDocker":
       "Review the logs with 'docker compose logs techstack'",
-    "ui.providerErrors.reviewTheServerLogs": "Review the server logs",
+    "ui.providerErrors.reviewTheServerLogs": "Still stuck? Ask kombify, or open Technical details and send them to support.",
     "ui.providerErrors.runtimeActionStackkitRollout":
       "runtime action stackkit_rollout",
     "ui.providerErrors.serviceConflictDetected": "Service conflict detected",
@@ -1532,6 +1540,74 @@ export const screenMessages = {
     "ui.settings.cleanUpTestResidue": "Clean up test residue",
     "ui.settings.cleanupFailed": "Cleanup failed",
     "ui.settings.cleanupReviewFailed": "Cleanup review failed",
+    "ui.settings.companion": "Companion",
+    "companion.settings.sections.companion": "Companion",
+    "companion.settings.sections.kubi": "Kubi",
+    "companion.settings.sections.dictation": "Dictation",
+    "companion.settings.sections.assistant": "Voice Assistant",
+    "companion.settings.sections.screenshot": "Screenshot",
+    "companion.settings.sections.pill": "Buttons",
+    "companion.settings.sections.account": "Account",
+    "companion.settings.rows.enabled": "Companion on this computer",
+    "companion.settings.rows.startWithWindows": "Start with Windows",
+    "companion.settings.rows.showKubi": "Show Kubi",
+    "companion.settings.rows.voiceAnimation": "Voice animation",
+    "companion.settings.rows.shortcut": "Shortcut",
+    "companion.settings.rows.dictationBehavior": "Shortcut mode",
+    "companion.settings.rows.microphone": "Microphone",
+    "companion.settings.rows.screenshotDestination": "Save to",
+    "companion.settings.rows.screenshotFolder": "Folder",
+    "companion.settings.rows.account": "kombify account",
+    "companion.settings.rows.consent": "Speech processing",
+    "companion.settings.values.on": "On",
+    "companion.settings.values.off": "Off",
+    "companion.settings.values.holdToTalk": "Hold to talk",
+    "companion.settings.values.toggle": "Press to talk",
+    "companion.settings.values.systemMicrophone": "System default",
+    "companion.settings.values.notSignedIn": "Not signed in",
+    "companion.settings.values.chordNone": "Not set",
+    "companion.settings.status.saving": "Saving",
+    "companion.settings.status.recording": "Recording shortcut",
+    "companion.settings.voiceAnimations.kombify": "kombify",
+    "companion.settings.voiceAnimations.neutral": "Neutral",
+    "companion.settings.destinations.device": "This device",
+    "companion.settings.quick.open": "Open in editor",
+    "companion.settings.quick.folder": "Show in folder",
+    "companion.settings.quick.delete": "Delete",
+    "companion.settings.pill.chat": "Chat",
+    "companion.settings.pill.microphone": "Microphone",
+    "companion.settings.pill.dictate": "Dictation",
+    "companion.settings.pill.assistant": "Voice Assistant",
+    "companion.settings.pill.feed": "Feed",
+    "companion.settings.pill.screenshot": "Screenshot",
+    "companion.settings.links.appearance": "Design in kombify Cloud",
+    "companion.settings.links.companion": "Companion in kombify Cloud",
+    "companion.settings.actions.choose": "Choose",
+    "companion.settings.actions.open": "Open",
+    "companion.settings.actions.removeShortcut": "Remove shortcut",
+    "companion.settings.refusals.notAvailable": "Not available",
+    "companion.settings.refusals.invalidValue": "Not possible",
+    "companion.settings.refusals.shortcutInvalid": "Shortcut not valid",
+    "companion.settings.refusals.inUseBy": "In use: {name}",
+    "companion.settings.refusals.alreadyInUse": "Already in use",
+    "companion.settings.refusals.notSaved": "Not saved",
+    "companion.settings.reasons.loading": "Loading",
+    "companion.settings.reasons.unreachable": "Not reachable",
+    "companion.settings.reasons.off": "Companion is off",
+    "companion.settings.reasons.signIn": "Needs sign-in",
+    "companion.settings.reasons.notEnabled": "Not enabled for this account",
+    "companion.settings.reasons.consentMissing": "Needs consent to speech processing",
+    "companion.settings.keys.ctrl": "Ctrl",
+    "companion.settings.keys.alt": "Alt",
+    "companion.settings.keys.shift": "Shift",
+    "companion.settings.keys.win": "Win",
+    "companion.settings.keys.space": "Space",
+    "companion.settings.keys.enter": "Enter",
+    "companion.settings.keys.esc": "Esc",
+    "companion.settings.keys.tab": "Tab",
+    "companion.settings.keys.backspace": "Backspace",
+    "companion.settings.keys.mouse-x1": "Mouse 4",
+    "companion.settings.keys.mouse-x2": "Mouse 5",
     "ui.settings.dangerZone": "Danger Zone",
     "ui.settings.dashboard": "Dashboard",
     "ui.settings.dashboardLayout": "Dashboard layout",
@@ -2370,59 +2446,59 @@ export const screenMessages = {
     "ui.taskStatus.aVerifiedStackKitDeploymentMust":
       "A verified StackKit deployment must have a tested recovery path for the default services.",
     "ui.taskStatus.analyzingYourGoalsToFind":
-      "Analyzing your goals to find the best-fitting StackKit template.",
+      "Picking the StackKit that fits your goals.",
     "ui.taskStatus.applyingSecurityPolicies": "Applying security policies",
     "ui.taskStatus.basedOnYourGoalsThe":
       "Based on your goals, the Unifier selects containers, sets resource limits, and resolves dependencies between services.",
     "ui.taskStatus.buildingServiceList": "Building service list",
     "ui.taskStatus.callingTheStackKitsRuntimeAction":
-      "Calling the StackKits runtime action that applies the generated Cloud Kit specification.",
+      "Installing your apps on your server.",
     "ui.taskStatus.checkingOpenTofu": "Checking the setup tools",
     "ui.taskStatus.checkingRolloutTarget": "Checking your server",
     "ui.taskStatus.checkingTerramate": "Checking the update tools",
     "ui.taskStatus.checkingThatLoginProtectedServices":
-      "Checking that login-protected services and monitoring signals are available after rollout.",
+      "Checking that your apps, logins and monitoring respond.",
     "ui.taskStatus.checkingTheTerramateToolchainWhen":
       "Checking the tools that keep your Homelab up to date, when your setup needs them.",
     "ui.taskStatus.checkingYourChoices": "Checking your choices",
     "ui.taskStatus.collectingServiceMetadataExposedBy":
-      "Collecting service metadata exposed by the StackKits rollout.",
+      "Listing the apps that are now running.",
     "ui.taskStatus.combiningUserIntentStackKitDefaults":
-      "Combining user intent, StackKit defaults, and runtime information into the final deployment spec.",
+      "Combining your choices with the StackKit's defaults into one plan.",
     "ui.taskStatus.compilingEverythingIntoAFinal":
-      "Compiling everything into a final StackKits deployment specification.",
+      "Putting everything together into one plan.",
     "ui.taskStatus.configureStackKitDeployment":
-      "Configure StackKit deployment",
+      "Plan your setup",
     "ui.taskStatus.configuringAccessProfilesReverseProxy":
-      "Configuring access profiles, reverse proxy, DNS, and internal networking.",
+      "Setting up how you reach your apps, at home or on the go.",
     "ui.taskStatus.configuringAuthentication": "Configuring authentication",
     "ui.taskStatus.configuringFirewallRulesTLSCertificates":
-      "Configuring firewall rules, TLS certificates, and isolation settings.",
+      "Locking things down: firewall, encrypted connections and apps kept apart.",
     "ui.taskStatus.configuringNetworkSettings": "Configuring network settings",
     "ui.taskStatus.configuringSingleSignOnUser":
-      "Configuring single sign-on, user accounts, and access control.",
+      "Setting up one login for all your apps.",
     "ui.taskStatus.confirmingServicesAndValidatingThe":
-      "Confirming services and validating the restore drill",
+      "Testing your apps and trying a restore from a backup.",
     "ui.taskStatus.confirmingThatTheBoundManaged":
-      "Confirming that the bound managed VPS can be addressed by the StackKits CLI.",
-    "ui.taskStatus.confirmingVPSTarget": "Confirming VPS target",
-    "ui.taskStatus.connectingToRuntime": "Connecting to runtime",
+      "Making sure we can reach your server.",
+    "ui.taskStatus.confirmingVPSTarget": "Waiting for your server to start",
+    "ui.taskStatus.connectingToRuntime": "Connecting to your server",
     "ui.taskStatus.creatingOrBindingTheSubscription":
-      "Creating or binding the subscription VM lease for this StackKit rollout.",
-    "ui.taskStatus.creatingYourDeploymentSpec": "Creating your deployment spec",
+      "Reserving the cloud server that comes with your plan.",
+    "ui.taskStatus.creatingYourDeploymentSpec": "Writing down your plan",
     "ui.taskStatus.determiningWhichServicesAreNeeded":
-      "Determining which services are needed and applying best-practice defaults.",
+      "Deciding which apps you need, with sensible defaults.",
     "ui.taskStatus.eachServiceGetsScopedPermissions":
       "Each service gets scoped permissions. TLS is enabled automatically where possible, and services are isolated by default.",
     "ui.taskStatus.ensuringTheDeploymentTargetSatisfies":
       "Making sure your server meets the requirements for your Homelab.",
     "ui.taskStatus.findingTheBestStackKitFor":
-      "Finding the best StackKit for you",
+      "Picking the right StackKit",
     "ui.taskStatus.generateDeploymentArtifacts":
-      "Generate deployment artifacts",
+      "Prepare the install files",
     "ui.taskStatus.generatingDeploymentSpec": "Generating deployment spec",
-    "ui.taskStatus.generatingStackKitIaC": "Generating StackKit IaC",
-    "ui.taskStatus.generatingUnifiedSpec": "Generating unified spec",
+    "ui.taskStatus.generatingStackKitIaC": "Writing the install files",
+    "ui.taskStatus.generatingUnifiedSpec": "Combining your plan",
     "ui.taskStatus.identifyingServicesBestPractices":
       "Identifying services & best practices",
     "ui.taskStatus.ifAptOrUnattendedUpgrades":
@@ -2430,9 +2506,9 @@ export const screenMessages = {
     "ui.taskStatus.installingAndCheckingDocker":
       "Installing and checking Docker",
     "ui.taskStatus.installingOrValidatingTheDocker":
-      "Installing or validating the Docker runtime used by the selected services.",
+      "Installing Docker, which runs your apps.",
     "ui.taskStatus.loadingThePersistedIntentAnd":
-      "Loading the persisted intent and waiting for the managed VPS target to become reachable.",
+      "Waiting until your new server is online.",
     "ui.taskStatus.managedKombifyCloudRolloutsUse":
       "Managed kombify Cloud rollouts use the VM lease target; user-owned rollout targets require approved workers.",
     "ui.taskStatus.matchingAStackKit": "Matching a StackKit",
@@ -2443,7 +2519,7 @@ export const screenMessages = {
     "ui.taskStatus.opentofuReadinessIsPartOf":
       "OpenTofu readiness is part of the StackKits CLI prep contract, not a separate Techstack-owned bootstrap path.",
     "ui.taskStatus.persistingConfiguration": "Persisting configuration",
-    "ui.taskStatus.persistingRolloutSpec": "Persisting rollout spec",
+    "ui.taskStatus.persistingRolloutSpec": "Saving your plan",
     "ui.taskStatus.preparingDocker": "Preparing Docker",
     "ui.taskStatus.preparingNodeRegistration": "Preparing server registration",
     "ui.taskStatus.preparingOpenTelemetryHandoffDataFor":
@@ -2453,30 +2529,30 @@ export const screenMessages = {
     "ui.taskStatus.preparingTheRuntimeMetadataUsed":
       "Preparing the information that monitoring and the day-to-day care of your Homelab rely on.",
     "ui.taskStatus.preparingToolsApplyingTheStackKit":
-      "Preparing tools, applying the StackKit, and reading services",
-    "ui.taskStatus.provisionManagedRuntime": "Provision managed runtime",
-    "ui.taskStatus.readingServiceInventory": "Reading service inventory",
+      "Installing the tools and your apps on your server.",
+    "ui.taskStatus.provisionManagedRuntime": "Get your server ready",
+    "ui.taskStatus.readingServiceInventory": "Listing your apps",
     "ui.taskStatus.renderingStackKitsArtifactsAfterVPS":
-      "Rendering StackKits artifacts after VPS readiness",
+      "Turning your plan into files your server can use.",
     "ui.taskStatus.renderingTheStackKitInfrastructureFiles":
-      "Rendering the StackKit infrastructure files needed by the rollout adapter.",
+      "Writing the files that describe your setup.",
     "ui.taskStatus.requestingManagedCloudNode":
-      "Requesting managed cloud server",
+      "Reserving your cloud server",
     "ui.taskStatus.requestingManagedNode": "Requesting managed server",
     "ui.taskStatus.reservingTheSubscriptionVMConnecting":
-      "Reserving the subscription VM, connecting runtime, and preparing telemetry",
-    "ui.taskStatus.rollOutCloudKit": "Roll out Cloud Kit",
-    "ui.taskStatus.rollingOutCloudKit": "Rolling out Cloud Kit",
+      "Reserving your cloud server and connecting to it.",
+    "ui.taskStatus.rollOutCloudKit": "Install your Cloud Kit",
+    "ui.taskStatus.rollingOutCloudKit": "Installing your apps",
     "ui.taskStatus.settingUpPart": "Setting up part {position} of {total}",
     "ui.taskStatus.settingUpPartNamed":
       "Setting up part {position} of {total}: {name}",
-    "ui.taskStatus.runningRestoreDrill": "Running restore drill",
+    "ui.taskStatus.runningRestoreDrill": "Trying a restore from backup",
     "ui.taskStatus.runningSimulatedUpdateGate": "Testing the update first",
     "ui.taskStatus.runningSimulationGate": "Testing the update first",
     "ui.taskStatus.runningTheStackKitsCLIPrepare":
       "Installing and checking what your server needs before your Homelab is set up.",
     "ui.taskStatus.savingUnifiedSpecYamlSo":
-      "Saving unified-spec.yaml so the rollout is reproducible and auditable.",
+      "Saving the plan so the setup can be repeated exactly.",
     "ui.taskStatus.savingYourChoicesToThe":
       "Saving your choices to the database so they can be referenced during deployment.",
     "ui.taskStatus.savingYourConfiguration": "Saving your configuration",
@@ -2518,20 +2594,20 @@ export const screenMessages = {
     "ui.taskStatus.thisStackKitDeploymentConfigurationIs":
       "This StackKit deployment configuration is stored securely and can be exported or modified later from the dashboard.",
     "ui.taskStatus.validatingChoicesAndBuildingThe":
-      "Validating choices and building the deployment spec",
-    "ui.taskStatus.validatingConfiguration": "Validating configuration",
+      "Checking your choices and writing down what gets installed.",
+    "ui.taskStatus.validatingConfiguration": "Checking your choices",
     "ui.taskStatus.validatingTheBackupAndRestore":
-      "Validating the backup and restore path before the StackKit deployment is marked verified.",
+      "Restoring a test backup to make sure your data can come back.",
     "ui.taskStatus.validatingTheUpdatePathBefore":
       "Checking that the update works before it is applied to your server.",
     "ui.taskStatus.verificationConfirmsThatTheStackKit":
       "Verification confirms that the StackKit deployment is usable, not only that files were generated.",
-    "ui.taskStatus.verifyRollout": "Verify rollout",
+    "ui.taskStatus.verifyRollout": "Check that everything works",
     "ui.taskStatus.verifyingLoginProtectedServices":
-      "Verifying login-protected services",
+      "Checking your apps and logins",
     "ui.taskStatus.verifyingServices": "Verifying services",
     "ui.taskStatus.verifyingThatAllSelectedOptions":
-      "Verifying that all selected options are valid and compatible with each other.",
+      "Making sure your choices fit together.",
     "ui.taskStatus.verifyingTheInfrastructureToolchainNeeded":
       "Making sure your server has the tools it needs to set up your Homelab.",
     "ui.taskStatus.yourChosenAuthMethodIs":
@@ -2714,6 +2790,14 @@ export const screenMessages = {
       "Servers connected (verified)",
   },
   de: {
+    "ui.stacksCreatingCreationFailure.whatYouCanDo": "Was du tun kannst",
+    "ui.stacksCreatingCreationProgress.failedSubtitle": "Ein Schritt ist nicht fertig geworden. Die Liste zeigt, wo es hängt und was du tun kannst.",
+    "ui.groupedTaskList.howItWorks": "So funktioniert: {phase}",
+    "ui.taskStatus.phaseTechnical.verify": "Prüft login-geschützte Dienste und Monitoring-Signale und führt dann einen Restore-Drill der Standarddienste aus, bevor das Deployment als verifiziert gilt.",
+    "ui.taskStatus.phaseTechnical.rollout": "Führt zuerst ein simuliertes Update aus; danach bereitet die StackKits-CLI den Host vor (Docker, OpenTofu, Terramate, Monitoring), wendet das Cloud Kit an und liest das Service-Inventar.",
+    "ui.taskStatus.phaseTechnical.generate": "Erzeugt aus deiner Auswahl und den StackKit-Defaults die Unified Spec, speichert sie und rendert die StackKit-Infrastructure-as-Code (OpenTofu, Compose).",
+    "ui.taskStatus.phaseTechnical.provision": "Legt den VM-Lease deines Abos an oder bindet ihn, wartet, bis der VPS per SSH antwortet, verbindet die Runtime und startet die Telemetrie-Übergabe.",
+    "ui.taskStatus.phaseTechnical.configure": "Prüft Funktionen, Zugriffsart und Anmeldung, wählt ein StackKit-Template und erzeugt daraus die StackKit-Deployment-Spezifikation.",
     "ui.homelab.firstServerHint": "Verbinde einen vorhandenen Server oder richte einen neuen ein. Hier siehst du danach deine Server.",
     "ui.homelab.installedUseCases": "Installierte Use Cases",
     "ui.homelab.transferHint": "Importiere eine Stack-Konfiguration oder exportiere den ausgewählten Stack.",
@@ -3760,7 +3844,7 @@ export const screenMessages = {
       "Öffne den neuesten Destroy-Job für den eigenen Fehler des Anbieters",
     "ui.providerErrors.providerMessage": "Meldung des Anbieters: {summary}",
     "ui.providerErrors.reloadThePageAndTry":
-      "Lade die Seite neu und versuche es erneut",
+      "Versuche es noch einmal. Viele Probleme lösen sich beim zweiten Versuch.",
     "ui.providerErrors.resolveTheKombifyMeOr":
       "Behebe das kombify.me- oder StackKits-Hindernis und wiederhole dann nur den StackKit-Rollout",
     "ui.providerErrors.retryAdditionalNodeAFoundation":
@@ -3775,7 +3859,7 @@ export const screenMessages = {
       "Wiederhole den Rollout erst, wenn SSH, Docker und die StackKits Runtime Action auf dem Zielserver stabil sind",
     "ui.providerErrors.reviewTheLogsWithDocker":
       "Sieh dir die Logs mit 'docker compose logs techstack' an",
-    "ui.providerErrors.reviewTheServerLogs": "Sieh dir die Server-Logs an",
+    "ui.providerErrors.reviewTheServerLogs": "Klappt es weiter nicht? Frag kombify oder öffne die technischen Details und schick sie an den Support.",
     "ui.providerErrors.runtimeActionStackkitRollout":
       "Runtime-Action stackkit_rollout",
     "ui.providerErrors.serviceConflictDetected": "Service-Konflikt erkannt",
@@ -4301,6 +4385,74 @@ export const screenMessages = {
     "ui.settings.cleanUpTestResidue": "Testrückstände bereinigen",
     "ui.settings.cleanupFailed": "Bereinigung fehlgeschlagen",
     "ui.settings.cleanupReviewFailed": "Prüfung der Bereinigung fehlgeschlagen",
+    "ui.settings.companion": "Companion",
+    "companion.settings.sections.companion": "Companion",
+    "companion.settings.sections.kubi": "Kubi",
+    "companion.settings.sections.dictation": "Diktat",
+    "companion.settings.sections.assistant": "Sprachassistent",
+    "companion.settings.sections.screenshot": "Bildschirmfoto",
+    "companion.settings.sections.pill": "Schaltflächen",
+    "companion.settings.sections.account": "Konto",
+    "companion.settings.rows.enabled": "Companion auf diesem Computer",
+    "companion.settings.rows.startWithWindows": "Mit Windows starten",
+    "companion.settings.rows.showKubi": "Kubi anzeigen",
+    "companion.settings.rows.voiceAnimation": "Sprechanimation",
+    "companion.settings.rows.shortcut": "Tastenkürzel",
+    "companion.settings.rows.dictationBehavior": "Modus des Tastenkürzels",
+    "companion.settings.rows.microphone": "Mikrofon",
+    "companion.settings.rows.screenshotDestination": "Speichern in",
+    "companion.settings.rows.screenshotFolder": "Ordner",
+    "companion.settings.rows.account": "kombify-Konto",
+    "companion.settings.rows.consent": "Sprachverarbeitung",
+    "companion.settings.values.on": "An",
+    "companion.settings.values.off": "Aus",
+    "companion.settings.values.holdToTalk": "Halten zum Sprechen",
+    "companion.settings.values.toggle": "Drücken zum Sprechen",
+    "companion.settings.values.systemMicrophone": "Systemstandard",
+    "companion.settings.values.notSignedIn": "Nicht angemeldet",
+    "companion.settings.values.chordNone": "Nicht festgelegt",
+    "companion.settings.status.saving": "Wird gespeichert",
+    "companion.settings.status.recording": "Tastenkürzel wird aufgenommen",
+    "companion.settings.voiceAnimations.kombify": "kombify",
+    "companion.settings.voiceAnimations.neutral": "Neutral",
+    "companion.settings.destinations.device": "Dieses Gerät",
+    "companion.settings.quick.open": "Im Editor öffnen",
+    "companion.settings.quick.folder": "Im Ordner zeigen",
+    "companion.settings.quick.delete": "Löschen",
+    "companion.settings.pill.chat": "Chat",
+    "companion.settings.pill.microphone": "Mikrofon",
+    "companion.settings.pill.dictate": "Diktat",
+    "companion.settings.pill.assistant": "Sprachassistent",
+    "companion.settings.pill.feed": "Feed",
+    "companion.settings.pill.screenshot": "Bildschirmfoto",
+    "companion.settings.links.appearance": "Design in kombify Cloud",
+    "companion.settings.links.companion": "Companion in kombify Cloud",
+    "companion.settings.actions.choose": "Auswählen",
+    "companion.settings.actions.open": "Öffnen",
+    "companion.settings.actions.removeShortcut": "Tastenkürzel entfernen",
+    "companion.settings.refusals.notAvailable": "Nicht verfügbar",
+    "companion.settings.refusals.invalidValue": "Nicht möglich",
+    "companion.settings.refusals.shortcutInvalid": "Tastenkürzel ungültig",
+    "companion.settings.refusals.inUseBy": "Belegt: {name}",
+    "companion.settings.refusals.alreadyInUse": "Bereits belegt",
+    "companion.settings.refusals.notSaved": "Nicht gespeichert",
+    "companion.settings.reasons.loading": "Wird geladen",
+    "companion.settings.reasons.unreachable": "Nicht erreichbar",
+    "companion.settings.reasons.off": "Companion ist aus",
+    "companion.settings.reasons.signIn": "Erfordert Anmeldung",
+    "companion.settings.reasons.notEnabled": "Für dieses Konto nicht freigeschaltet",
+    "companion.settings.reasons.consentMissing": "Erfordert Zustimmung zur Sprachverarbeitung",
+    "companion.settings.keys.ctrl": "Strg",
+    "companion.settings.keys.alt": "Alt",
+    "companion.settings.keys.shift": "Umschalt",
+    "companion.settings.keys.win": "Win",
+    "companion.settings.keys.space": "Leertaste",
+    "companion.settings.keys.enter": "Eingabe",
+    "companion.settings.keys.esc": "Esc",
+    "companion.settings.keys.tab": "Tab",
+    "companion.settings.keys.backspace": "Rücktaste",
+    "companion.settings.keys.mouse-x1": "Maustaste 4",
+    "companion.settings.keys.mouse-x2": "Maustaste 5",
     "ui.settings.dangerZone": "Gefahrenzone",
     "ui.settings.dashboard": "Dashboard",
     "ui.settings.dashboardLayout": "Dashboard-Layout",
@@ -5181,66 +5333,66 @@ export const screenMessages = {
     "ui.taskStatus.aVerifiedStackKitDeploymentMust":
       "Ein verifiziertes StackKit-Deployment muss für die Standarddienste einen getesteten Wiederherstellungspfad haben.",
     "ui.taskStatus.analyzingYourGoalsToFind":
-      "Deine Ziele werden analysiert, um die passendste StackKit-Vorlage zu finden.",
+      "Das StackKit, das zu deinen Zielen passt, wird ausgewählt.",
     "ui.taskStatus.applyingSecurityPolicies":
       "Sicherheitsrichtlinien werden angewendet",
     "ui.taskStatus.basedOnYourGoalsThe":
       "Anhand deiner Ziele wählt der Unifier Container aus, legt Ressourcenlimits fest und löst Abhängigkeiten zwischen Diensten auf.",
     "ui.taskStatus.buildingServiceList": "Dienstliste wird erstellt",
     "ui.taskStatus.callingTheStackKitsRuntimeAction":
-      "Die StackKits-Runtime-Aktion, die die generierte Cloud-Kit-Spezifikation anwendet, wird aufgerufen.",
+      "Deine Apps werden auf deinem Server installiert.",
     "ui.taskStatus.checkingOpenTofu": "Setup-Werkzeuge werden geprüft",
     "ui.taskStatus.checkingRolloutTarget": "Dein Server wird geprüft",
     "ui.taskStatus.checkingTerramate": "Update-Werkzeuge werden geprüft",
     "ui.taskStatus.checkingThatLoginProtectedServices":
-      "Es wird geprüft, ob durch Login geschützte Dienste und Monitoring-Signale nach dem Rollout verfügbar sind.",
+      "Es wird geprüft, ob Apps, Anmeldung und Überwachung antworten.",
     "ui.taskStatus.checkingTheTerramateToolchainWhen":
       "Es werden die Werkzeuge geprüft, die dein Homelab aktuell halten, falls dein Setup sie braucht.",
     "ui.taskStatus.checkingYourChoices": "Deine Auswahl wird geprüft",
     "ui.taskStatus.collectingServiceMetadataExposedBy":
-      "Vom StackKits-Rollout bereitgestellte Dienst-Metadaten werden gesammelt.",
+      "Die Apps, die jetzt laufen, werden aufgelistet.",
     "ui.taskStatus.combiningUserIntentStackKitDefaults":
-      "Nutzerabsicht, StackKit-Standardwerte und Runtime-Informationen werden zur endgültigen Deployment-Spezifikation kombiniert.",
+      "Deine Auswahl und die Voreinstellungen des StackKits werden zu einem Plan.",
     "ui.taskStatus.compilingEverythingIntoAFinal":
-      "Alles wird zu einer endgültigen StackKits-Deployment-Spezifikation kompiliert.",
+      "Alles wird zu einem Plan zusammengefasst.",
     "ui.taskStatus.configureStackKitDeployment":
-      "StackKit-Deployment konfigurieren",
+      "Setup planen",
     "ui.taskStatus.configuringAccessProfilesReverseProxy":
-      "Zugriffsprofile, Reverse-Proxy, DNS und internes Netzwerk werden konfiguriert.",
+      "Es wird eingerichtet, wie du deine Apps erreichst, zu Hause und unterwegs.",
     "ui.taskStatus.configuringAuthentication":
       "Authentifizierung wird konfiguriert",
     "ui.taskStatus.configuringFirewallRulesTLSCertificates":
-      "Firewall-Regeln, TLS-Zertifikate und Isolationseinstellungen werden konfiguriert.",
+      "Absichern: Firewall, verschlüsselte Verbindungen und getrennte Apps.",
     "ui.taskStatus.configuringNetworkSettings":
       "Netzwerkeinstellungen werden konfiguriert",
     "ui.taskStatus.configuringSingleSignOnUser":
-      "Single Sign-on, Benutzerkonten und Zugriffskontrolle werden konfiguriert.",
+      "Ein Login für alle deine Apps wird eingerichtet.",
     "ui.taskStatus.confirmingServicesAndValidatingThe":
-      "Dienste werden bestätigt und die Wiederherstellungsübung wird validiert",
+      "Deine Apps werden getestet und eine Sicherung probeweise zurückgespielt.",
     "ui.taskStatus.confirmingThatTheBoundManaged":
-      "Es wird bestätigt, dass der gebundene verwaltete VPS von der StackKits-CLI angesprochen werden kann.",
-    "ui.taskStatus.confirmingVPSTarget": "VPS-Ziel wird bestätigt",
+      "Es wird geprüft, ob dein Server erreichbar ist.",
+    "ui.taskStatus.confirmingVPSTarget": "Warten, bis dein Server startet",
     "ui.taskStatus.connectingToRuntime":
-      "Verbindung zur Runtime wird hergestellt",
+      "Mit deinem Server verbinden",
     "ui.taskStatus.creatingOrBindingTheSubscription":
-      "Der Abo-VM-Lease für diesen StackKit-Rollout wird erstellt oder gebunden.",
+      "Der Cloud-Server aus deinem Abo wird reserviert.",
     "ui.taskStatus.creatingYourDeploymentSpec":
-      "Deine Deployment-Spezifikation wird erstellt",
+      "Plan festhalten",
     "ui.taskStatus.determiningWhichServicesAreNeeded":
-      "Es wird ermittelt, welche Dienste benötigt werden, und Best-Practice-Standardwerte werden angewendet.",
+      "Es wird festgelegt, welche Apps du brauchst, mit sinnvollen Voreinstellungen.",
     "ui.taskStatus.eachServiceGetsScopedPermissions":
       "Jeder Dienst erhält eingegrenzte Berechtigungen. TLS wird, wo möglich, automatisch aktiviert, und Dienste sind standardmäßig isoliert.",
     "ui.taskStatus.ensuringTheDeploymentTargetSatisfies":
       "Es wird sichergestellt, dass dein Server die Anforderungen für dein Homelab erfüllt.",
     "ui.taskStatus.findingTheBestStackKitFor":
-      "Das beste StackKit für dich wird gesucht",
+      "Passendes StackKit wählen",
     "ui.taskStatus.generateDeploymentArtifacts":
-      "Deployment-Artefakte generieren",
+      "Installationsdateien vorbereiten",
     "ui.taskStatus.generatingDeploymentSpec":
       "Deployment-Spezifikation wird generiert",
-    "ui.taskStatus.generatingStackKitIaC": "StackKit-IaC wird generiert",
+    "ui.taskStatus.generatingStackKitIaC": "Installationsdateien schreiben",
     "ui.taskStatus.generatingUnifiedSpec":
-      "Vereinheitlichte Spezifikation wird generiert",
+      "Plan zusammenführen",
     "ui.taskStatus.identifyingServicesBestPractices":
       "Dienste & Best Practices werden ermittelt",
     "ui.taskStatus.ifAptOrUnattendedUpgrades":
@@ -5248,9 +5400,9 @@ export const screenMessages = {
     "ui.taskStatus.installingAndCheckingDocker":
       "Docker wird installiert und geprüft",
     "ui.taskStatus.installingOrValidatingTheDocker":
-      "Die Docker-Runtime, die von den ausgewählten Diensten genutzt wird, wird installiert oder validiert.",
+      "Docker wird installiert, damit deine Apps laufen.",
     "ui.taskStatus.loadingThePersistedIntentAnd":
-      "Der gespeicherte Intent wird geladen; es wird gewartet, bis das verwaltete VPS-Ziel erreichbar ist.",
+      "Es wird gewartet, bis dein neuer Server online ist.",
     "ui.taskStatus.managedKombifyCloudRolloutsUse":
       "Verwaltete kombify-Cloud-Rollouts nutzen das VM-Lease-Ziel; nutzereigene Rollout-Ziele erfordern freigegebene Worker.",
     "ui.taskStatus.matchingAStackKit": "Ein StackKit wird zugeordnet",
@@ -5262,7 +5414,7 @@ export const screenMessages = {
       "Die OpenTofu-Bereitschaft ist Teil des Vorbereitungsvertrags der StackKits-CLI, kein separater, von Techstack verantworteter Bootstrap-Pfad.",
     "ui.taskStatus.persistingConfiguration": "Konfiguration wird gespeichert",
     "ui.taskStatus.persistingRolloutSpec":
-      "Rollout-Spezifikation wird gespeichert",
+      "Plan speichern",
     "ui.taskStatus.preparingDocker": "Docker wird vorbereitet",
     "ui.taskStatus.preparingNodeRegistration":
       "Server-Registrierung wird vorbereitet",
@@ -5273,33 +5425,33 @@ export const screenMessages = {
     "ui.taskStatus.preparingTheRuntimeMetadataUsed":
       "Die Informationen werden vorbereitet, auf die sich Monitoring und der tägliche Betrieb deines Homelabs stützen.",
     "ui.taskStatus.preparingToolsApplyingTheStackKit":
-      "Tools werden vorbereitet, das StackKit angewendet und Dienste gelesen",
-    "ui.taskStatus.provisionManagedRuntime": "Verwaltete Runtime bereitstellen",
-    "ui.taskStatus.readingServiceInventory": "Dienst-Inventar wird gelesen",
+      "Werkzeuge und deine Apps kommen auf deinen Server.",
+    "ui.taskStatus.provisionManagedRuntime": "Server bereitstellen",
+    "ui.taskStatus.readingServiceInventory": "Deine Apps auflisten",
     "ui.taskStatus.renderingStackKitsArtifactsAfterVPS":
-      "StackKits-Artefakte werden nach der VPS-Bereitschaft gerendert",
+      "Aus deinem Plan entstehen Dateien, mit denen dein Server arbeitet.",
     "ui.taskStatus.renderingTheStackKitInfrastructureFiles":
-      "Die vom Rollout-Adapter benötigten StackKit-Infrastrukturdateien werden gerendert.",
+      "Die Dateien, die dein Setup beschreiben, werden geschrieben.",
     "ui.taskStatus.requestingManagedCloudNode":
-      "Verwalteter Cloud-Server wird angefordert",
+      "Cloud-Server reservieren",
     "ui.taskStatus.requestingManagedNode":
       "Verwalteter Server wird angefordert",
     "ui.taskStatus.reservingTheSubscriptionVMConnecting":
-      "Abo-VM wird reserviert, Runtime verbunden und Telemetrie vorbereitet",
-    "ui.taskStatus.rollOutCloudKit": "Cloud Kit ausrollen",
-    "ui.taskStatus.rollingOutCloudKit": "Cloud Kit wird ausgerollt",
+      "Dein Cloud-Server wird reserviert und verbunden.",
+    "ui.taskStatus.rollOutCloudKit": "Cloud Kit installieren",
+    "ui.taskStatus.rollingOutCloudKit": "Deine Apps installieren",
     "ui.taskStatus.settingUpPart":
       "Teil {position} von {total} wird eingerichtet",
     "ui.taskStatus.settingUpPartNamed":
       "Teil {position} von {total} wird eingerichtet: {name}",
-    "ui.taskStatus.runningRestoreDrill": "Wiederherstellungsübung läuft",
+    "ui.taskStatus.runningRestoreDrill": "Sicherung probeweise zurückspielen",
     "ui.taskStatus.runningSimulatedUpdateGate":
       "Das Update wird zuerst getestet",
     "ui.taskStatus.runningSimulationGate": "Das Update wird zuerst getestet",
     "ui.taskStatus.runningTheStackKitsCLIPrepare":
       "Es wird installiert und geprüft, was dein Server braucht, bevor dein Homelab eingerichtet wird.",
     "ui.taskStatus.savingUnifiedSpecYamlSo":
-      "unified-spec.yaml wird gespeichert, damit der Rollout reproduzierbar und nachvollziehbar ist.",
+      "Der Plan wird gespeichert, damit sich das Setup genau wiederholen lässt.",
     "ui.taskStatus.savingYourChoicesToThe":
       "Deine Auswahl wird in der Datenbank gespeichert, damit sie beim Deployment referenziert werden kann.",
     "ui.taskStatus.savingYourConfiguration":
@@ -5343,20 +5495,20 @@ export const screenMessages = {
     "ui.taskStatus.thisStackKitDeploymentConfigurationIs":
       "Diese StackKit-Deployment-Konfiguration wird sicher gespeichert und kann später im Dashboard exportiert oder geändert werden.",
     "ui.taskStatus.validatingChoicesAndBuildingThe":
-      "Auswahl wird validiert und Deployment-Spezifikation erstellt",
-    "ui.taskStatus.validatingConfiguration": "Konfiguration wird validiert",
+      "Deine Auswahl wird geprüft und festgehalten, was installiert wird.",
+    "ui.taskStatus.validatingConfiguration": "Auswahl prüfen",
     "ui.taskStatus.validatingTheBackupAndRestore":
-      "Backup- und Wiederherstellungspfad werden validiert, bevor das StackKit-Deployment als verifiziert markiert wird.",
+      "Eine Testsicherung wird zurückgespielt, damit deine Daten sicher wiederkommen.",
     "ui.taskStatus.validatingTheUpdatePathBefore":
       "Es wird geprüft, ob das Update funktioniert, bevor es auf deinen Server angewendet wird.",
     "ui.taskStatus.verificationConfirmsThatTheStackKit":
       "Die Verifizierung bestätigt, dass das StackKit-Deployment nutzbar ist, nicht nur, dass Dateien generiert wurden.",
-    "ui.taskStatus.verifyRollout": "Rollout verifizieren",
+    "ui.taskStatus.verifyRollout": "Prüfen, ob alles läuft",
     "ui.taskStatus.verifyingLoginProtectedServices":
-      "Durch Login geschützte Dienste werden verifiziert",
+      "Apps und Anmeldung prüfen",
     "ui.taskStatus.verifyingServices": "Dienste werden verifiziert",
     "ui.taskStatus.verifyingThatAllSelectedOptions":
-      "Es wird geprüft, ob alle ausgewählten Optionen gültig und miteinander kompatibel sind.",
+      "Es wird geprüft, ob deine Auswahl zusammenpasst.",
     "ui.taskStatus.verifyingTheInfrastructureToolchainNeeded":
       "Es wird sichergestellt, dass dein Server die Werkzeuge hat, die er zum Einrichten deines Homelabs braucht.",
     "ui.taskStatus.yourChosenAuthMethodIs":

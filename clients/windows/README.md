@@ -248,3 +248,49 @@ install and state paths are strict descendants of the Kombify LocalAppData
 roots and refuses reparse-point boundaries. The
 `windows-client-uninstall-check.ps1` gate proves retain-by-default and explicit
 removal with isolated fixture paths.
+
+## Companion in Settings
+
+The client holds the desktop Companion's on/off switch and all of its settings
+in its own Settings (`/settings?tab=companion`); Kubi has no window of its own
+(`SETTINGS-CONTRACT`, AppLink v2). The tab exists only here, never in a
+browser or the hosted web app, and only while a Companion is installed or this
+installer carries one.
+
+- **Page and shell.** The tab is drawn from Techstack's own settings components
+  (`SettingsSection`, `SettingsRow`, `Switch` and the Appearance tab's choice buttons,
+  `app/src/lib/components/settings/CompanionSettingsPanel.svelte`), with the labels in
+  Techstack's own seven catalogs (`companion.settings.*`) and the controller, model and
+  chord logic of the Brand UI package's unreleased `companion-settings` entry ported
+  to `app/src/lib/settings/companion/` (its renderer, stylesheet and theme are not
+  used; `app/scripts/check-settings-structure.mjs` fails on them). The adapter is
+  the existing WebView2 bridge (`app/src/lib/client/companion-bridge.ts`).
+  `ClientWindow.Companion.cs` answers six fixed messages
+  (`kombify.techstack.companion.{read,write,watch,watch-cancel,pick-folder,open-link}.v1`),
+  each bound to the current document's revision and token like the device-context
+  read. It speaks AppLink v2 through `Kombify.Client.Shell`; no pipe, token,
+  registry path or path of another program reaches the page. The folder picker is
+  the native dialog, and a folder is written only when it is the one just picked
+  or one the Companion itself reported. Only a link of the latest snapshot opens
+  in the system browser.
+- **Carried installer.** `companion-carry.json` pins version, size and SHA-256 of
+  the one Companion MSI the installer carries (`companion\<file>` beside the
+  client; one place, read by the build scripts and embedded in the client). The
+  release job `delivery-windows.yml` reads it from the private prerelease with a
+  `contents: read` token that is revoked before any third-party code of the job
+  runs (`scripts/read-companion-installer.ps1`); `package-windows-client.ps1
+  -CompanionInstaller` verifies it again and stages it. Switching on while no
+  Companion is installed runs `CompanionInstaller.InstallAsync` (per user, no
+  elevation, digest checked on the handle msiexec reads), then writes
+  `enabled=true`, which also writes the client's registration under
+  `HKCU\Software\kombify\CompanionDesktop\Clients`. A build without the file (the
+  public export, a development build) has no Companion tab unless one is
+  already installed. Uninstalling the client leaves the Companion; it removes
+  itself once no registered client exists.
+- **Open in app.** `kombify-techstack://open/?route=%2Fsettings%2Fcompanion`
+  (Connected: `kombify-techstack-cloud`) opens Settings > Companion in the running
+  instance, or starts the client there. The client registers its scheme once a
+  Companion exists, at start and after a switch-on, as `"<exe>" --activate "%1"`:
+  a start with `--activate` reads exactly the one argument after it as the URL and
+  loads the configuration as for a start without arguments, so a URL cannot add
+  switches. Any other route only brings the window to the front.
