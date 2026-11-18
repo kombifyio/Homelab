@@ -389,6 +389,25 @@ public static partial class CompanionAppLink
         }
     }
 
+    /// <summary>The registered Companion executable; null when none is registered or the registration is unusable.</summary>
+    internal static string? RegisteredExecutable()
+    {
+        try { return Registration(); }
+        catch (CompanionAppLinkException) { return null; }
+    }
+
+    /// <summary>
+    /// After an upgrade ended a running Companion (<see cref="CompanionInstaller"/>): starts the registered
+    /// executable again when the shared switch is on, through the same stopped-start as a switch-on, and waits for
+    /// its pipe. A switch that is off starts nothing. Throws <see cref="CompanionAppLinkException"/>.
+    /// </summary>
+    internal static async Task RestartAfterUpgradeAsync(CancellationToken cancellationToken = default)
+    {
+        RequireEligibleCaller();
+        if (!EnabledPreference()) return;
+        await SwitchStoppedAsync(true, cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// After this library started a stopped Companion: <c>settings.set enabled=true</c> on the now
     /// running program, so it records the requesting client (its OS-proven image against the

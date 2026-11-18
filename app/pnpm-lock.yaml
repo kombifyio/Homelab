@@ -167,15 +167,15 @@ overrides:
   vite-plus: 1.4.0
   '@kombify/notifications': file:third_party/npm/cloud-notifications-0.5.10.tgz
   '@kombify/tsconfig': file:third_party/npm/tsconfig-0.1.1.tgz
-  '@kombiverselabs/ai-sdk': file:third_party/npm/ai-sdk-0.17.5.tgz
+  '@kombiverselabs/ai-sdk': file:third_party/npm/ai-sdk-0.17.11.tgz
   '@kombiverselabs/cloud-notifications': file:third_party/npm/cloud-notifications-0.5.10.tgz
   '@kombiverselabs/design': file:third_party/npm/design-0.12.6.tgz
-  '@kombiverselabs/embed': file:third_party/npm/embed-0.17.5.tgz
-  '@kombiverselabs/execution-contracts': file:third_party/npm/execution-contracts-0.17.5.tgz
+  '@kombiverselabs/embed': file:third_party/npm/embed-0.17.11.tgz
+  '@kombiverselabs/execution-contracts': file:third_party/npm/execution-contracts-0.17.11.tgz
   '@kombiverselabs/observability': file:third_party/npm/observability-0.77.0.tgz
   '@kombiverselabs/onboarding-core': file:third_party/npm/onboarding-core-0.12.6.tgz
   '@kombiverselabs/speechkit-voice-ui-kit': file:third_party/npm/speechkit-voice-ui-kit-0.80.6.tgz
-  '@kombiverselabs/speechkit-voiceagent-client': file:third_party/npm/speechkit-voiceagent-client-0.80.9.tgz
+  '@kombiverselabs/speechkit-voiceagent-client': file:third_party/npm/speechkit-voiceagent-client-0.80.5.tgz
   '@kombiverselabs/tsconfig': file:third_party/npm/tsconfig-0.1.1.tgz
   '@kombiverselabs/ui': file:third_party/npm/ui-0.12.6.tgz
   cookie@<0.7.0: '>=0.7.2'
@@ -199,8 +199,8 @@ importers:
         specifier: file:third_party/npm/design-0.12.6.tgz
         version: file:third_party/npm/design-0.12.6.tgz
       '@kombiverselabs/embed':
-        specifier: file:third_party/npm/embed-0.17.5.tgz
-        version: file:third_party/npm/embed-0.17.5.tgz(@kombiverselabs/speechkit-voiceagent-client@file:third_party/npm/speechkit-voiceagent-client-0.80.9.tgz(ws@8.22.0))(ws@8.22.0)
+        specifier: file:third_party/npm/embed-0.17.11.tgz
+        version: file:third_party/npm/embed-0.17.11.tgz(@kombiverselabs/speechkit-voiceagent-client@file:third_party/npm/speechkit-voiceagent-client-0.80.5.tgz(ws@8.22.0))(ws@8.22.0)
       '@kombiverselabs/observability':
         specifier: file:third_party/npm/observability-0.77.0.tgz
         version: file:third_party/npm/observability-0.77.0.tgz(@sentry/cloudflare@10.76.1)(@sentry/sveltekit@10.76.1(@opentelemetry/core@2.10.0(@opentelemetry/api@1.9.1))(@sveltejs/kit@3.0.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@7.3.1(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(svelte@5.57.2(@typescript-eslint/types@8.71.1)))(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(svelte@5.57.2(@typescript-eslint/types@8.71.1))(typescript@6.0.3))(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.1)(jiti@2.7.0)(typescript@6.0.3))(supports-color@7.2.0)(svelte@5.57.2(@typescript-eslint/types@8.71.1)))
@@ -260,11 +260,11 @@ importers:
         specifier: file:third_party/npm/tsconfig-0.1.1.tgz
         version: '@kombiverselabs/tsconfig@file:third_party/npm/tsconfig-0.1.1.tgz'
       '@kombiverselabs/execution-contracts':
-        specifier: file:third_party/npm/execution-contracts-0.17.5.tgz
-        version: file:third_party/npm/execution-contracts-0.17.5.tgz
+        specifier: file:third_party/npm/execution-contracts-0.17.11.tgz
+        version: file:third_party/npm/execution-contracts-0.17.11.tgz
       '@kombiverselabs/speechkit-voiceagent-client':
-        specifier: file:third_party/npm/speechkit-voiceagent-client-0.80.9.tgz
-        version: file:third_party/npm/speechkit-voiceagent-client-0.80.9.tgz(ws@8.22.0)
+        specifier: file:third_party/npm/speechkit-voiceagent-client-0.80.5.tgz
+        version: file:third_party/npm/speechkit-voiceagent-client-0.80.5.tgz(ws@8.22.0)
       '@playwright/test':
         specifier: ^1.64.0
         version: 1.64.0
@@ -564,9 +564,9 @@ packages:
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
 
-  '@kombiverselabs/ai-sdk@file:third_party/npm/ai-sdk-0.17.5.tgz':
-    resolution: {integrity: sha512-ljMYqNU3PuJH74z5+DX5YYOYnxHXRdX5/+0L5Q1/8VFJjzXfIkB65gk0Rms/fy9EgQKXOtA3oNKJbp25jhisKg==, tarball: file:third_party/npm/ai-sdk-0.17.5.tgz}
-    version: 0.17.5
+  '@kombiverselabs/ai-sdk@file:third_party/npm/ai-sdk-0.17.11.tgz':
+    resolution: {integrity: sha512-2dAudxQxCYPNB+hUo71oH4eqI899ce7MjrrrVuJMyTRHNvnY0rRQ6XcOTl83k8ZhUG41DK+7wV6/X8VE3JuTiw==, tarball: file:third_party/npm/ai-sdk-0.17.11.tgz}
+    version: 0.17.11
 
   '@kombiverselabs/cloud-notifications@file:third_party/npm/cloud-notifications-0.5.10.tgz':
     resolution: {integrity: sha512-/16sj9ZfsQeTz6HmyY4PMA0kkw2u7qiy2+xa3lfDnmjYU1eSrFWV1coX8ZupGWSLbNPHUjaxuSaf1Srsu3+DJQ==, tarball: file:third_party/npm/cloud-notifications-0.5.10.tgz}
@@ -576,13 +576,13 @@ packages:
     resolution: {integrity: sha512-OdcNuuhKWkXboYeO6NBKOSAZ8F4hZBKKkp0rX4YgXT4dlzpM3qp+eMhsJLDzgKc7xGsES8Xnidh3uq+PsqYt/w==, tarball: file:third_party/npm/design-0.12.6.tgz}
     version: 0.12.6
 
-  '@kombiverselabs/embed@file:third_party/npm/embed-0.17.5.tgz':
-    resolution: {integrity: sha512-CpkW/TBhVmvEQsx5Sl+zCflXu0iehhaXUCEUFTLQLd94v5jFZzrQRgh+v1AnRVivFTg+pRrrPIpMEEclZMQ9EQ==, tarball: file:third_party/npm/embed-0.17.5.tgz}
-    version: 0.17.5
+  '@kombiverselabs/embed@file:third_party/npm/embed-0.17.11.tgz':
+    resolution: {integrity: sha512-TK2xJZVp0s5BuW4f6Of1RnQzRxcQVxE/UfWXCEN9t7U6DhufA+N/Z9oQyseNIF7DzrVr9o3gL81T5oSs9pS4+w==, tarball: file:third_party/npm/embed-0.17.11.tgz}
+    version: 0.17.11
 
-  '@kombiverselabs/execution-contracts@file:third_party/npm/execution-contracts-0.17.5.tgz':
-    resolution: {integrity: sha512-B71S29di67HnhOtg2tANYXY0dh89LgWllXHEZ6LpT8bSuo+xTC051c8OdjOpyJcI6nov/XPMRajn0N9ZRPSoYg==, tarball: file:third_party/npm/execution-contracts-0.17.5.tgz}
-    version: 0.17.5
+  '@kombiverselabs/execution-contracts@file:third_party/npm/execution-contracts-0.17.11.tgz':
+    resolution: {integrity: sha512-75pAKAyNZIWV79G5182vGtX7JJK3fdTa0ZUxijDasj5PnBR9N9J7HJ52AQtDoutAPDrvYubgNowQreTEDowbLQ==, tarball: file:third_party/npm/execution-contracts-0.17.11.tgz}
+    version: 0.17.11
 
   '@kombiverselabs/observability@file:third_party/npm/observability-0.77.0.tgz':
     resolution: {integrity: sha512-yQMBubxb5Mzh8y8YTIe6oFy6wFaasb86iYSU7aG/kJ8FfoPALb8mCs13jPrhjHfi90ay/pJLUOyCACQJrxN0nQ==, tarball: file:third_party/npm/observability-0.77.0.tgz}
@@ -617,9 +617,9 @@ packages:
       '@kombiverselabs/speechkit-voiceagent-client':
         optional: true
 
-  '@kombiverselabs/speechkit-voiceagent-client@file:third_party/npm/speechkit-voiceagent-client-0.80.9.tgz':
-    resolution: {integrity: sha512-ks77b2yIxcsdcbwNObJdEL9RDcHKAL0CHYJN6BGD0xLcfHN7IQ7UstztEvvQ9EwkY2MHTJu0eRjPp2+HGma8LA==, tarball: file:third_party/npm/speechkit-voiceagent-client-0.80.9.tgz}
-    version: 0.80.9
+  '@kombiverselabs/speechkit-voiceagent-client@file:third_party/npm/speechkit-voiceagent-client-0.80.5.tgz':
+    resolution: {integrity: sha512-bvrPHOrsrzX4xc5DceQcOhv2DjyG7dAkNLjqrjkSDd37ChcD4Bd7ACcBr3AQvQKgjky0LzCN9EH22ddVZYKvpQ==, tarball: file:third_party/npm/speechkit-voiceagent-client-0.80.5.tgz}
+    version: 0.80.5
     engines: {node: '>=24.22.1 <25 || >=26.12.1'}
     peerDependencies:
       ws: '>=8.21.3'
@@ -3106,11 +3106,11 @@ snapshots:
 
   '@keyv/serialize@1.1.1': {}
 
-  '@kombiverselabs/ai-sdk@file:third_party/npm/ai-sdk-0.17.5.tgz(ws@8.22.0)':
+  '@kombiverselabs/ai-sdk@file:third_party/npm/ai-sdk-0.17.11.tgz(ws@8.22.0)':
     dependencies:
       '@ag-ui/core': 1.0.3(zod@4.6.7)
-      '@kombiverselabs/execution-contracts': file:third_party/npm/execution-contracts-0.17.5.tgz
-      '@kombiverselabs/speechkit-voiceagent-client': file:third_party/npm/speechkit-voiceagent-client-0.80.9.tgz(ws@8.22.0)
+      '@kombiverselabs/execution-contracts': file:third_party/npm/execution-contracts-0.17.11.tgz
+      '@kombiverselabs/speechkit-voiceagent-client': file:third_party/npm/speechkit-voiceagent-client-0.80.5.tgz(ws@8.22.0)
       zod: 4.6.7
     transitivePeerDependencies:
       - ws
@@ -3119,15 +3119,15 @@ snapshots:
 
   '@kombiverselabs/design@file:third_party/npm/design-0.12.6.tgz': {}
 
-  '@kombiverselabs/embed@file:third_party/npm/embed-0.17.5.tgz(@kombiverselabs/speechkit-voiceagent-client@file:third_party/npm/speechkit-voiceagent-client-0.80.9.tgz(ws@8.22.0))(ws@8.22.0)':
+  '@kombiverselabs/embed@file:third_party/npm/embed-0.17.11.tgz(@kombiverselabs/speechkit-voiceagent-client@file:third_party/npm/speechkit-voiceagent-client-0.80.5.tgz(ws@8.22.0))(ws@8.22.0)':
     dependencies:
-      '@kombiverselabs/ai-sdk': file:third_party/npm/ai-sdk-0.17.5.tgz(ws@8.22.0)
-      '@kombiverselabs/speechkit-voice-ui-kit': file:third_party/npm/speechkit-voice-ui-kit-0.80.6.tgz(@kombiverselabs/speechkit-voiceagent-client@file:third_party/npm/speechkit-voiceagent-client-0.80.9.tgz(ws@8.22.0))
+      '@kombiverselabs/ai-sdk': file:third_party/npm/ai-sdk-0.17.11.tgz(ws@8.22.0)
+      '@kombiverselabs/speechkit-voice-ui-kit': file:third_party/npm/speechkit-voice-ui-kit-0.80.6.tgz(@kombiverselabs/speechkit-voiceagent-client@file:third_party/npm/speechkit-voiceagent-client-0.80.5.tgz(ws@8.22.0))
     transitivePeerDependencies:
       - '@kombiverselabs/speechkit-voiceagent-client'
       - ws
 
-  '@kombiverselabs/execution-contracts@file:third_party/npm/execution-contracts-0.17.5.tgz':
+  '@kombiverselabs/execution-contracts@file:third_party/npm/execution-contracts-0.17.11.tgz':
     dependencies:
       '@noble/curves': 1.9.7
       '@noble/hashes': 1.8.0
@@ -3140,11 +3140,11 @@ snapshots:
 
   '@kombiverselabs/onboarding-core@file:third_party/npm/onboarding-core-0.12.6.tgz': {}
 
-  '@kombiverselabs/speechkit-voice-ui-kit@file:third_party/npm/speechkit-voice-ui-kit-0.80.6.tgz(@kombiverselabs/speechkit-voiceagent-client@file:third_party/npm/speechkit-voiceagent-client-0.80.9.tgz(ws@8.22.0))':
+  '@kombiverselabs/speechkit-voice-ui-kit@file:third_party/npm/speechkit-voice-ui-kit-0.80.6.tgz(@kombiverselabs/speechkit-voiceagent-client@file:third_party/npm/speechkit-voiceagent-client-0.80.5.tgz(ws@8.22.0))':
     optionalDependencies:
-      '@kombiverselabs/speechkit-voiceagent-client': file:third_party/npm/speechkit-voiceagent-client-0.80.9.tgz(ws@8.22.0)
+      '@kombiverselabs/speechkit-voiceagent-client': file:third_party/npm/speechkit-voiceagent-client-0.80.5.tgz(ws@8.22.0)
 
-  '@kombiverselabs/speechkit-voiceagent-client@file:third_party/npm/speechkit-voiceagent-client-0.80.9.tgz(ws@8.22.0)':
+  '@kombiverselabs/speechkit-voiceagent-client@file:third_party/npm/speechkit-voiceagent-client-0.80.5.tgz(ws@8.22.0)':
     optionalDependencies:
       ws: 8.22.0
 

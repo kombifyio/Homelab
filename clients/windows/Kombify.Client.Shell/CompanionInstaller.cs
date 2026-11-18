@@ -138,11 +138,13 @@ public static class CompanionInstaller
         FileStream? package = null;
         Process? msiexec = null;
         var handedOff = false;
+        var stoppedForUpgrade = false;
         try
         {
             if (!CompanionAppLink.IsCallerEligible()) return new(CompanionInstallCode.CallerRefused);
             if (!ValidPayload(payload)) return new(CompanionInstallCode.PayloadMissing);
-            switch (Presence(payload))
+            var presence = Presence(payload);
+            switch (presence)
             {
                 case Present.SameOrNewer: return new(CompanionInstallCode.AlreadyRegistered);
                 case Present.Unknown: return new(CompanionInstallCode.InstallerUnknown);
@@ -160,6 +162,10 @@ public static class CompanionInstaller
             }
             if (!DigestMatches(package, payload.Sha256)) return new(CompanionInstallCode.PayloadMismatch);
 
+            // The MSI defines no close or restart of a running program and the program has no window to
+            // close: an upgrade over a running Companion would leave its files in use. The one this user
+            // runs from the registered executable is ended first and started again afterwards.
+            if (presence == Present.Older) stoppedForUpgrade = StopRunningCompanion();
             try
             {
                 msiexec = Process.Start(InstallStart(payload.Path, logPath));
@@ -201,7 +207,62 @@ public static class CompanionInstaller
             {
                 package?.Dispose();
                 msiexec?.Dispose();
+                // Whatever the install returned (a rolled-back one left the old program), the person's running
+                // Companion is running again when the shared switch is on.
+                if (stoppedForUpgrade) RestartAfterUpgrade();
             }
+        }
+    }
+
+    private static readonly TimeSpan StopWait = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// Ends this Windows user's running Companion (the process whose image is the registered executable, in
+    /// this session, with its child programs). True when one was ended. Never throws.
+    /// </summary>
+    private static bool StopRunningCompanion()
+    {
+        try
+        {
+            if (CompanionAppLink.RegisteredExecutable() is not { } registered) return false;
+            var session = Process.GetCurrentProcess().SessionId;
+            var ended = false;
+            foreach (var process in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(registered)))
+            {
+                using (process)
+                {
+                    try
+                    {
+                        if (process.SessionId != session
+                            || !string.Equals(process.MainModule?.FileName, registered, StringComparison.OrdinalIgnoreCase))
+                            continue;
+                        process.Kill(entireProcessTree: true);
+                        process.WaitForExit(StopWait);
+                        ended = true;
+                    }
+                    catch (Exception error) when (error is Win32Exception or InvalidOperationException or NotSupportedException)
+                    {
+                        // Not this user's, or already gone.
+                    }
+                }
+            }
+            return ended;
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            return false;
+        }
+    }
+
+    private static void RestartAfterUpgrade()
+    {
+        try
+        {
+            CompanionAppLink.RestartAfterUpgradeAsync().GetAwaiter().GetResult();
+        }
+        catch (Exception error) when (error is CompanionAppLinkException or OperationCanceledException)
+        {
+            // The switch stays as the person set it; the Companion starts with the next switch-on.
         }
     }
 

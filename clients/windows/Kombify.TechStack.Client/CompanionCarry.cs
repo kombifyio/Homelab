@@ -5,9 +5,10 @@ using Kombify.Client.Shell;
 
 namespace Kombify.TechStack.Client;
 
-// The desktop Companion installer this client carries beside itself (companion\<file>), pinned in
-// companion-carry.json: version, size and sha256 in one place, embedded here and read by the build
-// scripts. Nothing is downloaded at run time. A build without the file (the public Standalone
+// The desktop Companion installer this client carries beside itself (companion\<file>). Which one it
+// is, is not written in source: the build resolves the newest published release, verifies it and
+// generates companion-carry.json (version, size, sha256 the release published), which is embedded
+// here. Nothing is downloaded at run time. A build without the generated file (the public Standalone
 // export, a development build) carries no Companion and then has no Companion tab unless one is
 // already installed on the machine.
 internal static partial class CompanionCarry

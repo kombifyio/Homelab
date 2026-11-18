@@ -73,6 +73,7 @@ internal sealed partial class ClientWindow
         _webView.CoreWebView2.WebMessageReceived += OnCompanionRequested;
         StartCompanionActivation();
         _ = RegisterCompanionOpenInAppAsync();
+        _ = UpgradeInstalledCompanionAsync();
     }
 
     private void OnCompanionRequested(object? sender, CoreWebView2WebMessageReceivedEventArgs args)
@@ -189,7 +190,7 @@ internal sealed partial class ClientWindow
         try
         {
             if (!CompanionAppLink.IsCallerEligible()) { ReplyCompanion(document, "read", "unavailable"); return; }
-            var settings = await CompanionAppLink.GetSettingsAsync();
+            var settings = await ReadCompanionSettingsAsync();
             if (!settings.Installed && !await CompanionInstallableAsync())
             {
                 ReplyCompanion(document, "read", "unavailable");
@@ -205,6 +206,60 @@ internal sealed partial class ClientWindow
 
     private static Task<bool> CompanionInstallableAsync() => Task.Run(() =>
         CompanionCarry.Payload() is { } payload && CompanionInstaller.CanInstall(payload));
+
+    // An installed Companion older than the carried one, and the carried payload is offered (eligible caller,
+    // digest matches). Enumerates Windows Installer: off the UI thread. An unknown state is not an upgrade.
+    private static Task<bool> CompanionUpgradableAsync(CompanionPayload payload) => Task.Run(() =>
+    {
+        try
+        {
+            return Version.TryParse(payload.Version, out var carried)
+                && CompanionInstaller.InstalledVersion() is { } installed && installed < carried
+                && CompanionInstaller.CanInstall(payload);
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+    });
+
+    // One automatic upgrade attempt per client start (the start check or a refused read, whichever needs it first):
+    // a failed one is logged with msiexec's exit code and retried at the next start, never in a loop.
+    private static int s_companionUpgradeAttempted;
+
+    // An installed Companion (for this Windows user, whichever kombify client recorded it) that is older than the
+    // carried one is upgraded through CompanionInstaller, the same path as a switch-on. Nothing is installed here:
+    // with no Companion installed, or the same or a newer one, it does nothing. True when the upgrade succeeded.
+    private static async Task<bool> UpgradeInstalledCompanionAsync()
+    {
+        try
+        {
+            if (CompanionCarry.Payload() is not { } payload || !await CompanionUpgradableAsync(payload)) return false;
+            if (Interlocked.Exchange(ref s_companionUpgradeAttempted, 1) == 1) return false;
+            return await InstallCompanionAsync(payload);
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            return false;
+        }
+    }
+
+    // The settings read. An installed Companion that answers "unsupported_version" is older than this client's
+    // AppLink: it is upgraded once and the read is repeated once. Anything else is the read's own answer.
+    private static async Task<CompanionSettings> ReadCompanionSettingsAsync()
+    {
+        CompanionAppLinkException refused;
+        try
+        {
+            return await CompanionAppLink.GetSettingsAsync();
+        }
+        catch (CompanionAppLinkException error) when (error.Code == CompanionAppLinkError.UnsupportedVersion)
+        {
+            refused = error;
+        }
+        if (!await UpgradeInstalledCompanionAsync()) throw refused;
+        return await CompanionAppLink.GetSettingsAsync();
+    }
 
     private async Task CompanionWriteAsync(CompanionDocument document, string key, JsonElement value)
     {
@@ -255,27 +310,37 @@ internal sealed partial class ClientWindow
             if (with is not null) message["with"] = with;
         });
 
-    // Switching on while the Companion is not installed installs the carried one first (per user, no
-    // elevation, the digest checked on the handle msiexec reads), then the caller writes enabled=true.
+    // Switching on while the Companion is not installed installs the carried one first, and while an older
+    // one is installed runs the carried MSI over it (its MajorUpgrade, same UpgradeCode: the person's
+    // settings and sign-in stay); per user, no elevation, the digest checked on the handle msiexec reads.
+    // The same or a newer installed Companion is left alone. Then the caller writes enabled=true.
     private async Task<bool> EnsureCompanionInstalledAsync()
     {
         try
         {
-            var current = await CompanionAppLink.GetSettingsAsync();
-            if (current.Installed) return true;
-            if (CompanionCarry.Payload() is not { } payload) return false;
-            var logs = Path.Combine(ClientConfig.StateDirectory(), "logs");
-            Directory.CreateDirectory(logs);
-            var install = await CompanionInstaller.InstallAsync(payload, Path.Combine(logs, "companion-install.log"));
-            // The client's own log keeps the result code and msiexec's exit code only.
-            AppendRuntimeLog(Path.Combine(logs, "companion.log"),
-                $"[{DateTimeOffset.Now:u}] companion install: {install.Code} exit={install.ExitCode?.ToString() ?? "-"}");
-            return install.Registered;
+            var current = await ReadCompanionSettingsAsync();
+            var carried = CompanionCarry.Payload();
+            if (current.Installed && !(carried is not null && await CompanionUpgradableAsync(carried))) return true;
+            if (carried is not { } payload) return false;
+            // A failed upgrade leaves the installed Companion as it was: the switch goes on with it, as before.
+            return await InstallCompanionAsync(payload) || current.Installed;
         }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
             return false;
         }
+    }
+
+    // Runs the carried MSI (install or, over an older Companion, its MajorUpgrade) and logs the result.
+    private static async Task<bool> InstallCompanionAsync(CompanionPayload payload)
+    {
+        var logs = Path.Combine(ClientConfig.StateDirectory(), "logs");
+        Directory.CreateDirectory(logs);
+        var install = await CompanionInstaller.InstallAsync(payload, Path.Combine(logs, "companion-install.log"));
+        // The client's own log keeps the result code and msiexec's exit code only.
+        AppendRuntimeLog(Path.Combine(logs, "companion.log"),
+            $"[{DateTimeOffset.Now:u}] companion install: {install.Code} exit={install.ExitCode?.ToString() ?? "-"}");
+        return install.Registered;
     }
 
     private static bool IsFolderKey(string key) => key == CompanionSettingKey.ScreenshotFolder;

@@ -36,8 +36,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The one pin of the carried Companion installer; the build scripts read the same file. -->
-    <EmbeddedResource Include="..\companion-carry.json" LogicalName="companion-carry.json" />
+    <!-- The generated record of the Companion this build carries (scripts/read-companion-installer.ps1 writes
+         it, scripts/package-windows-client.ps1 passes it). No file in source; a build without it carries no Companion. -->
+    <EmbeddedResource Include="$(CompanionCarryFile)" LogicalName="companion-carry.json" Condition="'$(CompanionCarryFile)' != ''" />
   </ItemGroup>
 
   <ItemGroup>
