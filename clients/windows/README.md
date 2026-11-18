@@ -273,20 +273,42 @@ installer carries one.
   the native dialog, and a folder is written only when it is the one just picked
   or one the Companion itself reported. Only a link of the latest snapshot opens
   in the system browser.
-- **Carried installer.** `companion-carry.json` pins version, size and SHA-256 of
-  the one Companion MSI the installer carries (`companion\<file>` beside the
-  client; one place, read by the build scripts and embedded in the client). The
-  release job `delivery-windows.yml` reads it from the private prerelease with a
+- **Carried installer.** No Companion version or digest is written in source: the
+  client follows the Companion's releases. The release job `delivery-windows.yml`
+  runs `scripts/read-companion-installer.ps1`, which resolves the newest
+  published `companion-desktop-v<semver>` release of the private
+  kombify-AI-Platform repository (highest version, no draft, tag present) with a
   `contents: read` token that is revoked before any third-party code of the job
-  runs (`scripts/read-companion-installer.ps1`); `package-windows-client.ps1
-  -CompanionInstaller` verifies it again and stages it. Switching on while no
-  Companion is installed runs `CompanionInstaller.InstallAsync` (per user, no
-  elevation, digest checked on the handle msiexec reads), then writes
-  `enabled=true`, which also writes the client's registration under
-  `HKCU\Software\kombify\CompanionDesktop\Clients`. A build without the file (the
-  public export, a development build) has no Companion tab unless one is
-  already installed. Uninstalling the client leaves the Companion; it removes
-  itself once no registered client exists.
+  runs, downloads its MSI and the SHA-256 the release publishes with it, and
+  verifies size and digest (and an artifact attestation when the release carries
+  one). No release, no MSI or digest asset, a mismatch or a failed download
+  stops the build with a message naming the release and the asset; there is no
+  fallback to an older or cached Companion. It writes the generated
+  `companion-carry.json` (version, tag, file, size, SHA-256) beside the MSI;
+  `package-windows-client.ps1 -CompanionInstaller` verifies the pair again,
+  embeds the file in the client and stages both under `companion\` beside it,
+  and the build log and job summary say which Companion the client carries
+  (`COMPANION_RESOLVED`, `COMPANION_CARRIED`). Switching on while no Companion is
+  installed, or while an older one is, runs `CompanionInstaller.InstallAsync`
+  (per user, no elevation, digest checked on the handle msiexec reads); for an
+  older one that is the MSI's own `MajorUpgrade` under its fixed UpgradeCode, so
+  the person's Companion settings and sign-in stay. The same or a newer installed
+  Companion is left alone. Two more triggers use the same path, once per client
+  start and never in a loop: the start of the client, when a Companion is
+  installed for this Windows user (whichever kombify client recorded it) and is
+  older than the carried one, and a settings read the installed Companion
+  answers with `unsupported_version` (an AppLink v1 Companion), after which the
+  read is repeated once. A failed upgrade leaves what is installed, is logged in
+  `companion.log` with msiexec's exit code and is retried at the next start.
+  Nothing is upgraded when no Companion is installed. The page has no
+  installing state, so a held read answers after the upgrade. A running
+  Companion is ended before the MSI runs and started again after it when its
+  switch is on (`CompanionInstaller`, Kombify.Client.Shell 0.1.0-alpha.8). The
+  client then writes `enabled=true`, which also
+  writes its registration under `HKCU\Software\kombify\CompanionDesktop\Clients`.
+  A build without the generated file (the public export, a development build)
+  has no Companion tab unless one is already installed. Uninstalling the client
+  leaves the Companion; it removes itself once no registered client exists.
 - **Open in app.** `kombify-techstack://open/?route=%2Fsettings%2Fcompanion`
   (Connected: `kombify-techstack-cloud`) opens Settings > Companion in the running
   instance, or starts the client there. The client registers its scheme once a

@@ -7,7 +7,7 @@
     <!-- The one place this package's version is set: client-shell-package.yml and
          scripts/package-client-shell.ps1 read it (dotnet msbuild -getProperty:Version).
          A published version is immutable; a source change needs a new one here. -->
-    <Version>0.1.0-alpha.7</Version>
+    <Version>0.1.0-alpha.8</Version>
     <Description>Shared strict connection-profile, Windows secret-custody and Companion AppLink v2 client (status, switch, context, settings read/write/watch), Companion client registration, carried-Companion install and single-instance URL activation seams for thin Kombify WebView2 clients.</Description>
     <RepositoryUrl>https://github.com/kombifyio/TechStack</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

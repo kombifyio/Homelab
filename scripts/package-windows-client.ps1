@@ -14,10 +14,12 @@ param(
     # Passed through to the bundle builder so the Windows CLI never has to
     # generate them here; see kombify-Techstack-uxss.
     [string]$SpecTemplatesPath = "",
-    # The desktop Companion installer this client carries (clients/windows/companion-carry.json pins its
-    # version, size and sha256). The release job reads it with scripts/read-companion-installer.ps1; a build
-    # without it (the public export, a development build) carries no Companion and the client then shows
-    # no Companion tab unless one is already installed. Nothing is downloaded here.
+    # The desktop Companion installer this client carries: the newest published release, resolved and
+    # verified by scripts/read-companion-installer.ps1, which writes companion-carry.json (version, size,
+    # sha256 the release published) beside the MSI. This script verifies it again, embeds that file in the
+    # client and stages both. A build without it (the public export, a development build) carries no
+    # Companion and the client then shows no Companion tab unless one is already installed. Nothing is
+    # downloaded here.
     [string]$CompanionInstaller = ""
 )
 
@@ -78,12 +80,53 @@ if (Test-Path $publishDir) { Remove-Item -Recurse -Force $publishDir }
 if (Test-Path $stageDir) { Remove-Item -Recurse -Force $stageDir }
 New-Item -ItemType Directory -Force -Path $publishDir, $stageDir, $zipDir | Out-Null
 
+$companionSource = $null
+$companionCarryFile = $null
+$companion = $null
+$companionPublishArgs = @()
+if (-not [string]::IsNullOrWhiteSpace($CompanionInstaller)) {
+    $companionSource = (Resolve-Path -LiteralPath $CompanionInstaller -ErrorAction Stop).Path
+    if (!(Test-Path -LiteralPath $companionSource -PathType Leaf)) { throw "CompanionInstaller ($CompanionInstaller) is not a file." }
+    $companionCarryFile = Join-Path (Split-Path -Parent $companionSource) "companion-carry.json"
+    if (!(Test-Path -LiteralPath $companionCarryFile -PathType Leaf)) {
+        throw "No companion-carry.json beside $companionSource: the Companion installer must come from scripts/read-companion-installer.ps1."
+    }
+    $companion = Get-Content -Raw -LiteralPath $companionCarryFile | ConvertFrom-Json
+    if ($companion.file -notmatch '^[A-Za-z0-9._-]+\.msi$' -or $companion.sha256 -notmatch '^[0-9a-f]{64}$' -or [long]$companion.size -le 0) {
+        throw "companion-carry.json needs a plain .msi file name, a lowercase sha256 and a size."
+    }
+    if ((Split-Path -Leaf $companionSource) -ne $companion.file) {
+        throw "The Companion installer is $(Split-Path -Leaf $companionSource), companion-carry.json names $($companion.file). Refusing to carry it."
+    }
+    if ((Get-Item -LiteralPath $companionSource).Length -ne [long]$companion.size) {
+        throw "The Companion installer is not the resolved $($companion.size) bytes. Refusing to carry it."
+    }
+    $companionActual = (Get-FileHash -Algorithm SHA256 -LiteralPath $companionSource).Hash.ToLowerInvariant()
+    if ($companionActual -ne $companion.sha256) {
+        throw "Checksum mismatch for the Companion installer (expected $($companion.sha256), got $companionActual). Refusing to carry it."
+    }
+    # The client hands the carried version to CompanionInstaller, which compares it with what Windows Installer
+    # reports, and recognizes the product by its UpgradeCode: both must be the MSI's own (Property table).
+    if ($companion.version -notmatch '^\d+\.\d+\.\d+$') { throw "companion-carry.json version must be major.minor.build." }
+    $companionProductVersion = & (Join-Path $PSScriptRoot "msi-property.ps1") -Path $companionSource -Property ProductVersion
+    if ($companionProductVersion -ne $companion.version) {
+        throw "The Companion installer's ProductVersion is $companionProductVersion, the resolved release says $($companion.version). Refusing to carry it."
+    }
+    $companionUpgradeCode = & (Join-Path $PSScriptRoot "msi-property.ps1") -Path $companionSource -Property UpgradeCode
+    if ($companionUpgradeCode -ne "{16167BF4-5DFC-4CF5-8A93-5F89D0F72B39}") {
+        throw "The Companion installer's UpgradeCode is $companionUpgradeCode, not the one the client installs by. Refusing to carry it."
+    }
+    $companionPublishArgs = @("-p:CompanionCarryFile=$companionCarryFile")
+    Write-Host "COMPANION_CARRIED version=$($companion.version) file=$($companion.file) size=$($companion.size) sha256=$($companion.sha256)"
+}
+
 dotnet publish $project -c $Configuration -r $Runtime --self-contained true -o $publishDir `
     -p:PublishSingleFile=true `
     -p:IncludeNativeLibrariesForSelfExtract=true `
     -p:EnableCompressionInSingleFile=true `
     -p:Version=$Version `
-    -p:DesktopEdition=$DesktopEdition
+    -p:DesktopEdition=$DesktopEdition `
+    @companionPublishArgs
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed with exit code $LASTEXITCODE" }
 Copy-Item -Recurse -Force -Path (Join-Path $publishDir "*") -Destination $stageDir
 
@@ -165,34 +208,12 @@ Copy-Item -Force -Path (Join-Path $root "scripts\reset-windows-client-state.ps1"
 } else {
     Copy-Item -Force -Path (Join-Path $root "scripts\install-windows-cloud-client.ps1") -Destination $stageDir
 }
-if (-not [string]::IsNullOrWhiteSpace($CompanionInstaller)) {
-    $companion = Get-Content -Raw (Join-Path $root "clients\windows\companion-carry.json") | ConvertFrom-Json
-    if ($companion.file -notmatch '^[A-Za-z0-9._-]+\.msi$' -or $companion.sha256 -notmatch '^[0-9a-f]{64}$' -or [long]$companion.size -le 0) {
-        throw "companion-carry.json needs a plain .msi file name, a lowercase sha256 and a size."
-    }
-    $companionSource = (Resolve-Path -LiteralPath $CompanionInstaller -ErrorAction Stop).Path
-    if (!(Test-Path -LiteralPath $companionSource -PathType Leaf)) { throw "CompanionInstaller ($CompanionInstaller) is not a file." }
-    if ((Get-Item -LiteralPath $companionSource).Length -ne [long]$companion.size) {
-        throw "The Companion installer is not the pinned $($companion.size) bytes. Refusing to carry it."
-    }
-    $companionActual = (Get-FileHash -Algorithm SHA256 -LiteralPath $companionSource).Hash.ToLowerInvariant()
-    if ($companionActual -ne $companion.sha256) {
-        throw "Checksum mismatch for the Companion installer (expected $($companion.sha256), got $companionActual). Refusing to carry it."
-    }
-    # The client hands the pinned version to CompanionInstaller, which compares it with what Windows Installer
-    # reports, and recognizes the product by its UpgradeCode: both must be the MSI's own (Property table).
-    if ($companion.version -notmatch '^\d+\.\d+\.\d+$') { throw "companion-carry.json version must be major.minor.build." }
-    $companionProductVersion = & (Join-Path $PSScriptRoot "msi-property.ps1") -Path $companionSource -Property ProductVersion
-    if ($companionProductVersion -ne $companion.version) {
-        throw "The Companion installer's ProductVersion is $companionProductVersion, the pin says $($companion.version). Refusing to carry it."
-    }
-    $companionUpgradeCode = & (Join-Path $PSScriptRoot "msi-property.ps1") -Path $companionSource -Property UpgradeCode
-    if ($companionUpgradeCode -ne "{16167BF4-5DFC-4CF5-8A93-5F89D0F72B39}") {
-        throw "The Companion installer's UpgradeCode is $companionUpgradeCode, not the one the client installs by. Refusing to carry it."
-    }
+if ($companionSource) {
     $companionStage = Join-Path $stageDir "companion"
     New-Item -ItemType Directory -Force -Path $companionStage | Out-Null
     Copy-Item -LiteralPath $companionSource -Destination (Join-Path $companionStage $companion.file)
+    # The generated record of which Companion this build carries (also embedded in the client).
+    Copy-Item -LiteralPath $companionCarryFile -Destination (Join-Path $companionStage "companion-carry.json")
 }
 Copy-Item -Force -Path (Join-Path $root "clients\windows\README.md") -Destination (Join-Path $stageDir "README.md")
 $stageAssetsDir = Join-Path $stageDir "Assets"
