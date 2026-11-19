@@ -42,17 +42,24 @@ const RENEWAL_WINDOW_NAME = "kombify-session-renewal";
 const RENEWAL_WINDOW_FEATURES = "popup,width=520,height=700";
 
 /**
- * The origin could not verify the gateway's signed decision envelope — a
- * trust-material or configuration fault between edge and origin. It arrives as
- * a 401 but says nothing about the caller's session, and no renewal repairs
- * it (a renewal loop that could not terminate went live 2026-09-12 to
- * 2026-09-18).
+ * 401 codes that name a fault of the edge↔origin trust material, not the
+ * caller's session: the origin could not verify the gateway's signed decision
+ * or identity/entitlement envelopes (a key rotation or a configuration
+ * divergence between edge and origin). They arrive as 401 and no renewal
+ * repairs them — a renewal loop that could not terminate went live 2026-09-12
+ * to 2026-09-18. Every code stays excluded from session renewal.
  */
-export const EDGE_DECISION_UNVERIFIABLE_REASON_CODE =
-  "edge_decision_unverifiable";
+export const EDGE_TRUST_FAULT_CODES: ReadonlySet<string> = new Set([
+  "edge_decision_unverifiable",
+  "edge_flags_key_divergence",
+  // pkg/middleware/edge_identity.go: the identity envelope or the entitlement
+  // envelope did not verify.
+  "edge_authentication_unverifiable",
+  "edge_entitlements_unverifiable",
+]);
 
-/** True when a 401 is the origin refusing the edge's decision, not the session. */
-export function isEdgeDecisionUnverifiableError(err: unknown): boolean {
+/** True when a 401 is the origin refusing the edge's decision or envelope. */
+export function isEdgeTrustFaultError(err: unknown): boolean {
   if (typeof err !== "object" || err === null) return false;
   const candidate = err as {
     status?: unknown;
@@ -60,11 +67,15 @@ export function isEdgeDecisionUnverifiableError(err: unknown): boolean {
     details?: unknown;
   };
   if (candidate.status !== 401) return false;
-  if (candidate.code === EDGE_DECISION_UNVERIFIABLE_REASON_CODE) return true;
+  if (typeof candidate.code === "string") {
+    if (EDGE_TRUST_FAULT_CODES.has(candidate.code)) return true;
+  }
   const details = recordOf(candidate.details);
   return (
-    details.reason_code === EDGE_DECISION_UNVERIFIABLE_REASON_CODE ||
-    details.error_code === EDGE_DECISION_UNVERIFIABLE_REASON_CODE
+    (typeof details.reason_code === "string" &&
+      EDGE_TRUST_FAULT_CODES.has(details.reason_code)) ||
+    (typeof details.error_code === "string" &&
+      EDGE_TRUST_FAULT_CODES.has(details.error_code))
   );
 }
 

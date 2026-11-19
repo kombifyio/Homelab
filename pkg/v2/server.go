@@ -9,6 +9,7 @@ import (
 
 	"github.com/kombifyio/techstack/internal/gocommon/authsession"
 	"github.com/kombifyio/techstack/pkg/db"
+	"github.com/kombifyio/techstack/pkg/httpx"
 	"github.com/kombifyio/techstack/pkg/v2/auth/session"
 )
 
@@ -198,7 +199,16 @@ type WhoAmIResponse struct {
 func (s *Server) handleWhoAmI(w http.ResponseWriter, r *http.Request) {
 	c, err := authsession.ClaimsFrom(r.Context())
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		// The app's session probe. A missing or expired session is a session
+		// that needs renewal, never a sign-in error: answer with the platform
+		// renewal signal the shared web client renews and replays on
+		// (workspace AUTHENTICATION.md §6). A store fault never reaches this
+		// branch: it is refused with 503 by the session middleware that reads
+		// the session, so a doubt about the identity store is not read here as
+		// "no session".
+		// The status and headers are written before the body; the client reads
+		// the header and the code even if the body cannot encode.
+		_ = httpx.WriteSessionRenewal(w, httpx.SessionRenewalReasonSessionExpired)
 		return
 	}
 	resp := WhoAmIResponse{

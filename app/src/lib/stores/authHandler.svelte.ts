@@ -11,7 +11,7 @@
  */
 
 import {
-  isEdgeDecisionUnverifiableError,
+  isEdgeTrustFaultError,
   isSessionRenewalPending,
   sessionRenewal,
 } from "#lib/auth/session-renewal.svelte.js";
@@ -41,10 +41,10 @@ class AuthHandlerStore {
     cause?: unknown,
     _options?: HandleUnauthorizedOptions,
   ): Promise<AuthRecoveryOutcome> {
-    // An origin that cannot verify the gateway's signed decision is not a
-    // session problem: no renewal repairs it, so the call site keeps the
-    // error it already holds.
-    if (isEdgeDecisionUnverifiableError(cause)) return "origin_unverifiable";
+    // An origin that cannot verify the gateway's signed decision, identity or
+    // entitlement envelope has a trust-material fault, not a session problem:
+    // no renewal repairs it, so the call site keeps the error it already holds.
+    if (isEdgeTrustFaultError(cause)) return "origin_unverifiable";
     // The person dismissed the renewal confirmation: the action waits.
     if (isSessionRenewalPending(cause)) return "reauth_required";
 

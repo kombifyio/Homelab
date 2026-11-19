@@ -465,6 +465,55 @@ func TestEdgeIdentityMiddleware_DecisionDenialNamesAnOperatorFault(t *testing.T)
 	}
 }
 
+func TestEdgeIdentityMiddleware_IdentityDenialNamesAnOperatorFault(t *testing.T) {
+	// A wrong or rotated edge trust key is an operator fault, not an expired
+	// session. The refusal keeps its 401 and now carries a stable code the web
+	// client's renewal layer excludes (app/src/lib/auth/session-renewal.svelte.ts),
+	// so no signed-in person is sent through Universal Login for it.
+	mw := EdgeIdentityMiddlewareWithConfig(EdgeIdentityConfig{
+		Mode:           config.ModeSaaS,
+		EdgeAuthSecret: testEdgeAuthSecret,
+	})
+	e := newTestEvent(http.MethodGet, "/api/v1/servers")
+	e.Request.Header.Set(headerEdgeAuth, edgeAuthValueJWT)
+	e.Request.Header.Set(headerEdgeService, techStackDecisionAudience)
+	e.Request.Header.Set(headerPublicPrefix, techStackDecisionPublicPrefix)
+	e.Request.Header.Set(commonedgeauth.HeaderUserID, "auth0|owner-1")
+	e.Request.Header.Set(commonedgeauth.HeaderOrgID, "tenant-1")
+	e.Request.Header.Set(commonedgeauth.HeaderRequestID, "request-bad-signature")
+	// Signed with trust material this origin does not hold.
+	signEdgeRequestV2(t, e, "a-secret-this-origin-never-received")
+
+	if err := mw(e); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	rec := e.Response.(*httptest.ResponseRecorder)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status=%d, want the request refused", rec.Code)
+	}
+	if got := rec.Header().Get(httpx.SessionRenewalHeader); got != "" {
+		t.Fatalf("renewal header = %q, want none: this is not a session matter", got)
+	}
+	var body struct {
+		Error struct {
+			Code    string         `json:"code"`
+			Details map[string]any `json:"details"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("denial body is not JSON (%v): %s", err, rec.Body.String())
+	}
+	if body.Error.Code != "UNAUTHORIZED" {
+		t.Fatalf("error.code=%q, want the unchanged UNAUTHORIZED envelope", body.Error.Code)
+	}
+	if body.Error.Details["reason_code"] != edgeAuthenticationUnverifiableCode {
+		t.Fatalf("reason_code=%v, want %q", body.Error.Details["reason_code"], edgeAuthenticationUnverifiableCode)
+	}
+	if body.Error.Details["error_code"] != edgeAuthenticationUnverifiableCode {
+		t.Fatalf("error_code=%v, want %q", body.Error.Details["error_code"], edgeAuthenticationUnverifiableCode)
+	}
+}
+
 func TestEdgeIdentityMiddleware_EdgeAuth_RejectsDetachedV1TechStackBudget(t *testing.T) {
 	mw := EdgeIdentityMiddlewareWithConfig(EdgeIdentityConfig{
 		Mode:            config.ModeSaaS,
@@ -1226,6 +1275,22 @@ func TestEdgeIdentityMiddleware_DataProfile_ObserveAttachesVerifiedProfile(t *te
 		t.Fatalf("profile = %+v ok=%v, want verified EU zero-retention rev 3", profile, ok)
 	}
 	assertNoProfileHeaders(t, e.Request)
+}
+
+// Techstack reads the scope "cloud" of a wire v2 profile; the ai scope (AI
+// processing) neither tightens nor loosens it (D-2026-11-18-12).
+func TestEdgeIdentityMiddleware_DataProfile_V2ReadsTheCloudScope(t *testing.T) {
+	mw := profileTestMiddleware(t, dataProfileModeObserve)
+	split := dataprofile.Standard().WithAI(dataprofile.ResidencyEU, dataprofile.RetentionZero)
+	split.Rev, split.TS = 3, 1792700000
+	e := newSignedTechStackProfileEvent(t, &split)
+	if err := mw(e); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	profile, ok := DataProfileFromContext(e.Request.Context(), false)
+	if !ok || profile.EU() || profile.Zero() || profile.AI != nil || profile.V != dataprofile.Version {
+		t.Fatalf("profile = %+v ok=%v, want the global standard cloud scope as v1", profile, ok)
+	}
 }
 
 func TestEdgeIdentityMiddleware_DataProfile_ObserveContinuesWithoutProfile(t *testing.T) {

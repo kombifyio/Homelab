@@ -22,6 +22,14 @@ const (
 
 	// csrfTokenLength is the byte length of generated tokens (64 hex chars).
 	csrfTokenLength = 32
+
+	// CSRFInvalidTokenCode is the machine-readable refusal of a failed
+	// double-submit check. The SPA (app/src/lib/api/client.ts) drops its
+	// cached token, fetches a fresh one and replays the request once on it; a
+	// person therefore never meets a save that cannot succeed until reload.
+	CSRFInvalidTokenCode = "csrf_token_invalid"
+	// CSRFUnavailableCode names a token that could not be generated.
+	CSRFUnavailableCode = "csrf_token_unavailable"
 )
 
 // CSRFMiddleware implements Double Submit Cookie CSRF protection.
@@ -112,7 +120,7 @@ func (c *CSRFMiddleware) handle(w http.ResponseWriter, r *http.Request, next fun
 	// Skip for safe methods (GET, HEAD, OPTIONS, TRACE)
 	if c.isSafeMethod(r.Method) {
 		if err := c.ensureToken(w, r); err != nil {
-			c.writeError(w, "failed to generate CSRF token", http.StatusInternalServerError)
+			c.writeError(w, CSRFUnavailableCode, "failed to generate CSRF token", http.StatusInternalServerError)
 			return
 		}
 		next()
@@ -132,7 +140,7 @@ func (c *CSRFMiddleware) handle(w http.ResponseWriter, r *http.Request, next fun
 
 	// Validate token for state-changing requests
 	if !c.validateToken(r) {
-		c.writeError(w, "invalid or missing CSRF token", http.StatusForbidden)
+		c.writeError(w, CSRFInvalidTokenCode, "invalid or missing CSRF token", http.StatusForbidden)
 		return
 	}
 
@@ -262,12 +270,16 @@ func (c *CSRFMiddleware) validateToken(r *http.Request) bool {
 	return subtle.ConstantTimeCompare([]byte(cookie.Value), []byte(headerToken)) == 1
 }
 
-// writeError writes a JSON error response.
-func (c *CSRFMiddleware) writeError(w http.ResponseWriter, message string, status int) {
+// writeError writes the platform error envelope ({error:{code,message}}) so a
+// client can act on the code instead of matching message text.
+func (c *CSRFMiddleware) writeError(w http.ResponseWriter, code, message string, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
+	json.NewEncoder(w).Encode(map[string]any{
+		"error": map[string]string{
+			"code":    code,
+			"message": message,
+		},
 	})
 }
 

@@ -4,7 +4,7 @@
  * Authentication mode detection and configuration endpoints.
  */
 
-import { fetchApi, post } from "./client";
+import { ApiRequestError, fetchApi, post } from "./client";
 import type {
   CloudStackIdentityPatch,
   CloudStackIdentityV1,
@@ -192,19 +192,41 @@ export async function verifyPortalToken(
   return res.data;
 }
 
+/** The session reads must answer inside the guard's patience. */
+const V2_SESSION_READ_TIMEOUT_MS = 10_000;
+
 export async function getV2WhoAmI(): Promise<V2WhoAmIResponse> {
   const response = await fetch("/api/v2/whoami", {
     credentials: "include",
+    signal: AbortSignal.timeout(V2_SESSION_READ_TIMEOUT_MS),
   });
   if (response.status !== 200) {
-    throw new Error(`V2 whoami failed: ${response.status}`);
+    // The status is part of the answer: the server's 401 is the definite "no
+    // session", while a network fault, a timeout, a 5xx or a 429 says nothing
+    // about the person's session (workspace AUTHENTICATION.md §6).
+    throw new ApiRequestError(`V2 whoami failed: ${response.status}`, {
+      status: response.status,
+      url: response.url,
+      method: "GET",
+      retryable:
+        response.status === 429 || [502, 503, 504].includes(response.status),
+    });
   }
   return (await response.json()) as V2WhoAmIResponse;
+}
+
+/** True only for the server's definite "no session" answer. */
+export function isV2WhoAmINoSession(err: unknown): boolean {
+  if (typeof err !== "object" || err === null) return false;
+  return (err as { status?: unknown }).status === 401;
 }
 
 export async function getV2AuthProviders(): Promise<V2AuthProviderInfo[]> {
   const response = await fetch("/api/v2/auth/providers", {
     credentials: "include",
+    // A hang is a fault, not an answer: the caller repeats the read and must
+    // not be held here forever.
+    signal: AbortSignal.timeout(V2_SESSION_READ_TIMEOUT_MS),
   });
   if (!response.ok) {
     throw new Error(`V2 auth providers failed: ${response.status}`);

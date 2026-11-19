@@ -15,10 +15,12 @@
 
 import { goto } from "$app/navigation";
 import { browser } from "$app/env";
+import * as Sentry from "@sentry/sveltekit";
 import {
   getAuthMode,
   getV2AuthProviders,
   getV2WhoAmI,
+  isV2WhoAmINoSession,
   loginWithLocalSession,
   logoutLocalSession,
   verifyPortalToken,
@@ -57,6 +59,45 @@ import { clearTechstackSecuritySessionState } from "#lib/logout-cleanup.js";
 import { tr } from "#lib/i18n.svelte.js";
 const CLOUD_PORTAL_SESSION_PROVIDER_ID = "cloud";
 
+/**
+ * How long the first session check waits before it repeats, when a failure
+ * said nothing definite about the session (workspace AUTHENTICATION.md §6:
+ * "a timeout, a 5xx, a 429, a network fault and an unreadable answer are no
+ * definite answer"). Three repeats keep a fault from reaching a person before
+ * the check has had a fair chance to answer.
+ */
+const V2_SESSION_CHECK_BACKOFF_MS = [500, 1_500, 4_000] as const;
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * One structured event per check that ended in doubt: which read failed, the
+ * cause, the route and the client, through the telemetry the surrounding code
+ * uses.
+ */
+function captureSessionCheckInDoubt(
+  cause: unknown,
+  check: "whoami" | "providers",
+): void {
+  Sentry.withScope((scope) => {
+    scope.setTag("component", "auth_session_check");
+    scope.setTag("check", check);
+    scope.setTag("outcome", "unconfirmed");
+    scope.setTag("client", "web");
+    scope.setExtra(
+      "cause",
+      cause instanceof Error ? cause.message : String(cause),
+    );
+    if (typeof window !== "undefined") {
+      scope.setTag("route", window.location.pathname);
+    }
+    scope.setLevel("warning");
+    Sentry.captureMessage("techstack_session_check_in_doubt");
+  });
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -76,6 +117,8 @@ export interface AuthState {
   cloudUser: CloudUser | null;
   /** Whether user is authenticated */
   isAuthenticated: boolean;
+  /** A platform read the guard needs got no definite answer (fault, not signed out). */
+  sessionCheckUnconfirmed: boolean;
   /** Whether user is an admin */
   isAdmin: boolean;
   /** Loading state */
@@ -93,6 +136,14 @@ class AuthStore {
   private initialized = false;
   private subscriptionsBound = false;
   private hostedProviderIDs = new Set<string>();
+  /**
+   * Whether `hostedProviderIDs` is the server's answer. A failed read leaves it
+   * unloaded: an empty set then means "unknown", never "no hosted provider",
+   * so no session is ended on it.
+   */
+  private hostedProviderIDsLoaded = false;
+  /** One re-check on the next visible/focus event, never a timer. */
+  private returnRecheckBound = false;
 
   // Core state using Svelte 5 runes
   mode = $state<AuthMode>("local");
@@ -107,6 +158,14 @@ class AuthStore {
   walletSource = $state<WalletSource>("legacy");
   cloudUser = $state<CloudUser | null>(null);
   v2SessionActive = $state(false);
+  /**
+   * A platform read that the guard needs got no definite answer: the session
+   * check itself when no confirmed state exists, or the hosted-provider list
+   * that decides whether a valid session's provider is hosted here. Route
+   * guards must not send a person to sign-in for this: it names a service
+   * fault, not a session that ended.
+   */
+  v2SessionUnconfirmed = $state(false);
   loading = $state(false);
   error = $state<string | null>(null);
 
@@ -278,55 +337,163 @@ class AuthStore {
     }
   }
 
+  /**
+   * Read the hosted-provider list. A fault said nothing about it: the read
+   * repeats with the session check's ladder, and if it still fails the list
+   * stays unloaded (so no session is ended on it) and the doubt is counted.
+   */
   private async detectV2Auth(): Promise<void> {
-    try {
-      const providers = await getV2AuthProviders();
-      const hostedProviderIDs = providers
-        .map((provider) => provider.id.trim())
-        .filter((providerID) => providerID.length > 0);
-      if (this.deploymentMode === "saas") {
-        // The embedded portal exchange issues the same authoritative V2
-        // browser session with provider=cloud. Keep it on the existing hosted
-        // session allowlist so syncV2Session does not immediately clear the
-        // freshly verified cookie as if it were a local compatibility session.
-        hostedProviderIDs.push(CLOUD_PORTAL_SESSION_PROVIDER_ID);
-      }
-      this.hostedProviderIDs = new Set(hostedProviderIDs);
-      if (providers.length > 0) {
-        this.v2LoginUrl = "/api/v2/auth/login";
-        if (!this.cloudAuthUrl) {
-          this.cloudAuthUrl = this.v2LoginUrl;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const providers = await getV2AuthProviders();
+        const hostedProviderIDs = providers
+          .map((provider) => provider.id.trim())
+          .filter((providerID) => providerID.length > 0);
+        if (this.deploymentMode === "saas") {
+          // The embedded portal exchange issues the same authoritative V2
+          // browser session with provider=cloud. Keep it on the existing hosted
+          // session allowlist so syncV2Session does not immediately clear the
+          // freshly verified cookie as if it were a local compatibility session.
+          hostedProviderIDs.push(CLOUD_PORTAL_SESSION_PROVIDER_ID);
         }
-      } else {
-        this.v2LoginUrl = null;
+        this.hostedProviderIDs = new Set(hostedProviderIDs);
+        this.hostedProviderIDsLoaded = true;
+        if (providers.length > 0) {
+          this.v2LoginUrl = "/api/v2/auth/login";
+          if (!this.cloudAuthUrl) {
+            this.cloudAuthUrl = this.v2LoginUrl;
+          }
+        } else {
+          this.v2LoginUrl = null;
+        }
+        return;
+      } catch (err) {
+        const backoffMs = V2_SESSION_CHECK_BACKOFF_MS[attempt];
+        if (backoffMs === undefined) {
+          this.hostedProviderIDs.clear();
+          this.hostedProviderIDsLoaded = false;
+          this.v2LoginUrl = null;
+          captureSessionCheckInDoubt(err, "providers");
+          return;
+        }
+        await wait(backoffMs);
       }
-    } catch {
-      this.hostedProviderIDs.clear();
-      this.v2LoginUrl = null;
     }
   }
 
+  /**
+   * Re-check the authoritative cookie-backed browser session.
+   *
+   * Only the server's 401 is a session that ended. A network fault, a
+   * timeout, a 5xx or a 429 is no answer: the last confirmed state stays, and
+   * with none yet the check repeats before anything is decided (workspace
+   * AUTHENTICATION.md §6, "Authentication holds; doubt admits").
+   */
   private async syncV2Session(): Promise<boolean> {
-    try {
-      const whoami = await getV2WhoAmI();
-      if (
-        this.deploymentMode === "saas" &&
-        !this.allowLocalLogin &&
-        whoami.provider &&
-        !this.hostedProviderIDs.has(whoami.provider)
-      ) {
-        await logoutLocalSession();
+    const confirmed = this.cloudUser !== null && this.v2SessionActive;
+    for (let attempt = 0; ; attempt++) {
+      const check = await this.checkV2Session();
+      if (check.kind === "session") {
+        const whoami = check.whoami;
+        const providerGovernsSession =
+          this.deploymentMode === "saas" &&
+          !this.allowLocalLogin &&
+          Boolean(whoami.provider);
+        // A session from a provider this deployment does not host is ended
+        // only when the list is the server's answer. When the list could not
+        // be read, the session stays and the guard is in doubt (the fault is
+        // counted where the read failed).
+        if (
+          providerGovernsSession &&
+          this.hostedProviderIDsLoaded &&
+          !this.hostedProviderIDs.has(whoami.provider ?? "")
+        ) {
+          await logoutLocalSession();
+          this.cloudUser = null;
+          this.v2SessionActive = false;
+          this.v2SessionUnconfirmed = false;
+          return false;
+        }
+        this.cloudUser = v2WhoAmIToCloudUser(whoami);
+        this.v2SessionActive = true;
+        this.v2SessionUnconfirmed =
+          providerGovernsSession && !this.hostedProviderIDsLoaded;
+        if (this.v2SessionUnconfirmed) {
+          this.recheckWhenVisibleAgain();
+        }
+        return true;
+      }
+      if (check.kind === "none") {
         this.cloudUser = null;
         this.v2SessionActive = false;
+        this.v2SessionUnconfirmed = false;
         return false;
       }
-      this.cloudUser = v2WhoAmIToCloudUser(whoami);
-      this.v2SessionActive = true;
-      return true;
-    } catch {
-      this.cloudUser = null;
-      this.v2SessionActive = false;
-      return false;
+      // No definite answer. A session already confirmed stays as it is; a
+      // first load repeats the check instead of deciding.
+      if (confirmed) {
+        this.v2SessionUnconfirmed = false;
+        captureSessionCheckInDoubt(check.cause, "whoami");
+        return true;
+      }
+      const backoffMs = V2_SESSION_CHECK_BACKOFF_MS[attempt];
+      if (backoffMs === undefined) {
+        this.v2SessionUnconfirmed = true;
+        captureSessionCheckInDoubt(check.cause, "whoami");
+        this.recheckWhenVisibleAgain();
+        return false;
+      }
+      await wait(backoffMs);
+    }
+  }
+
+  /**
+   * One re-check of an unconfirmed state when the person looks at the page
+   * again (it becomes visible or the window regains focus). One listener, no
+   * timer; it is removed after that single re-check, which repeats the
+   * provider read when it never loaded and then the session check. Guards keep
+   * the page in the meantime, so the page gets a fresh answer without a reload.
+   */
+  private recheckWhenVisibleAgain(): void {
+    if (
+      !browser ||
+      this.returnRecheckBound ||
+      typeof document === "undefined"
+    ) {
+      return;
+    }
+    this.returnRecheckBound = true;
+    const recheck = () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", recheck);
+      // A later doubt may bind its own single re-check.
+      this.returnRecheckBound = false;
+      if (!this.v2SessionUnconfirmed) return;
+      void (async () => {
+        // Both reads the doubt can rest on are repeated once: the provider
+        // list when it never loaded, then the session.
+        if (!this.hostedProviderIDsLoaded) await this.detectV2Auth();
+        await this.syncV2Session();
+      })();
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") recheck();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", recheck);
+  }
+
+  private async checkV2Session(): Promise<
+    | { kind: "session"; whoami: V2WhoAmIResponse }
+    | { kind: "none" }
+    | { kind: "fault"; cause: unknown }
+  > {
+    try {
+      return { kind: "session", whoami: await getV2WhoAmI() };
+    } catch (err) {
+      return isV2WhoAmINoSession(err)
+        ? { kind: "none" }
+        : { kind: "fault", cause: err };
     }
   }
 
@@ -463,6 +630,7 @@ class AuthStore {
     clearTechstackSecuritySessionState();
     this.cloudUser = null;
     this.v2SessionActive = false;
+    this.v2SessionUnconfirmed = false;
   }
 
   /**
@@ -531,10 +699,13 @@ class AuthStore {
     this.cloudAuthUrl = null;
     this.v2LoginUrl = null;
     this.hostedProviderIDs.clear();
+    this.hostedProviderIDsLoaded = false;
+    this.returnRecheckBound = false;
     this.portalUrl = null;
     this.allowLocalLogin = true;
     this.cloudUser = null;
     this.v2SessionActive = false;
+    this.v2SessionUnconfirmed = false;
     clearTechstackSecuritySessionState();
     this.loading = false;
     this.error = null;
@@ -552,6 +723,7 @@ class AuthStore {
       allowLocalLogin: this.allowLocalLogin,
       cloudUser: this.cloudUser,
       isAuthenticated: this.isAuthenticated,
+      sessionCheckUnconfirmed: this.v2SessionUnconfirmed,
       isAdmin: this.isAdmin,
       loading: this.loading,
       error: this.error,
@@ -578,6 +750,15 @@ export async function initAuth(): Promise<void> {
  */
 export function isAuthenticated(): boolean {
   return authStore.isAuthenticated;
+}
+
+/**
+ * True when a platform read the guard needs got no definite answer (the
+ * session check itself, or the hosted-provider list): a service fault, never a
+ * session that ended.
+ */
+export function sessionCheckUnconfirmed(): boolean {
+  return authStore.v2SessionUnconfirmed;
 }
 
 /**

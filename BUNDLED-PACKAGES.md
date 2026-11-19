@@ -7,7 +7,7 @@ ships, so versions and rows match this release.
 
 | Bundled package | Version | License in this distribution |
 | --- | --- | --- |
-| `internal/gocommon` | `v0.10.3` | Apache-2.0; see `internal/gocommon/LICENSE` |
+| `internal/gocommon` | `v0.10.7` | Apache-2.0; see `internal/gocommon/LICENSE` |
 | `@kombiverselabs/ai-sdk` | `0.17.11` | MIT; see `BUNDLED-MIT-LICENSE.txt` |
 | `@kombiverselabs/cloud-notifications` | `0.5.10` | MIT; see `BUNDLED-MIT-LICENSE.txt` |
 | `@kombiverselabs/design` | `0.12.6` | No license field; see the note below |

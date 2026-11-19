@@ -215,10 +215,11 @@ func sessionReprojectionReason(err error) string {
 	return reason
 }
 
-// A canceled or deadline-exceeded membership read is not proof the membership
-// is gone. The providers request that observed this on the public runtime
-// must keep its session cookie and must not be told to re-project.
-func TestCanceledMembershipLookupDoesNotReprojectSession(t *testing.T) {
+// A membership read that did not answer — canceled, deadline-exceeded or a
+// store fault — is not proof the membership is gone. A signed-in person keeps
+// the session cookie, is never told to re-project, and the request names the
+// service fault (503) instead (workspace AUTHENTICATION.md §6).
+func TestFailedMembershipLookupDoesNotReprojectSession(t *testing.T) {
 	t.Setenv(config.EnvReleaseChannel, "stable")
 	sessionreauth.Configure("techstack_session", false)
 	mgr := mustSessionManager(t)
@@ -228,6 +229,7 @@ func TestCanceledMembershipLookupDoesNotReprojectSession(t *testing.T) {
 		context.Canceled,
 		context.DeadlineExceeded,
 		fmt.Errorf("set tenant guc: %w", context.Canceled),
+		errors.New("controlplane: database is not reachable"),
 	} {
 		t.Run(lookupErr.Error(), func(t *testing.T) {
 			sessionreauth.SetCounterHook(func(tenantID, outcome string) {
@@ -249,8 +251,8 @@ func TestCanceledMembershipLookupDoesNotReprojectSession(t *testing.T) {
 				t.Fatalf("reason_code = %q, want no %s", reason, sessionreauth.ReasonCode)
 			}
 			var apiErr *httpx.APIError
-			if !errors.As(err, &apiErr) || apiErr.Status == http.StatusUnauthorized || apiErr.Code == sessionreauth.ReasonCode {
-				t.Fatalf("middleware error = %#v, want a non-401 interruption, not session denial", err)
+			if !errors.As(err, &apiErr) || apiErr.Status != http.StatusServiceUnavailable || apiErr.Code == sessionreauth.ReasonCode {
+				t.Fatalf("middleware error = %#v, want a 503 service fault, not session denial", err)
 			}
 			if cookie := clearedSessionCookie(t, recorder); cookie != nil {
 				t.Fatalf("session cookie = %+v, want it left in place", cookie)
@@ -287,8 +289,8 @@ func TestCanceledMembershipLookupDoesNotReprojectSession(t *testing.T) {
 			t.Fatalf("reason_code = %q, want no %s", reason, sessionreauth.ReasonCode)
 		}
 		var apiErr *httpx.APIError
-		if !errors.As(err, &apiErr) || apiErr.Status == http.StatusUnauthorized || apiErr.Code == sessionreauth.ReasonCode {
-			t.Fatalf("middleware error = %#v, want a non-401 interruption, not session denial", err)
+		if !errors.As(err, &apiErr) || apiErr.Status != http.StatusServiceUnavailable || apiErr.Code == sessionreauth.ReasonCode {
+			t.Fatalf("middleware error = %#v, want a 503 service fault, not session denial", err)
 		}
 		if cookie := clearedSessionCookie(t, recorder); cookie != nil {
 			t.Fatalf("session cookie = %+v, want it left in place", cookie)

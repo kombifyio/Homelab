@@ -231,7 +231,13 @@
   }
 
   // Use derived stores for reactive values in Svelte 5
-  const isLoggedIn = $derived(authStore.isAuthenticated);
+  // A session check that got no definite answer is not a signed-out person:
+  // the shell stays and the page shows its own error state. The check is
+  // repeated once when the page is looked at again (it becomes visible or the
+  // window regains focus) or on the next reload (AUTHENTICATION.md §6).
+  const isLoggedIn = $derived(
+    authStore.isAuthenticated || authStore.v2SessionUnconfirmed,
+  );
   // SvelteKit 3: `$app/state` replaces the `$app/stores` page store, so the
   // former `derived(page, …)` store becomes a plain `$derived` rune.
   const isAuthPage = $derived(page.url.pathname === "/login");
