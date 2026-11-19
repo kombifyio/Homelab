@@ -14,7 +14,7 @@ import {
  */
 export const load: PageLoad = async ({ url }) => {
   if (browser) {
-    const { initAuth, isAuthenticated } =
+    const { initAuth, isAuthenticated, sessionCheckUnconfirmed } =
       await import("#lib/stores/auth.svelte.js");
     await initAuth();
     if (isAuthenticated()) {
@@ -29,6 +29,11 @@ export const load: PageLoad = async ({ url }) => {
           : "/dashboard",
       );
     } else {
+      // No definite answer from the session check: never send a signed-in
+      // person to sign-in for a service fault (AUTHENTICATION.md §6). The
+      // page keeps the shell and its own error state; the check is repeated
+      // once when the page is looked at again, or on the next reload.
+      if (sessionCheckUnconfirmed()) return {};
       const embedded = url.searchParams.get("embedded") === "true";
       if (embedded) {
         throw redirect(

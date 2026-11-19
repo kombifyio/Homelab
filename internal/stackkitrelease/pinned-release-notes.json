@@ -1,8 +1,13 @@
 {
   "schemaVersion": "stackkits.release-notes/v1",
-  "version": "v0.57.18",
+  "version": "v0.57.19",
   "changelogUrl": "https://stackkit.cc/changelog",
   "releases": [
+    {
+      "version": "v0.57.19",
+      "date": "2026-11-19",
+      "entries": []
+    },
     {
       "version": "v0.57.18",
       "date": "2026-11-18",
@@ -1001,17 +1006,6 @@
           "kind": "fixed",
           "scope": "upgrade",
           "text": "an upgrade interrupted after target Apply recovers: claimant proof and owner-approved forward completion"
-        }
-      ]
-    },
-    {
-      "version": "v0.55.1",
-      "date": "2026-11-01",
-      "entries": [
-        {
-          "kind": "fixed",
-          "scope": "b3",
-          "text": "the cleanup proof proves a retired Techstack run and accepts the owner's product readback after a refused removal"
         }
       ]
     }

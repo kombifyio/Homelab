@@ -111,7 +111,9 @@ func attachDataProfile(e *httpx.Event, cfg EdgeIdentityConfig) bool {
 	}
 	stripProfileHeaders(e.Request)
 	if err == nil {
-		e.Request = e.Request.WithContext(dataprofile.WithProfile(e.Request.Context(), profile))
+		// Techstack stores its own data: it reads the scope "cloud" of the account profile
+		// (wire v2 carries the AI processing scope separately; D-2026-11-18-12).
+		e.Request = e.Request.WithContext(dataprofile.WithProfile(e.Request.Context(), profile.CloudScope()))
 		return true
 	}
 	slog.Warn("data_profile_unverified", "mode", mode, "error", err, "path", e.Request.URL.Path)

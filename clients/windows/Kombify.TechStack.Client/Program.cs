@@ -532,7 +532,14 @@ internal sealed partial class ClientWindow : Form
                 }
             }
 
-            _webView.CoreWebView2.Navigate(InitialDocumentUrl());
+            var launchUrl = InitialDocumentUrl();
+#if CLOUD_DESKTOP
+            launchUrl = await StartDeviceSignInAsync(launchUrl);
+#endif
+            _webView.CoreWebView2.Navigate(launchUrl);
+#if CLOUD_DESKTOP
+            if (_deviceSignIn is { } deviceSignIn) _ = deviceSignIn.StartAsync();
+#endif
             _ = ClientUpdater.CheckAndStageAsync(_config, ResolveRuntimeExecutablePath());
         }
         catch (Exception ex)
@@ -972,6 +979,13 @@ internal sealed partial class ClientWindow : Form
         if (uri.Scheme != Uri.UriSchemeHttps || !string.IsNullOrEmpty(uri.UserInfo))
         {
             args.Cancel = true;
+            return;
+        }
+        if (IsCloudProductMode() && IsProductSignOutNavigation(uri))
+        {
+            // The person's own sign-out: the shell signs out this device (device sign-in §5).
+            args.Cancel = true;
+            _ = PersonSignOutAsync();
             return;
         }
         if (IsWindowsBrowserLoginHandoff(uri))

@@ -908,19 +908,27 @@ func configureV2Auth(ctx context.Context, cfg *config.Config, log *logger.Logger
 		log.Error("v2_auth_flow_invalid", "error", err)
 		return
 	}
-	nativeLogin := newNativeLoginHandlers(boot, config.PublicOriginFromEnv())
+	nativeLogin, nativeAttempts := newNativeLoginHandlers(boot, config.PublicOriginFromEnv())
+	var refuseSilent func(*http.Request, string) (string, bool)
+	if nativeAttempts != nil {
+		refuseSilent = nativeAttempts.refuse
+	}
 	*options = append(*options, v2.WithAuthHandlers(v2.AuthHandlers{
 		Providers: authFlow.ProvidersHandler(),
 		Login: v2AuthBindLoginState(
-			v2AuthForceLoginPrompt(
+			v2AuthForwardLoginPrompt(
 				v2AuthPublicOriginHandler(authFlow.LoginHandler(), config.PublicOriginFromEnv()),
+				config.CanonicalAuthCallbackPath, cfg.IsProduction(),
 			),
 			config.CanonicalAuthCallbackPath, cfg.IsProduction(),
 		),
-		Callback: boot.browserSessions.WrapLogin(v2AuthRequireLoginStateBinding(
-			v2AuthPublicOriginHandler(authFlow.CallbackHandler(), config.PublicOriginFromEnv()),
-			config.CanonicalAuthCallbackPath, "/login", cfg.IsProduction(),
-		)),
+		Callback: v2AuthSilentRefusal(
+			boot.browserSessions.WrapLogin(v2AuthRequireLoginStateBinding(
+				v2AuthPublicOriginHandler(authFlow.CallbackHandler(), config.PublicOriginFromEnv()),
+				config.CanonicalAuthCallbackPath, "/login", cfg.IsProduction(),
+			)),
+			config.CanonicalAuthCallbackPath, cfg.IsProduction(), refuseSilent,
+		),
 		Logout:        boot.browserSessions.WrapLogin(authFlow.LogoutHandler()),
 		NativeStart:   nativeLogin.NativeStart,
 		NativeHandoff: nativeLogin.NativeHandoff,
@@ -1278,7 +1286,7 @@ func v2SessionIdentityMiddleware(boot *v2Boot) func(*httpx.Event) error {
 				return testIdentityRefusal(err)
 			}
 			membership, lookupErr := enrichIdentityFromMembership(e.Request.Context(), boot.authStore, id, id.OrgID, boot.defaultTenant, "default")
-			if err := interruptedMembershipLookup(id.OrgID, lookupErr); err != nil {
+			if err := membershipLookupFault(id.OrgID, lookupErr); err != nil {
 				return err
 			}
 			// Edge-signed tenants are authoritative per request: never rebind
@@ -1312,7 +1320,7 @@ func v2SessionIdentityMiddleware(boot *v2Boot) func(*httpx.Event) error {
 		}
 		id := identityFromV2SessionClaims(claims)
 		membership, lookupErr := enrichV2SessionIdentityFromMembership(e.Request.Context(), boot.authStore, boot.defaultTenant, boot.saasMode, claims, id)
-		if err := interruptedMembershipLookup(id.OrgID, lookupErr); err != nil {
+		if err := membershipLookupFault(id.OrgID, lookupErr); err != nil {
 			return err
 		}
 		// Session claims are login-time snapshots, not per-request authority:
@@ -1566,15 +1574,16 @@ func activeMembership(membership *controlplane.Membership) bool {
 	return status == "" || strings.EqualFold(status, "active")
 }
 
-// interruptedMembershipLookup refuses a membership read that stopped because
-// the caller left or the deadline fired. That result is not a missing
-// membership: it must not clear the session or ask for reprojection, and it
-// must not continue as an authenticated request.
-func interruptedMembershipLookup(tenantID string, err error) error {
-	if err == nil || (!errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded)) {
+// membershipLookupFault refuses a membership read that stopped because the
+// caller left, the deadline fired, or the store failed. That result is not a
+// missing membership: it must not clear the session or ask for reprojection,
+// and it must not continue as an authenticated request. It names the service
+// fault with 503, never a sign-in matter (workspace AUTHENTICATION.md §6).
+func membershipLookupFault(tenantID string, err error) error {
+	if err == nil {
 		return nil
 	}
-	logger.Default().Warn("membership_lookup_interrupted", "error", err, "tenant_id", tenantID)
+	logger.Default().Warn("membership_lookup_failed", "error", err, "tenant_id", tenantID)
 	return httpx.NewAPIError(http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Membership lookup did not finish", nil)
 }
 
@@ -1588,12 +1597,13 @@ func enrichIdentityFromMembership(ctx context.Context, store controlplane.AuthSt
 	}
 	for _, tenantID := range tenantIDs {
 		membership, err := store.GetMembership(ctx, tenantID, id.UserID)
-		// Cancellation is not absence. Falling through to a nil membership
-		// makes the session middleware clear the cookie.
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		// Absence is an answer; a store fault is not. Falling through to a nil
+		// membership would make the session middleware clear the cookie of a
+		// signed-in person over a database hiccup.
+		if err != nil && !errors.Is(err, controlplane.ErrNotFound) {
 			return nil, err
 		}
-		if err != nil || membership == nil || !activeMembership(membership) {
+		if membership == nil || !activeMembership(membership) {
 			continue
 		}
 		appendIdentityRole(id, membership.RoleKey)

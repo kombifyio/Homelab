@@ -83,6 +83,9 @@ func TestCSRFMiddleware_POSTWithoutToken(t *testing.T) {
 	if !strings.Contains(body, "invalid or missing CSRF token") {
 		t.Errorf("expected CSRF error message, got: %s", body)
 	}
+	if !strings.Contains(body, CSRFInvalidTokenCode) {
+		t.Errorf("expected the machine-readable %q code, got: %s", CSRFInvalidTokenCode, body)
+	}
 }
 
 func TestCSRFMiddleware_POSTWithValidToken(t *testing.T) {

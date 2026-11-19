@@ -30,17 +30,17 @@ type nativeLogin struct {
 	origin      string
 }
 
-func newNativeLoginHandlers(boot *v2Boot, origin string) v2.AuthHandlers {
+func newNativeLoginHandlers(boot *v2Boot, origin string) (v2.AuthHandlers, *nativeLogin) {
 	if boot == nil || !boot.saasMode || boot.db == nil || boot.db.DB == nil ||
 		boot.browserSessions == nil || boot.authStore == nil || origin != "https://techstack.kombify.io" {
-		return v2.AuthHandlers{}
+		return v2.AuthHandlers{}, nil
 	}
 	h := &nativeLogin{db: boot.db.DB, browser: boot.browserSessions, memberships: boot.authStore, origin: origin}
 	return v2.AuthHandlers{
 		NativeStart:   http.HandlerFunc(h.start),
 		NativeHandoff: http.HandlerFunc(h.handoff),
 		NativeRedeem:  http.HandlerFunc(h.redeem),
-	}
+	}, h
 }
 
 func nativeRandom() (string, error) {
@@ -76,10 +76,23 @@ func (h *nativeLogin) start(w http.ResponseWriter, r *http.Request) {
 	}
 	var input struct {
 		VerifierChallenge string `json:"verifier_challenge"`
-		CallbackPort      int    `json:"callback_port"`
+		// The program's own loopback address and attempt state (see
+		// nativeLoopbackRequest): the last hop of the browser, a refusal
+		// included, returns there with exactly this state.
+		RedirectURI string `json:"redirect_uri"`
+		State       string `json:"state"`
+		// Prompt is empty for the person's own sign-in and "none" for the
+		// silent sign-in of device sign-in (the browser's live session or
+		// nothing, never a form).
+		Prompt string `json:"prompt"`
 	}
 	if r.ContentLength > 4096 || json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&input) != nil ||
-		input.CallbackPort < 63690 || input.CallbackPort > 63694 {
+		(input.Prompt != "" && input.Prompt != v2PromptNone) {
+		http.Error(w, "invalid native login request", http.StatusBadRequest)
+		return
+	}
+	callbackPort, validRequest := nativeLoopbackRequest(input.RedirectURI, input.State)
+	if !validRequest {
 		http.Error(w, "invalid native login request", http.StatusBadRequest)
 		return
 	}
@@ -89,11 +102,6 @@ func (h *nativeLogin) start(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id, err := nativeRandom()
-	if err != nil {
-		http.Error(w, "unavailable", http.StatusServiceUnavailable)
-		return
-	}
-	state, err := nativeRandom()
 	if err != nil {
 		http.Error(w, "unavailable", http.StatusServiceUnavailable)
 		return
@@ -146,7 +154,7 @@ func (h *nativeLogin) start(w http.ResponseWriter, r *http.Request) {
 	_, err = tx.ExecContext(r.Context(), `INSERT INTO native_login_handoffs
 		(id,client_key_hash,verifier_hash,callback_port,callback_state,expires_at)
 		VALUES ($1,$2,$3,$4,$5,now()+interval '5 minutes')`,
-		id, clientKey, hex.EncodeToString(challengeBytes), input.CallbackPort, state)
+		id, clientKey, hex.EncodeToString(challengeBytes), callbackPort, input.State)
 	if err != nil {
 		http.Error(w, "unavailable", http.StatusServiceUnavailable)
 		return
@@ -157,8 +165,11 @@ func (h *nativeLogin) start(w http.ResponseWriter, r *http.Request) {
 	}
 	returnTo := "/api/v2/auth/native/handoff?challenge=" + url.QueryEscape(id)
 	loginURL := h.origin + "/api/v2/auth/login?return_to=" + url.QueryEscape(returnTo)
+	if input.Prompt == v2PromptNone {
+		loginURL += "&prompt=" + v2PromptNone
+	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{"login_url": loginURL, "state": state})
+	_ = json.NewEncoder(w).Encode(map[string]string{"login_url": loginURL})
 }
 
 func (h *nativeLogin) handoff(w http.ResponseWriter, r *http.Request) {
@@ -209,6 +220,27 @@ func (h *nativeLogin) handoff(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, callback.String(), http.StatusSeeOther)
 }
 
+// refuse ends one attempt whose silent sign-in the identity provider could not
+// complete without a form and returns the loopback address its program waits
+// on. The attempt is consumed: it is refused at most once and can no longer
+// receive a ticket. It reports nothing for an unknown, expired, answered or
+// consumed attempt.
+func (h *nativeLogin) refuse(r *http.Request, id string) (string, bool) {
+	var port int
+	var state string
+	err := h.db.QueryRowContext(r.Context(), `UPDATE native_login_handoffs SET consumed_at=now()
+		WHERE id=$1 AND expires_at>now() AND ticket_hash IS NULL AND consumed_at IS NULL
+		RETURNING callback_port, callback_state`, id).Scan(&port, &state)
+	if err != nil {
+		return "", false
+	}
+	callback := url.URL{Scheme: "http", Host: net.JoinHostPort("127.0.0.1", strconv.Itoa(port)), Path: nativeCallbackPath}
+	q := callback.Query()
+	q.Set("state", state)
+	callback.RawQuery = q.Encode()
+	return callback.String(), true
+}
+
 func (h *nativeLogin) redeem(w http.ResponseWriter, r *http.Request) {
 	if !h.admit(w, r) {
 		return
@@ -219,7 +251,7 @@ func (h *nativeLogin) redeem(w http.ResponseWriter, r *http.Request) {
 		State    string `json:"state"`
 	}
 	if r.ContentLength > 4096 || json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&input) != nil ||
-		len(input.Ticket) != 43 || len(input.State) != 43 || len(input.Verifier) < 43 || len(input.Verifier) > 128 {
+		len(input.Ticket) != 43 || !validNativeState(input.State) || len(input.Verifier) < 43 || len(input.Verifier) > 128 {
 		http.Error(w, "invalid exchange", http.StatusBadRequest)
 		return
 	}

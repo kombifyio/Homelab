@@ -11,7 +11,7 @@ import type { LayoutLoad } from "./$types";
  */
 export const load: LayoutLoad = async () => {
   if (browser) {
-    const { initAuth, isAuthenticated } =
+    const { initAuth, isAuthenticated, sessionCheckUnconfirmed } =
       await import("#lib/stores/auth.svelte.js");
     await initAuth();
     if (!isAuthenticated()) {
@@ -20,6 +20,9 @@ export const load: LayoutLoad = async () => {
       if (await refreshEmbeddedCloudSession()) {
         return {};
       }
+      // No definite answer from the session check: the guard keeps the person
+      // on the page instead of sending them to sign-in (AUTHENTICATION.md §6).
+      if (sessionCheckUnconfirmed()) return {};
       const { resolveUnauthenticatedEntry } =
         await import("#lib/auth/unauthenticated-redirect.js");
       throw redirect(302, resolveUnauthenticatedEntry());

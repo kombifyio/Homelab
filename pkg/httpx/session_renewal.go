@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -125,6 +126,27 @@ func writeSessionRenewal(e *Event, reason string, code api.ErrorCode, details an
 			Code:    SessionRenewalErrorCode,
 			Message: "Session renewal required",
 			Details: details,
+		},
+		ErrorCode: SessionRenewalErrorCode,
+		Reason:    reason,
+		RenewURL:  SessionRenewalURL,
+	})
+}
+
+// WriteSessionRenewal renders the same signal on a plain http.ResponseWriter,
+// for an endpoint served outside the httpx event chain (the v2 core server's
+// whoami). It must stay one envelope with writeSessionRenewal: the web client
+// recognizes the header or the error code, never a message text.
+func WriteSessionRenewal(w http.ResponseWriter, reason string) error {
+	w.Header().Set(SessionRenewalHeader, SessionRenewalHeaderValue)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusUnauthorized)
+	return json.NewEncoder(w).Encode(sessionRenewalResponse{
+		Error: api.ErrorDetail{
+			Code:    SessionRenewalErrorCode,
+			Message: "Session renewal required",
+			Details: NewSessionRenewalError(reason, nil).Details,
 		},
 		ErrorCode: SessionRenewalErrorCode,
 		Reason:    reason,

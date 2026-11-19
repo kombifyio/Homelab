@@ -128,7 +128,16 @@ const (
 	// edgeFlagsKeyDivergenceReason is the precise sub-case: the edge presented a
 	// signing key ID this origin holds no secret for.
 	edgeFlagsKeyDivergenceReason = "edge_flags_key_divergence"
-	defaultEdgeNextKeyID         = "next"
+
+	// The identity and entitlement envelopes get the same treatment as the
+	// decision envelope: a stable code, never a session signal. A wrong or
+	// rotated edge trust key is an operator fault no sign-in repairs, and the
+	// web client's renewal layer excludes both codes (an identity or
+	// entitlement hop fault is not a session matter).
+	edgeAuthenticationUnverifiableCode = "edge_authentication_unverifiable"
+	edgeEntitlementsUnverifiableCode   = "edge_entitlements_unverifiable"
+
+	defaultEdgeNextKeyID = "next"
 )
 
 // EdgeIdentityMiddlewareWithConfig creates identity middleware with full config.
@@ -145,13 +154,11 @@ func EdgeIdentityMiddlewareWithConfig(cfg EdgeIdentityConfig) func(*httpx.Event)
 			// A connected installation consumes decisions without replacing its local
 			// Owner identity or granting a Cloud principal local installation access.
 			if !isSupportedEdgeAuthValue(strings.TrimSpace(e.Request.Header.Get(headerEdgeAuth))) {
-				stripIdentityHeaders(e.Request)
-				http.Error(e.Response, "invalid edge authentication", http.StatusUnauthorized)
+				writeEdgeTrustFault(e, edgeAuthenticationUnverifiableCode, "invalid edge authentication")
 				return nil
 			}
 			if _, _, _, err := verifyEdgeSignature(e.Request, cfg); err != nil {
-				stripIdentityHeaders(e.Request)
-				http.Error(e.Response, "invalid edge authentication", http.StatusUnauthorized)
+				writeEdgeTrustFault(e, edgeAuthenticationUnverifiableCode, "invalid edge authentication")
 				return nil
 			}
 			if err := attachEdgeFlags(e, cfg); err != nil {
@@ -170,16 +177,14 @@ func EdgeIdentityMiddlewareWithConfig(cfg EdgeIdentityConfig) func(*httpx.Event)
 		edgeAuth := strings.TrimSpace(e.Request.Header.Get(headerEdgeAuth))
 		if edgeAuth != "" {
 			if !isSupportedEdgeAuthValue(edgeAuth) {
-				stripIdentityHeaders(e.Request)
-				http.Error(e.Response, "invalid edge authentication", http.StatusUnauthorized)
+				writeEdgeTrustFault(e, edgeAuthenticationUnverifiableCode, "invalid edge authentication")
 				return nil
 			}
 			envelope := cloneEdgeEnvelope(e.Request)
 			stepUp, stepUpBound, emailVerified, err := verifyEdgeSignature(e.Request, cfg)
 			if err != nil {
 				slog.Warn("edge identity: signature verification failed", "error", err)
-				stripIdentityHeaders(e.Request)
-				http.Error(e.Response, "invalid edge authentication", http.StatusUnauthorized)
+				writeEdgeTrustFault(e, edgeAuthenticationUnverifiableCode, "invalid edge authentication")
 				return nil
 			}
 			if stepUpBound {
@@ -194,9 +199,8 @@ func EdgeIdentityMiddlewareWithConfig(cfg EdgeIdentityConfig) func(*httpx.Event)
 				}))
 			}
 			if err := attachSignedEdgeEntitlements(e); err != nil {
-				slog.Warn("edge identity: entitlement envelope invalid", "error", err)
-				stripIdentityHeaders(e.Request)
-				http.Error(e.Response, "invalid edge entitlements", http.StatusUnauthorized)
+				slog.Warn("edge identity: entitlement envelope invalid", "error", err, "reason_code", edgeEntitlementsUnverifiableCode)
+				writeEdgeTrustFault(e, edgeEntitlementsUnverifiableCode, "invalid edge entitlements")
 				return nil
 			}
 			e.Request = e.Request.WithContext(markEdgeAuthenticatedContext(e.Request.Context()))
@@ -545,6 +549,25 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+// writeEdgeTrustFault refuses a request whose signed edge envelope this
+// origin cannot verify, in the envelope writeEdgeDecisionUnverifiable already
+// uses. It keeps the 401 the Gateway and the tests expect and the same
+// message, and names the class with a stable reason code so a client can tell
+// a hop trust fault from a session that ended. No session signal, no renew_url
+// and no user guidance: signing in again cannot change it. The identity
+// headers are stripped first, exactly as the plain-text refusal did.
+func writeEdgeTrustFault(e *httpx.Event, reasonCode, message string) {
+	if e == nil || e.Request == nil {
+		return
+	}
+	stripIdentityHeaders(e.Request)
+	_ = httpx.Error(e, http.StatusUnauthorized, ksapi.ErrCodeUnauthorized, message, map[string]any{
+		"error_code":  reasonCode,
+		"reason_code": reasonCode,
+		"retryable":   true,
+	})
 }
 
 // writeEdgeDecisionUnverifiable renders the fail-closed denial for a decision

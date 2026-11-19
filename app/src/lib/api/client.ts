@@ -354,6 +354,13 @@ export class ApiRequestError extends Error {
 }
 
 const CSRF_HEADER_NAME = "X-CSRF-Token";
+/**
+ * The server's machine-readable refusal of a failed double-submit check
+ * (pkg/middleware/csrf.go). The token cookie lives 12 h, so a long-lived tab
+ * caches a token that no longer matches; the cached token is dropped, a fresh
+ * one fetched and the request replayed once.
+ */
+const CSRF_INVALID_TOKEN_CODE = "csrf_token_invalid";
 let csrfToken: string | null = null;
 let csrfTokenInFlight: Promise<string> | null = null;
 
@@ -412,6 +419,22 @@ function extractRequestId(headers: Headers): string {
     headers.get("x-trace-id") ||
     ""
   );
+}
+
+/** True for the server's CSRF refusal, read from the code and never a text. */
+async function isCSRFRefusal(response: Response): Promise<boolean> {
+  if (response.status !== 403) return false;
+  try {
+    const body = (await response.clone().json()) as { error?: unknown };
+    const error = body?.error;
+    return (
+      typeof error === "object" &&
+      error !== null &&
+      (error as { code?: unknown }).code === CSRF_INVALID_TOKEN_CODE
+    );
+  } catch {
+    return false;
+  }
 }
 
 function looksLikeHtml(body: string): boolean {
@@ -600,8 +623,9 @@ export async function fetchApi<T>(
   const url = gatewayUrl ? gatewayUrl : sameOriginUrl;
 
   // One send, rebuilt in full for the single replay after a session renewal
-  // (fresh bearer, same re-readable body).
-  const send = async (): Promise<Response> => {
+  // (fresh bearer, same re-readable body) and for the single replay after a
+  // refused CSRF token.
+  const sendOnce = async (): Promise<Response> => {
     const gatewayToken = gatewayUrl
       ? await resolveGatewayBearer(gatewayUrl, method)
       : "";
@@ -664,6 +688,17 @@ export async function fetchApi<T>(
     } finally {
       clearTimeout(timeout);
     }
+  };
+
+  // The server marks a refused CSRF token with a code. The cached token is
+  // stale (its 12 h cookie expired in a long-lived tab or the cookie changed):
+  // drop it, fetch a fresh one inside the replay, and let the person's save
+  // succeed instead of asking them to reload the page.
+  const send = async (): Promise<Response> => {
+    const response = await sendOnce();
+    if (!(await isCSRFRefusal(response))) return response;
+    csrfToken = null;
+    return sendOnce();
   };
 
   // The shared session renewal layer: a request whose session needs renewal

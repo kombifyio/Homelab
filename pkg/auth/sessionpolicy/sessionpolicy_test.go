@@ -10,7 +10,9 @@ import (
 )
 
 // platform-jx5m6: the 7-day fixed session forced a new login every week; the
-// owner rule is one login per device with a 30-day idle window.
+// owner rule is one login per device with an idle window only, so a session
+// ends after a year without use and has no fixed end date (AUTHENTICATION.md
+// §6, "doubt admits").
 func TestBrowserSessionRenewsActiveAndNotIdleExpired(t *testing.T) {
 	cfg := BrowserSessionConfig("techstack-test", []byte("0123456789abcdef0123456789abcdef"))
 	mgr, err := authsession.NewManager(cfg)
@@ -45,20 +47,39 @@ func TestBrowserSessionRenewsActiveAndNotIdleExpired(t *testing.T) {
 		t.Fatalf("renewed within the renewal interval: %v", got)
 	}
 	renewed := renewAt(25 * time.Hour)
-	if len(renewed) != 1 || renewed[0].Name != "techstack_session" {
-		t.Fatalf("active session was not renewed: %v", renewed)
+	// The session and its companion cookie are issued together: the pair is
+	// what the wallet's local-device confirmation binds.
+	var session, anchor *http.Cookie
+	for _, c := range renewed {
+		switch c.Name {
+		case "techstack_session":
+			session = c
+		case "techstack_session_origin":
+			anchor = c
+		}
 	}
-	if got, want := renewed[0].MaxAge, int(BrowserSessionIdleLifetime/time.Second); got != want {
+	if session == nil || anchor == nil {
+		t.Fatalf("active session was not renewed as a pair: %v", renewed)
+	}
+	if got, want := session.MaxAge, int(BrowserSessionIdleLifetime/time.Second); got != want {
 		t.Fatalf("renewed cookie Max-Age = %d, want %d", got, want)
 	}
-	if !renewed[0].HttpOnly || !renewed[0].Secure || renewed[0].SameSite != http.SameSiteLaxMode {
-		t.Fatalf("renewed cookie lost its security flags: %+v", renewed[0])
+	if !session.HttpOnly || !session.Secure || session.SameSite != http.SameSiteLaxMode {
+		t.Fatalf("renewed cookie lost its security flags: %+v", session)
 	}
-	claims, err := mgr.Verify(renewed[0].Value)
+	if anchor.MaxAge < session.MaxAge {
+		t.Fatalf("companion cookie Max-Age = %d, want it to keep up with the session (%d)", anchor.MaxAge, session.MaxAge)
+	}
+	claims, err := mgr.Verify(session.Value)
 	if err != nil || claims.Subject != "auth0|user-1" || claims.TenantID != "tenant-1" {
 		t.Fatalf("renewed token does not carry the session identity: %+v, %v", claims, err)
 	}
-	if got := renewAt(31 * 24 * time.Hour); len(got) != 0 {
+	anchorClaims, err := browser.origins.Verify(anchor.Value)
+	if err != nil || anchorClaims.Subject != "auth0|user-1" || anchorClaims.TenantID != "tenant-1" {
+		t.Fatalf("renewed companion does not carry the session identity: %+v, %v", anchorClaims, err)
+	}
+	// A year without use ends the session; a year of use never does.
+	if got := renewAt(BrowserSessionIdleLifetime + time.Hour); len(got) != 0 {
 		t.Fatalf("idle-expired session was renewed: %v", got)
 	}
 }

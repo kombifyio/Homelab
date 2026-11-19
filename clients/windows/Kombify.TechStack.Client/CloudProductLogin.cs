@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Kombify.Client.Shell;
 using Microsoft.Web.WebView2.Core;
 
 namespace Kombify.TechStack.Client;
@@ -18,16 +19,27 @@ internal sealed partial class ClientWindow
     private const string SessionCookie = "techstack_session";
     private const string OriginCookie = "techstack_session_origin";
 
-    private async Task BeginCloudProductLoginAsync()
+    private Task BeginCloudProductLoginAsync() => RunProductLoginAsync(silent: false, CancellationToken.None);
+
+    /// <summary>
+    /// One product login through the system browser. Interactive (the person asked) or silent
+    /// (device sign-in §4, <c>prompt=none</c>, at most 60 s, never replacing an attempt that
+    /// is already running). Returns the account of the session it imported, or null; on any
+    /// failure the window shows the ordinary signed-out page, never a sign-in error.
+    /// </summary>
+    private async Task<DeviceSignInAccount?> RunProductLoginAsync(bool silent, CancellationToken limit,
+        string? expectedSubject = null)
     {
+        if (silent && _cloudProductLoginCancellation is not null) return null;
         _cloudProductLoginCancellation?.Cancel();
-        var attempt = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var attempt = CancellationTokenSource.CreateLinkedTokenSource(limit);
+        attempt.CancelAfter(silent ? DeviceSignInFollower.SilentAttemptLimit : TimeSpan.FromMinutes(5));
         _cloudProductLoginCancellation = attempt;
         await _cloudProductLoginGate.WaitAsync();
         try
         {
-            if (!ReferenceEquals(_cloudProductLoginCancellation, attempt)) return;
-            await RunCloudProductLoginAsync(attempt);
+            if (!ReferenceEquals(_cloudProductLoginCancellation, attempt)) return null;
+            return await RunCloudProductLoginAsync(attempt, silent, expectedSubject);
         }
         finally
         {
@@ -38,11 +50,12 @@ internal sealed partial class ClientWindow
         }
     }
 
-    private async Task RunCloudProductLoginAsync(CancellationTokenSource attempt)
+    private async Task<DeviceSignInAccount?> RunCloudProductLoginAsync(CancellationTokenSource attempt, bool silent,
+        string? expectedSubject)
     {
         var token = attempt.Token;
         TcpListener? listener = null;
-        var accountMismatch = false;
+        var importing = false;
         try
         {
             for (var port = 63690; port <= 63694; port++)
@@ -50,7 +63,7 @@ internal sealed partial class ClientWindow
                 try
                 {
                     listener = new TcpListener(IPAddress.Loopback, port);
-                    listener.Start(1);
+                    listener.Start(4);
                     break;
                 }
                 catch (SocketException)
@@ -64,26 +77,34 @@ internal sealed partial class ClientWindow
 
             var verifier = Base64Url(RandomNumberGenerator.GetBytes(32));
             var challenge = Base64Url(SHA256.HashData(Encoding.ASCII.GetBytes(verifier)));
-            using var startContent = JsonContent(new
+            // The program's own loopback address and attempt state (StackKits #3407): the server's
+            // handoff, a refusal included, returns there with exactly this state. No relay takes part.
+            var callbackPort = ((IPEndPoint)listener.LocalEndpoint).Port;
+            var state = DeviceSignInSilentRoute.State(DeviceSignInSilentRoute.TechstackWindows, callbackPort);
+            var startBody = new Dictionary<string, object>
             {
-                verifier_challenge = challenge,
-                callback_port = ((IPEndPoint)listener.LocalEndpoint).Port,
-            });
+                ["verifier_challenge"] = challenge,
+                ["redirect_uri"] = DeviceSignInSilentRoute.LoopbackUri(callbackPort),
+                ["state"] = state,
+            };
+            if (silent) startBody["prompt"] = "none";
+            using var startContent = JsonContent(startBody);
             using var start = await _cloudProductHttpClient.PostAsync(new Uri(ProductOrigin, "/api/v2/auth/native/start"), startContent, token);
             if (!start.IsSuccessStatusCode)
                 throw new InvalidOperationException("Techstack could not start this browser login.");
             using var startJSON = JsonDocument.Parse(await start.Content.ReadAsStringAsync(token));
-            var state = startJSON.RootElement.GetProperty("state").GetString() ?? "";
             var loginURL = startJSON.RootElement.GetProperty("login_url").GetString() ?? "";
-            if (state.Length != 43 || !Uri.TryCreate(loginURL, UriKind.Absolute, out var loginUri)
+            if (!Uri.TryCreate(loginURL, UriKind.Absolute, out var loginUri)
                 || !ClientAuthority.SameOrigin(loginUri, ProductOrigin)
                 || loginUri.AbsolutePath != "/api/v2/auth/login")
                 throw new InvalidOperationException("Techstack returned an invalid browser login URL.");
 
-            NavigateHtml(RenderFallback(CloudLoginText.Get("WaitingTitle"),
-                CloudLoginText.Get("WaitingDetail")));
+            if (!silent)
+                NavigateHtml(RenderFallback(CloudLoginText.Get("WaitingTitle"),
+                    CloudLoginText.Get("WaitingDetail")));
             OpenInBrowser(loginURL);
-            var ticket = await AwaitProductCallbackAsync(listener, state, token);
+            var ticket = await AwaitProductCallbackAsync(listener, state, silent, token)
+                ?? throw new InvalidOperationException("The silent login was refused.");
             using var redeemContent = JsonContent(new { ticket, verifier, state });
             using var redeem = await _cloudProductHttpClient.PostAsync(new Uri(ProductOrigin, "/api/v2/auth/native/redeem"), redeemContent, token);
             if (!redeem.IsSuccessStatusCode)
@@ -93,14 +114,24 @@ internal sealed partial class ClientWindow
             var tenant = identityJSON.RootElement.GetProperty("tenantId").GetString() ?? "";
             if (subject.Length == 0 || tenant.Length == 0)
                 throw new InvalidOperationException("The transferred login has no product identity.");
-
-            var identityHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(subject + "\n" + tenant)));
-            var markerPath = Path.Combine(ClientConfig.StateDirectory(), "webview2-cloud-product-v1", "identity");
-            if (File.Exists(markerPath) && File.ReadAllText(markerPath).Trim() != identityHash)
+            var cookies = ParseProductCookies(redeem);
+            var email = await VerifyProductIdentityAsync(cookies, subject, tenant, token);
+            var account = DeviceSignInAccount.FromIdToken(DeviceSignIn.KombifyIssuer, subject, email, null);
+            if (silent && expectedSubject is not null && account.Subject != expectedSubject)
             {
-                accountMismatch = true;
-                throw new InvalidOperationException("Cloud product identity mismatch");
+                // Another account than the device's (§4): nothing of it is imported or shown.
+                // The product session is a stateless cookie this client never stored, so there is
+                // no refresh token of its own to revoke.
+                throw new InvalidOperationException("The silent login returned another account.");
             }
+
+            // One WebView profile holds one account's product data. Another account first ends
+            // what the previous one left (device sign-in §3: an account change is followed).
+            var identityHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(subject + "\n" + tenant)));
+            var markerPath = ProductIdentityMarkerPath();
+            if (File.Exists(markerPath) && File.ReadAllText(markerPath).Trim() != identityHash)
+                await ClearLocalProductSessionAsync();
+            token.ThrowIfCancellationRequested();
             if (!File.Exists(markerPath))
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(markerPath)!);
@@ -109,31 +140,30 @@ internal sealed partial class ClientWindow
                 marker.Flush(flushToDisk: true);
             }
 
-            var cookies = ParseProductCookies(redeem);
-            token.ThrowIfCancellationRequested();
+            importing = true;
             await ClearProductCookiesAsync();
             token.ThrowIfCancellationRequested();
             ImportProductCookies(cookies);
             await VerifyProductCookiesAsync(cookies);
             token.ThrowIfCancellationRequested();
-            await VerifyProductIdentityAsync(cookies, subject, tenant, token);
-            token.ThrowIfCancellationRequested();
+            SaveDeviceAccount(account);
             _webView.CoreWebView2.Navigate(new Uri(ProductOrigin, "/dashboard").ToString());
+            if (!silent && _deviceSignIn is { } follower)
+                _ = follower.SignedInInteractivelyAsync(account);
+            return account;
         }
-        catch (OperationCanceledException)
+        catch (Exception error) when (error is not OutOfMemoryException)
         {
-            // The gate keeps a replacement attempt from importing until cleanup ends.
-            if (!IsDisposed) await ClearProductCookiesAsync();
+            // Cancelled, refused, timed out or failed: the ordinary signed-out page, no error.
+            // A replacement attempt keeps the screen (the gate keeps it from importing until
+            // this cleanup ends).
+            if (!IsDisposed && importing) await ClearProductCookiesAsync();
             if (!IsDisposed && ReferenceEquals(_cloudProductLoginCancellation, attempt))
-                NavigateHtml(RenderFallback(CloudLoginText.Get("FailureTitle"),
-                    CloudLoginText.Get("FailureDetail")));
-        }
-        catch (Exception)
-        {
-            if (!IsDisposed) await ClearProductCookiesAsync();
-            if (!IsDisposed && ReferenceEquals(_cloudProductLoginCancellation, attempt))
-                NavigateHtml(RenderFallback(CloudLoginText.Get("FailureTitle"),
-                    CloudLoginText.Get(accountMismatch ? "AccountMismatch" : "FailureDetail")));
+            {
+                if (await HasProductCookiesAsync()) _webView.CoreWebView2.Navigate(new Uri(ProductOrigin, "/dashboard").ToString());
+                else ShowCloudSignedOut();
+            }
+            return null;
         }
         finally
         {
@@ -144,40 +174,67 @@ internal sealed partial class ClientWindow
     private static string Base64Url(byte[] bytes) => Convert.ToBase64String(bytes)
         .TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
-    private static async Task<string> AwaitProductCallbackAsync(TcpListener listener, string expectedState,
-        CancellationToken token)
+    /// <summary>
+    /// Waits for the browser's return on the loopback port: the ticket, or null when the
+    /// product server reports a refused silent attempt (<c>error</c> with this attempt's state).
+    /// A silent attempt's landing page shows only the program's name and closes itself where
+    /// the browser allows.
+    /// </summary>
+    private static async Task<string?> AwaitProductCallbackAsync(TcpListener listener, string expectedState,
+        bool silent, CancellationToken token)
     {
         while (true)
         {
             using var client = await listener.AcceptTcpClientAsync(token);
             using var stream = client.GetStream();
             using var reader = new StreamReader(stream, Encoding.ASCII, leaveOpen: true);
-            var requestLine = await reader.ReadLineAsync(token) ?? "";
+            // A connection the browser opens and leaves idle (a preconnect) never holds up the
+            // real return: its request head must arrive within 10 s, else the next one is taken.
+            using var headerLimit = CancellationTokenSource.CreateLinkedTokenSource(token);
+            headerLimit.CancelAfter(TimeSpan.FromSeconds(10));
+            var requestLine = "";
             var host = "";
-            for (var i = 0; i < 32; i++)
+            try
             {
-                var line = await reader.ReadLineAsync(token);
-                if (line is null || line.Length == 0) break;
-                if (line.StartsWith("Host:", StringComparison.OrdinalIgnoreCase)) host = line[5..].Trim();
+                requestLine = await reader.ReadLineAsync(headerLimit.Token) ?? "";
+                for (var i = 0; i < 32; i++)
+                {
+                    var line = await reader.ReadLineAsync(headerLimit.Token);
+                    if (line is null || line.Length == 0) break;
+                    if (line.StartsWith("Host:", StringComparison.OrdinalIgnoreCase)) host = line[5..].Trim();
+                }
             }
-            var expectedHost = "127.0.0.1:" + ((IPEndPoint)listener.LocalEndpoint).Port;
-            var parts = requestLine.Split(' ', 3);
-            string? ticket = null;
-            if (parts.Length == 3 && parts[0] == "GET" && host == expectedHost
-                && parts[1].Length < 2048
-                && Uri.TryCreate("http://" + expectedHost + parts[1], UriKind.Absolute, out var callback)
-                && callback.AbsolutePath == "/oauth/callback")
+            catch (OperationCanceledException) when (!token.IsCancellationRequested)
             {
-                var query = System.Web.HttpUtility.ParseQueryString(callback.Query);
-                if (query.Get("state") == expectedState)
-                    ticket = query.Get("ticket");
+                continue;
             }
+            catch (IOException)
+            {
+                continue;
+            }
+            var callback = DeviceSignInSilentRoute.ReadCallback(requestLine, host,
+                ((IPEndPoint)listener.LocalEndpoint).Port, expectedState);
+            var ticket = callback?.Ticket;
+            var refused = callback is { Ticket: null, Error: not null };
             var success = ticket is { Length: 43 };
-            var body = CloudLoginText.Get(success ? "CallbackSuccess" : "CallbackFailure");
-            var status = success ? "200 OK" : "400 Bad Request";
-            var bytes = Encoding.UTF8.GetBytes($"HTTP/1.1 {status}\r\nContent-Type: text/plain; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {Encoding.UTF8.GetByteCount(body)}\r\nConnection: close\r\n\r\n{body}");
+            string contentType, body;
+            if (silent && (success || refused))
+            {
+                contentType = "text/html; charset=utf-8";
+                body = "<!doctype html><meta charset=\"utf-8\"><title>Techstack</title>"
+                    + "<body style=\"font:16px system-ui;margin:48px;color:#1b1d21;background:#f7f9fc\">"
+                    + "<p>Techstack</p><script>setTimeout(() => window.close(), 300)</script></body>";
+            }
+            else
+            {
+                contentType = "text/plain; charset=utf-8";
+                body = CloudLoginText.Get(success ? "CallbackSuccess" : "CallbackFailure");
+            }
+            var status = success || refused ? "200 OK" : "400 Bad Request";
+            var bytes = Encoding.UTF8.GetBytes($"HTTP/1.1 {status}\r\nContent-Type: {contentType}\r\nCache-Control: no-store\r\nReferrer-Policy: no-referrer\r\nContent-Length: {Encoding.UTF8.GetByteCount(body)}\r\nConnection: close\r\n\r\n{body}");
             await stream.WriteAsync(bytes, token);
             if (success) return ticket!;
+            if (refused) return null;
         }
     }
 
@@ -244,7 +301,8 @@ internal sealed partial class ClientWindow
                 throw new InvalidOperationException("The WebView rejected the product session.");
     }
 
-    private async Task VerifyProductIdentityAsync(IReadOnlyDictionary<string, ProductCookie> cookies,
+    /// <summary>Checks the imported session against the redeemed identity; returns its email (the device label).</summary>
+    private async Task<string?> VerifyProductIdentityAsync(IReadOnlyDictionary<string, ProductCookie> cookies,
         string subject, string tenant, CancellationToken token)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(ProductOrigin, "/api/v2/whoami"));
@@ -257,6 +315,8 @@ internal sealed partial class ClientWindow
         if (whoami.RootElement.GetProperty("subject").GetString() != subject
             || whoami.RootElement.GetProperty("tenantId").GetString() != tenant)
             throw new InvalidOperationException("The transferred session belongs to a different product identity.");
+        return whoami.RootElement.TryGetProperty("email", out var email) && email.ValueKind == JsonValueKind.String
+            ? email.GetString() : null;
     }
 
     private async Task<ConnectProductIdentity> CurrentConnectIdentityAsync(CancellationToken token)
@@ -288,7 +348,7 @@ internal sealed partial class ClientWindow
             throw new ConnectAccountException();
         var expectedMarker = Convert.ToHexString(SHA256.HashData(
             Encoding.UTF8.GetBytes(subject + "\n" + tenant)));
-        var markerPath = Path.Combine(ClientConfig.StateDirectory(), "webview2-cloud-product-v1", "identity");
+        var markerPath = ProductIdentityMarkerPath();
         if (!File.Exists(markerPath) || File.ReadAllText(markerPath).Trim() != expectedMarker)
             throw new ConnectAccountException();
         var latest = await _webView.CoreWebView2.CookieManager.GetCookiesAsync(ProductOrigin.ToString());
