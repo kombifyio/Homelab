@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "public_repository": "kombifyio/TechStack",
-  "source_commit": "a3f2b647e6ec1a0903b9cd7e6af34cf57b70bd61",
-  "candidate_digest": "b160cac5d3b58c74b5c1d911630ba6cbb69a78203c36c756fbd663a142aaf1dc",
+  "source_commit": "8d30011291f7737699122f906d9e75f2ac37c777",
+  "candidate_digest": "4f5ac3a09bdbc532edbf66cc926899689ef6a0031a78957af65a02a833b11c7e",
   "candidate_file_count": 2862,
   "digest_scope": "sha256 over every exported file except this receipt, in code-unit path order, as path NUL content NUL",
   "projected_go_sources": [
