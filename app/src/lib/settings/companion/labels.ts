@@ -1,5 +1,5 @@
 /**
- * Every word the Companion settings page shows or speaks, read from Techstack's
+ * Every word the Companion settings page shows or speaks, read from Homelab's
  * own catalogs (`companion.settings.*` in all seven web catalogs; the words the
  * Companion program already shows are taken from its catalogs, so Kubi's menu
  * and these settings name things alike). Labels only: no explanation, hint or

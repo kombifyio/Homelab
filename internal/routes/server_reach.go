@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/guardreach"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/guardreach"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // serverReachStepUpMaxAge bounds the multi-factor sign-in behind publishing a
@@ -50,7 +50,7 @@ type serverReachRequest struct {
 // writer provisions one for an owner's own server (live 2026-10-18: every
 // owner got 403 inventory_access_denied before the step-up was reached).
 func (h serverRuntimeHandlers) reachSetPublic(e *httpx.Event) error {
-	server, err := h.ownedServer(e, "techstack.servers.reach.set")
+	server, err := h.ownedServer(e, "homelab.servers.reach.set")
 	if err != nil || server == nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func (h serverRuntimeHandlers) reachSetPublic(e *httpx.Event) error {
 	if request.Enabled {
 		gate := entitlementGateOrHosted(h.postureEntitlements)
 		if !gate.SignedGrant(e.Request.Context(), ServerMaintenanceEntitlement) {
-			return writeEntitlementDenial(e, "techstack.servers.reach.set", ServerMaintenanceEntitlement)
+			return writeEntitlementDenial(e, "homelab.servers.reach.set", ServerMaintenanceEntitlement)
 		}
 		var admitted bool
 		if agentID, admitted = freshPersonOrActingAgent(e.Request.Context(), gate, h.now().UTC(), serverReachStepUpMaxAge); !admitted {

@@ -1,6 +1,6 @@
-# kombify TechStack Windows Client
+# kombify Homelab Runtime Windows Client
 
-Native Windows shell for kombify TechStack.
+Native Windows shell for kombify Homelab Runtime.
 
 The installer has two editions, both running on the person's own computer
 (D-2026-11-11-05): **Standalone** needs no kombify account and **Connected**
@@ -9,46 +9,46 @@ clients upgrade in place: the MSBuild property `DesktopEdition` with the values
 `Local` and `Cloud`, `DesktopEdition.cs` (`local`, `cloud`), the installer file
 names, the `windows-cloud-beta` feed and tags, upgrade codes, install folders,
 state paths and the registry key. Only the installer display names
-("Techstack Standalone", "Techstack Connected", the
+("Homelab Runtime Standalone", "Homelab Runtime Connected", the
 `DesktopEditionName` value of the WiX build) and the text customers read use the
 new names.
 
 The reusable profile-validation and Windows secret-custody boundary lives in
-`Kombify.Client.Shell`; Techstack-specific runtime supervision, routes,
-branding and UI remain in `Kombify.TechStack.Client`. The shell also carries the
+`Kombify.Client.Shell`; Homelab-specific runtime supervision, routes,
+branding and UI remain in `Kombify.Homelab.Client`. The shell also carries the
 client of the desktop Companion's local interface (Companion AppLink v1,
-`Kombify.Client.Shell/README.md`); the Techstack client references it from
+`Kombify.Client.Shell/README.md`); the Homelab Runtime client references it from
 source but has no Companion switch in its settings yet.
 
-- `kombify-techstack-client.exe` is the WinForms/WebView2 desktop app.
-- `techstack.exe` remains the runtime/CLI binary.
+- `kombify-homelab-client.exe` is the WinForms/WebView2 desktop app.
+- `homelab.exe` remains the runtime/CLI binary.
 - The client reads `%LOCALAPPDATA%\kombify\techstack-client\client.json`.
 - The Windows taskbar/application icon uses the navy kombify mark.
 - Cloud access and refresh tokens are stored only as per-user Generic
   Credentials in Windows Credential Manager. `cloud-session.json` contains
   non-secret connection metadata and credential target names only.
 - The local runtime session-signing secret, the local device-session token
-  and the runtime encryption key (`TECHSTACK_ENCRYPTION_KEY`, 32 bytes, used
+  and the runtime encryption key (`HOMELAB_ENCRYPTION_KEY`, 32 bytes, used
   for Wallet, backup and StackKit custody) also live in Windows Credential
   Manager; none is written into the runtime data directory. A present but
   malformed encryption key stops the start instead of being replaced, because
   a new key could not read the retained encrypted data.
-- `mode=local` starts the bundled `techstack.exe` when the local runtime is
+- `mode=local` starts the bundled `homelab.exe` when the local runtime is
   not already reachable, then opens `/client/local?client=windows`. That route
   uses the device session bootstrapped by the shell and opens the operator UI
   directly, without a mode picker, account creation or interactive login.
   Existing configurations pointing at the former default mode picker migrate
   to this local entry. Explicit Cloud and server configurations are preserved.
 - Local mode runs the real Postgres-backed control plane against an embedded
-  PostgreSQL 16 child process (`TECHSTACK_EMBEDDED_POSTGRES=1`,
+  PostgreSQL 16 child process (`HOMELAB_EMBEDDED_POSTGRES=1`,
   `internal/localdb/embedded_postgres.go`). The installer carries the pinned
   PostgreSQL archive in `postgres\`; the shell sets
-  `TECHSTACK_EMBEDDED_POSTGRES_BUNDLE_DIR` to this directory. Startup extracts
+  `HOMELAB_EMBEDDED_POSTGRES_BUNDLE_DIR` to this directory. Startup extracts
   it into the user runtime directory without downloading binaries or writing
   to the installation directory. A missing bundle requires an installation
   repair. Data remains in the user runtime directory (`postgres\data`).
   There is no separate desktop data backend.
-- `mode=cloud` opens the TechStack Cloud web UI in WebView2; the separate
+- `mode=cloud` opens the Homelab Runtime Cloud web UI in WebView2; the separate
   device-code URL remains available for Cloud tool-token authorization.
 - `mode=server` first loads `/.well-known/kombify-client`, rejects unknown
   fields, insecure remote HTTP, and origin mismatches, then persists only the
@@ -71,9 +71,9 @@ pwsh -File .\scripts\package-windows-client.ps1
 The same command also produces the public Windows release assets in
 `dist\windows-client`:
 
-- `kombify-Techstack-Setup.exe` — user-facing WiX/Burn installer
-- `kombify-Techstack-x64.msi` — per-machine MSI
-- `kombify-techstack-client_<version>_Windows_x86_64.zip` — portable artifact
+- `kombify-Homelab-Setup.exe` — user-facing WiX/Burn installer
+- `kombify-Homelab-x64.msi` — per-machine MSI
+- `kombify-homelab-client_<version>_Windows_x86_64.zip` — portable artifact
 - `SHA256SUMS.txt` and `UNSIGNED-WINDOWS-RELEASE.txt`
 
 The MSI and setup.exe are intentionally unsigned on every channel, including
@@ -85,7 +85,7 @@ Cloud UI smoke:
 ```powershell
 .\dist\windows-client\stage\install-windows-client.ps1 `
   -Mode cloud `
-  -CloudUiUrl "https://techstack.kombify.io/login?manual=1&client=windows" `
+  -CloudUiUrl "https://homelab.kombify.io/login?manual=1&client=windows" `
   -Launch
 ```
 
@@ -115,7 +115,7 @@ the Windows account. Do not copy while the client runs. A client that finds
 data written by a newer PostgreSQL major refuses to start and leaves the data
 untouched. Real backup and restore is follow-on work.
 
-Automated installed-client tests set `TECHSTACK_CLIENT_STATE_DIR` to an
+Automated installed-client tests set `HOMELAB_CLIENT_STATE_DIR` to an
 isolated random directory below `%LOCALAPPDATA%\kombify`; file state and
 Credential Manager targets are both namespaced to that directory. The shell
 refuses override paths outside that root. Normal installations keep the stable
@@ -140,7 +140,7 @@ node app/scripts/install-deps.mjs --frozen-lockfile
 
 The smoke packages the client, installs it (`-Installer portable`, the
 default, into isolated user directories; `-Installer setup` through the shipped
-`kombify-Techstack-Setup.exe` into its product location) and starts the
+`kombify-Homelab-Setup.exe` into its product location) and starts the
 installed EXE. `-BlockOutbound` (elevated, disposable hosts only) blocks all
 non-loopback traffic of the client, runtime and WebView2 for the whole run. It verifies the runtime version, full source revision
 and PostgreSQL backend, then attaches to the actual installed WebView through
@@ -164,8 +164,8 @@ is restored during cleanup. See the [official WebView2 integration](https://play
 Client contracts (both editions, no installer is copied or run):
 
 ```powershell
-dotnet run --project clients\windows\Kombify.TechStack.Client.ContractTests -c Release -p:DesktopEdition=Local
-dotnet run --project clients\windows\Kombify.TechStack.Client.ContractTests -c Release -p:DesktopEdition=Cloud
+dotnet run --project clients\windows\Kombify.Homelab.Client.ContractTests -c Release -p:DesktopEdition=Local
+dotnet run --project clients\windows\Kombify.Homelab.Client.ContractTests -c Release -p:DesktopEdition=Cloud
 ```
 
 The executable is a console program, not a `dotnet test` project. It needs a
@@ -178,9 +178,9 @@ editions and is what CI's `windows-connect-contracts` scope runs.
 
 Signed updates (DESKTOP-FOUNDATION-STANDARD.md §5.7):
 
-- The shipped installation (Setup.exe/MSI under `%ProgramFiles%\kombify\techstack`)
+- The shipped installation (Setup.exe/MSI under `%ProgramFiles%\kombify\homelab`)
   checks its channel after the UI is up by running
-  `techstack.exe client-update`. The runtime binary embeds the Ed25519
+  `homelab.exe client-update`. The runtime binary embeds the Ed25519
   update key `kombify-desktop-update-2026-v1`, accepts only a manifest signed
   with it (`client-update-manifest.v1`), refuses downgrades and channels below
   `updateMinSupportedVersion`, and stages the installer below
@@ -199,8 +199,8 @@ Signed updates (DESKTOP-FOUNDATION-STANDARD.md §5.7):
   recorded versions are verified; missing historical manifests retain the
   cursor and snapshot and are retried at the next start.
 - `client.json` sets `updateManifestUrl` (default: the public
-  `kombifyio/TechStack` latest release asset
-  `kombify-techstack-windows-update.json`), `updateChannel` (`stable`) and
+  `kombifyio/Homelab` latest release asset
+  `kombify-homelab-windows-update.json`), `updateChannel` (`stable`) and
   `autoUpdate` (`false` opts out). The trusted key cannot be configured.
   Portable installations never update themselves. With no recovery pending,
   an unreachable update channel does not delay runtime startup. Pending
@@ -214,12 +214,12 @@ Signed updates (DESKTOP-FOUNDATION-STANDARD.md §5.7):
   blindly. Historical versions need their own verified recovery manifest;
   publishing a newer manifest does not supply one for an older release.
 
-- Connected edition machine installations use `%ProgramFiles%\kombify\techstack-cloud`
-  and `kombify-techstack-cloud-updater.exe`. The packager builds that helper
+- Connected edition machine installations use `%ProgramFiles%\kombify\homelab-cloud`
+  and `kombify-homelab-cloud-updater.exe`. The packager builds that helper
   from the same `client_update.go` consumer, without linking the local product
   runtime, database or provider entry point. The embedded update key is unchanged.
   The helper accepts only the `windows-cloud-beta` feed, channel `beta`, and
-  the exact `windows-cloud-v<VERSION>/kombify-Techstack-Cloud-Setup.exe` asset.
+  the exact `windows-cloud-v<VERSION>/kombify-Homelab-Cloud-Setup.exe` asset.
   Signed Standalone or foreign-product installers are refused before handoff.
 - Connected edition rollback snapshots the edition/channel's client state, including its
   operator cache, while excluding the updates directory that holds recovery
@@ -257,16 +257,16 @@ in its own Settings (`/settings?tab=companion`); Kubi has no window of its own
 browser or the hosted web app, and only while a Companion is installed or this
 installer carries one.
 
-- **Page and shell.** The tab is drawn from Techstack's own settings components
+- **Page and shell.** The tab is drawn from Homelab Runtime's own settings components
   (`SettingsSection`, `SettingsRow`, `Switch` and the Appearance tab's choice buttons,
   `app/src/lib/components/settings/CompanionSettingsPanel.svelte`), with the labels in
-  Techstack's own seven catalogs (`companion.settings.*`) and the controller, model and
+  Homelab Runtime's own seven catalogs (`companion.settings.*`) and the controller, model and
   chord logic of the Brand UI package's unreleased `companion-settings` entry ported
   to `app/src/lib/settings/companion/` (its renderer, stylesheet and theme are not
   used; `app/scripts/check-settings-structure.mjs` fails on them). The adapter is
   the existing WebView2 bridge (`app/src/lib/client/companion-bridge.ts`).
   `ClientWindow.Companion.cs` answers six fixed messages
-  (`kombify.techstack.companion.{read,write,watch,watch-cancel,pick-folder,open-link}.v1`),
+  (`kombify.homelab.companion.{read,write,watch,watch-cancel,pick-folder,open-link}.v1`),
   each bound to the current document's revision and token like the device-context
   read. It speaks AppLink v2 through `Kombify.Client.Shell`; no pipe, token,
   registry path or path of another program reaches the page. The folder picker is
@@ -277,8 +277,8 @@ installer carries one.
   source: the client follows the Companion's releases. A new release reaches the
   next release slot by itself: kombify-AI-Platform's `companion-desktop-msi.yml`
   (job `carry`) writes the derived record
-  `techstack/.kombify/carried-companion-release.json` from it through a
-  `fix(companion)` pull request labelled `merge-batch`, which makes Techstack a
+  `homelab/.kombify/carried-companion-release.json` from it through a
+  `fix(companion)` pull request labelled `merge-batch`, which makes Homelab Runtime a
   changed product for the slot; no build reads that record and nobody edits it. The release job `delivery-windows.yml`
   runs `scripts/read-companion-installer.ps1`, which resolves the newest
   published `companion-desktop-v<semver>` release of the private
@@ -314,8 +314,8 @@ installer carries one.
   A build without the generated file (the public export, a development build)
   has no Companion tab unless one is already installed. Uninstalling the client
   leaves the Companion; it removes itself once no registered client exists.
-- **Open in app.** `kombify-techstack://open/?route=%2Fsettings%2Fcompanion`
-  (Connected: `kombify-techstack-cloud`) opens Settings > Companion in the running
+- **Open in app.** `kombify-homelab://open/?route=%2Fsettings%2Fcompanion`
+  (Connected: `kombify-homelab-cloud`) opens Settings > Companion in the running
   instance, or starts the client there. The client registers its scheme once a
   Companion exists, at start and after a switch-on, as `"<exe>" --activate "%1"`:
   a start with `--activate` reads exactly the one argument after it as the URL and

@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"runtime"
 
-	"github.com/kombifyio/techstack/pkg/agent/procfence"
+	"github.com/kombifyio/homelab/pkg/agent/procfence"
 )
 
 // ProcessRef identifies a started executor process group.

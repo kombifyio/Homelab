@@ -18,7 +18,7 @@ const AdapterID = "proxmox-substrate-v1"
 const AdapterManifestHash = "sha256:d0d36d0ce8eca8c262240fb4e3d08603acdb9fd2ebd0182ef1584b9a4c701876"
 
 // ExecutionSpec is retained as the exact provider desired-spec payload by
-// Techstack. These closed actions cannot invoke shells or arbitrary API paths.
+// Homelab. These closed actions cannot invoke shells or arbitrary API paths.
 type ExecutionSpec struct {
 	Action   string        `json:"action"`
 	Guest    GuestSpec     `json:"guest,omitempty"`

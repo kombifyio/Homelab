@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
-	"github.com/kombifyio/techstack/pkg/serviceauth"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/pkg/serviceauth"
 )
 
 const DefaultGatewaySignalURL = "https://api.kombify.io/v1/agents/ril-ops/signals"
@@ -30,7 +30,7 @@ func NewGatewayPublisher(url, secret string, httpClient *http.Client) (*GatewayP
 		return nil, errors.New("ril signals: Gateway URL must use HTTPS outside localhost")
 	}
 	authCfg, err := serviceauth.Apply(servicecall.Config{
-		ServiceName: "techstack",
+		ServiceName: "homelab",
 		Target:      "gateway",
 		Secret:      strings.TrimSpace(secret),
 		TokenTTL:    time.Minute,

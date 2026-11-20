@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/jobs"
 )
 
 var ErrStackKitLifecycleUnavailable = errors.New("typed StackKits lifecycle is unavailable")
@@ -875,7 +875,7 @@ func (o *Orchestrator) persistStackKitRolloutBinding(tenantID string, job jobs.J
 			config[key] = value
 		}
 		config[jobs.StackKitRolloutBindingResultField] = binding.Map()
-		// Every Techstack-managed deployment runs Advanced Mode.
+		// Every Homelab-managed deployment runs Advanced Mode.
 		config[jobs.StackKitModeField] = jobs.StackKitModeAdvanced
 		_, err = store.CompareAndSwapStackConfig(o.ctx, controlplane.StackConfigCAS{
 			TenantID: tenantID, StackID: job.TargetID, ExpectedUpdatedAt: stack.UpdatedAt, Config: config,

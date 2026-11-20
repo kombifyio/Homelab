@@ -3,7 +3,7 @@ package routes
 import (
 	"net/http"
 
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 func RegisterVMLeaseRoutes(r *httpx.Router, handler http.Handler) {

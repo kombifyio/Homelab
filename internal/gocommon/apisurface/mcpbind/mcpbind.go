@@ -20,7 +20,7 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/kombifyio/techstack/internal/gocommon/apisurface"
+	"github.com/kombifyio/homelab/internal/gocommon/apisurface"
 )
 
 // Handler serves one operation. args are the JSON-decoded, schema-validated

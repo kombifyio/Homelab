@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/guardexec"
-	"github.com/kombifyio/techstack/pkg/guardrelease"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardexec"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 const (

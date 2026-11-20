@@ -9,7 +9,7 @@ import (
 
 	"github.com/grandcat/zeroconf"
 
-	"github.com/kombifyio/techstack/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
 )
 
 type passiveMDNSEvent struct {

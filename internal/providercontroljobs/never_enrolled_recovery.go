@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/releasechannel"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/releasechannel"
 )
 
 const (

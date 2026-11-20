@@ -1,13 +1,13 @@
 <script lang="ts">
   /**
-   * The kombify Wallet in Techstack: every item the signed-in person keeps in
+   * The kombify Wallet in Homelab: every item the signed-in person keeps in
    * their Wallet, drawn as Brand entity cards, with add, new version, reveal,
    * revoke and delete. A card opens the one detail sheet of the card family,
    * deep-linked as `?item=<id>`. Values are encrypted and decrypted in this
    * browser (`../transport.ts`); the Gateway relays only JWEs. An SSH
    * certificate authority is never revealed or versioned: it shows its public
    * key and signs certificates inside its sign policy. The owner also decides
-   * here what Techstack may do with an item (the `use` right) and whether it
+   * here what Homelab may do with an item (the `use` right) and whether it
    * may save credentials in the Wallet.
    *
    * `#access` and `#recovery` (the stack handoff links) preset the type
@@ -70,7 +70,7 @@
     WalletApiError,
     type WalletItem,
   } from "../wallet-api.js";
-  import { TECHSTACK_SERVICE, techstackMayUse } from "../service-access.js";
+  import { HOMELAB_SERVICE, homelabMayUse } from "../service-access.js";
   import {
     itemStateLabel,
     itemTypeLabel,
@@ -91,15 +91,15 @@
   interface Props {
     /** List and create only inside this scope (a stack's credentials). */
     fixedScope?: string;
-    /** Items created here are made available to Techstack at once. */
-    allowTechstackOnCreate?: boolean;
+    /** Items created here are made available to Homelab at once. */
+    allowHomelabOnCreate?: boolean;
     /** Card size of the list. */
     view?: EntityCardSize;
   }
 
   let {
     fixedScope,
-    allowTechstackOnCreate = false,
+    allowHomelabOnCreate = false,
     view = "row",
   }: Props = $props();
 
@@ -108,7 +108,7 @@
 
   /**
    * What the stack handoff links mean here. Access: what lets people and
-   * Techstack into a stack's servers and apps. Recovery: the secrets and
+   * Homelab into a stack's servers and apps. Recovery: the secrets and
    * configurations recovery material and break-glass credentials are kept in.
    */
   const PRESETS: Record<Preset, readonly string[]> = {
@@ -236,7 +236,7 @@
   async function loadCreator() {
     creatorState = "loading";
     try {
-      creatorState = (await listServiceCreators()).includes(TECHSTACK_SERVICE)
+      creatorState = (await listServiceCreators()).includes(HOMELAB_SERVICE)
         ? "on"
         : "off";
     } catch {
@@ -244,7 +244,7 @@
     }
   }
 
-  /** Techstack's `use` right per visible active item, a few requests at a time. */
+  /** Homelab's `use` right per visible active item, a few requests at a time. */
   async function loadGrants() {
     const wanted = visible.filter(
       (item) => item.state === "active" && grants[item.itemId] === undefined,
@@ -254,7 +254,7 @@
     const worker = async () => {
       for (let item = queue.shift(); item; item = queue.shift()) {
         try {
-          grants[item.itemId] = techstackMayUse(
+          grants[item.itemId] = homelabMayUse(
             await listServiceAccess(item.itemId),
           )
             ? "on"
@@ -275,7 +275,7 @@
     try {
       const held = await setServiceAccess(
         item.itemId,
-        TECHSTACK_SERVICE,
+        HOMELAB_SERVICE,
         "use",
         on,
       );
@@ -291,7 +291,7 @@
     creatorBusy = true;
     actionError = null;
     try {
-      creatorState = (await setServiceCreator(TECHSTACK_SERVICE, on))
+      creatorState = (await setServiceCreator(HOMELAB_SERVICE, on))
         ? "on"
         : "off";
     } catch (error) {
@@ -396,7 +396,7 @@
   );
 
   $effect(() => {
-    // Newly visible items (a filter changed) need their Techstack state too.
+    // Newly visible items (a filter changed) need their Homelab state too.
     void visible;
     if (loadState === "ready") untrack(() => void loadGrants());
   });
@@ -449,8 +449,8 @@
         ? tr("kwallet.notice.created", { name: result.name })
         : tr("kwallet.notice.versioned", { name: result.name }),
       result.auditPending,
-      result.techstackAccess === "failed"
-        ? tr("kwallet.techstack.grant_failed")
+      result.homelabAccess === "failed"
+        ? tr("kwallet.homelab.grant_failed")
         : null,
     );
     void load();
@@ -563,7 +563,7 @@
     const active = item.state === "active";
     return [
       itemValueAccess(item) === "use_only" && tr("kwallet.badge.use_only"),
-      active && grants[item.itemId] === "on" && tr("kwallet.col.techstack"),
+      active && grants[item.itemId] === "on" && tr("kwallet.col.homelab"),
       active && disclosuresSinceRotation(item) > 0 && tr("kwallet.tag.rotate"),
       active &&
         isSshCa(item.itemType) &&
@@ -1026,8 +1026,8 @@
           <input
             type="checkbox"
             class="mt-0.5"
-            data-testid="wallet-techstack-use"
-            aria-label={tr("kwallet.techstack.toggle_named", {
+            data-testid="wallet-homelab-use"
+            aria-label={tr("kwallet.homelab.toggle_named", {
               name: item.displayName,
             })}
             checked={grants[item.itemId] === "on"}
@@ -1037,9 +1037,9 @@
               void toggleGrant(item, event.currentTarget.checked)}
           />
           <span>
-            {tr("kwallet.techstack.allow_label")}
+            {tr("kwallet.homelab.allow_label")}
             <span class="text-muted-foreground mt-0.5 block text-xs"
-              >{tr("kwallet.techstack.allow_hint")}</span
+              >{tr("kwallet.homelab.allow_hint")}</span
             >
           </span>
         </label>
@@ -1053,7 +1053,7 @@
     mode="create"
     ownerSubject={owner}
     {fixedScope}
-    allowTechstackByDefault={allowTechstackOnCreate || undefined}
+    allowHomelabByDefault={allowHomelabOnCreate || undefined}
     onclose={() => (creating = false)}
     ondone={onItemSaved}
     onerror={(message) => (actionError = message)}
@@ -1067,7 +1067,7 @@
     allowedTypes={["node_access_profile"]}
     initialType="node_access_profile"
     generateKey
-    allowTechstackByDefault={true}
+    allowHomelabByDefault={true}
     onclose={() => (generatingKey = false)}
     ondone={onItemSaved}
     onerror={(message) => (actionError = message)}

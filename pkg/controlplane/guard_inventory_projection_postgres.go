@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardlayout"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/pkg/guardlayout"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 // The projection writes a retained row only when this inventory changes it, so
@@ -23,7 +23,7 @@ const (
 		OR metadata_json->'` + guardInventoryObservedKey + `' IS DISTINCT FROM to_jsonb($7::boolean))`
 	guardInventoryUnobservedStampChangedSQL = `metadata_json->>'inventory_revision' IS DISTINCT FROM ($6::bigint)::text
 		OR metadata_json->'` + guardInventoryObservedKey + `' IS DISTINCT FROM 'false'::jsonb`
-	guardInventoryArchivedSQL = `(lower(btrim(COALESCE(migration_status, ''))) = 'archived' OR lower(btrim(status)) = 'archived')`
+	guardInventoryArchivedSQL     = `(lower(btrim(COALESCE(migration_status, ''))) = 'archived' OR lower(btrim(status)) = 'archived')`
 	guardInventoryPrunedAccessSQL = `(CASE WHEN ` + guardInventoryArchivedSQL + `
 		THEN '` + guardInventoryArchivedUnavailableJSON + `'::jsonb
 		ELSE '` + guardInventoryMigrationUnavailableJSON + `'::jsonb END)`

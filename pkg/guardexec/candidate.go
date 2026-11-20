@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	agentpkg "github.com/kombifyio/techstack/pkg/agent"
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/guardrelease"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	agentpkg "github.com/kombifyio/homelab/pkg/agent"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
 )
 
 // candidateInstallBinding reuses the command-binding payload, pin and expiry
@@ -131,7 +131,7 @@ func (h *Host) rememberCandidate(params RuntimeInstallParams, manifest *guardrel
 	if err = os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
 	}
-	return writeJSONAtomic(path, installedCandidate{SchemaVersion: "techstack.installed-preview-candidate/v1", AcceptedAt: now, Manifest: raw, Signature: sig, Params: params}, 0o600)
+	return writeJSONAtomic(path, installedCandidate{SchemaVersion: "homelab.installed-preview-candidate/v1", AcceptedAt: now, Manifest: raw, Signature: sig, Params: params}, 0o600)
 }
 
 func (h *Host) admitInstalledCandidate(pin stackkitrelease.Pin) error {
@@ -161,7 +161,7 @@ func (h *Host) admitInstalledCandidate(pin stackkitrelease.Pin) error {
 	if err = decodeStrict(raw, &record); err != nil {
 		return err
 	}
-	if record.SchemaVersion != "techstack.installed-preview-candidate/v1" || record.AcceptedAt.IsZero() || record.AcceptedAt.After(time.Now().UTC()) {
+	if record.SchemaVersion != "homelab.installed-preview-candidate/v1" || record.AcceptedAt.IsZero() || record.AcceptedAt.After(time.Now().UTC()) {
 		return fmt.Errorf("installed candidate admission is invalid")
 	}
 	if record.Params.SHA256 != installedBundle {

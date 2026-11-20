@@ -20,7 +20,7 @@ import (
 func TestIntegrationRuntimeHostKeyPinLifecycle(t *testing.T) {
 	dsn := integrationDSN()
 	if dsn == "" {
-		t.Skip("TECHSTACK_TEST_POSTGRES_URL not set; skipping Postgres integration test")
+		t.Skip("HOMELAB_TEST_POSTGRES_URL not set; skipping Postgres integration test")
 	}
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Minute)
 	defer cancel()

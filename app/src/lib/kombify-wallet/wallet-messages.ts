@@ -1,4 +1,4 @@
-// Customer-visible strings of the kombify Wallet surfaces in Techstack (hosted
+// Customer-visible strings of the kombify Wallet surfaces in Homelab (hosted
 // mode): the Wallet page, its dialogs, the server-access picker and the
 // permission prompts. Most wording is shared with kombify Cloud's Wallet
 // settings so one Wallet reads the same everywhere. Merged into the main
@@ -13,7 +13,7 @@ export const walletMessages = {
       "Revealing a value or signing a certificate needs your second factor from the last {minutes} minutes. Confirm it to continue.",
     "kwallet.step_up.confirm": "Confirm with second factor",
     "kwallet.step_up.unavailable":
-      "Confirming a second factor is not possible in this window. Open Techstack in its own browser tab and try again.",
+      "Confirming a second factor is not possible in this window. Open Homelab Runtime in its own browser tab and try again.",
     "kwallet.step_up.working": "Opening sign-in…",
     "kwallet.action.delete": "Delete",
     "kwallet.action.delete_named": "Delete {name}",
@@ -29,7 +29,7 @@ export const walletMessages = {
     "kwallet.action.sign_named": "Sign a certificate with {name}",
     "kwallet.add": "Add item",
     "kwallet.api.wallet_create_right_missing":
-      "Techstack needs your permission to save credentials in your kombify Wallet. Allow it, then try again.",
+      "Homelab Runtime needs your permission to save credentials in your kombify Wallet. Allow it, then try again.",
     "kwallet.api.wallet_item_credential_mismatch":
       "This Wallet item does not hold the credential for the chosen sign-in method (SSH key or password). Choose another item or change the method.",
     "kwallet.api.wallet_item_host_mismatch":
@@ -43,21 +43,21 @@ export const walletMessages = {
     "kwallet.api.wallet_item_not_node_access":
       "This item is not server access. Choose a server access item.",
     "kwallet.api.wallet_item_required":
-      "Choose a server access item from your kombify Wallet. Techstack does not accept passwords or key labels here.",
+      "Choose a server access item from your kombify Wallet. Homelab Runtime does not accept passwords or key labels here.",
     "kwallet.api.wallet_item_unsupported":
       "This installation does not use the kombify Wallet, so a Wallet item cannot be used here.",
     "kwallet.api.wallet_item_unusable":
       "This Wallet item was revoked or deleted and cannot be used. Choose another one.",
     "kwallet.api.wallet_owner_ineligible":
-      "Your account cannot use the kombify Wallet with Techstack yet.",
+      "Your account cannot use the kombify Wallet with Homelab Runtime yet.",
     "kwallet.api.wallet_response_invalid":
-      "The kombify Wallet answered in a way Techstack cannot use. Try again, and report it if it persists.",
+      "The kombify Wallet answered in a way Homelab Runtime cannot use. Try again, and report it if it persists.",
     "kwallet.api.wallet_right_missing":
-      "Techstack is not allowed to use this Wallet item yet. Allow it in your Wallet, then try again.",
+      "Homelab Runtime is not allowed to use this Wallet item yet. Allow it in your Wallet, then try again.",
     "kwallet.api.wallet_right_missing_use":
-      "Techstack may not use this Wallet item yet. Allow it, then try again.",
+      "Homelab Runtime may not use this Wallet item yet. Allow it, then try again.",
     "kwallet.api.wallet_self_hosted_only":
-      "This action is only available on a self-hosted Techstack.",
+      "This action is only available on a self-hosted Homelab.",
     "kwallet.api.wallet_unavailable":
       "The kombify Wallet is temporarily unavailable. Try again shortly.",
     "kwallet.auth.password": "Password",
@@ -86,22 +86,22 @@ export const walletMessages = {
     "kwallet.tag.no_policy": "No sign policy",
     "kwallet.preset.access": "Access: logins and server access",
     "kwallet.preset.access_hint":
-      "Logins, server access and SSH certificate authorities: what lets people and Techstack into your stacks' servers and apps.",
+      "Logins, server access and SSH certificate authorities: what lets people and Homelab Runtime into your stacks' servers and apps.",
     "kwallet.preset.recovery": "Recovery: secrets and configurations",
     "kwallet.preset.recovery_hint":
       "Secrets and configurations: where recovery material and break-glass credentials belong.",
     "kwallet.col.scope": "Scope",
     "kwallet.col.state": "State",
-    "kwallet.col.techstack": "Techstack",
+    "kwallet.col.homelab": "Homelab Runtime",
     "kwallet.col.type": "Type",
     "kwallet.col.updated": "Updated",
     "kwallet.create.description":
-      "The value is sealed in this browser and stored encrypted in the Wallet. Techstack does not keep it; only the access you grant can reveal or use it.",
+      "The value is sealed in this browser and stored encrypted in the Wallet. Homelab Runtime does not keep it; only the access you grant can reveal or use it.",
     "kwallet.create.title": "Add to your Wallet",
     "kwallet.creator.hint":
-      "Techstack then adds the credentials it creates for your servers, such as a generated access key. It only ever uses the items you assign to it.",
+      "Homelab Runtime then adds the credentials it creates for your servers, such as a generated access key. It only ever uses the items you assign to it.",
     "kwallet.creator.label":
-      "Allow Techstack to save credentials in your Wallet",
+      "Allow Homelab Runtime to save credentials in your Wallet",
     "kwallet.delete.body":
       "The value and all of its versions are erased. This cannot be undone.",
     "kwallet.delete.confirm": "Delete permanently",
@@ -155,7 +155,7 @@ export const walletMessages = {
     "kwallet.empty_body":
       "Add an API key, a login, a variable, a configuration or server access to keep it in one place.",
     "kwallet.empty_body_stack":
-      "No credentials are stored for this stack yet. Add one to keep it in your Wallet, where Techstack can use it for this stack.",
+      "No credentials are stored for this stack yet. Add one to keep it in your Wallet, where Homelab Runtime can use it for this stack.",
     "kwallet.empty_title": "Your Wallet is empty",
     "kwallet.error.ca_key_encrypted":
       "This key is protected by a passphrase. Remove the passphrase first, or let the Wallet create a new authority.",
@@ -199,7 +199,7 @@ export const walletMessages = {
     "kwallet.field.project": "Project ID",
     "kwallet.field.public_key": "Public key",
     "kwallet.field.public_key_hint":
-      "The OpenSSH line Techstack installs on the server so this key can log in. A generated key fills it in.",
+      "The OpenSSH line Homelab Runtime installs on the server so this key can log in. A generated key fills it in.",
     "kwallet.field.public_key_optional": "Public key (optional)",
     "kwallet.field.scope": "Scope",
     "kwallet.field.scope_fixed": "This item belongs to this stack.",
@@ -227,10 +227,10 @@ export const walletMessages = {
     "kwallet.import.error.password":
       "The password is wrong or the file is damaged.",
     "kwallet.import.error.unreadable":
-      "This file could not be read. Use a Techstack export (JSON or CSV) or a Bitwarden JSON export.",
+      "This file could not be read. Use a Homelab Runtime export (JSON or CSV) or a Bitwarden JSON export.",
     "kwallet.import.file": "Export file",
     "kwallet.import.formats":
-      "Supported: Techstack JSON (also password-protected), Techstack CSV and Bitwarden JSON.",
+      "Supported: Homelab Runtime JSON (also password-protected), Homelab Runtime CSV and Bitwarden JSON.",
     "kwallet.import.no_export":
       "Your Wallet cannot be exported as plain text. To take a value out, reveal it item by item.",
     "kwallet.import.open": "Import",
@@ -251,7 +251,7 @@ export const walletMessages = {
     "kwallet.keygen.hint":
       "An Ed25519 key pair is made in this browser. The private key is saved to your Wallet and never sent anywhere else.",
     "kwallet.keygen.install_hint":
-      "Install this public key on the server (in authorized_keys), or let Techstack install it later.",
+      "Install this public key on the server (in authorized_keys), or let Homelab Runtime install it later.",
     "kwallet.keygen.open": "Generate SSH key",
     "kwallet.keygen.public_key": "Public key",
     "kwallet.lead":
@@ -280,20 +280,20 @@ export const walletMessages = {
     "kwallet.picker.open_wallet": "Open your Wallet",
     "kwallet.picker.placeholder": "Choose server access",
     "kwallet.picker.rebind_label": "Use different server access (optional)",
-    "kwallet.picker.techstack_notice":
-      "Techstack may now use this item to reach your server. You can withdraw that in your Wallet.",
-    "kwallet.prompt.create.allow": "Allow Techstack to save credentials",
+    "kwallet.picker.homelab_notice":
+      "Homelab Runtime may now use this item to reach your server. You can withdraw that in your Wallet.",
+    "kwallet.prompt.create.allow": "Allow Homelab Runtime to save credentials",
     "kwallet.prompt.create.body":
-      "To set this up, Techstack has to save credentials in your kombify Wallet. Allow it once, then start again. You can withdraw the permission in your Wallet at any time.",
+      "To set this up, Homelab Runtime has to save credentials in your kombify Wallet. Allow it once, then start again. You can withdraw the permission in your Wallet at any time.",
     "kwallet.prompt.create.done":
-      "Techstack may now save credentials in your Wallet. Start again.",
-    "kwallet.prompt.create.title": "Techstack needs your permission",
+      "Homelab Runtime may now save credentials in your Wallet. Start again.",
+    "kwallet.prompt.create.title": "Homelab Runtime needs your permission",
     "kwallet.prompt.later": "Not now",
-    "kwallet.prompt.use.allow": "Allow Techstack to use this item",
+    "kwallet.prompt.use.allow": "Allow Homelab Runtime to use this item",
     "kwallet.prompt.use.body":
-      "Techstack has to use this Wallet item to continue. Allow it, then start again. You can withdraw the permission in your Wallet at any time.",
-    "kwallet.prompt.use.done": "Techstack may now use this item. Start again.",
-    "kwallet.prompt.use.title": "Techstack needs access to this item",
+      "Homelab Runtime has to use this Wallet item to continue. Allow it, then start again. You can withdraw the permission in your Wallet at any time.",
+    "kwallet.prompt.use.done": "Homelab Runtime may now use this item. Start again.",
+    "kwallet.prompt.use.title": "Homelab Runtime needs access to this item",
     "kwallet.retry": "Try again",
     "kwallet.reveal.again": "Reveal again",
     "kwallet.reveal.cleared": "The value was hidden again.",
@@ -435,17 +435,17 @@ export const walletMessages = {
       "For an Ed25519 authority you already use. The key is encrypted in this browser before it is sent.",
     "kwallet.ssh_ca.source_label": "Authority key",
     "kwallet.stack.description":
-      "Credentials for this stack are kept in your kombify Wallet. Techstack can use the ones you allow.",
+      "Credentials for this stack are kept in your kombify Wallet. Homelab Runtime can use the ones you allow.",
     "kwallet.stack.title": "Credentials in your Wallet",
     "kwallet.state.active": "Active",
     "kwallet.state.deleted": "Deleted",
     "kwallet.state.revoked": "Revoked",
-    "kwallet.techstack.allow_hint":
-      "Techstack can then use this item for you, for example to reach a server, without you being there. It never gets your other items.",
-    "kwallet.techstack.allow_label": "Techstack may use this item",
-    "kwallet.techstack.grant_failed":
-      'The item was saved, but Techstack could not be allowed to use it. Turn on "Techstack may use this item" in its details.',
-    "kwallet.techstack.toggle_named": "Techstack may use {name}",
+    "kwallet.homelab.allow_hint":
+      "Homelab Runtime can then use this item for you, for example to reach a server, without you being there. It never gets your other items.",
+    "kwallet.homelab.allow_label": "Homelab Runtime may use this item",
+    "kwallet.homelab.grant_failed":
+      'The item was saved, but Homelab could not be allowed to use it. Turn on "Homelab Runtime may use this item" in its details.',
+    "kwallet.homelab.toggle_named": "Homelab Runtime may use {name}",
     "kwallet.title": "Wallet",
     "kwallet.type.ai_credential": "AI provider key",
     "kwallet.type.configuration": "Configuration",
@@ -481,7 +481,7 @@ export const walletMessages = {
     "kwallet.version.save": "Save new version",
     "kwallet.version.title": "New version of {name}",
     "kwallet.wizard.hint":
-      "The SSH credential is kept in your kombify Wallet, not in Techstack. Techstack is allowed to use the item you choose.",
+      "The SSH credential is kept in your kombify Wallet, not in Homelab Runtime. Homelab Runtime is allowed to use the item you choose.",
     "kwallet.wizard.item_required":
       "Choose or create the server access in your Wallet.",
     "kwallet.working": "Working…",
@@ -495,7 +495,7 @@ export const walletMessages = {
       "Zum Anzeigen eines Werts oder Signieren eines Zertifikats brauchst du deinen zweiten Faktor aus den letzten {minutes} Minuten. Bestätige ihn, um fortzufahren.",
     "kwallet.step_up.confirm": "Mit zweitem Faktor bestätigen",
     "kwallet.step_up.unavailable":
-      "In diesem Fenster lässt sich kein zweiter Faktor bestätigen. Öffne Techstack in einem eigenen Browser-Tab und versuche es erneut.",
+      "In diesem Fenster lässt sich kein zweiter Faktor bestätigen. Öffne Homelab Runtime in einem eigenen Browser-Tab und versuche es erneut.",
     "kwallet.step_up.working": "Anmeldung wird geöffnet…",
     "kwallet.action.delete": "Löschen",
     "kwallet.action.delete_named": "{name} löschen",
@@ -511,7 +511,7 @@ export const walletMessages = {
     "kwallet.action.sign_named": "Zertifikat mit {name} signieren",
     "kwallet.add": "Eintrag hinzufügen",
     "kwallet.api.wallet_create_right_missing":
-      "Techstack braucht deine Erlaubnis, Zugangsdaten in deiner kombify Wallet zu speichern. Erlaube es und versuche es dann erneut.",
+      "Homelab Runtime braucht deine Erlaubnis, Zugangsdaten in deiner kombify Wallet zu speichern. Erlaube es und versuche es dann erneut.",
     "kwallet.api.wallet_item_credential_mismatch":
       "Dieser Wallet-Eintrag enthält nicht die Zugangsdaten für die gewählte Anmeldemethode (SSH-Schlüssel oder Passwort). Wähle einen anderen Eintrag oder ändere die Methode.",
     "kwallet.api.wallet_item_host_mismatch":
@@ -525,21 +525,21 @@ export const walletMessages = {
     "kwallet.api.wallet_item_not_node_access":
       "Dieser Eintrag ist kein Serverzugang. Wähle einen Serverzugang.",
     "kwallet.api.wallet_item_required":
-      "Wähle einen Serverzugang aus deiner kombify Wallet. Techstack nimmt hier keine Passwörter oder Schlüsselbezeichnungen an.",
+      "Wähle einen Serverzugang aus deiner kombify Wallet. Homelab Runtime nimmt hier keine Passwörter oder Schlüsselbezeichnungen an.",
     "kwallet.api.wallet_item_unsupported":
       "Diese Installation nutzt die kombify Wallet nicht, daher kann hier kein Wallet-Eintrag verwendet werden.",
     "kwallet.api.wallet_item_unusable":
       "Dieser Wallet-Eintrag wurde widerrufen oder gelöscht und kann nicht genutzt werden. Wähle einen anderen.",
     "kwallet.api.wallet_owner_ineligible":
-      "Dein Konto kann die kombify Wallet noch nicht mit Techstack nutzen.",
+      "Dein Konto kann die kombify Wallet noch nicht mit Homelab Runtime nutzen.",
     "kwallet.api.wallet_response_invalid":
-      "Die kombify Wallet hat so geantwortet, dass Techstack die Antwort nicht verwenden kann. Versuche es erneut und melde es, falls es bestehen bleibt.",
+      "Die kombify Wallet hat so geantwortet, dass Homelab Runtime die Antwort nicht verwenden kann. Versuche es erneut und melde es, falls es bestehen bleibt.",
     "kwallet.api.wallet_right_missing":
-      "Techstack darf diesen Wallet-Eintrag noch nicht nutzen. Erlaube es in deiner Wallet und versuche es dann erneut.",
+      "Homelab Runtime darf diesen Wallet-Eintrag noch nicht nutzen. Erlaube es in deiner Wallet und versuche es dann erneut.",
     "kwallet.api.wallet_right_missing_use":
-      "Techstack darf diesen Wallet-Eintrag noch nicht nutzen. Erlaube es und versuche es dann erneut.",
+      "Homelab Runtime darf diesen Wallet-Eintrag noch nicht nutzen. Erlaube es und versuche es dann erneut.",
     "kwallet.api.wallet_self_hosted_only":
-      "Diese Aktion ist nur bei einem selbst gehosteten Techstack verfügbar.",
+      "Diese Aktion ist nur bei einem selbst gehosteten Homelab Runtime verfügbar.",
     "kwallet.api.wallet_unavailable":
       "Die kombify Wallet ist vorübergehend nicht erreichbar. Versuche es in Kürze erneut.",
     "kwallet.auth.password": "Passwort",
@@ -568,23 +568,23 @@ export const walletMessages = {
     "kwallet.tag.no_policy": "Keine Signierregel",
     "kwallet.preset.access": "Zugang: Logins und Serverzugänge",
     "kwallet.preset.access_hint":
-      "Logins, Serverzugänge und SSH-Zertifizierungsstellen: alles, womit Menschen und Techstack auf die Server und Apps deiner Stacks kommen.",
+      "Logins, Serverzugänge und SSH-Zertifizierungsstellen: alles, womit Menschen und Homelab Runtime auf die Server und Apps deiner Stacks kommen.",
     "kwallet.preset.recovery":
       "Wiederherstellung: Geheimnisse und Konfigurationen",
     "kwallet.preset.recovery_hint":
       "Geheimnisse und Konfigurationen: der Ort für Wiederherstellungsmaterial und Notfallzugänge.",
     "kwallet.col.scope": "Geltungsbereich",
     "kwallet.col.state": "Status",
-    "kwallet.col.techstack": "Techstack",
+    "kwallet.col.homelab": "Homelab Runtime",
     "kwallet.col.type": "Typ",
     "kwallet.col.updated": "Aktualisiert",
     "kwallet.create.description":
-      "Der Wert wird in diesem Browser versiegelt und verschlüsselt in der Wallet gespeichert. Techstack behält ihn nicht; nur die Zugriffe, die du erteilst, können ihn anzeigen oder nutzen.",
+      "Der Wert wird in diesem Browser versiegelt und verschlüsselt in der Wallet gespeichert. Homelab Runtime behält ihn nicht; nur die Zugriffe, die du erteilst, können ihn anzeigen oder nutzen.",
     "kwallet.create.title": "Zur Wallet hinzufügen",
     "kwallet.creator.hint":
-      "Techstack legt dann die Zugangsdaten ab, die es für deine Server erzeugt, etwa einen generierten Zugangsschlüssel. Es nutzt nur die Einträge, die du ihm zuweist.",
+      "Homelab Runtime legt dann die Zugangsdaten ab, die es für deine Server erzeugt, etwa einen generierten Zugangsschlüssel. Es nutzt nur die Einträge, die du ihm zuweist.",
     "kwallet.creator.label":
-      "Techstack erlauben, Zugangsdaten in deiner Wallet zu speichern",
+      "Homelab Runtime erlauben, Zugangsdaten in deiner Wallet zu speichern",
     "kwallet.delete.body":
       "Der Wert und alle seine Versionen werden gelöscht. Das lässt sich nicht rückgängig machen.",
     "kwallet.delete.confirm": "Endgültig löschen",
@@ -641,7 +641,7 @@ export const walletMessages = {
     "kwallet.empty_body":
       "Füge einen API-Schlüssel, einen Login, eine Variable, eine Konfiguration oder einen Serverzugang hinzu, um alles an einem Ort zu haben.",
     "kwallet.empty_body_stack":
-      "Für diesen Stack sind noch keine Zugangsdaten gespeichert. Füge welche hinzu, damit sie in deiner Wallet liegen und Techstack sie für diesen Stack nutzen kann.",
+      "Für diesen Stack sind noch keine Zugangsdaten gespeichert. Füge welche hinzu, damit sie in deiner Wallet liegen und Homelab Runtime sie für diesen Stack nutzen kann.",
     "kwallet.empty_title": "Deine Wallet ist leer",
     "kwallet.error.ca_key_encrypted":
       "Dieser Schlüssel ist durch eine Passphrase geschützt. Entferne zuerst die Passphrase oder lass die Wallet eine neue Zertifizierungsstelle erstellen.",
@@ -685,7 +685,7 @@ export const walletMessages = {
     "kwallet.field.project": "Projekt-ID",
     "kwallet.field.public_key": "Öffentlicher Schlüssel",
     "kwallet.field.public_key_hint":
-      "Die OpenSSH-Zeile, die Techstack auf dem Server einrichtet, damit sich dieser Schlüssel anmelden kann. Ein erzeugter Schlüssel füllt sie aus.",
+      "Die OpenSSH-Zeile, die Homelab Runtime auf dem Server einrichtet, damit sich dieser Schlüssel anmelden kann. Ein erzeugter Schlüssel füllt sie aus.",
     "kwallet.field.public_key_optional": "Öffentlicher Schlüssel (optional)",
     "kwallet.field.scope": "Geltungsbereich",
     "kwallet.field.scope_fixed": "Dieser Eintrag gehört zu diesem Stack.",
@@ -714,10 +714,10 @@ export const walletMessages = {
     "kwallet.import.error.password":
       "Das Passwort ist falsch oder die Datei ist beschädigt.",
     "kwallet.import.error.unreadable":
-      "Diese Datei konnte nicht gelesen werden. Verwende einen Techstack-Export (JSON oder CSV) oder einen Bitwarden-JSON-Export.",
+      "Diese Datei konnte nicht gelesen werden. Verwende einen Homelab-Export (JSON oder CSV) oder einen Bitwarden-JSON-Export.",
     "kwallet.import.file": "Exportdatei",
     "kwallet.import.formats":
-      "Unterstützt: Techstack-JSON (auch passwortgeschützt), Techstack-CSV und Bitwarden-JSON.",
+      "Unterstützt: Homelab-JSON (auch passwortgeschützt), Homelab-CSV und Bitwarden-JSON.",
     "kwallet.import.no_export":
       "Deine Wallet lässt sich nicht als Klartext exportieren. Um einen Wert herauszunehmen, zeige ihn Eintrag für Eintrag an.",
     "kwallet.import.open": "Importieren",
@@ -740,7 +740,7 @@ export const walletMessages = {
     "kwallet.keygen.hint":
       "Ein Ed25519-Schlüsselpaar wird in diesem Browser erzeugt. Der private Schlüssel wird in deiner Wallet gespeichert und nirgendwohin sonst gesendet.",
     "kwallet.keygen.install_hint":
-      "Richte diesen öffentlichen Schlüssel auf dem Server ein (in authorized_keys) oder lass ihn später von Techstack einrichten.",
+      "Richte diesen öffentlichen Schlüssel auf dem Server ein (in authorized_keys) oder lass ihn später von Homelab Runtime einrichten.",
     "kwallet.keygen.open": "SSH-Schlüssel erzeugen",
     "kwallet.keygen.public_key": "Öffentlicher Schlüssel",
     "kwallet.lead":
@@ -771,23 +771,23 @@ export const walletMessages = {
     "kwallet.picker.open_wallet": "Wallet öffnen",
     "kwallet.picker.placeholder": "Serverzugang wählen",
     "kwallet.picker.rebind_label": "Anderen Serverzugang verwenden (optional)",
-    "kwallet.picker.techstack_notice":
-      "Techstack darf diesen Eintrag jetzt nutzen, um deinen Server zu erreichen. Du kannst das in deiner Wallet zurücknehmen.",
+    "kwallet.picker.homelab_notice":
+      "Homelab Runtime darf diesen Eintrag jetzt nutzen, um deinen Server zu erreichen. Du kannst das in deiner Wallet zurücknehmen.",
     "kwallet.prompt.create.allow":
-      "Techstack das Speichern von Zugangsdaten erlauben",
+      "Homelab Runtime das Speichern von Zugangsdaten erlauben",
     "kwallet.prompt.create.body":
-      "Dafür muss Techstack Zugangsdaten in deiner kombify Wallet speichern. Erlaube das einmal und starte dann erneut. Du kannst die Erlaubnis jederzeit in deiner Wallet zurücknehmen.",
+      "Dafür muss Homelab Runtime Zugangsdaten in deiner kombify Wallet speichern. Erlaube das einmal und starte dann erneut. Du kannst die Erlaubnis jederzeit in deiner Wallet zurücknehmen.",
     "kwallet.prompt.create.done":
-      "Techstack darf jetzt Zugangsdaten in deiner Wallet speichern. Starte erneut.",
-    "kwallet.prompt.create.title": "Techstack braucht deine Erlaubnis",
+      "Homelab Runtime darf jetzt Zugangsdaten in deiner Wallet speichern. Starte erneut.",
+    "kwallet.prompt.create.title": "Homelab Runtime braucht deine Erlaubnis",
     "kwallet.prompt.later": "Jetzt nicht",
     "kwallet.prompt.use.allow":
-      "Techstack die Nutzung dieses Eintrags erlauben",
+      "Homelab Runtime die Nutzung dieses Eintrags erlauben",
     "kwallet.prompt.use.body":
-      "Techstack muss diesen Wallet-Eintrag nutzen, um fortzufahren. Erlaube es und starte dann erneut. Du kannst die Erlaubnis jederzeit in deiner Wallet zurücknehmen.",
+      "Homelab Runtime muss diesen Wallet-Eintrag nutzen, um fortzufahren. Erlaube es und starte dann erneut. Du kannst die Erlaubnis jederzeit in deiner Wallet zurücknehmen.",
     "kwallet.prompt.use.done":
-      "Techstack darf diesen Eintrag jetzt nutzen. Starte erneut.",
-    "kwallet.prompt.use.title": "Techstack braucht Zugriff auf diesen Eintrag",
+      "Homelab Runtime darf diesen Eintrag jetzt nutzen. Starte erneut.",
+    "kwallet.prompt.use.title": "Homelab Runtime braucht Zugriff auf diesen Eintrag",
     "kwallet.retry": "Erneut versuchen",
     "kwallet.reveal.again": "Erneut anzeigen",
     "kwallet.reveal.cleared": "Der Wert wurde wieder verborgen.",
@@ -935,17 +935,17 @@ export const walletMessages = {
       "Für eine Ed25519-Zertifizierungsstelle, die du bereits nutzt. Der Schlüssel wird in diesem Browser verschlüsselt, bevor er gesendet wird.",
     "kwallet.ssh_ca.source_label": "Schlüssel der Zertifizierungsstelle",
     "kwallet.stack.description":
-      "Die Zugangsdaten für diesen Stack liegen in deiner kombify Wallet. Techstack kann die nutzen, die du erlaubst.",
+      "Die Zugangsdaten für diesen Stack liegen in deiner kombify Wallet. Homelab Runtime kann die nutzen, die du erlaubst.",
     "kwallet.stack.title": "Zugangsdaten in deiner Wallet",
     "kwallet.state.active": "Aktiv",
     "kwallet.state.deleted": "Gelöscht",
     "kwallet.state.revoked": "Widerrufen",
-    "kwallet.techstack.allow_hint":
-      "Techstack kann diesen Eintrag dann für dich nutzen, etwa um einen Server zu erreichen, ohne dass du dabei bist. Deine anderen Einträge bekommt es nie.",
-    "kwallet.techstack.allow_label": "Techstack darf diesen Eintrag nutzen",
-    "kwallet.techstack.grant_failed":
-      "Der Eintrag wurde gespeichert, aber Techstack konnte die Nutzung nicht erlaubt werden. Aktiviere für den Eintrag „Techstack darf diesen Eintrag nutzen“.",
-    "kwallet.techstack.toggle_named": "Techstack darf {name} nutzen",
+    "kwallet.homelab.allow_hint":
+      "Homelab Runtime kann diesen Eintrag dann für dich nutzen, etwa um einen Server zu erreichen, ohne dass du dabei bist. Deine anderen Einträge bekommt es nie.",
+    "kwallet.homelab.allow_label": "Homelab Runtime darf diesen Eintrag nutzen",
+    "kwallet.homelab.grant_failed":
+      "Der Eintrag wurde gespeichert, aber Homelab Runtime konnte die Nutzung nicht erlaubt werden. Aktiviere für den Eintrag „Homelab Runtime darf diesen Eintrag nutzen“.",
+    "kwallet.homelab.toggle_named": "Homelab Runtime darf {name} nutzen",
     "kwallet.title": "Wallet",
     "kwallet.type.ai_credential": "Schlüssel eines KI-Anbieters",
     "kwallet.type.configuration": "Konfiguration",
@@ -981,7 +981,7 @@ export const walletMessages = {
     "kwallet.version.save": "Neue Version speichern",
     "kwallet.version.title": "Neue Version von {name}",
     "kwallet.wizard.hint":
-      "Die SSH-Zugangsdaten liegen in deiner kombify Wallet, nicht in Techstack. Techstack darf den gewählten Eintrag nutzen.",
+      "Die SSH-Zugangsdaten liegen in deiner kombify Wallet, nicht in Homelab Runtime. Homelab Runtime darf den gewählten Eintrag nutzen.",
     "kwallet.wizard.item_required":
       "Wähle den Serverzugang in deiner Wallet oder lege ihn an.",
     "kwallet.working": "Wird ausgeführt …",
@@ -995,7 +995,7 @@ export const walletMessages = {
       "Mostrar un valor o firmar un certificado requiere tu segundo factor de los últimos {minutes} minutos. Confírmalo para continuar.",
     "kwallet.step_up.confirm": "Confirmar con el segundo factor",
     "kwallet.step_up.unavailable":
-      "No se puede confirmar un segundo factor en esta ventana. Abre Techstack en su propia pestaña e inténtalo de nuevo.",
+      "No se puede confirmar un segundo factor en esta ventana. Abre Homelab Runtime en su propia pestaña e inténtalo de nuevo.",
     "kwallet.step_up.working": "Abriendo el inicio de sesión…",
     "kwallet.action.delete": "Eliminar",
     "kwallet.action.delete_named": "Eliminar {name}",
@@ -1011,7 +1011,7 @@ export const walletMessages = {
     "kwallet.action.sign_named": "Firmar un certificado con {name}",
     "kwallet.add": "Añadir elemento",
     "kwallet.api.wallet_create_right_missing":
-      "Techstack necesita tu permiso para guardar credenciales en tu kombify Wallet. Permítelo y vuelve a intentarlo.",
+      "Homelab Runtime necesita tu permiso para guardar credenciales en tu kombify Wallet. Permítelo y vuelve a intentarlo.",
     "kwallet.api.wallet_item_credential_mismatch":
       "Este elemento de Wallet no contiene la credencial del método de inicio de sesión elegido (clave SSH o contraseña). Elige otro elemento o cambia el método.",
     "kwallet.api.wallet_item_host_mismatch":
@@ -1025,21 +1025,21 @@ export const walletMessages = {
     "kwallet.api.wallet_item_not_node_access":
       "Este elemento no es un acceso a servidor. Elige un acceso a servidor.",
     "kwallet.api.wallet_item_required":
-      "Elige un acceso a servidor de tu kombify Wallet. Techstack no acepta aquí contraseñas ni etiquetas de clave.",
+      "Elige un acceso a servidor de tu kombify Wallet. Homelab Runtime no acepta aquí contraseñas ni etiquetas de clave.",
     "kwallet.api.wallet_item_unsupported":
       "Esta instalación no usa kombify Wallet, por lo que aquí no se puede usar un elemento de Wallet.",
     "kwallet.api.wallet_item_unusable":
       "Este elemento de Wallet se revocó o eliminó y no se puede usar. Elige otro.",
     "kwallet.api.wallet_owner_ineligible":
-      "Tu cuenta todavía no puede usar kombify Wallet con Techstack.",
+      "Tu cuenta todavía no puede usar kombify Wallet con Homelab.",
     "kwallet.api.wallet_response_invalid":
-      "kombify Wallet respondió de una forma que Techstack no puede usar. Inténtalo de nuevo e infórmalo si persiste.",
+      "kombify Wallet respondió de una forma que Homelab Runtime no puede usar. Inténtalo de nuevo e infórmalo si persiste.",
     "kwallet.api.wallet_right_missing":
-      "Techstack todavía no puede usar este elemento de Wallet. Permítelo en tu Wallet y vuelve a intentarlo.",
+      "Homelab Runtime todavía no puede usar este elemento de Wallet. Permítelo en tu Wallet y vuelve a intentarlo.",
     "kwallet.api.wallet_right_missing_use":
-      "Techstack todavía no puede usar este elemento de Wallet. Permítelo y vuelve a intentarlo.",
+      "Homelab Runtime todavía no puede usar este elemento de Wallet. Permítelo y vuelve a intentarlo.",
     "kwallet.api.wallet_self_hosted_only":
-      "Esta acción solo está disponible en un Techstack autoalojado.",
+      "Esta acción solo está disponible en un Homelab Runtime autoalojado.",
     "kwallet.api.wallet_unavailable":
       "kombify Wallet no está disponible temporalmente. Inténtalo de nuevo en breve.",
     "kwallet.auth.password": "Contraseña",
@@ -1068,22 +1068,22 @@ export const walletMessages = {
     "kwallet.tag.no_policy": "Sin política de firma",
     "kwallet.preset.access": "Acceso: inicios de sesión y acceso a servidores",
     "kwallet.preset.access_hint":
-      "Inicios de sesión, acceso a servidores y autoridades de certificación SSH: lo que permite a las personas y a Techstack entrar en los servidores y apps de tus stacks.",
+      "Inicios de sesión, acceso a servidores y autoridades de certificación SSH: lo que permite a las personas y a Homelab Runtime entrar en los servidores y apps de tus stacks.",
     "kwallet.preset.recovery": "Recuperación: secretos y configuraciones",
     "kwallet.preset.recovery_hint":
       "Secretos y configuraciones: el lugar para el material de recuperación y las credenciales de emergencia.",
     "kwallet.col.scope": "Ámbito",
     "kwallet.col.state": "Estado",
-    "kwallet.col.techstack": "Techstack",
+    "kwallet.col.homelab": "Homelab Runtime",
     "kwallet.col.type": "Tipo",
     "kwallet.col.updated": "Actualizado",
     "kwallet.create.description":
-      "El valor se cifra en este navegador. Techstack nunca lo ve.",
+      "El valor se cifra en este navegador. Homelab Runtime nunca lo ve.",
     "kwallet.create.title": "Añadir a tu Wallet",
     "kwallet.creator.hint":
-      "Techstack añadirá entonces las credenciales que crea para tus servidores, como una clave de acceso generada. Solo usa los elementos que le asignes.",
+      "Homelab Runtime añadirá entonces las credenciales que crea para tus servidores, como una clave de acceso generada. Solo usa los elementos que le asignes.",
     "kwallet.creator.label":
-      "Permitir que Techstack guarde credenciales en tu Wallet",
+      "Permitir que Homelab Runtime guarde credenciales en tu Wallet",
     "kwallet.delete.body":
       "Se borran el valor y todas sus versiones. No se puede deshacer.",
     "kwallet.delete.confirm": "Eliminar definitivamente",
@@ -1137,7 +1137,7 @@ export const walletMessages = {
     "kwallet.empty_body":
       "Añade una clave de API, un inicio de sesión, una variable, una configuración o un acceso a servidor para tenerlo todo en un solo lugar.",
     "kwallet.empty_body_stack":
-      "Todavía no hay credenciales guardadas para este stack. Añade una para conservarla en tu Wallet, donde Techstack puede usarla para este stack.",
+      "Todavía no hay credenciales guardadas para este stack. Añade una para conservarla en tu Wallet, donde Homelab Runtime puede usarla para este stack.",
     "kwallet.empty_title": "Tu Wallet está vacía",
     "kwallet.error.ca_key_encrypted":
       "Esta clave está protegida con una frase de contraseña. Quítala primero o deja que Wallet cree una autoridad nueva.",
@@ -1181,7 +1181,7 @@ export const walletMessages = {
     "kwallet.field.project": "ID del proyecto",
     "kwallet.field.public_key": "Clave pública",
     "kwallet.field.public_key_hint":
-      "La línea OpenSSH que Techstack instala en el servidor para que esta clave pueda iniciar sesión. Una clave generada la rellena.",
+      "La línea OpenSSH que Homelab Runtime instala en el servidor para que esta clave pueda iniciar sesión. Una clave generada la rellena.",
     "kwallet.field.public_key_optional": "Clave pública (opcional)",
     "kwallet.field.scope": "Ámbito",
     "kwallet.field.scope_fixed": "Este elemento pertenece a este stack.",
@@ -1210,10 +1210,10 @@ export const walletMessages = {
     "kwallet.import.error.password":
       "La contraseña es incorrecta o el archivo está dañado.",
     "kwallet.import.error.unreadable":
-      "No se pudo leer este archivo. Usa una exportación de Techstack (JSON o CSV) o una exportación JSON de Bitwarden.",
+      "No se pudo leer este archivo. Usa una exportación de Homelab Runtime (JSON o CSV) o una exportación JSON de Bitwarden.",
     "kwallet.import.file": "Archivo de exportación",
     "kwallet.import.formats":
-      "Compatibles: JSON de Techstack (también protegido con contraseña), CSV de Techstack y JSON de Bitwarden.",
+      "Compatibles: JSON de Homelab Runtime (también protegido con contraseña), CSV de Homelab Runtime y JSON de Bitwarden.",
     "kwallet.import.no_export":
       "Tu Wallet no se puede exportar como texto sin cifrar. Para sacar un valor, muéstralo elemento por elemento.",
     "kwallet.import.open": "Importar",
@@ -1234,7 +1234,7 @@ export const walletMessages = {
     "kwallet.keygen.hint":
       "El par de claves Ed25519 se genera en este navegador. La clave privada se guarda en tu Wallet y no se envía a ningún otro sitio.",
     "kwallet.keygen.install_hint":
-      "Instala esta clave pública en el servidor (en authorized_keys) o deja que Techstack la instale más tarde.",
+      "Instala esta clave pública en el servidor (en authorized_keys) o deja que Homelab Runtime la instale más tarde.",
     "kwallet.keygen.open": "Generar clave SSH",
     "kwallet.keygen.public_key": "Clave pública",
     "kwallet.lead":
@@ -1264,21 +1264,21 @@ export const walletMessages = {
     "kwallet.picker.open_wallet": "Abrir tu Wallet",
     "kwallet.picker.placeholder": "Elegir acceso al servidor",
     "kwallet.picker.rebind_label": "Usar otro acceso a servidor (opcional)",
-    "kwallet.picker.techstack_notice":
-      "Techstack ya puede usar este elemento para llegar a tu servidor. Puedes retirarlo en tu Wallet.",
-    "kwallet.prompt.create.allow": "Permitir que Techstack guarde credenciales",
+    "kwallet.picker.homelab_notice":
+      "Homelab Runtime ya puede usar este elemento para llegar a tu servidor. Puedes retirarlo en tu Wallet.",
+    "kwallet.prompt.create.allow": "Permitir que Homelab Runtime guarde credenciales",
     "kwallet.prompt.create.body":
-      "Para configurarlo, Techstack tiene que guardar credenciales en tu kombify Wallet. Permítelo una vez y vuelve a empezar. Puedes retirar el permiso en tu Wallet en cualquier momento.",
+      "Para configurarlo, Homelab Runtime tiene que guardar credenciales en tu kombify Wallet. Permítelo una vez y vuelve a empezar. Puedes retirar el permiso en tu Wallet en cualquier momento.",
     "kwallet.prompt.create.done":
-      "Techstack ya puede guardar credenciales en tu Wallet. Vuelve a empezar.",
-    "kwallet.prompt.create.title": "Techstack necesita tu permiso",
+      "Homelab Runtime ya puede guardar credenciales en tu Wallet. Vuelve a empezar.",
+    "kwallet.prompt.create.title": "Homelab Runtime necesita tu permiso",
     "kwallet.prompt.later": "Ahora no",
-    "kwallet.prompt.use.allow": "Permitir que Techstack use este elemento",
+    "kwallet.prompt.use.allow": "Permitir que Homelab Runtime use este elemento",
     "kwallet.prompt.use.body":
-      "Techstack tiene que usar este elemento de Wallet para continuar. Permítelo y vuelve a empezar. Puedes retirar el permiso en tu Wallet en cualquier momento.",
+      "Homelab Runtime tiene que usar este elemento de Wallet para continuar. Permítelo y vuelve a empezar. Puedes retirar el permiso en tu Wallet en cualquier momento.",
     "kwallet.prompt.use.done":
-      "Techstack ya puede usar este elemento. Vuelve a empezar.",
-    "kwallet.prompt.use.title": "Techstack necesita acceso a este elemento",
+      "Homelab Runtime ya puede usar este elemento. Vuelve a empezar.",
+    "kwallet.prompt.use.title": "Homelab Runtime necesita acceso a este elemento",
     "kwallet.retry": "Reintentar",
     "kwallet.reveal.again": "Mostrar de nuevo",
     "kwallet.reveal.cleared": "El valor se ha vuelto a ocultar.",
@@ -1424,17 +1424,17 @@ export const walletMessages = {
       "Para una autoridad Ed25519 que ya usas. La clave se cifra en este navegador antes de enviarse.",
     "kwallet.ssh_ca.source_label": "Clave de la autoridad",
     "kwallet.stack.description":
-      "Las credenciales de este stack se guardan en tu kombify Wallet. Techstack puede usar las que permitas.",
+      "Las credenciales de este stack se guardan en tu kombify Wallet. Homelab Runtime puede usar las que permitas.",
     "kwallet.stack.title": "Credenciales en tu Wallet",
     "kwallet.state.active": "Activo",
     "kwallet.state.deleted": "Eliminado",
     "kwallet.state.revoked": "Revocado",
-    "kwallet.techstack.allow_hint":
-      "Techstack podrá usar entonces este elemento por ti, por ejemplo para llegar a un servidor, sin que estés presente. Nunca recibe tus demás elementos.",
-    "kwallet.techstack.allow_label": "Techstack puede usar este elemento",
-    "kwallet.techstack.grant_failed":
-      "El elemento se guardó, pero no se pudo permitir que Techstack lo use. Activa «Techstack puede usar este elemento» para el elemento.",
-    "kwallet.techstack.toggle_named": "Techstack puede usar {name}",
+    "kwallet.homelab.allow_hint":
+      "Homelab Runtime podrá usar entonces este elemento por ti, por ejemplo para llegar a un servidor, sin que estés presente. Nunca recibe tus demás elementos.",
+    "kwallet.homelab.allow_label": "Homelab Runtime puede usar este elemento",
+    "kwallet.homelab.grant_failed":
+      "El elemento se guardó, pero no se pudo permitir que Homelab Runtime lo use. Activa «Homelab Runtime puede usar este elemento» para el elemento.",
+    "kwallet.homelab.toggle_named": "Homelab Runtime puede usar {name}",
     "kwallet.title": "Wallet",
     "kwallet.type.ai_credential": "Clave de proveedor de IA",
     "kwallet.type.configuration": "Configuración",
@@ -1469,7 +1469,7 @@ export const walletMessages = {
     "kwallet.version.save": "Guardar nueva versión",
     "kwallet.version.title": "Nueva versión de {name}",
     "kwallet.wizard.hint":
-      "La credencial SSH se guarda en tu kombify Wallet, no en Techstack. Techstack puede usar el elemento que elijas.",
+      "La credencial SSH se guarda en tu kombify Wallet, no en Homelab Runtime. Homelab Runtime puede usar el elemento que elijas.",
     "kwallet.wizard.item_required":
       "Elige o crea el acceso al servidor en tu Wallet.",
     "kwallet.working": "Procesando…",
@@ -1482,7 +1482,7 @@ export const walletMessages = {
       "查看值或签发证书需要你在最近 {minutes} 分钟内完成的第二重验证。请确认后继续。",
     "kwallet.step_up.confirm": "使用第二重验证确认",
     "kwallet.step_up.unavailable":
-      "无法在此窗口中确认第二重验证。请在单独的浏览器标签页中打开 Techstack 后重试。",
+      "无法在此窗口中确认第二重验证。请在单独的浏览器标签页中打开 Homelab Runtime 后重试。",
     "kwallet.step_up.working": "正在打开登录…",
     "kwallet.action.delete": "删除",
     "kwallet.action.delete_named": "删除 {name}",
@@ -1498,7 +1498,7 @@ export const walletMessages = {
     "kwallet.action.sign_named": "用 {name} 签发证书",
     "kwallet.add": "添加条目",
     "kwallet.api.wallet_create_right_missing":
-      "Techstack 需要你的许可才能把凭据保存到你的 kombify Wallet。请允许后重试。",
+      "Homelab Runtime 需要你的许可才能把凭据保存到你的 kombify Wallet。请允许后重试。",
     "kwallet.api.wallet_item_credential_mismatch":
       "此 Wallet 条目不包含所选登录方式（SSH 密钥或密码）的凭据。请选择其他条目或更改方式。",
     "kwallet.api.wallet_item_host_mismatch":
@@ -1512,21 +1512,21 @@ export const walletMessages = {
     "kwallet.api.wallet_item_not_node_access":
       "此条目不是服务器访问。请选择服务器访问条目。",
     "kwallet.api.wallet_item_required":
-      "请从你的 kombify Wallet 中选择服务器访问条目。Techstack 在此不接受密码或密钥标签。",
+      "请从你的 kombify Wallet 中选择服务器访问条目。Homelab Runtime 在此不接受密码或密钥标签。",
     "kwallet.api.wallet_item_unsupported":
       "此安装不使用 kombify Wallet，因此无法在这里使用 Wallet 条目。",
     "kwallet.api.wallet_item_unusable":
       "此 Wallet 条目已被撤销或删除，无法使用。请选择其他条目。",
     "kwallet.api.wallet_owner_ineligible":
-      "你的账户暂时还不能在 Techstack 中使用 kombify Wallet。",
+      "你的账户暂时还不能在 Homelab Runtime 中使用 kombify Wallet。",
     "kwallet.api.wallet_response_invalid":
-      "kombify Wallet 的响应 Techstack 无法使用。请重试，若问题持续请反馈。",
+      "kombify Wallet 的响应 Homelab Runtime 无法使用。请重试，若问题持续请反馈。",
     "kwallet.api.wallet_right_missing":
-      "Techstack 尚未被允许使用此 Wallet 条目。请在你的 Wallet 中允许后重试。",
+      "Homelab Runtime 尚未被允许使用此 Wallet 条目。请在你的 Wallet 中允许后重试。",
     "kwallet.api.wallet_right_missing_use":
-      "Techstack 尚不能使用此 Wallet 条目。请允许后重试。",
+      "Homelab Runtime 尚不能使用此 Wallet 条目。请允许后重试。",
     "kwallet.api.wallet_self_hosted_only":
-      "此操作仅在自托管的 Techstack 上可用。",
+      "此操作仅在自托管的 Homelab Runtime 上可用。",
     "kwallet.api.wallet_unavailable": "kombify Wallet 暂时不可用。请稍后重试。",
     "kwallet.auth.password": "密码",
     "kwallet.auth.private_key": "SSH 私钥",
@@ -1554,21 +1554,21 @@ export const walletMessages = {
     "kwallet.tag.no_policy": "无签名策略",
     "kwallet.preset.access": "访问：登录和服务器访问",
     "kwallet.preset.access_hint":
-      "登录、服务器访问和 SSH 证书颁发机构：让人员和 Techstack 进入你的堆栈服务器和应用的凭据。",
+      "登录、服务器访问和 SSH 证书颁发机构：让人员和 Homelab Runtime 进入你的堆栈服务器和应用的凭据。",
     "kwallet.preset.recovery": "恢复：机密和配置",
     "kwallet.preset.recovery_hint":
       "机密和配置：存放恢复材料和紧急访问凭据的地方。",
     "kwallet.col.scope": "范围",
     "kwallet.col.state": "状态",
-    "kwallet.col.techstack": "Techstack",
+    "kwallet.col.homelab": "Homelab Runtime",
     "kwallet.col.type": "类型",
     "kwallet.col.updated": "更新时间",
     "kwallet.create.description":
-      "该值在此浏览器中加密。Techstack 永远看不到它。",
+      "该值在此浏览器中加密。Homelab Runtime 永远看不到它。",
     "kwallet.create.title": "添加到你的 Wallet",
     "kwallet.creator.hint":
-      "之后 Techstack 会把它为你的服务器创建的凭据（例如生成的访问密钥）添加进来。它只会使用你分配给它的条目。",
-    "kwallet.creator.label": "允许 Techstack 在你的 Wallet 中保存凭据",
+      "之后 Homelab Runtime 会把它为你的服务器创建的凭据（例如生成的访问密钥）添加进来。它只会使用你分配给它的条目。",
+    "kwallet.creator.label": "允许 Homelab Runtime 在你的 Wallet 中保存凭据",
     "kwallet.delete.body": "该值及其所有版本都将被清除。此操作无法撤消。",
     "kwallet.delete.confirm": "永久删除",
     "kwallet.delete.title": "删除 {name}？",
@@ -1614,7 +1614,7 @@ export const walletMessages = {
     "kwallet.empty_body":
       "添加 API 密钥、登录信息、变量、配置或服务器访问，将它们集中保存在一处。",
     "kwallet.empty_body_stack":
-      "此 Stack 尚未保存任何凭据。添加一个，把它存放在你的 Wallet 中，Techstack 即可将其用于此 Stack。",
+      "此 Stack 尚未保存任何凭据。添加一个，把它存放在你的 Wallet 中，Homelab Runtime 即可将其用于此 Stack。",
     "kwallet.empty_title": "你的 Wallet 是空的",
     "kwallet.error.ca_key_encrypted":
       "此密钥受密码短语保护。请先移除密码短语，或让 Wallet 创建新的证书颁发机构。",
@@ -1657,7 +1657,7 @@ export const walletMessages = {
     "kwallet.field.project": "项目 ID",
     "kwallet.field.public_key": "公钥",
     "kwallet.field.public_key_hint":
-      "Techstack 会把这行 OpenSSH 内容安装到服务器上，使该密钥可以登录。生成密钥时会自动填入。",
+      "Homelab Runtime 会把这行 OpenSSH 内容安装到服务器上，使该密钥可以登录。生成密钥时会自动填入。",
     "kwallet.field.public_key_optional": "公钥（可选）",
     "kwallet.field.scope": "范围",
     "kwallet.field.scope_fixed": "此条目属于该 Stack。",
@@ -1684,10 +1684,10 @@ export const walletMessages = {
       "把之前导出的凭据添加到你的 Wallet。每一项都在此浏览器中加密。",
     "kwallet.import.error.password": "密码错误或文件已损坏。",
     "kwallet.import.error.unreadable":
-      "无法读取此文件。请使用 Techstack 导出文件（JSON 或 CSV）或 Bitwarden JSON 导出文件。",
+      "无法读取此文件。请使用 Homelab Runtime 导出文件（JSON 或 CSV）或 Bitwarden JSON 导出文件。",
     "kwallet.import.file": "导出文件",
     "kwallet.import.formats":
-      "支持：Techstack JSON（含密码保护）、Techstack CSV 和 Bitwarden JSON。",
+      "支持：Homelab Runtime JSON（含密码保护）、Homelab Runtime CSV 和 Bitwarden JSON。",
     "kwallet.import.no_export":
       "你的 Wallet 无法以明文导出。若要取出某个值，请逐项查看。",
     "kwallet.import.open": "导入",
@@ -1707,7 +1707,7 @@ export const walletMessages = {
     "kwallet.keygen.hint":
       "Ed25519 密钥对在此浏览器中生成。私钥保存到你的 Wallet，不会发送到其他任何地方。",
     "kwallet.keygen.install_hint":
-      "把此公钥安装到服务器上（authorized_keys 中），或稍后让 Techstack 安装。",
+      "把此公钥安装到服务器上（authorized_keys 中），或稍后让 Homelab Runtime 安装。",
     "kwallet.keygen.open": "生成 SSH 密钥",
     "kwallet.keygen.public_key": "公钥",
     "kwallet.lead":
@@ -1735,20 +1735,20 @@ export const walletMessages = {
     "kwallet.picker.open_wallet": "打开你的 Wallet",
     "kwallet.picker.placeholder": "选择服务器访问",
     "kwallet.picker.rebind_label": "使用其他服务器访问（可选）",
-    "kwallet.picker.techstack_notice":
-      "Techstack 现在可以使用此条目连接你的服务器。你可以在 Wallet 中撤回。",
-    "kwallet.prompt.create.allow": "允许 Techstack 保存凭据",
+    "kwallet.picker.homelab_notice":
+      "Homelab Runtime 现在可以使用此条目连接你的服务器。你可以在 Wallet 中撤回。",
+    "kwallet.prompt.create.allow": "允许 Homelab Runtime 保存凭据",
     "kwallet.prompt.create.body":
-      "要完成此设置，Techstack 需要把凭据保存到你的 kombify Wallet。请允许一次，然后重新开始。你可以随时在 Wallet 中撤回该权限。",
+      "要完成此设置，Homelab Runtime 需要把凭据保存到你的 kombify Wallet。请允许一次，然后重新开始。你可以随时在 Wallet 中撤回该权限。",
     "kwallet.prompt.create.done":
-      "Techstack 现在可以把凭据保存到你的 Wallet。请重新开始。",
-    "kwallet.prompt.create.title": "Techstack 需要你的许可",
+      "Homelab Runtime 现在可以把凭据保存到你的 Wallet。请重新开始。",
+    "kwallet.prompt.create.title": "Homelab Runtime 需要你的许可",
     "kwallet.prompt.later": "暂不",
-    "kwallet.prompt.use.allow": "允许 Techstack 使用此条目",
+    "kwallet.prompt.use.allow": "允许 Homelab Runtime 使用此条目",
     "kwallet.prompt.use.body":
-      "Techstack 需要使用此 Wallet 条目才能继续。请允许后重新开始。你可以随时在 Wallet 中撤回该权限。",
-    "kwallet.prompt.use.done": "Techstack 现在可以使用此条目。请重新开始。",
-    "kwallet.prompt.use.title": "Techstack 需要访问此条目",
+      "Homelab Runtime 需要使用此 Wallet 条目才能继续。请允许后重新开始。你可以随时在 Wallet 中撤回该权限。",
+    "kwallet.prompt.use.done": "Homelab Runtime 现在可以使用此条目。请重新开始。",
+    "kwallet.prompt.use.title": "Homelab Runtime 需要访问此条目",
     "kwallet.retry": "重试",
     "kwallet.reveal.again": "再次查看",
     "kwallet.reveal.cleared": "该值已再次隐藏。",
@@ -1881,17 +1881,17 @@ export const walletMessages = {
       "适用于你已在使用的 Ed25519 证书颁发机构。密钥在发送前会在此浏览器中加密。",
     "kwallet.ssh_ca.source_label": "证书颁发机构密钥",
     "kwallet.stack.description":
-      "此 Stack 的凭据保存在你的 kombify Wallet 中。Techstack 可以使用你允许的那些。",
+      "此 Stack 的凭据保存在你的 kombify Wallet 中。Homelab Runtime 可以使用你允许的那些。",
     "kwallet.stack.title": "你的 Wallet 中的凭据",
     "kwallet.state.active": "有效",
     "kwallet.state.deleted": "已删除",
     "kwallet.state.revoked": "已撤销",
-    "kwallet.techstack.allow_hint":
-      "之后 Techstack 可以在你不在场时代你使用此条目，例如连接服务器。它永远拿不到你的其他条目。",
-    "kwallet.techstack.allow_label": "允许 Techstack 使用此条目",
-    "kwallet.techstack.grant_failed":
-      "条目已保存，但未能允许 Techstack 使用它。请为该条目开启“允许 Techstack 使用此条目”。",
-    "kwallet.techstack.toggle_named": "允许 Techstack 使用 {name}",
+    "kwallet.homelab.allow_hint":
+      "之后 Homelab Runtime 可以在你不在场时代你使用此条目，例如连接服务器。它永远拿不到你的其他条目。",
+    "kwallet.homelab.allow_label": "允许 Homelab Runtime 使用此条目",
+    "kwallet.homelab.grant_failed":
+      "条目已保存，但未能允许 Homelab Runtime 使用它。请为该条目开启“允许 Homelab Runtime 使用此条目”。",
+    "kwallet.homelab.toggle_named": "允许 Homelab Runtime 使用 {name}",
     "kwallet.title": "Wallet",
     "kwallet.type.ai_credential": "AI 提供商密钥",
     "kwallet.type.configuration": "配置",
@@ -1923,7 +1923,7 @@ export const walletMessages = {
     "kwallet.version.save": "保存新版本",
     "kwallet.version.title": "{name} 的新版本",
     "kwallet.wizard.hint":
-      "SSH 凭据保存在你的 kombify Wallet 中，而不是 Techstack。Techstack 可以使用你选择的条目。",
+      "SSH 凭据保存在你的 kombify Wallet 中，而不是 Homelab Runtime。Homelab Runtime 可以使用你选择的条目。",
     "kwallet.wizard.item_required": "请在你的 Wallet 中选择或创建服务器访问。",
     "kwallet.working": "处理中…",
   },
@@ -1936,7 +1936,7 @@ export const walletMessages = {
       "किसी मान को दिखाने या प्रमाणपत्र पर हस्ताक्षर करने के लिए पिछले {minutes} मिनट के भीतर का आपका दूसरा फ़ैक्टर चाहिए। जारी रखने के लिए उसे पुष्ट करें।",
     "kwallet.step_up.confirm": "दूसरे फ़ैक्टर से पुष्टि करें",
     "kwallet.step_up.unavailable":
-      "इस विंडो में दूसरे फ़ैक्टर की पुष्टि संभव नहीं है। Techstack को अपने ब्राउज़र टैब में खोलकर दोबारा कोशिश करें।",
+      "इस विंडो में दूसरे फ़ैक्टर की पुष्टि संभव नहीं है। Homelab Runtime को अपने ब्राउज़र टैब में खोलकर दोबारा कोशिश करें।",
     "kwallet.step_up.working": "साइन-इन खुल रहा है…",
     "kwallet.action.delete": "हटाएँ",
     "kwallet.action.delete_named": "{name} हटाएँ",
@@ -1952,7 +1952,7 @@ export const walletMessages = {
     "kwallet.action.sign_named": "{name} से प्रमाणपत्र पर हस्ताक्षर करें",
     "kwallet.add": "आइटम जोड़ें",
     "kwallet.api.wallet_create_right_missing":
-      "Techstack को आपके kombify Wallet में क्रेडेंशियल सहेजने के लिए आपकी अनुमति चाहिए। अनुमति दें और फिर कोशिश करें।",
+      "Homelab Runtime को आपके kombify Wallet में क्रेडेंशियल सहेजने के लिए आपकी अनुमति चाहिए। अनुमति दें और फिर कोशिश करें।",
     "kwallet.api.wallet_item_credential_mismatch":
       "इस Wallet आइटम में चुनी गई साइन-इन विधि (SSH कुंजी या पासवर्ड) का क्रेडेंशियल नहीं है। कोई दूसरा आइटम चुनें या विधि बदलें।",
     "kwallet.api.wallet_item_host_mismatch":
@@ -1966,21 +1966,21 @@ export const walletMessages = {
     "kwallet.api.wallet_item_not_node_access":
       "यह आइटम सर्वर एक्सेस नहीं है। कोई सर्वर एक्सेस आइटम चुनें।",
     "kwallet.api.wallet_item_required":
-      "अपने kombify Wallet से सर्वर एक्सेस आइटम चुनें। Techstack यहाँ पासवर्ड या कुंजी लेबल स्वीकार नहीं करता।",
+      "अपने kombify Wallet से सर्वर एक्सेस आइटम चुनें। Homelab Runtime यहाँ पासवर्ड या कुंजी लेबल स्वीकार नहीं करता।",
     "kwallet.api.wallet_item_unsupported":
       "यह इंस्टॉलेशन kombify Wallet का उपयोग नहीं करता, इसलिए यहाँ Wallet आइटम इस्तेमाल नहीं किया जा सकता।",
     "kwallet.api.wallet_item_unusable":
       "यह Wallet आइटम रद्द या हटा दिया गया है और उपयोग नहीं किया जा सकता। कोई दूसरा चुनें।",
     "kwallet.api.wallet_owner_ineligible":
-      "आपका खाता अभी Techstack के साथ kombify Wallet का उपयोग नहीं कर सकता।",
+      "आपका खाता अभी Homelab Runtime के साथ kombify Wallet का उपयोग नहीं कर सकता।",
     "kwallet.api.wallet_response_invalid":
-      "kombify Wallet ने ऐसा उत्तर दिया जिसे Techstack उपयोग नहीं कर सकता। फिर कोशिश करें, और बना रहे तो इसकी सूचना दें।",
+      "kombify Wallet ने ऐसा उत्तर दिया जिसे Homelab Runtime उपयोग नहीं कर सकता। फिर कोशिश करें, और बना रहे तो इसकी सूचना दें।",
     "kwallet.api.wallet_right_missing":
-      "Techstack को अभी इस Wallet आइटम के उपयोग की अनुमति नहीं है। अपने Wallet में अनुमति दें और फिर कोशिश करें।",
+      "Homelab Runtime को अभी इस Wallet आइटम के उपयोग की अनुमति नहीं है। अपने Wallet में अनुमति दें और फिर कोशिश करें।",
     "kwallet.api.wallet_right_missing_use":
-      "Techstack अभी इस Wallet आइटम का उपयोग नहीं कर सकता। अनुमति दें और फिर कोशिश करें।",
+      "Homelab Runtime अभी इस Wallet आइटम का उपयोग नहीं कर सकता। अनुमति दें और फिर कोशिश करें।",
     "kwallet.api.wallet_self_hosted_only":
-      "यह कार्रवाई केवल सेल्फ-होस्टेड Techstack पर उपलब्ध है।",
+      "यह कार्रवाई केवल सेल्फ-होस्टेड Homelab Runtime पर उपलब्ध है।",
     "kwallet.api.wallet_unavailable":
       "kombify Wallet अस्थायी रूप से उपलब्ध नहीं है। कुछ देर बाद फिर कोशिश करें।",
     "kwallet.auth.password": "पासवर्ड",
@@ -2009,22 +2009,22 @@ export const walletMessages = {
     "kwallet.tag.no_policy": "कोई साइन नीति नहीं",
     "kwallet.preset.access": "पहुँच: लॉगिन और सर्वर पहुँच",
     "kwallet.preset.access_hint":
-      "लॉगिन, सर्वर पहुँच और SSH प्रमाणपत्र प्राधिकरण: जिनसे लोग और Techstack आपके स्टैक के सर्वर और ऐप तक पहुँचते हैं।",
+      "लॉगिन, सर्वर पहुँच और SSH प्रमाणपत्र प्राधिकरण: जिनसे लोग और Homelab Runtime आपके स्टैक के सर्वर और ऐप तक पहुँचते हैं।",
     "kwallet.preset.recovery": "पुनर्प्राप्ति: सीक्रेट और कॉन्फ़िगरेशन",
     "kwallet.preset.recovery_hint":
       "सीक्रेट और कॉन्फ़िगरेशन: पुनर्प्राप्ति सामग्री और आपातकालीन पहुँच के क्रेडेंशियल के लिए जगह।",
     "kwallet.col.scope": "दायरा",
     "kwallet.col.state": "स्थिति",
-    "kwallet.col.techstack": "Techstack",
+    "kwallet.col.homelab": "Homelab Runtime",
     "kwallet.col.type": "प्रकार",
     "kwallet.col.updated": "अपडेट किया गया",
     "kwallet.create.description":
-      "मान इस ब्राउज़र में एन्क्रिप्ट होता है। Techstack इसे कभी नहीं देखता।",
+      "मान इस ब्राउज़र में एन्क्रिप्ट होता है। Homelab Runtime इसे कभी नहीं देखता।",
     "kwallet.create.title": "अपने Wallet में जोड़ें",
     "kwallet.creator.hint":
-      "इसके बाद Techstack आपके सर्वरों के लिए बनाए गए क्रेडेंशियल, जैसे जनरेट की गई एक्सेस कुंजी, जोड़ देगा। यह केवल वही आइटम उपयोग करता है जो आप इसे सौंपते हैं।",
+      "इसके बाद Homelab Runtime आपके सर्वरों के लिए बनाए गए क्रेडेंशियल, जैसे जनरेट की गई एक्सेस कुंजी, जोड़ देगा। यह केवल वही आइटम उपयोग करता है जो आप इसे सौंपते हैं।",
     "kwallet.creator.label":
-      "Techstack को आपके Wallet में क्रेडेंशियल सहेजने की अनुमति दें",
+      "Homelab Runtime को आपके Wallet में क्रेडेंशियल सहेजने की अनुमति दें",
     "kwallet.delete.body":
       "मान और उसके सभी संस्करण मिटा दिए जाते हैं। इसे पलटा नहीं जा सकता।",
     "kwallet.delete.confirm": "स्थायी रूप से हटाएँ",
@@ -2080,7 +2080,7 @@ export const walletMessages = {
     "kwallet.empty_body":
       "API कुंजी, लॉगिन, वेरिएबल, कॉन्फ़िगरेशन या सर्वर एक्सेस जोड़ें ताकि सब कुछ एक ही जगह रहे।",
     "kwallet.empty_body_stack":
-      "इस स्टैक के लिए अभी कोई क्रेडेंशियल सहेजा नहीं गया है। एक जोड़ें ताकि वह आपके Wallet में रहे और Techstack उसे इस स्टैक के लिए उपयोग कर सके।",
+      "इस स्टैक के लिए अभी कोई क्रेडेंशियल सहेजा नहीं गया है। एक जोड़ें ताकि वह आपके Wallet में रहे और Homelab Runtime उसे इस स्टैक के लिए उपयोग कर सके।",
     "kwallet.empty_title": "आपका Wallet खाली है",
     "kwallet.error.ca_key_encrypted":
       "यह कुंजी पासफ़्रेज़ से सुरक्षित है। पहले पासफ़्रेज़ हटाएँ, या Wallet से नया प्राधिकरण बनवाएँ।",
@@ -2124,7 +2124,7 @@ export const walletMessages = {
     "kwallet.field.project": "प्रोजेक्ट ID",
     "kwallet.field.public_key": "सार्वजनिक कुंजी",
     "kwallet.field.public_key_hint":
-      "वह OpenSSH पंक्ति जिसे Techstack सर्वर पर इंस्टॉल करता है ताकि यह कुंजी लॉगिन कर सके। जनरेट की गई कुंजी इसे अपने आप भर देती है।",
+      "वह OpenSSH पंक्ति जिसे Homelab Runtime सर्वर पर इंस्टॉल करता है ताकि यह कुंजी लॉगिन कर सके। जनरेट की गई कुंजी इसे अपने आप भर देती है।",
     "kwallet.field.public_key_optional": "सार्वजनिक कुंजी (वैकल्पिक)",
     "kwallet.field.scope": "दायरा",
     "kwallet.field.scope_fixed": "यह आइटम इसी स्टैक का है।",
@@ -2151,10 +2151,10 @@ export const walletMessages = {
       "पिछले एक्सपोर्ट के क्रेडेंशियल अपने Wallet में जोड़ें। हर एक इसी ब्राउज़र में एन्क्रिप्ट होता है।",
     "kwallet.import.error.password": "पासवर्ड गलत है या फ़ाइल क्षतिग्रस्त है।",
     "kwallet.import.error.unreadable":
-      "यह फ़ाइल पढ़ी नहीं जा सकी। Techstack एक्सपोर्ट (JSON या CSV) या Bitwarden JSON एक्सपोर्ट का उपयोग करें।",
+      "यह फ़ाइल पढ़ी नहीं जा सकी। Homelab Runtime एक्सपोर्ट (JSON या CSV) या Bitwarden JSON एक्सपोर्ट का उपयोग करें।",
     "kwallet.import.file": "एक्सपोर्ट फ़ाइल",
     "kwallet.import.formats":
-      "समर्थित: Techstack JSON (पासवर्ड-सुरक्षित भी), Techstack CSV और Bitwarden JSON।",
+      "समर्थित: Homelab Runtime JSON (पासवर्ड-सुरक्षित भी), Homelab Runtime CSV और Bitwarden JSON।",
     "kwallet.import.no_export":
       "आपका Wallet सादे टेक्स्ट में एक्सपोर्ट नहीं किया जा सकता। किसी मान को निकालने के लिए उसे आइटम-दर-आइटम दिखाएँ।",
     "kwallet.import.open": "आयात करें",
@@ -2176,7 +2176,7 @@ export const walletMessages = {
     "kwallet.keygen.hint":
       "Ed25519 कुंजी जोड़ी इसी ब्राउज़र में बनती है। निजी कुंजी आपके Wallet में सहेजी जाती है और कहीं और नहीं भेजी जाती।",
     "kwallet.keygen.install_hint":
-      "इस सार्वजनिक कुंजी को सर्वर पर (authorized_keys में) इंस्टॉल करें, या बाद में Techstack से इंस्टॉल करवाएँ।",
+      "इस सार्वजनिक कुंजी को सर्वर पर (authorized_keys में) इंस्टॉल करें, या बाद में Homelab Runtime से इंस्टॉल करवाएँ।",
     "kwallet.keygen.open": "SSH कुंजी बनाएँ",
     "kwallet.keygen.public_key": "सार्वजनिक कुंजी",
     "kwallet.lead":
@@ -2205,21 +2205,21 @@ export const walletMessages = {
     "kwallet.picker.open_wallet": "अपना Wallet खोलें",
     "kwallet.picker.placeholder": "सर्वर एक्सेस चुनें",
     "kwallet.picker.rebind_label": "दूसरा सर्वर एक्सेस उपयोग करें (वैकल्पिक)",
-    "kwallet.picker.techstack_notice":
-      "Techstack अब आपके सर्वर तक पहुँचने के लिए इस आइटम का उपयोग कर सकता है। आप इसे अपने Wallet में वापस ले सकते हैं।",
-    "kwallet.prompt.create.allow": "Techstack को क्रेडेंशियल सहेजने दें",
+    "kwallet.picker.homelab_notice":
+      "Homelab Runtime अब आपके सर्वर तक पहुँचने के लिए इस आइटम का उपयोग कर सकता है। आप इसे अपने Wallet में वापस ले सकते हैं।",
+    "kwallet.prompt.create.allow": "Homelab Runtime को क्रेडेंशियल सहेजने दें",
     "kwallet.prompt.create.body":
-      "इसे सेट करने के लिए Techstack को आपके kombify Wallet में क्रेडेंशियल सहेजने होंगे। एक बार अनुमति दें, फिर दोबारा शुरू करें। आप यह अनुमति कभी भी अपने Wallet में वापस ले सकते हैं।",
+      "इसे सेट करने के लिए Homelab Runtime को आपके kombify Wallet में क्रेडेंशियल सहेजने होंगे। एक बार अनुमति दें, फिर दोबारा शुरू करें। आप यह अनुमति कभी भी अपने Wallet में वापस ले सकते हैं।",
     "kwallet.prompt.create.done":
-      "Techstack अब आपके Wallet में क्रेडेंशियल सहेज सकता है। दोबारा शुरू करें।",
-    "kwallet.prompt.create.title": "Techstack को आपकी अनुमति चाहिए",
+      "Homelab Runtime अब आपके Wallet में क्रेडेंशियल सहेज सकता है। दोबारा शुरू करें।",
+    "kwallet.prompt.create.title": "Homelab Runtime को आपकी अनुमति चाहिए",
     "kwallet.prompt.later": "अभी नहीं",
-    "kwallet.prompt.use.allow": "Techstack को इस आइटम का उपयोग करने दें",
+    "kwallet.prompt.use.allow": "Homelab Runtime को इस आइटम का उपयोग करने दें",
     "kwallet.prompt.use.body":
-      "आगे बढ़ने के लिए Techstack को इस Wallet आइटम का उपयोग करना होगा। अनुमति दें, फिर दोबारा शुरू करें। आप यह अनुमति कभी भी अपने Wallet में वापस ले सकते हैं।",
+      "आगे बढ़ने के लिए Homelab Runtime को इस Wallet आइटम का उपयोग करना होगा। अनुमति दें, फिर दोबारा शुरू करें। आप यह अनुमति कभी भी अपने Wallet में वापस ले सकते हैं।",
     "kwallet.prompt.use.done":
-      "Techstack अब इस आइटम का उपयोग कर सकता है। दोबारा शुरू करें।",
-    "kwallet.prompt.use.title": "Techstack को इस आइटम तक पहुँच चाहिए",
+      "Homelab Runtime अब इस आइटम का उपयोग कर सकता है। दोबारा शुरू करें।",
+    "kwallet.prompt.use.title": "Homelab Runtime को इस आइटम तक पहुँच चाहिए",
     "kwallet.retry": "फिर से कोशिश करें",
     "kwallet.reveal.again": "फिर से दिखाएँ",
     "kwallet.reveal.cleared": "मान फिर से छिपा दिया गया।",
@@ -2364,17 +2364,17 @@ export const walletMessages = {
       "उस Ed25519 प्राधिकरण के लिए जिसका आप पहले से उपयोग करते हैं। कुंजी भेजे जाने से पहले इस ब्राउज़र में एन्क्रिप्ट की जाती है।",
     "kwallet.ssh_ca.source_label": "प्राधिकरण की कुंजी",
     "kwallet.stack.description":
-      "इस स्टैक के क्रेडेंशियल आपके kombify Wallet में रखे जाते हैं। Techstack उन्हीं का उपयोग कर सकता है जिनकी आप अनुमति देते हैं।",
+      "इस स्टैक के क्रेडेंशियल आपके kombify Wallet में रखे जाते हैं। Homelab Runtime उन्हीं का उपयोग कर सकता है जिनकी आप अनुमति देते हैं।",
     "kwallet.stack.title": "आपके Wallet में क्रेडेंशियल",
     "kwallet.state.active": "सक्रिय",
     "kwallet.state.deleted": "हटाया गया",
     "kwallet.state.revoked": "रद्द किया गया",
-    "kwallet.techstack.allow_hint":
-      "इसके बाद Techstack आपकी अनुपस्थिति में भी आपके लिए इस आइटम का उपयोग कर सकता है, जैसे सर्वर तक पहुँचने के लिए। उसे आपके दूसरे आइटम कभी नहीं मिलते।",
-    "kwallet.techstack.allow_label": "Techstack इस आइटम का उपयोग कर सकता है",
-    "kwallet.techstack.grant_failed":
-      "आइटम सहेज लिया गया, लेकिन Techstack को इसके उपयोग की अनुमति नहीं दी जा सकी। इस आइटम के लिए “Techstack इस आइटम का उपयोग कर सकता है” चालू करें।",
-    "kwallet.techstack.toggle_named": "Techstack {name} का उपयोग कर सकता है",
+    "kwallet.homelab.allow_hint":
+      "इसके बाद Homelab Runtime आपकी अनुपस्थिति में भी आपके लिए इस आइटम का उपयोग कर सकता है, जैसे सर्वर तक पहुँचने के लिए। उसे आपके दूसरे आइटम कभी नहीं मिलते।",
+    "kwallet.homelab.allow_label": "Homelab Runtime इस आइटम का उपयोग कर सकता है",
+    "kwallet.homelab.grant_failed":
+      "आइटम सहेज लिया गया, लेकिन Homelab Runtime को इसके उपयोग की अनुमति नहीं दी जा सकी। इस आइटम के लिए “Homelab Runtime इस आइटम का उपयोग कर सकता है” चालू करें।",
+    "kwallet.homelab.toggle_named": "Homelab Runtime {name} का उपयोग कर सकता है",
     "kwallet.title": "Wallet",
     "kwallet.type.ai_credential": "AI प्रदाता कुंजी",
     "kwallet.type.configuration": "कॉन्फ़िगरेशन",
@@ -2409,7 +2409,7 @@ export const walletMessages = {
     "kwallet.version.save": "नया संस्करण सहेजें",
     "kwallet.version.title": "{name} का नया संस्करण",
     "kwallet.wizard.hint":
-      "SSH क्रेडेंशियल आपके kombify Wallet में रखा जाता है, Techstack में नहीं। आप जो आइटम चुनते हैं, Techstack उसका उपयोग कर सकता है।",
+      "SSH क्रेडेंशियल आपके kombify Wallet में रखा जाता है, Homelab Runtime में नहीं। आप जो आइटम चुनते हैं, Homelab Runtime उसका उपयोग कर सकता है।",
     "kwallet.wizard.item_required":
       "अपने Wallet में सर्वर एक्सेस चुनें या बनाएँ।",
     "kwallet.working": "प्रक्रिया जारी है…",
@@ -2423,7 +2423,7 @@ export const walletMessages = {
       "يتطلب إظهار قيمة أو توقيع شهادة عامل التحقق الثاني خلال آخر {minutes} دقيقة. أكّده للمتابعة.",
     "kwallet.step_up.confirm": "التأكيد بعامل التحقق الثاني",
     "kwallet.step_up.unavailable":
-      "لا يمكن تأكيد عامل التحقق الثاني في هذه النافذة. افتح Techstack في تبويب متصفح مستقل وحاول مرة أخرى.",
+      "لا يمكن تأكيد عامل التحقق الثاني في هذه النافذة. افتح Homelab Runtime في تبويب متصفح مستقل وحاول مرة أخرى.",
     "kwallet.step_up.working": "جارٍ فتح تسجيل الدخول…",
     "kwallet.action.delete": "حذف",
     "kwallet.action.delete_named": "حذف {name}",
@@ -2439,7 +2439,7 @@ export const walletMessages = {
     "kwallet.action.sign_named": "توقيع شهادة باستخدام {name}",
     "kwallet.add": "إضافة عنصر",
     "kwallet.api.wallet_create_right_missing":
-      "يحتاج Techstack إلى إذنك لحفظ بيانات الاعتماد في kombify Wallet الخاصة بك. اسمح بذلك ثم حاول مرة أخرى.",
+      "يحتاج Homelab Runtime إلى إذنك لحفظ بيانات الاعتماد في kombify Wallet الخاصة بك. اسمح بذلك ثم حاول مرة أخرى.",
     "kwallet.api.wallet_item_credential_mismatch":
       "لا يحتوي عنصر Wallet هذا على بيانات الاعتماد لطريقة تسجيل الدخول المختارة (مفتاح SSH أو كلمة مرور). اختر عنصرًا آخر أو غيّر الطريقة.",
     "kwallet.api.wallet_item_host_mismatch":
@@ -2453,21 +2453,21 @@ export const walletMessages = {
     "kwallet.api.wallet_item_not_node_access":
       "هذا العنصر ليس وصولًا إلى خادم. اختر عنصر وصول إلى خادم.",
     "kwallet.api.wallet_item_required":
-      "اختر عنصر وصول إلى الخادم من kombify Wallet الخاصة بك. لا يقبل Techstack هنا كلمات مرور أو تسميات مفاتيح.",
+      "اختر عنصر وصول إلى الخادم من kombify Wallet الخاصة بك. لا يقبل Homelab Runtime هنا كلمات مرور أو تسميات مفاتيح.",
     "kwallet.api.wallet_item_unsupported":
       "لا يستخدم هذا التثبيت kombify Wallet، لذا لا يمكن استخدام عنصر Wallet هنا.",
     "kwallet.api.wallet_item_unusable":
       "تم إلغاء عنصر Wallet هذا أو حذفه ولا يمكن استخدامه. اختر عنصرًا آخر.",
     "kwallet.api.wallet_owner_ineligible":
-      "لا يمكن لحسابك استخدام kombify Wallet مع Techstack بعد.",
+      "لا يمكن لحسابك استخدام kombify Wallet مع Homelab Runtime بعد.",
     "kwallet.api.wallet_response_invalid":
-      "ردّت kombify Wallet بطريقة لا يستطيع Techstack استخدامها. حاول مرة أخرى وأبلغ عن المشكلة إذا استمرت.",
+      "ردّت kombify Wallet بطريقة لا يستطيع Homelab Runtime استخدامها. حاول مرة أخرى وأبلغ عن المشكلة إذا استمرت.",
     "kwallet.api.wallet_right_missing":
-      "لا يُسمح لـ Techstack باستخدام عنصر Wallet هذا بعد. اسمح بذلك في Wallet الخاصة بك ثم حاول مرة أخرى.",
+      "لا يُسمح لـ Homelab Runtime باستخدام عنصر Wallet هذا بعد. اسمح بذلك في Wallet الخاصة بك ثم حاول مرة أخرى.",
     "kwallet.api.wallet_right_missing_use":
-      "لا يمكن لـ Techstack استخدام عنصر Wallet هذا بعد. اسمح بذلك ثم حاول مرة أخرى.",
+      "لا يمكن لـ Homelab Runtime استخدام عنصر Wallet هذا بعد. اسمح بذلك ثم حاول مرة أخرى.",
     "kwallet.api.wallet_self_hosted_only":
-      "هذا الإجراء متاح فقط في Techstack المستضاف ذاتيًا.",
+      "هذا الإجراء متاح فقط في Homelab Runtime المستضاف ذاتيًا.",
     "kwallet.api.wallet_unavailable":
       "kombify Wallet غير متاحة مؤقتًا. حاول مرة أخرى بعد قليل.",
     "kwallet.auth.password": "كلمة المرور",
@@ -2496,22 +2496,22 @@ export const walletMessages = {
     "kwallet.tag.no_policy": "لا توجد سياسة توقيع",
     "kwallet.preset.access": "الوصول: بيانات الدخول والوصول إلى الخوادم",
     "kwallet.preset.access_hint":
-      "بيانات الدخول والوصول إلى الخوادم وجهات إصدار شهادات SSH: ما يتيح للأشخاص ولـ Techstack الدخول إلى خوادم وتطبيقات حزمك.",
+      "بيانات الدخول والوصول إلى الخوادم وجهات إصدار شهادات SSH: ما يتيح للأشخاص ولـ Homelab Runtime الدخول إلى خوادم وتطبيقات حزمك.",
     "kwallet.preset.recovery": "الاسترداد: الأسرار والإعدادات",
     "kwallet.preset.recovery_hint":
       "الأسرار والإعدادات: مكان مواد الاسترداد وبيانات اعتماد الطوارئ.",
     "kwallet.col.scope": "النطاق",
     "kwallet.col.state": "الحالة",
-    "kwallet.col.techstack": "Techstack",
+    "kwallet.col.homelab": "Homelab Runtime",
     "kwallet.col.type": "النوع",
     "kwallet.col.updated": "آخر تحديث",
     "kwallet.create.description":
-      "تُشفَّر القيمة في هذا المتصفح. لا يراها Techstack أبدًا.",
+      "تُشفَّر القيمة في هذا المتصفح. لا يراها Homelab Runtime أبدًا.",
     "kwallet.create.title": "إضافة إلى Wallet الخاصة بك",
     "kwallet.creator.hint":
-      "عندئذٍ يضيف Techstack بيانات الاعتماد التي ينشئها لخوادمك، مثل مفتاح وصول مُولَّد. ولا يستخدم إلا العناصر التي تسندها إليه.",
+      "عندئذٍ يضيف Homelab Runtime بيانات الاعتماد التي ينشئها لخوادمك، مثل مفتاح وصول مُولَّد. ولا يستخدم إلا العناصر التي تسندها إليه.",
     "kwallet.creator.label":
-      "السماح لـ Techstack بحفظ بيانات الاعتماد في Wallet الخاصة بك",
+      "السماح لـ Homelab Runtime بحفظ بيانات الاعتماد في Wallet الخاصة بك",
     "kwallet.delete.body":
       "ستُمحى القيمة وجميع إصداراتها. لا يمكن التراجع عن ذلك.",
     "kwallet.delete.confirm": "حذف نهائي",
@@ -2565,7 +2565,7 @@ export const walletMessages = {
     "kwallet.empty_body":
       "أضف مفتاح API أو بيانات تسجيل دخول أو متغيرًا أو إعدادات أو وصولًا إلى خادم لتحتفظ بها في مكان واحد.",
     "kwallet.empty_body_stack":
-      "لا توجد بيانات اعتماد محفوظة لهذا المكدّس بعد. أضف واحدة لتبقى في Wallet الخاصة بك، حيث يمكن لـ Techstack استخدامها لهذا المكدّس.",
+      "لا توجد بيانات اعتماد محفوظة لهذا المكدّس بعد. أضف واحدة لتبقى في Wallet الخاصة بك، حيث يمكن لـ Homelab Runtime استخدامها لهذا المكدّس.",
     "kwallet.empty_title": "Wallet الخاصة بك فارغة",
     "kwallet.error.ca_key_encrypted":
       "هذا المفتاح محمي بعبارة مرور. أزل عبارة المرور أولًا، أو دع Wallet تنشئ جهة إصدار جديدة.",
@@ -2607,7 +2607,7 @@ export const walletMessages = {
     "kwallet.field.project": "معرّف المشروع",
     "kwallet.field.public_key": "المفتاح العام",
     "kwallet.field.public_key_hint":
-      "سطر OpenSSH الذي يثبّته Techstack على الخادم ليتمكن هذا المفتاح من تسجيل الدخول. يملؤه المفتاح المُولَّد تلقائيًا.",
+      "سطر OpenSSH الذي يثبّته Homelab Runtime على الخادم ليتمكن هذا المفتاح من تسجيل الدخول. يملؤه المفتاح المُولَّد تلقائيًا.",
     "kwallet.field.public_key_optional": "المفتاح العام (اختياري)",
     "kwallet.field.scope": "النطاق",
     "kwallet.field.scope_fixed": "ينتمي هذا العنصر إلى هذا المكدّس.",
@@ -2634,10 +2634,10 @@ export const walletMessages = {
       "أضف إلى Wallet الخاصة بك بيانات الاعتماد من تصدير سابق. يُشفَّر كل عنصر في هذا المتصفح.",
     "kwallet.import.error.password": "كلمة المرور غير صحيحة أو الملف تالف.",
     "kwallet.import.error.unreadable":
-      "تعذّرت قراءة هذا الملف. استخدم تصدير Techstack (JSON أو CSV) أو تصدير Bitwarden بصيغة JSON.",
+      "تعذّرت قراءة هذا الملف. استخدم تصدير Homelab Runtime (JSON أو CSV) أو تصدير Bitwarden بصيغة JSON.",
     "kwallet.import.file": "ملف التصدير",
     "kwallet.import.formats":
-      "المدعوم: Techstack JSON (بما في ذلك المحمي بكلمة مرور) وTechstack CSV وBitwarden JSON.",
+      "المدعوم: Homelab Runtime JSON (بما في ذلك المحمي بكلمة مرور) وHomelab Runtime CSV وBitwarden JSON.",
     "kwallet.import.no_export":
       "لا يمكن تصدير Wallet الخاصة بك كنص عادي. لإخراج قيمة، أظهرها عنصرًا عنصرًا.",
     "kwallet.import.open": "استيراد",
@@ -2657,7 +2657,7 @@ export const walletMessages = {
     "kwallet.keygen.hint":
       "يُنشأ زوج مفاتيح Ed25519 في هذا المتصفح. يُحفظ المفتاح الخاص في Wallet الخاصة بك ولا يُرسل إلى أي مكان آخر.",
     "kwallet.keygen.install_hint":
-      "ثبّت هذا المفتاح العام على الخادم (في authorized_keys)، أو دع Techstack يثبّته لاحقًا.",
+      "ثبّت هذا المفتاح العام على الخادم (في authorized_keys)، أو دع Homelab Runtime يثبّته لاحقًا.",
     "kwallet.keygen.open": "إنشاء مفتاح SSH",
     "kwallet.keygen.public_key": "المفتاح العام",
     "kwallet.lead":
@@ -2686,21 +2686,21 @@ export const walletMessages = {
     "kwallet.picker.open_wallet": "افتح Wallet الخاصة بك",
     "kwallet.picker.placeholder": "اختر الوصول إلى الخادم",
     "kwallet.picker.rebind_label": "استخدام وصول آخر إلى الخادم (اختياري)",
-    "kwallet.picker.techstack_notice":
-      "يمكن لـ Techstack الآن استخدام هذا العنصر للوصول إلى خادمك. يمكنك سحب ذلك في Wallet الخاصة بك.",
-    "kwallet.prompt.create.allow": "السماح لـ Techstack بحفظ بيانات الاعتماد",
+    "kwallet.picker.homelab_notice":
+      "يمكن لـ Homelab Runtime الآن استخدام هذا العنصر للوصول إلى خادمك. يمكنك سحب ذلك في Wallet الخاصة بك.",
+    "kwallet.prompt.create.allow": "السماح لـ Homelab Runtime بحفظ بيانات الاعتماد",
     "kwallet.prompt.create.body":
-      "لإعداد ذلك، يحتاج Techstack إلى حفظ بيانات اعتماد في kombify Wallet الخاصة بك. اسمح بذلك مرة واحدة ثم ابدأ من جديد. يمكنك سحب الإذن في Wallet الخاصة بك في أي وقت.",
+      "لإعداد ذلك، يحتاج Homelab Runtime إلى حفظ بيانات اعتماد في kombify Wallet الخاصة بك. اسمح بذلك مرة واحدة ثم ابدأ من جديد. يمكنك سحب الإذن في Wallet الخاصة بك في أي وقت.",
     "kwallet.prompt.create.done":
-      "يمكن لـ Techstack الآن حفظ بيانات الاعتماد في Wallet الخاصة بك. ابدأ من جديد.",
-    "kwallet.prompt.create.title": "يحتاج Techstack إلى إذنك",
+      "يمكن لـ Homelab Runtime الآن حفظ بيانات الاعتماد في Wallet الخاصة بك. ابدأ من جديد.",
+    "kwallet.prompt.create.title": "يحتاج Homelab Runtime إلى إذنك",
     "kwallet.prompt.later": "ليس الآن",
-    "kwallet.prompt.use.allow": "السماح لـ Techstack باستخدام هذا العنصر",
+    "kwallet.prompt.use.allow": "السماح لـ Homelab Runtime باستخدام هذا العنصر",
     "kwallet.prompt.use.body":
-      "يحتاج Techstack إلى استخدام عنصر Wallet هذا للمتابعة. اسمح بذلك ثم ابدأ من جديد. يمكنك سحب الإذن في Wallet الخاصة بك في أي وقت.",
+      "يحتاج Homelab Runtime إلى استخدام عنصر Wallet هذا للمتابعة. اسمح بذلك ثم ابدأ من جديد. يمكنك سحب الإذن في Wallet الخاصة بك في أي وقت.",
     "kwallet.prompt.use.done":
-      "يمكن لـ Techstack الآن استخدام هذا العنصر. ابدأ من جديد.",
-    "kwallet.prompt.use.title": "يحتاج Techstack إلى الوصول إلى هذا العنصر",
+      "يمكن لـ Homelab Runtime الآن استخدام هذا العنصر. ابدأ من جديد.",
+    "kwallet.prompt.use.title": "يحتاج Homelab Runtime إلى الوصول إلى هذا العنصر",
     "kwallet.retry": "إعادة المحاولة",
     "kwallet.reveal.again": "الإظهار مجددًا",
     "kwallet.reveal.cleared": "تم إخفاء القيمة مجددًا.",
@@ -2840,17 +2840,17 @@ export const walletMessages = {
       "لجهة إصدار Ed25519 تستخدمها بالفعل. يُشفَّر المفتاح في هذا المتصفح قبل إرساله.",
     "kwallet.ssh_ca.source_label": "مفتاح جهة الإصدار",
     "kwallet.stack.description":
-      "تُحفظ بيانات اعتماد هذا المكدّس في kombify Wallet الخاصة بك. يمكن لـ Techstack استخدام ما تسمح به منها.",
+      "تُحفظ بيانات اعتماد هذا المكدّس في kombify Wallet الخاصة بك. يمكن لـ Homelab Runtime استخدام ما تسمح به منها.",
     "kwallet.stack.title": "بيانات الاعتماد في Wallet الخاصة بك",
     "kwallet.state.active": "نشط",
     "kwallet.state.deleted": "محذوف",
     "kwallet.state.revoked": "ملغى",
-    "kwallet.techstack.allow_hint":
-      "عندئذٍ يستطيع Techstack استخدام هذا العنصر نيابةً عنك، مثل الوصول إلى خادم، دون وجودك. ولا يحصل أبدًا على عناصرك الأخرى.",
-    "kwallet.techstack.allow_label": "يمكن لـ Techstack استخدام هذا العنصر",
-    "kwallet.techstack.grant_failed":
-      "تم حفظ العنصر، لكن تعذّر السماح لـ Techstack باستخدامه. فعّل «يمكن لـ Techstack استخدام هذا العنصر» لهذا العنصر.",
-    "kwallet.techstack.toggle_named": "يمكن لـ Techstack استخدام {name}",
+    "kwallet.homelab.allow_hint":
+      "عندئذٍ يستطيع Homelab Runtime استخدام هذا العنصر نيابةً عنك، مثل الوصول إلى خادم، دون وجودك. ولا يحصل أبدًا على عناصرك الأخرى.",
+    "kwallet.homelab.allow_label": "يمكن لـ Homelab Runtime استخدام هذا العنصر",
+    "kwallet.homelab.grant_failed":
+      "تم حفظ العنصر، لكن تعذّر السماح لـ Homelab Runtime باستخدامه. فعّل «يمكن لـ Homelab Runtime استخدام هذا العنصر» لهذا العنصر.",
+    "kwallet.homelab.toggle_named": "يمكن لـ Homelab Runtime استخدام {name}",
     "kwallet.title": "Wallet",
     "kwallet.type.ai_credential": "مفتاح مزوّد ذكاء اصطناعي",
     "kwallet.type.configuration": "إعدادات",
@@ -2883,7 +2883,7 @@ export const walletMessages = {
     "kwallet.version.save": "حفظ الإصدار الجديد",
     "kwallet.version.title": "إصدار جديد من {name}",
     "kwallet.wizard.hint":
-      "تُحفظ بيانات اعتماد SSH في kombify Wallet الخاصة بك وليس في Techstack. يُسمح لـ Techstack باستخدام العنصر الذي تختاره.",
+      "تُحفظ بيانات اعتماد SSH في kombify Wallet الخاصة بك وليس في Homelab Runtime. يُسمح لـ Homelab Runtime باستخدام العنصر الذي تختاره.",
     "kwallet.wizard.item_required":
       "اختر الوصول إلى الخادم في Wallet الخاصة بك أو أنشئه.",
     "kwallet.working": "جارٍ التنفيذ…",

@@ -1,5 +1,5 @@
 // Package httpx provides the HTTP request, response, and routing foundation for
-// the Techstack control plane. Routing uses net/http.ServeMux method-and-path
+// the Homelab control plane. Routing uses net/http.ServeMux method-and-path
 // patterns, and response helpers emit the shared pkg/api envelope contract.
 package httpx
 
@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 // headerContentType is the canonical Content-Type header key.
@@ -41,7 +41,7 @@ type MiddlewareFunc func(e *Event) error
 // Event is the per-request handler event. It is the httpx analogue of
 // PocketBase's *core.RequestEvent.
 //
-// The Response and Request fields are always set. Everything the TechStack
+// The Response and Request fields are always set. Everything the Homelab
 // leaf handlers touch is reachable from those two fields plus the helper
 // methods below.
 type Event struct {
@@ -155,11 +155,11 @@ func (e *Event) setResponseHeaderIfEmpty(key, value string) {
 
 // JSON writes a JSON response with the given status code.
 //
-// This is the single concrete envelope sink: every TechStack route emits its
+// This is the single concrete envelope sink: every Homelab route emits its
 // response body through the PB* / httpx response helpers, which ultimately call
 // e.JSON. Mirrors core.RequestEvent.JSON semantics (Content-Type defaulting +
 // status header + json encode). The PocketBase "?fields=" picker is
-// intentionally NOT reproduced; no TechStack route relies on it.
+// intentionally NOT reproduced; no Homelab route relies on it.
 func (e *Event) JSON(status int, data any) error {
 	e.setResponseHeaderIfEmpty(headerContentType, "application/json")
 	e.Response.WriteHeader(status)
@@ -232,7 +232,7 @@ func (e *Event) SetCookie(cookie *http.Cookie) {
 // -------------------------------------------------------------------
 
 // RealIP returns the client IP, preferring the first X-Forwarded-For entry and
-// falling back to the request RemoteAddr (host portion). The TechStack edge
+// falling back to the request RemoteAddr (host portion). The Homelab edge
 // terminates TLS and sets X-Forwarded-For; this mirrors how trust/helpers.go,
 // workers.go and system_accounts.go derive the IP manually today.
 func (e *Event) RealIP() string {
@@ -258,7 +258,7 @@ func (e *Event) RealIP() string {
 // BindBody unmarshals the request body into dst.
 //
 // dst must be a struct pointer or map[string]any. Mirrors
-// core.RequestEvent.BindBody for the content types the TechStack routes use:
+// core.RequestEvent.BindBody for the content types the Homelab routes use:
 //   - application/json
 //   - multipart/form-data, application/x-www-form-urlencoded (best-effort)
 //
@@ -312,7 +312,7 @@ func (e *Event) BindJSON(dst any) error {
 
 // Principal is the authenticated request actor. It is the PB-free replacement
 // for *core.Record in the e.Auth position and exposes the exact method surface
-// the TechStack routes consume:
+// the Homelab routes consume:
 //
 //	e.Auth != nil
 //	e.Auth.Id

@@ -11,7 +11,7 @@ import (
 )
 
 // EnvDatabaseMigrationMode selects governed apply (default) or read-only verify.
-const EnvDatabaseMigrationMode = "TECHSTACK_DATABASE_MIGRATION_MODE"
+const EnvDatabaseMigrationMode = "HOMELAB_DATABASE_MIGRATION_MODE"
 
 // SchemaFloor is the highest migration number this binary's serving code needs.
 // Bump it in the same pull request that adds a migration the code depends on;

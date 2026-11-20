@@ -47,7 +47,7 @@ type Identity struct {
 }
 
 const (
-	releaseRepositoryURI = "https://github.com/kombifyio/TechStack"
+	releaseRepositoryURI = "https://github.com/kombifyio/Homelab"
 	releaseWorkflowURI   = releaseRepositoryURI + "/.github/workflows/guard-release.yml@refs/heads/main"
 )
 
@@ -60,7 +60,7 @@ const (
 // refused even when the subject matched.
 var DefaultIdentity = Identity{
 	Issuer:    GitHubOIDCIssuer,
-	SANRegexp: `^https://github\.com/kombifyio/TechStack/\.github/workflows/guard-release\.yml@refs/heads/main$`,
+	SANRegexp: `^https://github\.com/kombifyio/Homelab/\.github/workflows/guard-release\.yml@refs/heads/main$`,
 	Extensions: certificate.Extensions{
 		SourceRepositoryURI:      releaseRepositoryURI,
 		SourceRepositoryOwnerURI: "https://github.com/kombifyio",
@@ -72,7 +72,7 @@ var DefaultIdentity = Identity{
 }
 
 // SignerMoveVersion is the first Guard release that pins DefaultIdentity. Every
-// older Guard pins the retired kombify-Techstack release workflow, which can no
+// older Guard pins the retired kombify-Homelab release workflow, which can no
 // longer sign anything, so it refuses every update the control plane serves and
 // moves forward only by a reinstall in place (install.sh --reinstall-guard).
 const SignerMoveVersion = "0.45.17"

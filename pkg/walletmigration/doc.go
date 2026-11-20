@@ -1,5 +1,5 @@
-// Package walletmigration plans the consolidation of the Techstack wallet
-// (wallet_items rows protected by TECHSTACK_ENCRYPTION_KEY) into the kombify
+// Package walletmigration plans the consolidation of the Homelab wallet
+// (wallet_items rows protected by HOMELAB_ENCRYPTION_KEY) into the kombify
 // Wallet (workspace Wallet plan, slice P3.3).
 //
 // The planner is pure: it maps rows that a caller has already read to Wallet

@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/privatefs"
-	"github.com/kombifyio/techstack/pkg/guardidentity"
+	"github.com/kombifyio/homelab/internal/privatefs"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
 )
 
 // EnrollmentView is the part of an enrollment response the identity protocol
@@ -501,7 +501,7 @@ func sleep(ctx context.Context, delay time.Duration) error {
 
 // refusalReason quotes the control plane's structured refusal reason and
 // message, so an operator sees why an enrollment was refused (for example a
-// cross-tenant rebind that needs `techstack agent handoff`). Only those two
+// cross-tenant rebind that needs `homelab agent handoff`). Only those two
 // bounded fields are printed, never the raw body.
 func refusalReason(body []byte) string {
 	var envelope struct {

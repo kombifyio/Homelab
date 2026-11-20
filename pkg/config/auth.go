@@ -8,7 +8,7 @@ import (
 const (
 	// DefaultCloudAuthIssuer is the canonical Auth0 custom domain used by the
 	// kombify Cloud login surface. Product callback URLs still point back to the
-	// TechStack app origin, not to this issuer domain.
+	// Homelab app origin, not to this issuer domain.
 	DefaultCloudAuthIssuer = "https://login.kombify.io"
 
 	// CanonicalAuthCallbackPath is the only callback path the v2 browser auth

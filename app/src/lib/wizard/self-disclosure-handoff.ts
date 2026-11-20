@@ -3,7 +3,7 @@
  *
  * The Cloud dashboard captures a voluntary self-description and opens
  * `/stacks/new` with the raw answers as query parameters. This module reads
- * them back into the closed Techstack vocabulary, drops anything unknown, and
+ * them back into the closed Homelab vocabulary, drops anything unknown, and
  * derives the wizard prefill and the review the operator confirms. A link only
  * prefills: anyone can craft one, so it carries no free text and nothing is
  * stored until the operator confirms the answers. It never computes a
@@ -93,7 +93,7 @@ function many<T extends string>(
 /**
  * Read a Cloud handoff from the page URL. Returns null when the URL carries no
  * recognizable answer, so a plain `/stacks/new` visit stays untouched. Free
- * text is ignored: notes come only from what the operator types in Techstack.
+ * text is ignored: notes come only from what the operator types in Homelab.
  */
 export function readSelfDisclosureHandoff(
   params: HandoffParams,

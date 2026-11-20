@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"os"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/artifactdelivery"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/trustedproxy"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/artifactdelivery"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/trustedproxy"
 )
 
 // installerAdmissionHopHeader marks the Gateway Worker's metadata subrequest
@@ -43,7 +43,7 @@ func admitLinuxInstallScript(e *httpx.Event, paths []string) error {
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "The Linux installer artifact is unavailable", nil)
 	}
 	return httpx.Success(e, http.StatusOK, installerAdmission{
-		Schema: "techstack.installer-admission/v1", SHA256: artifactdelivery.LinuxInstallerSHA256,
+		Schema: "homelab.installer-admission/v1", SHA256: artifactdelivery.LinuxInstallerSHA256,
 		Size: len(content), ObjectKey: artifactdelivery.LinuxInstallerObjectKey(artifactdelivery.LinuxInstallerSHA256),
 	})
 }
@@ -57,7 +57,7 @@ func serveLinuxInstallScript(e *httpx.Event, paths []string) error {
 	if !found {
 		return e.String(
 			http.StatusServiceUnavailable,
-			"kombify-TechStack Linux installer artifact unavailable; deployment package is incomplete\n",
+			"kombify-Homelab Linux installer artifact unavailable; deployment package is incomplete\n",
 		)
 	}
 
@@ -109,7 +109,7 @@ func serveWindowsInstallScript(e *httpx.Event, paths []string) error {
 	if !found {
 		return e.String(
 			http.StatusServiceUnavailable,
-			"kombify-TechStack Windows installer artifact unavailable; deployment package is incomplete\n",
+			"kombify-Homelab Windows installer artifact unavailable; deployment package is incomplete\n",
 		)
 	}
 	e.Response.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -126,7 +126,7 @@ func admitWindowsInstallScript(e *httpx.Event, paths []string) error {
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "The Windows installer artifact is unavailable", nil)
 	}
 	return httpx.Success(e, http.StatusOK, installerAdmission{
-		Schema: "techstack.installer-admission/v1", SHA256: artifactdelivery.WindowsInstallerSHA256,
+		Schema: "homelab.installer-admission/v1", SHA256: artifactdelivery.WindowsInstallerSHA256,
 		Size: len(content), ObjectKey: artifactdelivery.WindowsInstallerObjectKey(artifactdelivery.WindowsInstallerSHA256),
 	})
 }

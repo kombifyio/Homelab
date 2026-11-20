@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-// FeasibilityAPIVersion is the StackKits report contract Techstack reads.
+// FeasibilityAPIVersion is the StackKits report contract Homelab reads.
 const FeasibilityAPIVersion = "stackkit.kombify.io/feasibility/v1"
 
 // ErrFeasibilityUnsupported means the pinned StackKits release has no
@@ -20,7 +20,7 @@ const FeasibilityAPIVersion = "stackkit.kombify.io/feasibility/v1"
 var ErrFeasibilityUnsupported = errors.New("specv2: the pinned StackKits release has no feasibility operation")
 
 // FeasibilityChecker validates a layout proposal against exact inventory
-// through the pinned StackKits CLI. Techstack reads only this structured
+// through the pinned StackKits CLI. Homelab reads only this structured
 // evidence and never interprets a ResolvedPlan (boundary §15.2).
 type FeasibilityChecker interface {
 	Feasibility(ctx context.Context, spec map[string]any, inventory InventoryDocument) (FeasibilityReport, error)
@@ -33,7 +33,7 @@ type InventoryDocument struct {
 	Nodes         map[string]InventoryNodeFact `json:"nodes"`
 }
 
-// InventoryNodeFact carries only facts Techstack observed; absent facts stay
+// InventoryNodeFact carries only facts Homelab observed; absent facts stay
 // absent so StackKits reports them as unverified rather than satisfied.
 type InventoryNodeFact struct {
 	SiteAddress                 string                 `json:"siteAddress,omitempty"`

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  User-facing Burn bootstrapper for the kombify Homelab Runtime Windows client.
+  The MSI remains the install/upgrade authority; this bundle only provides a
+  friendly setup.exe entry point and chains the exact MSI produced beside it.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
+  <Bundle
+    Name="Homelab Runtime Desktop Client $(var.DesktopEditionName)"
+    Manufacturer="kombify"
+    Version="$(var.HomelabVersion)"
+    UpgradeCode="$(var.BundleUpgradeCode)"
+    IconSourceFile="$(var.StageDir)\Assets\kombify-navy.ico">
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication
+        Theme="hyperlinkLicense"
+        LicenseUrl="https://github.com/kombifyio/Homelab/blob/main/LICENSE"
+        SuppressOptionsUI="yes"
+        LaunchTarget="[ProgramFiles6432Folder]kombify\$(var.InstallDirectoryName)\kombify-homelab-client.exe"
+        LaunchWorkingFolder="[ProgramFiles6432Folder]kombify\$(var.InstallDirectoryName)" />
+    </BootstrapperApplication>
+    <Chain>
+      <MsiPackage SourceFile="$(var.MsiPath)" />
+    </Chain>
+  </Bundle>
+</Wix>

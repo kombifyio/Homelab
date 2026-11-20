@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
-	"github.com/kombifyio/techstack/pkg/logger"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/pkg/logger"
+	"github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 )
 
 // Structured log field names shared by the provider-adapter execution record.
@@ -123,7 +123,7 @@ func adapterExecutionAttrs(
 	}
 }
 
-// CoordinatorConfig supplies TechStack-owned adapter, profile, ledger, and
+// CoordinatorConfig supplies Homelab-owned adapter, profile, ledger, and
 // evidence-verification dependencies.
 type CoordinatorConfig struct {
 	Registry                *Registry
@@ -137,7 +137,7 @@ type CoordinatorConfig struct {
 	TerminalFailureObserver TerminalFailureObserver
 }
 
-// Coordinator is TechStack's provider-operation authority. Start persists the
+// Coordinator is Homelab's provider-operation authority. Start persists the
 // immutable command and requested receipt before any adapter runs. Advance
 // moves exactly one ledger step and exposes intermediate cleanup state. Every
 // adapter-bearing advance holds a durable claim for the exact current head.
@@ -252,7 +252,7 @@ func (c *Coordinator) Start(ctx context.Context, req StartRequest) (OperationRec
 	}
 	record, created, err := c.ledger.BeginOperation(
 		ctx,
-		ExecutionAuthorityTechstackProviderControl,
+		ExecutionAuthorityHomelabProviderControl,
 		prepared.profileSnapshot,
 		prepared.provisionDispatch,
 		prepared.command,
@@ -441,7 +441,7 @@ func (c *Coordinator) validateStartReplay(
 }
 
 func validateOperationRecord(ctx context.Context, record OperationRecord, verifier providerexecutor.EvidenceVerifier) error {
-	if err := requireExecutionAuthority(record, ExecutionAuthorityTechstackProviderControl); err != nil {
+	if err := requireExecutionAuthority(record, ExecutionAuthorityHomelabProviderControl); err != nil {
 		return err
 	}
 	if err := record.Command.Validate(); err != nil {

@@ -13,34 +13,34 @@ func withSaaS(t *testing.T, saas bool) {
 
 func TestRequireTenantSelfHostedAllowsEmptyTenant(t *testing.T) {
 	withSaaS(t, false)
-	if err := RequireTenant("", "techstack.stacks.list"); err != nil {
+	if err := RequireTenant("", "homelab.stacks.list"); err != nil {
 		t.Fatalf("RequireTenant() = %v, want nil in self-hosted mode", err)
 	}
 }
 
 func TestRequireTenantSaaSDeniesEmptyTenant(t *testing.T) {
 	withSaaS(t, true)
-	err := RequireTenant("  ", "techstack.stacks.list")
+	err := RequireTenant("  ", "homelab.stacks.list")
 	if err == nil {
 		t.Fatal("RequireTenant() = nil, want tenant_context_required denial")
 	}
-	assertDenialEnvelope(t, err, "techstack.stacks.list")
+	assertDenialEnvelope(t, err, "homelab.stacks.list")
 }
 
 func TestRequireTenantSaaSAllowsExplicitTenant(t *testing.T) {
 	withSaaS(t, true)
-	if err := RequireTenant("org_acme", "techstack.stacks.list"); err != nil {
+	if err := RequireTenant("org_acme", "homelab.stacks.list"); err != nil {
 		t.Fatalf("RequireTenant() = %v, want nil for explicit tenant", err)
 	}
 }
 
 func TestTenantScopeSelfHostedKeepsFallback(t *testing.T) {
 	withSaaS(t, false)
-	tenantID, err := TenantScope("", "owner-1", "techstack.workers.list")
+	tenantID, err := TenantScope("", "owner-1", "homelab.workers.list")
 	if err != nil || tenantID != "owner-1" {
 		t.Fatalf("TenantScope() = %q, %v; want owner-1 fallback", tenantID, err)
 	}
-	tenantID, err = TenantScope("org_acme", "owner-1", "techstack.workers.list")
+	tenantID, err = TenantScope("org_acme", "owner-1", "homelab.workers.list")
 	if err != nil || tenantID != "org_acme" {
 		t.Fatalf("TenantScope() = %q, %v; want explicit org_acme", tenantID, err)
 	}
@@ -48,12 +48,12 @@ func TestTenantScopeSelfHostedKeepsFallback(t *testing.T) {
 
 func TestTenantScopeSaaSFailsClosedWithoutExplicitTenant(t *testing.T) {
 	withSaaS(t, true)
-	if _, err := TenantScope("", "owner-1", "techstack.workers.list"); err == nil {
+	if _, err := TenantScope("", "owner-1", "homelab.workers.list"); err == nil {
 		t.Fatal("TenantScope() accepted the owner fallback in SaaS mode")
 	} else {
-		assertDenialEnvelope(t, err, "techstack.workers.list")
+		assertDenialEnvelope(t, err, "homelab.workers.list")
 	}
-	tenantID, err := TenantScope("org_acme", "owner-1", "techstack.workers.list")
+	tenantID, err := TenantScope("org_acme", "owner-1", "homelab.workers.list")
 	if err != nil || tenantID != "org_acme" {
 		t.Fatalf("TenantScope() = %q, %v; want explicit org_acme", tenantID, err)
 	}

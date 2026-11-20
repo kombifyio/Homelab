@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/middleware"
+	"github.com/kombifyio/homelab/pkg/middleware"
 )
 
 func cookieByName(t *testing.T, cookies []*http.Cookie, name string) *http.Cookie {
@@ -19,7 +19,7 @@ func cookieByName(t *testing.T, cookies []*http.Cookie, name string) *http.Cooki
 }
 
 func TestPortalSessionCookiesAreCrossSiteOnlyForCloudPreviewPortal(t *testing.T) {
-	ps := PortalSession{CookieName: "techstack_session", Secure: true}
+	ps := PortalSession{CookieName: "homelab_session", Secure: true}
 
 	t.Run("cloud preview portal embeds cross-site and receives SameSite=None session and CSRF cookies", func(t *testing.T) {
 		rec := httptest.NewRecorder()
@@ -27,7 +27,7 @@ func TestPortalSessionCookiesAreCrossSiteOnlyForCloudPreviewPortal(t *testing.T)
 			t.Fatalf("setPortalSessionCookies: %v", err)
 		}
 		cookies := rec.Result().Cookies()
-		session := cookieByName(t, cookies, "techstack_session")
+		session := cookieByName(t, cookies, "homelab_session")
 		if session == nil || session.Value != "session-token" {
 			t.Fatalf("session cookie missing: %+v", cookies)
 		}
@@ -53,7 +53,7 @@ func TestPortalSessionCookiesAreCrossSiteOnlyForCloudPreviewPortal(t *testing.T)
 				t.Fatalf("setPortalSessionCookies: %v", err)
 			}
 			cookies := rec.Result().Cookies()
-			session := cookieByName(t, cookies, "techstack_session")
+			session := cookieByName(t, cookies, "homelab_session")
 			if session == nil || session.SameSite != http.SameSiteLaxMode || !session.Secure {
 				t.Fatalf("expected SameSite=Lax secure session cookie, got %+v", cookies)
 			}
@@ -65,10 +65,10 @@ func TestPortalSessionCookiesAreCrossSiteOnlyForCloudPreviewPortal(t *testing.T)
 
 	t.Run("insecure deployments never issue SameSite=None", func(t *testing.T) {
 		rec := httptest.NewRecorder()
-		if err := setPortalSessionCookies(rec, PortalSession{CookieName: "techstack_session"}, "session-token", "https://kombify-cloud-native-pr-434.onrender.com"); err != nil {
+		if err := setPortalSessionCookies(rec, PortalSession{CookieName: "homelab_session"}, "session-token", "https://kombify-cloud-native-pr-434.onrender.com"); err != nil {
 			t.Fatalf("setPortalSessionCookies: %v", err)
 		}
-		session := cookieByName(t, rec.Result().Cookies(), "techstack_session")
+		session := cookieByName(t, rec.Result().Cookies(), "homelab_session")
 		if session == nil || session.SameSite != http.SameSiteLaxMode || session.Secure {
 			t.Fatalf("expected the plain Lax cookie, got %+v", session)
 		}

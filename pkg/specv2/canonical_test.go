@@ -52,7 +52,7 @@ func TestValidateSpecRejectsV1WithUseCasesBeforeCLI(t *testing.T) {
 		t.Fatal("ValidateSpec must refuse v1+useCases without invoking the CLI")
 	}
 	if !strings.Contains(err.Error(), "useCases") {
-		t.Fatalf("error = %v, want a Techstack v2 gate, not a CLI migration report", err)
+		t.Fatalf("error = %v, want a Homelab Runtime v2 gate, not a CLI migration report", err)
 	}
 }
 

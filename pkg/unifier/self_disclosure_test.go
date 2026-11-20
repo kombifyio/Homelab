@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 // The declared experience answer is the most trusted techiness source: it

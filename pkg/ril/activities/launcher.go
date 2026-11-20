@@ -8,10 +8,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/kombifyio/techstack/pkg/ril/actions"
-	"github.com/kombifyio/techstack/pkg/ril/primitives"
-	"github.com/kombifyio/techstack/pkg/ril/workflow"
-	"github.com/kombifyio/techstack/pkg/ril/workflows"
+	"github.com/kombifyio/homelab/pkg/ril/actions"
+	"github.com/kombifyio/homelab/pkg/ril/primitives"
+	"github.com/kombifyio/homelab/pkg/ril/workflow"
+	"github.com/kombifyio/homelab/pkg/ril/workflows"
 )
 
 var ErrWorkflowExecutionUnavailable = errors.New("governed action workflow execution unavailable")

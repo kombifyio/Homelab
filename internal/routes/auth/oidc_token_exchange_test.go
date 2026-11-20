@@ -10,7 +10,7 @@ import (
 )
 
 func TestExchangeCodeForTokensRetriesNextSecretOnlyAfterInvalidClient(t *testing.T) {
-	t.Setenv("TECHSTACK_AUTH_CLOUD_CLIENT_SECRET_NEXT", "next-client-secret")
+	t.Setenv("HOMELAB_AUTH_CLOUD_CLIENT_SECRET_NEXT", "next-client-secret")
 
 	var receivedSecrets []string
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -26,14 +26,14 @@ func TestExchangeCodeForTokensRetriesNextSecretOnlyAfterInvalidClient(t *testing
 	}))
 	defer provider.Close()
 
-	request := httptest.NewRequest(http.MethodGet, "https://techstack.example/auth/callback", nil)
+	request := httptest.NewRequest(http.MethodGet, "https://homelab.example/auth/callback", nil)
 	token, err := exchangeCodeForTokens(
 		request,
 		provider.URL,
 		"cloud-client",
 		"current-client-secret",
 		"authorization-code",
-		"https://techstack.example/auth/callback",
+		"https://homelab.example/auth/callback",
 		"",
 	)
 	if err != nil {
@@ -48,7 +48,7 @@ func TestExchangeCodeForTokensRetriesNextSecretOnlyAfterInvalidClient(t *testing
 }
 
 func TestExchangeCodeForTokensDoesNotRetryNextSecretAfterOAuthError(t *testing.T) {
-	t.Setenv("TECHSTACK_AUTH_CLOUD_CLIENT_SECRET_NEXT", "next-client-secret")
+	t.Setenv("HOMELAB_AUTH_CLOUD_CLIENT_SECRET_NEXT", "next-client-secret")
 
 	var requests atomic.Int32
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -59,14 +59,14 @@ func TestExchangeCodeForTokensDoesNotRetryNextSecretAfterOAuthError(t *testing.T
 	}))
 	defer provider.Close()
 
-	request := httptest.NewRequest(http.MethodGet, "https://techstack.example/auth/callback", nil)
+	request := httptest.NewRequest(http.MethodGet, "https://homelab.example/auth/callback", nil)
 	_, err := exchangeCodeForTokens(
 		request,
 		provider.URL,
 		"cloud-client",
 		"current-client-secret",
 		"authorization-code",
-		"https://techstack.example/auth/callback",
+		"https://homelab.example/auth/callback",
 		"",
 	)
 	if err == nil {
@@ -81,7 +81,7 @@ func TestExchangeCodeForTokensDoesNotRetryNextSecretAfterOAuthError(t *testing.T
 }
 
 func TestExchangeCodeForTokensDoesNotRetryNextSecretAfterNetworkError(t *testing.T) {
-	t.Setenv("TECHSTACK_AUTH_CLOUD_CLIENT_SECRET_NEXT", "next-client-secret")
+	t.Setenv("HOMELAB_AUTH_CLOUD_CLIENT_SECRET_NEXT", "next-client-secret")
 
 	var requests atomic.Int32
 	originalClient := oidcHTTPClient
@@ -93,14 +93,14 @@ func TestExchangeCodeForTokensDoesNotRetryNextSecretAfterNetworkError(t *testing
 		oidcHTTPClient = originalClient
 	})
 
-	request := httptest.NewRequest(http.MethodGet, "https://techstack.example/auth/callback", nil)
+	request := httptest.NewRequest(http.MethodGet, "https://homelab.example/auth/callback", nil)
 	_, err := exchangeCodeForTokens(
 		request,
 		"https://login.example",
 		"cloud-client",
 		"current-client-secret",
 		"authorization-code",
-		"https://techstack.example/auth/callback",
+		"https://homelab.example/auth/callback",
 		"",
 	)
 	if err == nil {
@@ -112,7 +112,7 @@ func TestExchangeCodeForTokensDoesNotRetryNextSecretAfterNetworkError(t *testing
 }
 
 func TestExchangeCodeForTokensPreservesCurrentSecretBehaviorWithoutNext(t *testing.T) {
-	t.Setenv("TECHSTACK_AUTH_CLOUD_CLIENT_SECRET_NEXT", "")
+	t.Setenv("HOMELAB_AUTH_CLOUD_CLIENT_SECRET_NEXT", "")
 
 	var requests atomic.Int32
 	var receivedSecret string
@@ -124,14 +124,14 @@ func TestExchangeCodeForTokensPreservesCurrentSecretBehaviorWithoutNext(t *testi
 	}))
 	defer provider.Close()
 
-	request := httptest.NewRequest(http.MethodGet, "https://techstack.example/auth/callback", nil)
+	request := httptest.NewRequest(http.MethodGet, "https://homelab.example/auth/callback", nil)
 	token, err := exchangeCodeForTokens(
 		request,
 		provider.URL,
 		"cloud-client",
 		"current-client-secret",
 		"authorization-code",
-		"https://techstack.example/auth/callback",
+		"https://homelab.example/auth/callback",
 		"",
 	)
 	if err != nil {

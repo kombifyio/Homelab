@@ -46,7 +46,7 @@ const sentryRelease =
   process.env.SENTRY_RELEASE ||
   process.env.PUBLIC_SENTRY_RELEASE ||
   buildRevision ||
-  `kombify-techstack@${appVersion}`;
+  `kombify-homelab@${appVersion}`;
 
 process.env.SENTRY_RELEASE ||= sentryRelease;
 process.env.PUBLIC_SENTRY_RELEASE ||= sentryRelease;
@@ -57,8 +57,8 @@ const shouldUploadSourceMaps = Boolean(
 
 // Backend origin for the dev/preview server proxy (see overrides below).
 const devBackendTarget =
-  process.env.TECHSTACK_DEV_API_PROXY ||
-  process.env.TECHSTACK_API_URL ||
+  process.env.HOMELAB_DEV_API_PROXY ||
+  process.env.HOMELAB_API_URL ||
   "http://127.0.0.1:5260";
 const devBackendProxy = {
   "/api": devBackendTarget,
@@ -72,7 +72,7 @@ const devBackendProxy = {
 } as const;
 
 // Public settings that differ between Preview and Stable are runtime values:
-// Go injects window.__TECHSTACK_PUBLIC_CONFIG__ into index.html from the
+// Go injects window.__HOMELAB_PUBLIC_CONFIG__ into index.html from the
 // serving process environment (internal/frontend/frontend.go), so one image
 // serves every channel. A build maps each import.meta.env read to that object
 // and keeps a build-time value only as the fallback for a page Go did not serve.
@@ -87,7 +87,7 @@ function publicRuntimeConfigDefine(): Record<string, string> {
   return Object.fromEntries(
     publicRuntimeConfigNames.map((name) => [
       `import.meta.env.${name}`,
-      `(globalThis.__TECHSTACK_PUBLIC_CONFIG__?.${name} || ${JSON.stringify(process.env[name] || "")})`,
+      `(globalThis.__HOMELAB_PUBLIC_CONFIG__?.${name} || ${JSON.stringify(process.env[name] || "")})`,
     ]),
   );
 }
@@ -128,7 +128,7 @@ const appConfig = async ({ command }: { command: string }) =>
         adapter: "other",
         autoUploadSourceMaps: shouldUploadSourceMaps,
         org: process.env.SENTRY_ORG,
-        project: process.env.SENTRY_PROJECT || "kombify-techstack",
+        project: process.env.SENTRY_PROJECT || "kombify-homelab",
         sentryUrl: process.env.SENTRY_URL,
         authToken: process.env.SENTRY_AUTH_TOKEN,
         release: {
@@ -157,8 +157,8 @@ const appConfig = async ({ command }: { command: string }) =>
 
         // Single build for every deployment (ADR-033 OQ2 web convergence): a
         // static SPA in build-static, embedded into the Go binary via
-        // internal/frontend/dist (-tags techstack_static_ui) and served by Go.
-        // The legacy TECHSTACK_DESKTOP_STATIC toggle is accepted but ignored —
+        // internal/frontend/dist (-tags homelab_static_ui) and served by Go.
+        // The legacy HOMELAB_DESKTOP_STATIC toggle is accepted but ignored —
         // the static build is no longer desktop-only.
         adapter: adapterStatic({
           pages: "build-static",

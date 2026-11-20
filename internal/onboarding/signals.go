@@ -8,27 +8,27 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 // Predicate ids assigned to this repository in
 // platform/standards/onboarding-step-registry.v1.json. The descriptor
 // references them by name; nothing else may invent one.
 const (
-	PredicateIntentDraftExists   = "techstack.intent_draft_exists"
-	PredicateKitDeploymentExists = "techstack.kit_deployment_exists"
-	PredicateServerRegistered    = "techstack.server_registered"
-	PredicateServiceRunning      = "techstack.service_running"
+	PredicateIntentDraftExists   = "homelab.intent_draft_exists"
+	PredicateKitDeploymentExists = "homelab.kit_deployment_exists"
+	PredicateServerRegistered    = "homelab.server_registered"
+	PredicateServiceRunning      = "homelab.service_running"
 	// PredicateJourneyCompleted tells Cloud's onboarding hub that this
-	// principal finished Techstack's own getting-started journey, so the hub
-	// never repeats a Techstack step (KOMBIFY-DESIGN-SYSTEM-STANDARD.md §12.1).
-	PredicateJourneyCompleted = "techstack.journey_completed"
+	// principal finished Homelab's own getting-started journey, so the hub
+	// never repeats a Homelab step (KOMBIFY-DESIGN-SYSTEM-STANDARD.md §12.1).
+	PredicateJourneyCompleted = "homelab.journey_completed"
 )
 
 // platformJourneyID is the journey whose completion Cloud's hub mirrors.
-const platformJourneyID = "techstack.platform"
+const platformJourneyID = "homelab.platform"
 
 // SignalSources are the read models a predicate is computed from. Every field
 // is optional: a nil store means that one predicate reads false, never that
@@ -67,7 +67,7 @@ var errOwnerFactSourceUnavailable = errors.New("onboarding: owner fact source un
 // ResolveOwnerFacts reads the same central sources as resolveDerivedSignals,
 // but preserves the difference between confirmed false and unknown. The owner
 // API initially exports the two facts consumed by Cloud's platform journey;
-// the remaining Techstack predicates stay local until they have the same
+// the remaining Homelab predicates stay local until they have the same
 // principal-isolation contract.
 func ResolveOwnerFacts(ctx context.Context, sources SignalSources, tenantID, ownerSubjectID string) OwnerFactsResolution {
 	facts := make(map[string]bool, 2)
@@ -96,7 +96,7 @@ func ResolveOwnerFacts(ctx context.Context, sources SignalSources, tenantID, own
 	}
 }
 
-// readJourneyCompleted is true once the principal finished the Techstack
+// readJourneyCompleted is true once the principal finished the Homelab
 // platform journey, or once every required step of it is complete. No record
 // is a confirmed false; a missing store or a failed read is unknown.
 func readJourneyCompleted(ctx context.Context, store controlplane.OnboardingStateStore, tenantID, ownerSubjectID string) (bool, error) {

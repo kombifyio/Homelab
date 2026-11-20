@@ -1,11 +1,11 @@
-// Package executioncustody carries the existing Techstack issuer and provider
+// Package executioncustody carries the existing Homelab issuer and provider
 // authority across a process seam. It owns no wallet, executor or lifecycle.
 package executioncustody
 
 import (
 	"regexp"
 
-	"github.com/kombifyio/techstack/internal/advancedissuer"
+	"github.com/kombifyio/homelab/internal/advancedissuer"
 )
 
 type Request = advancedissuer.Request

@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
 )
 
 type DraftRequest struct {
@@ -30,8 +30,8 @@ type DraftResult struct {
 }
 
 // Draft validates through the authenticated pinned CLI before atomically
-// replacing Techstack's desired document. This is authoring, never a rollout;
-// managed execution still requires Techstack's Advanced dispatch authority.
+// replacing Homelab's desired document. This is authoring, never a rollout;
+// managed execution still requires Homelab's Advanced dispatch authority.
 func Draft(ctx context.Context, cache stackkitrelease.Cache, pin string, req DraftRequest) (DraftResult, error) {
 	var result DraftResult
 	release, err := cache.ResolvePin(pin)
@@ -55,7 +55,7 @@ func Draft(ctx context.Context, cache stackkitrelease.Cache, pin string, req Dra
 	defer root.Close()
 	// Stage immutable bytes rather than handing the validator a caller's file
 	// that could be replaced between validation and persistence.
-	dir := ".techstack/own-applications"
+	dir := ".homelab/own-applications"
 	if err = root.MkdirAll(dir, 0700); err != nil {
 		return result, err
 	}

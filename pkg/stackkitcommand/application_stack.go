@@ -8,18 +8,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 // "Stack it": one existing single container StackKits did not install,
 // rebuilt as an own application (StackKits `stackkit app own --from-container`,
-// contract techstack.own-application/v4). The Home Assistant in-place adoption
+// contract homelab.own-application/v4). The Home Assistant in-place adoption
 // (application.go) is a separate profile and stays as it is.
 const (
 	// ApplicationStackCapability is what a Guard advertises when its pinned
 	// StackKits release dispatches every application.stack.* operation.
 	ApplicationStackCapability = "stackkit.application-stack.v1"
-	// OwnApplicationAdoptedProfile names the adoption profile in Techstack.
+	// OwnApplicationAdoptedProfile names the adoption profile in Homelab.
 	OwnApplicationAdoptedProfile = "own-application-adopted/v1"
 	// MinApplicationStackRelease is the first StackKits release with
 	// `stackkit app own --from-container` (StackKits #3257).
@@ -37,7 +37,7 @@ var (
 )
 
 // ApplicationStackOperations are the producer catalog operations, in the
-// order Techstack dispatches them.
+// order Homelab dispatches them.
 var ApplicationStackOperations = []string{"application.stack.plan", "application.stack", "application.stack.verify", "application.stack.restore-original", "application.stack.release-original"}
 
 func IsApplicationStackOperation(op agentpb.StackKitOperation) bool {
@@ -134,7 +134,7 @@ type ApplicationStackData struct {
 
 // ApplicationStackResult is the secret-free projection of
 // stackkit.own-application-adoption/v1. Environment values, secret values and
-// command arguments never appear in the producer document; Techstack keeps
+// command arguments never appear in the producer document; Homelab keeps
 // only these fields.
 type ApplicationStackResult struct {
 	APIVersion       string                 `json:"apiVersion"`

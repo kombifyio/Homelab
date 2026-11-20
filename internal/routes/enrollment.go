@@ -3,9 +3,9 @@ package routes
 import (
 	"net/http"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/enrollment"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/enrollment"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // RegisterEnrollmentRoutes exposes the local enrollment record at GET

@@ -18,21 +18,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
-	"github.com/kombifyio/techstack/pkg/serviceauth"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/pkg/serviceauth"
 )
 
 const (
 	// DefaultGatewayURL is the public Gateway origin; the registration API is
-	// served there for the Techstack control plane only.
+	// served there for the Homelab control plane only.
 	DefaultGatewayURL = "https://api.kombify.io"
 
-	gatewayNodesPath       = "/v1/internal/connect/techstack-nodes"
+	gatewayNodesPath       = "/v1/internal/connect/homelab-nodes"
 	gatewayRevokePath      = gatewayNodesPath + "/revoke"
 	gatewayRevocationsPath = gatewayNodesPath + "/revocations"
-	gatewayWriteScope      = "connect:techstack-nodes:write"
-	gatewayReadScope       = "connect:techstack-nodes:read"
-	gatewayReasonPrefix    = "connect_techstack_node_"
+	gatewayWriteScope      = "connect:homelab-nodes:write"
+	gatewayReadScope       = "connect:homelab-nodes:read"
+	gatewayReasonPrefix    = "connect_homelab_node_"
 	gatewayMaxBody         = 64 << 10
 
 	// gatewayTokenTTL stays under the 60 second ceiling Gateway enforces on
@@ -40,10 +40,10 @@ const (
 	gatewayTokenTTL = 45 * time.Second
 )
 
-// Gateway is the Connect registration client of the Techstack control plane.
-// Every call carries its own service token (caller techstack, audience
+// Gateway is the Connect registration client of the Homelab control plane.
+// Every call carries its own service token (caller homelab, audience
 // kombify-gateway): EdDSA under the process Ed25519 service key when one is
-// configured, otherwise HS256 with the Techstack-only Connect secret, never the
+// configured, otherwise HS256 with the Homelab-only Connect secret, never the
 // shared service-auth secret: the exact scope of the operation, the owner as
 // on_behalf_of with no roles, a lifetime under 60 seconds, a random one-use
 // jti and a request_binding over the exact method, request target and body
@@ -54,8 +54,8 @@ type Gateway struct {
 	http   *http.Client
 }
 
-// GatewayConfig configures a Gateway client. Secret is the dedicated Techstack
-// secret for the Connect techstack-nodes routes; there is no fallback to the
+// GatewayConfig configures a Gateway client. Secret is the dedicated Homelab
+// secret for the Connect homelab-nodes routes; there is no fallback to the
 // shared SERVICE_AUTH_SECRET.
 type GatewayConfig struct {
 	BaseURL    string
@@ -106,8 +106,8 @@ func (g *Gateway) mintToken(scope string, obo *servicecall.OnBehalfOf, binding s
 		return "", fmt.Errorf("mint Gateway token id: %w", err)
 	}
 	payload, err := json.Marshal(gatewayClaims{
-		Iss: "kombify-techstack", Aud: "kombify-gateway", Iat: now.Unix(), Exp: now.Add(gatewayTokenTTL).Unix(),
-		Svc: "techstack", Scope: scope, OnBehalfOf: obo, JTI: base64.RawURLEncoding.EncodeToString(id), RequestBinding: binding,
+		Iss: "kombify-homelab", Aud: "kombify-gateway", Iat: now.Unix(), Exp: now.Add(gatewayTokenTTL).Unix(),
+		Svc: "homelab", Scope: scope, OnBehalfOf: obo, JTI: base64.RawURLEncoding.EncodeToString(id), RequestBinding: binding,
 	})
 	if err != nil {
 		return "", err
@@ -137,7 +137,7 @@ func (e *GatewayError) Error() string {
 	return fmt.Sprintf("Gateway answered HTTP %d (%s)", e.Status, firstNonEmpty(e.ReasonCode, "no reason code"))
 }
 
-// Node is the Connect techstack-node Gateway recorded.
+// Node is the Connect homelab-node Gateway recorded.
 type Node struct {
 	NodeID            string
 	Status            string
@@ -180,7 +180,7 @@ func (g *Gateway) obo(owner, connectTenant string) *servicecall.OnBehalfOf {
 	return &servicecall.OnBehalfOf{Sub: owner, OrgID: connectTenant}
 }
 
-// PutNode upserts the techstack-node of one server. Gateway verifies the host
+// PutNode upserts the homelab-node of one server. Gateway verifies the host
 // proof itself; a server whose proof does not verify is never recorded.
 func (g *Gateway) PutNode(ctx context.Context, in NodeUpsert) (*Node, error) {
 	fields := map[string]string{

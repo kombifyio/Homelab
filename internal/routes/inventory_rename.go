@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 )
 
 // inventoryRenamedServer is the rename result: the canonical inventory item
-// plus the owner-chosen name. display_name stays a Techstack-local field here
+// plus the owner-chosen name. display_name stays a Homelab-local field here
 // until the pinned runtime inventory contract carries it; the canonical
 // `name` already reports the owner-chosen name when one is set.
 type inventoryRenamedServer struct {
@@ -65,7 +65,7 @@ func (h inventoryHandlers) httpRenameServer(e *httpx.Event) error {
 }
 
 // renameServer writes the owner-chosen display name. An empty name clears it.
-// Authorization is the shared write decision (signed techstack.inventory.write
+// Authorization is the shared write decision (signed homelab.inventory.write
 // plus FGA); the store write is additionally bound to tenant, server and the
 // authenticated owner, and a miss is reported as a denial so a caller cannot
 // learn whether another owner's server exists.

@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/guardidentity"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
 )
 
 func establishAgainst(t *testing.T, bound bool, handler http.HandlerFunc) (*Client, Mode, error) {
@@ -94,7 +94,7 @@ func TestDecommissionDestroysEveryCredentialOfARevokedGuard(t *testing.T) {
 	if _, err := manager.StageRotation(); err != nil {
 		t.Fatal(err)
 	}
-	if err := manager.SaveBootstrap(Bootstrap{Server: "https://techstack.example", Token: "kpt1.capability-that-must-not-linger"}); err != nil {
+	if err := manager.SaveBootstrap(Bootstrap{Server: "https://homelab.example", Token: "kpt1.capability-that-must-not-linger"}); err != nil {
 		t.Fatal(err)
 	}
 	enrollment := filepath.Join(t.TempDir(), "agent-enrollment.json")

@@ -10,9 +10,9 @@ import (
 	"regexp"
 	"strings"
 
-	commonprofile "github.com/kombifyio/techstack/internal/gocommon/nativeclient/profile"
+	commonprofile "github.com/kombifyio/homelab/internal/gocommon/nativeclient/profile"
 
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // Wire constants alias the shared consumer contract in
@@ -104,7 +104,7 @@ func buildClientConnectionProfile(cfg ClientConnectionProfileConfig, request *ht
 	if mode == clientDeploymentModeLocal {
 		oidc = clientProfileOIDC{
 			Issuer:   baseURL,
-			ClientID: "techstack-local",
+			ClientID: "homelab-local",
 			Scopes:   []string{"openid", "profile"},
 			Flow:     clientFlowLocalBootstrap,
 		}
@@ -120,10 +120,10 @@ func buildClientConnectionProfile(cfg ClientConnectionProfileConfig, request *ht
 		InstanceID:     instanceID,
 		OIDC:           oidc,
 		Capabilities: []string{
-			"techstack.runtime.read",
-			"techstack.runtime.write",
+			"homelab.runtime.read",
+			"homelab.runtime.write",
 		},
-		APIVersions: map[string]string{"techstack": "v1"},
+		APIVersions: map[string]string{"homelab": "v1"},
 		Sync: clientProfileSync{
 			OfflineRead:  false,
 			OfflineWrite: "disabled",
@@ -230,7 +230,7 @@ func writeClientDiscoveryUnavailable(w http.ResponseWriter) error {
 		"retryable":   false,
 		"user_guidance": map[string]any{
 			"title":      "Client connection is not configured",
-			"body":       "This TechStack instance cannot publish a safe client binding yet.",
+			"body":       "This Homelab Runtime instance cannot publish a safe client binding yet.",
 			"next_steps": []string{"Ask the instance operator to configure the public URL and native OIDC client."},
 		},
 	})

@@ -19,11 +19,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	rilaction "github.com/kombifyio/techstack/pkg/ril/actioncontract"
-	"github.com/kombifyio/techstack/pkg/ril/primitives"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
 	jcs "github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	rilaction "github.com/kombifyio/homelab/pkg/ril/actioncontract"
+	"github.com/kombifyio/homelab/pkg/ril/primitives"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 var stableID = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,191}$`)
@@ -434,7 +434,7 @@ func Verify(ctx context.Context, command *agentpb.StackKitCommand, keyPath strin
 	if !known || l.Scope != profile.GrantScope || !profile.AdmitsGuardOperation(command.Operation) {
 		return time.Time{}, fmt.Errorf("lease authority invalid")
 	}
-	if l.SchemaVersion != "kombify.ril-execution-lease.v1" || l.Iss != "kombify-gateway" || l.Aud != "stackkits" || l.Purpose != "ril-execution" || l.Executor != "techstack" || l.Iat <= 0 || l.Nbf < l.Iat || l.Nbf > n || l.Exp <= n || l.Exp-l.Iat > 900 || l.CardRevision < 1 || l.LifecycleRevision < 1 || !stableID.MatchString(l.LeaseID) || !stableID.MatchString(l.OperationID) || !stableID.MatchString(l.DecisionID) || !stableID.MatchString(l.CardID) || !shaDigest.MatchString(l.EffectDigest) || !shaDigest.MatchString(l.ReceiptDigest) || l.Requester.ID == "" || (l.Requester.Kind != "service" && l.Requester.Kind != "agent_instance") {
+	if l.SchemaVersion != "kombify.ril-execution-lease.v1" || l.Iss != "kombify-gateway" || l.Aud != "stackkits" || l.Purpose != "ril-execution" || l.Executor != "homelab" || l.Iat <= 0 || l.Nbf < l.Iat || l.Nbf > n || l.Exp <= n || l.Exp-l.Iat > 900 || l.CardRevision < 1 || l.LifecycleRevision < 1 || !stableID.MatchString(l.LeaseID) || !stableID.MatchString(l.OperationID) || !stableID.MatchString(l.DecisionID) || !stableID.MatchString(l.CardID) || !shaDigest.MatchString(l.EffectDigest) || !shaDigest.MatchString(l.ReceiptDigest) || l.Requester.ID == "" || (l.Requester.Kind != "service" && l.Requester.Kind != "agent_instance") {
 		return time.Time{}, fmt.Errorf("lease authority invalid")
 	}
 	if err := validateClaim(c, l, command.CommandId, c.Fence, lh, n); err != nil {
@@ -505,7 +505,7 @@ func bindEffectToCommand(profile primitives.Profile, f effect, command *agentpb.
 	case rilaction.TargetScopeRuntimeInstance:
 		// The node ref is the one the typed service command addresses; the
 		// worker id (runtime instance == execution channel) is admitted by
-		// Techstack against its current inventory.
+		// Homelab against its current inventory.
 		if !stableID.MatchString(t.SiteRef) || !stableID.MatchString(t.NodeRef) || !stableID.MatchString(t.RuntimeInstanceRef) || !stableID.MatchString(t.ExecutionChannelRef) || t.ModuleInstanceRef != "" ||
 			t.RuntimeInstanceRef != t.ExecutionChannelRef || t.SiteRef != f.ServerID || t.NodeRef != command.LocalNodeRef {
 			return fmt.Errorf("effect target invalid")
@@ -537,7 +537,7 @@ func bindEffectToCommand(profile primitives.Profile, f effect, command *agentpb.
 		}
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_CONTROL:
 		// The adopted application's exact container and the primitive's
-		// own power action. The runtime-instance-ref is Techstack's
+		// own power action. The runtime-instance-ref is Homelab's
 		// inventory reference of that application, which no node command
 		// field carries.
 		container := primitives.InputValue(inputs, primitives.InputApplicationRef)

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/guardidentity"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
 )
 
 // The Guard signs a host proof only while its identity is usable, and only with

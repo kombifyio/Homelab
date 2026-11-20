@@ -9,9 +9,9 @@ import (
 	"errors"
 	"fmt"
 
-	rilaction "github.com/kombifyio/techstack/pkg/ril/actioncontract"
-	"github.com/kombifyio/techstack/pkg/ril/primitives"
 	jsoncanonicalizer "github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
+	rilaction "github.com/kombifyio/homelab/pkg/ril/actioncontract"
+	"github.com/kombifyio/homelab/pkg/ril/primitives"
 )
 
 // FrozenDecisionExecution contains only the identity of a previously admitted

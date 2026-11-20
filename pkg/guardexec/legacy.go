@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/kombifyio/techstack/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	agentpkg "github.com/kombifyio/techstack/pkg/agent"
+	agentpkg "github.com/kombifyio/homelab/pkg/agent"
 )
 
 // legacyHandoffDir is where a root Guard stages a downloaded release before it
@@ -26,7 +26,7 @@ const legacyHandoffDir = "legacy-handoff"
 // own executable under the same release policy as the privileged executor: only
 // to a release the pinned identity signed and the manifest floor admits, or to
 // an unsigned build when its own environment sets
-// TECHSTACK_GUARD_ALLOW_UNSIGNED_UPDATES. The executable it replaces is kept as
+// HOMELAB_GUARD_ALLOW_UNSIGNED_UPDATES. The executable it replaces is kept as
 // .prev. It never installs an artifact the control plane merely vouches for.
 type LegacyRoot struct {
 	*agentpkg.StackKitExecutor
@@ -63,19 +63,19 @@ func NewLegacyRoot(executor *agentpkg.StackKitExecutor, opts Options) *LegacyRoo
 // AdmitsUnsigned reports whether this Guard's own environment admits unsigned
 // builds.
 func (l *LegacyRoot) AdmitsUnsigned() bool {
-	return envTrue(l.opts.Getenv("TECHSTACK_GUARD_ALLOW_UNSIGNED_UPDATES"))
+	return envTrue(l.opts.Getenv("HOMELAB_GUARD_ALLOW_UNSIGNED_UPDATES"))
 }
 
-// EnsureTechstackRuntime converges the Guard and operations executables to the
+// EnsureHomelabRuntime converges the Guard and operations executables to the
 // signed release the control plane publishes. A candidate the policy refuses
 // leaves both executables as they are and is reported as *UpdateDeniedError.
-func (l *LegacyRoot) EnsureTechstackRuntime(ctx context.Context, cfg agentpkg.TechstackRuntimeConvergenceConfig) (agentpkg.TechstackRuntimeConvergenceResult, error) {
+func (l *LegacyRoot) EnsureHomelabRuntime(ctx context.Context, cfg agentpkg.HomelabRuntimeConvergenceConfig) (agentpkg.HomelabRuntimeConvergenceResult, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	result := agentpkg.TechstackRuntimeConvergenceResult{Version: strings.TrimSpace(cfg.Version)}
+	result := agentpkg.HomelabRuntimeConvergenceResult{Version: strings.TrimSpace(cfg.Version)}
 	for label, path := range map[string]string{"agent": cfg.AgentPath, "operations": cfg.OperationsPath} {
 		if !filepath.IsAbs(filepath.Clean(path)) {
-			return result, fmt.Errorf("techstack %s executable path must be absolute", label)
+			return result, fmt.Errorf("homelab %s executable path must be absolute", label)
 		}
 	}
 	opts := l.opts
@@ -112,7 +112,7 @@ func (l *LegacyRoot) EnsureTechstackRuntime(ctx context.Context, cfg agentpkg.Te
 // installed executable already is that release. A candidate the policy refuses
 // is reported as *UpdateDeniedError and changes nothing. result carries the
 // digest the caller reports.
-func stageSignedRelease(ctx context.Context, updater *Updater, handoffDir string, cfg agentpkg.TechstackRuntimeConvergenceConfig, result *agentpkg.TechstackRuntimeConvergenceResult) (*StageResult, error) {
+func stageSignedRelease(ctx context.Context, updater *Updater, handoffDir string, cfg agentpkg.HomelabRuntimeConvergenceConfig, result *agentpkg.HomelabRuntimeConvergenceResult) (*StageResult, error) {
 	localDigest, _ := agentpkg.DigestInstalledExecutable(cfg.AgentPath)
 	client := cfg.HTTPClient
 	if client == nil {
@@ -153,7 +153,7 @@ func stageSignedRelease(ctx context.Context, updater *Updater, handoffDir string
 		}
 	}
 	cfg.StageDir = handoffDir
-	artifactPath, digest, artifactVersion, notModified, err := agentpkg.FetchTechstackRuntimeArtifact(ctx, cfg, localDigest)
+	artifactPath, digest, artifactVersion, notModified, err := agentpkg.FetchHomelabRuntimeArtifact(ctx, cfg, localDigest)
 	if err != nil {
 		return nil, err
 	}

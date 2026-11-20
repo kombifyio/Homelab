@@ -12,10 +12,10 @@ import (
 	"github.com/prometheus/prometheus/promql"
 	"github.com/prometheus/prometheus/promql/parser"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/monitoring"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/monitoring"
 )
 
 const (
@@ -214,7 +214,7 @@ func monitoringTenantID(e *httpx.Event) (string, error) {
 	if !tenantguard.Active() {
 		return "", nil
 	}
-	return tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.monitor.metrics.read")
+	return tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.monitor.metrics.read")
 }
 
 func monitoringTenantMatcher(e *httpx.Event) (*labels.Matcher, error) {
@@ -305,7 +305,7 @@ func (p monitoringQueryPolicy) validateLabelName(name string) error {
 
 func (h monitoringRouteHandlers) status(e *httpx.Event) error {
 	if tenantguard.Active() {
-		return monitoringSaaSDiagnosticsDenied("techstack.monitor.status")
+		return monitoringSaaSDiagnosticsDenied("homelab.monitor.status")
 	}
 	stats, err := h.backend.Stats(e.Request.Context())
 	if err != nil {
@@ -316,7 +316,7 @@ func (h monitoringRouteHandlers) status(e *httpx.Event) error {
 
 func (h monitoringRouteHandlers) health(e *httpx.Event) error {
 	if tenantguard.Active() {
-		return monitoringSaaSDiagnosticsDenied("techstack.monitor.health")
+		return monitoringSaaSDiagnosticsDenied("homelab.monitor.health")
 	}
 	payload := buildMonitoringHealthPayload(e.Request.Context(), h.backend, h.metadata, h.ingestHealth)
 	return httpx.Success(e, http.StatusOK, payload)
@@ -604,7 +604,7 @@ func RegisterAlertRoutes(r *httpx.Router, engine *monitoring.AlertEngine) {
 
 	// Active alerts
 	r.GET("/api/v1/monitor/alerts", func(e *httpx.Event) error {
-		states, err := alertStatesForCaller(e, engine.ActiveAlerts(), "techstack.monitor.alerts.read")
+		states, err := alertStatesForCaller(e, engine.ActiveAlerts(), "homelab.monitor.alerts.read")
 		if err != nil {
 			return err
 		}
@@ -613,7 +613,7 @@ func RegisterAlertRoutes(r *httpx.Router, engine *monitoring.AlertEngine) {
 
 	// All alert rule states
 	r.GET("/api/v1/monitor/alerts/rules", func(e *httpx.Event) error {
-		states, err := alertStatesForCaller(e, engine.AllStates(), "techstack.monitor.alerts.rules")
+		states, err := alertStatesForCaller(e, engine.AllStates(), "homelab.monitor.alerts.rules")
 		if err != nil {
 			return err
 		}

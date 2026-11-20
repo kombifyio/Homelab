@@ -9,7 +9,7 @@
   import SessionRenewalPrompt from "#lib/components/SessionRenewalPrompt.svelte";
   import InAppDialogHost from "#lib/components/InAppDialogHost.svelte";
   import WalletPromptHost from "#lib/kombify-wallet/components/WalletPromptHost.svelte";
-  import TechstackAnalytics from "#lib/components/TechstackAnalytics.svelte";
+  import HomelabAnalytics from "#lib/components/HomelabAnalytics.svelte";
   import {
     Toast,
     KeyboardShortcuts,
@@ -53,7 +53,7 @@
     initStackIdentity,
   } from "#lib/stores/stackIdentity.js";
   import { Menu, Plus, X } from "@lucide/svelte";
-  import TechstackBrandLogo from "#lib/components/TechstackBrandLogo.svelte";
+  import HomelabBrandLogo from "#lib/components/HomelabBrandLogo.svelte";
   import Button from "#lib/components/ui/Button.svelte";
   import {
     pageBanner,
@@ -316,7 +316,7 @@
 </script>
 
 <svelte:head>
-  <title>Techstack</title>
+  <title>Homelab Runtime</title>
   <meta name="description" content="Hybrid Infrastructure Control Plane" />
 </svelte:head>
 
@@ -369,7 +369,7 @@
           class="-m-1.5 flex shrink-0 items-center p-1.5"
           aria-label={tr("shell.homeLink")}
         >
-          <TechstackBrandLogo
+          <HomelabBrandLogo
             collapsed
             class="h-8 w-8 shrink-0 object-contain"
           />
@@ -419,7 +419,7 @@
            mobile uses the drawer. -->
       <div
         id="app-navigation"
-        data-onboarding-anchor="techstack-nav"
+        data-onboarding-anchor="homelab-nav"
         class="fixed top-14 bottom-0 left-0 z-40 max-w-[86vw] overflow-visible shadow-2xl transition-transform duration-300 motion-reduce:transition-none min-[48rem]:relative min-[48rem]:top-auto min-[48rem]:bottom-auto min-[48rem]:h-full min-[48rem]:max-w-none min-[48rem]:shadow-none {sidebarOpen
           ? 'translate-x-0'
           : '-translate-x-full min-[48rem]:translate-x-0'}"
@@ -488,7 +488,7 @@
     <!-- SaaS Embedded Mode: Inline Tab Navigation -->
     <div data-kx="app" class="flex flex-col h-screen">
       <!-- Inline Tab Navigation Header -->
-      <div data-onboarding-anchor="techstack-nav">
+      <div data-onboarding-anchor="homelab-nav">
         <InlineTabNav apiVersion={productIdentity} />
       </div>
 
@@ -532,7 +532,7 @@
 {/if}
 
 <!-- Product analytics: no replay, no persistent anonymous identity -->
-<TechstackAnalytics />
+<HomelabAnalytics />
 
 <!-- Global Toast Notifications -->
 <Toast />

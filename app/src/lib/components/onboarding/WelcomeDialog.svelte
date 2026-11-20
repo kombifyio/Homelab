@@ -4,7 +4,7 @@
    * introduction that asks for something back.
    *
    * It is deliberately NOT an introduction stop. A stop is a hint about chrome
-   * that already exists; this one says what Techstack is and names the
+   * that already exists; this one says what Homelab is and names the
    * homelab, which is a product decision written to stack identity. The
    * package's spotlight tour starts after it (see `introduction.ts`).
    *

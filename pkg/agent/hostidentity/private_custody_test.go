@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/agent/hostidentity"
+	"github.com/kombifyio/homelab/pkg/agent/hostidentity"
 )
 
 func TestIdentityKeepsLifecycleInAdmittedPrivateCustody(t *testing.T) {

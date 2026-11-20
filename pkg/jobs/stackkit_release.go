@@ -7,14 +7,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
 )
 
 const (
-	stackKitReleasePinEnv     = "TECHSTACK_STACKKIT_RELEASE_PIN"
-	stackKitReleaseCacheEnv   = "TECHSTACK_STACKKIT_RELEASE_CACHE"
-	stackKitReleaseBundleEnv  = "TECHSTACK_STACKKIT_RELEASE_BUNDLE"
-	stackKitTargetMetadataEnv = "TECHSTACK_STACKKIT_TARGET_METADATA_DIR"
+	stackKitReleasePinEnv     = "HOMELAB_STACKKIT_RELEASE_PIN"
+	stackKitReleaseCacheEnv   = "HOMELAB_STACKKIT_RELEASE_CACHE"
+	stackKitReleaseBundleEnv  = "HOMELAB_STACKKIT_RELEASE_BUNDLE"
+	stackKitTargetMetadataEnv = "HOMELAB_STACKKIT_TARGET_METADATA_DIR"
 )
 
 func configuredPinnedStackKitRelease() (*stackkitrelease.Release, error) {

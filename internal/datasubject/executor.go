@@ -19,20 +19,20 @@ import (
 // operator and the person.
 const (
 	// ReasonLiveResources: an active lease or a provisioned server still exists.
-	// Techstack decommissions provider resources first (an erase admits the
+	// Homelab decommissions provider resources first (an erase admits the
 	// governed decommission of the subject's managed leases and stays blocked
 	// until provider absence is proven); erasure never deletes the rows that
 	// track them.
-	ReasonLiveResources = "techstack_live_provider_resources"
+	ReasonLiveResources = "homelab_live_provider_resources"
 	// ReasonEraseIncomplete: rows remained after the deletion passes.
-	ReasonEraseIncomplete = "techstack_erase_incomplete"
+	ReasonEraseIncomplete = "homelab_erase_incomplete"
 	// ReasonEvidenceRetention: the provider-evidence retention is a legal
 	// decision, so erasure waits until it is configured.
-	ReasonEvidenceRetention = "techstack_evidence_retention_unset"
+	ReasonEvidenceRetention = "homelab_evidence_retention_unset"
 	// ReasonDirectoryUnwired: the subject directory is absent (not configured or
-	// its migration is not applied), so refs cannot be resolved and Techstack
+	// its migration is not applied), so refs cannot be resolved and Homelab
 	// refuses to claim that it holds nothing.
-	ReasonDirectoryUnwired = "techstack_subject_directory_unwired"
+	ReasonDirectoryUnwired = "homelab_subject_directory_unwired"
 )
 
 const (
@@ -45,9 +45,9 @@ const (
 	logRetention    = 90 * 24 * time.Hour
 )
 
-// SubjectRefFor is the opaque SubjectRef of an account: Cloud and Techstack
+// SubjectRefFor is the opaque SubjectRef of an account: Cloud and Homelab
 // derive it from the Auth0 subject the same way, so no mapping table, e-mail
-// address or shared secret is needed. Techstack resolves a ref by hashing the
+// address or shared secret is needed. Homelab resolves a ref by hashing the
 // subjects of its own directory and never inverts it.
 func SubjectRefFor(sub string) string {
 	sum := sha256.Sum256([]byte(refSalt + sub))
@@ -60,7 +60,7 @@ type Principal struct {
 	Subject  string
 }
 
-// Directory resolves an opaque subject ref to the principals Techstack holds
+// Directory resolves an opaque subject ref to the principals Homelab holds
 // data for. Row-level security scopes every table to one tenant, so the
 // directory is the only cross-tenant view and is migration-owned.
 type Directory interface {
@@ -150,7 +150,7 @@ func (e *StoreExecutor) resolve(ctx context.Context, ref string) ([]Principal, e
 	return out, nil
 }
 
-// Export reports the inventory Techstack holds for the subject: dataset ids and
+// Export reports the inventory Homelab holds for the subject: dataset ids and
 // row counts only, never row content, so no secret leaves in clear.
 func (e *StoreExecutor) Export(ctx context.Context, subjectRef string) (Outcome, error) {
 	ctx = context.WithValue(ctx, processorInventoryKind{}, true)

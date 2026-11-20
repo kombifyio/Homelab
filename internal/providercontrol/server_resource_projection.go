@@ -11,9 +11,9 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 	"github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 )
 

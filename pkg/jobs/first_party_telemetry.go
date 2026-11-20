@@ -9,7 +9,7 @@ const firstPartyTelemetryCapability = "telemetry-collection"
 
 func firstPartyHostedKitTelemetry() bool {
 	edition := strings.ToLower(strings.TrimSpace(os.Getenv("KOMBIFY_EDITION")))
-	return strings.HasPrefix(edition, "saas") || strings.TrimSpace(os.Getenv("TECHSTACK_SAAS_BUILD_PROOF")) != ""
+	return strings.HasPrefix(edition, "saas") || strings.TrimSpace(os.Getenv("HOMELAB_SAAS_BUILD_PROOF")) != ""
 }
 
 func firstPartyTelemetryKit(document map[string]interface{}) bool {
@@ -71,7 +71,7 @@ func prependCapability(raw interface{}, capability string) []interface{} {
 
 func firstPartyOTLPEndpoint() string {
 	return firstNonEmpty(
-		strings.TrimSpace(os.Getenv("TECHSTACK_STACKKIT_OTLP_ENDPOINT")),
+		strings.TrimSpace(os.Getenv("HOMELAB_STACKKIT_OTLP_ENDPOINT")),
 		strings.TrimSpace(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")),
 	)
 }

@@ -225,7 +225,7 @@ func (u *Updater) fallbackProblem(trial trialRecord) string {
 }
 
 // trialUnit names the transient unit of a trial's supervisor.
-func trialUnit(id string) string { return "techstack-guard-trial-" + id }
+func trialUnit(id string) string { return "homelab-guard-trial-" + id }
 
 // supervisorArgv runs the supervisor from the previous Guard, the one that
 // started the trial. Every path is explicit: the supervisor also runs from the

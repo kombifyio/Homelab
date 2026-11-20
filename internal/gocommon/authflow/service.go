@@ -22,8 +22,8 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/kombifyio/techstack/internal/gocommon/authsession"
-	"github.com/kombifyio/techstack/internal/gocommon/oidcclient"
+	"github.com/kombifyio/homelab/internal/gocommon/authsession"
+	"github.com/kombifyio/homelab/internal/gocommon/oidcclient"
 )
 
 const (

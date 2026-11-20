@@ -7,7 +7,7 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/kombifyio/techstack/internal/privatefs"
+	"github.com/kombifyio/homelab/internal/privatefs"
 )
 
 func acquireLock(root *os.Root, path string) (*os.File, error) {

@@ -3,7 +3,7 @@ package routes
 import (
 	"net/http"
 
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 const (
@@ -26,11 +26,11 @@ type Capability struct {
 }
 
 // RegisterCapabilitiesRoutes adds GET /api/v1/capabilities for client
-// discovery of the kombifyTechstack API surface.
+// discovery of the kombifyHomelab API surface.
 func RegisterCapabilitiesRoutes(r *httpx.Router, version string) {
 	r.GET("/api/v1/capabilities", func(e *httpx.Event) error {
 		return httpx.Success(e, http.StatusOK, map[string]any{
-			"tool":         "kombify-techstack",
+			"tool":         "kombify-homelab",
 			"version":      version,
 			"description":  "Hybrid cloud control plane for Homelabs -- validate YAML specs via CUE, generate OpenTofu configurations, and manage Nodes through a gRPC agent protocol.",
 			"capabilities": capabilities(),
@@ -126,8 +126,8 @@ func capabilities() []Capability {
 		{Name: "run_pipeline", Description: "Run full unifier pipeline: validate + analyze + unify (side-effecting)", Endpoint: "/api/v1/unifier/pipeline", Method: "POST", Auth: true, Idempotent: false, Tags: []string{"unifier"}},
 		{Name: "validate_pipeline", Description: "Validate pipeline inputs without executing", Endpoint: "/api/v1/unifier/pipeline/validate", Method: "POST", Auth: true, Idempotent: true, Tags: []string{"unifier"}},
 		{Name: "preview_pipeline", Description: "Preview pipeline results without side effects", Endpoint: "/api/v1/unifier/pipeline/preview", Method: "POST", Auth: true, Idempotent: true, Tags: []string{"unifier"}},
-		{Name: "recommend_stackkit", Description: "Evaluate Wizard intent through the authenticated Techstack recommendation authority without side effects", Endpoint: "/api/v1/unifier/recommendations", Method: "POST", Auth: true, Idempotent: true, Tags: []string{"unifier", "wizard", "stackkits"}},
-		{Name: "get_operator_self_disclosure", Description: "Read the caller's voluntary self-disclosure and the capability profile Techstack derives from it", Endpoint: "/api/v1/operator/self-disclosure", Method: "GET", Auth: true, Idempotent: true, Tags: []string{"wizard", "operator"}},
+		{Name: "recommend_stackkit", Description: "Evaluate Wizard intent through the authenticated Homelab Runtime recommendation authority without side effects", Endpoint: "/api/v1/unifier/recommendations", Method: "POST", Auth: true, Idempotent: true, Tags: []string{"unifier", "wizard", "stackkits"}},
+		{Name: "get_operator_self_disclosure", Description: "Read the caller's voluntary self-disclosure and the capability profile Homelab Runtime derives from it", Endpoint: "/api/v1/operator/self-disclosure", Method: "GET", Auth: true, Idempotent: true, Tags: []string{"wizard", "operator"}},
 		{Name: "set_operator_self_disclosure", Description: "Replace the caller's voluntary self-disclosure (experience, goals, placement, hardware, household, motivations, notes); the capability score is derived server-side", Endpoint: "/api/v1/operator/self-disclosure", Method: "PUT", Auth: true, Idempotent: true, Tags: []string{"wizard", "operator"}},
 		{Name: "get_creation_draft", Description: "Read where the caller stands in one creation process (step, furthest step and non-secret answers), shared by every creation frame and device", Endpoint: "/api/v1/creation/drafts/{key}", Method: "GET", Auth: true, Idempotent: true, Tags: []string{"wizard", "creation"}},
 		{Name: "put_creation_draft", Description: "Keep where the caller stands in one creation process; answers that carry a secret are refused", Endpoint: "/api/v1/creation/drafts/{key}", Method: "PUT", Auth: true, Idempotent: true, Tags: []string{"wizard", "creation"}},
@@ -148,7 +148,7 @@ func capabilities() []Capability {
 		{Name: "get_server_ports", Description: "Get owner-scoped desired, reserved, observed, exposed, and drift-qualified ports for one canonical Node", Endpoint: "/api/v1/servers/{serverId}/ports", Method: "GET", Auth: true, Idempotent: true, Tags: []string{"servers", "inventory"}},
 		{Name: "detach_self_owned_server", Description: "Revoke and tombstone one exact customer-operated BYO Node without provider mutation", Endpoint: "/api/v1/servers/{serverId}/detach", Method: "POST", Auth: true, Idempotent: true, Tags: []string{"servers", "operations"}},
 		{Name: "list_inventory_servers", Description: "List owner-scoped sanitized Node inventory for UI and agents", Endpoint: "/api/v1/inventory/servers", Method: "GET", Auth: true, Idempotent: true, Tags: []string{"servers", "inventory", capabilityTagMCP}},
-		{Name: "rename_inventory_server", Description: "Set or clear the owner-chosen display name of one owned Node; runtime observations never overwrite it (techstack.inventory.write)", Endpoint: "/api/v1/inventory/servers/{serverId}", Method: "PATCH", Auth: true, Idempotent: true, Tags: []string{"servers", "inventory", capabilityTagMCP}},
+		{Name: "rename_inventory_server", Description: "Set or clear the owner-chosen display name of one owned Node; runtime observations never overwrite it (homelab.inventory.write)", Endpoint: "/api/v1/inventory/servers/{serverId}", Method: "PATCH", Auth: true, Idempotent: true, Tags: []string{"servers", "inventory", capabilityTagMCP}},
 		{Name: "get_inventory_server_health", Description: "Get freshness-qualified health for one owned Node", Endpoint: "/api/v1/inventory/servers/{serverId}/health", Method: "GET", Auth: true, Idempotent: true, Tags: []string{"servers", "inventory", capabilityTagMCP}},
 		{Name: "get_inventory_server_ports", Description: "Get desired, reserved, observed, exposed, and drift-qualified ports for one owned Node", Endpoint: "/api/v1/inventory/servers/{serverId}/ports", Method: "GET", Auth: true, Idempotent: true, Tags: []string{"servers", "inventory", capabilityTagMCP}},
 		{Name: "list_inventory_services", Description: "List owner-scoped sanitized service health and links", Endpoint: "/api/v1/inventory/services", Method: "GET", Auth: true, Idempotent: true, Tags: []string{"services", "inventory", capabilityTagMCP}},

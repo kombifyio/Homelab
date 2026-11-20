@@ -242,7 +242,7 @@
         creationScreenHref(
           process,
           run,
-          run.name || deployment?.name || wizardConfig.name || "Techstack",
+          run.name || deployment?.name || wizardConfig.name || "Homelab Runtime",
         ),
       );
     } catch (err) {

@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/agent/hostidentity"
-	"github.com/kombifyio/techstack/pkg/guardidentity"
+	"github.com/kombifyio/homelab/pkg/agent/hostidentity"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
 )
 
 func TestEnrollmentDiscardsRejectedCapabilityButRetainsTransientRecovery(t *testing.T) {
@@ -149,7 +149,7 @@ func tenantRebindFixture(t *testing.T, extra map[string]any) (*hostidentity.Mana
 	enrollment := map[string]any{
 		"runtime_agent_id": "worker_1", "tenant_id": "google-oauth2|1", "owner_id": "google-oauth2|1",
 		"agent_token":          "tsra.opaque.legacy",
-		"heartbeat_url":        "https://techstack.example/api/v1/workers/worker_1/heartbeat",
+		"heartbeat_url":        "https://homelab.example/api/v1/workers/worker_1/heartbeat",
 		"binding_signing_keys": []any{map[string]any{"key_id": "aaaaaaaaaaaaaaaa", "public_key": "legacy"}},
 		"channel_bootstrap":    map[string]any{"tenant_id": "google-oauth2|1", "owner_id": "google-oauth2|1"},
 	}

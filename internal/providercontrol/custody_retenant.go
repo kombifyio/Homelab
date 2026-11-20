@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 	"github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/pkg/vmleases"
 	"github.com/lib/pq"
 )
 
@@ -380,7 +380,7 @@ func validateLegacyManagedCustodyTx(
 		return refuse("the lease has revisions after its admission; only a first-revision lease is re-admitted")
 	case lease.cancelled || (lease.desiredState != string(vmlease.DesiredStateRunning) && lease.desiredState != string(vmlease.DesiredStateStopped)):
 		return refuse("the lease is cancelled or not live")
-	case lease.authority.String != string(ExecutionAuthorityTechstackProviderControl):
+	case lease.authority.String != string(ExecutionAuthorityHomelabProviderControl):
 		return refuse("the lease is not native provider-control custody")
 	case lease.serverID == "" || lease.generationID == "" || vmleases.ResourceGenerationID(decoded) != lease.generationID:
 		return refuse("the lease has no server or resource generation")
@@ -862,7 +862,7 @@ func (a *NativeAdmission) ReadmitArchivedManagedRuntime(ctx context.Context, req
 		return CustodyReadmission{}, err
 	}
 	record, created, err := a.ledger.beginOperationInTx(
-		ctx, tx, ExecutionAuthorityTechstackProviderControl, prepared.profileSnapshot,
+		ctx, tx, ExecutionAuthorityHomelabProviderControl, prepared.profileSnapshot,
 		prepared.provisionDispatch, prepared.command, prepared.initial, prepared.desiredSpec,
 	)
 	if err != nil {

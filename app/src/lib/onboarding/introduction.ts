@@ -1,5 +1,5 @@
 /**
- * The INTRODUCTION: onboarding phase one for Techstack.
+ * The INTRODUCTION: onboarding phase one for Homelab.
  *
  * Hints, not tasks. It runs once on the first visit, points at chrome that
  * already exists, and completes nothing — Getting started (phase two) is the
@@ -13,7 +13,7 @@
 import type { IntroductionStop } from "@kombiverselabs/ui/onboarding";
 
 /** Device-local, swept with the rest of the session on sign-out. */
-export const INTRODUCTION_STORAGE_KEY = "techstack-cache:introduction";
+export const INTRODUCTION_STORAGE_KEY = "homelab-cache:introduction";
 
 /**
  * Bumped when the stops change materially. A higher version is reachable
@@ -23,7 +23,7 @@ export const INTRODUCTION_STORAGE_KEY = "techstack-cache:introduction";
 export const INTRODUCTION_VERSION = 2;
 
 /** Fired by the user menu; the mounted host listens and starts. */
-export const INTRODUCTION_START_EVENT = "techstack-introduction-start";
+export const INTRODUCTION_START_EVENT = "homelab-introduction-start";
 
 export interface IntroductionRecord {
   /** Content version the user saw. An absent record means "never seen". */
@@ -37,7 +37,7 @@ export interface IntroductionRecord {
  * The stops. Anchors name elements that exist in the shell today; a stop whose
  * anchor never appears is skipped rather than shown pointing at nothing.
  */
-export const TECHSTACK_INTRODUCTION: IntroductionStop[] = [
+export const HOMELAB_INTRODUCTION: IntroductionStop[] = [
   {
     // The welcome is NOT a stop. It asks for the homelab's name, which is a
     // product decision written to stack identity, not a hint about chrome —
@@ -47,7 +47,7 @@ export const TECHSTACK_INTRODUCTION: IntroductionStop[] = [
     // single-item anchor puts the card in the strip beside the rail — exactly
     // where a hover flyout opens, which is the thing the copy asks the reader
     // to try. Anchoring the nav itself moves the card clear of that lane.
-    anchor: "techstack-nav",
+    anchor: "homelab-nav",
     placement: "below",
     messageId: "introduction.navigation.title",
     bodyMessageId: "introduction.navigation.body",
@@ -170,7 +170,7 @@ export function shouldAutoStartIntroduction(
  * principal — and the key sits in the sweep that clears on sign-out.
  */
 export const GETTING_STARTED_MINIMIZED_KEY =
-  "techstack-cache:getting-started-minimized";
+  "homelab-cache:getting-started-minimized";
 
 export function readGettingStartedMinimized(store = storage()): boolean {
   try {

@@ -20,7 +20,7 @@ import (
 var (
 	failureResolutionIDPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 	failureSignaturePattern    = regexp.MustCompile(`^[0-9a-f]{64}$`)
-	failureProcedurePattern    = regexp.MustCompile(`^(stackkits|techstack):[a-z0-9][a-z0-9._:/@#-]{1,199}$`)
+	failureProcedurePattern    = regexp.MustCompile(`^(stackkits|homelab):[a-z0-9][a-z0-9._:/@#-]{1,199}$`)
 
 	// ErrFailureOutcomeInvalid is a malformed outcome request.
 	ErrFailureOutcomeInvalid = errors.New("controlplane: invalid failure outcome")
@@ -82,7 +82,7 @@ func validateFailureOutcomeRequest(req *RecordFailureOutcomeRequest) error {
 	case !failureSignaturePattern.MatchString(req.Signature):
 		return fmt.Errorf("%w: signature is 64 lowercase hex characters", ErrFailureOutcomeInvalid)
 	case !failureProcedurePattern.MatchString(req.Procedure):
-		return fmt.Errorf("%w: procedure is <stackkits|techstack>:<procedure reference>", ErrFailureOutcomeInvalid)
+		return fmt.Errorf("%w: procedure is <stackkits|homelab>:<procedure reference>", ErrFailureOutcomeInvalid)
 	case req.JobID == "" || len(req.JobID) > 128:
 		return fmt.Errorf("%w: job_id names the job that ran the procedure", ErrFailureOutcomeInvalid)
 	}

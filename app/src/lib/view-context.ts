@@ -1,5 +1,5 @@
 /**
- * What the Techstack frame tells its host about the page the user is looking
+ * What the Homelab frame tells its host about the page the user is looking
  * at (`kombify.view-context.v1`). Inside kombify Cloud the Companion belongs to
  * the host page and cannot see the frame, so this is the only way it learns
  * which page and which object a question such as "check the error here" is
@@ -78,7 +78,7 @@ const MAX_TITLE = 120;
 const MAX_CODE = 64;
 const MAX_LABEL = 80;
 const MAX_FACTS = 16;
-const FALLBACK_TITLE = "Techstack";
+const FALLBACK_TITLE = "Homelab Runtime";
 
 // C0 and C1 controls plus the Unicode line and paragraph separators.
 const CONTROL_CHARS = new RegExp(
@@ -210,5 +210,5 @@ export function titleForRoute(pathname: string): string {
   }
   const segment = path.split("/").find(Boolean) ?? "";
   const words = segment.replace(/[^A-Za-z0-9]+/g, " ").trim();
-  return words ? `Techstack ${words}` : "Techstack";
+  return words ? `Homelab Runtime ${words}` : "Homelab Runtime";
 }

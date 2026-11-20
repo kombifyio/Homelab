@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // oidcHTTPClient is a pooled client for OIDC provider calls.
@@ -24,7 +24,7 @@ var oidcHTTPClient = &http.Client{
 var errCloudLinkStateInvalid = errors.New("cloud link state invalid")
 
 const (
-	envCloudClientSecretNext = "TECHSTACK_AUTH_CLOUD_CLIENT_SECRET_NEXT" //nolint:gosec // env var NAME, not a credential value
+	envCloudClientSecretNext = "HOMELAB_AUTH_CLOUD_CLIENT_SECRET_NEXT" //nolint:gosec // env var NAME, not a credential value
 	maxOIDCErrorBodyBytes    = 16 << 10
 )
 
@@ -40,8 +40,8 @@ type oidcUserInfo struct {
 // getCloudOIDCConfig reads cloud OIDC config from canonical environment custody.
 func getCloudOIDCConfig() (issuer, clientID, clientSecret string, err error) {
 	issuer = cloudIssuerFromEnv()
-	clientID = firstEnv("TECHSTACK_AUTH_CLOUD_CLIENT_ID", "AUTH0_CLIENT_ID")
-	clientSecret = firstEnv("TECHSTACK_AUTH_CLOUD_CLIENT_SECRET", "AUTH0_CLIENT_SECRET")
+	clientID = firstEnv("HOMELAB_AUTH_CLOUD_CLIENT_ID", "AUTH0_CLIENT_ID")
+	clientSecret = firstEnv("HOMELAB_AUTH_CLOUD_CLIENT_SECRET", "AUTH0_CLIENT_SECRET")
 
 	if issuer == "" || clientID == "" {
 		return "", "", "", fmt.Errorf("cloud_issuer and cloud_client_id are required")
@@ -192,7 +192,7 @@ func fetchUserInfo(reqCtx *http.Request, issuer, accessToken string) (*oidcUserI
 
 // handleOIDCLogout handles the OIDC logout callback.
 // In SaaS/Auth0 mode this clears the upstream Auth0 session and returns the
-// browser to the Techstack login entrypoint. If cloud logout is not configured,
+// browser to the Homelab login entrypoint. If cloud logout is not configured,
 // it falls back to the local login page instead of returning a 404.
 func handleRuntimeOIDCLogout() func(e *httpx.Event) error {
 	return func(e *httpx.Event) error {

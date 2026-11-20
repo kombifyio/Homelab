@@ -12,19 +12,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/advancedissuer"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/runtimeaction"
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/identity"
-	"github.com/kombifyio/techstack/pkg/originca"
-	"github.com/kombifyio/techstack/pkg/specv2"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/advancedissuer"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/runtimeaction"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/originca"
+	"github.com/kombifyio/homelab/pkg/specv2"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 //nolint:gocyclo // moved unchanged from deploy_handler.go
 func (r *deployRollout) runTypedStackKitApply(ctx context.Context) (map[string]interface{}, error) {
-	if r == nil || r.cfg == nil || r.cfg.StackKitCommander == nil || r.actionReq.TechStackEnrollment == nil {
+	if r == nil || r.cfg == nil || r.cfg.StackKitCommander == nil || r.actionReq.HomelabEnrollment == nil {
 		return nil, fmt.Errorf("typed StackKits deploy dispatcher is not configured")
 	}
 	release, err := TargetStackKitReleaseForStack(ctx, r.actionReq.TenantID, r.actionReq.StackID)
@@ -54,7 +54,7 @@ func (r *deployRollout) runTypedStackKitApply(ctx context.Context) (map[string]i
 		TenantID:          r.actionReq.TenantID,
 		OwnerID:           r.actionReq.OwnerID,
 		OwnerEmail:        stackOwnerEmail(r.job, r.actionReq.OwnerID),
-		AgentID:           r.actionReq.TechStackEnrollment.RuntimeAgentID,
+		AgentID:           r.actionReq.HomelabEnrollment.RuntimeAgentID,
 		NodeRef:           PrimaryStackKitNodeRef(r.unifiedSpec.StackKit),
 		OwnerApproved:     true,
 		WorkingDirectory:  workingDirectory,
@@ -72,7 +72,7 @@ func (r *deployRollout) runTypedStackKitApply(ctx context.Context) (map[string]i
 		ExpectedSpecHash: "",
 	}
 	if err := bindRolloutRetryCurrentIntent(r.job, &baseRequest, release.Receipt().Version, //nolint:govet // moved unchanged from deploy_handler.go
-		r.actionReq.TechStackEnrollment.LeaseID, r.actionReq.TechStackEnrollment.ServerID); err != nil {
+		r.actionReq.HomelabEnrollment.LeaseID, r.actionReq.HomelabEnrollment.ServerID); err != nil {
 		return nil, err
 	}
 	var trustAdmission advancedTrustAdmission
@@ -169,7 +169,7 @@ func (r *deployRollout) runTypedStackKitApply(ctx context.Context) (map[string]i
 
 // managedOriginCertificate returns the origin certificate hook of a managed
 // kombify.me rollout, nil for every other rollout. A managed kombify.me
-// rollout without the certificate service fails closed: Advanced Techstack
+// rollout without the certificate service fails closed: Advanced Homelab
 // rollouts never fall back to an ACME order for these routes. A node whose
 // release predates ADR-0047 renders its own ACME router and has nothing to
 // install, so the hook is skipped there instead of dispatching an operation
@@ -727,7 +727,7 @@ func typedStackKitPlanBinding(result *agentpb.StackKitResult, requireSpecHash bo
 }
 
 func (r *deployRollout) runTypedStackKitVerify(ctx context.Context) (map[string]interface{}, error) {
-	if r == nil || r.cfg == nil || r.cfg.StackKitCommander == nil || r.actionReq.TechStackEnrollment == nil {
+	if r == nil || r.cfg == nil || r.cfg.StackKitCommander == nil || r.actionReq.HomelabEnrollment == nil {
 		return nil, fmt.Errorf("typed StackKits verify dispatcher is not configured")
 	}
 	release, err := TargetStackKitReleaseForStack(ctx, r.actionReq.TenantID, r.actionReq.StackID)
@@ -745,7 +745,7 @@ func (r *deployRollout) runTypedStackKitVerify(ctx context.Context) (map[string]
 		StackID:          r.job.TargetID,
 		TenantID:         r.actionReq.TenantID,
 		OwnerID:          r.actionReq.OwnerID,
-		AgentID:          r.actionReq.TechStackEnrollment.RuntimeAgentID,
+		AgentID:          r.actionReq.HomelabEnrollment.RuntimeAgentID,
 		NodeRef:          PrimaryStackKitNodeRef(r.unifiedSpec.StackKit),
 		Operation:        StackKitLifecycleVerify,
 		WorkingDirectory: defaultStackKitNodeWorkspace,

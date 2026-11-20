@@ -9,7 +9,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/tenantdb"
+	"github.com/kombifyio/homelab/internal/gocommon/tenantdb"
 )
 
 const householdProjectionColumns = `tenant_id, owner_subject_id, cloud_subject, revision, action, effect_digest,

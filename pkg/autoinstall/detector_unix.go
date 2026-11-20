@@ -336,7 +336,7 @@ func (d *detector) downloadFile(ctx context.Context, url string) (string, error)
 		return "", fmt.Errorf("download failed: HTTP %d", resp.StatusCode)
 	}
 
-	tmpFile, err := os.CreateTemp("", "techstack-*.tmp")
+	tmpFile, err := os.CreateTemp("", "homelab-*.tmp")
 	if err != nil {
 		return "", err
 	}

@@ -9,13 +9,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/jobs"
 )
 
 const (
-	provisionIdempotencySchema        = "techstack/provision-idempotency/v1"
-	deployIdempotencySchema           = "techstack/deploy-idempotency/v1"
+	provisionIdempotencySchema        = "homelab/provision-idempotency/v1"
+	deployIdempotencySchema           = "homelab/deploy-idempotency/v1"
 	deployIdempotencyReceiptResultKey = "deploy_idempotency"
 )
 

@@ -1,7 +1,7 @@
 /**
- * kombify-TechStack API - Jobs Module
+ * kombify-Homelab API - Jobs Module
  *
- * Job management and tracking through the TechStack BFF.
+ * Job management and tracking through the Homelab BFF.
  */
 
 import { fetchApi, API_BASE } from "./client";

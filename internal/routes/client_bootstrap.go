@@ -5,10 +5,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/db"
-	"github.com/kombifyio/techstack/pkg/fulllocal"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/db"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // clientBootstrapSentry is the browser Sentry section of the bootstrap payload.
@@ -81,7 +81,7 @@ func RegisterClientBootstrapRoutes(r *httpx.Router, version string, edition conf
 				Sentry: clientBootstrapSentry{
 					DSN:         firstNonEmptyEnv("PUBLIC_SENTRY_DSN", "SENTRY_DSN_FRONTEND"),
 					Environment: firstNonEmptyEnv("PUBLIC_SENTRY_ENVIRONMENT", "SENTRY_ENVIRONMENT"),
-					Release:     firstNonEmptyEnv("PUBLIC_SENTRY_RELEASE", "SENTRY_RELEASE", "TECHSTACK_RELEASE", "RENDER_GIT_COMMIT", "GIT_COMMIT"),
+					Release:     firstNonEmptyEnv("PUBLIC_SENTRY_RELEASE", "SENTRY_RELEASE", "HOMELAB_RELEASE", "RENDER_GIT_COMMIT", "GIT_COMMIT"),
 				},
 				PostHog: clientBootstrapPostHog{
 					Key:         firstNonEmptyEnv("PUBLIC_POSTHOG_KEY"),

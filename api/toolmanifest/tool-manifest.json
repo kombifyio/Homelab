@@ -1,7 +1,7 @@
 {
   "schema_version": "kombify.tool-manifest/v1",
-  "product": "techstack",
-  "capability": "techstack.inventory.read",
+  "product": "homelab",
+  "capability": "homelab.inventory.read",
   "mcp": {
     "transport": "streamable-http",
     "endpoint": "/api/v1/mcp",
@@ -12,7 +12,7 @@
       "name": "abandon_stale_stack_job",
       "title": "Abandon stale rollout",
       "description": "Releases the execution claim of one stale rollout job of an owned stack so that the stack can be retried with `retry-rollout`. Only a job that stopped reporting can be abandoned; any other job answers 409 `abandon_job_conflict` with the guard that refused. The body is empty and no command is sent to a server.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "abandonStaleStackJob",
       "http": {
         "method": "POST",
@@ -77,7 +77,7 @@
       "name": "abort_workload_relocation",
       "title": "Abort workload relocation",
       "description": "Stops a relocation that has not finished and resumes the workloads on the source server, whose data was kept. The body must carry `owner_approved: true`. A relocation that already moved cannot be aborted (409), and an abort stays fenced until the nodes verify the state.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "abortWorkloadRelocation",
       "http": {
         "method": "POST",
@@ -148,7 +148,7 @@
       "name": "add_managed_runtime_server",
       "title": "Add one managed Node through native provider control",
       "description": "Creates or resumes one deterministic Add-Server job for the exact owned StackKit deployment. The standard `Idempotency-Key` is mandatory. Replaying the same key with the same canonical request returns the original job, lease, runtime-server, resource-generation, and provider-operation correlations; reusing it with different intent fails with 409. The raw key is never persisted or returned. A lost response or an uncertain native-admission outcome remains resumable only with the same key. HTTP acceptance means native admission is durable and provider reconciliation is pending; it never claims that the VM is already provisioned or healthy. Fresh admission atomically reserves the authenticated tenant/owner capacity slot with the lease generation and provider operation. When authoritative native admission finds that bounded capacity full, it persists a non-retryable 403 outcome and replaying that denied job returns the same outcome. Exact replays of an already committed admission reuse its existing reservation. This version has no automatic reservation release: terminal or local decommission state alone does not free a slot. Lease inventory and feature-delivery flags never authorize or deny capacity. Hosted fresh admission also requires the v2-signed commercial runtime and provider entitlements plus the signed `cloud.runtime.credits` `managed_servers` mode/limit decision; feature flags alone never grant provider capacity. Self-host OSS uses its construction-fixed static release-manifest policy instead of a SaaS entitlement dependency.",
-      "requiredCapability": "techstack.inventory.provision",
+      "requiredCapability": "homelab.inventory.provision",
       "operationId": "addManagedRuntimeServer",
       "http": {
         "method": "POST",
@@ -313,7 +313,7 @@
       "name": "analyze_spec",
       "title": "Analyze spec to get requirements (Phase 1)",
       "description": "Safe, idempotent. Returns hardware requirements, detected add-ons, required credentials.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "analyzeSpec",
       "http": {
         "method": "POST",
@@ -342,7 +342,7 @@
       "name": "apply_onboarding_action",
       "title": "Apply onboarding action",
       "description": "Applies one closed action (complete, skip, dismiss, resume or coach_seen) to the authenticated owner's progress in a journey and answers the resolved journey, state, step availability and revision. Steps that spend money complete only from server facts: a reported completion of such a step is refused with 403 `onboarding_derived_only`. A repeated action is a no-op, and a stale `If-Match` revision answers 412.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "applyOnboardingAction",
       "http": {
         "method": "PUT",
@@ -366,7 +366,7 @@
             "type": "string"
           },
           "journey_id": {
-            "description": "Journey id, for example `techstack.platform`.",
+            "description": "Journey id, for example `homelab.platform`.",
             "minLength": 1,
             "type": "string"
           },
@@ -379,7 +379,7 @@
             "type": "string"
           },
           "step_id": {
-            "description": "Required for complete, skip and coach_seen, for example `techstack.add_server`.",
+            "description": "Required for complete, skip and coach_seen, for example `homelab.add_server`.",
             "type": "string"
           }
         },
@@ -533,7 +533,7 @@
       "name": "approve_worker",
       "title": "Approve pending worker",
       "description": "Approve pending worker",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "approveWorker",
       "http": {
         "method": "POST",
@@ -563,7 +563,7 @@
       "name": "approve_worker_identity_upgrade",
       "title": "Approve the key a legacy server proposed",
       "description": "Binds the pending key named by `key_thumbprint`, which makes the worker key-bound (bearer-only requests are denied afterwards). Requires the owner and a fresh multi-factor sign-in (at most 300 seconds old). The approving subject and time are recorded with the identity and logged. 409 `identity_upgrade_not_pending` when no unexpired pending key has that fingerprint.",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "approveWorkerIdentityUpgrade",
       "http": {
         "method": "POST",
@@ -654,7 +654,7 @@
       "name": "assign_worker_to_stack",
       "title": "Assign server to stack",
       "description": "Binds one approved, connected worker of the owner to one owned stack through the canonical server runtime. A worker that is not approved yet, or that already belongs to another stack, answers 409; assigning it to the stack it already belongs to is a no-op. The body is empty.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "assignWorkerToStack",
       "http": {
         "method": "POST",
@@ -704,8 +704,8 @@
     {
       "name": "attach_home_assistant_owner",
       "title": "Attach Home Assistant to its owner",
-      "description": "Binds the instance's endpoint and the long-lived access token held in the Wallet item `token_wallet_item_id` (a kombify Wallet item assigned to Techstack, or a built-in wallet API key or OAuth token item whose URL names this instance; resolved inside Techstack, never answered; this contract accepts no token) to a pending owner enrollment of an owned stack, with the lifecycle grants and baseline settings the owner chooses. The token is stored encrypted and an existing attachment is never overwritten (409 `attachment_rejected`). Self-hosted installs only (503 otherwise).",
-      "requiredCapability": "techstack.inventory.write",
+      "description": "Binds the instance's endpoint and the long-lived access token held in the Wallet item `token_wallet_item_id` (a kombify Wallet item assigned to Homelab, or a built-in wallet API key or OAuth token item whose URL names this instance; resolved inside Homelab, never answered; this contract accepts no token) to a pending owner enrollment of an owned stack, with the lifecycle grants and baseline settings the owner chooses. The token is stored encrypted and an existing attachment is never overwritten (409 `attachment_rejected`). Self-hosted installs only (503 otherwise).",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "attachHomeAssistantOwner",
       "http": {
         "method": "POST",
@@ -812,7 +812,7 @@
       "name": "backup_home_assistant",
       "title": "Back up Home Assistant",
       "description": "Runs a native full backup through the instance binding, stores it encrypted off the instance and retains the recovery key in custody. Requires an owned instance binding with the backup grant. `operation_id` is a stable identity: repeating it returns the retained result instead of a second backup. A pending operation answers 202.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "backupHomeAssistantInstance",
       "http": {
         "method": "POST",
@@ -852,7 +852,7 @@
       "name": "cancel_scan",
       "title": "Cancel running scan",
       "description": "Cancel running scan",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "cancelScan",
       "http": {
         "method": "POST",
@@ -890,7 +890,7 @@
       "name": "cancel_server_maintenance_job",
       "title": "Cancel a queued maintenance job",
       "description": "Uses the same tenant, entitlement, server and requesting-owner scope as the job read: the authority to withdraw a queued job is the person who owns the server and requested the job, and the person's agent acts with it. No delegated maintenance origin is needed, since cancelling only withdraws work that has not reached the server. Cancellation and execution claim use the same queued-state compare-and-set. Repeating a successful cancellation returns its receipt; a claimed or finished job returns maintenance_not_cancellable. Cancelling never claims to stop a command that has already reached the server.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "cancelServerMaintenanceJob",
       "http": {
         "method": "POST",
@@ -1170,7 +1170,7 @@
       "name": "check_drift",
       "title": "Trigger drift check",
       "description": "Rate limited to once per 5 minutes (unless force=true)",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "checkDrift",
       "http": {
         "method": "POST",
@@ -1218,7 +1218,7 @@
       "name": "clear_discovery_cache",
       "title": "Clear discovery cache (self-hosted owner only)",
       "description": "Clear discovery cache (self-hosted owner only)",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "clearDiscoveryCache",
       "http": {
         "method": "DELETE",
@@ -1251,7 +1251,7 @@
       "name": "configure_use_case",
       "title": "Configure use case",
       "description": "Authors a native configuration change for one installed catalog workload (compute, storage and accelerator profiles, public settings, secret references) against the baseline named by `expected_spec_hash`, saves the candidate and queues the StackKit lifecycle jobs that apply it. The `Idempotency-Key` makes a retry replay the original acceptance. Refused with 409 while the stack is busy, a service is locked, a server is in maintenance, or the baseline changed.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "configureUseCase",
       "http": {
         "method": "POST",
@@ -1376,7 +1376,7 @@
       "name": "confirm_home_assistant_cutover",
       "title": "Confirm Home Assistant cutover",
       "description": "Delivers the explicit cutover confirmation to a migration run that is waiting for it. The run then stops the source, moves the exclusive attachments to the target and starts it; the original and its archive are retained and the migration can be returned with the rollback call. Answers 400 when the run is not awaiting confirmation and 404 for a run the caller does not own.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "confirmHomeAssistantMigration",
       "http": {
         "method": "POST",
@@ -1424,8 +1424,8 @@
     {
       "name": "create_action_card",
       "title": "Create action card",
-      "description": "Stores a card that describes one approved-action primitive, its target and its evidence sink for the authenticated owner. The card starts as `awaiting_grant` (no `grant` given) or `awaiting_approval` and runs nothing until it is approved and executed. An executor-bound primitive (`check-backup`, `run-backup`, `start-service`, `stop-service`, `restart-service`, `update-service`, `verify-stackkit-state`) takes its contract hash from the stack's pinned StackKits release. The caller names only its target scope and the input that selects the target (the `runtime-instance-ref` service key of a start, stop, restart or update); Techstack derives every target ref (server, StackKits node, current worker) and the derived inputs (an adopted application's exact container `application-ref`, the update's target release, the backup contract) from fresh inventory and refuses a supplied ref that differs. It requires the card's connector binding, which must carry the primitive's grant scope when the card executes; it carries no grant, waits in `awaiting_approval` and cannot be approved by a person: its one Gateway Decision is answered by the acting agent's equipment when it is executed. The body is decoded strictly and must stay under 64 KiB.",
-      "requiredCapability": "techstack.inventory.write",
+      "description": "Stores a card that describes one approved-action primitive, its target and its evidence sink for the authenticated owner. The card starts as `awaiting_grant` (no `grant` given) or `awaiting_approval` and runs nothing until it is approved and executed. An executor-bound primitive (`check-backup`, `run-backup`, `start-service`, `stop-service`, `restart-service`, `update-service`, `verify-stackkit-state`) takes its contract hash from the stack's pinned StackKits release. The caller names only its target scope and the input that selects the target (the `runtime-instance-ref` service key of a start, stop, restart or update); Homelab derives every target ref (server, StackKits node, current worker) and the derived inputs (an adopted application's exact container `application-ref`, the update's target release, the backup contract) from fresh inventory and refuses a supplied ref that differs. It requires the card's connector binding, which must carry the primitive's grant scope when the card executes; it carries no grant, waits in `awaiting_approval` and cannot be approved by a person: its one Gateway Decision is answered by the acting agent's equipment when it is executed. The body is decoded strictly and must stay under 64 KiB.",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "createRILActionCard",
       "http": {
         "method": "POST",
@@ -1706,8 +1706,8 @@
     {
       "name": "create_install_command",
       "title": "Create a server install command",
-      "description": "Answers the Linux (and, outside the LAN bridge, Windows) command that installs and enrolls a new server through the current registry URL. Techstack mints the one-time pairing token the command carries (15 minutes) and answers its id and expiry; the token is never an argument. With mode reinstall-guard it answers the Linux command for a server whose Guard update state is reinstall_required: run as root on that server, it installs the current Guard in place and keeps the enrollment and identity key unchanged. The token then only downloads the Guard and is never redeemed.",
-      "requiredCapability": "techstack.inventory.write",
+      "description": "Answers the Linux (and, outside the LAN bridge, Windows) command that installs and enrolls a new server through the current registry URL. Homelab mints the one-time pairing token the command carries (15 minutes) and answers its id and expiry; the token is never an argument. With mode reinstall-guard it answers the Linux command for a server whose Guard update state is reinstall_required: run as root on that server, it installs the current Guard in place and keeps the enrollment and identity key unchanged. The token then only downloads the Guard and is never redeemed.",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "createInstallCommand",
       "http": {
         "method": "POST",
@@ -1763,7 +1763,7 @@
       "name": "create_pairing_token",
       "title": "Create pairing token for worker registration",
       "description": "Create pairing token for worker registration",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "createPairingToken",
       "http": {
         "method": "POST",
@@ -1806,8 +1806,8 @@
     {
       "name": "create_stack",
       "title": "Create a StackKit deployment in the owner's Homelab",
-      "description": "Creates an internal StackKit deployment under the authenticated B2C owner's singleton Homelab from the canonical StackKits stack-spec payload supplied as `stack_spec`. The legacy `/stacks` route and `stack_id` response field identify that deployment; they do not create or select a second Homelab product. One TechStack instance can serve many owners, each with their own Homelab. Legacy `user_config`/kombination payloads remain accepted at this compatibility boundary. Wizard clients should send a stable `X-Idempotency-Key`; retries with the same key and payload return the original deployment, planned server, and provisioning job.",
-      "requiredCapability": "techstack.inventory.provision",
+      "description": "Creates an internal StackKit deployment under the authenticated B2C owner's singleton Homelab from the canonical StackKits stack-spec payload supplied as `stack_spec`. The legacy `/stacks` route and `stack_id` response field identify that deployment; they do not create or select a second Homelab product. One Homelab instance can serve many owners, each with their own Homelab. Legacy `user_config`/kombination payloads remain accepted at this compatibility boundary. Wizard clients should send a stable `X-Idempotency-Key`; retries with the same key and payload return the original deployment, planned server, and provisioning job.",
+      "requiredCapability": "homelab.inventory.provision",
       "operationId": "createStack",
       "http": {
         "method": "POST",
@@ -1959,7 +1959,7 @@
       "name": "create_substrate_appliance",
       "title": "Create a Home Assistant appliance on a substrate",
       "description": "Reserves a guest on a bound substrate (the owner's own Proxmox host, customer custody, local billing, nothing billed by kombify) and submits its creation; the guest is not yet assessed as running (`application_status` is `authenticated_check_pending`). Only the `haos` profile and a placement on this substrate are accepted. The substrate binding must be enabled and its Guard inventory current, and the stack must be owned by the caller. Replaying the same intent with the same Idempotency-Key returns the same guest; a changed intent or a different key for the same stack and node answers 409 `appliance_not_admitted`.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "createSubstrateAppliance",
       "http": {
         "method": "POST",
@@ -2120,8 +2120,8 @@
     {
       "name": "create_wallet_item",
       "title": "Add wallet item",
-      "description": "Creates a wallet item owned by the caller in the resolved tenant and returns it redacted. The server assigns the id. `secret` and `totp` values are entered by the person in the Wallet and are not part of this contract; an item created here has no secret until the person adds one, and a secret can never be read back through this API without the person's fresh re-authentication. Only deployments that keep credentials in Techstack's own Wallet serve this route; elsewhere it answers 409 `self_hosted_only`.",
-      "requiredCapability": "techstack.inventory.write",
+      "description": "Creates a wallet item owned by the caller in the resolved tenant and returns it redacted. The server assigns the id. `secret` and `totp` values are entered by the person in the Wallet and are not part of this contract; an item created here has no secret until the person adds one, and a secret can never be read back through this API without the person's fresh re-authentication. Only deployments that keep credentials in Homelab's own Wallet serve this route; elsewhere it answers 409 `self_hosted_only`.",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "createWalletItem",
       "http": {
         "method": "POST",
@@ -2253,7 +2253,7 @@
       "name": "create_wizard_run",
       "title": "Run creation wizard",
       "description": "Persists one wizard run for the authenticated owner. A found run creates the deployment and its first server, a join run adds a Node and an extend run adds use cases; the first run in a Homelab founds it and later first-run requests are coerced to expansions. The kombify-cloud transport orders a billed managed server, the hypervisor transport creates a guest on the owner's hypervisor and connect-remote enrolls over SSH. Join, extend, managed and hypervisor runs require `X-Idempotency-Key`; a replay with the same key and request returns the original outcome.",
-      "requiredCapability": "techstack.inventory.provision",
+      "requiredCapability": "homelab.inventory.provision",
       "operationId": "createWizardRun",
       "http": {
         "method": "POST",
@@ -2264,7 +2264,7 @@
         "properties": {
           "intent": {
             "additionalProperties": false,
-            "description": "Closed wizard intent (techstack.wizard-intent/v1). The backend projects it onto the pinned StackKits kit seed; owner identity never travels here.",
+            "description": "Closed wizard intent (homelab.wizard-intent/v1). The backend projects it onto the pinned StackKits kit seed; owner identity never travels here.",
             "properties": {
               "access": {
                 "additionalProperties": false,
@@ -2419,7 +2419,7 @@
                 "type": "string"
               },
               "schema": {
-                "const": "techstack.wizard-intent/v1",
+                "const": "homelab.wizard-intent/v1",
                 "type": "string"
               },
               "server": {
@@ -2906,7 +2906,7 @@
       "name": "decommission_monthly_runtime",
       "title": "Decommission a monthly runtime lease",
       "description": "Decommission a monthly runtime lease",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "decommissionMonthlyRuntime",
       "http": {
         "method": "POST",
@@ -3083,7 +3083,7 @@
       "name": "delete_drift_result",
       "title": "Delete drift result",
       "description": "Delete drift result",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "deleteDriftResult",
       "http": {
         "method": "DELETE",
@@ -3121,7 +3121,7 @@
       "name": "delete_pairing_token",
       "title": "Delete pairing token",
       "description": "Delete pairing token",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "deletePairingToken",
       "http": {
         "method": "DELETE",
@@ -3151,7 +3151,7 @@
       "name": "delete_registry_service",
       "title": "Delete archived service copy",
       "description": "Removes the registry row of a service copy that a finished move left in the archived state. Any other status is refused with 409; no workload or server is touched. The canonical inventory store currently answers 503 `service_control_server_fence_unavailable`.",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "deleteRegistryService",
       "http": {
         "method": "DELETE",
@@ -3195,8 +3195,8 @@
     {
       "name": "delete_wallet_item",
       "title": "Delete wallet item",
-      "description": "Deletes an item the caller owns, including its encrypted secret and TOTP. An item owned by someone else answers 404. Only deployments that keep credentials in Techstack's own Wallet serve this route; elsewhere it answers 409 `self_hosted_only`.",
-      "requiredCapability": "techstack.inventory.operate",
+      "description": "Deletes an item the caller owns, including its encrypted secret and TOTP. An item owned by someone else answers 404. Only deployments that keep credentials in Homelab's own Wallet serve this route; elsewhere it answers 409 `self_hosted_only`.",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "deleteWalletItem",
       "http": {
         "method": "DELETE",
@@ -3237,7 +3237,7 @@
       "name": "deploy_stack",
       "title": "Roll out one StackKit deployment (unify + IaC + tofu apply)",
       "description": "Roll out one StackKit deployment (unify + IaC + tofu apply)",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "deployStack",
       "http": {
         "method": "POST",
@@ -3281,7 +3281,7 @@
       "name": "destroy_stack",
       "title": "Decommission one StackKit deployment and its infrastructure",
       "description": "Removes the stack through its nodes: StackKits removes every applied workload on the server that runs it, then the control plane releases the stack. When a server holding the stack was deleted, the node cannot answer; the request is then refused with `server_absence_confirmation_required` and the offline servers, and is sent again with `offline_removal.confirm_server_ids` naming exactly those servers. The control plane accepts that confirmation only for a server it can prove offline (no heartbeat for longer than the stale window), without a lease and not operated by kombify or a provider: leased and provider-operated servers are proven absent by their provider. A confirmed server is never dispatched to; its agent credential is revoked and the server is retired. A server that reported recently is removed through its node.",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "destroyStack",
       "http": {
         "method": "POST",
@@ -3346,7 +3346,7 @@
       "name": "detach_self_owned_server",
       "title": "Revoke and detach one exact customer-operated BYO server",
       "description": "Retains the terminal canonical server receipt and performs no provider API call.",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "detachSelfOwnedServer",
       "http": {
         "method": "POST",
@@ -3398,7 +3398,7 @@
             "type": "string"
           },
           "wallet_withdrawal": {
-            "description": "Present when a kombify Wallet is configured. For the items Techstack delivered to the server, the Wallet drops its node from their host targets and marks those it holds as needing rotation. A failure never undoes the detach; detaching again retries it.",
+            "description": "Present when a kombify Wallet is configured. For the items Homelab delivered to the server, the Wallet drops its node from their host targets and marks those it holds as needing rotation. A failure never undoes the detach; detaching again retries it.",
             "properties": {
               "items_need_rotation": {
                 "minimum": 0,
@@ -3451,7 +3451,7 @@
       "name": "detect_addons",
       "title": "Auto-detect applicable add-ons for a spec",
       "description": "Auto-detect applicable add-ons for a spec",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "detectAddons",
       "http": {
         "method": "POST",
@@ -3480,7 +3480,7 @@
       "name": "disable_monthly_runtime_ssh",
       "title": "Disable owner SSH access for this generation",
       "description": "Removes every owner-authorized key from the node while keeping Kombify's execution-channel key, and records the disabled grant so new owner keys are refused until SSH is enabled again.",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "disableMonthlyRuntimeSSH",
       "http": {
         "method": "POST",
@@ -3642,8 +3642,8 @@
     {
       "name": "dismiss_notification",
       "title": "Dismiss notification",
-      "description": "Removes one item from the authenticated user's notification feed. Techstack signs the call to the notifications engine for the authenticated user, so only that user's own items can be dismissed; an unknown item answers 404. The engine's answer is passed through unchanged and is not wrapped in the `data` envelope.",
-      "requiredCapability": "techstack.inventory.write",
+      "description": "Removes one item from the authenticated user's notification feed. Homelab signs the call to the notifications engine for the authenticated user, so only that user's own items can be dismissed; an unknown item answers 404. The engine's answer is passed through unchanged and is not wrapped in the `data` envelope.",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "dismissNotification",
       "http": {
         "method": "POST",
@@ -3684,7 +3684,7 @@
       "name": "dismiss_wizard_run",
       "title": "Dismiss wizard run notice",
       "description": "Hides the dashboard notice of one of the authenticated owner's wizard runs on every device. The run's job is not touched; cancelling is a separate operation. An unknown or foreign run answers 404.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "dismissWizardRun",
       "http": {
         "method": "POST",
@@ -3731,7 +3731,7 @@
       "name": "enable_monthly_runtime_ssh",
       "title": "Enable owner SSH access for this generation",
       "description": "Re-enables the generation-bound owner SSH grant over the pinned execution channel and reinstalls the keys the owner authorized for this generation. New keys are authorized only through the re-authenticated server access route.",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "enableMonthlyRuntimeSSH",
       "http": {
         "method": "POST",
@@ -3894,7 +3894,7 @@
       "name": "enrich_scan",
       "title": "Enrich scan results with additional data",
       "description": "Enrich scan results with additional data",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "enrichScan",
       "http": {
         "method": "POST",
@@ -3983,7 +3983,7 @@
       "name": "ensure_stack_routing",
       "title": "Ensure the desired routing overlay for one exact StackKit deployment and Node",
       "description": "Atomically persists an idempotent, revisioned routing overlay without mutating the user's immutable intent. server_id is always exact and mandatory. lease_id is mandatory for managed runtimes and omitted for a local/Basement runtime which has no lease. For a managed target, a true ensure_rollout request dispatches the existing deploy pipeline only after proving that its selected active foundation lease and canonical Node equal this exact target. The API never reports the resulting job as already applied. The overlay is consumed only while deriving StackKits artifacts and this path never creates or selects a replacement VM.",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "ensureStackRouting",
       "http": {
         "method": "PUT",
@@ -4112,7 +4112,7 @@
             "type": "object"
           },
           "server_id": {
-            "description": "Exact canonical ServerRuntime target belonging to the stack and owner. For a managed lease this is the server_id exposed by the operations/ worker projection. If that read-model row is not present yet, TechStack may create only this deterministic ID from the validated exact lease.",
+            "description": "Exact canonical ServerRuntime target belonging to the stack and owner. For a managed lease this is the server_id exposed by the operations/ worker projection. If that read-model row is not present yet, Homelab may create only this deterministic ID from the validated exact lease.",
             "minLength": 1,
             "type": "string"
           },
@@ -4364,7 +4364,7 @@
       "name": "execute_action_card",
       "title": "Execute action card",
       "description": "Starts the durable workflow of a card that the owner approved and that holds a live grant, after checking that the caller may operate the card's server. An executor-bound card first files its one Gateway Decision, which the acting agent's equipment answers at once (an owner's Deny or standing exclusion refuses it), and is admitted against fresh inventory and the server's lifecycle authority (its VM lease, or the owner's own admitted server). `execution_id`, `trace_id` and `idempotency_key` bind one execution; repeating them returns the stored result. A card of operation class `drift-correction` also needs `compensation_card_id`, any other card must not send it. A missing approval or grant, an expired grant and a connector binding that does not match answer 403 or 409 with a stable `reason_code`.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "executeRILActionCard",
       "http": {
         "method": "POST",
@@ -4509,7 +4509,7 @@
       "name": "execute_application_adoption",
       "title": "Execute the exact reviewed source plan with explicit Owner approval",
       "description": "Revalidates the retained digest, source identity, revision and release. Only an authenticated pinned-CLI custody receipt establishes membership. Accounts, configuration and persistent data are preserved; no new runtime is created for adopt_in_place. Mode stack_it executes the reviewed own-application plan digest. Moving to another Node is not supported.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "executeApplicationAdoption",
       "http": {
         "method": "POST",
@@ -4611,8 +4611,8 @@
     {
       "name": "execute_own_application_operation",
       "title": "Approve one reviewed own application change",
-      "description": "Runs exactly the step a completed dry run reviewed, at most 15 minutes after it completed and only once per review (start, stop, restart, rollback, tag update, checkpoint rollback or checkpoint discard) with its review digest. Techstack issues the own-application.lifecycle capability for this application, action, operation and review digest (at most 15 minutes); the node refuses any other. A tag update re-resolves the tag, checkpoints the data, verifies and rolls image and data back on failure. Requires Owner approval.",
-      "requiredCapability": "techstack.inventory.write",
+      "description": "Runs exactly the step a completed dry run reviewed, at most 15 minutes after it completed and only once per review (start, stop, restart, rollback, tag update, checkpoint rollback or checkpoint discard) with its review digest. Homelab issues the own-application.lifecycle capability for this application, action, operation and review digest (at most 15 minutes); the node refuses any other. A tag update re-resolves the tag, checkpoints the data, verifies and rolls image and data back on failure. Requires Owner approval.",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "executeOwnApplicationOperation",
       "http": {
         "method": "POST",
@@ -4707,7 +4707,7 @@
       "name": "export_stack",
       "title": "Export stack as stack-spec.yaml",
       "description": "Returns StackKits stack-spec YAML or JSON depending on Accept header",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "exportStack",
       "http": {
         "method": "GET",
@@ -4761,7 +4761,7 @@
       "name": "get_action_card",
       "title": "Get action card",
       "description": "Returns the card with its status, approval receipt, execution identity and public-safe evidence. This is the polling surface of a card started through `execute_action_card` or a managed `start`, `stop`, `restart`, `update` or `backup` (`run_managed_service_action` returns its id as `action_card_id`). A failed `check-backup` card (the same check for every kit) carries `user_guidance`: what is missing on the server (no backup set up, no backup source on this server, repository not ready, no verified snapshot yet) and how to set it up.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getRILActionCard",
       "http": {
         "method": "GET",
@@ -4890,7 +4890,7 @@
       "name": "get_action_step_receipt",
       "title": "Get action step receipt",
       "description": "Returns the authenticated owner's terminal card receipt: execution and completion counts from the append-only transition audit, verification readback, wrapped public-safe evidence and the approval receipt hash and Gateway Decision id. A foreign card id answers like an unknown one. A non-terminal card or a card without persisted evidence or approval returns 409; older cards are not backfilled. Query parameters are refused. The response is private and must not be cached.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getRILActionStepReceipt",
       "http": {
         "method": "GET",
@@ -4917,7 +4917,7 @@
             "type": "string"
           },
           "api_version": {
-            "const": "techstack.ril-action-step-receipt/v1",
+            "const": "homelab.ril-action-step-receipt/v1",
             "type": "string"
           },
           "approval": {
@@ -5284,7 +5284,7 @@
       "name": "get_agent",
       "title": "Get agent by ID with resources",
       "description": "Get agent by ID with resources",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getAgent",
       "http": {
         "method": "GET",
@@ -5314,7 +5314,7 @@
       "name": "get_agent_logs",
       "title": "Get recent agent logs",
       "description": "Get recent agent logs",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getAgentLogs",
       "http": {
         "method": "GET",
@@ -5344,7 +5344,7 @@
       "name": "get_availability_report",
       "title": "Availability, downtime episodes and daily state, derived from the transition timeline",
       "description": "A projection over the append-only server transition timeline rather than a sampler: every episode is bounded by two recorded transitions and carries the reason codes they were written with. The response publishes its own accounting vocabulary, so a reader can see which connection states were counted as downtime without reading the source.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getAvailabilityReport",
       "http": {
         "method": "GET",
@@ -5605,7 +5605,7 @@
       "name": "get_available_updates",
       "title": "Read available updates",
       "description": "Per visible server: the operating-system update facts the Guard reports and every service with a newer version. A service whose `update_mode` is `stackkit_upgrade` is updated with the service `update` action (`run_managed_service_action`): the governed upgrade of its stack's StackKits release, which keeps a restore point, verifies the target live and automatically returns to the previous release when that verification fails. All managed services of one server share that release, so one `update` of any of them updates them all; get_job reads its `update_outcome`. `adopt_required` services must be adopted first. A service whose version was not compared is counted in `not_compared`, never reported as up to date. A StackKits-managed application also carries the verified application release feed facts: `application_update` (a security fix in every setting, else the newest checked version; the `update` action with `version` and `digest` moves only that application and get_job reads its `application_update_outcome`), `bundled` (arrives with a StackKits release), `advisories`, `security_fix`, and `not_verified` / `vulnerable` per server.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getInventoryUpdates",
       "http": {
         "method": "GET",
@@ -5933,7 +5933,7 @@
       "name": "get_backup_status",
       "title": "Read backup health and failures",
       "description": "Answers \"why is my backup failing\". Per visible server: the Guard-observed freshness of the newest snapshot (`state`, `reason_code`, `last_snapshot_at`), the restore drill, the stack's backup schedule and off-site store, the outcome per day, and the newest finished and the newest failed backup job with the step it stopped in and the error it recorded (`last_failure`). A fresh snapshot never proves a restore works; the restore drill says that. Nothing runs on the node to answer this read.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getInventoryBackups",
       "http": {
         "method": "GET",
@@ -6127,7 +6127,7 @@
       "name": "get_device",
       "title": "Get caller-owned discovered device",
       "description": "Get caller-owned discovered device",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getDevice",
       "http": {
         "method": "GET",
@@ -6160,7 +6160,7 @@
       "name": "get_discovery_stats",
       "title": "Get discovery statistics (self-hosted owner only)",
       "description": "Get discovery statistics (self-hosted owner only)",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getDiscoveryStats",
       "http": {
         "method": "GET",
@@ -6182,7 +6182,7 @@
       "name": "get_drift_details",
       "title": "Get detailed drift information with affected resources",
       "description": "Get detailed drift information with affected resources",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getDriftDetails",
       "http": {
         "method": "GET",
@@ -6270,7 +6270,7 @@
       "name": "get_drift_result",
       "title": "Get single drift result",
       "description": "Get single drift result",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getDriftResult",
       "http": {
         "method": "GET",
@@ -6358,7 +6358,7 @@
       "name": "get_drift_status",
       "title": "Get current drift status",
       "description": "Get current drift status",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getDriftStatus",
       "http": {
         "method": "GET",
@@ -6412,7 +6412,7 @@
       "name": "get_enrollment_record",
       "title": "Get the local enrollment record",
       "description": "Get the local enrollment record",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getEnrollmentRecord",
       "http": {
         "method": "GET",
@@ -6452,7 +6452,7 @@
       "name": "get_homelab",
       "title": "Get the caller's homelab and its StackKit deployments",
       "description": "Resolves the authenticated owner's canonical Homelab umbrella together with its StackKit deployments. `homelab` is null while a backfill has deployments but no Homelab row yet; with neither, the route is 404. `homelab.identity_authority` names the identity Authority (the server that runs Pocket ID) and the identity origin.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getHomelab",
       "http": {
         "method": "GET",
@@ -6612,7 +6612,7 @@
       "name": "get_instance_identity",
       "title": "Get the stable local instance identity",
       "description": "Get the stable local instance identity",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getInstanceIdentity",
       "http": {
         "method": "GET",
@@ -6649,7 +6649,7 @@
       "name": "get_job",
       "title": "Get job",
       "description": "This is the canonical polling surface for the UI, API clients, MCP tools, and agents. `waiting_enrollment` exposes a non-terminal wait; access to the target remains unavailable until the job resumes and reaches a terminal success state. Every mutating managed service action (`run_managed_service_action` `start`, `stop`, `restart`, `update`, `backup`) runs as a governed action card, not a job: read its outcome back with `get_action_card` and its `action_card_id`.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getJob",
       "http": {
         "method": "GET",
@@ -6860,7 +6860,7 @@
       "name": "get_job_logs",
       "title": "Get job logs",
       "description": "Get job logs",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getJobLogs",
       "http": {
         "method": "GET",
@@ -6890,7 +6890,7 @@
       "name": "get_job_stats",
       "title": "Get job queue statistics",
       "description": "Get job queue statistics",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getJobStats",
       "http": {
         "method": "GET",
@@ -6962,7 +6962,7 @@
       "name": "get_managed_creation_pause",
       "title": "Read whether new managed servers are paused",
       "description": "Returns the create protection of the signed-in account for one managed provider and region: ready, paused after repeated qualifying provider failures (with the failure count, last failure class and the time creation resumes), or held while one create is still in flight or being reconciled. Only creating is held; reading, stopping and deleting existing servers stay available.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getManagedCreationPause",
       "http": {
         "method": "GET",
@@ -7078,7 +7078,7 @@
       "name": "get_monitor_domains",
       "title": "Read domain lifecycle and observed DNS/TLS differences",
       "description": "Owner and tenant scoped, read-only projection of canonical routing, server domains and service endpoints. Registration expiry from RDAP and certificate expiry from the presented public TLS leaf are separate facts with independent sources and observation deadlines. Missing data stays unknown. Expected DNS is never inferred from observed addresses. Proxied origins are explicitly unobservable from recursive public DNS. Conditions persist across failures and stale observations, and resolve only after fresh positive evidence. An unavailable store returns 503.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getMonitorDomains",
       "http": {
         "method": "GET",
@@ -7569,7 +7569,7 @@
       "name": "get_monitor_drive_health",
       "title": "Read per-drive SMART and NVMe health evidence",
       "description": "Authenticated, tenant-scoped projection of Guard drive observations. Self-hosted installations use their configured installation tenant. Hardware identities retain history independently of mutable device paths; replacements never inherit earlier readings. Anonymous observations have attempt-specific IDs and cannot establish historical continuity. Missing, unsupported, inaccessible, incomplete, stale and disconnected observations stay explicit and cannot imply healthy hardware. A server with no observations returns a missing state when selected explicitly. Last successful readings remain historical evidence when a new attempt fails. Only a complete inventory or an explicit missing observation can establish disconnection, and an unreadable identity at a seen path stays uncertain. Reads age evidence and condition episodes, without initiating collection, self-tests, repairs, provisioning or other device actions. Capacity growth forecasts remain on the separate storage-forecast route.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getMonitorDriveHealth",
       "http": {
         "method": "GET",
@@ -8538,7 +8538,7 @@
       "name": "get_monitor_drive_health_alerts",
       "title": "Read active and recovered drive-health condition episodes",
       "description": "Authenticated, tenant-scoped read of hardware and collection conditions. Each condition names its affected server and, when attributable, immutable drive identity, severity, observed evidence and recommended next step. Collection failures are distinct from hardware diagnoses. Stable episode IDs deduplicate unchanged conditions; resolved_at records recovery only when fresh evidence covers the condition. Anonymous collection incidents deduplicate by server and path, independently of anonymous hardware IDs. Nonzero cumulative counters describe historical totals; measured increases are separate conditions. NVMe command-error increases and consumed rated endurance are advisories, rather than standalone evidence of media failure. Resolved history is bounded to 64 episodes per condition scope and 90 days. Reads initiate no repair, device mutation or provider action.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getMonitorDriveHealthAlerts",
       "http": {
         "method": "GET",
@@ -8687,7 +8687,7 @@
       "name": "get_monitor_health",
       "title": "Get monitoring ingest/query health diagnostics",
       "description": "Get monitoring ingest/query health diagnostics",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getMonitorHealth",
       "http": {
         "method": "GET",
@@ -8709,7 +8709,7 @@
       "name": "get_monitor_status",
       "title": "Get monitoring backend status and runtime metadata",
       "description": "Get monitoring backend status and runtime metadata",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getMonitorStatus",
       "http": {
         "method": "GET",
@@ -8731,7 +8731,7 @@
       "name": "get_monitor_storage_forecast",
       "title": "Project filesystem growth from observed storage gauges",
       "description": "Read-only, tenant-scoped projection of node_disk_used_bytes with contemporaneous node_disk_total_bytes or used plus free bytes. The latter is effective usable capacity, not physical disk capacity. Uses a 14-day window with hourly query evaluation, retaining actual source observation times and deduplicating repeated lookback values. Counts describe hourly sampled observations, not all ingested samples; sparse observations outside the backend lookback may be absent. No interpolation or per-service storage attribution is performed. Separate origin/source streams remain separate resources and are never summed. Guard OTLP times describe Guard collection, not original OTLP point time. Unknown capacity, stale/inadequate history and inconsistent measurements return an explicit state without an exhaustion estimate. Exhaustion is a growth scenario range measured from the latest observation, not a statistical confidence interval. Both bounded queries share a timeout.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getMonitorStorageForecast",
       "http": {
         "method": "GET",
@@ -8909,7 +8909,7 @@
       "name": "get_monthly_runtime_cleanup_readback",
       "title": "Read redacted managed runtime cleanup state facts",
       "description": "Returns tenant- and owner-scoped state facts for the lease's exact current provider-control resource generation. This read-only endpoint never calls a provider or a runtime agent and never returns provider resource handles, commands, evidence documents, or credentials. A terminal operation is no longer running, but is not by itself proof of successful cleanup: provider absence requires absence_evidence_ref, and capacity release requires capacity_released.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getMonthlyRuntimeCleanupReadback",
       "http": {
         "method": "GET",
@@ -9020,7 +9020,7 @@
       "name": "get_monthly_runtime_ssh_info",
       "title": "Get SSH connection information for a monthly runtime lease",
       "description": "Get SSH connection information for a monthly runtime lease",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getMonthlyRuntimeSSHInfo",
       "http": {
         "method": "GET",
@@ -9183,7 +9183,7 @@
       "name": "get_monthly_runtime_status",
       "title": "Get monthly runtime status",
       "description": "Get monthly runtime status",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getMonthlyRuntimeStatus",
       "http": {
         "method": "GET",
@@ -9346,7 +9346,7 @@
       "name": "get_networks",
       "title": "Get local network interfaces",
       "description": "Get local network interfaces",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getNetworks",
       "http": {
         "method": "GET",
@@ -9379,7 +9379,7 @@
       "name": "get_operator_self_disclosure",
       "title": "Get operator self-disclosure",
       "description": "Returns the signed-in operator's stored self-disclosure, its source and the capability profile the Unifier derives from it. An operator who never answered gets an empty `disclosure`. Pass the returned `source` and `disclosure` as `if_unchanged` to replace it safely.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getOperatorSelfDisclosure",
       "http": {
         "method": "GET",
@@ -9404,7 +9404,7 @@
           "source": {
             "enum": [
               "link",
-              "techstack"
+              "homelab"
             ],
             "type": "string"
           },
@@ -9426,7 +9426,7 @@
       "name": "get_own_application_operation",
       "title": "Read one own application operation and its node answer",
       "description": "Returns the job status and the projected node answer: outcome and reason code, review digest, the prior and target image of a tag update (target_check is always not_checked_by_kombify), the data checkpoint with its retained size and, for logs, the redacted tail.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getOwnApplicationOperation",
       "http": {
         "method": "GET",
@@ -9588,7 +9588,7 @@
       "name": "get_pipeline_status",
       "title": "Get complete pipeline status for all spec phases",
       "description": "Get complete pipeline status for all spec phases",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getPipelineStatus",
       "http": {
         "method": "GET",
@@ -9653,7 +9653,7 @@
       "name": "get_ril_workflow_run",
       "title": "Get workflow run audit",
       "description": "Returns the authenticated owner's run, steps and up to 500 lifecycle audit events. Inputs, outputs, context, raw errors and connector material are excluded. The optional receipt is present only when the run's card is terminal and has persisted evidence and approval. Missing cards and cards without a receipt omit it; other receipt read failures return 503. A foreign run id answers like an unknown one. Query parameters are refused. The response is private and must not be cached.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getRILWorkflowRun",
       "http": {
         "method": "GET",
@@ -9721,7 +9721,7 @@
                 "type": "string"
               },
               "api_version": {
-                "const": "techstack.ril-action-step-receipt/v1",
+                "const": "homelab.ril-action-step-receipt/v1",
                 "type": "string"
               },
               "approval": {
@@ -10196,7 +10196,7 @@
       "name": "get_runtime_logs",
       "title": "Get recent runtime/deploy logs",
       "description": "Returns recent runtime/deploy log entries (job/deploy progress plus container tail) from the gRPC server's runtime log buffer, filtered by the supplied query parameters. Requires authentication and an available gRPC server.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getRuntimeLogs",
       "http": {
         "method": "GET",
@@ -10257,7 +10257,7 @@
       "name": "get_scan",
       "title": "Get scan status and results",
       "description": "Get scan status and results",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getScan",
       "http": {
         "method": "GET",
@@ -10346,7 +10346,7 @@
       "name": "get_server_maintenance_impact",
       "title": "Preview service and stack impact before confirming OS maintenance",
       "description": "Requires the signed maintenance entitlement and ownership of the server. Lists canonical service placement and stack membership, with reasons and inventory freshness and completeness. An empty services array means no affected services only when inventory.status is current. An incomplete, stale or unavailable inventory cannot authorize maintenance. The digest binds the server, operation and material dependency snapshot; ordinary observation timestamps do not invalidate unchanged impact. Responses are private and must not be cached.",
-      "requiredCapability": "techstack.server.maintenance",
+      "requiredCapability": "homelab.server.maintenance",
       "operationId": "getServerMaintenanceImpact",
       "http": {
         "method": "GET",
@@ -10508,8 +10508,8 @@
     {
       "name": "get_server_maintenance_job",
       "title": "Read one maintenance job of an owned server",
-      "description": "Scoped like the POST: the Edge-signed `techstack.servers.maintenance` entitlement, the tenant, ownership of the server, and a job that belongs to this server and was requested by the caller. Anything else is 404. Maintenance jobs have their own ledger and are not served by `/api/v1/jobs/{id}`. There is no log endpoint: the job carries its outcome, and a failure carries its stable code with user guidance.",
-      "requiredCapability": "techstack.inventory.read",
+      "description": "Scoped like the POST: the Edge-signed `homelab.servers.maintenance` entitlement, the tenant, ownership of the server, and a job that belongs to this server and was requested by the caller. Anything else is 404. Maintenance jobs have their own ledger and are not served by `/api/v1/jobs/{id}`. There is no log endpoint: the job carries its outcome, and a failure carries its stable code with user guidance.",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getServerMaintenanceJob",
       "http": {
         "method": "GET",
@@ -10789,7 +10789,7 @@
       "name": "get_server_network",
       "title": "Read the server's network facts and any recorded home network move",
       "description": "The network the server's kombify Guard last observed (address, gateway, subnet, interface, WiFi network), the `network_move` record kombify wrote when the server turned up on a different network, and the state of the re-bind that followed. A moved server re-binds itself automatically; `can_rebind` says whether the owner can start one now.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getServerNetwork",
       "http": {
         "method": "GET",
@@ -11004,7 +11004,7 @@
       "name": "get_server_runtime",
       "title": "Get canonical server lifecycle, connection, health, and channels",
       "description": "Get canonical server lifecycle, connection, health, and channels",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getServerRuntime",
       "http": {
         "method": "GET",
@@ -11609,7 +11609,7 @@
                     "type": "string"
                   },
                   "node_id": {
-                    "description": "Connect techstack-node id (connect target, registered only).",
+                    "description": "Connect homelab-node id (connect target, registered only).",
                     "type": "string"
                   },
                   "reason_code": {
@@ -11644,7 +11644,7 @@
                     "type": "string"
                   },
                   "node_id": {
-                    "description": "Connect techstack-node id (connect target, registered only).",
+                    "description": "Connect homelab-node id (connect target, registered only).",
                     "type": "string"
                   },
                   "reason_code": {
@@ -12104,7 +12104,7 @@
       "name": "get_server_runtime_ports",
       "title": "Get the authenticated owner's port inventory for one canonical server",
       "description": "Server-detail UI projection over the same central port authority as the Inventory/MCP surface, authorized through the canonical owner-scoped server read boundary.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getServerRuntimePorts",
       "http": {
         "method": "GET",
@@ -12305,7 +12305,7 @@
       "name": "get_server_security_auto_repair",
       "title": "Read the owner's approval of automatic security repair",
       "description": "A server without an approval, or with an expired one, is observe-only.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getServerSecurityAutoRepair",
       "http": {
         "method": "GET",
@@ -12390,7 +12390,7 @@
       "name": "get_server_update_setting",
       "title": "Read a server's update setting and pending StackKits release",
       "description": "For the owner of the worker. `behavior` is the server's one update setting for its StackKits release and the applications it manages (D-2026-11-12-06): `ask` (default; checked application versions are offered with one click), `automatic` (StackKits releases start without a click; checked application versions apply in the maintenance window once that action exists) or `with_stackkits_releases` (applications change only with a StackKits release). Security fixes are offered in every setting. The per-application facts are on the service `version`.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getServerUpdateSetting",
       "http": {
         "method": "GET",
@@ -12440,7 +12440,7 @@
             "type": "string"
           },
           "started": {
-            "description": "The update Techstack started without a click.",
+            "description": "The update Homelab started without a click.",
             "type": "object"
           },
           "worker_id": {
@@ -12464,7 +12464,7 @@
       "name": "get_service_logs",
       "title": "Read service logs",
       "description": "Returns the newest page that `request_service_logs` collected for this service and cursor: `queued` or `running` while the node is still collecting it, `completed` with redacted entries and `next_cursor`, or `empty` when no page was requested yet. Reading never contacts the node.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getManagedServiceLogs",
       "http": {
         "method": "GET",
@@ -12554,7 +12554,7 @@
       "name": "get_service_metrics",
       "title": "Read measured resource metrics for an owned service",
       "description": "Uses the existing Guard telemetry query backend and fixes the tenant, canonical server and container selectors from authorized service inventory. An empty vector means no resource metric was measured.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getServiceMetrics",
       "http": {
         "method": "GET",
@@ -12586,7 +12586,7 @@
       "name": "get_service_runtime",
       "title": "Get desired, observed, health, access, and action capabilities for one service",
       "description": "Get desired, observed, health, access, and action capabilities for one service",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getServiceRuntime",
       "http": {
         "method": "GET",
@@ -13237,7 +13237,7 @@
       "name": "get_stack_identity",
       "title": "Get stack identity metadata",
       "description": "Get stack identity metadata",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getStackIdentity",
       "http": {
         "method": "GET",
@@ -13262,7 +13262,7 @@
       "name": "get_stack_intent",
       "title": "Get persisted kombination.yaml (byte-exact, base64)",
       "description": "Get persisted kombination.yaml (byte-exact, base64)",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getStackIntent",
       "http": {
         "method": "GET",
@@ -13316,7 +13316,7 @@
       "name": "get_stack_kit",
       "title": "Get specific StackKit details",
       "description": "Get specific StackKit details",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getStackKit",
       "http": {
         "method": "GET",
@@ -13344,8 +13344,8 @@
     {
       "name": "get_stack_operations",
       "title": "Get stack operations",
-      "description": "Returns the exact owner- and tenant-scoped read model used by the TechStack operations dashboard. `approved_servers` records operator approval; `connected_servers` is stricter and counts only assigned, approved Nodes with freshness-qualified canonical Guard heartbeat, connection, and health evidence. The operation is read-only and never starts rollout, provisioning, or provider work.",
-      "requiredCapability": "techstack.inventory.read",
+      "description": "Returns the exact owner- and tenant-scoped read model used by the Homelab operations dashboard. `approved_servers` records operator approval; `connected_servers` is stricter and counts only assigned, approved Nodes with freshness-qualified canonical Guard heartbeat, connection, and health evidence. The operation is read-only and never starts rollout, provisioning, or provider work.",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getStackOperations",
       "http": {
         "method": "GET",
@@ -13899,7 +13899,7 @@
       "name": "get_stack_owner_spec",
       "title": "Fetch the owner bootstrap spec for a StackKit deployment",
       "description": "StackKit admin-bootstrap endpoint for fetching local owner fields and the recovery passphrase hash. This route accepts only the short-lived bootstrap bearer token returned by `createStack`; it does not use the normal browser/session bearer token.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getStackOwnerSpec",
       "http": {
         "method": "GET",
@@ -13985,7 +13985,7 @@
       "name": "get_stack_requirements",
       "title": "Get requirements spec (Phase 1 output)",
       "description": "Get requirements spec (Phase 1 output)",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getStackRequirements",
       "http": {
         "method": "GET",
@@ -14015,7 +14015,7 @@
       "name": "get_stack_routing",
       "title": "Read desired and observed routing state for one StackKit deployment",
       "description": "Returns the tenant- and owner-bound routing overlay for the exact StackKit deployment. Desired state and observed/applied state are reported separately so clients never infer a successful DNS, TLS, or StackKit rollout from persistence alone.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getStackRouting",
       "http": {
         "method": "GET",
@@ -14268,7 +14268,7 @@
       "name": "get_stack_unified",
       "title": "Get unified spec (Phase 2 output)",
       "description": "Get unified spec (Phase 2 output)",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getStackUnified",
       "http": {
         "method": "GET",
@@ -14298,7 +14298,7 @@
       "name": "get_topology",
       "title": "Detect network topology",
       "description": "Detect network topology",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getTopology",
       "http": {
         "method": "GET",
@@ -14320,7 +14320,7 @@
       "name": "get_tunnel_registry_url",
       "title": "Get public tunnel registry URL",
       "description": "Get public tunnel registry URL",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getTunnelRegistryUrl",
       "http": {
         "method": "GET",
@@ -14342,7 +14342,7 @@
       "name": "get_tunnel_status",
       "title": "Get tunnel connection status",
       "description": "Get tunnel connection status",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getTunnelStatus",
       "http": {
         "method": "GET",
@@ -14364,7 +14364,7 @@
       "name": "get_worker_identity_upgrade",
       "title": "Show whether a server still needs its identity key approved",
       "description": "For the owner of the worker. `identity_binding=legacy_bearer` with `code=guard_identity_upgrade_required` means the server authenticates with its bearer credential alone and is observe-only; `pending` carries the fingerprint of the key the server proposed, which the owner compares with the fingerprint the Guard logs on the server. A worker of another tenant or owner is 404.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getWorkerIdentityUpgrade",
       "http": {
         "method": "GET",
@@ -14450,8 +14450,8 @@
     {
       "name": "import_home_assistant_service",
       "title": "Link an existing Home Assistant",
-      "description": "Probes a Home Assistant instance from a local executor with the long-lived access token held in the Wallet item `token_wallet_item_id` (a kombify Wallet item assigned to Techstack, or a built-in wallet API key or OAuth token item whose URL names this instance; resolved inside Techstack, never answered) and records a read-only observed service. This contract accepts no token. The token is used for this probe only and is never stored in the registry row. Self-hosted installs only (503 `lan_executor_unavailable` otherwise). The call is idempotent: an already linked instance returns `existing: true` without a new probe.",
-      "requiredCapability": "techstack.inventory.write",
+      "description": "Probes a Home Assistant instance from a local executor with the long-lived access token held in the Wallet item `token_wallet_item_id` (a kombify Wallet item assigned to Homelab, or a built-in wallet API key or OAuth token item whose URL names this instance; resolved inside Homelab, never answered) and records a read-only observed service. This contract accepts no token. The token is used for this probe only and is never stored in the registry row. Self-hosted installs only (503 `lan_executor_unavailable` otherwise). The call is idempotent: an already linked instance returns `existing: true` without a new probe.",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "importHomeAssistantService",
       "http": {
         "method": "POST",
@@ -14976,7 +14976,7 @@
       "name": "import_registry_service",
       "title": "Record an existing service",
       "description": "Adds an observed (unmanaged) service row for a server of an owned stack. The row is keyed by stack, server and service name, so repeating the call updates the same row. Nothing is deployed or probed. Either `name` or `service_id` is required and is normalized to a lower-case key. A stack the caller does not own is refused with 403 and an unknown stack or server with 404.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "importRegistryService",
       "http": {
         "method": "POST",
@@ -15494,7 +15494,7 @@
       "name": "import_stack",
       "title": "Import stack-spec.yaml as a StackKit deployment",
       "description": "Imports YAML or JSON as a deployment under the authenticated owner's Homelab.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "importStack",
       "http": {
         "method": "POST",
@@ -15573,8 +15573,8 @@
     {
       "name": "install_host_dependencies",
       "title": "Install missing host dependencies",
-      "description": "Installs the missing host dependencies (OpenTofu, cloudflared, Docker) on the machine a self-hosted Techstack runs on, all of them or the named ones. Only the owner of a self-hosted Techstack may call it, and an agent acts with the owner's reach there; hosted Techstack refuses every caller with 403 `host_install_unavailable` (reason_code `hosted_control_plane`) before anything is detected.",
-      "requiredCapability": "techstack.inventory.write",
+      "description": "Installs the missing host dependencies (OpenTofu, cloudflared, Docker) on the machine a self-hosted Homelab runs on, all of them or the named ones. Only the owner of a self-hosted Homelab may call it, and an agent acts with the owner's reach there; hosted Homelab refuses every caller with 403 `host_install_unavailable` (reason_code `hosted_control_plane`) before anything is detected.",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "installDependencies",
       "http": {
         "method": "POST",
@@ -15604,7 +15604,7 @@
       "name": "instant_monitor_query",
       "title": "Run a PromQL instant query",
       "description": "Run a PromQL instant query",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "instantMonitorQuery",
       "http": {
         "method": "GET",
@@ -15636,7 +15636,7 @@
       "name": "invite_stack_household_member",
       "title": "Invite household member",
       "description": "Invites one person of the household plan to the owned stack. The person must match the persisted Wizard intent (`client_ref`, e-mail and display name), the owner must already be active on the stack, and the body must carry `owner_approved: true`. The body is decoded strictly. The response includes the member's activation URL when one exists.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "inviteStackHouseholdMember",
       "http": {
         "method": "POST",
@@ -15722,7 +15722,7 @@
       "name": "issue_stack_owner_activation",
       "title": "Issue owner activation link",
       "description": "Asks the StackKits identity runtime of the owned stack for a link that activates the owner's own account on the stack. The body must carry `owner_approved: true`; any other body is 400 `owner_approval_required`. The response includes the activation URL, which is a one-time sign-in link: hand it to the owner and do not log it. Answers 409 when the pinned StackKits runtime cannot issue activations or issuing fails.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "issueStackOwnerActivation",
       "http": {
         "method": "POST",
@@ -15785,7 +15785,7 @@
       "name": "list_addons",
       "title": "List available add-ons",
       "description": "List available add-ons",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listAddons",
       "http": {
         "method": "GET",
@@ -15807,7 +15807,7 @@
       "name": "list_agents",
       "title": "List connected gRPC agents",
       "description": "List connected gRPC agents",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listAgents",
       "http": {
         "method": "GET",
@@ -15843,7 +15843,7 @@
       "name": "list_devices",
       "title": "List caller-owned discovered devices",
       "description": "Returns only devices produced by scans owned by the authenticated caller.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listDevices",
       "http": {
         "method": "GET",
@@ -15879,7 +15879,7 @@
       "name": "list_drift_results",
       "title": "List all drift results (paginated)",
       "description": "List all drift results (paginated)",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listDriftResults",
       "http": {
         "method": "GET",
@@ -15965,7 +15965,7 @@
       "name": "list_failure_outcomes",
       "title": "List the tenant's failure resolution outcomes",
       "description": "Returns the caller tenant's own recorded resolution outcomes, newest first, and the succeeded and failed counts per resolution and signature. Another tenant's outcomes are never visible.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listFailureOutcomes",
       "http": {
         "method": "GET",
@@ -16099,7 +16099,7 @@
       "name": "list_failure_signatures",
       "title": "List the tenant's failure signatures",
       "description": "Returns the caller tenant's own failed operations normalized into failure signatures, most recently seen first. A signature is the SHA-256 over the normalizer version, component, phase, error code and a template in which every variable token (timestamps, IDs, addresses, host names, paths, user names, quoted values, numbers) is replaced. No raw error text is stored or returned, and another tenant's occurrences are never visible.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listFailureSignatures",
       "http": {
         "method": "GET",
@@ -16130,7 +16130,7 @@
             "items": {
               "properties": {
                 "component": {
-                  "description": "Failing capability, for example techstack.stackkit.deploy.",
+                  "description": "Failing capability, for example homelab.stackkit.deploy.",
                   "type": "string"
                 },
                 "error_code": {
@@ -16233,7 +16233,7 @@
       "name": "list_features",
       "title": "List all features grouped by category",
       "description": "List all features grouped by category",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listFeatures",
       "http": {
         "method": "GET",
@@ -16364,8 +16364,8 @@
     {
       "name": "list_guard_unresolved_outcomes",
       "title": "List the unresolved operation outcomes of one kombify Guard",
-      "description": "Lists the operations of an owned worker whose outcome is unknown: the kombify Guard recorded that the effect may or may not have happened and no observation settled it. Each one fences further changes on the server. `state` is `reconciling` while the Guard still tries to settle it and `needs_operator` once it stayed unresolved past the configured time (`TECHSTACK_GUARD_OUTCOME_NEEDS_OPERATOR_AFTER`, default 30 minutes). The time only changes how the outcome is shown; it never releases the fence. Another tenant's or owner's worker is 404.",
-      "requiredCapability": "techstack.inventory.read",
+      "description": "Lists the operations of an owned worker whose outcome is unknown: the kombify Guard recorded that the effect may or may not have happened and no observation settled it. Each one fences further changes on the server. `state` is `reconciling` while the Guard still tries to settle it and `needs_operator` once it stayed unresolved past the configured time (`HOMELAB_GUARD_OUTCOME_NEEDS_OPERATOR_AFTER`, default 30 minutes). The time only changes how the outcome is shown; it never releases the fence. Another tenant's or owner's worker is 404.",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listGuardUnresolvedOutcomes",
       "http": {
         "method": "GET",
@@ -16456,7 +16456,7 @@
       "name": "list_jobs",
       "title": "List jobs owned by the authenticated user",
       "description": "Returns the same owner-scoped job state used by the operator UI and automation clients. A job with `state: waiting` remains active and the current orchestrator process schedules its next check; it is not a failed provider action. If that schedule becomes stale after a process restart, use the exact-target `resumeStackEnrollment` operation.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listJobs",
       "http": {
         "method": "GET",
@@ -16729,7 +16729,7 @@
       "name": "list_kit_deployments",
       "title": "List the owner's StackKit deployments",
       "description": "Returns every StackKit deployment beneath the authenticated owner's singleton B2C Homelab. `kit_deployment_id`, `homelab_id`, and `stackkit_id` are the product identities; legacy identifiers remain compatibility aliases on this route while consumers migrate.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listKitDeployments",
       "http": {
         "method": "GET",
@@ -16751,7 +16751,7 @@
       "name": "list_monitor_alert_rules",
       "title": "List monitoring alert rules",
       "description": "List monitoring alert rules",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listMonitorAlertRules",
       "http": {
         "method": "GET",
@@ -16773,7 +16773,7 @@
       "name": "list_monitor_alerts",
       "title": "List active monitoring alerts",
       "description": "List active monitoring alerts",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listMonitorAlerts",
       "http": {
         "method": "GET",
@@ -16795,7 +16795,7 @@
       "name": "list_monitor_metric_label_values",
       "title": "List values for a metric label",
       "description": "List values for a metric label",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listMonitorMetricLabelValues",
       "http": {
         "method": "GET",
@@ -16824,7 +16824,7 @@
       "name": "list_monitor_metric_labels",
       "title": "List metric label names",
       "description": "List metric label names",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listMonitorMetricLabels",
       "http": {
         "method": "GET",
@@ -16846,7 +16846,7 @@
       "name": "list_monitor_metric_names",
       "title": "List metric names",
       "description": "List metric names",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listMonitorMetricNames",
       "http": {
         "method": "GET",
@@ -16868,7 +16868,7 @@
       "name": "list_monthly_runtime_offerings",
       "title": "List monthly runtime offerings",
       "description": "Returns subscription offerings with actual provider package sizes. Generic sizing fields are custom-provider defaults; plans must use provider_packages for the selected provider.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listMonthlyRuntimeOfferings",
       "http": {
         "method": "GET",
@@ -16890,7 +16890,7 @@
       "name": "list_monthly_runtime_operations",
       "title": "List monthly runtime operation history",
       "description": "List monthly runtime operation history",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listMonthlyRuntimeOperations",
       "http": {
         "method": "GET",
@@ -16927,7 +16927,7 @@
       "name": "list_pairing_tokens",
       "title": "List pairing tokens",
       "description": "List pairing tokens",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listPairingTokens",
       "http": {
         "method": "GET",
@@ -16949,7 +16949,7 @@
       "name": "list_registry_services",
       "title": "List owned services with their catalog and canonical placement",
       "description": "Runtime records use the same state, capabilities, version and owner lock projection as service detail. Historical records remain readable with unknown observed state and no unmeasured action capabilities.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listRegistryServices",
       "http": {
         "method": "GET",
@@ -17494,7 +17494,7 @@
       "name": "list_server_containers",
       "title": "List the containers of an owned server",
       "description": "Same authorization and refusals as the process list. The Guard runs one fixed `docker ps --all` and reports each container's id, name, image, state, status, published ports and Compose project. `managed` is true for a StackKits-managed container, which only the managed service actions may change; every other container, such as a hand-deployed application, is unmanaged. Labels other than those two are not reported. A node without a reachable Docker engine answers 409 `engine_unavailable`. Responses are private and must not be cached.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listServerHostContainers",
       "http": {
         "method": "GET",
@@ -17590,8 +17590,8 @@
     {
       "name": "list_server_processes",
       "title": "List the processes of an owned server",
-      "description": "Requires the Edge-signed `techstack.servers.maintenance` entitlement, ownership of the server in the tenant and a connected, current Guard that advertises `stackkit.host-inspect.v1`. The Guard runs one fixed `ps` and returns the busiest processes first with their user, CPU and memory share, age, systemd unit and executable name. The command line is never reported, because arguments routinely carry secrets. Refusals are client-error-envelope/v1 documents whose 409 `reason_code` is one of node_protected, agent_not_connected, heartbeat_stale or agent_capability_missing. Responses are private and must not be cached.",
-      "requiredCapability": "techstack.inventory.read",
+      "description": "Requires the Edge-signed `homelab.servers.maintenance` entitlement, ownership of the server in the tenant and a connected, current Guard that advertises `stackkit.host-inspect.v1`. The Guard runs one fixed `ps` and returns the busiest processes first with their user, CPU and memory share, age, systemd unit and executable name. The command line is never reported, because arguments routinely carry secrets. Refusals are client-error-envelope/v1 documents whose 409 `reason_code` is one of node_protected, agent_not_connected, heartbeat_stale or agent_capability_missing. Responses are private and must not be cached.",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listServerHostProcesses",
       "http": {
         "method": "GET",
@@ -17692,7 +17692,7 @@
       "name": "list_server_runtime_transitions",
       "title": "List the persisted server state timeline",
       "description": "List the persisted server state timeline",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listServerRuntimeTransitions",
       "http": {
         "method": "GET",
@@ -17722,7 +17722,7 @@
       "name": "list_server_runtimes",
       "title": "List canonical Node runtime state",
       "description": "Returns owner-scoped Nodes with canonical `node_id` and `kit_deployment_id` identities.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listServerRuntimes",
       "http": {
         "method": "GET",
@@ -17748,7 +17748,7 @@
       "name": "list_server_security_findings",
       "title": "List the open findings and recent findings history of one server",
       "description": "The findings ledger behind the server's `security`, `recovery` and Guard alerts. One finding is one episode: opened when a fact is first observed wrong, resolved when it is observed right again, with at most one alert (`alerted_at`) and one resolution. History is kept 90 days.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listServerSecurityFindings",
       "http": {
         "method": "GET",
@@ -17951,7 +17951,7 @@
       "name": "list_server_security_repairs",
       "title": "List the recent security repairs of one server",
       "description": "List the recent security repairs of one server",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listServerSecurityRepairs",
       "http": {
         "method": "GET",
@@ -18129,7 +18129,7 @@
       "name": "list_servers",
       "title": "List servers",
       "description": "Returns only servers owned by the authenticated subject in the trusted tenant context. Tenant and owner overrides are not accepted. Raw metadata, channel endpoints, provider-resource references, credentials, SSH material, tokens, and logs are never returned. The lease projection contains only an opaque identifier and state. Cursor pages share one authorization- and filter-bound collection watermark and exclude later inserts. Each server carries its connection and health state and a freshness-qualified metrics block (cpu, memory and disk percent, uptime seconds); a figure from a stale heartbeat is reported as stale without a value.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listInventoryServers",
       "http": {
         "method": "GET",
@@ -18605,7 +18605,7 @@
       "name": "list_service_runtimes",
       "title": "List canonical measured service runtime state",
       "description": "List canonical measured service runtime state",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listServiceRuntimes",
       "http": {
         "method": "GET",
@@ -18634,7 +18634,7 @@
       "name": "list_services",
       "title": "List services",
       "description": "List sanitized services for the authenticated owner's servers",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listInventoryServices",
       "http": {
         "method": "GET",
@@ -18914,7 +18914,7 @@
       "name": "list_stack_kits",
       "title": "List available StackKits",
       "description": "List available StackKits",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listStackKits",
       "http": {
         "method": "GET",
@@ -18936,7 +18936,7 @@
       "name": "list_stack_routing_targets",
       "title": "List explicit primary routing targets for one StackKit deployment",
       "description": "Read-only discovery backed by active RuntimeLease authority. Returns every owner-visible foundation/control-plane target and never selects one, creates a canonical Node (`ServerRuntime`) projection, or mutates the StackKit deployment. Callers must send the complete server_id and lease_id tuple to a routing mutation.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listStackRoutingTargets",
       "http": {
         "method": "GET",
@@ -19023,7 +19023,7 @@
       "name": "list_tunnel_subdomain_services",
       "title": "List services under one of the caller's own kombify.me base subdomains",
       "description": "List services under one of the caller's own kombify.me base subdomains",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listTunnelSubdomainServices",
       "http": {
         "method": "GET",
@@ -19052,7 +19052,7 @@
       "name": "list_tunnel_subdomains",
       "title": "List the caller's own kombify.me subdomains for diagnostics; registration is StackKits-owned",
       "description": "Requires an authenticated caller. With the shared platform identity the list is scoped to the caller's owner binding.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listTunnelSubdomains",
       "http": {
         "method": "GET",
@@ -19074,7 +19074,7 @@
       "name": "list_wallet_items",
       "title": "List redacted wallet recovery items",
       "description": "Lists the caller's wallet recovery items for the resolved tenant. The `secret` and `totp` values are always stripped from this response; only presence flags (`has_secret`, `has_totp`) are exposed.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listWalletItems",
       "http": {
         "method": "GET",
@@ -19151,7 +19151,7 @@
       "name": "list_worker_identity_upgrades",
       "title": "List server key approvals waiting for the owner",
       "description": "For the owner. Each entry is a server of theirs that proposed a key and is observe-only until that exact key is approved with `approveWorkerIdentityUpgrade` (fresh multi-factor sign-in required). Entries carry the hostname and the key fingerprint to compare with the one the Guard logs on the server. Listing grants nothing.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listWorkerIdentityUpgrades",
       "http": {
         "method": "GET",
@@ -19241,7 +19241,7 @@
       "name": "list_workers",
       "title": "List registered workers (filtered by owner)",
       "description": "List registered workers (filtered by owner)",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "listWorkers",
       "http": {
         "method": "GET",
@@ -19277,7 +19277,7 @@
       "name": "mark_all_notifications_read",
       "title": "Mark all notifications read",
       "description": "Marks all unread items of the authenticated user's notification feed as read, across every section. The body is empty. The engine's answer is passed through unchanged and is not wrapped in the `data` envelope.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "markAllNotificationsRead",
       "http": {
         "method": "POST",
@@ -19308,8 +19308,8 @@
     {
       "name": "mark_notification_read",
       "title": "Mark notification read",
-      "description": "Marks one item of the authenticated user's notification feed as read. Techstack signs the call to the notifications engine for the authenticated user, so only that user's own items can be changed; an unknown item answers 404. The engine's answer is passed through unchanged and is not wrapped in the `data` envelope.",
-      "requiredCapability": "techstack.inventory.write",
+      "description": "Marks one item of the authenticated user's notification feed as read. Homelab signs the call to the notifications engine for the authenticated user, so only that user's own items can be changed; an unknown item answers 404. The engine's answer is passed through unchanged and is not wrapped in the `data` envelope.",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "markNotificationRead",
       "http": {
         "method": "POST",
@@ -19350,7 +19350,7 @@
       "name": "preflight_managed_runtime_authority",
       "title": "Verify request-bound managed-runtime authority without creating a resource",
       "description": "Read-only preflight for the Gateway-to-native-admission authority chain. Hosted requests must carry the Gateway's v2-signed managed-runtime, Cloud Kit, provider entitlement, and `cloud.runtime.credits` `managed_servers` decision bound to this exact request. A successful response never reserves capacity or creates a StackKit deployment, queue job, lease, Node projection, or provider operation; the real Add-Server request repeats every mutable admission check atomically.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "preflightManagedRuntimeAuthority",
       "http": {
         "method": "GET",
@@ -19420,7 +19420,7 @@
       "name": "prepare_application_adoption",
       "title": "Plan Stack it for one exact unmanaged container, or assess Home Assistant in place",
       "description": "Mode stack_it plans the rebuild of any unmanaged single container as an own application (recreated as a new container; the original is stopped and kept). Mode adopt_in_place assesses Home Assistant Container in place. Retains the source-bound assessment in the existing durable job store. Requires a connected Guard and the exact capable published CLI release. This read-only operation does not establish Stacked membership.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "prepareApplicationAdoption",
       "http": {
         "method": "POST",
@@ -19518,8 +19518,8 @@
     {
       "name": "prepare_device_readiness",
       "title": "Prepare a device",
-      "description": "Connects to the named machine over SSH, runs the named catalog resolutions in order (only catalog ids are accepted), optionally opens a temporary egress path while they run, and probes again to report the result. Requires the signed techstack.device.prepare entitlement, and techstack.device.egress when egress is true. Registered only on a local (non-SaaS) control plane. The login comes from the Wallet item connection.wallet_item_id, resolved inside Techstack for this request only. A failing resolution stops the run with 409 and the receipts collected so far.",
-      "requiredCapability": "techstack.inventory.write",
+      "description": "Connects to the named machine over SSH, runs the named catalog resolutions in order (only catalog ids are accepted), optionally opens a temporary egress path while they run, and probes again to report the result. Requires the signed homelab.device.prepare entitlement, and homelab.device.egress when egress is true. Registered only on a local (non-SaaS) control plane. The login comes from the Wallet item connection.wallet_item_id, resolved inside Homelab for this request only. A failing resolution stops the run with 409 and the receipts collected so far.",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "prepareDeviceReadiness",
       "http": {
         "method": "POST",
@@ -19612,7 +19612,7 @@
       "name": "preview_pipeline",
       "title": "Preview pipeline results without side effects",
       "description": "Safe, idempotent. Shows what would be generated. Backend validation or StackKit resolution failures return 200 with data.valid=false and structured data.errors; malformed input and auth failures remain HTTP errors.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "previewPipeline",
       "http": {
         "method": "POST",
@@ -19641,7 +19641,7 @@
       "name": "preview_wizard",
       "title": "Preview wizard spec",
       "description": "Projects a wizard intent onto the pinned kit seed and validates the result with the pinned StackKits CLI. Safe and idempotent: nothing is persisted. An invalid projection answers 200 with `valid: false` and `validate_error`; join previews need `base_spec`. Unsupported per-use-case access returns 409 `wizard_desired_projection_blocked` with blocked_capabilities; nothing is saved.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "previewWizard",
       "http": {
         "method": "POST",
@@ -19656,7 +19656,7 @@
           },
           "intent": {
             "additionalProperties": false,
-            "description": "Closed wizard intent (techstack.wizard-intent/v1). The backend projects it onto the pinned StackKits kit seed; owner identity never travels here.",
+            "description": "Closed wizard intent (homelab.wizard-intent/v1). The backend projects it onto the pinned StackKits kit seed; owner identity never travels here.",
             "properties": {
               "access": {
                 "additionalProperties": false,
@@ -19811,7 +19811,7 @@
                 "type": "string"
               },
               "schema": {
-                "const": "techstack.wizard-intent/v1",
+                "const": "homelab.wizard-intent/v1",
                 "type": "string"
               },
               "server": {
@@ -20078,8 +20078,8 @@
     {
       "name": "probe_device_readiness",
       "title": "Check a device is ready",
-      "description": "Opens one SSH session to the named machine, reads its facts (network, proxy, virtualization, enrollment reachability) and answers a readiness report; nothing on the device changes. The login comes from the Wallet item connection.wallet_item_id, resolved inside Techstack for this request only and never answered or stored. Registered only on a local (non-SaaS) control plane and requires the signed techstack.device.prepare entitlement. Unknown body fields are refused. The first request may omit host_key_fingerprint; the answer then carries the key the device presented so it can be pinned on the next call.",
-      "requiredCapability": "techstack.inventory.write",
+      "description": "Opens one SSH session to the named machine, reads its facts (network, proxy, virtualization, enrollment reachability) and answers a readiness report; nothing on the device changes. The login comes from the Wallet item connection.wallet_item_id, resolved inside Homelab for this request only and never answered or stored. Registered only on a local (non-SaaS) control plane and requires the signed homelab.device.prepare entitlement. Unknown body fields are refused. The first request may omit host_key_fingerprint; the answer then carries the key the device presented so it can be pinned on the next call.",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "probeDeviceReadiness",
       "http": {
         "method": "POST",
@@ -20149,8 +20149,8 @@
     {
       "name": "probe_discovered_device",
       "title": "Probe a discovered device",
-      "description": "Logs in to the device over SSH with the login held in the Wallet item `ssh_wallet_item_id` (a kombify Wallet node access item assigned to Techstack and bound to this IP or to no host, or an SSH key or password item of the built-in wallet whose URL names this IP) and reads its system facts. The login is resolved inside Techstack for this probe only and never answered. This contract accepts no password or private key. Callers other than the owner of a self-hosted installation may only probe IPs from their own discovery results; the owner may probe arbitrary IPs. Local control planes only (409 `lan_executor_required` on a hosted one).",
-      "requiredCapability": "techstack.inventory.write",
+      "description": "Logs in to the device over SSH with the login held in the Wallet item `ssh_wallet_item_id` (a kombify Wallet node access item assigned to Homelab and bound to this IP or to no host, or an SSH key or password item of the built-in wallet whose URL names this IP) and reads its system facts. The login is resolved inside Homelab for this probe only and never answered. This contract accepts no password or private key. Callers other than the owner of a self-hosted installation may only probe IPs from their own discovery results; the owner may probe arbitrary IPs. Local control planes only (409 `lan_executor_required` on a hosted one).",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "probeDevice",
       "http": {
         "method": "POST",
@@ -20199,7 +20199,7 @@
       "name": "provision_stack",
       "title": "Start provisioning an existing StackKit deployment",
       "description": "Start provisioning an existing StackKit deployment",
-      "requiredCapability": "techstack.inventory.provision",
+      "requiredCapability": "homelab.inventory.provision",
       "operationId": "provisionStack",
       "http": {
         "method": "POST",
@@ -20247,7 +20247,7 @@
       "name": "range_monitor_query",
       "title": "Run a PromQL range query",
       "description": "Run a PromQL range query",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "rangeMonitorQuery",
       "http": {
         "method": "GET",
@@ -20285,7 +20285,7 @@
       "name": "read_application_adoption_plan",
       "title": "Read the retained application assessment and durable progress",
       "description": "Read the retained application assessment and durable progress",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "readApplicationAdoptionPlan",
       "http": {
         "method": "GET",
@@ -20363,7 +20363,7 @@
       "name": "read_application_connector",
       "title": "Read node-owned connector status and current published transport admission",
       "description": "Returns a secret-free projection. An unavailable supporting catalog remains nondispatchable SourcePreview; stale evidence on a supporting pin requires current read-only verification. Dispatchability additionally requires current canonical host-key, node and lease authority.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "readApplicationConnector",
       "http": {
         "method": "GET",
@@ -20421,8 +20421,8 @@
     {
       "name": "rebind_server_network",
       "title": "Re-bind a moved server to the network it is on now",
-      "description": "Runs `stackkit network rebind` on the server through its kombify Guard: the node re-detects its LAN address, re-issues the signed LAN DNS custody record and regenerates and re-applies the workspace. The request takes no body. Requires the owner, the Inventory operate grant and the `techstack.servers.maintenance` entitlement, and a connected Guard (409 `server_network_not_ready` otherwise). A rebind that is already queued or running answers with its job instead of queueing another.",
-      "requiredCapability": "techstack.inventory.operate",
+      "description": "Runs `stackkit network rebind` on the server through its kombify Guard: the node re-detects its LAN address, re-issues the signed LAN DNS custody record and regenerates and re-applies the workspace. The request takes no body. Requires the owner, the Inventory operate grant and the `homelab.servers.maintenance` entitlement, and a connected Guard (409 `server_network_not_ready` otherwise). A rebind that is already queued or running answers with its job instead of queueing another.",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "rebindServerNetwork",
       "http": {
         "method": "POST",
@@ -20475,7 +20475,7 @@
       "name": "recommend_layout",
       "title": "Recommend layout",
       "description": "Plans where the selected goals run for an add-server or add-use-case change. An add-server change is planned on the nodes of its owned StackKit deployment; an add-use-case change is planned over every server of the owner's homelab in the tenant (all owned deployments and connected bare servers), and `target` names where it is carried out: `extend` a deployment (the one in `stack_id` or another one), or `found` a new deployment on a bare server (information only). Verifies the option with the pinned StackKits feasibility check and, when it is feasible, records it as an open recommendation the owner can accept inside the wizard run on the target deployment, reject or snooze. An option that is not verified is returned with state `unverified` and no id. `pins` carries the owner's \"Choose another server\" choices of an add-use-case change (use case id to server id): the planner re-solves with them on the deployment that declares the chosen servers, and the result is verified like any other; a server outside the owner's deployments in this tenant is refused with `layout_pin_server_unavailable`. Records the proposal but changes no infrastructure.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "recommendLayout",
       "http": {
         "method": "POST",
@@ -20725,7 +20725,7 @@
       "name": "recommend_stackkits",
       "title": "Recommend StackKits",
       "description": "Computes ranked StackKit recommendations from the selected goals, the deployment lane and surface, and the authenticated owner's worker inventory and self-disclosure. Safe and idempotent: nothing is stored. A non-ready status (`incomplete`, `stale`, `degraded`) is still a useful answer that names the evidence to supply.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "recommendStackKits",
       "http": {
         "method": "POST",
@@ -21075,7 +21075,7 @@
       "name": "reconnect_monthly_runtime",
       "title": "Recover the Guard session of a managed runtime",
       "description": "Probes the canonical aggregate; when it cannot prove a Guard connection, restarts Guard over the pinned execution channel for an entitled owner of a running server and re-observes the connection within a bounded window, then converges enrollment to enrolled. A stopped runtime is refused (managed_runtime_stopped). No provider resource is touched.",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "reconnectMonthlyRuntime",
       "http": {
         "method": "POST",
@@ -21238,7 +21238,7 @@
       "name": "record_failure_outcome",
       "title": "Record the outcome of an applied failure resolution",
       "description": "Attributes a finished procedure job of the caller tenant to the failure resolution it applied and the failure signature it was applied to. The outcome is the job's terminal state (completed is succeeded, failed is failed), never a value the caller sends; a job that is still running or was canceled is refused. The context is the one of the tenant's own latest occurrence of that signature. The record stays in the tenant; repeating the call for the same resolution and job returns the stored record.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "recordFailureOutcome",
       "http": {
         "method": "POST",
@@ -21254,7 +21254,7 @@
           },
           "procedure": {
             "description": "Product procedure reference of the applied fix step.",
-            "pattern": "^(stackkits|techstack):[a-z0-9][a-z0-9._:/@#-]{1,199}$",
+            "pattern": "^(stackkits|homelab):[a-z0-9][a-z0-9._:/@#-]{1,199}$",
             "type": "string"
           },
           "resolution_id": {
@@ -21353,7 +21353,7 @@
       "name": "recreate_monthly_runtime",
       "title": "Recreate one fully released managed server generation",
       "description": "Explicitly provisions generation N+1 for the same provider-neutral runtime slot after generation N has terminal lease and canonical server state, terminal provider operation state, opaque provider-native absence evidence, and exact capacity release. The immutable provider, region, offering, role, StackKit, and service intent is recovered from the old owner-scoped lease; clients cannot replace it. The endpoint delegates to the same managed-runtime expansion authority as Add Node, so enrollment, Guard evidence, endpoints, and StackKit rollout proceed through the full Creation flow. A standard Idempotency-Key is mandatory and safely replays the accepted generation.",
-      "requiredCapability": "techstack.inventory.provision",
+      "requiredCapability": "homelab.inventory.provision",
       "operationId": "recreateMonthlyRuntime",
       "http": {
         "method": "POST",
@@ -21479,7 +21479,7 @@
       "name": "reject_layout_recommendation",
       "title": "Reject layout recommendation",
       "description": "Marks an open or snoozed layout recommendation of the authenticated owner as rejected so it is no longer offered, and answers its updated view. A recommendation in any other state answers 409 `layout_recommendation_changed`.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "rejectLayoutRecommendation",
       "http": {
         "method": "POST",
@@ -21541,7 +21541,7 @@
       "name": "release_application_lifecycle",
       "title": "Release an adopted lifecycle binding without deleting or stopping its runtime",
       "description": "Release an adopted lifecycle binding without deleting or stopping its runtime",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "releaseApplicationLifecycle",
       "http": {
         "method": "POST",
@@ -21640,7 +21640,7 @@
       "name": "remove_agent",
       "title": "Remove/deregister agent",
       "description": "Remove/deregister agent",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "removeAgent",
       "http": {
         "method": "DELETE",
@@ -21681,7 +21681,7 @@
       "name": "remove_cloud_link",
       "title": "Remove Cloud link",
       "description": "Deletes the stored kombify Cloud profile link of the authenticated operator on this install. The link is per operator; nothing at kombify Cloud changes. When no link exists the call succeeds with `removed: false`. Re-linking is a browser sign-in and is not available to agents.",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "deleteCloudLink",
       "http": {
         "method": "DELETE",
@@ -21715,7 +21715,7 @@
       "name": "remove_use_case",
       "title": "Remove use case",
       "description": "Retires an installed workload, or every installed workload of a catalog use case, through the native resolver against the baseline named by `expected_spec_hash`, and queues the StackKit lifecycle jobs. The workload stops running but its data is retained (`data_disposition: retain`). The `Idempotency-Key` makes a retry replay the original acceptance; refused with 409 while the stack is busy, a service is locked or a server is in maintenance.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "removeUseCase",
       "http": {
         "method": "POST",
@@ -21822,7 +21822,7 @@
       "name": "rename_homelab",
       "title": "Rename homelab",
       "description": "Renames the authenticated owner's homelab. The homelab name is the Stack Identity name and syncs to kombify Cloud when connected. Reversible; the homelab is resolved from the authenticated owner, never from an argument.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "renameHomelab",
       "http": {
         "method": "PATCH",
@@ -21976,8 +21976,8 @@
     {
       "name": "rename_server",
       "title": "Rename server",
-      "description": "Writes servers.display_name, which runtime projections never overwrite. `null` or an empty string clears the rename. Requires the signed techstack.inventory.write entitlement and the FGA server `caller` relation; the write is bound to the authenticated tenant and owner, and a server outside that scope is denied without revealing whether it exists. The canonical inventory `name` reports the chosen name when one is set.",
-      "requiredCapability": "techstack.inventory.write",
+      "description": "Writes servers.display_name, which runtime projections never overwrite. `null` or an empty string clears the rename. Requires the signed homelab.inventory.write entitlement and the FGA server `caller` relation; the write is bound to the authenticated tenant and owner, and a server outside that scope is denied without revealing whether it exists. The canonical inventory `name` reports the chosen name when one is set.",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "renameInventoryServer",
       "http": {
         "method": "PATCH",
@@ -22412,7 +22412,7 @@
       "name": "repair_server_binding",
       "title": "Prepare the pairing command that re-pairs this server",
       "description": "Issues a one-time install command for a server whose Guard pinned no binding signing key. The token is returned once. Mutating commands stay refused until the server is paired again.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "repairServerBinding",
       "http": {
         "method": "POST",
@@ -22457,8 +22457,8 @@
     {
       "name": "repair_server_security",
       "title": "Repair drifted host security controls",
-      "description": "Requests a bounded repair of controls the fresh host security evidence reports as drifted and automatically repairable. Requires the server's owner, the Edge-signed `techstack.servers.maintenance` entitlement and, on the person's own session, a fresh multi-factor sign-in (at most 300 seconds old); an agent acting for the person needs no step-up. The repair travels as a typed, journaled Guard command that runs `stackkit host security repair --apply` for exactly the named controls; StackKits refuses, before changing anything, a change that would cut the management path or lock the owner out. Bounds: one repair per server at a time (409 `repair_in_progress`), a per-control cooldown (429 `repair_cooldown`), a daily attempt budget per control (429 `repair_attempts_exhausted`) and a circuit breaker after consecutive failures (429 `repair_circuit_open`); the 429 answers carry `retry_after`. A control that is compliant (409 `control_not_drifted`), under an approved exception (`control_has_exception`), manual (`control_not_repairable`), blocked on an authorized SSH key (`needs_authorized_key`) or not observed is refused. The body is decoded strictly.",
-      "requiredCapability": "techstack.inventory.operate",
+      "description": "Requests a bounded repair of controls the fresh host security evidence reports as drifted and automatically repairable. Requires the server's owner, the Edge-signed `homelab.servers.maintenance` entitlement and, on the person's own session, a fresh multi-factor sign-in (at most 300 seconds old); an agent acting for the person needs no step-up. The repair travels as a typed, journaled Guard command that runs `stackkit host security repair --apply` for exactly the named controls; StackKits refuses, before changing anything, a change that would cut the management path or lock the owner out. Bounds: one repair per server at a time (409 `repair_in_progress`), a per-control cooldown (429 `repair_cooldown`), a daily attempt budget per control (429 `repair_attempts_exhausted`) and a circuit breaker after consecutive failures (429 `repair_circuit_open`); the 429 answers carry `retry_after`. A control that is compliant (409 `control_not_drifted`), under an approved exception (`control_has_exception`), manual (`control_not_repairable`), blocked on an authorized SSH key (`needs_authorized_key`) or not observed is refused. The body is decoded strictly.",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "requestServerSecurityRepair",
       "http": {
         "method": "POST",
@@ -22647,7 +22647,7 @@
       "name": "repair_stack_component",
       "title": "Repair one degraded component of a completed rollout on its existing server",
       "description": "A rollout whose stack core applied completes degraded when an independent component could not finish; the component is recorded in the stack's `degraded_components` and repaired automatically. This operation starts that repair now. `public_tls` installs the managed kombify.me origin certificate (ADR-0047) on the stack's server; its hostnames come from the degraded rollout, never from the request. Answers 409 `component_repair_not_needed` when nothing is degraded.",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "repairStackComponent",
       "http": {
         "method": "POST",
@@ -22713,7 +22713,7 @@
       "name": "request_service_logs",
       "title": "Request fresh service logs",
       "description": "Asks the service's agent for its latest log lines, bound to a fresh inventory revision of the service's server. The node collects one bounded page into a durable read job; read the page with `GET` on the same path (`get_service_logs`) or follow `job_id` with `get_job`. It changes nothing and stays open on a frozen service. The service must advertise `logs` in `allowed_actions`. Exact replays under the same Idempotency-Key converge on the same job and a different body under the same key is 409; the raw Idempotency-Key is never persisted.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "requestManagedServiceLogs",
       "http": {
         "method": "POST",
@@ -22806,7 +22806,7 @@
       "name": "reset_onboarding",
       "title": "Restart onboarding",
       "description": "Clears the authenticated owner's completed and seen steps in a journey and reactivates it so the tour is shown again. Only the owner's own progress changes; no infrastructure is touched. Answers the resolved journey like the action route.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "resetOnboarding",
       "http": {
         "method": "POST",
@@ -22816,7 +22816,7 @@
         "additionalProperties": false,
         "properties": {
           "journey_id": {
-            "description": "Journey id, for example `techstack.platform`.",
+            "description": "Journey id, for example `homelab.platform`.",
             "minLength": 1,
             "type": "string"
           }
@@ -22913,7 +22913,7 @@
       "name": "resolve_drift",
       "title": "Trigger drift resolution (re-apply)",
       "description": "Precondition -- stack must have status \"drifted\"",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "resolveDrift",
       "http": {
         "method": "POST",
@@ -22957,7 +22957,7 @@
       "name": "resolve_guard_unresolved_outcome",
       "title": "Release an unresolved Guard command outcome",
       "description": "Commits an append-only operator resolution revision for an operation whose outcome is unknown and releases the worker's fence. `disposition` is `verified_applied` (the effect is in place), `verified_not_applied` (nothing happened) or `accept_unknown` (release without a verified outcome); `note` records what was verified. The actor is the authenticated subject and is recorded with the revision; a Guard cannot commit these dispositions. The person's own session needs a fresh multi-factor sign-in (at most 300 seconds old); an agent acting for the person needs none. `expected_revision` must be the revision the list returned, otherwise 409 `outcome_revision_stale`. The body is decoded strictly: exact keys, no unknown fields.",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "resolveGuardUnresolvedOutcome",
       "http": {
         "method": "POST",
@@ -23040,8 +23040,8 @@
     {
       "name": "resolve_monthly_runtime_custody",
       "title": "Archive a legacy or unbound custody record after provider cleanup",
-      "description": "Removes a non-executable legacy or unbound lease from the active dashboard only after the owner confirms that its provider resource was already removed. This operation never contacts or deletes a provider resource and is rejected for Techstack provider-controlled generations.",
-      "requiredCapability": "techstack.inventory.operate",
+      "description": "Removes a non-executable legacy or unbound lease from the active dashboard only after the owner confirms that its provider resource was already removed. This operation never contacts or deletes a provider resource and is rejected for Homelab provider-controlled generations.",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "resolveMonthlyRuntimeCustody",
       "http": {
         "method": "POST",
@@ -23211,7 +23211,7 @@
       "name": "resolve_stacked_original",
       "title": "Restore or remove the original container a Stack it kept",
       "description": "Mode restore_original (within the 7-day retention) removes the rebuilt own application, keeping its volume, and starts the original again. Mode release_original removes the stopped original; its data stays. Both require Owner approval.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "resolveStackedOriginal",
       "http": {
         "method": "POST",
@@ -23310,7 +23310,7 @@
       "name": "resolve_workload_relocation",
       "title": "Resolve workload relocation",
       "description": "Re-reads the transfer proof from the source and destination nodes of one relocation and records the verified outcome (`moved` or `aborted`). It is used when a move stopped between transfer and verification. The body is empty. While the nodes cannot both prove the exact transfer the answer is 409 and the relocation stays fenced.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "resolveWorkloadRelocation",
       "http": {
         "method": "POST",
@@ -23374,7 +23374,7 @@
       "name": "restore_home_assistant",
       "title": "Restore Home Assistant to a recovery instance",
       "description": "Restores a completed retained backup into the isolated recovery binding that belongs to the instance and verifies the result; the running instance itself is not overwritten. Requires the restore grant and an owned recovery binding (403 `recovery_not_authorized` otherwise). `operation_id` is a stable identity. A pending operation answers 202.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "restoreHomeAssistantInstance",
       "http": {
         "method": "POST",
@@ -23421,7 +23421,7 @@
       "name": "resume_remote_enrollment",
       "title": "Retry remote SSH enrollment",
       "description": "Re-runs the Guard enrollment over the SSH connection persisted for a connect-remote deployment without rerunning the StackKit rollout. The deployment must belong to the authenticated owner and use the connect-remote transport; the credential comes from the Wallet node access item already bound to it, or from `ssh_wallet_item_id` when the connection should be rebound first. A plaintext password is never accepted by this contract.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "resumeRemoteEnrollment",
       "http": {
         "method": "POST",
@@ -23493,8 +23493,8 @@
     {
       "name": "resume_stack_enrollment",
       "title": "Resume one overdue managed Node wait on its exact existing VM",
-      "description": "Authenticated, idempotent recovery for a persisted `waiting_enrollment`, `waiting_provider_provision`, or `waiting_canonical_guard` job whose `next_resume_at` has been overdue beyond the bounded grace period. The server validates the owned StackKit deployment, source job, wait reason, exact lease, active foundation role, and canonical Node as one operation. It atomically retires the exact source wait, creates or rehydrates one deterministic replacement deploy bound to the same lease and Node, and replays that job on later calls. Before handler entry, queue workers atomically acquire the durable `tenant/stack` compatibility execution claim; this serializes different jobs for the same StackKit deployment across Techstack replicas. The claim remains durable `running` until the handler exits, including during cancellation. This endpoint never invokes provider VM creation or selects a newer VM. A replacement found durable `running` after a crash remains fail-closed, is reported as the same job, and is never duplicated automatically; runtime-action reconciliation remains a separate operator concern.",
-      "requiredCapability": "techstack.inventory.operate",
+      "description": "Authenticated, idempotent recovery for a persisted `waiting_enrollment`, `waiting_provider_provision`, or `waiting_canonical_guard` job whose `next_resume_at` has been overdue beyond the bounded grace period. The server validates the owned StackKit deployment, source job, wait reason, exact lease, active foundation role, and canonical Node as one operation. It atomically retires the exact source wait, creates or rehydrates one deterministic replacement deploy bound to the same lease and Node, and replays that job on later calls. Before handler entry, queue workers atomically acquire the durable `tenant/stack` compatibility execution claim; this serializes different jobs for the same StackKit deployment across Homelab replicas. The claim remains durable `running` until the handler exits, including during cancellation. This endpoint never invokes provider VM creation or selects a newer VM. A replacement found durable `running` after a crash remains fail-closed, is reported as the same job, and is never duplicated automatically; runtime-action reconciliation remains a separate operator concern.",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "resumeStackEnrollment",
       "http": {
         "method": "POST",
@@ -23600,7 +23600,7 @@
       "name": "retry_stack_rollout",
       "title": "Retry one failed StackKit deployment rollout on its exact existing managed VM",
       "description": "Validates the owned failed deploy, its exact active foundation lease, and canonical Node in one server-side operation. The deterministic durable replacement bypasses provider VM creation, wins a durable `tenant/stack` compatibility execution claim before handler entry, and is replayed on repeated calls to this operation. The claim serializes different jobs for the same StackKit deployment across replicas and remains fail-closed as `running` after a process crash until operator reconciliation.",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "retryStackRollout",
       "http": {
         "method": "POST",
@@ -23718,7 +23718,7 @@
       "name": "review_or_apply_orphan_projection_cleanup",
       "title": "Review or apply owner-scoped test-residue cleanup",
       "description": "Two-phase cleanup for control-plane projections only. A `dry_run` returns the exact authenticated-owner E2E/runtime-cloud candidates and a stable revision-bound digest. `apply` recomputes the plan and accepts only that exact digest. This route never decommissions a lease, calls a provider, destroys infrastructure, or enqueues lifecycle work.",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "reviewOrApplyOrphanProjectionCleanup",
       "http": {
         "method": "POST",
@@ -23854,7 +23854,7 @@
       "name": "roll_back_home_assistant_migration",
       "title": "Return Home Assistant migration",
       "description": "Starts the return run for an owned migration that completed or failed and kept its source archive: archive the target, stop it, return the exclusive attachments and start and verify the original. The return run id is the migration run id with `:rollback`, so repeating the call resumes it. Answers 400 when the migration is not in a returnable state and 404 for a run the caller does not own.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "rollbackHomeAssistantMigration",
       "http": {
         "method": "POST",
@@ -23895,7 +23895,7 @@
       "name": "run_managed_service_action",
       "title": "Change a managed service",
       "description": "Derives stack, server, agent, kit and service authority from fresh canonical inventory. Every agent-executed mutation (`start`, `stop`, `restart`, `update`, `backup`, adopted applications included) runs as one governed RIL action card, its only write path: the card is derived from the service, its server and worker (an adopted application by its exact container, `update` with the pinned release, `backup` with the stack's backup contract), its one Gateway Decision is answered by the acting agent's equipment (no per-call approval flag), and the executor-bound primitive (`start-service`, `stop-service`, `restart-service`, `update-service` or `run-backup`) runs through the same lease, one-use claim, node proof, dispatcher and evidence as `/v1/ril/action-cards`. The response names the card in `action_card_id` and its execution in `job_id`; read it back with `get_action_card` for its status and evidence. `freeze` and `unfreeze` set the owner guardrail in the control plane without reaching the node. This operation only changes a service: a log page is requested with `POST /api/v1/registry/services/{serviceId}/logs` and read with `GET` on the same path. Exact replays converge on the same card receipt and a different body under the same key is 409; the raw Idempotency-Key is never persisted. A start or restart is followed by StackKits verify before measured state changes. Agent-executed actions refuse with 409 `maintenance_active` while the server is being rebooted or updated, a kit whose backups are managed refuses `backup` with 403 `managed_backup_custody`, and a locked service, application group or (for `update`) stack refuses on both entries.",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "runManagedServiceAction",
       "http": {
         "method": "POST",
@@ -24039,7 +24039,7 @@
       "name": "run_pipeline",
       "title": "Run full unifier pipeline (validate + analyze + unify + generate)",
       "description": "Side-effecting -- generates IaC output files.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "runPipeline",
       "http": {
         "method": "POST",
@@ -24067,8 +24067,8 @@
     {
       "name": "run_server_container_action",
       "title": "Start, stop or restart an unmanaged container of an owned server",
-      "description": "Requires the Edge-signed `techstack.servers.maintenance` entitlement, ownership of the server in the tenant, the Inventory operate grant on the server and a connected, current Guard that advertises `stackkit.host-operate.v1`. The body is decoded strictly: exact lowercase keys `container` (a container name or id) and `action` (start, stop or restart), no duplicates, no unknown fields, no approval flag. The action is one governed RIL action card, its only write path: the primitive `start-host-container`, `stop-host-container` or `restart-host-container` binds exactly this verb and this container (`host-container-ref`) on the server's node, its one Gateway Decision is answered by the acting agent's equipment (D-2026-10-23-06), and it runs through the same lease, one-use claim, node proof, dispatcher and evidence as `/v1/ril/action-cards`. The server's stack must have an applied plan (409 `host_action_plan_unavailable`). The response names the card in `action_card_id` and its execution in `job_id`; read it back with `get_action_card`: the evidence carries the Guard's verdict. The Guard resolves the container to its full id, refuses a StackKits-managed container, one carrying any StackKits label (`container_managed`, use the managed service actions), a container that is removed when it stops (`container_autoremove`, that would be a deletion) and the platform's own agents (`container_protected`), acts on that id and reads the state again; an action that does not reach its target state fails with `state_not_reached`. Nothing is deleted: removing a container or its data is not an action. A retry with the same Idempotency-Key converges on the same card instead of running the action twice, and a different body under the same key is 409. There is no free-form shell path. Refusals are client-error-envelope/v1 documents; 409 `reason_code` is one of node_protected, agent_not_connected, heartbeat_stale, agent_capability_missing, container_protected, host_action_stack_unavailable or host_action_plan_unavailable at the route, or a governed-action reason (entitlement, a running stack mutation, maintenance, a stale target) when the card is created or begins. The Guard's own refusals and failures (container_managed, container_autoremove, container_not_found, engine_unavailable, precheck_failed, action_failed, state_not_reached, readback_failed) are the card's evidence summary codes `guard-refused-<code>` and `guard-failed-<code>` (code with hyphens). A host action no longer appears on the server timeline: the card is its record.",
-      "requiredCapability": "techstack.inventory.operate",
+      "description": "Requires the Edge-signed `homelab.servers.maintenance` entitlement, ownership of the server in the tenant, the Inventory operate grant on the server and a connected, current Guard that advertises `stackkit.host-operate.v1`. The body is decoded strictly: exact lowercase keys `container` (a container name or id) and `action` (start, stop or restart), no duplicates, no unknown fields, no approval flag. The action is one governed RIL action card, its only write path: the primitive `start-host-container`, `stop-host-container` or `restart-host-container` binds exactly this verb and this container (`host-container-ref`) on the server's node, its one Gateway Decision is answered by the acting agent's equipment (D-2026-10-23-06), and it runs through the same lease, one-use claim, node proof, dispatcher and evidence as `/v1/ril/action-cards`. The server's stack must have an applied plan (409 `host_action_plan_unavailable`). The response names the card in `action_card_id` and its execution in `job_id`; read it back with `get_action_card`: the evidence carries the Guard's verdict. The Guard resolves the container to its full id, refuses a StackKits-managed container, one carrying any StackKits label (`container_managed`, use the managed service actions), a container that is removed when it stops (`container_autoremove`, that would be a deletion) and the platform's own agents (`container_protected`), acts on that id and reads the state again; an action that does not reach its target state fails with `state_not_reached`. Nothing is deleted: removing a container or its data is not an action. A retry with the same Idempotency-Key converges on the same card instead of running the action twice, and a different body under the same key is 409. There is no free-form shell path. Refusals are client-error-envelope/v1 documents; 409 `reason_code` is one of node_protected, agent_not_connected, heartbeat_stale, agent_capability_missing, container_protected, host_action_stack_unavailable or host_action_plan_unavailable at the route, or a governed-action reason (entitlement, a running stack mutation, maintenance, a stale target) when the card is created or begins. The Guard's own refusals and failures (container_managed, container_autoremove, container_not_found, engine_unavailable, precheck_failed, action_failed, state_not_reached, readback_failed) are the card's evidence summary codes `guard-refused-<code>` and `guard-failed-<code>` (code with hyphens). A host action no longer appears on the server timeline: the card is its record.",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "runServerContainerAction",
       "http": {
         "method": "POST",
@@ -24179,8 +24179,8 @@
     {
       "name": "run_server_maintenance_action",
       "title": "Queue an owned server OS update plan, OS update or reboot",
-      "description": "Requires the Edge-signed `techstack.servers.maintenance` entitlement, ownership of the server in the tenant, and current server-bound standing authority for delegated native MCP calls. These three ordinary actions require no fresh MFA or separate owner_approved assertion. Reboot and os_update require expected_impact_digest from the preview the user confirmed. Impact is compared atomically at admission and again at execution claim; changed or incomplete evidence sends no command and requires a refreshed preview and renewed confirmation with a new request key. The body is decoded strictly: exact lowercase keys, no duplicates, no unknown fields. A replay with the same Idempotency-Key returns the stored receipt before target validation. One reboot or OS update and, separately, one update plan may be active per server; a job not finished by its deadline fails with `deadline_exceeded` and frees its slot. The action is offered in `allowed_actions` only when the server agent advertises `stackkit.host-maintenance.v1`, and `reboot` only when the server also reports `host_boot_id`. Refusals are client-error-envelope/v1 documents; 409 `reason_code` is one of control_plane_host, substrate_node, protected_demo_server, service_locked, maintenance_active, node_operation_active, plan_stale, agent_capability_missing, boot_id_unknown, agent_not_connected, heartbeat_stale, inventory_revision_stale, idempotency_key_reused, impact_confirmation_required, impact_changed or impact_unavailable; 403 carries entitlement_required or maintenance_origin_authority_denied.",
-      "requiredCapability": "techstack.server.maintenance",
+      "description": "Requires the Edge-signed `homelab.servers.maintenance` entitlement, ownership of the server in the tenant, and current server-bound standing authority for delegated native MCP calls. These three ordinary actions require no fresh MFA or separate owner_approved assertion. Reboot and os_update require expected_impact_digest from the preview the user confirmed. Impact is compared atomically at admission and again at execution claim; changed or incomplete evidence sends no command and requires a refreshed preview and renewed confirmation with a new request key. The body is decoded strictly: exact lowercase keys, no duplicates, no unknown fields. A replay with the same Idempotency-Key returns the stored receipt before target validation. One reboot or OS update and, separately, one update plan may be active per server; a job not finished by its deadline fails with `deadline_exceeded` and frees its slot. The action is offered in `allowed_actions` only when the server agent advertises `stackkit.host-maintenance.v1`, and `reboot` only when the server also reports `host_boot_id`. Refusals are client-error-envelope/v1 documents; 409 `reason_code` is one of control_plane_host, substrate_node, protected_demo_server, service_locked, maintenance_active, node_operation_active, plan_stale, agent_capability_missing, boot_id_unknown, agent_not_connected, heartbeat_stale, inventory_revision_stale, idempotency_key_reused, impact_confirmation_required, impact_changed or impact_unavailable; 403 carries entitlement_required or maintenance_origin_authority_denied.",
+      "requiredCapability": "homelab.server.maintenance",
       "operationId": "runServerMaintenanceAction",
       "http": {
         "method": "POST",
@@ -24274,7 +24274,7 @@
       "name": "run_server_systemd_action",
       "title": "Start, stop or restart a service unit of an owned server",
       "description": "Same authorization and admission as the container action. The body takes the exact lowercase keys `unit` (one `.service` unit name), `action` (start, stop or restart), no approval flag. The action is the governed primitive `start-host-unit`, `stop-host-unit` or `restart-host-unit` (unit in `host-unit-ref`), the same card path as the container action. Units of the management path (the Guard, kombify and StackKits services, sshd, Docker, containerd, systemd itself, D-Bus, the network, firewall, VPN and clock stack and the like) are refused here and again by the Guard (`unit_protected`), also when an alias of the unit or a unit that requires it is protected; an unknown unit answers `unit_not_found` and a template instance that is not running `unit_instance_unknown`. The Guard reads the unit state after the action; the card's evidence carries its verdict. Retry and refusal behavior are those of the container action.",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "runServerSystemdAction",
       "http": {
         "method": "POST",
@@ -24386,7 +24386,7 @@
       "name": "send_agent_command",
       "title": "Send command to agent",
       "description": "Send command to agent",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "sendAgentCommand",
       "http": {
         "method": "POST",
@@ -24444,7 +24444,7 @@
       "name": "server_access_context",
       "title": "Get server access context",
       "description": "Returns address metadata, channel state, and freshness-qualified service links only. It never returns endpoint references, access-profile references, route IDs, credentials, tokens, SSH users, ports, keys, commands, or logs. This surface requires inventory operate permission; read permission alone is insufficient.",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "getInventoryServerAccessContext",
       "http": {
         "method": "GET",
@@ -24675,7 +24675,7 @@
       "name": "server_health",
       "title": "Get server health",
       "description": "Get freshness-qualified health for one owned server",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getInventoryServerHealth",
       "http": {
         "method": "GET",
@@ -24915,7 +24915,7 @@
       "name": "server_ports",
       "title": "Get server ports",
       "description": "Projects compiler-declared listener claims and generation-fenced reservations beside monotone Guard runtime evidence. Missing or stale observations remain explicit and never become optimistic availability.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "getInventoryServerPorts",
       "http": {
         "method": "GET",
@@ -25115,8 +25115,8 @@
     {
       "name": "set_notification_preferences",
       "title": "Set notification preferences",
-      "description": "Writes the topic-by-channel preference matrix of the authenticated user. Techstack forwards the body (at most 1 MiB) to the notifications engine unchanged; the engine rejects unknown topics and channels with 400 and silently ignores channels that are locked for a topic. The answer is the fresh matrix, not wrapped in the `data` envelope. Quiet hours and the Telegram link are read-only here.",
-      "requiredCapability": "techstack.inventory.write",
+      "description": "Writes the topic-by-channel preference matrix of the authenticated user. Homelab forwards the body (at most 1 MiB) to the notifications engine unchanged; the engine rejects unknown topics and channels with 400 and silently ignores channels that are locked for a topic. The answer is the fresh matrix, not wrapped in the `data` envelope. Quiet hours and the Telegram link are read-only here.",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "updateNotificationPreferences",
       "http": {
         "method": "PUT",
@@ -25214,7 +25214,7 @@
       "name": "set_operator_self_disclosure",
       "title": "Set operator self-disclosure",
       "description": "Replaces the signed-in operator's whole self-disclosure; an unanswered question means \"not told\". The body is decoded strictly and every answer must come from the closed vocabulary below. The capability profile in the answer is derived by the Unifier, never stored from the request. With `if_unchanged` the replacement is applied only when the stored value still equals it, otherwise the answer is 412 `self_disclosure_changed`.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "putOperatorSelfDisclosure",
       "http": {
         "method": "PUT",
@@ -25325,10 +25325,10 @@
             "type": "object"
           },
           "source": {
-            "description": "link when the answers arrived as URL state and the operator confirmed them; techstack when typed in a Techstack surface.",
+            "description": "link when the answers arrived as URL state and the operator confirmed them; homelab when typed in a Homelab surface.",
             "enum": [
               "link",
-              "techstack"
+              "homelab"
             ],
             "type": "string"
           }
@@ -25385,7 +25385,7 @@
       "name": "set_server_availability",
       "title": "Confirm server availability",
       "description": "The owner says whether the machine is on all the time (`always-on`) or switched off at times (`part-time`). The statement is stored next to what the Guard observed and replaces the observed class for planning. `unknown` or `null` withdraws it. Owner only; any other caller gets 404.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "setServerAvailability",
       "http": {
         "method": "PUT",
@@ -25495,8 +25495,8 @@
     {
       "name": "set_server_public_reach",
       "title": "Publish a server service at its kombify.me address, or stop publishing it",
-      "description": "Nothing is published by default: a paired server has no public route and the relay carries no traffic. The owner enables it per server with an explicit `service` name and `target_port` (the origin is always the Guard host's loopback, never another machine) and may withdraw it at any time. The relay authenticates the Guard, not the visitor, so what answers on that port must protect itself. Enabling requires the owner, the `techstack.servers.maintenance` entitlement and, on the person's own session, a fresh multi-factor sign-in (reason `server_reach_step_up_required`); an agent acting for the person needs no step-up. Withdrawing is never gated. Responds with the reach section of the server read model; the reconciler then creates or withdraws the route.",
-      "requiredCapability": "techstack.inventory.operate",
+      "description": "Nothing is published by default: a paired server has no public route and the relay carries no traffic. The owner enables it per server with an explicit `service` name and `target_port` (the origin is always the Guard host's loopback, never another machine) and may withdraw it at any time. The relay authenticates the Guard, not the visitor, so what answers on that port must protect itself. Enabling requires the owner, the `homelab.servers.maintenance` entitlement and, on the person's own session, a fresh multi-factor sign-in (reason `server_reach_step_up_required`); an agent acting for the person needs no step-up. Withdrawing is never gated. Responds with the reach section of the server read model; the reconciler then creates or withdraws the route.",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "setServerPublicReach",
       "http": {
         "method": "PUT",
@@ -25548,7 +25548,7 @@
                 "type": "string"
               },
               "node_id": {
-                "description": "Connect techstack-node id (connect target, registered only).",
+                "description": "Connect homelab-node id (connect target, registered only).",
                 "type": "string"
               },
               "reason_code": {
@@ -25583,7 +25583,7 @@
                 "type": "string"
               },
               "node_id": {
-                "description": "Connect techstack-node id (connect target, registered only).",
+                "description": "Connect homelab-node id (connect target, registered only).",
                 "type": "string"
               },
               "reason_code": {
@@ -25702,8 +25702,8 @@
     {
       "name": "set_server_security_auto_repair",
       "title": "Approve or withdraw automatic security repair",
-      "description": "Off by default. An approval names controls from the safe set (`allowed_controls`: brute-force protection, the firewall policy, kernel parameters and automatic security updates; never the ssh controls), expires within 90 days and never renews itself. While it is in force the control plane repairs a named control that fresh evidence reports drifted, inside the same bounds as an operator repair. Requires the owner, the `techstack.servers.maintenance` entitlement and, on the person's own session, a fresh multi-factor sign-in; an agent acting for the person needs no step-up. `enabled: false` withdraws the approval.",
-      "requiredCapability": "techstack.inventory.operate",
+      "description": "Off by default. An approval names controls from the safe set (`allowed_controls`: brute-force protection, the firewall policy, kernel parameters and automatic security updates; never the ssh controls), expires within 90 days and never renews itself. While it is in force the control plane repairs a named control that fresh evidence reports drifted, inside the same bounds as an operator repair. Requires the owner, the `homelab.servers.maintenance` entitlement and, on the person's own session, a fresh multi-factor sign-in; an agent acting for the person needs no step-up. `enabled: false` withdraws the approval.",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "setServerSecurityAutoRepair",
       "http": {
         "method": "PUT",
@@ -25808,7 +25808,7 @@
       "name": "set_server_update_setting",
       "title": "Set a server's update setting",
       "description": "Stores the server's update setting (`ask`, `automatic` or `with_stackkits_releases`) for the owner of the worker and records the change with its actor in the audit log. Reversible.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "setServerUpdateSetting",
       "http": {
         "method": "PUT",
@@ -25867,7 +25867,7 @@
             "type": "string"
           },
           "started": {
-            "description": "The update Techstack started without a click.",
+            "description": "The update Homelab started without a click.",
             "type": "object"
           },
           "worker_id": {
@@ -25891,7 +25891,7 @@
       "name": "set_substrate_binding",
       "title": "Enable or disable a substrate binding",
       "description": "Binds the substrate to the Guard's current authenticated inventory (node, guest-id range, image pins) and turns guest placement on or off. Optimistic concurrency: `revision` must equal the current binding revision (0 when none exists) and the answer carries the next one. Refused with 409 while the substrate has no current inventory, no node-local configuration, a revision mismatch, or non-decommissioned guests that still hold custody.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "setSubstrateBinding",
       "http": {
         "method": "PUT",
@@ -25954,7 +25954,7 @@
       "name": "setup_application_connector",
       "title": "Ensure or revoke one declared owned Home Assistant connector on its node",
       "description": "Requires fresh backend ownership, positive operate authority, exact current inventory and Owner approval. Transports only closed correlation metadata through Guard to the published pinned CLI, whose local signedApply and Owner setup authority remain mandatory. Stores pre-send durable intent; unknown acknowledgement only reconciles the original operation read-only. Current v0.51.8 lacks the supporting catalog and returns nondispatchable SourcePreview. Credentials stay in node custody.",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "setupApplicationConnector",
       "http": {
         "method": "POST",
@@ -26040,7 +26040,7 @@
       "name": "snooze_layout_recommendation",
       "title": "Snooze layout recommendation",
       "description": "Hides an open or snoozed layout recommendation of the authenticated owner until `until`, which must lie in the future and within 90 days, and answers its updated view. A recommendation in any other state answers 409 `layout_recommendation_changed`.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "snoozeLayoutRecommendation",
       "http": {
         "method": "POST",
@@ -26108,7 +26108,7 @@
       "name": "start_home_assistant_migration",
       "title": "Start Home Assistant migration",
       "description": "Starts (or resumes) the durable migration run for an authorized local binding: archive the source, provision an isolated target on the owner's own substrate, restore and verify it, then wait for the cutover confirmation. The run id is derived from tenant, owner and target, so repeating the call resumes the same run. The request must match the binding's source service and authorization reference exactly (403 otherwise). Self-hosted installs with a configured local binding only (503 `migration_executor_unavailable` otherwise).",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "startHomeAssistantMigration",
       "http": {
         "method": "POST",
@@ -26159,8 +26159,8 @@
     {
       "name": "start_homelab_identity_join",
       "title": "Join a server to the homelab's identity Authority",
-      "description": "Joins this kit deployment's server to the server that runs the homelab's Pocket ID (the homelab's authority pointer, never a client choice). The job runs the pinned StackKits CLI on each server: the join request pinned to `authority_root` (the root fingerprint the Owner reads at the Authority's console or Hub), the Owner's passkey approval in the Authority's Hub (the job waits up to five minutes), the install of the Authority-signed trust bundle, the joined server's sign-in client registered at the Authority (a second passkey approval) with its secret delivered only through the homelab's Wallet, and the homelab DNS zone on every server. The server joins after its StackKit init and before its first apply; its own domain is always one of the hostnames. Techstack carries the documents and signs none of them. Needs exactly one Idempotency-Key; a replay returns the same job and never asks for approval again.",
-      "requiredCapability": "techstack.inventory.write",
+      "description": "Joins this kit deployment's server to the server that runs the homelab's Pocket ID (the homelab's authority pointer, never a client choice). The job runs the pinned StackKits CLI on each server: the join request pinned to `authority_root` (the root fingerprint the Owner reads at the Authority's console or Hub), the Owner's passkey approval in the Authority's Hub (the job waits up to five minutes), the install of the Authority-signed trust bundle, the joined server's sign-in client registered at the Authority (a second passkey approval) with its secret delivered only through the homelab's Wallet, and the homelab DNS zone on every server. The server joins after its StackKit init and before its first apply; its own domain is always one of the hostnames. Homelab carries the documents and signs none of them. Needs exactly one Idempotency-Key; a replay returns the same job and never asks for approval again.",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "startHomelabIdentityJoin",
       "http": {
         "method": "POST",
@@ -26241,7 +26241,7 @@
       "name": "start_monthly_runtime",
       "title": "Start a stopped managed server of the same generation",
       "description": "Admits one generation-bound provider-control reconcile toward running. The provider power-on runs once under an at-most-once claim; a repeated request while it converges replays the same operation. Requires the managed runtime entitlement before any provider call.",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "startMonthlyRuntime",
       "http": {
         "method": "POST",
@@ -26404,7 +26404,7 @@
       "name": "start_own_application_operation",
       "title": "Read, review or back up an own application adopted with Stack it",
       "description": "Queues one StackKits own-application step for an application StackKits runs as an own application and Stack it adopted: status or logs (reads), backup (Owner approved, a node snapshot holding every own application volume), or the dry run of a mutation: review (start, stop, restart or rollback), update_review (a newer version tag of its own image, optionally allow_major), checkpoint_rollback_review or checkpoint_discard_review (the data checkpoint of a tag update). A dry run changes nothing and returns the review digest the execution binds.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "startOwnApplicationOperation",
       "http": {
         "method": "POST",
@@ -26529,7 +26529,7 @@
       "name": "start_scan",
       "title": "Start network scan (async)",
       "description": "Start network scan (async)",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "startScan",
       "http": {
         "method": "POST",
@@ -26642,7 +26642,7 @@
       "name": "start_tunnel",
       "title": "Start Cloudflare tunnel",
       "description": "Start Cloudflare tunnel",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "startTunnel",
       "http": {
         "method": "POST",
@@ -26664,7 +26664,7 @@
       "name": "start_workload_relocation",
       "title": "Move workloads to another server",
       "description": "Starts a verified move from the source server (this stack, `source_agent_id`) to a destination server of another owned stack. With `engine: native` it moves one installed `use_case` or one application (`workloads`): the destination adds it, receives the encrypted data straight from the source and reads its health and data back before the source is retired; the source stays stopped with its data until then and runs again when the move stops. With the Coolify engine (default) select either whole `projects` or individual `resource_uuids`; the transfer secret stays in Wallet custody (`wallet_item_id`) and domain switches go only to test domains. Needs exactly one Idempotency-Key; a replay returns the same job. Refused with 409 when a target holds locked services or server maintenance runs.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "startWorkloadRelocation",
       "http": {
         "method": "POST",
@@ -26807,7 +26807,7 @@
       "name": "stop_monthly_runtime",
       "title": "Stop a managed server without destroying it",
       "description": "Admits one generation-bound provider-control reconcile toward stopped. centron uses its graceful guest shutdown action; IONOS shuts the guest down over the execution channel because the IONOS provider stop releases the bound DHCP IPv4. The server keeps its disk, address, lease, capacity reservation and monthly billing.",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "stopMonthlyRuntime",
       "http": {
         "method": "POST",
@@ -26970,7 +26970,7 @@
       "name": "stop_tunnel",
       "title": "Stop Cloudflare tunnel",
       "description": "Stop Cloudflare tunnel",
-      "requiredCapability": "techstack.inventory.operate",
+      "requiredCapability": "homelab.inventory.operate",
       "operationId": "stopTunnel",
       "http": {
         "method": "POST",
@@ -26992,7 +26992,7 @@
       "name": "sync_stack_identity",
       "title": "Sync stack identity with Cloud",
       "description": "Takes the kombify Cloud stack identity record (read by the caller through the Gateway with the user's own token; `null` when Cloud has none) and applies the sync rules to the local copy: adopt the Cloud record, confirm an identical one, or answer the body to push to Cloud with the `If-Match` revision. The call itself never writes to Cloud. When no local stack identity exists yet it only reports `homelab_missing`.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "syncStackIdentity",
       "http": {
         "method": "POST",
@@ -27133,8 +27133,8 @@
     {
       "name": "test_discovered_device_ssh",
       "title": "Test SSH to a discovered device",
-      "description": "Opens one SSH connection with the login held in the Wallet item `ssh_wallet_item_id` (its key when it holds one, otherwise its password; a built-in wallet item must name this IP as its URL), resolved inside Techstack and never answered; nothing is stored. This contract accepts no password. A failed connection answers 200 with `success: false`. Callers other than the owner of a self-hosted installation may only test IPs from their own discovery results; the owner may test arbitrary IPs. Local control planes only.",
-      "requiredCapability": "techstack.inventory.write",
+      "description": "Opens one SSH connection with the login held in the Wallet item `ssh_wallet_item_id` (its key when it holds one, otherwise its password; a built-in wallet item must name this IP as its URL), resolved inside Homelab and never answered; nothing is stored. This contract accepts no password. A failed connection answers 200 with `success: false`. Callers other than the owner of a self-hosted installation may only test IPs from their own discovery results; the owner may test arbitrary IPs. Local control planes only.",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "testSSH",
       "http": {
         "method": "POST",
@@ -27189,7 +27189,7 @@
       "name": "test_remote_ssh",
       "title": "Test remote SSH",
       "description": "Opens one SSH connection to the given host with a credential held in the Wallet and reports whether it succeeded; nothing is stored. The credential is a Wallet node access item (`ssh_wallet_item_id`, bound to the host) or, on deployments that read the built-in wallet, the label of a stored SSH key. This contract accepts no password or private key. A failed connection answers 200 with `success: false` and the error.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "testWizardRemoteSsh",
       "http": {
         "method": "POST",
@@ -27264,7 +27264,7 @@
       "name": "unify_spec",
       "title": "Unify specifications (Phase 2)",
       "description": "Unify specifications (Phase 2)",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "unifySpec",
       "http": {
         "method": "POST",
@@ -27293,7 +27293,7 @@
       "name": "update_home_assistant",
       "title": "Update Home Assistant",
       "description": "Updates the instance to the exact `version`. It requires a completed backup (`backup_operation_id`) whose archive passed an isolated restore, the update grant on the binding and a pinned version (core `YYYY.M.P`, os `M.N` or `M.N.P`). `operation_id` is a stable identity and an uncertain submission is never repeated. A pending operation answers 202.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "updateHomeAssistantInstance",
       "http": {
         "method": "POST",
@@ -27353,7 +27353,7 @@
       "name": "update_stack_identity",
       "title": "Update stack identity metadata",
       "description": "Update stack identity metadata",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "updateStackIdentity",
       "http": {
         "method": "PUT",
@@ -27382,7 +27382,7 @@
       "name": "update_stack_identity_if_unchanged",
       "title": "Update stack identity if unchanged",
       "description": "Revision-checked variant of the stack identity update. `If-Match` carries the `local_revision` read from the stack identity, in double quotes (for example `\"3\"`); a stale revision answers 412 and a reused `Idempotency-Key` with different content answers 409. The edit is stored locally and marked pending until it is synced with kombify Cloud. The body is limited to 4096 bytes. Requires the Postgres control plane (503 `stack_identity_store_unavailable` otherwise).",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "updateStackIdentityConditional",
       "http": {
         "method": "PUT",
@@ -27486,8 +27486,8 @@
     {
       "name": "update_wallet_item",
       "title": "Update wallet item",
-      "description": "Merges the supplied fields into an item the caller owns and returns it redacted. Fields that are not supplied keep their value, including the stored secret and TOTP, which this contract can neither read nor change: the person sets those in the Wallet. The item kind and owner are immutable. An item owned by someone else answers 404. Only deployments that keep credentials in Techstack's own Wallet serve this route; elsewhere it answers 409 `self_hosted_only`.",
-      "requiredCapability": "techstack.inventory.write",
+      "description": "Merges the supplied fields into an item the caller owns and returns it redacted. Fields that are not supplied keep their value, including the stored secret and TOTP, which this contract can neither read nor change: the person sets those in the Wallet. The item kind and owner are immutable. An item owned by someone else answers 404. Only deployments that keep credentials in Homelab's own Wallet serve this route; elsewhere it answers 409 `self_hosted_only`.",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "updateWalletItem",
       "http": {
         "method": "PATCH",
@@ -27610,7 +27610,7 @@
       "name": "validate_import",
       "title": "Validate spec without importing",
       "description": "Validate spec without importing",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "validateImport",
       "http": {
         "method": "POST",
@@ -27683,7 +27683,7 @@
       "name": "validate_pipeline",
       "title": "Validate pipeline inputs without executing",
       "description": "Validate pipeline inputs without executing",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "validatePipeline",
       "http": {
         "method": "POST",
@@ -27756,7 +27756,7 @@
       "name": "validate_spec",
       "title": "Validate a stack specification against CUE schemas",
       "description": "Safe, idempotent. No side effects.",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "validateSpec",
       "http": {
         "method": "POST",
@@ -27830,7 +27830,7 @@
       "name": "validate_tunnel_url",
       "title": "Validate custom tunnel URL",
       "description": "Validate custom tunnel URL",
-      "requiredCapability": "techstack.inventory.write",
+      "requiredCapability": "homelab.inventory.write",
       "operationId": "validateTunnelUrl",
       "http": {
         "method": "POST",
@@ -27856,7 +27856,7 @@
       "name": "verify_application_connector",
       "title": "Refresh the current node-owned connector through a distinct read-only job",
       "description": "Retains the original signed setup operation and exact receipt, requires current published catalog and positive backend node/resource authority, and never reissues setup. Ordinary authenticated inventory reconciliation uses the same consumer for stale projections. Current v0.51.8 remains nondispatchable SourcePreview.",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "verifyApplicationConnector",
       "http": {
         "method": "POST",
@@ -27926,7 +27926,7 @@
       "name": "verify_spec_chain",
       "title": "Verify spec hash chain integrity",
       "description": "Verify spec hash chain integrity",
-      "requiredCapability": "techstack.inventory.read",
+      "requiredCapability": "homelab.inventory.read",
       "operationId": "verifySpecChain",
       "http": {
         "method": "GET",

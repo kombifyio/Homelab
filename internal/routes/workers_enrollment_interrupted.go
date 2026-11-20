@@ -3,7 +3,7 @@ package routes
 import (
 	"context"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 // interruptedGuardWorker finds the worker an interrupted enrollment of the same

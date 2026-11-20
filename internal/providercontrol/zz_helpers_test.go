@@ -4,22 +4,22 @@ package providercontrol
 
 import (
 	"context"
-	"path/filepath"
-	"fmt"
-	"encoding/hex"
-	"encoding/json"
-	"os"
-	pgx "github.com/jackc/pgx/v5"
-	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"github.com/google/uuid"
+	pgx "github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 	"time"
-	"github.com/google/uuid"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
 )
 
 // AllowGate is the test-only activation gate for callers which need to prove
@@ -145,9 +145,9 @@ func openNativeAdmissionIntegrationDBWithProfile(
 	runtimeProfileID string,
 ) *sql.DB {
 	t.Helper()
-	dsn := strings.TrimSpace(os.Getenv("TECHSTACK_TEST_POSTGRES_URL"))
+	dsn := strings.TrimSpace(os.Getenv("HOMELAB_TEST_POSTGRES_URL"))
 	if dsn == "" {
-		t.Skip("TECHSTACK_TEST_POSTGRES_URL not set; skipping native admission PostgreSQL integration test")
+		t.Skip("HOMELAB_TEST_POSTGRES_URL not set; skipping native admission PostgreSQL integration test")
 	}
 
 	adminConfig, err := pgx.ParseConfig(dsn)
@@ -351,7 +351,7 @@ func openRestrictedNativeAdmissionRuntimeDB(t *testing.T, adminDatabase *sql.DB)
 		}
 	}
 
-	config, err := pgx.ParseConfig(strings.TrimSpace(os.Getenv("TECHSTACK_TEST_POSTGRES_URL")))
+	config, err := pgx.ParseConfig(strings.TrimSpace(os.Getenv("HOMELAB_TEST_POSTGRES_URL")))
 	if err != nil {
 		t.Fatalf("parse restricted native admission DSN: %v", err)
 	}
@@ -439,7 +439,7 @@ func nativeProvisionAdmissionFixture() NativeProvisionAdmissionRequest {
 			RecreatePolicy: vmlease.RecreatePolicyManual,
 		},
 		Server:         NativeAdmissionServer{StackID: "stack-native-1", Name: "native-runtime"},
-		DesiredSpecRef: "desired-spec://techstack/leases/lease-native-1/revisions/1",
+		DesiredSpecRef: "desired-spec://homelab/leases/lease-native-1/revisions/1",
 		DesiredSpec:    json.RawMessage(`{"region":"de","cpu":4,"ram":8}`),
 	}
 }
@@ -504,4 +504,3 @@ func (e *queueExecutor) ExecuteCrashRecoverableReadOnly(context.Context, Adapter
 func (e *queueExecutor) ExecuteCrashRecoverableMutation(context.Context, AdapterInvocation) providerexecutor.ExecutionResult {
 	return e.execute(ExecutionClaimSideEffecting)
 }
-

@@ -3,8 +3,8 @@ package homeassistant
 import (
 	"context"
 	"errors"
-	"github.com/kombifyio/techstack/pkg/ril/workflow"
-	"github.com/kombifyio/techstack/pkg/ril/workflows"
+	"github.com/kombifyio/homelab/pkg/ril/workflow"
+	"github.com/kombifyio/homelab/pkg/ril/workflows"
 	"regexp"
 )
 

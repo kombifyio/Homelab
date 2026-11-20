@@ -12,13 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/kombifyme"
-	"github.com/kombifyio/techstack/pkg/unifier"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/kombifyme"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 const (
-	stackKitCLIEnv           = "TECHSTACK_STACKKIT_CLI"
+	stackKitCLIEnv           = "HOMELAB_STACKKIT_CLI"
 	defaultStackKitCLIBinary = "stackkit"
 )
 
@@ -133,7 +133,7 @@ func (g *StackKitCLIGenerator) GenerateStackKitArtifacts(ctx context.Context, re
 		executedSpecPath = canonical.Path
 		derivedCanonicalSpec = canonical.Derived
 		// The destination belongs to the resolved plan, not to the caller:
-		// generating into Techstack's own tofu/ directory is refused outright
+		// generating into Homelab's own tofu/ directory is refused outright
 		// with "architecture v2 --output must resolve to governed ResolvedPlan
 		// outputRoot deploy". The result reports the directory back so the
 		// rollout reads its artifacts from where they were actually written.

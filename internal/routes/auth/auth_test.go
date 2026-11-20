@@ -3,10 +3,10 @@ package auth
 import (
 	"context"
 	"encoding/json"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/identity"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"net/http"
@@ -50,7 +50,7 @@ func TestGetAuthModeReportsWhereCredentialsAreKept(t *testing.T) {
 
 func TestCheckAuthAcceptsSignedEdgeIdentity(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/stack-identity", nil)
-	req = req.WithContext(identity.NewContext(context.Background(), &identity.Identity{UserID: "api-key:techstack"}))
+	req = req.WithContext(identity.NewContext(context.Background(), &identity.Identity{UserID: "api-key:homelab"}))
 	e := &httpx.Event{
 		Request:  req,
 		Response: httptest.NewRecorder(),
@@ -59,5 +59,5 @@ func TestCheckAuthAcceptsSignedEdgeIdentity(t *testing.T) {
 	assert.NoError(t, CheckAuth(e))
 	userID, ok := AuthUserID(e)
 	assert.True(t, ok)
-	assert.Equal(t, "api-key:techstack", userID)
+	assert.Equal(t, "api-key:homelab", userID)
 }

@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/drivehealth"
-	"github.com/kombifyio/techstack/pkg/guardtelemetry"
-	"github.com/kombifyio/techstack/pkg/releasechannel"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/pkg/drivehealth"
+	"github.com/kombifyio/homelab/pkg/guardtelemetry"
+	"github.com/kombifyio/homelab/pkg/releasechannel"
 )
 
 // DriveAlert is one durable condition episode. Observation failures are separate
@@ -556,7 +556,7 @@ func (s *DriveHealthService) reportError(err error) {
 }
 func driveNotification(a DriveAlert) Alert {
 	evidence, _ := json.Marshal(a.Evidence)
-	return Alert{RuleName: "DriveHealth:" + a.Code, Severity: a.Severity, Message: strings.Join([]string{a.Message, fmt.Sprintf("Drive %s at %s", a.DriveID, a.Evidence["device_path"]), string(evidence), a.RecommendedStep}, " "), Labels: map[string]string{"tenant_id": a.TenantID, "server_id": a.ServerID, "drive_id": a.DriveID, "event_id": a.ID, "condition_id": a.ID, "agent_id": a.WorkerID, "worker_id": a.WorkerID, "device_path": a.Evidence["device_path"], "source": a.Evidence["source"], "observed_at": a.Evidence["observed_at"], "recommended_step": a.RecommendedStep, "category": a.Category, "message_id": "techstack.monitoring.drive_health." + a.Code, "evidence": string(evidence)}, FiredAt: a.FirstSeenAt, ResolvedAt: a.ResolvedAt}
+	return Alert{RuleName: "DriveHealth:" + a.Code, Severity: a.Severity, Message: strings.Join([]string{a.Message, fmt.Sprintf("Drive %s at %s", a.DriveID, a.Evidence["device_path"]), string(evidence), a.RecommendedStep}, " "), Labels: map[string]string{"tenant_id": a.TenantID, "server_id": a.ServerID, "drive_id": a.DriveID, "event_id": a.ID, "condition_id": a.ID, "agent_id": a.WorkerID, "worker_id": a.WorkerID, "device_path": a.Evidence["device_path"], "source": a.Evidence["source"], "observed_at": a.Evidence["observed_at"], "recommended_step": a.RecommendedStep, "category": a.Category, "message_id": "homelab.monitoring.drive_health." + a.Code, "evidence": string(evidence)}, FiredAt: a.FirstSeenAt, ResolvedAt: a.ResolvedAt}
 }
 
 func driveEvidenceAvailable(r drivehealth.Reading) bool {

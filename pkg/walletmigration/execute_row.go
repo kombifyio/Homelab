@@ -5,9 +5,9 @@ import (
 	"crypto/subtle"
 	"errors"
 
-	"github.com/kombifyio/techstack/internal/gocommon/walletservice"
+	"github.com/kombifyio/homelab/internal/gocommon/walletservice"
 
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
 )
 
 // rowFlow carries one eligible row through the steps of its move. Each step

@@ -203,7 +203,7 @@
     },
     {
       "name": "certificateFile",
-      "description": "Path to the PEM origin certificate delivered by Techstack."
+      "description": "Path to the PEM origin certificate delivered by Homelab."
     },
     {
       "name": "hostsCsv",
@@ -216,7 +216,7 @@
       "operation": "advanced.trust.import",
       "status": "available",
       "sinceRelease": "v0.15.8",
-      "summary": "Import the exact pinned Techstack issuer trust bundle into local Owner custody; prerequisite of every capability-gated operation.",
+      "summary": "Import the exact pinned Homelab issuer trust bundle into local Owner custody; prerequisite of every capability-gated operation.",
       "command": "stackkit advanced trust import",
       "argv": [
         "advanced",
@@ -618,7 +618,7 @@
           "placeholder": "capabilityFile",
           "schemaVersion": "stackkit.advanced-capability/v1",
           "schema": "schemas/stackkit-advanced-capability-v1.schema.json",
-          "description": "Canonical Techstack-signed capability whose allowedOperations contains the operation, verified offline against the imported trust."
+          "description": "Canonical Homelab-signed capability whose allowedOperations contains the operation, verified offline against the imported trust."
         },
         {
           "placeholder": "candidateSpecFile",
@@ -745,7 +745,7 @@
           "placeholder": "capabilityFile",
           "schemaVersion": "stackkit.advanced-capability/v1",
           "schema": "schemas/stackkit-advanced-capability-v1.schema.json",
-          "description": "Canonical Techstack-signed capability whose allowedOperations contains the operation, verified offline against the imported trust."
+          "description": "Canonical Homelab-signed capability whose allowedOperations contains the operation, verified offline against the imported trust."
         },
         {
           "placeholder": "certificateFile",
@@ -782,7 +782,7 @@
       "operation": "public-tls.origin-certificate.request",
       "status": "available",
       "sinceRelease": "pending",
-      "summary": "Generate the origin key pair on the node (custody, never exported) and return the CSR for a managed kombify.me origin certificate; Techstack has Cloudflare issue it.",
+      "summary": "Generate the origin key pair on the node (custody, never exported) and return the CSR for a managed kombify.me origin certificate; Homelab has Cloudflare issue it.",
       "command": "stackkit advanced origin-certificate request",
       "argv": [
         "advanced",
@@ -809,7 +809,7 @@
           "placeholder": "capabilityFile",
           "schemaVersion": "stackkit.advanced-capability/v1",
           "schema": "schemas/stackkit-advanced-capability-v1.schema.json",
-          "description": "Canonical Techstack-signed capability whose allowedOperations contains the operation, verified offline against the imported trust."
+          "description": "Canonical Homelab-signed capability whose allowedOperations contains the operation, verified offline against the imported trust."
         },
         {
           "placeholder": "hostsCsv",
@@ -887,7 +887,7 @@
           "placeholder": "capabilityFile",
           "schemaVersion": "stackkit.advanced-capability/v1",
           "schema": "schemas/stackkit-advanced-capability-v1.schema.json",
-          "description": "Canonical Techstack-signed capability whose allowedOperations contains the operation, verified offline against the imported trust."
+          "description": "Canonical Homelab-signed capability whose allowedOperations contains the operation, verified offline against the imported trust."
         }
       ],
       "results": [
@@ -957,7 +957,7 @@
           "placeholder": "capabilityFile",
           "schemaVersion": "stackkit.advanced-capability/v1",
           "schema": "schemas/stackkit-advanced-capability-v1.schema.json",
-          "description": "Canonical Techstack-signed capability whose allowedOperations contains the operation, verified offline against the imported trust."
+          "description": "Canonical Homelab-signed capability whose allowedOperations contains the operation, verified offline against the imported trust."
         }
       ],
       "results": [
@@ -1032,7 +1032,7 @@
           "placeholder": "capabilityFile",
           "schemaVersion": "stackkit.advanced-capability/v1",
           "schema": "schemas/stackkit-advanced-capability-v1.schema.json",
-          "description": "Canonical Techstack-signed capability whose allowedOperations contains the operation, verified offline against the imported trust."
+          "description": "Canonical Homelab-signed capability whose allowedOperations contains the operation, verified offline against the imported trust."
         },
         {
           "placeholder": "candidateSpecFile",
@@ -1141,7 +1141,7 @@
           "placeholder": "capabilityFile",
           "schemaVersion": "stackkit.advanced-capability/v1",
           "schema": "schemas/stackkit-advanced-capability-v1.schema.json",
-          "description": "Canonical Techstack-signed capability whose allowedOperations contains the operation, verified offline against the imported trust."
+          "description": "Canonical Homelab-signed capability whose allowedOperations contains the operation, verified offline against the imported trust."
         },
         {
           "placeholder": "candidateSpecFile",

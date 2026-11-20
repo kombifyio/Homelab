@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/authsession"
-	"github.com/kombifyio/techstack/internal/gocommon/oidcclient"
+	"github.com/kombifyio/homelab/internal/gocommon/authsession"
+	"github.com/kombifyio/homelab/internal/gocommon/oidcclient"
 )
 
 // ProviderInfo is one entry in the unified methods response.

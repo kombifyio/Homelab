@@ -95,8 +95,8 @@ func (cm *CertManager) generateCA() error {
 	template := &x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			Organization: []string{"kombifyTechstack"},
-			CommonName:   "kombifyTechstack Root CA",
+			Organization: []string{"kombifyHomelab"},
+			CommonName:   "kombifyHomelab Root CA",
 		},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(10, 0, 0), // 10 years
@@ -190,7 +190,7 @@ func (cm *CertManager) loadCA(keyPath, certPath string) error {
 // not bound to a specific tenant. pickTenantFromCert (grpcserver) reads the
 // first non-empty Organization as the tenant, so tenant-scoped agent certs put
 // the tenant id here instead.
-const defaultCertOrg = "kombifyTechstack"
+const defaultCertOrg = "kombifyHomelab"
 
 // GenerateAgentCert creates a client certificate for an agent under the default
 // (non-tenant) organization. Kept for callers and tests that predate
@@ -427,7 +427,7 @@ func (cm *CertManager) saveRevokedList() error {
 	}
 	defer file.Close()
 
-	file.WriteString("# kombifyTechstack Certificate Revocation List\n")
+	file.WriteString("# kombifyHomelab Certificate Revocation List\n")
 	file.WriteString("# Format: serial,revoked_at\n")
 	for serial, revokedAt := range cm.revoked {
 		fmt.Fprintf(file, "%s,%s\n", serial, revokedAt.Format(time.RFC3339))

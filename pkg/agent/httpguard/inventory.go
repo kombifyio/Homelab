@@ -19,8 +19,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/appcatalog"
-	"github.com/kombifyio/techstack/pkg/servermaintenance"
+	"github.com/kombifyio/homelab/pkg/appcatalog"
+	"github.com/kombifyio/homelab/pkg/servermaintenance"
 
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
@@ -28,9 +28,9 @@ import (
 	"github.com/shirou/gopsutil/v4/mem"
 	gopsutilnet "github.com/shirou/gopsutil/v4/net"
 
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/runtimeconvergence"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/runtimeconvergence"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 // Heartbeat is the existing worker heartbeat wire contract.

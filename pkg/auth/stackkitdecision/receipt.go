@@ -11,7 +11,7 @@ import (
 )
 
 // The refusal names the platform binds (workspace contract, part 4). A check
-// in Techstack answers with the same names the node uses.
+// in Homelab answers with the same names the node uses.
 const (
 	RefusalInvalid        = "stackkit_receipt_invalid"
 	RefusalExpired        = "stackkit_receipt_expired"
@@ -24,7 +24,7 @@ const (
 	ReceiptType = "kombify.decision-receipt.v1"
 	// MaxLifetime is the longest receipt window the node admits.
 	MaxLifetime = 900 * time.Second
-	// DispatchMargin is the window a receipt must still have when Techstack
+	// DispatchMargin is the window a receipt must still have when Homelab
 	// hands it to a node: a receipt that lapses on the way is refused there
 	// anyway, so it is not sent.
 	DispatchMargin  = 30 * time.Second
@@ -73,7 +73,7 @@ type Receipt struct {
 	} `json:"signature"`
 }
 
-// Admitted is one receipt Techstack checked and may hand to the node.
+// Admitted is one receipt Homelab checked and may hand to the node.
 type Admitted struct {
 	ReceiptID  string
 	DecisionID string
@@ -82,12 +82,12 @@ type Admitted struct {
 	Compact string
 }
 
-// Check verifies what Techstack can verify before anything is dispatched:
+// Check verifies what Homelab can verify before anything is dispatched:
 // the store, the outcome and option kind, that a person answered on a surface
 // other than equipment, single use, that the intent digest equals the one
-// Techstack filed, that the decision is the one it filed, and the time
+// Homelab filed, that the decision is the one it filed, and the time
 // window. The signature is the node's to verify against its purpose-key
-// snapshot; Techstack only rebuilds the exact signed bytes.
+// snapshot; Homelab only rebuilds the exact signed bytes.
 func Check(raw json.RawMessage, filedDecisionID, filedIntentDigest string, now time.Time) (*Admitted, error) {
 	var receipt Receipt
 	if len(raw) == 0 || len(raw) > maxCompactBytes || json.Unmarshal(raw, &receipt) != nil {

@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // AIProviderResultField holds the secret-free outcome of ai_provider.
@@ -87,7 +87,7 @@ func validateAIProviderRequest(req *StackKitLifecycleRequest) error {
 // node, bind it as the provider key, and reconcile so Open WebUI uses it.
 func runAIProviderJob(ctx context.Context, cfg StackKitLifecycleConfig, job *Job, q *Queue, req StackKitLifecycleRequest, release stackkitrelease.Release) error {
 	summary := map[string]interface{}{
-		"schema_version": "techstack.stackkit-lifecycle-result/v1", "techstack_id": req.StackID,
+		"schema_version": "homelab.stackkit-lifecycle-result/v1", "kit_deployment_id": req.StackID,
 		stackKitInstanceIDField: req.StackKitInstanceID, "operation": req.Operation, "agent_id": req.AgentID,
 	}
 	outcome, err := configureAIProvider(ctx, cfg, job, q, req, release)

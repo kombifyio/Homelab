@@ -10,7 +10,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 func (s *Service) projectRevision(ctx context.Context, tenantID, owner string, req ProjectionRequest) (ProjectionResult, error) {

@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/kombifyio/techstack/pkg/monitoring"
+	"github.com/kombifyio/homelab/pkg/monitoring"
 	collectormetricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	metricspb "go.opentelemetry.io/proto/otlp/metrics/v1"

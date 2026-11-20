@@ -11,7 +11,7 @@ import type { ResolvedJourney } from "@kombiverselabs/onboarding-core";
 
 import {
   createPostHogClient,
-  toTechstackAnalyticsUser,
+  toHomelabAnalyticsUser,
 } from "#lib/analytics/posthog.js";
 import { getClientBootstrap } from "#lib/client/bootstrap.js";
 import { analyticsRelease } from "#lib/config.js";
@@ -52,7 +52,7 @@ function journeyProps(journey: ResolvedJourney | null) {
 // Every activation event is identity-mode auth0-sub, so an event without a
 // signed-in subject is not a measurement — it is noise with no cohort.
 function capture(event: string, properties: Record<string, unknown>): void {
-  const user = toTechstackAnalyticsUser(authStore.cloudUser);
+  const user = toHomelabAnalyticsUser(authStore.cloudUser);
   if (!user?.authSubject) return;
   // Self-host has no PostHog key, so the client is a no-op there by
   // construction rather than by a branch here.

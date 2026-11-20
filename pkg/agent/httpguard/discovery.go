@@ -47,9 +47,9 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/kombifyio/techstack/pkg/appcatalog"
-	"github.com/kombifyio/techstack/pkg/guardlayout"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/pkg/appcatalog"
+	"github.com/kombifyio/homelab/pkg/guardlayout"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 const (
@@ -67,7 +67,7 @@ const (
 //
 // Only unit files placed DIRECTLY in this directory are reported. That is the
 // location systemd reserves for locally installed units, so it separates the
-// handful of services an operator actually deployed (including the Techstack
+// handful of services an operator actually deployed (including the Homelab
 // agent itself) from the ~200 distribution units shipped under
 // /usr/lib/systemd/system. The `*.wants` subdirectories are deliberately not
 // scanned: an enabled distribution unit is symlinked there and is not an

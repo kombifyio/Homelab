@@ -18,23 +18,23 @@ import {
 } from "./runtime-inventory-profile";
 
 const PRODUCT_BASE = requireLiveProductURL(
-  "TechStack product",
+  "Homelab Runtime product",
   firstProductURL(
-    process.env.TECHSTACK_RUNTIME_E2E_PRODUCT_URL,
-    process.env.TECHSTACK_E2E_PRODUCT_URL,
+    process.env.HOMELAB_RUNTIME_E2E_PRODUCT_URL,
+    process.env.HOMELAB_E2E_PRODUCT_URL,
     process.env.PLAYWRIGHT_BASE_URL,
-  ) || "https://techstack.kombify.io",
+  ) || "https://homelab.kombify.io",
 );
 const API_BASE = requireLiveProductURL(
-  "TechStack API",
+  "Homelab Runtime API",
   firstProductURL(
-    process.env.TECHSTACK_RUNTIME_E2E_API_URL,
-    process.env.TECHSTACK_API_URL,
+    process.env.HOMELAB_RUNTIME_E2E_API_URL,
+    process.env.HOMELAB_API_URL,
     PRODUCT_BASE,
   ) || PRODUCT_BASE,
 );
 const SESSION_COOKIE_NAME =
-  process.env.TECHSTACK_E2E_SESSION_COOKIE_NAME ?? "techstack_session";
+  process.env.HOMELAB_E2E_SESSION_COOKIE_NAME ?? "homelab_session";
 const RUNTIME_AUTH_OPTIONS = {
   productBase: PRODUCT_BASE,
   apiBase: API_BASE,
@@ -49,18 +49,18 @@ const INVENTORY_TOOLS = [
 ].sort();
 const INVENTORY_EXPECTATION = runtimeInventoryExpectation(process.env);
 const EARLY_ACCESS =
-  process.env.TECHSTACK_E2E_EXPECTED_CHANNEL?.trim() === "early-access";
+  process.env.HOMELAB_E2E_EXPECTED_CHANNEL?.trim() === "early-access";
 
 // Data protection profile journey step (DATA-ARCHITECTURE.md §5.6). Set only
-// where the profile chain is switched on: "off" (Techstack verification off),
+// where the profile chain is switched on: "off" (Homelab verification off),
 // "standard", or the axes of the test user's profile joined by "+" ("eu",
 // "zero", "eu+zero"). The read goes through the Gateway, which signs the
 // profile; the product origin never carries one.
 const EXPECTED_DATA_PROFILE =
-  process.env.TECHSTACK_E2E_EXPECTED_DATA_PROFILE?.trim().toLowerCase() ?? "";
+  process.env.HOMELAB_E2E_EXPECTED_DATA_PROFILE?.trim().toLowerCase() ?? "";
 const allRoles: RuntimeAuthRole[] = ["oneliner", "remote", "cloud"];
 const roles = runtimeAuthRolesFromEnv(
-  process.env.TECHSTACK_RUNTIME_E2E_AUTH_ROLES,
+  process.env.HOMELAB_RUNTIME_E2E_AUTH_ROLES,
 );
 
 type WizardPageContext = {
@@ -74,7 +74,7 @@ test("Render refuses file bytes and requires authentication for artifact metadat
   request,
 }) => {
   test.skip(
-    process.env.TECHSTACK_E2E_EXPECT_RENDER_DOWNLOAD_DENIAL !== "1",
+    process.env.HOMELAB_E2E_EXPECT_RENDER_DOWNLOAD_DENIAL !== "1",
     "select only for a Render-hosted product origin",
   );
   // Installers and exports remain forbidden on Render. Agent routes authorize
@@ -191,7 +191,7 @@ test("the Companion follows live wizard use-case choices", async ({ page }) => {
       const context = await frame
         .evaluate(() => (window as ContextWindow).__wizardContexts?.at(-1))
         .catch(() => undefined);
-      if (context?.surface === "techstack") return context;
+      if (context?.surface === "homelab") return context;
     }
     return undefined;
   };
@@ -252,7 +252,7 @@ test("the Companion follows live wizard use-case choices", async ({ page }) => {
 
 test.describe.serial("Runtime Auth0 smoke", () => {
   for (const role of roles) {
-    test(`${role} user can create a TechStack browser session`, async ({
+    test(`${role} user can create a Homelab Runtime browser session`, async ({
       page,
     }) => {
       const ownPropertyErrors: string[] = [];
@@ -268,7 +268,7 @@ test.describe.serial("Runtime Auth0 smoke", () => {
       );
       expect(auth.token).toBeTruthy();
       await expect(page.getByText("Session Expired")).toHaveCount(0);
-      if (process.env.TECHSTACK_RUNTIME_E2E_USE_CASE_PLACEMENT === "1") {
+      if (process.env.HOMELAB_RUNTIME_E2E_USE_CASE_PLACEMENT === "1") {
         test.setTimeout(300_000);
         await verifyBuilderPlan(page);
         await verifyUseCasePlacement(page);
@@ -822,7 +822,7 @@ async function verifyCloudInventoryCore(
       params: {
         protocolVersion: "2025-11-25",
         capabilities: {},
-        clientInfo: { name: "techstack-p1-gate", version: "1" },
+        clientInfo: { name: "homelab-p1-gate", version: "1" },
       },
     }),
   });
@@ -1066,7 +1066,7 @@ async function verifyCloudInventoryCore(
 
   const evidence = {
     schema_version: 1,
-    kind: "techstack-p1-inventory-core",
+    kind: "homelab-p1-inventory-core",
     result: "PASS",
     head_sha: process.env.GITHUB_SHA ?? "",
     origin: PRODUCT_BASE,
@@ -1170,10 +1170,10 @@ async function verifyCanonicalCloudRuntimeCore(
   const restServerIDs = canonicalRowIDs(serverRows, "servers");
   const restServiceIDs = canonicalRowIDs(serviceRows, "services");
   const expectedServerRef = String(
-    process.env.TECHSTACK_RUNTIME_E2E_EXPECTED_SERVER_ID ?? "",
+    process.env.HOMELAB_RUNTIME_E2E_EXPECTED_SERVER_ID ?? "",
   ).trim();
   const expectedServiceCount = Number(
-    process.env.TECHSTACK_RUNTIME_E2E_EXPECTED_SERVICE_COUNT ?? "0",
+    process.env.HOMELAB_RUNTIME_E2E_EXPECTED_SERVICE_COUNT ?? "0",
   );
   const expectedServer = expectedServerRef
     ? serverRows.find((candidate) =>
@@ -1186,8 +1186,8 @@ async function verifyCanonicalCloudRuntimeCore(
     requireRecord(cockpit.body, "cockpit response").data,
     "cockpit data",
   );
-  const selectedTechstackID = String(
-    expectedServer?.techstack_id ?? cockpitData.techstack_id ?? "",
+  const selectedKitDeploymentID = String(
+    expectedServer?.kit_deployment_id ?? cockpitData.kit_deployment_id ?? "",
   ).trim();
 
   expect(
@@ -1216,7 +1216,7 @@ async function verifyCanonicalCloudRuntimeCore(
     if (Number.isInteger(expectedServiceCount) && expectedServiceCount > 0) {
       const cockpit = await authenticatedJSON(
         token,
-        `/api/v1/monitor/cockpit?techstack_id=${encodeURIComponent(String(expectedServer?.techstack_id ?? "").trim())}`,
+        `/api/v1/monitor/cockpit?kit_deployment_id=${encodeURIComponent(String(expectedServer?.kit_deployment_id ?? "").trim())}`,
       );
       expect(
         serverServices,
@@ -1248,8 +1248,8 @@ async function verifyCanonicalCloudRuntimeCore(
   );
   await mkdir(artifactsDir, { recursive: true });
 
-  const techstackQuery = selectedTechstackID
-    ? `?techstack_id=${encodeURIComponent(selectedTechstackID)}`
+  const homelabQuery = selectedKitDeploymentID
+    ? `?kit_deployment_id=${encodeURIComponent(selectedKitDeploymentID)}`
     : "";
   await page.goto("/dashboard", {
     waitUntil: "domcontentloaded",
@@ -1272,7 +1272,7 @@ async function verifyCanonicalCloudRuntimeCore(
       isUIAPIURL(response.url(), "servers"),
     { timeout: 20_000 },
   );
-  await page.goto(`/monitoring${techstackQuery}`, {
+  await page.goto(`/monitoring${homelabQuery}`, {
     waitUntil: "domcontentloaded",
   });
   const monitoringResponse = await monitoringServersResponse;
@@ -1311,7 +1311,7 @@ async function verifyCanonicalCloudRuntimeCore(
     await expect(identity).toContainText(/cloud/i);
     await expect(identity).toContainText(/external vps/i);
     await expect(identity).toContainText(/hostinger/i);
-    await page.goto(`/monitoring${techstackQuery}`, {
+    await page.goto(`/monitoring${homelabQuery}`, {
       waitUntil: "domcontentloaded",
     });
     await expect(page.getByTestId("monitoring-node-summary")).toHaveCount(
@@ -1406,7 +1406,7 @@ async function verifyCanonicalCloudRuntimeCore(
     `${JSON.stringify(
       {
         schema_version: 1,
-        kind: "techstack-canonical-runtime-live",
+        kind: "homelab-canonical-runtime-live",
         result: "PASS",
         head_sha: process.env.GITHUB_SHA ?? "",
         origin: PRODUCT_BASE,
@@ -1420,7 +1420,7 @@ async function verifyCanonicalCloudRuntimeCore(
           : null,
         expected_service_count: expectedServiceCount || null,
         dashboard_matches_api: true,
-        monitoring_techstack_id: selectedTechstackID || null,
+        monitoring_kit_deployment_id: selectedKitDeploymentID || null,
         monitoring_server_count: monitoringAPIIDs.length,
         monitoring_matches_api: true,
         services_matches_api: true,
@@ -1438,7 +1438,7 @@ function cockpitServiceDiagnostic(body: unknown) {
   const data = requireRecord(root.data, "cockpit data");
   const services = Array.isArray(data.services) ? data.services : [];
   return {
-    techstack_id: String(data.techstack_id ?? "").trim(),
+    kit_deployment_id: String(data.kit_deployment_id ?? "").trim(),
     count: services.length,
     services: services.map((service, index) => {
       const row = requireRecord(service, `cockpit services[${index}]`);
@@ -1456,7 +1456,7 @@ function serverDiagnostic(rows: Record<string, any>[]) {
   return rows.map((row) => ({
     id: String(row.id ?? "").trim(),
     name: String(row.name ?? "").trim(),
-    techstack_id: String(row.techstack_id ?? "").trim(),
+    kit_deployment_id: String(row.kit_deployment_id ?? "").trim(),
     environment_class: String(row.environment_class ?? "").trim(),
     offering: String(row.offering ?? "").trim(),
     provider_id: String(row.provider_id ?? "").trim(),
@@ -1802,11 +1802,11 @@ async function verifyTestTenantBoundary(token: string, body: unknown) {
   const testSubjects = [
     process.env.TEST_RIL_PRO_USER_ID,
     process.env.TEST_ALL_YOU_NEED_USER_ID,
-    ...String(process.env.TECHSTACK_TEST_SUBJECTS ?? "").split(","),
+    ...String(process.env.HOMELAB_TEST_SUBJECTS ?? "").split(","),
   ]
     .map((value) => String(value ?? "").trim())
     .filter(Boolean);
-  const demoTenant = String(process.env.TECHSTACK_DEMO_TENANT_ID ?? "").trim();
+  const demoTenant = String(process.env.HOMELAB_DEMO_TENANT_ID ?? "").trim();
   const testTenants = new Set([
     ...testSubjects.flatMap((subject) => [`usr:${subject}`, subject]),
     ...(demoTenant ? [demoTenant] : []),
@@ -1857,16 +1857,16 @@ function stackIDs(body: unknown): string[] {
 function assertCanonicalDemoPrincipal(body: unknown) {
   const whoami = requireRecord(body, "cloud whoami");
   const expectedTenant = String(
-    process.env.TECHSTACK_DEMO_TENANT_ID ?? "",
+    process.env.HOMELAB_DEMO_TENANT_ID ?? "",
   ).trim();
   const expectedSubject =
-    String(process.env.TECHSTACK_DEMO_USER_IDS ?? "")
+    String(process.env.HOMELAB_DEMO_USER_IDS ?? "")
       .split(",")
       .map((value) => value.trim())
       .find(Boolean) ?? "";
   if (!expectedTenant || !expectedSubject) {
     throw new Error(
-      "Exact inventory profile requires TECHSTACK_DEMO_TENANT_ID and TECHSTACK_DEMO_USER_IDS",
+      "Exact inventory profile requires HOMELAB_DEMO_TENANT_ID and HOMELAB_DEMO_USER_IDS",
     );
   }
   expect(String(whoami.subject ?? "").trim()).toBe(expectedSubject);
@@ -1877,7 +1877,7 @@ function isUIAPIURL(url: string, suffix: string) {
   const pathname = new URL(url).pathname.replace(/\/+$/, "");
   return (
     pathname.endsWith(`/api/v1/${suffix}`) ||
-    pathname.endsWith(`/v1/techstack/${suffix}`)
+    pathname.endsWith(`/v1/homelab/${suffix}`)
   );
 }
 
@@ -1889,7 +1889,7 @@ function assertCandidateUIResponseOrigin(responseURL: string) {
 
 function isStackOperationsURL(url: string) {
   const pathname = new URL(url).pathname.replace(/\/+$/, "");
-  return /\/(?:api\/v1|v1\/techstack)\/stacks\/[^/]+\/operations$/.test(
+  return /\/(?:api\/v1|v1\/homelab)\/stacks\/[^/]+\/operations$/.test(
     pathname,
   );
 }
@@ -1995,7 +1995,7 @@ function runtimeAuthRolesFromEnv(value: string | undefined) {
   }
   if (invalid.length > 0) {
     throw new Error(
-      `TECHSTACK_RUNTIME_E2E_AUTH_ROLES contains unsupported roles: ${invalid.join(", ")}. Expected one or more of ${allRoles.join(", ")}.`,
+      `HOMELAB_RUNTIME_E2E_AUTH_ROLES contains unsupported roles: ${invalid.join(", ")}. Expected one or more of ${allRoles.join(", ")}.`,
     );
   }
   return roles;

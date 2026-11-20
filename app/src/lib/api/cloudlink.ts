@@ -1,5 +1,5 @@
 /**
- * kombify-TechStack API - Cloud Link Module
+ * kombify-Homelab API - Cloud Link Module
  *
  * Connects the authenticated operator's kombify Cloud profile to the local
  * account (PKCE authorization-code flow handled server-side). The link seeds

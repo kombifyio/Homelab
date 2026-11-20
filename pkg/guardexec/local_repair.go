@@ -8,9 +8,9 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // localRepairTimeout bounds the CLI of a local repair, as for an online one.

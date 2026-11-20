@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardcompat"
+	"github.com/kombifyio/homelab/pkg/guardcompat"
 )
 
 // Local repair authority (Guard G07). An owner's approval of automatic repair
@@ -46,7 +46,7 @@ const (
 	// CodeLocalScope refuses a local repair the grant does not cover.
 	CodeLocalScope = "local_policy_scope"
 
-	localGrantSignatureDomain = "techstack.guard.local-repair-grant/v1\x00"
+	localGrantSignatureDomain = "homelab.guard.local-repair-grant/v1\x00"
 	localOperationPrefix      = "local:"
 )
 

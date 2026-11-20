@@ -1,6 +1,6 @@
 param(
     [string]$StateDir = "$env:LOCALAPPDATA\kombify\techstack-client",
-    [string]$InstallDir = "$env:LOCALAPPDATA\Programs\kombify\techstack",
+    [string]$InstallDir = "$env:LOCALAPPDATA\Programs\kombify\homelab",
     [switch]$IncludeClientConfig,
     [Alias("PreserveCloudCredentials")]
     [switch]$PreserveCredentials,
@@ -60,7 +60,7 @@ if (!(Test-StrictChildPath $resolvedStateDir $allowedRoot)) {
 }
 # The MSI installs per machine into this exact location; the portable
 # installer uses directories below the per-user root.
-$machineInstallDir = Get-NormalizedPath (Join-Path $env:ProgramFiles "kombify\techstack")
+$machineInstallDir = Get-NormalizedPath (Join-Path $env:ProgramFiles "kombify\homelab")
 if (!(Test-StrictChildPath $resolvedInstallDir $allowedInstallRoot) -and
     !$resolvedInstallDir.Equals($machineInstallDir, [StringComparison]::OrdinalIgnoreCase)) {
     throw "Refusing to stop a client outside $allowedInstallRoot or $machineInstallDir`: $resolvedInstallDir"
@@ -129,8 +129,8 @@ function Stop-WindowsClientStateProcesses([string]$StateDir, [string]$InstallDir
         $stateExecutable = $exe -and $exe.StartsWith($statePrefix, [StringComparison]::OrdinalIgnoreCase)
         $stateCommand = $cmd -and $cmd.IndexOf($statePrefix, [StringComparison]::OrdinalIgnoreCase) -ge 0
 
-        ($name -eq "kombify-techstack-client.exe" -and $installedExecutable) -or
-        ($name -eq "techstack.exe" -and $installedExecutable) -or
+        ($name -eq "kombify-homelab-client.exe" -and $installedExecutable) -or
+        ($name -eq "homelab.exe" -and $installedExecutable) -or
         ($name -eq "msedgewebview2.exe" -and $stateCommand) -or
         ($name -eq "postgres.exe" -and $stateExecutable) -or
         ($name -eq "cmd.exe" -and $stateCommand -and $cmd.IndexOf("postgres.exe", [StringComparison]::OrdinalIgnoreCase) -ge 0)
@@ -208,5 +208,5 @@ if ($IncludeClientConfig) {
     Write-Host "Kept client.json. Re-run with -IncludeClientConfig to reset install configuration too."
 }
 if (!$PreserveCredentials) {
-    Write-Host "Removed state-scoped kombify TechStack credentials from Windows Credential Manager."
+    Write-Host "Removed state-scoped kombify Homelab Runtime credentials from Windows Credential Manager."
 }

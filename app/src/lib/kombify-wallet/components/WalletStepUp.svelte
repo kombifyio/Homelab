@@ -2,7 +2,7 @@
   /**
    * The Gateway asked for a fresh second factor before it releases a Wallet
    * value (`wallet_step_up_required`). This step sends the owner through
-   * Techstack's Auth0 sign-in with the multi-factor policy; the Wallet page
+   * Homelab's Auth0 sign-in with the multi-factor policy; the Wallet page
    * reopens the same action on return, so it runs again with the new token.
    */
   import { tr as t } from "#lib/i18n.svelte.js";

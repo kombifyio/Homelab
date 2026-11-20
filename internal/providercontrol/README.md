@@ -1,13 +1,13 @@
 # providercontrol
 
-`internal/providercontrol` is TechStack's production provider-lifecycle
+`internal/providercontrol` is Homelab Runtime's production provider-lifecycle
 authority. It has no public compatibility wrapper.
 
 - `providerexecutor/v1beta1` is the neutral wire. Its normative module owner is
-  `kombify-StackKits` (`contracts/providerexecutor`); Techstack consumes the StackKits release pinned in `go.mod`.
+  `kombify-StackKits` (`contracts/providerexecutor`); Homelab Runtime consumes the StackKits release pinned in `go.mod`.
   Provider-control activation remains separately gated on adapter certification
   and explicit profile activation.
-- TechStack resolves execution profiles, selects adapters, creates the initial
+- Homelab Runtime resolves execution profiles, selects adapters, creates the initial
   receipt, seals every later receipt against the current ledger head, and
   durably retains resources and evidence.
 - StackKits supplies provider-free architecture and host/OS conformance only.
@@ -59,7 +59,7 @@ and validity window using PostgreSQL time. Same-token heartbeat renewal and
 receipt append do not reselect credentials, so revocation cannot discard
 resource or cleanup custody after a provider call may already have begun.
 
-This serializes TechStack's invocation decision; it is not magic distributed
+This serializes Homelab Runtime's invocation decision; it is not magic distributed
 exactly-once delivery after a process crash. Crash-recoverable adapters
 register one composite capability, but the Registry retains separate private
 `CrashRecoverableReadOnlyExecutor` and `CrashRecoverableMutationExecutor`
@@ -94,7 +94,7 @@ part of the same managed operation.
 
 Read-only preflight must record:
 
-1. the deployed Techstack version and full revision from `/api/v1/health`, plus
+1. the deployed Homelab Runtime version and full revision from `/api/v1/health`, plus
    `/api/v1/health/ready` and its applied migration;
 2. active `centron` catalog coverage for both runtime offerings, adapter
    `centron-ccloud-v1`, dispatch mode

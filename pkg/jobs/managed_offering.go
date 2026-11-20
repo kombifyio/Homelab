@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
 )
 
 // projectManagedOffering preserves the customer's size selection before the

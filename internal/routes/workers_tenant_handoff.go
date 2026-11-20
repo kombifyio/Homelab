@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // Cross-tenant handoff (Guard G04, guardbinding/handoff.go). The prior owner
@@ -34,13 +34,13 @@ type tenantHandoffConfirmResponse struct {
 	Disposition string    `json:"disposition"`
 	ExpiresAt   time.Time `json:"expires_at"`
 	// Confirmation is shown once. The server operator passes it to
-	// `techstack agent handoff --confirmation-file`.
+	// `homelab agent handoff --confirmation-file`.
 	Confirmation string `json:"confirmation"`
 }
 
 // confirmTenantHandoff is the custodian's confirmation for one retired worker.
 func (h workerRouteHandlers) confirmTenantHandoff(e *httpx.Event) error {
-	ownerID, tenantID, workerID, ok := h.ownedWorkerForIdentity(e, "techstack.workers.tenant_handoff.confirm")
+	ownerID, tenantID, workerID, ok := h.ownedWorkerForIdentity(e, "homelab.workers.tenant_handoff.confirm")
 	if !ok {
 		return nil
 	}

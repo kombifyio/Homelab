@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	agentpb "github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	agentpb "github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 var stackKitBackupDigestPattern = regexp.MustCompile(`^sha256:[a-f0-9]{64}$`)

@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
+	productlease "github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
 	"github.com/kombifyio/stackkits/contracts/runtimelease"
-	productlease "github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
 )
 
-// RuntimeContract projects Techstack-owned provider/billing state onto the
+// RuntimeContract projects Homelab-owned provider/billing state onto the
 // closed neutral lease admitted by runtime consumers.
 func RuntimeContract(lease productlease.Lease, revision uint64, runtimeServerID string, now time.Time) (runtimelease.Lease, error) {
 	desired := runtimelease.DesiredState(strings.TrimSpace(string(lease.DesiredState)))

@@ -8,7 +8,7 @@ import (
 
 var testSecret = []byte("0123456789abcdef0123456789abcdef")
 
-func TestNewManagerDefaultsToTechStackIssuer(t *testing.T) {
+func TestNewManagerDefaultsToHomelabIssuer(t *testing.T) {
 	manager, err := NewManager(Config{Audience: "frontend", Secret: testSecret})
 	if err != nil {
 		t.Fatalf("NewManager returned error: %v", err)

@@ -1,6 +1,6 @@
 // Package providers wires identity providers (Pocket ID, Auth0, generic OIDC)
 // into a uniform [Provider] interface that bridges into the shared
-// [github.com/kombifyio/techstack/internal/gocommon/oidcclient] verifier via
+// [github.com/kombifyio/homelab/internal/gocommon/oidcclient] verifier via
 // [Provider.ToOIDCClient] / [Registry.ToOIDCClientRegistry].
 //
 // Provider configuration lives in Postgres (`identity_providers` table) and is
@@ -16,8 +16,8 @@ import (
 	"sync"
 	"time"
 
-	commonoidc "github.com/kombifyio/techstack/internal/gocommon/oidcclient"
-	"github.com/kombifyio/techstack/pkg/config"
+	commonoidc "github.com/kombifyio/homelab/internal/gocommon/oidcclient"
+	"github.com/kombifyio/homelab/pkg/config"
 )
 
 // Kind enumerates the supported provider flavors. The kind drives default
@@ -93,13 +93,13 @@ func (p *Provider) AuthCodeURL(redirectURI, state string) string {
 }
 
 // Verify is removed in favor of [Provider.ToOIDCClient] +
-// [github.com/kombifyio/techstack/internal/gocommon/oidcclient.Provider.Verify].
+// [github.com/kombifyio/homelab/internal/gocommon/oidcclient.Provider.Verify].
 
 // auth0ClockSkew covers observed subsecond issuer/consumer clock differences.
 // The explicit two-second bound leaves all other token checks in the shared verifier.
 const auth0ClockSkew = 2 * time.Second
 
-// ToOIDCClient converts the TechStack provider into the shared go-common
+// ToOIDCClient converts the Homelab provider into the shared go-common
 // provider shape used by authflow/authlocal.
 func (p *Provider) ToOIDCClient() (*commonoidc.Provider, error) {
 	if p == nil {
@@ -244,7 +244,7 @@ func (r *Registry) IDs() []string {
 	return out
 }
 
-// ToOIDCClientRegistry converts the TechStack registry into the shared
+// ToOIDCClientRegistry converts the Homelab registry into the shared
 // go-common registry shape used by authflow/authlocal.
 func (r *Registry) ToOIDCClientRegistry() (*commonoidc.Registry, error) {
 	if r == nil {

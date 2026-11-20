@@ -58,7 +58,7 @@ The beyond-IaC operational layer that manages infrastructure after provisioning.
   Advanced issuer trust bundle. It requires Owner approval and
   `advanced_trust_bundle` (field 35, at most 64 KiB); no other operation may
   carry that field. The Agent writes the bundle to
-  `.stackkit/techstack-advanced-trust-bundle.json` in the workspace and runs
+  `.stackkit/homelab-advanced-trust-bundle.json` in the workspace and runs
   `stackkit advanced trust import --bundle <file> --expect-sha256 <digest>
   --owner-approve --json`. Agents that support it advertise
   `stackkit.advanced-trust-import.v1`. A successful result must carry

@@ -25,7 +25,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/authsession"
+	"github.com/kombifyio/homelab/internal/gocommon/authsession"
 )
 
 // BreakGlassEmail is the well-known email of the auto-bootstrapped admin.

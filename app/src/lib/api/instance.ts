@@ -1,5 +1,5 @@
 /**
- * kombify-TechStack API - Instance identity
+ * kombify-Homelab API - Instance identity
  *
  * Exposes the stable local instance identity served at GET /api/v1/instance.
  * The identity is the anchor for enrollment, cloud-linking, and tenant scoping

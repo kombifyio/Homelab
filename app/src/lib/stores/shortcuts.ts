@@ -1,7 +1,7 @@
 /**
  * Keyboard Shortcuts Store
  *
- * Reactive state for the single-key shortcuts of kombify-TechStack: the
+ * Reactive state for the single-key shortcuts of kombify-Homelab: the
  * `g` + key page jumps, `/` to search, `?` for help. Single-character
  * shortcuts must be switchable (WCAG 2.1.4 Character Key Shortcuts), so the
  * on/off choice is a device-local preference with a switch in the settings
@@ -15,7 +15,7 @@ import { writable, derived, get } from "svelte/store";
 import { tr } from "#lib/i18n.svelte.js";
 
 /** Device-local preference key: "off" disables, anything else means on. */
-export const SHORTCUTS_STORAGE_KEY = "techstack-keyboard-shortcuts";
+export const SHORTCUTS_STORAGE_KEY = "homelab-keyboard-shortcuts";
 
 /** State for keyboard navigation */
 export interface ShortcutsState {

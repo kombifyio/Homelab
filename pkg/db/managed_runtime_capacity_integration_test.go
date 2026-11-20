@@ -641,7 +641,7 @@ func openManagedRuntimeCapacityPremigrationDB(t *testing.T) *sql.DB {
 	t.Helper()
 	dsn := integrationDSN()
 	if dsn == "" {
-		t.Skip("TECHSTACK_TEST_POSTGRES_URL not set; skipping managed capacity PostgreSQL integration test")
+		t.Skip("HOMELAB_TEST_POSTGRES_URL not set; skipping managed capacity PostgreSQL integration test")
 	}
 	config, err := pgx.ParseConfig(dsn)
 	if err != nil {

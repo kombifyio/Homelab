@@ -1,6 +1,6 @@
-// Package instance provides a stable local TechStack instance identity.
+// Package instance provides a stable local Homelab instance identity.
 //
-// An "instance" is one running TechStack deployment unit. Each instance has a
+// An "instance" is one running Homelab deployment unit. Each instance has a
 // stable identifier that survives restarts, persists in the data directory, and
 // serves as the anchor for enrollment, cloud-linking, and tenant scoping under
 // Pillar 1 (Unifier). Architecture language: see
@@ -35,7 +35,7 @@ import (
 // a persistent data directory (no Render /data disk) sets it so the identity
 // survives redeploys: a fresh data directory adopts the pinned ID instead of
 // generating a new one, and a data directory holding a different ID fails closed.
-const PinEnv = "TECHSTACK_INSTANCE_ID"
+const PinEnv = "HOMELAB_INSTANCE_ID"
 
 func firstNonEmpty(a, b string) string {
 	if a != "" {
@@ -47,7 +47,7 @@ func firstNonEmpty(a, b string) string {
 // fileName is the canonical instance identity file relative to the data dir.
 const fileName = "instance.json"
 
-// Identity describes a single TechStack instance.
+// Identity describes a single Homelab instance.
 //
 // It is JSON-serialized to <data-dir>/instance.json. Once written, ID and
 // CreatedAt MUST NOT change. Hostname may be updated on later loads but the

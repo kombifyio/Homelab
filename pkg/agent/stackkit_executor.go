@@ -20,20 +20,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/ril/nodeproof"
-	"github.com/kombifyio/techstack/pkg/secrets"
-	"github.com/kombifyio/techstack/pkg/specv2"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/ril/nodeproof"
+	"github.com/kombifyio/homelab/pkg/secrets"
+	"github.com/kombifyio/homelab/pkg/specv2"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 	"google.golang.org/protobuf/proto"
 	"gopkg.in/yaml.v3"
 )
 
 const (
 	StackKitAgentCapability = "stackkit"
-	stackKitReleasePinEnv   = "TECHSTACK_STACKKIT_RELEASE_PIN"
-	stackKitReleaseCacheEnv = "TECHSTACK_STACKKIT_RELEASE_CACHE"
+	stackKitReleasePinEnv   = "HOMELAB_STACKKIT_RELEASE_PIN"
+	stackKitReleaseCacheEnv = "HOMELAB_STACKKIT_RELEASE_CACHE"
 	// defaultStackKitPersistentReleaseCache lies outside the runtime tree a
 	// replacement deletes; guardlayout writes the same path into executor.env.
 	defaultStackKitPersistentReleaseCache = "/var/lib/techstack/.stackkit/releases"
@@ -45,11 +45,11 @@ const (
 	maxStackKitCommandEventLine           = 1 << 20
 	maxStackKitCommandEventCount          = 10_000
 	maxStackKitInventoryBytes             = 2 << 20
-	stackKitOutputTruncationMessage       = "\n<output truncated by Techstack agent>"
+	stackKitOutputTruncationMessage       = "\n<output truncated by Homelab Runtime agent>"
 	// stackKitAdvancedTrustBundlePath is the workspace-relative file the
 	// agent hands to `stackkit advanced trust import --bundle`; the CLI reads
 	// the bundle from a file only. It is removed after the command.
-	stackKitAdvancedTrustBundlePath = ".stackkit/techstack-advanced-trust-bundle.json"
+	stackKitAdvancedTrustBundlePath = ".stackkit/homelab-advanced-trust-bundle.json"
 	// stackKitAgentLinkRequestPath is the workspace-relative file the agent
 	// hands to `stackkit identity agent-link install --file`; it holds only
 	// public values and is removed after the command.
@@ -158,7 +158,7 @@ func (executor *StackKitExecutor) validate() error {
 // The privileged executor reads only this host-configured public key custody;
 // a command or JWS never supplies its verifier key or a key URL.
 func rilPurposeKeyFile() string {
-	if path := strings.TrimSpace(os.Getenv("TECHSTACK_RIL_PURPOSE_KEYS_FILE")); path != "" {
+	if path := strings.TrimSpace(os.Getenv("HOMELAB_RIL_PURPOSE_KEYS_FILE")); path != "" {
 		return path
 	}
 	return "/etc/techstack/ril-purpose-keys.json"
@@ -275,13 +275,13 @@ func (executor *StackKitExecutor) execute(ctx context.Context, command *agentpb.
 		if err != nil {
 			return finishStackKitResult(result, command, nil, nil, fmt.Errorf("resolve RIL workspace root: %w", err), started)
 		}
-		process.Env = append(process.Env, "TECHSTACK_RIL_WORKSPACE_ROOT="+workspaceRoot)
+		process.Env = append(process.Env, "HOMELAB_RIL_WORKSPACE_ROOT="+workspaceRoot)
 	}
 	if command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_INIT {
 		// INIT consumes only this non-secret mode marker. Its native image
 		// admission enforces the CUE-owned managed target; prepare's separate
 		// orchestration custody environment is never passed to this child.
-		process.Env = append(process.Env, "TECHSTACK_MANAGED=1")
+		process.Env = append(process.Env, "HOMELAB_MANAGED=1")
 	}
 	process.Stdout = stdout
 	process.Stderr = io.MultiWriter(stderr, stderrLogs)
@@ -643,7 +643,7 @@ func (executor *StackKitExecutor) prepare(command *agentpb.StackKitCommand) (
 			return stackkitrelease.Release{}, nil, "", "", nil, err
 		}
 	}
-	eventFile, err := os.CreateTemp("", "techstack-stackkit-events-*.jsonl")
+	eventFile, err := os.CreateTemp("", "homelab-stackkit-events-*.jsonl")
 	if err != nil {
 		return stackkitrelease.Release{}, nil, "", "", nil, fmt.Errorf("create StackKits event spool: %w", err)
 	}
@@ -908,7 +908,7 @@ func stackKitOperationArgs(command *agentpb.StackKitCommand) ([]string, error) {
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_DRIFT_DETECT:
 		return []string{"drift", "detect", "--json"}, nil
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_DRIFT_RECONCILE:
-		// A Techstack-managed deployment reconciles only in Advanced Mode.
+		// A Homelab-managed deployment reconciles only in Advanced Mode.
 		return nil, fmt.Errorf("StackKit DRIFT_RECONCILE is not dispatched for a managed deployment; use ADVANCED_DRIFT_RECONCILE")
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_SERVICE_START,
 		agentpb.StackKitOperation_STACKKIT_OPERATION_SERVICE_STOP,
@@ -1356,7 +1356,7 @@ func cleanStackKitWorkDir(path string) (string, error) {
 // runs as root, so a control-plane command must not be able to point it at an
 // arbitrary directory, and no component below the workspace may be a symlink
 // that could redirect the later .stackkit writes elsewhere. The workspace root
-// itself is operator configuration (TECHSTACK_STACKKIT_WORKSPACE, default
+// itself is operator configuration (HOMELAB_STACKKIT_WORKSPACE, default
 // /opt/stackkit) and is trusted as given.
 func confineStackKitWorkDir(path string) (string, error) {
 	absolute, err := cleanStackKitWorkDir(path)
@@ -1706,7 +1706,7 @@ func stackKitChildEnvironment(environment []string) []string {
 		key, _, _ := strings.Cut(entry, "=")
 		upper := strings.ToUpper(strings.TrimSpace(key))
 		if strings.HasPrefix(upper, "KOMBIFY_") ||
-			strings.HasPrefix(upper, "TECHSTACK_") ||
+			strings.HasPrefix(upper, "HOMELAB_") ||
 			upper == "SERVICE_AUTH_SECRET" ||
 			upper == "STACKKIT_ADMIN_TOKEN" {
 			continue

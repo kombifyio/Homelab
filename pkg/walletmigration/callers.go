@@ -14,7 +14,7 @@ const (
 	// ResolutionNameLabel: case-insensitive match on metadata name plus kind,
 	// first hit in list order. These callers must switch to item ids.
 	ResolutionNameLabel Resolution = "name_label"
-	// ResolutionItemID: an explicit Techstack item id.
+	// ResolutionItemID: an explicit Homelab item id.
 	ResolutionItemID Resolution = "item_id"
 	// ResolutionCompositeID: an id composed from the stack and a service id.
 	ResolutionCompositeID Resolution = "composite_item_id"
@@ -22,7 +22,7 @@ const (
 	ResolutionServiceRef Resolution = "service_ref"
 )
 
-// Caller is a code path that reads or writes Techstack wallet rows and must
+// Caller is a code path that reads or writes Homelab wallet rows and must
 // move to the Wallet item id when the Wallet becomes the source.
 type Caller struct {
 	Location   string     `json:"location"`
@@ -160,7 +160,7 @@ const (
 	LabelTargetQuarantined LabelOutcome = "target_quarantined"
 )
 
-// LabelResolution maps one stack's name-label reference to Techstack item ids.
+// LabelResolution maps one stack's name-label reference to Homelab item ids.
 type LabelResolution struct {
 	TenantID string       `json:"tenant_id"`
 	StackID  string       `json:"stack_id"`

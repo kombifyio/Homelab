@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/providererrors"
-	"github.com/kombifyio/techstack/pkg/secrets"
 	"github.com/getsentry/sentry-go"
+	"github.com/kombifyio/homelab/pkg/providererrors"
+	"github.com/kombifyio/homelab/pkg/secrets"
 )
 
 const (

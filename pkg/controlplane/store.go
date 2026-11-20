@@ -1,5 +1,5 @@
 // Package controlplane defines Postgres-first domain store contracts for
-// TechStack runtime state. These contracts are the boundary used to retire
+// Homelab runtime state. These contracts are the boundary used to retire
 // PocketBase collection access from routes, schedulers, and orchestrators.
 package controlplane
 
@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/failureknowledge"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/pkg/failureknowledge"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 var (
@@ -81,7 +81,7 @@ type Stack struct {
 	// empty values while legacy rows are being healed.
 	HomelabID string
 	// StackKitInstanceID is the StackKits-owned StackSpec/ResolvedPlan stackId.
-	// ID remains the Techstack kit-deployment authority and need not match it.
+	// ID remains the Homelab kit-deployment authority and need not match it.
 	StackKitInstanceID string
 	Name               string
 	Description        string

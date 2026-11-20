@@ -8,12 +8,12 @@ param(
     [switch]$ControllerOnly,
     [string]$ExpectedReleaseTag = "",
     [string]$ExpectedLinuxArchiveSHA256 = "",
-    [string]$ReleaseTag = "v0.58.0",
-    [string]$ReleaseVersion = "0.58.0",
-    [string]$LinuxArchiveSHA256 = "6ff4b3efa1f1c2c975f596c7542a97e31cc2fc8ff14709fa18a8eec7b8150b80",
-    [string]$WindowsArchiveSHA256 = "eec33c29b8a51ac653ead6dfdd48b0f799eb0f0f7f548b561d7dd0ed58aecb69",
-    [string]$ReleaseIndexSHA256 = "9add10fa4b93dd93e30ee63ce734fd299ef6c2a17383cba65df3d2ecd33c178c",
-    [string]$CompatibilityManifestSHA256 = "22fa1c78549ebeed0b199e3aabb44c9d2cd084e2ed970cd604d09e72d91442a2",
+    [string]$ReleaseTag = "v0.59.2",
+    [string]$ReleaseVersion = "0.59.2",
+    [string]$LinuxArchiveSHA256 = "16295a163596b165a460defe8b5b6f0f4447e3039514e0bae6779357ccb2104e",
+    [string]$WindowsArchiveSHA256 = "82d5eda88b720fdaeba87813e142166eb3ea072832bb1b1053d70984cfe7a8bb",
+    [string]$ReleaseIndexSHA256 = "8fbd05eae691f0e93744467549da56ba682b7b381afe67fde6d0c7ee35c7b687",
+    [string]$CompatibilityManifestSHA256 = "2f1972e2a432ffa052b699370bd6097e8b184a247592bf331d0650751c0c90ff",
     # Directory holding <kit>/stack-spec.yaml produced by the SAME pinned
     # StackKits release on Linux. Supplied in CI; when empty the script falls
     # back to generating them with the Windows CLI, which is what a developer
@@ -74,7 +74,7 @@ function Write-CustodyDiagnostics {
         Write-Host "[custody:$Label] diagnostics failed: $($_.Exception.Message)"
     }
 }
-$tempRoot = Join-Path ([IO.Path]::GetTempPath()) ("techstack-stackkit-bundle-" + [Guid]::NewGuid().ToString("N"))
+$tempRoot = Join-Path ([IO.Path]::GetTempPath()) ("homelab-stackkit-bundle-" + [Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Force -Path $tempRoot | Out-Null
 Set-CustodyOwner -Path $tempRoot
 $releaseBase = "https://github.com/kombifyio/StackKits/releases/download/$ReleaseTag"
@@ -153,10 +153,10 @@ try {
         # address planning during later Advanced change sets. Runtime admission
         # rechecks this exact executable and the Linux target's release identity.
         $controllerAddressPlanner = [ordered]@{
-            schemaVersion = "techstack.controller-address-planner/v1"
+            schemaVersion = "homelab.controller-address-planner/v1"
             linuxArchiveSha256 = $LinuxArchiveSHA256
             controller = [ordered]@{
-                schemaVersion = "techstack.stackkit-release-pin/v2"
+                schemaVersion = "homelab.stackkit-release-pin/v2"
                 kit = "basement-kit"
                 version = $ReleaseTag
                 platform = [ordered]@{ os = "windows"; arch = "amd64" }
@@ -232,7 +232,7 @@ try {
             # A template is not a host install: keep Basement's placement
             # admission off this runner's public address.
             $env:STACKKIT_NETWORK_ENV = "home"
-            & $windowsBinary --no-log init $kit --non-interactive --name techstack-spec-template --owner-source=local --owner-email owner@smoke.stackkit.cc --owner-username owner @authoringArgs
+            & $windowsBinary --no-log init $kit --non-interactive --name homelab-spec-template --owner-source=local --owner-email owner@smoke.stackkit.cc --owner-username owner @authoringArgs
             if ($LASTEXITCODE -ne 0) { throw "StackKits template initialization failed for $kit." }
         } finally {
             Remove-Item Env:STACKKIT_NETWORK_ENV -ErrorAction SilentlyContinue
@@ -257,7 +257,7 @@ try {
     }
     $binarySHA256 = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $binaryDir "stackkit")).Hash.ToLowerInvariant()
     $pin = [ordered]@{
-        schemaVersion = "techstack.stackkit-release-pin/v2"
+        schemaVersion = "homelab.stackkit-release-pin/v2"
         kit = "basement-kit"
         version = $ReleaseTag
         platform = [ordered]@{ os = "linux"; arch = "amd64" }

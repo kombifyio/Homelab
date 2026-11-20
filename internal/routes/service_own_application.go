@@ -13,13 +13,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // Own-application lifecycle of an application StackKits runs as an own
@@ -213,7 +213,7 @@ func (h *serviceRuntimeHandlers) ownApplicationTarget(e *httpx.Event) (ownApplic
 	if !ok {
 		return t, httpx.RejectUnauthorized(e, "Authentication required")
 	}
-	tenant, err := tenantguard.TenantScope(requestExplicitTenantID(e), owner, "techstack.services.own-application")
+	tenant, err := tenantguard.TenantScope(requestExplicitTenantID(e), owner, "homelab.services.own-application")
 	if err != nil {
 		return t, err
 	}

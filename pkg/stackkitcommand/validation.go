@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/ril/primitives"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/ril/primitives"
 )
 
 // ObservedStackKitCapabilities lists every StackKit capability a Guard may report
@@ -678,10 +678,10 @@ func validateUpgradeCommand(command *agentpb.StackKitCommand) error {
 }
 
 // validateDriftReconcileCommand refuses the deprecated DRIFT_RECONCILE: a
-// Techstack-managed deployment runs Advanced Mode and reconciles only through
+// Homelab-managed deployment runs Advanced Mode and reconciles only through
 // ADVANCED_DRIFT_RECONCILE with a capability and a change set.
 func validateDriftReconcileCommand(*agentpb.StackKitCommand) error {
-	return fmt.Errorf("StackKit DRIFT_RECONCILE is not dispatched for a Techstack-managed deployment; use ADVANCED_DRIFT_RECONCILE")
+	return fmt.Errorf("StackKit DRIFT_RECONCILE is not dispatched for a Homelab-managed deployment; use ADVANCED_DRIFT_RECONCILE")
 }
 
 func validateServiceMutationCommand(command *agentpb.StackKitCommand) error {
@@ -1384,7 +1384,7 @@ type backupAuthorityLineage struct {
 	} `json:"binding"`
 }
 
-// requirePinnedCLIEvidenceAttestation verifies only the authority Techstack
+// requirePinnedCLIEvidenceAttestation verifies only the authority Homelab
 // actually owns: an authenticated Agent attestation bound to the exact result
 // bytes. StackKits verifies the local Owner signature before its pinned CLI
 // returns; the Owner public key never leaves that local custody boundary.

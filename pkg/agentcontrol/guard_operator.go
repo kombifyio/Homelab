@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
 )
 
 const (

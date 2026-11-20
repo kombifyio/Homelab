@@ -26,7 +26,7 @@ func FromEnv() (Config, error) {
 	if value := strings.TrimSpace(os.Getenv("DEPLOYMENT_MODE")); value != "" && value != DeploymentMode {
 		return Config{}, fmt.Errorf("DEPLOYMENT_MODE is derived from KOMBIFY_EDITION and cannot be %q", value)
 	}
-	address := strings.TrimSpace(os.Getenv("TECHSTACK_LISTEN_ADDR"))
+	address := strings.TrimSpace(os.Getenv("HOMELAB_LISTEN_ADDR"))
 	if address == "" {
 		address = ":8080"
 	}

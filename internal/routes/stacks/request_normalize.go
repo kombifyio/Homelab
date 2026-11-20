@@ -21,7 +21,7 @@ func normalizeCreateStackRequest(req createStackRequest) (normalizedCreateStackR
 		name = defaultCreateStackName
 	}
 	if isReservedCreateStackName(name) {
-		return normalizedCreateStackRequest{}, "TechStack is the platform name. Choose a Homelab name that is not techstack, techstack-*, kombify-techstack, or kombifytechstack."
+		return normalizedCreateStackRequest{}, "Homelab Runtime is the platform name. Choose a Homelab name that is not homelab, homelab-*, kombify-homelab, or kombifyhomelab."
 	}
 
 	mode := strings.TrimSpace(req.Mode)
@@ -75,12 +75,10 @@ func normalizeCreateStackRequest(req createStackRequest) (normalizedCreateStackR
 
 func isReservedCreateStackName(name string) bool {
 	normalized := normalizeReservedCreateStackName(name)
-	return normalized == "techstack" ||
-		strings.HasPrefix(normalized, "techstack-") ||
-		normalized == "kombify-techstack" ||
-		strings.HasPrefix(normalized, "kombify-techstack-") ||
-		normalized == "kombifytechstack" ||
-		strings.HasPrefix(normalized, "kombifytechstack-")
+	return normalized == "kombify-homelab" ||
+		strings.HasPrefix(normalized, "kombify-homelab-") ||
+		normalized == "kombifyhomelab" ||
+		strings.HasPrefix(normalized, "kombifyhomelab-")
 }
 
 func normalizeReservedCreateStackName(name string) string {

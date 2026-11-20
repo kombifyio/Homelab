@@ -15,14 +15,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/privatefs"
-	"github.com/kombifyio/techstack/pkg/guardbinding"
+	"github.com/kombifyio/homelab/internal/privatefs"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
 )
 
 // Default locations of a Guard host.
 const (
-	DefaultBinaryPath     = "/usr/local/bin/techstack"
-	DefaultOperationsPath = "/usr/local/libexec/techstack-stackkit-operations"
+	DefaultBinaryPath     = "/usr/local/bin/homelab"
+	DefaultOperationsPath = "/usr/local/libexec/homelab-stackkit-operations"
 	DefaultSocketPath     = "/run/techstack-guard-executor.sock"
 	DefaultUser           = "kombify-guard"
 	systemdDir            = "/etc/systemd/system"
@@ -559,9 +559,9 @@ func layoutRoot(opts *Options) (*os.Root, error) {
 }
 
 func validCustodyPath(path string) bool {
-	return path == "etc/techstack" || path == "etc/techstack/agent-enrollment.json" || path == "var/lib/techstack" ||
-		path == "usr/local/libexec" || path == "var/lib/techstack/guard" || path == "var/lib/techstack/guard-handoff" ||
-		strings.HasPrefix(path, "var/lib/techstack/guard/") || strings.HasPrefix(path, "var/lib/techstack/guard-handoff/")
+	return path == "etc/homelab" || path == "etc/homelab/agent-enrollment.json" || path == "var/lib/homelab" ||
+		path == "usr/local/libexec" || path == "var/lib/homelab/guard" || path == "var/lib/homelab/guard-handoff" ||
+		strings.HasPrefix(path, "var/lib/homelab/guard/") || strings.HasPrefix(path, "var/lib/homelab/guard-handoff/")
 }
 
 func captureLayoutTrial(opts *Options, id string, uid, gid int, params UnitParams, legacy bool) (layoutTrial, error) {
@@ -586,7 +586,7 @@ func captureLayoutTrial(opts *Options, id string, uid, gid int, params UnitParam
 		trial.Ownership = append(trial.Ownership, layoutOwnership{Path: path, UID: owner, GID: group, Mode: info.Mode(), Device: device, Inode: inode})
 		return nil
 	}
-	for _, path := range []string{"etc/techstack", "var/lib/techstack", "usr/local/libexec", "etc/techstack/agent-enrollment.json", "var/lib/techstack/guard", "var/lib/techstack/guard-handoff"} {
+	for _, path := range []string{"etc/homelab", "var/lib/homelab", "usr/local/libexec", "etc/homelab/agent-enrollment.json", "var/lib/homelab/guard", "var/lib/homelab/guard-handoff"} {
 		info, err := root.Lstat(path)
 		if errors.Is(err, os.ErrNotExist) {
 			continue
@@ -594,13 +594,13 @@ func captureLayoutTrial(opts *Options, id string, uid, gid int, params UnitParam
 		if err != nil {
 			return layoutTrial{}, err
 		}
-		if info.Mode()&os.ModeSymlink != 0 || (path == "etc/techstack/agent-enrollment.json" && (!info.Mode().IsRegular() || linkCount(info) > 1)) {
+		if info.Mode()&os.ModeSymlink != 0 || (path == "etc/homelab/agent-enrollment.json" && (!info.Mode().IsRegular() || linkCount(info) > 1)) {
 			return layoutTrial{}, fmt.Errorf("unsafe custody root %s", path)
 		}
 		if err := appendEntry(path, info); err != nil {
 			return layoutTrial{}, err
 		}
-		if path != "var/lib/techstack/guard" && path != "var/lib/techstack/guard-handoff" {
+		if path != "var/lib/homelab/guard" && path != "var/lib/homelab/guard-handoff" {
 			continue
 		}
 		if err := fs.WalkDir(root.FS(), path, func(entryPath string, entry fs.DirEntry, walkErr error) error {
@@ -931,7 +931,7 @@ func restoreLayoutOwnership(opts *Options, trial layoutTrial) error {
 		}
 		return restoreOwnershipAt(root, rel, info, entry.UID, entry.GID, mode, opts.ChownBeneath)
 	}
-	for _, path := range []string{"etc/techstack", "var/lib/techstack", "usr/local/libexec", "etc/techstack/agent-enrollment.json", "var/lib/techstack/guard", "var/lib/techstack/guard-handoff"} {
+	for _, path := range []string{"etc/homelab", "var/lib/homelab", "usr/local/libexec", "etc/homelab/agent-enrollment.json", "var/lib/homelab/guard", "var/lib/homelab/guard-handoff"} {
 		info, err := anchor.Lstat(path)
 		if errors.Is(err, os.ErrNotExist) {
 			continue
@@ -939,7 +939,7 @@ func restoreLayoutOwnership(opts *Options, trial layoutTrial) error {
 		if err != nil {
 			return err
 		}
-		if path != "var/lib/techstack/guard" && path != "var/lib/techstack/guard-handoff" {
+		if path != "var/lib/homelab/guard" && path != "var/lib/homelab/guard-handoff" {
 			parent, err := anchor.OpenRoot(filepath.Dir(path))
 			if err != nil {
 				return err

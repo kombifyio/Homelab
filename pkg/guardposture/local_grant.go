@@ -6,7 +6,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
 )
 
 // LocalRepairGrant is the unsigned grant of the owner's current repair

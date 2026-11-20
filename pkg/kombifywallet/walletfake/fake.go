@@ -35,17 +35,17 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
-	"github.com/kombifyio/techstack/internal/gocommon/walletservice"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/internal/gocommon/walletservice"
 	"github.com/google/uuid"
 
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
 )
 
 const (
-	// ServiceSecret is Techstack's own Gateway secret in the fake.
-	ServiceSecret = "synthetic-techstack-wallet-service-secret-0123456789"
+	// ServiceSecret is Homelab's own Gateway secret in the fake.
+	ServiceSecret = "synthetic-homelab-wallet-service-secret-0123456789"
 	// SharedSecret stands for the platform's shared SERVICE_AUTH_SECRET, which
 	// never admits Wallet routes.
 	SharedSecret = "synthetic-shared-platform-secret-never-for-wallet-9876543210"
@@ -70,7 +70,7 @@ type Item struct {
 	Scope       string
 	// Versions are the stored values, oldest first.
 	Versions [][]byte
-	// Rights are what Techstack holds on the item: use, read, manage.
+	// Rights are what Homelab holds on the item: use, read, manage.
 	Rights []string
 }
 
@@ -88,7 +88,7 @@ type Fake struct {
 	t       testing.TB
 	server  *httptest.Server
 	capture *ecdh.PrivateKey
-	// recipientJWK is the private recipient JWK Techstack is configured with.
+	// recipientJWK is the private recipient JWK Homelab is configured with.
 	recipientJWK    string
 	recipientPublic walletservice.PublicJWK
 
@@ -120,7 +120,7 @@ func New(t testing.TB) *Fake {
 // URL is the fake Gateway origin (a loopback IP, which the client admits over http).
 func (f *Fake) URL() string { return f.server.URL }
 
-// Env is a complete TECHSTACK_WALLET_* environment pointing at the fake, for
+// Env is a complete HOMELAB_WALLET_* environment pointing at the fake, for
 // Boot.
 func (f *Fake) Env() map[string]string {
 	return map[string]string{
@@ -144,7 +144,7 @@ func (f *Fake) Client() *kombifywallet.Client {
 	return client
 }
 
-// Grant stores an item the owner assigned to Techstack with the given rights.
+// Grant stores an item the owner assigned to Homelab with the given rights.
 func (f *Fake) Grant(owner, itemType, displayName, scope string, value []byte, rights ...string) string {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -159,7 +159,7 @@ func (f *Fake) GrantDescribed(owner, itemType, displayName, description, scope s
 	return f.addLocked(&Item{Owner: owner, Type: itemType, DisplayName: displayName, Description: description, Scope: scope, Versions: [][]byte{slices.Clone(value)}, Rights: rights})
 }
 
-// AllowCreate gives Techstack the owner's partition create relation.
+// AllowCreate gives Homelab the owner's partition create relation.
 func (f *Fake) AllowCreate(owner string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()

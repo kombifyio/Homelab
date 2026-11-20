@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	agentpb "github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	agentpb "github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // RepairResultSchema is the document `stackkit host security repair` returns.

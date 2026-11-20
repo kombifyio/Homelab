@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
 )
 
 const (

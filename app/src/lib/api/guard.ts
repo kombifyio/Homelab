@@ -680,7 +680,7 @@ export function denialReason(details: unknown): string | undefined {
 }
 
 // ---------------------------------------------------------------------------
-// StackKits updates (D-2026-11-02-03): Techstack proposes and starts them, the
+// StackKits updates (D-2026-11-02-03): Homelab proposes and starts them, the
 // Guard runs the governed upgrade and rolls it back on failure.
 // ---------------------------------------------------------------------------
 
@@ -717,7 +717,7 @@ export interface StackKitsUpdateProposal {
   other_changes_total: number;
   security?: {
     affected_apps: string[];
-    /** Techstack applies the update without approval on this server. */
+    /** Homelab applies the update without approval on this server. */
     affects_node: boolean;
     changes: StackKitsUpdateChange[];
   };
@@ -732,7 +732,7 @@ export interface StackKitsUpdateView {
   /** The public StackKits changelog. */
   changelog_url?: string;
   proposal?: StackKitsUpdateProposal;
-  /** The update Techstack started without a click. */
+  /** The update Homelab started without a click. */
   started?: {
     version: string;
     trigger: "automatic" | "security";

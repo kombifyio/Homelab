@@ -662,7 +662,7 @@ export class CreationFrame {
 
   /**
    * Writes a change still waiting for its debounce now, for a move to another
-   * frame ("Continue in Techstack") right after the last answer.
+   * frame ("Continue in Homelab") right after the last answer.
    */
   async flushDraft(): Promise<void> {
     const key = this.options.draftKey;

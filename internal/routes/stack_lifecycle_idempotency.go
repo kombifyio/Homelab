@@ -16,26 +16,26 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/kombifyio/techstack/internal/providercatalog"
-	"github.com/kombifyio/techstack/internal/providercontrol"
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	jobruntime "github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/providercontrol"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	jobruntime "github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
 )
 
 const (
 	managedRuntimeIdempotencyHeader          = "Idempotency-Key"
-	managedRuntimeIdempotencyScope           = "techstack/add-managed-runtime/v2"
-	managedRuntimeIdempotencyIdentityVersion = "techstack/add-managed-runtime-identity/v2"
-	managedRuntimeClientIntentVersion        = "techstack/add-managed-runtime-client-intent/v2"
-	managedRuntimeEffectiveIntentVersion     = "techstack/add-managed-runtime-effective-intent/v2"
-	managedRuntimeEffectiveReceiptVersion    = "techstack/add-managed-runtime-effective-receipt/v2"
-	managedRuntimeCompletionSealKeyVersion   = "techstack/add-managed-runtime-completion-seal-key/v2"
-	managedRuntimeCompletionReceiptVersion   = "techstack/add-managed-runtime-completion-receipt/v2"
-	managedRuntimeCapacityDenialVersion      = "techstack/add-managed-runtime-capacity-denial/v1"
+	managedRuntimeIdempotencyScope           = "homelab/add-managed-runtime/v2"
+	managedRuntimeIdempotencyIdentityVersion = "homelab/add-managed-runtime-identity/v2"
+	managedRuntimeClientIntentVersion        = "homelab/add-managed-runtime-client-intent/v2"
+	managedRuntimeEffectiveIntentVersion     = "homelab/add-managed-runtime-effective-intent/v2"
+	managedRuntimeEffectiveReceiptVersion    = "homelab/add-managed-runtime-effective-receipt/v2"
+	managedRuntimeCompletionSealKeyVersion   = "homelab/add-managed-runtime-completion-seal-key/v2"
+	managedRuntimeCompletionReceiptVersion   = "homelab/add-managed-runtime-completion-receipt/v2"
+	managedRuntimeCapacityDenialVersion      = "homelab/add-managed-runtime-capacity-denial/v1"
 	managedRuntimeOperationName              = "add-managed-runtime"
 )
 
@@ -537,7 +537,7 @@ func writeManagedRuntimeAdmissionError(
 		return writeManagedRuntimeAdmissionRecheckDenial(
 			e, effective, job, "provider_custody_reconciliation_required", false,
 			"Existing provider custody must be reconciled first",
-			"This stack already has a managed lease or server without a verified runtime-slot binding. TechStack will not guess ownership or create another provider resource.",
+			"This stack already has a managed lease or server without a verified runtime-slot binding. Homelab Runtime will not guess ownership or create another provider resource.",
 			[]string{"Keep the provider create switch closed for this stack.", "Ask kombify support to reconcile the existing lease/server with immutable provider evidence."},
 		)
 	}
@@ -793,7 +793,7 @@ func (h stackLifecycleRouteHandlers) preflightManagedRuntimeServer(
 			e, effective, persistedJobID, "native_admission_preflight_unavailable", true,
 			"Managed server availability could not be verified",
 			"This deployment does not have the required native admission preflight.",
-			[]string{"Retry after the TechStack runtime has been updated.", "Contact kombify support if this state persists."},
+			[]string{"Retry after the Homelab Runtime has been updated.", "Contact kombify support if this state persists."},
 		)
 	}
 	err := preflight.PreflightCreateOrBindLease(e.Request.Context(), managedRuntimeLeaseRequest(effective, operationKey))
@@ -835,7 +835,7 @@ func (h stackLifecycleRouteHandlers) preflightManagedRuntimeServer(
 		return true, writeManagedRuntimePreflightUnavailable(
 			e, effective, persistedJobID, "provider_control_not_activated", false,
 			"Managed provider provisioning is not active",
-			"This TechStack deployment has not activated its certified native provider path.",
+			"This Homelab Runtime deployment has not activated its certified native provider path.",
 			[]string{"Use a deployment with certified provider control enabled.", "Contact kombify support for activation status."},
 		)
 	}
@@ -843,7 +843,7 @@ func (h stackLifecycleRouteHandlers) preflightManagedRuntimeServer(
 		return true, writeManagedRuntimePreflightUnavailable(
 			e, effective, persistedJobID, "provider_custody_reconciliation_required", false,
 			"Existing provider custody must be reconciled first",
-			"This stack already has a managed lease or server without a verified runtime-slot binding. TechStack will not guess ownership or create another provider resource.",
+			"This stack already has a managed lease or server without a verified runtime-slot binding. Homelab Runtime will not guess ownership or create another provider resource.",
 			[]string{"Do not create a replacement server.", "Ask kombify support to reconcile the existing lease/server with immutable provider evidence."},
 		)
 	}

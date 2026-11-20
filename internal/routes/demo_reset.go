@@ -11,29 +11,29 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/demoguard"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
-	"github.com/kombifyio/techstack/pkg/vmleases"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/demoguard"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 )
 
 const (
 	// envDemoResetSecret authenticates the internal reset endpoint (header
 	// X-Kombify-Demo-Reset-Secret, constant-time compare).
-	envDemoResetSecret     = "TECHSTACK_DEMO_RESET_SECRET"      //nolint:gosec // env var NAME, not a credential value
-	envDemoResetSecretNext = "TECHSTACK_DEMO_RESET_SECRET_NEXT" //nolint:gosec // env var NAME, not a credential value
+	envDemoResetSecret     = "HOMELAB_DEMO_RESET_SECRET"      //nolint:gosec // env var NAME, not a credential value
+	envDemoResetSecretNext = "HOMELAB_DEMO_RESET_SECRET_NEXT" //nolint:gosec // env var NAME, not a credential value
 	// envDemoResetGraceMinutes protects a visitor mid-demo: leases younger than
 	// the grace window are never reaped. Default 45.
-	envDemoResetGraceMinutes = "TECHSTACK_DEMO_RESET_GRACE_MINUTES"
+	envDemoResetGraceMinutes = "HOMELAB_DEMO_RESET_GRACE_MINUTES"
 	// envDemoResetBatchSize bounds the number of cleanup admissions attempted by
 	// one reset run. The default is large enough for normal demo churn while the
 	// hard maximum keeps a malformed configuration from turning the endpoint
 	// into an unbounded provider fan-out.
-	envDemoResetBatchSize        = "TECHSTACK_DEMO_RESET_BATCH_SIZE"
+	envDemoResetBatchSize        = "HOMELAB_DEMO_RESET_BATCH_SIZE"
 	defaultDemoResetGraceMinutes = 45
 	defaultDemoResetBatchSize    = 250
 	maxDemoResetBatchSize        = 500
@@ -185,7 +185,7 @@ func (h demoResetHandlers) reset(e *httpx.Event) error {
 				demoResetCustodyReviewFor(lease, "lease authority record is missing; provider absence cannot be inferred"))
 			continue
 		}
-		if record.ExecutionAuthority != vmleases.LeaseExecutionAuthorityTechStackProviderControl {
+		if record.ExecutionAuthority != vmleases.LeaseExecutionAuthorityHomelabProviderControl {
 			// Legacy and unbound rows have no provider-control custody. They are
 			// intentionally not auto-archived: a missing native row is not proof
 			// that a billable provider resource is absent. The normal operations

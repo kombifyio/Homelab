@@ -21,7 +21,7 @@ export const appLogoMessages = {
     "ui.appLogo.credits": "Credits",
     "ui.credits.title": "Credits",
     "ui.credits.intro":
-      "Techstack recognizes the applications on your servers from container labels, image names and, on your own network, a short check of the web page. These open projects make that possible.",
+      "Homelab Runtime recognizes the applications on your servers from container labels, image names and, on your own network, a short check of the web page. These open projects make that possible.",
     "ui.credits.sources": "What the recognition uses",
     "ui.credits.licence": "Licence: {license}",
     "ui.credits.use.dashboardIcons":
@@ -44,7 +44,7 @@ export const appLogoMessages = {
     "ui.credits.removal.body":
       "If you hold the rights to a logo and want it removed, tell kombify and it is removed for every user.",
     "ui.credits.removal.link": "Imprint and contact",
-    "ui.credits.back": "Back to Techstack",
+    "ui.credits.back": "Back to Homelab Runtime",
   },
   de: {
     "ui.appLogo.label": "Logo",
@@ -66,7 +66,7 @@ export const appLogoMessages = {
     "ui.appLogo.credits": "Credits",
     "ui.credits.title": "Credits",
     "ui.credits.intro":
-      "Techstack erkennt die Anwendungen auf deinen Servern an Container-Labels, Image-Namen und, in deinem eigenen Netzwerk, an einer kurzen Prüfung der Webseite. Diese offenen Projekte machen das möglich.",
+      "Homelab Runtime erkennt die Anwendungen auf deinen Servern an Container-Labels, Image-Namen und, in deinem eigenen Netzwerk, an einer kurzen Prüfung der Webseite. Diese offenen Projekte machen das möglich.",
     "ui.credits.sources": "Was die Erkennung nutzt",
     "ui.credits.licence": "Lizenz: {license}",
     "ui.credits.use.dashboardIcons":
@@ -89,7 +89,7 @@ export const appLogoMessages = {
     "ui.credits.removal.body":
       "Wenn dir die Rechte an einem Logo gehören und du es entfernt haben möchtest, sag kombify Bescheid; es wird dann für alle Nutzer entfernt.",
     "ui.credits.removal.link": "Impressum und Kontakt",
-    "ui.credits.back": "Zurück zu Techstack",
+    "ui.credits.back": "Zurück zu Homelab Runtime",
   },
   es: {
     "ui.appLogo.label": "Logotipo",
@@ -110,7 +110,7 @@ export const appLogoMessages = {
     "ui.appLogo.credits": "Créditos",
     "ui.credits.title": "Créditos",
     "ui.credits.intro":
-      "Techstack reconoce las aplicaciones de tus servidores por las etiquetas de contenedor, los nombres de imagen y, en tu propia red, una breve comprobación de la página web. Estos proyectos abiertos lo hacen posible.",
+      "Homelab Runtime reconoce las aplicaciones de tus servidores por las etiquetas de contenedor, los nombres de imagen y, en tu propia red, una breve comprobación de la página web. Estos proyectos abiertos lo hacen posible.",
     "ui.credits.sources": "Qué usa el reconocimiento",
     "ui.credits.licence": "Licencia: {license}",
     "ui.credits.use.dashboardIcons":
@@ -133,7 +133,7 @@ export const appLogoMessages = {
     "ui.credits.removal.body":
       "Si posees los derechos de un logotipo y quieres que se retire, díselo a kombify y se retirará para todos los usuarios.",
     "ui.credits.removal.link": "Aviso legal y contacto",
-    "ui.credits.back": "Volver a Techstack",
+    "ui.credits.back": "Volver a Homelab Runtime",
   },
   "zh-Hans": {
     "ui.appLogo.label": "标志",
@@ -154,7 +154,7 @@ export const appLogoMessages = {
     "ui.appLogo.credits": "致谢",
     "ui.credits.title": "致谢",
     "ui.credits.intro":
-      "Techstack 通过容器标签、镜像名称，以及在你自己的网络中对网页的简短检查，来识别你服务器上的应用。这些开源项目使其成为可能。",
+      "Homelab Runtime 通过容器标签、镜像名称，以及在你自己的网络中对网页的简短检查，来识别你服务器上的应用。这些开源项目使其成为可能。",
     "ui.credits.sources": "识别功能使用了什么",
     "ui.credits.licence": "许可证：{license}",
     "ui.credits.use.dashboardIcons":
@@ -174,7 +174,7 @@ export const appLogoMessages = {
     "ui.credits.removal.body":
       "如果你拥有某个标志的权利并希望将其移除，请告知 kombify，该标志将对所有用户移除。",
     "ui.credits.removal.link": "法律声明与联系方式",
-    "ui.credits.back": "返回 Techstack",
+    "ui.credits.back": "返回 Homelab Runtime",
   },
   hi: {
     "ui.appLogo.label": "लोगो",
@@ -195,7 +195,7 @@ export const appLogoMessages = {
     "ui.appLogo.credits": "श्रेय",
     "ui.credits.title": "श्रेय",
     "ui.credits.intro":
-      "Techstack आपके सर्वरों पर चल रहे एप्लिकेशन को कंटेनर लेबल, इमेज नामों और आपके अपने नेटवर्क पर वेब पेज की एक छोटी जाँच से पहचानता है। ये ओपन प्रोजेक्ट इसे संभव बनाते हैं।",
+      "Homelab Runtime आपके सर्वरों पर चल रहे एप्लिकेशन को कंटेनर लेबल, इमेज नामों और आपके अपने नेटवर्क पर वेब पेज की एक छोटी जाँच से पहचानता है। ये ओपन प्रोजेक्ट इसे संभव बनाते हैं।",
     "ui.credits.sources": "पहचान किसका उपयोग करती है",
     "ui.credits.licence": "लाइसेंस: {license}",
     "ui.credits.use.dashboardIcons":
@@ -218,7 +218,7 @@ export const appLogoMessages = {
     "ui.credits.removal.body":
       "यदि किसी लोगो के अधिकार आपके पास हैं और आप उसे हटवाना चाहते हैं, तो kombify को बताएँ; उसे सभी उपयोगकर्ताओं के लिए हटा दिया जाएगा।",
     "ui.credits.removal.link": "इम्प्रेसम और संपर्क",
-    "ui.credits.back": "Techstack पर वापस जाएँ",
+    "ui.credits.back": "Homelab Runtime पर वापस जाएँ",
   },
   ar: {
     "ui.appLogo.label": "الشعار",
@@ -239,7 +239,7 @@ export const appLogoMessages = {
     "ui.appLogo.credits": "الشكر والتقدير",
     "ui.credits.title": "الشكر والتقدير",
     "ui.credits.intro":
-      "يتعرّف Techstack على التطبيقات في خوادمك من خلال وسوم الحاويات وأسماء الصور، وفي شبكتك الخاصة من خلال فحص قصير لصفحة الويب. هذه المشاريع المفتوحة تجعل ذلك ممكنًا.",
+      "يتعرّف Homelab Runtime على التطبيقات في خوادمك من خلال وسوم الحاويات وأسماء الصور، وفي شبكتك الخاصة من خلال فحص قصير لصفحة الويب. هذه المشاريع المفتوحة تجعل ذلك ممكنًا.",
     "ui.credits.sources": "ما يستخدمه التعرّف",
     "ui.credits.licence": "الترخيص: {license}",
     "ui.credits.use.dashboardIcons":
@@ -262,6 +262,6 @@ export const appLogoMessages = {
     "ui.credits.removal.body":
       "إذا كنت تملك حقوق شعار وتريد إزالته، فأخبر kombify وستتم إزالته لدى جميع المستخدمين.",
     "ui.credits.removal.link": "بيانات الناشر وطرق التواصل",
-    "ui.credits.back": "العودة إلى Techstack",
+    "ui.credits.back": "العودة إلى Homelab Runtime",
   },
 };

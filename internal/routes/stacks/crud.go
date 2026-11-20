@@ -2,13 +2,13 @@
 package stacks
 
 import (
-	"github.com/kombifyio/techstack/internal/routes/auth"
+	"github.com/kombifyio/homelab/internal/routes/auth"
 
-	productnotifications "github.com/kombifyio/techstack/internal/notifications"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/orchestrator"
+	productnotifications "github.com/kombifyio/homelab/internal/notifications"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/orchestrator"
 )
 
 func RegisterCRUDRuntimeRoutes(r *httpx.Router, runtime auth.RuntimeStore, orch *orchestrator.Orchestrator, mode config.DeploymentMode, featureChecker managedRuntimeFeatureChecker, managedLeases jobs.ManagedLeaseManager, notificationOutbox productnotifications.ProductEventEnqueuer) {

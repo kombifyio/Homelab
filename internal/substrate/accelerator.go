@@ -143,7 +143,7 @@ func (c *Client) assertAcceleratorFree(ctx context.Context, self int, address st
 // pinned link has not been proven to stop an enclosure from dropping the GPU.
 func AcceleratorHookscript(guestID int, accelerator PCIPassthrough) string {
 	return fmt.Sprintf(`#!/bin/sh
-# Written by Kombify Techstack for guest %d: prepare its GPU before start.
+# Written by Kombify Homelab Runtime for guest %d: prepare its GPU before start.
 [ "$2" = pre-start ] || exit 0
 ADDR=%s
 ROOT=%s

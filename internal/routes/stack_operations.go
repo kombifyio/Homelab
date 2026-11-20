@@ -14,18 +14,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/readcoalesce"
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/monitoring"
-	"github.com/kombifyio/techstack/pkg/nodehandoff"
-	"github.com/kombifyio/techstack/pkg/outcome"
-	"github.com/kombifyio/techstack/pkg/runtimehealth"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
-	"github.com/kombifyio/techstack/pkg/vmleases"
+	"github.com/kombifyio/homelab/internal/readcoalesce"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/monitoring"
+	"github.com/kombifyio/homelab/pkg/nodehandoff"
+	"github.com/kombifyio/homelab/pkg/outcome"
+	"github.com/kombifyio/homelab/pkg/runtimehealth"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 	"github.com/prometheus/prometheus/promql"
 )
 
@@ -417,7 +417,7 @@ func (h stackOperationsRouteHandlers) monitorCockpitFromStore(e *httpx.Event) er
 	if err != nil {
 		return err
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.monitor.cockpit")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.monitor.cockpit")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -677,7 +677,7 @@ func (h stackOperationsRouteHandlers) assignWorkerFromStore(e *httpx.Event) erro
 	}
 
 	ctx := e.Request.Context()
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.workers.assign")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.workers.assign")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -937,7 +937,7 @@ func (h stackOperationsRouteHandlers) ownedControlPlaneStack(e *httpx.Event) (*c
 	if stackID == "" {
 		return nil, "", "", httpx.NewBadRequestError("Stack ID is required", nil)
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.stack.operations.read")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.stack.operations.read")
 	if tenantErr != nil {
 		return nil, "", "", tenantErr
 	}
@@ -1275,7 +1275,7 @@ func jobTargetServer(job controlplane.Job) jobTarget {
 
 func stackRuntimeLifecycleFromResult(result map[string]any) *stackRuntimeLifecycle {
 	raw, ok := result["runtime_lifecycle"].(map[string]any)
-	if !ok || stringFromAnyMap(raw, "version") != "techstack.runtime-lifecycle/v1" {
+	if !ok || stringFromAnyMap(raw, "version") != "homelab.runtime-lifecycle/v1" {
 		return nil
 	}
 	lifecycle := &stackRuntimeLifecycle{
@@ -1546,10 +1546,10 @@ func splitManagedRuntimeLeasesByMachineEvidence(
 }
 
 func managedRuntimeCustodyActions(item managedRuntimeInventoryItem) []string {
-	if item.NativeActive && item.ExecutionAuthority == string(vmleases.LeaseExecutionAuthorityTechStackProviderControl) {
+	if item.NativeActive && item.ExecutionAuthority == string(vmleases.LeaseExecutionAuthorityHomelabProviderControl) {
 		return []string{"decommission"}
 	}
-	if item.ExecutionAuthority != string(vmleases.LeaseExecutionAuthorityTechStackProviderControl) {
+	if item.ExecutionAuthority != string(vmleases.LeaseExecutionAuthorityHomelabProviderControl) {
 		return []string{"resolve_custody"}
 	}
 	return nil

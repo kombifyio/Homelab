@@ -75,7 +75,7 @@ const (
 	// FlagStackReferenceConflict: row stack_id and metadata stack disagree; the
 	// row's foreign key wins.
 	FlagStackReferenceConflict Flag = "stack_reference_conflict"
-	// FlagDerivedProjection: a Techstack writer (not the owner) wrote the row
+	// FlagDerivedProjection: a Homelab writer (not the owner) wrote the row
 	// and rewrites it on its next run unless it switches to the Wallet first.
 	FlagDerivedProjection Flag = "derived_projection"
 	// FlagLabelResolved: a caller resolves this kind by case-insensitive name
@@ -103,7 +103,7 @@ const (
 )
 
 // Scope is an item's Wallet scope: the owner's account or one project, where
-// a Techstack stack (kit deployment) is the project.
+// a Homelab stack (kit deployment) is the project.
 type Scope struct {
 	Kind       ScopeKind
 	ProjectRef string
@@ -120,7 +120,7 @@ func (s Scope) String() string {
 // MarshalText renders the same form for JSON.
 func (s Scope) MarshalText() ([]byte, error) { return []byte(s.String()), nil }
 
-// SourceRef keeps the Techstack identity of a migrated item so callers can
+// SourceRef keeps the Homelab identity of a migrated item so callers can
 // switch from name labels, composite ids and service references to the
 // Wallet item id.
 type SourceRef struct {
@@ -199,13 +199,13 @@ func (p ItemPlan) HasFlag(flag Flag) bool {
 	return false
 }
 
-// Techstack kinds: the UI's credential types plus server-written ssh_password.
+// Homelab kinds: the UI's credential types plus server-written ssh_password.
 const (
 	kindPassword    = "password"
 	kindAPIKey      = "api_key"
 	kindSSHKey      = "ssh_key"
 	kindSSHPassword = "ssh_password"
-	kindOAuthToken  = "oauth_token" // #nosec G101 -- Techstack kind name, not a credential value.
+	kindOAuthToken  = "oauth_token" // #nosec G101 -- Homelab kind name, not a credential value.
 	kindCertificate = "certificate"
 	kindOther       = "other"
 )
@@ -229,7 +229,7 @@ var aiProviders = map[string]bool{
 	"openrouter": true, "xai": true,
 }
 
-// Service ids the Techstack writers use (internal/walletsync,
+// Service ids the Homelab writers use (internal/walletsync,
 // internal/routes/stacks owner bootstrap, internal/systemwallet).
 const (
 	serviceOwnerAccess = "pocketid:owner"
@@ -572,7 +572,7 @@ func displayName(resourceType ResourceType, form CredentialForm, key string) str
 			label = "recovery secret"
 		}
 	}
-	return "Techstack " + label + " " + keySuffix(key)
+	return "Homelab Runtime " + label + " " + keySuffix(key)
 }
 
 // keySuffix is the first six hex digits of a migration key.
@@ -587,20 +587,20 @@ func keySuffix(key string) string {
 // MigrationToken marks a migrated item's description so a later run finds the
 // item again without any personal data: it carries the key only, which is a
 // hash of tenant and row id.
-const MigrationToken = "techstack-migration:" // #nosec G101 -- description marker, not a credential.
+const MigrationToken = "homelab-migration:" // #nosec G101 -- description marker, not a credential.
 
-// description is the Wallet description of a migrated item: the Techstack
+// description is the Wallet description of a migrated item: the Homelab
 // kind (a fixed vocabulary) and the migration token. It carries no owner,
 // tenant, name or label.
 func description(kind, key string) string {
-	return fmt.Sprintf("Migrated from the Techstack wallet (%s). %s%s", kind, MigrationToken, key)
+	return fmt.Sprintf("Migrated from the Homelab Runtime wallet (%s). %s%s", kind, MigrationToken, key)
 }
 
 const migrationKeyPrefix = "tswm1_"
 
 // migrationKey is the idempotency key for one row's capture.
 func migrationKey(tenantID, itemID string) string {
-	sum := sha256.Sum256([]byte("techstack.wallet-migration.v1\x00" + strings.TrimSpace(tenantID) + "\x00" + strings.TrimSpace(itemID)))
+	sum := sha256.Sum256([]byte("homelab.wallet-migration.v1\x00" + strings.TrimSpace(tenantID) + "\x00" + strings.TrimSpace(itemID)))
 	return migrationKeyPrefix + hex.EncodeToString(sum[:16])
 }
 

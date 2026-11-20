@@ -27,7 +27,7 @@ import (
 // check stay the production ones; only the signer identity differs.
 
 const (
-	qualificationRepository   = "kombifyio/TechStack"
+	qualificationRepository   = "kombifyio/Homelab"
 	qualificationWorkflowFile = qualificationRepository + "/.github/workflows/guard-qualification.yml"
 )
 

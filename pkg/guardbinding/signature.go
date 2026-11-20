@@ -12,7 +12,7 @@ import (
 
 // signatureDomain separates binding signatures from every other Ed25519
 // signature the same key could make.
-const signatureDomain = "techstack.guard.command-binding/v1\x00"
+const signatureDomain = "homelab.guard.command-binding/v1\x00"
 
 // PinnedKey is one control-plane public key a Guard accepts binding
 // signatures from.
@@ -46,7 +46,7 @@ func NewSignerFromSeed(seed []byte) (*Signer, error) {
 
 // workerKeyLabel separates per-worker binding keys from every other key
 // derived from the same base secret.
-const workerKeyLabel = "techstack.guard.command-binding-key/v1"
+const workerKeyLabel = "homelab.guard.command-binding-key/v1"
 
 // DeriveWorkerSigner derives one worker's signer from the control plane's base
 // secret (HKDF-SHA256 over a length-prefixed tenant and worker id). Each worker

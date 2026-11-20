@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"

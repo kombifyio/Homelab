@@ -3,7 +3,7 @@
 //
 // providerexecutor will not seal a receipt claiming Observation=absent unless
 // the resource carries definitive provider_api evidence and a configured
-// EvidenceVerifier accepts it. Techstack shipped neither half, so no managed
+// EvidenceVerifier accepts it. Homelab shipped neither half, so no managed
 // server could ever be decommissioned to proof and no managed-runtime capacity
 // slot was ever released. This package is both halves: Recorder writes the
 // exact provider read that observed the resource gone, and Verifier resolves an

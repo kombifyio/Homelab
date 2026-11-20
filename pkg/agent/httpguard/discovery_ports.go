@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/appcatalog"
+	"github.com/kombifyio/homelab/pkg/appcatalog"
 )
 
 // publishedPort is one container port Docker published on the host.

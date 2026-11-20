@@ -1,7 +1,7 @@
 package unifier
 
 import (
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/pkg/core"
 	"testing"
 )
 

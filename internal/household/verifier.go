@@ -12,15 +12,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/oidcclient"
+	"github.com/kombifyio/homelab/internal/gocommon/oidcclient"
 
-	"github.com/kombifyio/techstack/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
 )
 
 const verifierTTL = 10 * time.Minute
 
 // OIDCVerifier verifies ID tokens against the published keys (JWKS) of the
-// issuer Techstack resolved for a stack. Discovery is fetched from that issuer,
+// issuer Homelab resolved for a stack. Discovery is fetched from that issuer,
 // and the token's own issuer claim must equal it. Verifiers are cached per
 // issuer and audience for a short time so a rotated key is picked up.
 type OIDCVerifier struct {

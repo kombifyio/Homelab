@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
-	"github.com/kombifyio/techstack/pkg/guardpower"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/pkg/guardpower"
 )
 
 // findingsRetention is how long a resolved finding stays as history.

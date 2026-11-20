@@ -87,7 +87,7 @@ export const guardMessagesZhHans: Record<
   "guard.fact.bound.legacyNext":
     "请更新服务器上的 Guard,使其注册自己的密钥,然后在此处批准该密钥。",
   "guard.fact.bound.revoked": "这台服务器已被撤销,不再绑定。",
-  "guard.fact.bound.revokedNext": "请重新配对服务器,将其绑定到你的 Techstack。",
+  "guard.fact.bound.revokedNext": "请重新配对服务器,将其绑定到你的 Homelab Runtime。",
   "guard.fact.bound.stale": "最近一次报告太旧,无法确认这台服务器如何证明身份。",
   "guard.fact.bound.unknown": "服务器尚未报告它如何证明身份。",
   "guard.fact.bound.unknownNext":
@@ -96,7 +96,7 @@ export const guardMessagesZhHans: Record<
   "guard.fact.connected.ok": "Guard 已通过其经过认证的连接应答了一条命令。",
   "guard.fact.connected.degraded": "连接已降级。",
   "guard.fact.connected.offline":
-    "Guard 没有上报。服务器已离线或无法连接到 Techstack。",
+    "Guard 没有上报。服务器已离线或无法连接到 Homelab Runtime。",
   "guard.fact.connected.revoked": "连接已被撤销。",
   "guard.fact.connected.stale": "Guard 最近没有上报,不能算作已连接。",
   "guard.fact.connected.pending": "Guard 尚未完成首次连接。",
@@ -104,9 +104,9 @@ export const guardMessagesZhHans: Record<
     "请在服务器上运行配对命令,或稍等片刻后再检查。",
   "guard.fact.connected.unknown": "未报告这台服务器的连接状态。",
   "guard.fact.connected.reconnectNext":
-    "请检查服务器是否已开机并能连接到 Techstack。",
+    "请检查服务器是否已开机并能连接到 Homelab Runtime。",
   "guard.fact.connected.awaitingRoundTrip":
-    "Guard 正在上报,但尚未以当前凭据应答过 Techstack 的任何命令。",
+    "Guard 正在上报,但尚未以当前凭据应答过 Homelab Runtime 的任何命令。",
   "guard.fact.connected.roundTripStale":
     "Guard 正在上报,但它最近应答的命令太旧,或是以先前的凭据应答的。",
   "guard.fact.connected.roundTripNext":
@@ -417,7 +417,7 @@ export const guardMessagesZhHans: Record<
     "Guard 会先保存检查点，然后执行更新，失败时自动回滚。",
   "guard.updates.running": "正在更新到 {version}：{progress}%",
   "guard.updates.started.automatic":
-    "此服务器设置为自动安装更新，因此 Techstack 已启动此更新。",
+    "此服务器设置为自动安装更新，因此 Homelab Runtime 已启动此更新。",
   "guard.updates.started.security":
     "kombify 会直接安装此安全补丁，无需等待你的批准。",
   "guard.updates.security.badge": "安全补丁",

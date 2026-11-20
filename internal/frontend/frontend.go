@@ -13,7 +13,7 @@ import (
 // PublicRuntimeConfigNames are the public browser settings that differ between
 // Preview and Stable. They are read from the serving process environment and
 // injected into index.html, so one image serves every channel; the build
-// (app/vite.config.ts) reads them from window.__TECHSTACK_PUBLIC_CONFIG__.
+// (app/vite.config.ts) reads them from window.__HOMELAB_PUBLIC_CONFIG__.
 var PublicRuntimeConfigNames = []string{
 	"VITE_GATEWAY_API_BASE",
 	"VITE_AUTH0_DOMAIN",
@@ -33,7 +33,7 @@ func publicRuntimeConfigScript() []byte {
 	if err != nil {
 		return nil
 	}
-	return []byte("<script>window.__TECHSTACK_PUBLIC_CONFIG__=Object.freeze(" + string(encoded) + ");</script>")
+	return []byte("<script>window.__HOMELAB_PUBLIC_CONFIG__=Object.freeze(" + string(encoded) + ");</script>")
 }
 
 // withPublicRuntimeConfig places the config script first in <head>, ahead of

@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/availability"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/availability"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // serverAvailabilityResponse is what the server's own page shows about how
@@ -80,7 +80,7 @@ func (h serverRuntimeHandlers) availabilityView(e *httpx.Event, server controlpl
 
 // availabilityRead serves GET /api/v1/servers/{serverId}/availability.
 func (h serverRuntimeHandlers) availabilityRead(e *httpx.Event) error {
-	server, err := h.ownedServer(e, "techstack.servers.availability.read")
+	server, err := h.ownedServer(e, "homelab.servers.availability.read")
 	if err != nil || server == nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (h serverRuntimeHandlers) availabilityRead(e *httpx.Event) error {
 // the server's owner can state how available the machine is; the confirmation
 // is stored beside the Guard's observations, never over them.
 func (h serverRuntimeHandlers) availabilityConfirm(e *httpx.Event) error {
-	server, err := h.ownedServer(e, "techstack.servers.availability.confirm")
+	server, err := h.ownedServer(e, "homelab.servers.availability.confirm")
 	if err != nil || server == nil {
 		return err
 	}

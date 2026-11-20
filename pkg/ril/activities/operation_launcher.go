@@ -4,9 +4,9 @@ import (
 	"context"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/ril/actions"
-	"github.com/kombifyio/techstack/pkg/ril/workflow"
-	"github.com/kombifyio/techstack/pkg/ril/workflows"
+	"github.com/kombifyio/homelab/pkg/ril/actions"
+	"github.com/kombifyio/homelab/pkg/ril/workflow"
+	"github.com/kombifyio/homelab/pkg/ril/workflows"
 )
 
 // ExecuteOperation connects the ordinary action-card surface to the registered

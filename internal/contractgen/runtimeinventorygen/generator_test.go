@@ -47,7 +47,7 @@ func TestSchemaRejectsSecretAndOpenFields(t *testing.T) {
 	for _, invalidType := range []string{"map[string]string", "arbitrary.Package", "[][]string", "func()"} {
 		schema := Schema{
 			SchemaVersion: SchemaVersion, GeneratorVersion: GeneratorVersion, WireVersion: WireVersion,
-			PackageName: "runtimeinventory", SourceRepository: "github.com/kombifyio/TechStack",
+			PackageName: "runtimeinventory", SourceRepository: "github.com/kombifyio/Homelab",
 			SourcePath: "contracts/runtimeinventory/v1/schema.json", Imports: []string{"time"},
 			Types: []TypeSchema{{Name: "Server", Doc: []string{"Server is invalid."}, Fields: []FieldSchema{{Name: "Value", GoType: invalidType, JSON: "value"}}}},
 		}
@@ -57,7 +57,7 @@ func TestSchemaRejectsSecretAndOpenFields(t *testing.T) {
 	}
 	schema := Schema{
 		SchemaVersion: SchemaVersion, GeneratorVersion: GeneratorVersion, WireVersion: WireVersion,
-		PackageName: "runtimeinventory", SourceRepository: "github.com/kombifyio/TechStack",
+		PackageName: "runtimeinventory", SourceRepository: "github.com/kombifyio/Homelab",
 		SourcePath: "contracts/runtimeinventory/v1/schema.json", Imports: []string{"time"},
 		Types: []TypeSchema{{Name: "Server", Doc: []string{"Server is invalid."}, Fields: []FieldSchema{{Name: "Token", GoType: "string", JSON: "api_token"}}}},
 	}

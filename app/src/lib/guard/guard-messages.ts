@@ -101,7 +101,7 @@ export const guardMessages = {
     "guard.fact.bound.revoked":
       "This server has been revoked and is no longer bound.",
     "guard.fact.bound.revokedNext":
-      "Pair the server again to bind it to your Techstack.",
+      "Pair the server again to bind it to your Homelab.",
     "guard.fact.bound.stale":
       "The last report is too old to confirm how this server proves its identity.",
     "guard.fact.bound.unknown":
@@ -113,7 +113,7 @@ export const guardMessages = {
       "Guard answered a command over its authenticated connection.",
     "guard.fact.connected.degraded": "The connection is degraded.",
     "guard.fact.connected.offline":
-      "Guard is not reporting. The server is offline or cannot reach Techstack.",
+      "Guard is not reporting. The server is offline or cannot reach Homelab.",
     "guard.fact.connected.revoked": "The connection was revoked.",
     "guard.fact.connected.stale":
       "Guard has not reported recently enough to count as connected.",
@@ -124,9 +124,9 @@ export const guardMessages = {
     "guard.fact.connected.unknown":
       "No connection state is reported for this server.",
     "guard.fact.connected.reconnectNext":
-      "Check that the server is powered on and can reach Techstack.",
+      "Check that the server is powered on and can reach Homelab.",
     "guard.fact.connected.awaitingRoundTrip":
-      "Guard is reporting, but has not yet answered a command from Techstack under its current credential.",
+      "Guard is reporting, but has not yet answered a command from Homelab Runtime under its current credential.",
     "guard.fact.connected.roundTripStale":
       "Guard is reporting, but the last command it answered is too old, or was answered under an earlier credential.",
     "guard.fact.connected.roundTripNext":
@@ -482,7 +482,7 @@ export const guardMessages = {
       "The Guard saves a checkpoint, runs the update and rolls it back if it fails.",
     "guard.updates.running": "Updating to {version}: {progress}%",
     "guard.updates.started.automatic":
-      "Techstack started this update because this server installs updates automatically.",
+      "Homelab Runtime started this update because this server installs updates automatically.",
     "guard.updates.started.security":
       "kombify installs this security patch without waiting for your approval.",
     "guard.updates.security.badge": "Security patch",
@@ -624,7 +624,7 @@ export const guardMessages = {
     "guard.fact.bound.revoked":
       "Dieser Server wurde widerrufen und ist nicht mehr gebunden.",
     "guard.fact.bound.revokedNext":
-      "Koppele den Server erneut, um ihn an deinen Techstack zu binden.",
+      "Koppele den Server erneut, um ihn an deinen Homelab Runtime zu binden.",
     "guard.fact.bound.stale":
       "Die letzte Meldung ist zu alt, um zu bestätigen, wie dieser Server seine Identität nachweist.",
     "guard.fact.bound.unknown":
@@ -636,7 +636,7 @@ export const guardMessages = {
       "Guard hat über seine authentifizierte Verbindung einen Befehl beantwortet.",
     "guard.fact.connected.degraded": "Die Verbindung ist beeinträchtigt.",
     "guard.fact.connected.offline":
-      "Guard meldet sich nicht. Der Server ist offline oder erreicht Techstack nicht.",
+      "Guard meldet sich nicht. Der Server ist offline oder erreicht Homelab Runtime nicht.",
     "guard.fact.connected.revoked": "Die Verbindung wurde widerrufen.",
     "guard.fact.connected.stale":
       "Guard hat sich nicht aktuell genug gemeldet, um als verbunden zu gelten.",
@@ -647,9 +647,9 @@ export const guardMessages = {
     "guard.fact.connected.unknown":
       "Für diesen Server wird kein Verbindungsstatus gemeldet.",
     "guard.fact.connected.reconnectNext":
-      "Prüfe, ob der Server eingeschaltet ist und Techstack erreichen kann.",
+      "Prüfe, ob der Server eingeschaltet ist und Homelab Runtime erreichen kann.",
     "guard.fact.connected.awaitingRoundTrip":
-      "Guard meldet sich, hat aber noch keinen Befehl von Techstack mit seinem aktuellen Zugang beantwortet.",
+      "Guard meldet sich, hat aber noch keinen Befehl von Homelab Runtime mit seinem aktuellen Zugang beantwortet.",
     "guard.fact.connected.roundTripStale":
       "Guard meldet sich, aber der zuletzt beantwortete Befehl ist zu alt oder wurde mit einem früheren Zugang beantwortet.",
     "guard.fact.connected.roundTripNext":
@@ -1025,7 +1025,7 @@ export const guardMessages = {
       "Der Guard legt einen Prüfpunkt an, führt das Update aus und setzt es zurück, wenn es fehlschlägt.",
     "guard.updates.running": "Update auf {version}: {progress} %",
     "guard.updates.started.automatic":
-      "Techstack hat dieses Update gestartet, weil dieser Server Updates automatisch installiert.",
+      "Homelab Runtime hat dieses Update gestartet, weil dieser Server Updates automatisch installiert.",
     "guard.updates.started.security":
       "kombify installiert diesen Sicherheitspatch, ohne auf deine Freigabe zu warten.",
     "guard.updates.security.badge": "Sicherheitspatch",

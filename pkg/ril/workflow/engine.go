@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/logger"
 )
 
 const signalContextKey = "__signal"

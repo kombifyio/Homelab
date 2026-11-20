@@ -73,7 +73,7 @@
   } from "#lib/nodes/model.js";
 
   type ServerView = "compact" | "detailed";
-  const VIEW_KEY = "techstack.nodes.view";
+  const VIEW_KEY = "homelab.nodes.view";
   const VIEWS: ServerView[] = ["compact", "detailed"];
 
   let servers = $state<SectionState<ServerNode>>({ state: "loading" });

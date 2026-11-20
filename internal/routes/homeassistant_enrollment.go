@@ -3,8 +3,8 @@ package routes
 import (
 	"encoding/json"
 	"errors"
-	"github.com/kombifyio/techstack/internal/homeassistant"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/internal/homeassistant"
+	"github.com/kombifyio/homelab/pkg/httpx"
 	"io"
 	"net/http"
 	"strings"
@@ -23,7 +23,7 @@ func RegisterHomeAssistantEnrollmentRoutes(r *httpx.Router, store *homeassistant
 		if err != nil {
 			return err
 		}
-		tenant, err := requireRegistryRouteTenant(e, owner, "techstack.home_assistant.bind")
+		tenant, err := requireRegistryRouteTenant(e, owner, "homelab.home_assistant.bind")
 		if err != nil {
 			return err
 		}
@@ -41,7 +41,7 @@ func RegisterHomeAssistantEnrollmentRoutes(r *httpx.Router, store *homeassistant
 		if err != nil {
 			return err
 		}
-		tenant, err := requireRegistryRouteTenant(e, owner, "techstack.home_assistant.bind")
+		tenant, err := requireRegistryRouteTenant(e, owner, "homelab.home_assistant.bind")
 		if err != nil {
 			return err
 		}

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/validator"
+	"github.com/kombifyio/homelab/pkg/validator"
 )
 
 // StackKitLoader reads release metadata without loading StackKits CUE sources.

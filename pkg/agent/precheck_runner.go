@@ -1,4 +1,4 @@
-// Package agent provides the agent-side pre-check execution for kombifyTechstack.
+// Package agent provides the agent-side pre-check execution for kombifyHomelab.
 package agent
 
 import (
@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 // PreCheckStatus represents the outcome of a pre-check.

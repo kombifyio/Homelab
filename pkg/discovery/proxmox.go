@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
 )
 
 // FingerprintProxmox inspects the public login API on an already discovered IP.

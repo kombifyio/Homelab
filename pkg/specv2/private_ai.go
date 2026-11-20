@@ -3,7 +3,7 @@ package specv2
 import (
 	"slices"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
 )
 
 const (

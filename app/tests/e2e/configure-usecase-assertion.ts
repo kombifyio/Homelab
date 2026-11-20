@@ -45,7 +45,7 @@ export async function assertConfigureInstalledWorkload(options: {
   const specBefore = await read(`${stackPath}/export`);
   const baseline = specBefore.stack_spec ?? specBefore.kombination;
   expect(baseline?.workloads?.[workloadRef]).toBeTruthy();
-  if (process.env.TECHSTACK_RUNTIME_E2E_CONFIGURE_MISSING_MODULE === "1") {
+  if (process.env.HOMELAB_RUNTIME_E2E_CONFIGURE_MISSING_MODULE === "1") {
     expect(baseline.modules?.[member.module_ref], "this regression fixture must omit the selected module entry").toBeUndefined();
   }
   const stackBefore = await read(stackPath);

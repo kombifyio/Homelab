@@ -6,7 +6,7 @@ import (
 	"errors"
 	"os"
 
-	"github.com/kombifyio/techstack/internal/privatefs"
+	"github.com/kombifyio/homelab/internal/privatefs"
 	"golang.org/x/sys/windows"
 )
 

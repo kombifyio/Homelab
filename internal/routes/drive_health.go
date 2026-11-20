@@ -1,14 +1,14 @@
 package routes
 
 import (
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
 	"net/http"
 	"strings"
 	"time"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/monitoring"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/monitoring"
 )
 
 // RegisterDriveHealthRoutes exposes tenant-scoped evidence separately from

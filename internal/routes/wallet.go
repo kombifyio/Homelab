@@ -15,13 +15,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
 )
 
 const (
@@ -34,7 +34,7 @@ const (
 	walletAuditStatusError   = "error"
 	walletAuditStatusInfo    = "info"
 
-	walletRevealAssertionPurpose         = "techstack.wallet.reveal.v1"
+	walletRevealAssertionPurpose         = "homelab.wallet.reveal.v1"
 	walletPlatformReauthAssertionPurpose = "kombify.cloud.wallet.reauth.v1"
 )
 
@@ -139,7 +139,7 @@ func RegisterWalletRoutesWithConfig(r *httpx.Router, cfg WalletRouteConfig) {
 
 // RegisterWalletRefusal answers every legacy wallet route with a structured
 // denial when the deployment keeps credentials in the kombify Wallet, so no
-// wallet_items row is read or written with TECHSTACK_ENCRYPTION_KEY there.
+// wallet_items row is read or written with HOMELAB_ENCRYPTION_KEY there.
 func RegisterWalletRefusal(r *httpx.Router) {
 	r.GET("/api/v1/wallet", refuseLegacyWallet)
 	r.POST("/api/v1/wallet", refuseLegacyWallet)
@@ -156,7 +156,7 @@ func refuseLegacyWallet(e *httpx.Event) error {
 	}
 	return kombifywallet.SelfHostedOnly(
 		"Use the kombify Wallet",
-		"This deployment keeps credentials in the kombify Wallet, not in Techstack. Manage, reveal and save credentials in the kombify Wallet; nothing was read or changed here.",
+		"This deployment keeps credentials in the kombify Wallet, not in Homelab Runtime. Manage, reveal and save credentials in the kombify Wallet; nothing was read or changed here.",
 	).Write(e)
 }
 
@@ -190,7 +190,7 @@ func (h walletRouteHandlers) deviceChallenge(e *httpx.Event) error {
 	if authErr != nil {
 		return authErr
 	}
-	tenantID, err := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.wallet.device-reauth")
+	tenantID, err := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.wallet.device-reauth")
 	if err != nil {
 		return err
 	}
@@ -223,7 +223,7 @@ func (h walletRouteHandlers) list(e *httpx.Event) error {
 	if authErr != nil {
 		return authErr
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.wallet.list")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.wallet.list")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -251,7 +251,7 @@ func (h walletRouteHandlers) create(e *httpx.Event) error {
 	if authErr != nil {
 		return authErr
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.wallet.create")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.wallet.create")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -282,7 +282,7 @@ func (h walletRouteHandlers) update(e *httpx.Event) error {
 	if authErr != nil {
 		return authErr
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.wallet.update")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.wallet.update")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -350,7 +350,7 @@ func (h walletRouteHandlers) delete(e *httpx.Event) error {
 	if authErr != nil {
 		return authErr
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.wallet.delete")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.wallet.delete")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -380,7 +380,7 @@ func (h walletRouteHandlers) reauthProof(e *httpx.Event) error {
 	if authErr != nil {
 		return authErr
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.wallet.reauth-proof")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.wallet.reauth-proof")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -434,7 +434,7 @@ func (h walletRouteHandlers) reveal(e *httpx.Event) error {
 	if authErr != nil {
 		return authErr
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.wallet.reveal")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.wallet.reveal")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -530,13 +530,13 @@ func (h walletRouteHandlers) verifyWalletRevealReauth(e *httpx.Event, ownerID, i
 		req.ReauthTimestamp,
 		req.PlatformReauthAt,
 		e.Request.Header.Get("X-Kombify-Reauth-Timestamp"),
-		e.Request.Header.Get("X-TechStack-Reauth-Timestamp"),
+		e.Request.Header.Get("X-Homelab-Reauth-Timestamp"),
 	)
 	signature := firstNonEmptyWallet(
 		req.ReauthSignature,
 		req.ReauthAssertion,
 		e.Request.Header.Get("X-Kombify-Reauth-Signature"),
-		e.Request.Header.Get("X-TechStack-Reauth-Signature"),
+		e.Request.Header.Get("X-Homelab-Reauth-Signature"),
 	)
 	if timestamp == "" || signature == "" {
 		return errors.New("fresh re-authentication proof missing")
@@ -565,13 +565,13 @@ func (h walletRouteHandlers) verifyFreshPlatformReauth(e *httpx.Event, ownerID, 
 		req.ReauthTimestamp,
 		req.PlatformReauthAt,
 		e.Request.Header.Get("X-Kombify-Reauth-Timestamp"),
-		e.Request.Header.Get("X-TechStack-Reauth-Timestamp"),
+		e.Request.Header.Get("X-Homelab-Reauth-Timestamp"),
 	)
 	signature := firstNonEmptyWallet(
 		req.ReauthSignature,
 		req.ReauthAssertion,
 		e.Request.Header.Get("X-Kombify-Reauth-Signature"),
-		e.Request.Header.Get("X-TechStack-Reauth-Signature"),
+		e.Request.Header.Get("X-Homelab-Reauth-Signature"),
 	)
 	if timestamp == "" || signature == "" {
 		if !errors.Is(sessionErr, errSessionReauthAbsent) {
@@ -643,7 +643,7 @@ func parseWalletReauthTimestamp(raw string) (time.Time, error) {
 }
 
 func walletReauthSecret() string {
-	if secret := strings.TrimSpace(os.Getenv("TECHSTACK_REAUTH_SECRET")); secret != "" {
+	if secret := strings.TrimSpace(os.Getenv("HOMELAB_REAUTH_SECRET")); secret != "" {
 		return secret
 	}
 	return strings.TrimSpace(os.Getenv("EDGE_AUTH_SECRET"))
@@ -708,7 +708,7 @@ func (h walletRouteHandlers) appendWalletRevealAudit(e *httpx.Event, itemID, own
 	if h.ast == nil || e == nil || e.Request == nil {
 		return errors.New("wallet activity store is not configured")
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.wallet.audit")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.wallet.audit")
 	if tenantErr != nil {
 		return tenantErr
 	}

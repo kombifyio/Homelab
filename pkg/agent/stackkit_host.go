@@ -8,9 +8,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	agentpb "github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	agentpb "github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // minHostMaintenanceStackKitsVersion is the first StackKits release that
@@ -51,7 +51,7 @@ func stackKitHostArgs(command *agentpb.StackKitCommand) ([]string, error) {
 		if err := stackkitcommand.ValidateCommand(command); err != nil {
 			return nil, err
 		}
-		// Advanced mode: a Techstack-managed host. Every argument is either a
+		// Advanced mode: a Homelab-managed host. Every argument is either a
 		// constant or a control id of the closed evidence vocabulary.
 		args := []string{"host", "security", "repair", "--apply", "--mode", "advanced", "--json", "--no-record"}
 		if workspace := HostSecurityWorkspace(); workspace != "" {
@@ -67,9 +67,9 @@ func stackKitHostArgs(command *agentpb.StackKitCommand) ([]string, error) {
 }
 
 // hostSecurityWorkspaceEnv overrides the node's StackKits workspace.
-const hostSecurityWorkspaceEnv = "TECHSTACK_STACKKIT_WORKSPACE"
+const hostSecurityWorkspaceEnv = "HOMELAB_STACKKIT_WORKSPACE"
 
-// defaultHostSecurityWorkspace is where a Techstack-managed node keeps its
+// defaultHostSecurityWorkspace is where a Homelab-managed node keeps its
 // StackKits workspace; the kit it holds decides which site expectations apply.
 const defaultHostSecurityWorkspace = "/opt/stackkit"
 
@@ -99,7 +99,7 @@ func HostSecurityWorkspace() string {
 // StackKits release ships the host commands. The installer's
 // techstack-agent.service runs the HTTPS agent as root with
 // NoNewPrivileges=no; the hardened packaging/techstack-agent.service runs as
-// User=techstack with NoNewPrivileges=yes and therefore never advertises it.
+// User=homelab with NoNewPrivileges=yes and therefore never advertises it.
 func (executor *StackKitExecutor) HostMaintenanceCapabilities() []string {
 	// The Guard host operations run in the Guard itself and need no release.
 	capabilities := hostOperationCapabilities()

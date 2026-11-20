@@ -1,11 +1,11 @@
-# Contributing to kombify Techstack Open Core
+# Contributing to kombify Homelab Runtime Open Core
 
 Thanks for helping. This page says how a contribution reaches a release and
 what to expect from us.
 
 ## How this repository works
 
-`kombifyio/TechStack` is the public release mirror of kombify Techstack Open Core. Its source of
+`kombifyio/Homelab` is the public release mirror of kombify Homelab Runtime Open Core. Its source of
 truth is a private repository, and each release replaces the tree here with a
 curated export. Your pull request is still the way in:
 
@@ -21,7 +21,7 @@ If we do not take it, we say why on the pull request.
 ## Before you start
 
 - **Fixes:** open an issue first, or link one.
-- **New features:** start with an idea in [Discussions](https://github.com/kombifyio/TechStack/discussions) so
+- **New features:** start with an idea in [Discussions](https://github.com/kombifyio/Homelab/discussions) so
   we can say whether it fits before you spend time.
 - **Small changes** (typos, docs): open a pull request directly.
 
@@ -62,7 +62,7 @@ These are targets, not contractual promises.
 
 ## Local development
 
-Techstack Open Core is a Go control plane with a SvelteKit operator UI and a
+Homelab Runtime Open Core is a Go control plane with a SvelteKit operator UI and a
 Windows local client. You need Go (version in `go.mod`), Node.js 24, and pnpm
 11. No account, private registry, or hosted kombify service is required.
 
@@ -74,7 +74,7 @@ PUBLIC_KOMBIFY_EDITION=selfhost-oss pnpm build
 ```
 
 The container image builds from the repository root with
-`docker build -t techstack:selfhost .`; `deploy/selfhosted/` holds the Compose
+`docker build -t homelab:selfhost .`; `deploy/selfhosted/` holds the Compose
 setup and its `.env.example`.
 
 ### Bundled third-party source
@@ -90,7 +90,7 @@ Change them upstream, not here.
 
 ## Reporting
 
-- Bugs: the [bug form](https://github.com/kombifyio/TechStack/issues/new?template=bug_report.yml) in this repository.
-- Ideas: [Discussions](https://github.com/kombifyio/TechStack/discussions).
+- Bugs: the [bug form](https://github.com/kombifyio/Homelab/issues/new?template=bug_report.yml) in this repository.
+- Ideas: [Discussions](https://github.com/kombifyio/Homelab/discussions).
 - Questions: see [SUPPORT.md](SUPPORT.md).
 - Vulnerabilities: privately, see [SECURITY.md](SECURITY.md).

@@ -19,9 +19,9 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/kombifyio/techstack/internal/gocommon/dataprofile"
+	"github.com/kombifyio/homelab/internal/gocommon/dataprofile"
 
-	"github.com/kombifyio/techstack/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
 )
 
 const (

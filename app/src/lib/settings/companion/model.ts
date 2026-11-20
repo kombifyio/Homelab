@@ -3,7 +3,7 @@
  * state: groups in a fixed order, and inside each group the snapshot's values
  * in the order the program gave them. Port of the view model of the Brand UI
  * package's `companion-settings` entry (not yet released), without its preview
- * and its page list: the page is one tab of Techstack's own settings.
+ * and its page list: the page is one tab of Homelab's own settings.
  *
  * - Not installed: only the switch; switching on installs (the adapter's
  *   `write("enabled", true)`).

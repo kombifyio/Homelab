@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/originca"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/originca"
 )
 
 const (
@@ -191,7 +191,7 @@ func ParseOriginCertificateRequest(command *agentpb.StackKitCommand, result *age
 }
 
 // ParseOriginCertificateInstall admits the node's install confirmation: the
-// hostnames and the digest must be those of the certificate Techstack sent.
+// hostnames and the digest must be those of the certificate Homelab sent.
 func ParseOriginCertificateInstall(command *agentpb.StackKitCommand, result *agentpb.StackKitResult) (OriginCertificateInstallEvidence, error) {
 	if command == nil || command.Operation != agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_ORIGIN_CERTIFICATE_INSTALL {
 		return OriginCertificateInstallEvidence{}, fmt.Errorf("StackKit origin certificate install evidence needs the install command")

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/readcoalesce"
+	"github.com/kombifyio/homelab/internal/readcoalesce"
 )
 
 // The dashboard reads GET /api/v1/stacks/{id}/identity for every stack every

@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/edgeauth"
-	"github.com/kombifyio/techstack/internal/gocommon/edgeauth/edgeauthtest"
+	"github.com/kombifyio/homelab/internal/gocommon/edgeauth"
+	"github.com/kombifyio/homelab/internal/gocommon/edgeauth/edgeauthtest"
 )
 
 func TestManagedRuntimeCapacityPolicyRejectsInvalidConstruction(t *testing.T) {
@@ -46,7 +46,7 @@ func TestSignedManagedRuntimeCapacityPolicyResolvesLimitedBudget(t *testing.T) {
 
 func TestSignedManagedRuntimeCapacityPolicyRequiresCommercialEntitlements(t *testing.T) {
 	resolver, err := NewManagedRuntimeCapacityPolicy(CapacityAuthoritySignedEdge, func(_ context.Context, entitlement string) (bool, error) {
-		return entitlement == FeatureTechStackManagedRuntime, nil
+		return entitlement == FeatureHomelabManagedRuntime, nil
 	})
 	if err != nil {
 		t.Fatalf("NewManagedRuntimeCapacityPolicy: %v", err)
@@ -198,14 +198,14 @@ func signedCapacityContext(t *testing.T, providerID string, budget json.RawMessa
 	)
 	now := time.Now().UTC().Truncate(time.Second)
 	signedPath := "/api/v1/stacks/stack-1/managed-runtimes?provider=" + providerID
-	r, err := http.NewRequest(http.MethodPost, "https://techstack.internal"+signedPath, nil)
+	r, err := http.NewRequest(http.MethodPost, "https://homelab.internal"+signedPath, nil)
 	if err != nil {
 		t.Fatalf("new capacity decision request: %v", err)
 	}
 	timestamp := strconv.FormatInt(now.Unix(), 10)
 	r.Header.Set(edgeauth.HeaderEdgeAuth, edgeauth.EdgeAuthValueJWT)
-	r.Header.Set(edgeauth.HeaderEdgeService, "techstack")
-	r.Header.Set(edgeauth.HeaderPublicPrefix, "/v1/techstack")
+	r.Header.Set(edgeauth.HeaderEdgeService, "homelab")
+	r.Header.Set(edgeauth.HeaderPublicPrefix, "/v1/homelab")
 	r.Header.Set(edgeauth.HeaderUserID, "owner-1")
 	r.Header.Set(edgeauth.HeaderOrgID, "tenant-1")
 	r.Header.Set(edgeauth.HeaderRequestID, "request-1")
@@ -221,8 +221,8 @@ func signedCapacityContext(t *testing.T, providerID string, budget json.RawMessa
 		KeyID:         "flags-primary",
 		Method:        r.Method,
 		SignedPath:    signedPath,
-		Audience:      "techstack",
-		PublicPrefix:  "/v1/techstack",
+		Audience:      "homelab",
+		PublicPrefix:  "/v1/homelab",
 		SubjectID:     "owner-1",
 		TenantID:      "tenant-1",
 		RequestID:     "request-1",
@@ -231,10 +231,10 @@ func signedCapacityContext(t *testing.T, providerID string, budget json.RawMessa
 		EdgeNonce:     "nonce-1",
 		EdgeSignature: edgeSignature,
 		Flags: map[string]bool{
-			FeatureTechStackManagedRuntime:         true,
-			FeatureTechStackManagedRuntimeCloudKit: true,
-			FeatureTechStackManagedRuntimeIONOS:    providerID == ProviderIONOS,
-			FeatureTechStackManagedRuntimeCentron:  providerID == ProviderCentron,
+			FeatureHomelabManagedRuntime:         true,
+			FeatureHomelabManagedRuntimeCloudKit: true,
+			FeatureHomelabManagedRuntimeIONOS:    providerID == ProviderIONOS,
+			FeatureHomelabManagedRuntimeCentron:  providerID == ProviderCentron,
 		},
 		Budgets: map[string]any{CapacityBudgetCloudRuntimeCredits: budget},
 	})
@@ -249,8 +249,8 @@ func signedCapacityContext(t *testing.T, providerID string, budget json.RawMessa
 	decisions, err := edgeauth.VerifyDecisionHeaders(r, edgeauth.DecisionVerifyConfig{
 		PrimarySecret:        flagsSecret,
 		PrimaryKeyID:         "flags-primary",
-		ExpectedAudience:     "techstack",
-		ExpectedPublicPrefix: "/v1/techstack",
+		ExpectedAudience:     "homelab",
+		ExpectedPublicPrefix: "/v1/homelab",
 		SignatureWindow:      5 * time.Minute,
 		Now:                  func() time.Time { return now },
 		IdentityConfig: edgeauth.Config{

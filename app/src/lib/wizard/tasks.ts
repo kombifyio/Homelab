@@ -1,5 +1,5 @@
 /**
- * kombify-TechStack Initialization Tasks (barrel)
+ * kombify-Homelab Initialization Tasks (barrel)
  *
  * This module was split into focused submodules to keep each concern small and
  * independently testable. It re-exports their public surface so existing

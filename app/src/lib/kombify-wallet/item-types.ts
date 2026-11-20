@@ -1,5 +1,5 @@
 /**
- * Wallet item types the Techstack editor creates, and how each type's form
+ * Wallet item types the Homelab editor creates, and how each type's form
  * fields become the one value the browser encrypts. An SSH certificate
  * authority is generated inside the Wallet unless the owner imports a key.
  * Other store types (parent credentials, AI credentials, OAuth connections)
@@ -345,7 +345,7 @@ export function validDescription(value: string): boolean {
  * What a server access item says about itself without being opened: the Wallet
  * list never carries values, so the item's description starts with
  * `ssh <user>@<host>[:<port>] (key|password)` when this editor created it. The
- * picker uses it to offer the items that fit a server; Techstack's backend
+ * picker uses it to offer the items that fit a server; Homelab's backend
  * stays the authority and refuses a mismatch (`wallet_item_host_mismatch`,
  * `wallet_item_credential_mismatch`).
  */

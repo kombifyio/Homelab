@@ -3,18 +3,18 @@ package cloudlogin
 import (
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/config"
+	"github.com/kombifyio/homelab/pkg/config"
 )
 
-func TestOptionsFromEnvAppliesTechStackAudience(t *testing.T) {
-	t.Setenv("TECHSTACK_PUBLIC_ORIGIN", "https://techstack.example.com/")
+func TestOptionsFromEnvAppliesHomelabAudience(t *testing.T) {
+	t.Setenv("HOMELAB_PUBLIC_ORIGIN", "https://homelab.example.com/")
 
 	opts := OptionsFromEnv(config.ModeSelfHosted)
 
 	if !opts.IsSelfHosted || opts.IsSaaS {
 		t.Fatalf("mode flags = selfHosted:%v saas:%v", opts.IsSelfHosted, opts.IsSaaS)
 	}
-	if opts.PublicOrigin != "https://techstack.example.com" {
+	if opts.PublicOrigin != "https://homelab.example.com" {
 		t.Fatalf("PublicOrigin = %q", opts.PublicOrigin)
 	}
 	if opts.ExpectedAudience != DefaultAudience {
@@ -23,7 +23,7 @@ func TestOptionsFromEnvAppliesTechStackAudience(t *testing.T) {
 }
 
 func TestOptionsFromEnvSaaSModeOverridesEnvMode(t *testing.T) {
-	t.Setenv("TECHSTACK_DEPLOYMENT_MODE", "self-hosted")
+	t.Setenv("HOMELAB_DEPLOYMENT_MODE", "self-hosted")
 
 	opts := OptionsFromEnv(config.ModeSaaS)
 

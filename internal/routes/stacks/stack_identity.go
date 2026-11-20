@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/stackidentity"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/stackidentity"
 )
 
 // The Stack Identity routes read and write the one local copy of the owner's
@@ -112,7 +112,7 @@ func (h crudRouteHandlers) ownedHomelab(e *httpx.Event, tenantID, ownerID string
 // getStackIdentity returns the homelab's Stack Identity. A homelab that still
 // carries its generated name has none yet.
 func (h crudRouteHandlers) getStackIdentity(e *httpx.Event) error {
-	tenantID, ownerID, err := h.stackIdentityScope(e, "techstack.stack_identity.read")
+	tenantID, ownerID, err := h.stackIdentityScope(e, "homelab.stack_identity.read")
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func (h crudRouteHandlers) getStackIdentity(e *httpx.Event) error {
 // when the owner names it before the first rollout, and it is marked pending
 // until kombify Cloud confirms it (when connected).
 func (h crudRouteHandlers) updateStackIdentity(e *httpx.Event) error {
-	tenantID, ownerID, err := h.stackIdentityScope(e, "techstack.stack_identity.write")
+	tenantID, ownerID, err := h.stackIdentityScope(e, "homelab.stack_identity.write")
 	if err != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func (h crudRouteHandlers) updateStackIdentity(e *httpx.Event) error {
 // the browser read through the Gateway. It adopts Cloud's record, confirms an
 // identical one, or returns the body the browser must push to Cloud.
 func (h crudRouteHandlers) syncStackIdentity(e *httpx.Event) error {
-	tenantID, ownerID, err := h.stackIdentityScope(e, "techstack.stack_identity.sync")
+	tenantID, ownerID, err := h.stackIdentityScope(e, "homelab.stack_identity.sync")
 	if err != nil {
 		return err
 	}

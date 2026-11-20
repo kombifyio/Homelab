@@ -1,4 +1,4 @@
-// Package api provides HTTP handlers and utilities for the kombifyTechstack API
+// Package api provides HTTP handlers and utilities for the kombifyHomelab API
 package api
 
 import (

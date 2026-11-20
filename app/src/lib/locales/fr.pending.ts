@@ -117,7 +117,7 @@ export const frPending: Record<string, string> = {
   "ui.serviceCards.appUpdate.rollbackFailed":
     "La mise à jour a échoué et le retour à {from} n’a pas abouti. Ouvrez les journaux ; l’application a besoin de vous.",
   "ui.serviceCards.appUpdate.refused": "Non mise à jour ({reason}).",
-  "ui.serviceCards.appUpdate.unresolved": "Techstack a perdu la réponse de la mise à jour vers {to}. Vérifiez quelle version tourne ; l’application peut avoir besoin de vous.",
+  "ui.serviceCards.appUpdate.unresolved": "Homelab Runtime a perdu la réponse de la mise à jour vers {to}. Vérifiez quelle version tourne ; l’application peut avoir besoin de vous.",
   "ui.homelab.firstServerHint": "Connectez un serveur existant ou configurez-en un nouveau. Vos serveurs apparaîtront ici.",
   "ui.homelab.installedUseCases": "Cas d’usage installés",
   "ui.homelab.transferHint": "Importez une configuration de stack ou exportez le stack sélectionné.",
@@ -335,7 +335,7 @@ export const frPending: Record<string, string> = {
     "La configuration propose une adresse uniquement lorsque la voie sélectionnée est connue.",
   "wizard.access.address.custom": "Utiliser mon propre domaine",
   "wizard.access.address.customBody":
-    "Enregistrez une demande de domaine pour ce Techstack. Cela ne modifie pas le DNS automatiquement.",
+    "Enregistrez une demande de domaine pour ce Homelab Runtime. Cela ne modifie pas le DNS automatiquement.",
   "wizard.access.address.domainLabel": "Domaine de base",
   "wizard.access.address.domainPlaceholder": "home.example.com",
   "wizard.access.address.prerequisites":
@@ -435,8 +435,8 @@ export const frPending: Record<string, string> = {
   "setupReplay.body":
     "Vérifiez comment cet appareil se connecte, puis revenez à l’introduction. Votre brouillon de paramètres reste ici.",
   "setupReplay.edition": "Édition du programme d’installation",
-  "setupReplay.localEdition": "Techstack Standalone",
-  "setupReplay.cloudEdition": "Techstack Connected",
+  "setupReplay.localEdition": "Homelab Runtime Standalone",
+  "setupReplay.cloudEdition": "Homelab Runtime Connected",
   "setupReplay.connection": "Connexion",
   "setupReplay.address": "Adresse",
   "setupReplay.browser": "Navigateur web",
@@ -700,7 +700,7 @@ export const frPending: Record<string, string> = {
     "Erreur réseau : impossible de se connecter à l’API Discovery. Le serveur est-il en cours d’exécution ?",
   "ui.api.scanPollingTimeout": "Délai d’attente du suivi de l’analyse dépassé",
   "ui.api.serverSideAPIBaseURL":
-    "L’URL de base de l’API côté serveur n’est pas configurée. Définissez TECHSTACK_API_URL (à l’exécution) ou VITE_API_URL (à la compilation).",
+    "L’URL de base de l’API côté serveur n’est pas configurée. Définissez HOMELAB_API_URL (à l’exécution) ou VITE_API_URL (à la compilation).",
   "ui.argon2.addNumber": "Ajoutez au moins un chiffre.",
   "ui.argon2.addSymbols":
     "Ajoutez des espaces ou des symboles pour rendre la phrase secrète plus difficile à deviner.",
@@ -717,16 +717,16 @@ export const frPending: Record<string, string> = {
   "ui.authCloud-link-complete.closeThisTabAndTry":
     "Fermez cet onglet et réessayez depuis l’assistant.",
   "ui.authCloud-link-complete.kombifyCloudConnected": "kombify Cloud connecté",
-  "ui.authCloud-link-complete.kombifyCloudLinkKombifyTechstack":
-    "Liaison kombify Cloud | Techstack",
+  "ui.authCloud-link-complete.kombifyCloudLinkKombifyHomelab":
+    "Liaison kombify Cloud | Homelab Runtime",
   "ui.authCloud-link-complete.thisWindowClosesAutomatically":
     "Cette fenêtre se ferme automatiquement.",
   "ui.authCloud-link-complete.youCanCloseThisTab":
     "Vous pouvez fermer cet onglet et revenir à l’assistant.",
   "ui.authSso.noSsoTokenProvided": "Aucun jeton SSO fourni",
   "ui.authSso.ssoAuthenticationFailed": "Échec de l’authentification SSO",
-  "ui.authSso.ssoAuthenticationKombifyTechstack":
-    "Authentification SSO | Techstack",
+  "ui.authSso.ssoAuthenticationKombifyHomelab":
+    "Authentification SSO | Homelab Runtime",
   "ui.authSso.unableToVerifyYourCredentials":
     "Impossible de vérifier vos identifiants",
   "ui.authSso.yourKombifyCloudSessionCould":
@@ -745,7 +745,7 @@ export const frPending: Record<string, string> = {
     "Vérification de l’état d’authentification local…",
   "ui.clientLocal.continueLocalSetup": "Continuer la configuration locale",
   "ui.clientLocal.createOrSignInAs":
-    "Créez le compte propriétaire local de ce Techstack auto-hébergé ou connectez-vous avec celui-ci. Après la configuration, l’interface opérateur s’ouvre directement.",
+    "Créez le compte propriétaire local de ce Homelab Runtime auto-hébergé ou connectez-vous avec celui-ci. Après la configuration, l’interface opérateur s’ouvre directement.",
   "ui.clientLocal.createTheFirstLocalAdmin":
     "Créez le premier administrateur local de cet appareil. Après la configuration, ce client Windows ouvre directement l’interface opérateur.",
   "ui.clientLocal.creatingLocalOwner": "Création du compte propriétaire local…",
@@ -757,25 +757,25 @@ export const frPending: Record<string, string> = {
     "Le propriétaire local a été créé, mais la connexion a échoué.",
   "ui.clientLocal.localSetupFailed": "Échec de la configuration locale.",
   "ui.clientLocal.localSignInFailed": "Échec de la connexion locale.",
-  "ui.clientLocal.localTechstackSetup": "Configuration locale de Techstack.",
-  "ui.clientLocal.localTechstackSetupKombifyTechstack":
-    "Configuration locale de Techstack | Techstack",
+  "ui.clientLocal.localHomelabSetup": "Configuration locale de Homelab.",
+  "ui.clientLocal.localHomelabSetupKombifyHomelab":
+    "Configuration locale de Homelab Runtime | Homelab Runtime",
   "ui.clientLocal.ownerName": "Nom du propriétaire : {name}",
   "ui.clientLocal.password": "Mot de passe",
   "ui.clientLocal.selfHostedLocalOwner": "Propriétaire local auto-hébergé",
   "ui.clientLocal.signInLocally": "Se connecter localement",
   "ui.clientLocal.signingIn": "Connexion en cours…",
   "ui.clientLocal.thisDeviceIsAlreadyConfigured":
-    "Cet appareil est déjà configuré. Connectez-vous avec le compte propriétaire local pour ouvrir Techstack.",
+    "Cet appareil est déjà configuré. Connectez-vous avec le compte propriétaire local pour ouvrir Homelab.",
   "ui.clientOnboarding.connectAnExistingSelfHosted":
     "Connecter un serveur auto-hébergé existant",
   "ui.clientOnboarding.connectServer": "Connecter un serveur",
   "ui.clientOnboarding.installLocally": "Installer localement",
   "ui.clientOnboarding.localWindowsInstallation": "Installation locale Windows",
-  "ui.clientOnboarding.noTechstackAccountRequiredTechstack":
-    "Aucun compte Techstack requis. Techstack s’exécute sur cet appareil et ouvre un canal d’inscription protégé par jeton pour votre réseau privé.",
-  "ui.clientOnboarding.setUpKombifyTechstackOn":
-    "Configurez Techstack sur cet appareil Windows.",
+  "ui.clientOnboarding.noHomelabAccountRequiredHomelab":
+    "Aucun compte Homelab Runtime requis. Homelab Runtime s’exécute sur cet appareil et ouvre un canal d’inscription protégé par jeton pour votre réseau privé.",
+  "ui.clientOnboarding.setUpKombifyHomelabOn":
+    "Configurez Homelab Runtime sur cet appareil Windows.",
   "ui.clientOnboarding.signInWithKombifyCloud":
     "Se connecter avec kombify Cloud",
   "ui.clientOnboarding.signInWithYourKombify":
@@ -784,12 +784,12 @@ export const frPending: Record<string, string> = {
   "ui.clientOnboarding.thePrivateNetworkEnrollmentChannel":
     "Le canal d’inscription du réseau privé n’a pas pu être activé.",
   "ui.clientOnboarding.thisClientIsTheLocal":
-    "Ce client est le point d’entrée local sur ordinateur pour orchestrer vos propres serveurs et StackKits. Le parcours par défaut installe Techstack localement sur cet appareil.",
+    "Ce client est le point d’entrée local sur ordinateur pour orchestrer vos propres serveurs et StackKits. Le parcours par défaut installe Homelab Runtime localement sur cet appareil.",
   "ui.clientOnboarding.useLocally": "Utiliser localement",
   "ui.clientOnboarding.useYourOwnSelfHosted":
     "Utiliser plutôt votre propre serveur auto-hébergé",
-  "ui.clientOnboarding.windowsClientOnboardingKombifyTechstack":
-    "Configuration du client Windows | Techstack",
+  "ui.clientOnboarding.windowsClientOnboardingKombifyHomelab":
+    "Configuration du client Windows | Homelab Runtime",
   "ui.cockpitSnapshot.monitoringCockpitCouldNotBe":
     "Le tableau de surveillance n’a pas pu être actualisé.",
   "ui.common.copiedCheck": "✓ Copié",
@@ -828,7 +828,7 @@ export const frPending: Record<string, string> = {
     "Une erreur inattendue s’est produite. Réessayez. Si le problème persiste, contactez l’assistance et transmettez-lui les détails techniques.",
   "ui.configurationFlow.authenticationRequired": "Authentification requise",
   "ui.configurationFlow.cannotConnectToBackend":
-    "Impossible de joindre Techstack",
+    "Impossible de joindre Homelab Runtime",
   "ui.configurationFlow.deploymentFailed": "Votre Homelab n’a pas pu être créé",
   "ui.configurationFlow.managedServerIsNotActive":
     "Le serveur géré n’est pas actif",
@@ -853,7 +853,7 @@ export const frPending: Record<string, string> = {
     "Connectez-vous pour créer votre Homelab.",
   "ui.configurationFlow.youMustBeLoggedIn2":
     "Vous devez être connecté pour créer votre Homelab. Connectez-vous d’abord.",
-  "ui.connectDevices.techstackClient": "Client Techstack",
+  "ui.connectDevices.homelabClient": "Client Homelab Runtime",
   "ui.creationCompletion.ownerSeedFor":
     "Votre compte propriétaire est préparé pour {email}.",
   "ui.creationController.theAdditionalNode": "Le serveur supplémentaire",
@@ -1031,9 +1031,9 @@ export const frPending: Record<string, string> = {
   "ui.homelabDashboardPage.bothServiceSourcesReportedAn":
     "Les deux sources de services ont signalé un inventaire vide : le manifeste StackKit ne contenait aucun service et la découverte par l’agent n’a trouvé aucun conteneur ou unité en cours d’exécution.",
   "ui.homelabDashboardPage.confirmThatTheProviderResource":
-    "Confirmez que la ressource du fournisseur a déjà été supprimée. Techstack archivera uniquement son enregistrement de responsabilité périmé et ne supprimera aucune ressource chez le fournisseur.",
-  "ui.homelabDashboardPage.custodyRecordUnchangedTheTechstack":
-    "Enregistrement de responsabilité inchangé : la passerelle Techstack n’a pas pu joindre le serveur. Réessayez pour cet enregistrement précis lorsque le service sera disponible.",
+    "Confirmez que la ressource du fournisseur a déjà été supprimée. Homelab Runtime archivera uniquement son enregistrement de responsabilité périmé et ne supprimera aucune ressource chez le fournisseur.",
+  "ui.homelabDashboardPage.custodyRecordUnchangedTheHomelab":
+    "Enregistrement de responsabilité inchangé : la passerelle Homelab Runtime n’a pas pu joindre le serveur. Réessayez pour cet enregistrement précis lorsque le service sera disponible.",
   "ui.homelabDashboardPage.custodyResolutionFailed":
     "Échec de la résolution de responsabilité",
   "ui.homelabDashboardPage.decommissionFailed": "Échec de la suppression",
@@ -1202,9 +1202,9 @@ export const frPending: Record<string, string> = {
   "ui.importExportModal.importing": "Importation…",
   "ui.importExportModal.keepThisPasswordSafeWithout":
     "Conservez ce mot de passe en lieu sûr ! Sans lui, vous ne pourrez pas restaurer vos identifiants.",
-  "ui.importExportModal.kombifyTechstackJson": "JSON kombify-Techstack",
-  "ui.importExportModal.kombifyTechstackWalletExportJson":
-    "Exportation du Wallet kombify-Techstack (.json)",
+  "ui.importExportModal.kombifyHomelabJson": "JSON kombify-Homelab",
+  "ui.importExportModal.kombifyHomelabWalletExportJson":
+    "Exportation du Wallet kombify-Homelab (.json)",
   "ui.importExportModal.min8Characters": "8 caractères min.",
   "ui.importExportModal.nativeFormatWithEncryptionSupport":
     "Format natif avec prise en charge du chiffrement. Idéal pour la sauvegarde et la restauration.",
@@ -1272,12 +1272,12 @@ export const frPending: Record<string, string> = {
   "ui.login.revealing": "Affichage…",
   "ui.login.signInAsEmergencyAdmin":
     "Se connecter en tant qu’administrateur d’urgence",
-  "ui.login.signInKombifyTechstack": "Connexion | Techstack",
+  "ui.login.signInKombifyHomelab": "Connexion | Homelab Runtime",
   "ui.login.signInWithKombifyCloud": "Connectez-vous avec kombify Cloud.",
   "ui.login.signInWithTheLocal":
-    "Connectez-vous avec le compte propriétaire local de ce Techstack.",
-  "ui.login.techstackReconnectsThroughTheKombify":
-    "Techstack se reconnecte par la page kombify Cloud qui contient cette vue. Il n’ouvrira pas une seconde page de connexion dans ce cadre.",
+    "Connectez-vous avec le compte propriétaire local de ce Homelab.",
+  "ui.login.homelabReconnectsThroughTheKombify":
+    "Homelab Runtime se reconnecte par la page kombify Cloud qui contient cette vue. Il n’ouvrira pas une seconde page de connexion dans ce cadre.",
   "ui.login.theBootstrapPasswordHasExpired":
     "Le mot de passe d’amorçage a expiré. Redémarrez le serveur pour en générer un nouveau.",
   "ui.login.tooManyLoginAttemptsPlease":
@@ -1287,7 +1287,7 @@ export const frPending: Record<string, string> = {
     "Utiliser le mot de passe d’urgence enregistré",
   "ui.login.youHaveBeenSignedOut": "Vous avez été déconnecté.",
   "ui.loginExperience.kombifyCloudSignInCompleted":
-    "La connexion à kombify Cloud a réussi, mais Techstack n’a pas pu créer de session de navigateur. Réessayez ou contactez l’assistance.",
+    "La connexion à kombify Cloud a réussi, mais Homelab Runtime n’a pas pu créer de session de navigateur. Réessayez ou contactez l’assistance.",
   "ui.managed.sizeGB": "{size} Go",
   "ui.managed.sizeGiB": "{size} Gio",
   "ui.managedCreationFlow.addNode": "Ajouter un Node",
@@ -1306,7 +1306,7 @@ export const frPending: Record<string, string> = {
   "ui.managedCreationFlow.workerOrStorageForThis":
     "Worker ou stockage pour ce StackKit",
   "ui.managedRuntimeRecreatePanel.thisProvisionsAndBillsA":
-    "Cette action provisionne et facture une nouvelle génération de serveur géré. Techstack rétablira l’inscription, les points d’accès, les preuves Guard et le déploiement StackKit par le parcours de création normal.",
+    "Cette action provisionne et facture une nouvelle génération de serveur géré. Homelab Runtime rétablira l’inscription, les points d’accès, les preuves Guard et le déploiement StackKit par le parcours de création normal.",
   "ui.monitoring.acrossEpisodes.one": "sur {count} épisode",
   "ui.monitoring.acrossEpisodes.other": "sur {count} épisodes",
   "ui.monitoring.availabilityHistoryIsUnavailableOn":
@@ -1522,7 +1522,7 @@ export const frPending: Record<string, string> = {
   "ui.peoplePanel.noHouseholdMembersYetInvite":
     "Aucun membre du foyer pour le moment. Invitez-les depuis la configuration de l’identité du Homelab.",
   "ui.peoplePanel.noKombifyClientIsLinked":
-    "Aucun client kombify n’est encore lié. Installez le client Techstack, Companion ou Workbench pour le voir ici.",
+    "Aucun client kombify n’est encore lié. Installez le client Homelab Runtime, Companion ou Workbench pour le voir ici.",
   "ui.peoplePanel.nobodyInThisFilter": "Personne ne correspond à ce filtre.",
   "ui.peoplePanel.ownerDevicesCanManageThe":
     "Les appareils du propriétaire peuvent gérer le Homelab ; les membres du foyer utilisent uniquement ses applications.",
@@ -1590,7 +1590,7 @@ export const frPending: Record<string, string> = {
   "ui.providerErrors.checkTheRuntimeLogsFor":
     "Vérifiez les journaux d’exécution pour le même stack, la même tâche, location et le même fournisseur",
   "ui.providerErrors.checkTheServerLogsDocker":
-    "Vérifiez les journaux du serveur : 'docker compose logs techstack'",
+    "Vérifiez les journaux du serveur : 'docker compose logs homelab'",
   "ui.providerErrors.checkTheVMLeaseEnrollment":
     "Vérifiez les événements d’inscription de la location de VM et Sentry pour l’erreur du fournisseur",
   "ui.providerErrors.checkWhetherCentronOrIONOS":
@@ -1628,11 +1628,11 @@ export const frPending: Record<string, string> = {
   "ui.providerErrors.ifProviderSupportIsRequired":
     "Si l’assistance du fournisseur est nécessaire, indiquez le code d’erreur figurant dans les détails",
   "ui.providerErrors.ifRunningTheBinaryOutside":
-    "Si vous exécutez le binaire hors du dépôt : définissez TECHSTACK_STACKKITS_DIR sur une copie StackKits publiée",
+    "Si vous exécutez le binaire hors du dépôt : définissez HOMELAB_STACKKITS_DIR sur une copie StackKits publiée",
   "ui.providerErrors.ifThisIsANew":
     "S’il s’agit d’un nouveau Homelab, créez un kit au lieu d’ajouter un Node",
   "ui.providerErrors.ifThisIsANew2":
-    "S’il s’agit d’un nouveau déploiement, relancez l’assistant pour que Techstack puisse produire une spécification stackkit/v2alpha1",
+    "S’il s’agit d’un nouveau déploiement, relancez l’assistant pour que Homelab Runtime puisse produire une spécification stackkit/v2alpha1",
   "ui.providerErrors.joinRequiresAnArchitectureV2":
     "la jonction nécessite une architecture v2",
   "ui.providerErrors.joiningASecondController":
@@ -1642,8 +1642,8 @@ export const frPending: Record<string, string> = {
     "échec de l’inscription kombify.me",
   "ui.providerErrors.makeSureAStackKitWas":
     "Vérifiez qu’un StackKit a été sélectionné ou détecté",
-  "ui.providerErrors.makeSureTheKombifyTechstack":
-    "Vérifiez que le serveur Techstack est en cours d’exécution",
+  "ui.providerErrors.makeSureTheKombifyHomelab":
+    "Vérifiez que le serveur Homelab Runtime est en cours d’exécution",
   "ui.providerErrors.managedRuntimeCouldNotBe":
     "L’environnement d’exécution géré n’a pas pu être préparé",
   "ui.providerErrors.managedRuntimeCouldNotBe2":
@@ -1686,7 +1686,7 @@ export const frPending: Record<string, string> = {
   "ui.providerErrors.retryTheRolloutOnlyAfter":
     "Réessayez le déploiement uniquement lorsque SSH, Docker et l’action d’exécution StackKits sont stables sur le serveur cible",
   "ui.providerErrors.reviewTheLogsWithDocker":
-    "Consultez les journaux avec 'docker compose logs techstack'",
+    "Consultez les journaux avec 'docker compose logs homelab'",
   "ui.providerErrors.reviewTheServerLogs": "Consultez les journaux du serveur",
   "ui.providerErrors.runtimeActionStackkitRollout":
     "action d’exécution stackkit_rollout",
@@ -1737,8 +1737,8 @@ export const frPending: Record<string, string> = {
     "La configuration n’a pas pu être enregistrée dans la base de données.",
   "ui.providerErrors.theConfigurationCouldNotBe2":
     "La configuration n’a pas pu être transformée en une spécification de déploiement valide.",
-  "ui.providerErrors.theKombifyTechstackServerCould":
-    "Le serveur Techstack n’a pas pu être joint.",
+  "ui.providerErrors.theKombifyHomelabServerCould":
+    "Le serveur Homelab Runtime n’a pas pu être joint.",
   "ui.providerErrors.theManagedVMWasPrepared":
     "La VM gérée a été préparée, mais StackKits n’a pas pu générer les artefacts de déploiement ou les données de routage kombify.me.",
   "ui.providerErrors.theRolloutDidNotReturn":
@@ -1747,10 +1747,10 @@ export const frPending: Record<string, string> = {
     "Les services sélectionnés ont des exigences incompatibles.",
   "ui.providerErrors.theSubmittedConfigurationContainsInvalid":
     "La configuration soumise contient des valeurs non valides ou manquantes.",
-  "ui.providerErrors.theTeardownStoppedBecauseTechstack":
-    "La suppression s’est arrêtée car Techstack n’a pas pu associer la demande à une location fournisseur faisant autorité. Rien n’a été supprimé de force ; des ressources peuvent donc encore exister chez le fournisseur.",
+  "ui.providerErrors.theTeardownStoppedBecauseHomelab":
+    "La suppression s’est arrêtée car Homelab Runtime n’a pas pu associer la demande à une location fournisseur faisant autorité. Rien n’a été supprimé de force ; des ressources peuvent donc encore exister chez le fournisseur.",
   "ui.providerErrors.theVMIsReachableBut":
-    "La VM est accessible, mais Techstack n’a pas pu préparer Docker ou la configuration de base de manière fiable sur le serveur d’exécution géré.",
+    "La VM est accessible, mais Homelab Runtime n’a pas pu préparer Docker ou la configuration de base de manière fiable sur le serveur d’exécution géré.",
   "ui.providerErrors.theVMLeaseHasNot":
     "La location de VM n’a signalé ni hôte SSH ni IP publique. La création s’est arrêtée pour éviter que l’opération reste indéfiniment en cours de provisionnement.",
   "ui.providerErrors.theVMWasPreparedBut":
@@ -1765,8 +1765,8 @@ export const frPending: Record<string, string> = {
     "trop d’opérations de création et de suppression récentes",
   "ui.providerErrors.tooManyRecentCreateDelete":
     "trop d’opérations de création/suppression récentes",
-  "ui.providerErrors.tryRestartingTheKombifyTechstack":
-    "Essayez de redémarrer le serveur kombify-Techstack",
+  "ui.providerErrors.tryRestartingTheKombifyHomelab":
+    "Essayez de redémarrer le serveur kombify-Homelab",
   "ui.providerErrors.trySelectingFewerServices":
     "Essayez de sélectionner moins de services",
   "ui.providerErrors.unexpectedError": "Erreur inattendue",
@@ -1820,11 +1820,11 @@ export const frPending: Record<string, string> = {
   "ui.requirements.hybridSetupCloudAndLocal":
     "Configuration hybride : les serveurs cloud et locaux sont connectés",
   "ui.requirements.linuxRecommendedInstallsThePersistent":
-    "Linux (recommandé) — installe le Guard sortant persistant via l’URL Core/API (/install.sh). Si vous l’exécutez sur un autre hôte ou une autre VM, remplacez localhost par l’IP ou le domaine accessible de votre serveur kombify-Techstack.",
+    "Linux (recommandé) — installe le Guard sortant persistant via l’URL Core/API (/install.sh). Si vous l’exécutez sur un autre hôte ou une autre VM, remplacez localhost par l’IP ou le domaine accessible de votre serveur kombify-Homelab.",
   "ui.requirements.manualInstallationAfterBinaryDownload":
     "Installation manuelle (après téléchargement du binaire)",
-  "ui.requirements.techstackPreparesTheVMThen":
-    "Techstack prépare la VM, puis poursuit l’installation StackKits standard.",
+  "ui.requirements.homelabPreparesTheVMThen":
+    "Homelab Runtime prépare la VM, puis poursuit l’installation StackKits standard.",
   "ui.requirements.theInstallationCommandRunsOn":
     "La commande d’installation s’exécute sur votre propre serveur ou appareil",
   "ui.requirements.ubuntuGuestOnYourProxmox":
@@ -1914,9 +1914,9 @@ export const frPending: Record<string, string> = {
     "Confirmer la suppression chez le fournisseur pour {name}",
   "ui.serverDetail.connectionState": "Connexion au serveur : {state}",
   "ui.serverDetail.decommissionIntro":
-    "Demander la suppression contrôlée de {slot}. Techstack conserve l’enregistrement de responsabilité du fournisseur jusqu’à la vérification de son absence. Cette action n’est volontairement disponible qu’ici.",
+    "Demander la suppression contrôlée de {slot}. Homelab Runtime conserve l’enregistrement de responsabilité du fournisseur jusqu’à la vérification de son absence. Cette action n’est volontairement disponible qu’ici.",
   "ui.serverDetail.detachIntro":
-    "Révoquer l’agent Guard exact de {slot} et retirer cette liaison de l’inventaire actuel. Techstack conserve le reçu d’audit final et n’effectue aucun appel à l’API du fournisseur.",
+    "Révoquer l’agent Guard exact de {slot} et retirer cette liaison de l’inventaire actuel. Homelab Runtime conserve le reçu d’audit final et n’effectue aucun appel à l’API du fournisseur.",
   "ui.serverDetail.evidence": "Éléments de preuve : {sources}",
   "ui.serverDetail.healthSource":
     "Source : {source}. Serveur de surveillance : {backend}.",
@@ -1975,7 +1975,7 @@ export const frPending: Record<string, string> = {
   "ui.stepUp.checking": "Vérification…",
   "ui.stepUp.confirm": "Confirmer la connexion",
   "ui.stepUp.doneBody":
-    "Vous pouvez fermer cette fenêtre et revenir à Techstack.",
+    "Vous pouvez fermer cette fenêtre et revenir à Homelab.",
   "ui.stepUp.doneTitle": "Connexion confirmée",
   "ui.stepUp.notConfirmed":
     "La confirmation n’est pas encore arrivée. Terminez-la dans l’autre fenêtre ou réessayez.",
@@ -2279,7 +2279,7 @@ export const frPending: Record<string, string> = {
   "ui.settings.deletionFailed": "Échec de la suppression",
   "ui.settings.removeWithoutServer": "Le serveur a disparu, le retirer",
   "ui.settings.serverGoneBody":
-    "{servers} ne transmet plus son état depuis plusieurs minutes. Si vous l’avez supprimé, confirmez ci-dessous : Techstack met fin à son accès et retire le stack sans lui.",
+    "{servers} ne transmet plus son état depuis plusieurs minutes. Si vous l’avez supprimé, confirmez ci-dessous : Homelab Runtime met fin à son accès et retire le stack sans lui.",
   "ui.settings.serverGoneTitle": "Son serveur ne répond pas",
   "ui.settings.failedToLoadDeployments": "Impossible de charger les Homelabs",
   "ui.settings.failedToLoadHomelabIdentity":
@@ -2398,8 +2398,8 @@ export const frPending: Record<string, string> = {
   "ui.stackImportExportModal.whatWillBeExported": "Que sera-t-il exporté ?",
   "ui.stackImportExportModal.youWillBeRedirectedTo":
     "Vous allez être redirigé vers la page de configuration dans un instant.",
-  "ui.stacksCreating.creatingStackkitDeploymentKombifyTechstack":
-    "Création de votre Homelab | Techstack",
+  "ui.stacksCreating.creatingStackkitDeploymentKombifyHomelab":
+    "Création de votre Homelab | Homelab Runtime",
   "ui.stacksCreating.leanBackBody":
     "Vous avez fait votre part. Nous configurons tout pour vous en ce moment ; une belle expérience vous attend.",
   "ui.stacksCreating.leanBackTitle":
@@ -2410,7 +2410,7 @@ export const frPending: Record<string, string> = {
   "ui.stacksCreating.tips.codeEyebrow": "Infrastructure sous forme de code",
   "ui.stacksCreating.tips.codeTitle": "Votre stack écrit en code",
   "ui.stacksCreating.tips.growBody":
-    "Ajoutez un autre serveur à ce stack quand vous en avez besoin. Techstack coordonne vos serveurs et chacun continue à fonctionner de manière autonome.",
+    "Ajoutez un autre serveur à ce stack quand vous en avez besoin. Homelab Runtime coordonne vos serveurs et chacun continue à fonctionner de manière autonome.",
   "ui.stacksCreating.tips.growEyebrow": "Évolutivité",
   "ui.stacksCreating.tips.growTitle": "De la place pour évoluer",
   "ui.stacksCreating.tips.label": "Bon à savoir",
@@ -2533,7 +2533,7 @@ export const frPending: Record<string, string> = {
   "ui.stacksCreatingCreation-controller.thePreviouslyVerifiedGuardHeartbeat":
     "Votre serveur a cessé de se signaler. En attente de son prochain contact.",
   "ui.stacksCreatingCreation-controller.theProvisioningJobHasBeen":
-    "La tâche de provisionnement est en attente depuis plus de 2 minutes sans progression. Cela signifie généralement que l’orchestrateur n’est pas en cours d’exécution ou a planté.\n\nVérifiez les journaux du serveur : docker compose logs techstack\nEssayez de redémarrer : docker compose restart techstack",
+    "La tâche de provisionnement est en attente depuis plus de 2 minutes sans progression. Cela signifie généralement que l’orchestrateur n’est pas en cours d’exécution ou a planté.\n\nVérifiez les journaux du serveur : docker compose logs homelab\nEssayez de redémarrer : docker compose restart homelab",
   "ui.stacksCreatingCreation-controller.theReservedNodeCouldNot":
     "Le serveur réservé n’a pas pu être vérifié. Réessayez l’inscription SSH avec la connexion enregistrée lorsque l’inventaire des serveurs sera de nouveau disponible.",
   "ui.stacksCreatingCreation-controller.thisPageRequiresAJob":
@@ -2573,7 +2573,7 @@ export const frPending: Record<string, string> = {
   "ui.stacksCreatingCreationCompletion.rolloutComplete":
     "Configuration terminée",
   "ui.stacksCreatingCreationCompletion.selfHostedRollout": "Auto-hébergé",
-  "ui.stacksCreatingCreationCompletion.techstackNowSeesThisNode":
+  "ui.stacksCreatingCreationCompletion.homelabNowSeesThisNode":
     "Votre serveur s’est signalé et est en bon état. Il est prêt pour l’étape suivante.",
   "ui.stacksCreatingCreationCompletion.theFirstLoginGatewayAnd":
     "Vos premières informations de connexion et de récupération arrivent une fois votre Homelab configuré (« Vérifier et créer »).",
@@ -2645,8 +2645,8 @@ export const frPending: Record<string, string> = {
   "ui.stacksCreatingCreationInstallCommand.copy": "Copier",
   "ui.stacksCreatingCreationInstallCommand.copyInstallationCommandToClipboard":
     "Copier la commande d’installation dans le presse-papiers",
-  "ui.stacksCreatingCreationInstallCommand.kombifyTechstackServerUrlReachable":
-    "Adresse Techstack (accessible depuis votre serveur) :",
+  "ui.stacksCreatingCreationInstallCommand.kombifyHomelabServerUrlReachable":
+    "Adresse Homelab Runtime (accessible depuis votre serveur) :",
   "ui.stacksCreatingCreationInstallCommand.openOneHourSimulateDemo":
     "Ouvrir l’aperçu de démonstration Simulate d’une heure",
   "ui.stacksCreatingCreationInstallCommand.previewLifetimeIsLimitedTo":
@@ -2748,7 +2748,7 @@ export const frPending: Record<string, string> = {
   "ui.stacksCreatingCreationRunStatus.awaitingHeartbeat":
     "En attente de votre serveur",
   "ui.stacksCreatingCreationRunStatus.checkSshHostCredentialsAnd":
-    "Vérifiez l’hôte SSH, les identifiants et l’accès du serveur à Techstack.",
+    "Vérifiez l’hôte SSH, les identifiants et l’accès du serveur à Homelab.",
   "ui.stacksCreatingCreationRunStatus.connectMyNode": "Connecter mon serveur",
   "ui.stacksCreatingCreationRunStatus.connectingToYourNodeOver":
     "Connexion à votre serveur par SSH…",
@@ -2801,18 +2801,18 @@ export const frPending: Record<string, string> = {
     "Nouvelle tentative de connexion SSH…",
   "ui.stacksCreatingCreationRunStatus.runThisOneLinerOn":
     "Exécutez cette commande sur le serveur supplémentaire. Il apparaît comme connecté dès qu’il s’est signalé et est en bon état.",
-  "ui.stacksCreatingCreationRunStatus.techstackUrlReachableFromThe":
-    "URL Techstack accessible depuis le serveur",
+  "ui.stacksCreatingCreationRunStatus.homelabUrlReachableFromThe":
+    "URL Homelab Runtime accessible depuis le serveur",
   "ui.stacksCreatingCreationRunStatus.theAdditionalManagedNodeIs":
     "Le serveur géré supplémentaire est ajouté à ce Homelab et apparaîtra dans le tableau de bord des serveurs dès que l’inscription transmettra son état.",
   "ui.stacksCreatingCreationRunStatus.theAdditionalNodeIsRegistered":
     "Le serveur supplémentaire est enregistré dans ce Homelab et peut ensuite recevoir des services de ce déploiement StackKit.",
   "ui.stacksCreatingCreationRunStatus.theManagedRuntimeIsNot":
-    "L’environnement d’exécution géré n’est pas encore totalement accessible pour le déploiement. Le signal attendu peut être son adresse, ses identifiants ou son inscription. Techstack a planifié la prochaine vérification.",
+    "L’environnement d’exécution géré n’est pas encore totalement accessible pour le déploiement. Le signal attendu peut être son adresse, ses identifiants ou son inscription. Homelab Runtime a planifié la prochaine vérification.",
   "ui.stacksCreatingCreationRunStatus.theProviderOperationHasNot":
-    "L’opération du fournisseur n’a pas encore transmis l’environnement d’exécution géré existant au déploiement StackKit. Techstack a planifié la prochaine vérification de la location exacte.",
+    "L’opération du fournisseur n’a pas encore transmis l’environnement d’exécution géré existant au déploiement StackKit. Homelab Runtime a planifié la prochaine vérification de la location exacte.",
   "ui.stacksCreatingCreationRunStatus.theScheduledCheckIsOverdue":
-    "La vérification planifiée est en retard. Techstack valide ensemble le stack, la tâche source et la location exacte, puis poursuit uniquement le déploiement sur la VM existante.",
+    "La vérification planifiée est en retard. Homelab Runtime valide ensemble le stack, la tâche source et la location exacte, puis poursuit uniquement le déploiement sur la VM existante.",
   "ui.stacksCreatingCreationRunStatus.theSshDetailsArePlanning":
     "Les détails SSH sont des métadonnées de planification. La connexion Guard actuelle utilise HTTPS sortant et démarre avec la commande ci-dessous.",
   "ui.stacksCreatingCreationRunStatus.theseAccessPathsAreEnabled":
@@ -2870,7 +2870,7 @@ export const frPending: Record<string, string> = {
   "ui.stacksId.noStackkitDeploymentIdProvided":
     "Aucun identifiant Homelab fourni",
   "ui.stacksId.offeringSpec": "{vcpus} vCPU · {memory} Go de RAM",
-  "ui.stacksId.pageTitle": "{name} | Techstack",
+  "ui.stacksId.pageTitle": "{name} | Homelab Runtime",
   "ui.stacksId.query": "Requête",
   "ui.stacksId.runtime": "Exécution",
   "ui.stacksId.series": "Séries",
@@ -2886,8 +2886,8 @@ export const frPending: Record<string, string> = {
   "ui.stacksId.stop": "Arrêter",
   "ui.stacksId.stopManagedServer": "Arrêter le serveur géré ?",
   "ui.stacksId.storedCredentials": "Identifiants enregistrés",
-  "ui.stacksId.techstackWillBeginProviderCleanup":
-    "Techstack supprimera ce serveur géré chez le fournisseur, y compris ses données.",
+  "ui.stacksId.homelabWillBeginProviderCleanup":
+    "Homelab Runtime supprimera ce serveur géré chez le fournisseur, y compris ses données.",
   "ui.stacksId.theFollowingServicesNeedCredentials":
     "Les services suivants nécessitent la configuration d’identifiants :",
   "ui.stacksId.theServerShutsDownAnd":
@@ -2895,8 +2895,8 @@ export const frPending: Record<string, string> = {
   "ui.stacksId.thisPermanentlyRemovesTheSelected":
     "Cette action supprime définitivement l’identifiant sélectionné.",
   "ui.stacksId.username": "Nom d’utilisateur",
-  "ui.stacksIdServersNew.addNodeKombifyTechstack":
-    "Ajouter un serveur | Techstack",
+  "ui.stacksIdServersNew.addNodeKombifyHomelab":
+    "Ajouter un serveur | Homelab Runtime",
   "ui.stacksIdServersServerId.activityHistory": "Historique des activités",
   "ui.stacksIdServersServerId.addressesDomains": "Adresses et domaines",
   "ui.stacksIdServersServerId.agentId": "Identifiant de l’agent",
@@ -2988,8 +2988,8 @@ export const frPending: Record<string, string> = {
     "Échec du détachement du serveur.",
   "ui.stacksIdServersServerId.serverDetailSections":
     "Sections des détails du serveur",
-  "ui.stacksIdServersServerId.serverDetailsKombifyTechstack":
-    "Détails du serveur | Techstack",
+  "ui.stacksIdServersServerId.serverDetailsKombifyHomelab":
+    "Détails du serveur | Homelab Runtime",
   "ui.stacksIdServersServerId.serverGenerationDecommissioned":
     "Génération de serveur supprimée",
   "ui.stacksIdServersServerId.serverSettings": "Paramètres du serveur",
@@ -3006,11 +3006,11 @@ export const frPending: Record<string, string> = {
   "ui.stacksIdServersServerId.thisIsConfiguredStackkitIntent":
     "Il s’agit de l’intention StackKit configurée ; Guard n’a pas encore signalé de preuve d’installation correspondante.",
   "ui.stacksIdServersServerId.thisOnlyArchivesTheStale":
-    "Cette action archive uniquement l’enregistrement de responsabilité Techstack périmé. Elle ne supprime rien chez le fournisseur.",
+    "Cette action archive uniquement l’enregistrement de responsabilité Homelab Runtime périmé. Elle ne supprime rien chez le fournisseur.",
   "ui.stacksIdServersServerId.thisServerHasNoManaged":
     "Ce serveur ne possède aucune location fournisseur gérée. Sa responsabilité enregistrée n’autorise actuellement ni la suppression d’un serveur géré ni le détachement d’un serveur personnel.",
   "ui.stacksIdServersServerId.thisServerIsALegacy":
-    "Ce serveur est un enregistrement de responsabilité ancien ou non lié. Confirmez que la ressource fournisseur a déjà été supprimée ; Techstack archivera uniquement cet enregistrement sans appeler ni supprimer de ressource chez le fournisseur.",
+    "Ce serveur est un enregistrement de responsabilité ancien ou non lié. Confirmez que la ressource fournisseur a déjà été supprimée ; Homelab Runtime archivera uniquement cet enregistrement sans appeler ni supprimer de ressource chez le fournisseur.",
   "ui.stacksIdServersServerId.thisServerIsRegisteredThrough":
     "Ce serveur est enregistré via l’inventaire des serveurs ; aucune action d’accès à l’environnement d’exécution géré ne lui est associée.",
   "ui.standardBundle.additionalComputeNodeForStackKit":
@@ -3195,7 +3195,7 @@ export const frPending: Record<string, string> = {
   "ui.taskStatus.identifyingServicesBestPractices":
     "Identification des services et des bonnes pratiques",
   "ui.taskStatus.ifAptOrUnattendedUpgrades":
-    "Si apt ou les mises à niveau automatiques bloquent l’installation des paquets, Techstack garde la VM liée visible et affiche les diagnostics collectés.",
+    "Si apt ou les mises à niveau automatiques bloquent l’installation des paquets, Homelab Runtime garde la VM liée visible et affiche les diagnostics collectés.",
   "ui.taskStatus.installingAndCheckingDocker":
     "Installation et vérification de Docker",
   "ui.taskStatus.installingOrValidatingTheDocker":
@@ -3208,9 +3208,9 @@ export const frPending: Record<string, string> = {
   "ui.taskStatus.networkSettingsAreDerivedFrom":
     "Les paramètres réseau découlent de votre mode d’accès. Le mode local utilise le réseau interne Docker ; l’accès distant ajoute le réseau maillé privé ou la voie gérée adaptée.",
   "ui.taskStatus.onceThisSucceedsTheNode":
-    "Une fois cette étape réussie, votre serveur reste visible dans Techstack même si la préparation ou le déploiement échoue ensuite.",
+    "Une fois cette étape réussie, votre serveur reste visible dans Homelab Runtime même si la préparation ou le déploiement échoue ensuite.",
   "ui.taskStatus.opentofuReadinessIsPartOf":
-    "La disponibilité d’OpenTofu fait partie du contrat de préparation de la CLI StackKits, pas d’un parcours d’amorçage séparé géré par Techstack.",
+    "La disponibilité d’OpenTofu fait partie du contrat de préparation de la CLI StackKits, pas d’un parcours d’amorçage séparé géré par Homelab.",
   "ui.taskStatus.persistingConfiguration": "Enregistrement de la configuration",
   "ui.taskStatus.persistingRolloutSpec":
     "Enregistrement de la spécification de déploiement",
@@ -3264,12 +3264,12 @@ export const frPending: Record<string, string> = {
   "ui.taskStatus.stackkitsAreCuratedInfrastructureTemplates":
     "Les StackKits sont des modèles d’infrastructure sélectionnés. Le système en choisit un qui couvre les fonctionnalités sélectionnées avec un minimum de surcharge.",
   "ui.taskStatus.startingTelemetryHandoff": "Démarrage de la surveillance",
-  "ui.taskStatus.techstackConsumesStackKitArtifactsHere":
-    "Techstack utilise ici les artefacts StackKit ; StackKits reste responsable de leur application.",
-  "ui.taskStatus.techstackRecordsTheManagedTarget":
-    "Techstack enregistre la cible gérée et prépare le transfert d’orchestration avant que StackKits ne déploie Cloud Kit.",
+  "ui.taskStatus.homelabConsumesStackKitArtifactsHere":
+    "Homelab Runtime utilise ici les artefacts StackKit ; StackKits reste responsable de leur application.",
+  "ui.taskStatus.homelabRecordsTheManagedTarget":
+    "Homelab Runtime enregistre la cible gérée et prépare le transfert d’orchestration avant que StackKits ne déploie Cloud Kit.",
   "ui.taskStatus.terramateReadinessBelongsToStackKits":
-    "La disponibilité de Terramate relève de la préparation du cycle de vie StackKits ; Techstack ne l’exige pas pour la location initiale du VPS géré.",
+    "La disponibilité de Terramate relève de la préparation du cycle de vie StackKits ; Homelab Runtime ne l’exige pas pour la location initiale du VPS géré.",
   "ui.taskStatus.theDashboardCanShowManaged":
     "Le tableau de bord peut afficher les services gérés dès que StackKits les expose, pendant que les vérifications suivantes se poursuivent.",
   "ui.taskStatus.theFirstRolloutRecordsThe":
@@ -3315,7 +3315,7 @@ export const frPending: Record<string, string> = {
     "La méthode d’authentification choisie est appliquée à tous les services. Les configurations multi-utilisateurs reçoivent automatiquement des autorisations fondées sur les groupes.",
   "ui.taskUpdates.anUnexpectedErrorOccurred":
     "Une erreur inattendue s’est produite",
-  "ui.techstackBrandLogo.kombifyTechstack": "Techstack",
+  "ui.homelabBrandLogo.kombifyHomelab": "Homelab Runtime",
   "ui.terminal.title": "Terminal · {name}",
   "ui.time.daysHours": "{days} j {hours} h",
   "ui.time.hours": "{count} h",
@@ -3379,8 +3379,8 @@ export const frPending: Record<string, string> = {
   "ui.wallet.dismiss": "Fermer",
   "ui.wallet.editItem": "Modifier {label}",
   "ui.wallet.enterNewSecretValue": "Saisir la nouvelle valeur secrète",
-  "ui.wallet.enterYourCurrentLocalTechstack":
-    "Saisissez votre mot de passe Techstack local actuel pour afficher cette entrée du Wallet.",
+  "ui.wallet.enterYourCurrentLocalHomelab":
+    "Saisissez votre mot de passe Homelab Runtime local actuel pour afficher cette entrée du Wallet.",
   "ui.wallet.expired": "Expiré",
   "ui.wallet.expiredCredentials.one": "{count} identifiant expiré",
   "ui.wallet.expiredCredentials.other": "{count} identifiants expirés",
@@ -3399,8 +3399,8 @@ export const frPending: Record<string, string> = {
     "Les utilisateurs humains, les identités administrateur et les interfaces de connexion du système constituent ici la couche d’accès opérationnelle.",
   "ui.wallet.identity": "Identité",
   "ui.wallet.importExport": "Importer / Exporter",
-  "ui.wallet.kombifyTechstackAdmin": "Administrateur kombify-Techstack",
-  "ui.wallet.kombifyTechstackDeveloper": "Développeur kombify-Techstack",
+  "ui.wallet.kombifyHomelabAdmin": "Administrateur kombify-Homelab",
+  "ui.wallet.kombifyHomelabDeveloper": "Développeur kombify-Homelab",
   "ui.wallet.launchReadyToolsAndUrl":
     "Les outils prêts à être lancés et les entrées de service associées à une URL apparaîtront ici lorsque le Wallet deviendra le point de départ central.",
   "ui.wallet.localBackendAdmin": "Administrateur du serveur local",
@@ -3587,7 +3587,7 @@ export const frPending: Record<string, string> = {
     "Mettez Guard à jour sur le serveur pour qu’il enregistre sa propre clé, puis approuvez cette clé ici.",
   "guard.fact.bound.revoked": "Ce serveur a été révoqué et n’est plus lié.",
   "guard.fact.bound.revokedNext":
-    "Associez à nouveau le serveur pour le lier à votre Techstack.",
+    "Associez à nouveau le serveur pour le lier à votre Homelab.",
   "guard.fact.bound.stale":
     "Le dernier rapport est trop ancien pour confirmer comment ce serveur prouve son identité.",
   "guard.fact.bound.unknown":
@@ -3598,7 +3598,7 @@ export const frPending: Record<string, string> = {
     "Guard a répondu à une commande sur sa connexion authentifiée.",
   "guard.fact.connected.degraded": "La connexion est dégradée.",
   "guard.fact.connected.offline":
-    "Guard ne transmet pas son état. Le serveur est hors ligne ou ne peut pas joindre Techstack.",
+    "Guard ne transmet pas son état. Le serveur est hors ligne ou ne peut pas joindre Homelab.",
   "guard.fact.connected.revoked": "La connexion a été révoquée.",
   "guard.fact.connected.stale":
     "Le dernier rapport de Guard est trop ancien pour le considérer comme connecté.",
@@ -3609,9 +3609,9 @@ export const frPending: Record<string, string> = {
   "guard.fact.connected.unknown":
     "Aucun état de connexion n’est signalé pour ce serveur.",
   "guard.fact.connected.reconnectNext":
-    "Vérifiez que le serveur est allumé et peut joindre Techstack.",
+    "Vérifiez que le serveur est allumé et peut joindre Homelab.",
   "guard.fact.connected.awaitingRoundTrip":
-    "Guard transmet son état, mais n’a pas encore répondu à une commande Techstack avec son identifiant actuel.",
+    "Guard transmet son état, mais n’a pas encore répondu à une commande Homelab Runtime avec son identifiant actuel.",
   "guard.fact.connected.roundTripStale":
     "Guard transmet son état, mais la dernière commande à laquelle il a répondu est trop ancienne ou utilisait un identifiant antérieur.",
   "guard.fact.connected.roundTripNext":
@@ -3965,7 +3965,7 @@ export const frPending: Record<string, string> = {
     "Guard enregistre un point de contrôle, exécute la mise à jour et revient en arrière en cas d’échec.",
   "guard.updates.running": "Mise à jour vers {version} : {progress} %",
   "guard.updates.started.automatic":
-    "Techstack a démarré cette mise à jour car ce serveur installe automatiquement les mises à jour.",
+    "Homelab Runtime a démarré cette mise à jour car ce serveur installe automatiquement les mises à jour.",
   "guard.updates.started.security":
     "kombify installe ce correctif de sécurité sans attendre votre approbation.",
   "guard.updates.security.badge": "Correctif de sécurité",
@@ -4447,7 +4447,7 @@ export const frPending: Record<string, string> = {
     "L’affichage d’une valeur ou la signature d’un certificat nécessite une confirmation par votre second facteur datant de moins de {minutes} minutes. Confirmez-la pour continuer.",
   "kwallet.step_up.confirm": "Confirmer avec le second facteur",
   "kwallet.step_up.unavailable":
-    "La confirmation par second facteur n’est pas possible dans cette fenêtre. Ouvrez Techstack dans son propre onglet de navigateur et réessayez.",
+    "La confirmation par second facteur n’est pas possible dans cette fenêtre. Ouvrez Homelab Runtime dans son propre onglet de navigateur et réessayez.",
   "kwallet.step_up.working": "Ouverture de la connexion…",
   "kwallet.action.delete": "Supprimer",
   "kwallet.action.delete_named": "Supprimer {name}",
@@ -4463,7 +4463,7 @@ export const frPending: Record<string, string> = {
   "kwallet.action.sign_named": "Signer un certificat avec {name}",
   "kwallet.add": "Ajouter un élément",
   "kwallet.api.wallet_create_right_missing":
-    "Techstack a besoin de votre autorisation pour enregistrer des identifiants dans votre kombify Wallet. Autorisez-le, puis réessayez.",
+    "Homelab Runtime a besoin de votre autorisation pour enregistrer des identifiants dans votre kombify Wallet. Autorisez-le, puis réessayez.",
   "kwallet.api.wallet_item_credential_mismatch":
     "Cet élément du Wallet ne contient pas l’identifiant correspondant à la méthode de connexion choisie (clé SSH ou mot de passe). Choisissez un autre élément ou changez de méthode.",
   "kwallet.api.wallet_item_host_mismatch":
@@ -4477,21 +4477,21 @@ export const frPending: Record<string, string> = {
   "kwallet.api.wallet_item_not_node_access":
     "Cet élément n’est pas un accès serveur. Choisissez un élément d’accès serveur.",
   "kwallet.api.wallet_item_required":
-    "Choisissez un élément d’accès serveur dans votre kombify Wallet. Techstack n’accepte pas les mots de passe ni les libellés de clé ici.",
+    "Choisissez un élément d’accès serveur dans votre kombify Wallet. Homelab Runtime n’accepte pas les mots de passe ni les libellés de clé ici.",
   "kwallet.api.wallet_item_unsupported":
     "Cette installation n’utilise pas le kombify Wallet ; un élément du Wallet ne peut donc pas être utilisé ici.",
   "kwallet.api.wallet_item_unusable":
     "Cet élément du Wallet a été révoqué ou supprimé et ne peut pas être utilisé. Choisissez-en un autre.",
   "kwallet.api.wallet_owner_ineligible":
-    "Votre compte ne peut pas encore utiliser le kombify Wallet avec Techstack.",
+    "Votre compte ne peut pas encore utiliser le kombify Wallet avec Homelab.",
   "kwallet.api.wallet_response_invalid":
-    "La réponse du kombify Wallet ne peut pas être utilisée par Techstack. Réessayez et signalez le problème s’il persiste.",
+    "La réponse du kombify Wallet ne peut pas être utilisée par Homelab Runtime. Réessayez et signalez le problème s’il persiste.",
   "kwallet.api.wallet_right_missing":
-    "Techstack n’est pas encore autorisé à utiliser cet élément du Wallet. Autorisez-le dans votre Wallet, puis réessayez.",
+    "Homelab Runtime n’est pas encore autorisé à utiliser cet élément du Wallet. Autorisez-le dans votre Wallet, puis réessayez.",
   "kwallet.api.wallet_right_missing_use":
-    "Techstack ne peut pas encore utiliser cet élément du Wallet. Autorisez-le, puis réessayez.",
+    "Homelab Runtime ne peut pas encore utiliser cet élément du Wallet. Autorisez-le, puis réessayez.",
   "kwallet.api.wallet_self_hosted_only":
-    "Cette action n’est disponible que sur un Techstack auto-hébergé.",
+    "Cette action n’est disponible que sur un Homelab Runtime auto-hébergé.",
   "kwallet.api.wallet_unavailable":
     "Le kombify Wallet est temporairement indisponible. Réessayez dans un instant.",
   "kwallet.auth.password": "Mot de passe",
@@ -4520,22 +4520,22 @@ export const frPending: Record<string, string> = {
   "kwallet.tag.no_policy": "Aucune politique de signature",
   "kwallet.preset.access": "Accès : connexions et accès aux serveurs",
   "kwallet.preset.access_hint":
-    "Connexions, accès aux serveurs et autorités de certification SSH : ce qui permet aux personnes et à Techstack d’accéder aux serveurs et applications de vos stacks.",
+    "Connexions, accès aux serveurs et autorités de certification SSH : ce qui permet aux personnes et à Homelab Runtime d’accéder aux serveurs et applications de vos stacks.",
   "kwallet.preset.recovery": "Récupération : secrets et configurations",
   "kwallet.preset.recovery_hint":
     "Secrets et configurations : emplacement des éléments de récupération et des identifiants d’urgence.",
   "kwallet.col.scope": "Périmètre",
   "kwallet.col.state": "État",
-  "kwallet.col.techstack": "Techstack",
+  "kwallet.col.homelab": "Homelab Runtime",
   "kwallet.col.type": "Type",
   "kwallet.col.updated": "Mis à jour",
   "kwallet.create.description":
-    "La valeur est scellée dans ce navigateur et stockée chiffrée dans le Wallet. Techstack ne la conserve pas ; seuls les accès que vous accordez peuvent l’afficher ou l’utiliser.",
+    "La valeur est scellée dans ce navigateur et stockée chiffrée dans le Wallet. Homelab Runtime ne la conserve pas ; seuls les accès que vous accordez peuvent l’afficher ou l’utiliser.",
   "kwallet.create.title": "Ajouter à votre Wallet",
   "kwallet.creator.hint":
-    "Techstack ajoute ensuite les identifiants qu’il crée pour vos serveurs, comme une clé d’accès générée. Il utilise uniquement les éléments que vous lui attribuez.",
+    "Homelab Runtime ajoute ensuite les identifiants qu’il crée pour vos serveurs, comme une clé d’accès générée. Il utilise uniquement les éléments que vous lui attribuez.",
   "kwallet.creator.label":
-    "Autoriser Techstack à enregistrer des identifiants dans votre Wallet",
+    "Autoriser Homelab Runtime à enregistrer des identifiants dans votre Wallet",
   "kwallet.delete.body":
     "La valeur et toutes ses versions sont effacées. Cette action est irréversible.",
   "kwallet.delete.confirm": "Supprimer définitivement",
@@ -4591,7 +4591,7 @@ export const frPending: Record<string, string> = {
   "kwallet.empty_body":
     "Ajoutez une clé API, une connexion, une variable, une configuration ou un accès serveur pour les conserver au même endroit.",
   "kwallet.empty_body_stack":
-    "Aucun identifiant n’est encore enregistré pour ce stack. Ajoutez-en un pour le conserver dans votre Wallet, où Techstack pourra l’utiliser pour ce stack.",
+    "Aucun identifiant n’est encore enregistré pour ce stack. Ajoutez-en un pour le conserver dans votre Wallet, où Homelab Runtime pourra l’utiliser pour ce stack.",
   "kwallet.empty_title": "Votre Wallet est vide",
   "kwallet.error.ca_key_encrypted":
     "Cette clé est protégée par une phrase secrète. Retirez d’abord la phrase secrète ou laissez le Wallet créer une nouvelle autorité.",
@@ -4635,7 +4635,7 @@ export const frPending: Record<string, string> = {
   "kwallet.field.project": "Identifiant du projet",
   "kwallet.field.public_key": "Clé publique",
   "kwallet.field.public_key_hint":
-    "La ligne OpenSSH que Techstack installe sur le serveur pour permettre à cette clé de se connecter. Une clé générée la renseigne automatiquement.",
+    "La ligne OpenSSH que Homelab Runtime installe sur le serveur pour permettre à cette clé de se connecter. Une clé générée la renseigne automatiquement.",
   "kwallet.field.public_key_optional": "Clé publique (facultatif)",
   "kwallet.field.scope": "Périmètre",
   "kwallet.field.scope_fixed": "Cet élément appartient à ce stack.",
@@ -4664,10 +4664,10 @@ export const frPending: Record<string, string> = {
   "kwallet.import.error.password":
     "Le mot de passe est incorrect ou le fichier est endommagé.",
   "kwallet.import.error.unreadable":
-    "Ce fichier n’a pas pu être lu. Utilisez une exportation Techstack (JSON ou CSV) ou une exportation JSON Bitwarden.",
+    "Ce fichier n’a pas pu être lu. Utilisez une exportation Homelab Runtime (JSON ou CSV) ou une exportation JSON Bitwarden.",
   "kwallet.import.file": "Fichier d’exportation",
   "kwallet.import.formats":
-    "Formats pris en charge : JSON Techstack (également protégé par mot de passe), CSV Techstack et JSON Bitwarden.",
+    "Formats pris en charge : JSON Homelab Runtime (également protégé par mot de passe), CSV Homelab Runtime et JSON Bitwarden.",
   "kwallet.import.no_export":
     "Votre Wallet ne peut pas être exporté en clair. Pour en extraire une valeur, affichez les éléments un par un.",
   "kwallet.import.open": "Importer",
@@ -4689,7 +4689,7 @@ export const frPending: Record<string, string> = {
   "kwallet.keygen.hint":
     "Une paire de clés Ed25519 est créée dans ce navigateur. La clé privée est enregistrée dans votre Wallet et n’est jamais envoyée ailleurs.",
   "kwallet.keygen.install_hint":
-    "Installez cette clé publique sur le serveur (dans authorized_keys) ou laissez Techstack l’installer plus tard.",
+    "Installez cette clé publique sur le serveur (dans authorized_keys) ou laissez Homelab Runtime l’installer plus tard.",
   "kwallet.keygen.open": "Générer une clé SSH",
   "kwallet.keygen.public_key": "Clé publique",
   "kwallet.lead":
@@ -4719,22 +4719,22 @@ export const frPending: Record<string, string> = {
   "kwallet.picker.open_wallet": "Ouvrir votre Wallet",
   "kwallet.picker.placeholder": "Choisir un accès serveur",
   "kwallet.picker.rebind_label": "Utiliser un autre accès serveur (facultatif)",
-  "kwallet.picker.techstack_notice":
-    "Techstack peut maintenant utiliser cet élément pour joindre votre serveur. Vous pouvez lui retirer cet accès dans votre Wallet.",
+  "kwallet.picker.homelab_notice":
+    "Homelab Runtime peut maintenant utiliser cet élément pour joindre votre serveur. Vous pouvez lui retirer cet accès dans votre Wallet.",
   "kwallet.prompt.create.allow":
-    "Autoriser Techstack à enregistrer des identifiants",
+    "Autoriser Homelab Runtime à enregistrer des identifiants",
   "kwallet.prompt.create.body":
-    "Pour cette configuration, Techstack doit enregistrer des identifiants dans votre kombify Wallet. Autorisez-le une fois, puis recommencez. Vous pouvez retirer cette autorisation à tout moment dans votre Wallet.",
+    "Pour cette configuration, Homelab Runtime doit enregistrer des identifiants dans votre kombify Wallet. Autorisez-le une fois, puis recommencez. Vous pouvez retirer cette autorisation à tout moment dans votre Wallet.",
   "kwallet.prompt.create.done":
-    "Techstack peut maintenant enregistrer des identifiants dans votre Wallet. Recommencez.",
-  "kwallet.prompt.create.title": "Techstack a besoin de votre autorisation",
+    "Homelab Runtime peut maintenant enregistrer des identifiants dans votre Wallet. Recommencez.",
+  "kwallet.prompt.create.title": "Homelab Runtime a besoin de votre autorisation",
   "kwallet.prompt.later": "Pas maintenant",
-  "kwallet.prompt.use.allow": "Autoriser Techstack à utiliser cet élément",
+  "kwallet.prompt.use.allow": "Autoriser Homelab Runtime à utiliser cet élément",
   "kwallet.prompt.use.body":
-    "Techstack doit utiliser cet élément du Wallet pour continuer. Autorisez-le, puis recommencez. Vous pouvez retirer cette autorisation à tout moment dans votre Wallet.",
+    "Homelab Runtime doit utiliser cet élément du Wallet pour continuer. Autorisez-le, puis recommencez. Vous pouvez retirer cette autorisation à tout moment dans votre Wallet.",
   "kwallet.prompt.use.done":
-    "Techstack peut maintenant utiliser cet élément. Recommencez.",
-  "kwallet.prompt.use.title": "Techstack a besoin d’accéder à cet élément",
+    "Homelab Runtime peut maintenant utiliser cet élément. Recommencez.",
+  "kwallet.prompt.use.title": "Homelab Runtime a besoin d’accéder à cet élément",
   "kwallet.retry": "Réessayer",
   "kwallet.reveal.again": "Afficher à nouveau",
   "kwallet.reveal.cleared": "La valeur a été masquée à nouveau.",
@@ -4879,17 +4879,17 @@ export const frPending: Record<string, string> = {
     "Pour une autorité Ed25519 que vous utilisez déjà. La clé est chiffrée dans ce navigateur avant son envoi.",
   "kwallet.ssh_ca.source_label": "Clé de l’autorité",
   "kwallet.stack.description":
-    "Les identifiants de ce stack sont conservés dans votre kombify Wallet. Techstack peut utiliser ceux que vous autorisez.",
+    "Les identifiants de ce stack sont conservés dans votre kombify Wallet. Homelab Runtime peut utiliser ceux que vous autorisez.",
   "kwallet.stack.title": "Identifiants dans votre Wallet",
   "kwallet.state.active": "Actif",
   "kwallet.state.deleted": "Supprimé",
   "kwallet.state.revoked": "Révoqué",
-  "kwallet.techstack.allow_hint":
-    "Techstack peut alors utiliser cet élément pour vous, par exemple pour joindre un serveur, sans votre présence. Il n’obtient jamais vos autres éléments.",
-  "kwallet.techstack.allow_label": "Techstack peut utiliser cet élément",
-  "kwallet.techstack.grant_failed":
-    "L’élément a été enregistré, mais l’autorisation d’utilisation par Techstack a échoué. Activez « Techstack peut utiliser cet élément » dans ses détails.",
-  "kwallet.techstack.toggle_named": "Techstack peut utiliser {name}",
+  "kwallet.homelab.allow_hint":
+    "Homelab Runtime peut alors utiliser cet élément pour vous, par exemple pour joindre un serveur, sans votre présence. Il n’obtient jamais vos autres éléments.",
+  "kwallet.homelab.allow_label": "Homelab Runtime peut utiliser cet élément",
+  "kwallet.homelab.grant_failed":
+    "L’élément a été enregistré, mais l’autorisation d’utilisation par Homelab Runtime a échoué. Activez « Homelab Runtime peut utiliser cet élément » dans ses détails.",
+  "kwallet.homelab.toggle_named": "Homelab Runtime peut utiliser {name}",
   "kwallet.title": "Wallet",
   "kwallet.type.ai_credential": "Clé de fournisseur d’IA",
   "kwallet.type.configuration": "Configuration",
@@ -4925,7 +4925,7 @@ export const frPending: Record<string, string> = {
   "kwallet.version.save": "Enregistrer la nouvelle version",
   "kwallet.version.title": "Nouvelle version de {name}",
   "kwallet.wizard.hint":
-    "L’identifiant SSH est conservé dans votre kombify Wallet, pas dans Techstack. Techstack est autorisé à utiliser l’élément que vous choisissez.",
+    "L’identifiant SSH est conservé dans votre kombify Wallet, pas dans Homelab Runtime. Homelab Runtime est autorisé à utiliser l’élément que vous choisissez.",
   "kwallet.wizard.item_required":
     "Choisissez ou créez l’accès serveur dans votre Wallet.",
   "kwallet.working": "Traitement…",
@@ -5143,7 +5143,7 @@ export const frPending: Record<string, string> = {
     "Choisissez des applications et déployez-les avec Coolify sur votre serveur. StackKits installe et maintient l’intégration Marketplace.",
   "wizard.goals.marketplace.tip":
     "Facultatif : vos applications kombify existantes conservent leur gestionnaire actuel.",
-  "creation.embed.continueFull": "Continuer dans Techstack",
+  "creation.embed.continueFull": "Continuer dans Homelab Runtime",
   "wizard.server.homelab.title": "Dans votre Homelab",
   "wizard.server.homelab.lead":
     "Choisissez le serveur qui l’exécute ou ajoutez-en un nouveau.",
@@ -5514,7 +5514,7 @@ export const frPending: Record<string, string> = {
     "Les applications choisies réservent {need} Go de mémoire, mais vos serveurs disposent de {free} Go libres.",
   "layout.reason.no_combination_fits":
     "Aucune répartition ne permet de faire tenir toutes les applications choisies.",
-  "layout.addUseCases.pageTitle": "Ajouter des cas d’usage | Techstack",
+  "layout.addUseCases.pageTitle": "Ajouter des cas d’usage | Homelab Runtime",
   "layout.addUseCases.entry": "Ajouter des cas d’usage",
   "layout.addUseCases.title": "Ajouter des cas d’usage",
   "layout.addUseCases.subtitle":
@@ -5717,7 +5717,7 @@ export const frPending: Record<string, string> = {
   "ui.appLogo.credits": "Crédits",
   "ui.credits.title": "Crédits",
   "ui.credits.intro":
-    "Techstack reconnaît les applications de vos serveurs à partir des étiquettes de conteneur, des noms d’image et, sur votre propre réseau, d’une courte vérification de la page web. Ces projets ouverts le rendent possible.",
+    "Homelab Runtime reconnaît les applications de vos serveurs à partir des étiquettes de conteneur, des noms d’image et, sur votre propre réseau, d’une courte vérification de la page web. Ces projets ouverts le rendent possible.",
   "ui.credits.sources": "Sources utilisées pour la reconnaissance",
   "ui.credits.licence": "Licence : {license}",
   "ui.credits.use.dashboardIcons":
@@ -5740,7 +5740,7 @@ export const frPending: Record<string, string> = {
   "ui.credits.removal.body":
     "Si vous détenez les droits d’un logo et souhaitez son retrait, informez kombify ; il sera retiré pour tous les utilisateurs.",
   "ui.credits.removal.link": "Mentions légales et contact",
-  "ui.credits.back": "Retour à Techstack",
+  "ui.credits.back": "Retour à Homelab Runtime",
   "sessionRenewal.title": "Confirmer pour continuer",
   "sessionRenewal.body":
     "kombify a besoin d’une confirmation rapide avant de terminer. Tout ce que vous avez saisi reste inchangé.",
@@ -5753,7 +5753,7 @@ export const frPending: Record<string, string> = {
   "sessionRenewal.pending":
     "En attente de votre confirmation. Rien n’a encore été modifié.",
   "sessionRenewal.tenantContextMissing":
-    "Cette session ne possède pas d’organisation kombify ; ses données ne peuvent donc pas être affichées ici. Ouvrez Techstack depuis votre portail kombify Cloud ou continuez pour renouveler la session.",
+    "Cette session ne possède pas d’organisation kombify ; ses données ne peuvent donc pas être affichées ici. Ouvrez Homelab Runtime depuis votre portail kombify Cloud ou continuez pour renouveler la session.",
   "sessionRenewal.windowTitle": "Un instant",
   "sessionRenewal.windowBody":
     "kombify confirme votre session. Cette fenêtre se ferme automatiquement.",
@@ -5900,7 +5900,7 @@ export const frPending: Record<string, string> = {
   "hostBaseline.noListeners":
     "Aucun écouteur n’a été signalé dans le périmètre observé. Les applications arrêtées et d’autres espaces de noms peuvent encore réserver des liaisons.",
   "hostBaseline.recheck":
-    "Avant l’exécution, Techstack et StackKits vérifient à nouveau les liaisons nécessaires. Un conflit nécessite une modification de configuration prise en charge, un autre serveur ou une migration examinée ; un port ouvert ne prouve pas l’accès public.",
+    "Avant l’exécution, Homelab Runtime et StackKits vérifient à nouveau les liaisons nécessaires. Un conflit nécessite une modification de configuration prise en charge, un autre serveur ou une migration examinée ; un port ouvert ne prouve pas l’accès public.",
   "hostBaseline.refresh": "Actualiser l’inventaire",
   "hostBaseline.review": "Examiner tous les ports et services",
   "wizard.smartHome.applianceRetained":
@@ -5933,7 +5933,7 @@ export const frPending: Record<string, string> = {
   "wizard.server.hypervisor.help":
     "Utilise votre Proxmox connecté ainsi que son stockage et son réseau existants.",
   "wizard.server.hypervisor.standard":
-    "Ubuntu LTS exécute le cœur StackKits dans une VM distincte. Techstack prépare et connecte automatiquement l’invité.",
+    "Ubuntu LTS exécute le cœur StackKits dans une VM distincte. Homelab Runtime prépare et connecte automatiquement l’invité.",
   "wizard.server.hypervisor.appliance":
     "Home Assistant OS utilise une VM appliance distincte. L’invité Ubuntu continue d’exécuter le cœur et les autres services.",
   "wizard.server.hypervisor.host": "Serveur Proxmox connecté",
@@ -5970,7 +5970,7 @@ export const frPending: Record<string, string> = {
   "wizard.server.hypervisor.authorizeFailed":
     "La gestion des invités n’a pas pu être activée. Vérifiez la configuration Proxmox locale de Guard et actualisez.",
   "wizard.server.hypervisor.progress":
-    "Techstack prépare l’invité Ubuntu sur votre Proxmox connecté, puis l’inscrit et exécute le StackKit sélectionné. La progression reprend avec la même opération.",
+    "Homelab Runtime prépare l’invité Ubuntu sur votre Proxmox connecté, puis l’inscrit et exécute le StackKit sélectionné. La progression reprend avec la même opération.",
   "nav.dashboard": "Tableau de bord",
   "nav.monitoring": "Surveillance",
   "nav.services": "Services",
@@ -6023,7 +6023,7 @@ export const frPending: Record<string, string> = {
   "onboarding.ui.introduction.skip": "Ignorer la visite",
   "onboarding.ui.introduction.close": "Fermer",
   "introduction.restart": "Revoir l’introduction",
-  "introduction.welcome.title": "Bienvenue dans votre Techstack",
+  "introduction.welcome.title": "Bienvenue dans votre Homelab",
   "introduction.welcome.body":
     "Choisissez ce que vous souhaitez exécuter, connectez votre serveur et suivez la configuration jusqu’à un service vérifié. Votre configuration reste modifiable. L’état, les journaux et les actions suivantes vous aident à en prendre soin une fois en marche.",
   "introduction.welcome.name_label":
@@ -6042,35 +6042,35 @@ export const frPending: Record<string, string> = {
   "introduction.account.title": "Les paramètres sont derrière votre nom",
   "introduction.account.body":
     "Le thème, l’aide et votre compte se trouvent ici ; vous pouvez également relancer cette introduction. Personnalisez l’apparence quand vous le souhaitez.",
-  "onboarding.techstack_platform.techstack_find_stackkit.title":
+  "onboarding.homelab_platform.homelab_find_stackkit.title":
     "Choisir un StackKit",
-  "onboarding.techstack_platform.techstack_find_stackkit.body":
+  "onboarding.homelab_platform.homelab_find_stackkit.body":
     "Un StackKit est un ensemble de services prêt à l’emploi. Parcourez-les et choisissez celui qui correspond le mieux à ce que vous souhaitez exécuter.",
-  "onboarding.techstack_platform.techstack_find_stackkit.cta":
+  "onboarding.homelab_platform.homelab_find_stackkit.cta":
     "Parcourir les StackKits",
-  "onboarding.techstack_platform.techstack_configure_intent.title":
+  "onboarding.homelab_platform.homelab_configure_intent.title":
     "Indiquer son objectif",
-  "onboarding.techstack_platform.techstack_configure_intent.body":
+  "onboarding.homelab_platform.homelab_configure_intent.body":
     "Répondez à quelques questions sur ce que vous souhaitez héberger. kombify transforme vos réponses en une configuration que vous pouvez vérifier.",
-  "onboarding.techstack_platform.techstack_configure_intent.cta":
+  "onboarding.homelab_platform.homelab_configure_intent.cta":
     "Ouvrir l’assistant",
-  "onboarding.techstack_platform.techstack_deploy_stackkit.title":
+  "onboarding.homelab_platform.homelab_deploy_stackkit.title":
     "Déployer votre StackKit",
-  "onboarding.techstack_platform.techstack_deploy_stackkit.body":
+  "onboarding.homelab_platform.homelab_deploy_stackkit.body":
     "Confirmez le plan et laissez kombify déployer le StackKit dans votre Homelab. Cette étape se coche automatiquement une fois votre Homelab configuré.",
-  "onboarding.techstack_platform.techstack_deploy_stackkit.cta":
+  "onboarding.homelab_platform.homelab_deploy_stackkit.cta":
     "Continuer la configuration",
-  "onboarding.techstack_platform.techstack_add_server.title":
+  "onboarding.homelab_platform.homelab_add_server.title":
     "Ajouter un serveur",
-  "onboarding.techstack_platform.techstack_add_server.body":
+  "onboarding.homelab_platform.homelab_add_server.body":
     "Connectez un serveur que vous possédez ou laissez kombify en exécuter un pour vous. Vos services ont besoin d’un emplacement.",
-  "onboarding.techstack_platform.techstack_add_server.cta":
+  "onboarding.homelab_platform.homelab_add_server.cta":
     "Ajouter un serveur",
-  "onboarding.techstack_platform.techstack_deploy_service.title":
+  "onboarding.homelab_platform.homelab_deploy_service.title":
     "Ouvrir votre premier service",
-  "onboarding.techstack_platform.techstack_deploy_service.body":
+  "onboarding.homelab_platform.homelab_deploy_service.body":
     "Une fois un service en cours d’exécution, vous pouvez y accéder depuis la liste des services. C’est tout l’objectif de cette configuration.",
-  "onboarding.techstack_platform.techstack_deploy_service.cta":
+  "onboarding.homelab_platform.homelab_deploy_service.cta":
     "Aller aux services",
   "onboarding.denied.policy_selfhost_byos.title":
     "Les serveurs gérés par kombify sont une fonctionnalité Cloud",
@@ -6097,10 +6097,10 @@ export const frPending: Record<string, string> = {
   "common.tip": "Conseil",
   "common.moreInfo": "En savoir plus sur cette option",
   "common.recommended": "recommandé",
-  "wizard.title": "Créer Techstack",
+  "wizard.title": "Créer Homelab Runtime",
   "wizard.selfDisclosure.review.title": "Utiliser les réponses de ce lien ?",
   "wizard.selfDisclosure.review.body":
-    "Le lien ouvert contient ces réponses vous concernant. Techstack les enregistre dans votre profil et les utilise pour vos recommandations uniquement si vous choisissez « Utiliser ces réponses ». Rien n’est encore enregistré.",
+    "Le lien ouvert contient ces réponses vous concernant. Homelab Runtime les enregistre dans votre profil et les utilise pour vos recommandations uniquement si vous choisissez « Utiliser ces réponses ». Rien n’est encore enregistré.",
   "wizard.selfDisclosure.review.notes": "Autre chose ? (facultatif)",
   "wizard.selfDisclosure.review.notesHint":
     "Détails matériels, souhaits particuliers ou préoccupations, avec vos propres mots.",
@@ -6253,7 +6253,7 @@ export const frPending: Record<string, string> = {
   "wizard.goals.everything.tip":
     "Nous choisissons selon votre expérience et votre matériel. Vous pouvez tout décocher.",
   "wizard.goals.tipText":
-    "En cas de doute, choisissez un seul objectif. kombify-Techstack reste un système unique et vous pourrez ajouter d’autres services plus tard. Besoin de plus de paramètres ? Essayez les paramètres avancés ci-dessous.",
+    "En cas de doute, choisissez un seul objectif. kombify-Homelab reste un système unique et vous pourrez ajouter d’autres services plus tard. Besoin de plus de paramètres ? Essayez les paramètres avancés ci-dessous.",
   "wizard.goals.advancedTitle": "Cas d’usage avancés",
   "wizard.goals.showMoreDetails": "Afficher plus de détails",
   "wizard.goals.showLessDetails": "Afficher moins",
@@ -6620,7 +6620,7 @@ export const frPending: Record<string, string> = {
     "Calcul de l’empreinte de la phrase de récupération…",
   "wizard.login.recovery.ready": "Phrase de récupération prête.",
   "wizard.login.passkey.help":
-    "Pocket ID fournit le passage à la première clé d’accès après le déploiement ; aucun secret de clé d’accès n’entre dans Techstack.",
+    "Pocket ID fournit le passage à la première clé d’accès après le déploiement ; aucun secret de clé d’accès n’entre dans Homelab.",
   "wizard.login.password.title": "Identifiant de passerelle TinyAuth",
   "wizard.login.password.description":
     "Protection d’urgence facultative pour la passerelle applicative",

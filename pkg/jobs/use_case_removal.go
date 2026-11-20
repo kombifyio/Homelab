@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 func AuthorUseCaseRemoval(ctx context.Context, sender StackKitCommandSender, request StackKitLifecycleRequest, removal stackkitcommand.UseCaseRemoval) (stackkitcommand.UseCaseRemovalEvidence, error) {

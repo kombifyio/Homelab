@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 	"github.com/lib/pq"
 )
 

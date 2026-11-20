@@ -1,6 +1,6 @@
 /**
  * Creation drafts (KOMBIFY-DESIGN-SYSTEM-STANDARD.md §9): where the signed-in
- * owner stands in one creation process, kept by Techstack so every frame and
+ * owner stands in one creation process, kept by Homelab so every frame and
  * device continues it. The server refuses any field that carries a secret.
  */
 import { fetchApi } from "./client";

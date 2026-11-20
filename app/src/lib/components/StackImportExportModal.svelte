@@ -42,7 +42,7 @@
     const e = err instanceof Error ? err : null;
     const anyErr = err as any;
     const payload = {
-      app: "techstack-ui",
+      app: "homelab-ui",
       action,
       mode,
       kitDeploymentId,

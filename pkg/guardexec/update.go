@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardrelease"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
 )
 
 // Update states. They are reported to the control plane and shown to the owner.

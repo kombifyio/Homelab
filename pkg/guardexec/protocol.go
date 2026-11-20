@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/guardrelease"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
 )
 
 // ProtocolVersion is the wire version both sides must speak.

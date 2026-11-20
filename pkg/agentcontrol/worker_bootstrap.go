@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/kombifyio/homelab/internal/guardbootstrap"
+	"github.com/kombifyio/homelab/internal/substrate"
 	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
-	"github.com/kombifyio/techstack/internal/guardbootstrap"
-	"github.com/kombifyio/techstack/internal/substrate"
 	"strings"
 	"time"
 )

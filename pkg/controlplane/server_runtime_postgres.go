@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/outcome"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/outcome"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 )
 
 const serverRuntimeColumns = `id, tenant_id, instance_id, stack_id, owner_subject_id, worker_id, node_id,

@@ -7,7 +7,7 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/kombifyio/techstack/pkg/ril/primitives"
+	"github.com/kombifyio/homelab/pkg/ril/primitives"
 )
 
 // The marker is emitted by the executable's binary-capabilities command. It

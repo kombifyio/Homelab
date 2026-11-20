@@ -1,5 +1,5 @@
 /**
- * kombify-TechStack API - Auth Module
+ * kombify-Homelab API - Auth Module
  *
  * Authentication mode detection and configuration endpoints.
  */

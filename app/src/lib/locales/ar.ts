@@ -22,8 +22,8 @@ export const ar: Record<string, string> = {
   "setupReplay.body":
     "راجع طريقة اتصال هذا الجهاز ثم أعد مشاهدة المقدمة. تبقى مسودة إعداداتك هنا.",
   "setupReplay.edition": "إصدار المثبّت",
-  "setupReplay.localEdition": "Techstack Standalone",
-  "setupReplay.cloudEdition": "Techstack Connected",
+  "setupReplay.localEdition": "Homelab Runtime Standalone",
+  "setupReplay.cloudEdition": "Homelab Runtime Connected",
   "setupReplay.connection": "الاتصال",
   "setupReplay.address": "العنوان",
   "setupReplay.browser": "متصفح الويب",
@@ -266,7 +266,7 @@ export const ar: Record<string, string> = {
     "يقترح الإعداد عنوانًا فقط بعد معرفة المسار المحدد.",
   "wizard.access.address.custom": "استخدام نطاقي الخاص",
   "wizard.access.address.customBody":
-    "احفظ طلب نطاق لهذا الـ Techstack. ولا يغيّر DNS من تلقاء نفسه.",
+    "احفظ طلب نطاق لهذا الـ Homelab Runtime. ولا يغيّر DNS من تلقاء نفسه.",
   "wizard.access.address.domainLabel": "النطاق الأساسي",
   "wizard.access.address.domainPlaceholder": "home.example.com",
   "wizard.access.address.prerequisites": "قبل أن يعمل العنوان",
@@ -618,7 +618,7 @@ export const ar: Record<string, string> = {
   "hostBaseline.existing": "مستمع موجود",
   "hostBaseline.noListeners":
     "لم يُبلَّغ عن أي مستمعين في النطاق الملاحَظ. قد تظل التطبيقات المتوقفة ومساحات الأسماء الأخرى تحجز ارتباطات.",
-  "hostBaseline.recheck": "قبل التنفيذ، يعيد Techstack وStackKits فحص الارتباطات المطلوبة. يحتاج التعارض إلى تغيير إعداد مدعوم أو خادم آخر أو ترحيل تمت مراجعته؛ والمنفذ المفتوح لا يثبت إمكانية الوصول العام.",
+  "hostBaseline.recheck": "قبل التنفيذ، يعيد Homelab Runtime وStackKits فحص الارتباطات المطلوبة. يحتاج التعارض إلى تغيير إعداد مدعوم أو خادم آخر أو ترحيل تمت مراجعته؛ والمنفذ المفتوح لا يثبت إمكانية الوصول العام.",
   "hostBaseline.refresh": "تحديث الجرد",
   "hostBaseline.review": "مراجعة جميع المنافذ والخدمات",
   "wizard.smartHome.applianceRetained":
@@ -650,7 +650,7 @@ export const ar: Record<string, string> = {
   "wizard.server.hypervisor.help":
     "يستخدم Proxmox المتصل لديك وتخزينه وشبكته الحاليين.",
   "wizard.server.hypervisor.standard":
-    "يشغّل Ubuntu LTS نواة StackKits لديك في جهاز افتراضي منفصل. يجهّز Techstack الضيف ويربطه تلقائيًا.",
+    "يشغّل Ubuntu LTS نواة StackKits لديك في جهاز افتراضي منفصل. يجهّز Homelab Runtime الضيف ويربطه تلقائيًا.",
   "wizard.server.hypervisor.appliance":
     "يستخدم Home Assistant OS جهازًا افتراضيًا منفصلًا. يواصل ضيف Ubuntu تشغيل النواة والخدمات الأخرى.",
   "wizard.server.hypervisor.host": "خادم Proxmox المتصل",
@@ -687,7 +687,7 @@ export const ar: Record<string, string> = {
   "wizard.server.hypervisor.authorizeFailed":
     "تعذّر تفعيل إدارة الضيف. تحقق من إعداد Proxmox المحلي لدى الـ Guard ثم حدّث الصفحة.",
   "wizard.server.hypervisor.progress":
-    "يجهّز Techstack ضيف Ubuntu على Proxmox المتصل لديك، ثم يسجّله ويشغّل StackKit المحدد. يستمر التقدم مع العملية نفسها.",
+    "يجهّز Homelab Runtime ضيف Ubuntu على Proxmox المتصل لديك، ثم يسجّله ويشغّل StackKit المحدد. يستمر التقدم مع العملية نفسها.",
   "nav.dashboard": "لوحة التحكم",
   "nav.monitoring": "المراقبة",
   "nav.services": "الخدمات",
@@ -740,7 +740,7 @@ export const ar: Record<string, string> = {
   "onboarding.ui.introduction.skip": "تخطي الجولة",
   "onboarding.ui.introduction.close": "إغلاق",
   "introduction.restart": "إعادة عرض المقدمة",
-  "introduction.welcome.title": "مرحبًا بك في Techstack الخاص بك",
+  "introduction.welcome.title": "مرحبًا بك في Homelab الخاص بك",
   "introduction.welcome.body":
     "اختر ما تريد تشغيله، واربط خادمك الخاص، وتابع الإعداد حتى تصل إلى خدمة موثّقة. يبقى إعدادك قابلًا للتعديل. وتساعدك الحالة الصحية والسجلات والإجراءات التالية على رعايته بعد تشغيله.",
   "introduction.welcome.name_label": "أولًا: ماذا نسمي هذا المكان؟",
@@ -758,28 +758,28 @@ export const ar: Record<string, string> = {
   "introduction.account.title": "الإعدادات خلف اسمك",
   "introduction.account.body":
     "السمة والمساعدة وحسابك هنا، وهنا أيضًا يمكنك إعادة عرض هذه المقدمة. يمكنك تخصيص المظهر هنا متى شئت.",
-  "onboarding.techstack_platform.techstack_find_stackkit.title":
+  "onboarding.homelab_platform.homelab_find_stackkit.title":
     "اختر StackKit",
-  "onboarding.techstack_platform.techstack_find_stackkit.body":
+  "onboarding.homelab_platform.homelab_find_stackkit.body":
     "الـ StackKit مجموعة جاهزة من الخدمات. تصفحها واختر الأقرب إلى ما تريد تشغيله.",
-  "onboarding.techstack_platform.techstack_find_stackkit.cta": "تصفح StackKits",
-  "onboarding.techstack_platform.techstack_configure_intent.title":
+  "onboarding.homelab_platform.homelab_find_stackkit.cta": "تصفح StackKits",
+  "onboarding.homelab_platform.homelab_configure_intent.title":
     "قل لماذا هو",
-  "onboarding.techstack_platform.techstack_configure_intent.body":
+  "onboarding.homelab_platform.homelab_configure_intent.body":
     "أجب عن بضعة أسئلة حول ما تريد استضافته. يحوّل kombify الإجابات إلى إعداد يمكنك مراجعته.",
-  "onboarding.techstack_platform.techstack_configure_intent.cta": "فتح المعالج",
-  "onboarding.techstack_platform.techstack_deploy_stackkit.title":
+  "onboarding.homelab_platform.homelab_configure_intent.cta": "فتح المعالج",
+  "onboarding.homelab_platform.homelab_deploy_stackkit.title":
     "انشر StackKit الخاص بك",
-  "onboarding.techstack_platform.techstack_deploy_stackkit.body": "أكّد الخطة ودع kombify ينشر الـ StackKit على Homelab الخاص بك. تُوضع علامة على هذه الخطوة تلقائيًا بمجرد إعداد Homelab.",
-  "onboarding.techstack_platform.techstack_deploy_stackkit.cta": "متابعة الإعداد",
-  "onboarding.techstack_platform.techstack_add_server.title": "إضافة خادم",
-  "onboarding.techstack_platform.techstack_add_server.body": "اربط خادمًا تملكه، أو دع kombify يشغّل خادمًا لك. تحتاج خدماتك إلى مكان تعيش فيه.",
-  "onboarding.techstack_platform.techstack_add_server.cta": "إضافة خادم",
-  "onboarding.techstack_platform.techstack_deploy_service.title":
+  "onboarding.homelab_platform.homelab_deploy_stackkit.body": "أكّد الخطة ودع kombify ينشر الـ StackKit على Homelab الخاص بك. تُوضع علامة على هذه الخطوة تلقائيًا بمجرد إعداد Homelab.",
+  "onboarding.homelab_platform.homelab_deploy_stackkit.cta": "متابعة الإعداد",
+  "onboarding.homelab_platform.homelab_add_server.title": "إضافة خادم",
+  "onboarding.homelab_platform.homelab_add_server.body": "اربط خادمًا تملكه، أو دع kombify يشغّل خادمًا لك. تحتاج خدماتك إلى مكان تعيش فيه.",
+  "onboarding.homelab_platform.homelab_add_server.cta": "إضافة خادم",
+  "onboarding.homelab_platform.homelab_deploy_service.title":
     "افتح أول خدمة لك",
-  "onboarding.techstack_platform.techstack_deploy_service.body":
+  "onboarding.homelab_platform.homelab_deploy_service.body":
     "بمجرد تشغيل خدمة يمكنك الوصول إليها من قائمة الخدمات. هذا هو الهدف من كل ذلك.",
-  "onboarding.techstack_platform.techstack_deploy_service.cta":
+  "onboarding.homelab_platform.homelab_deploy_service.cta":
     "الانتقال إلى الخدمات",
   "onboarding.denied.policy_selfhost_byos.title": "الخوادم التي يديرها kombify ميزة في Cloud",
   "onboarding.denied.policy_selfhost_byos.body": "يعمل هذا التثبيت بالاستضافة الذاتية، لذلك لا يجهّز kombify خوادم له. اربط خادمًا تملكه ويعمل الباقي بالطريقة نفسها.",
@@ -800,11 +800,11 @@ export const ar: Record<string, string> = {
   "common.tip": "نصيحة",
   "common.moreInfo": "المزيد عن هذا الخيار",
   "common.recommended": "موصى به",
-  "wizard.title": "إنشاء Techstack",
+  "wizard.title": "إنشاء Homelab Runtime",
   "wizard.selfDisclosure.review.title":
     "هل تريد استخدام الإجابات الواردة في هذا الرابط؟",
   "wizard.selfDisclosure.review.body":
-    "يحتوي الرابط الذي فتحته على هذه الإجابات عنك. لا يحفظها Techstack في ملفك الشخصي ولا يستخدمها في توصياتك إلا إذا اخترت «استخدام هذه الإجابات». لم يُحفظ أي شيء بعد.",
+    "يحتوي الرابط الذي فتحته على هذه الإجابات عنك. لا يحفظها Homelab Runtime في ملفك الشخصي ولا يستخدمها في توصياتك إلا إذا اخترت «استخدام هذه الإجابات». لم يُحفظ أي شيء بعد.",
   "wizard.selfDisclosure.review.notes": "هل هناك شيء آخر؟ (اختياري)",
   "wizard.selfDisclosure.review.notesHint":
     "تفاصيل الأجهزة أو رغبات خاصة أو ما يقلقك، بكلماتك الخاصة.",
@@ -951,7 +951,7 @@ export const ar: Record<string, string> = {
   "wizard.goals.everything.tip":
     "نختار ما يناسب خبرتك وعتادك. يمكنك إلغاء أي اختيار.",
   "wizard.goals.tipText":
-    "إن لم تكن متأكدًا، اختر هدفًا واحدًا فقط. يبقى kombify-Techstack نظامًا واحدًا ويمكنك إضافة المزيد من الخدمات لاحقًا. تحتاج إلى مزيد من الإعدادات؟ جرّب الإعدادات المتقدمة أدناه.",
+    "إن لم تكن متأكدًا، اختر هدفًا واحدًا فقط. يبقى kombify-Homelab نظامًا واحدًا ويمكنك إضافة المزيد من الخدمات لاحقًا. تحتاج إلى مزيد من الإعدادات؟ جرّب الإعدادات المتقدمة أدناه.",
   "wizard.goals.advancedTitle": "حالات استخدام متقدمة",
   "wizard.goals.showMoreDetails": "عرض مزيد من التفاصيل",
   "wizard.goals.showLessDetails": "عرض أقل",
@@ -1299,7 +1299,7 @@ export const ar: Record<string, string> = {
   "wizard.login.recovery.hashing": "جارٍ تجزئة عبارة مرور الاسترداد...",
   "wizard.login.recovery.ready": "عبارة مرور الاسترداد جاهزة.",
   "wizard.login.passkey.help":
-    "يتيح Pocket ID تسليم أول passkey بعد الطرح؛ ولا يدخل أي سر passkey إلى Techstack.",
+    "يتيح Pocket ID تسليم أول passkey بعد الطرح؛ ولا يدخل أي سر passkey إلى Homelab.",
   "wizard.login.password.title": "بيانات اعتماد بوابة TinyAuth",
   "wizard.login.password.description": "حماية طارئة اختيارية لبوابة التطبيقات",
   "wizard.login.password.help":
@@ -1411,7 +1411,7 @@ export const ar: Record<string, string> = {
     "خطأ في الشبكة: تعذّر الاتصال بواجهة Discovery API. هل الخادم الخلفي قيد التشغيل؟",
   "ui.api.scanPollingTimeout": "انتهت مهلة استطلاع الفحص",
   "ui.api.serverSideAPIBaseURL":
-    "لم يتم إعداد عنوان URL الأساسي لواجهة API على جانب الخادم. اضبط TECHSTACK_API_URL (وقت التشغيل) أو VITE_API_URL (وقت البناء).",
+    "لم يتم إعداد عنوان URL الأساسي لواجهة API على جانب الخادم. اضبط HOMELAB_API_URL (وقت التشغيل) أو VITE_API_URL (وقت البناء).",
   "ui.argon2.addNumber": "أضف رقمًا واحدًا على الأقل.",
   "ui.argon2.addSymbols":
     "أضف مسافات أو رموزًا لجعل عبارة المرور أصعب في التخمين.",
@@ -1427,16 +1427,16 @@ export const ar: Record<string, string> = {
   "ui.authCloud-link-complete.closeThisTabAndTry":
     "أغلق علامة التبويب هذه وحاول مرة أخرى من المعالج.",
   "ui.authCloud-link-complete.kombifyCloudConnected": "تم ربط kombify Cloud",
-  "ui.authCloud-link-complete.kombifyCloudLinkKombifyTechstack":
-    "ربط kombify Cloud | Techstack",
+  "ui.authCloud-link-complete.kombifyCloudLinkKombifyHomelab":
+    "ربط kombify Cloud | Homelab Runtime",
   "ui.authCloud-link-complete.thisWindowClosesAutomatically":
     "ستُغلق هذه النافذة تلقائيًا.",
   "ui.authCloud-link-complete.youCanCloseThisTab":
     "يمكنك إغلاق علامة التبويب هذه والعودة إلى المعالج.",
   "ui.authSso.noSsoTokenProvided": "لم يتم توفير رمز SSO",
   "ui.authSso.ssoAuthenticationFailed": "فشلت مصادقة SSO",
-  "ui.authSso.ssoAuthenticationKombifyTechstack":
-    "مصادقة SSO | Techstack",
+  "ui.authSso.ssoAuthenticationKombifyHomelab":
+    "مصادقة SSO | Homelab Runtime",
   "ui.authSso.unableToVerifyYourCredentials": "تعذّر التحقق من بيانات اعتمادك",
   "ui.authSso.yourKombifyCloudSessionCould":
     "تعذّرت استعادة جلسة kombify Cloud الخاصة بك. يرجى المحاولة مرة أخرى.",
@@ -1453,7 +1453,7 @@ export const ar: Record<string, string> = {
     "جارٍ التحقق من حالة المصادقة المحلية...",
   "ui.clientLocal.continueLocalSetup": "متابعة الإعداد المحلي",
   "ui.clientLocal.createOrSignInAs":
-    "أنشئ المالك المحلي لهذا Techstack المستضاف ذاتيًا أو سجّل الدخول بصفته. بعد الإعداد تُفتح واجهة المشغّل مباشرة.",
+    "أنشئ المالك المحلي لهذا Homelab Runtime المستضاف ذاتيًا أو سجّل الدخول بصفته. بعد الإعداد تُفتح واجهة المشغّل مباشرة.",
   "ui.clientLocal.createTheFirstLocalAdmin":
     "أنشئ أول مسؤول محلي لهذا الجهاز. بعد الإعداد يفتح عميل Windows هذا واجهة المشغّل مباشرة.",
   "ui.clientLocal.creatingLocalOwner": "جارٍ إنشاء المالك المحلي...",
@@ -1465,25 +1465,25 @@ export const ar: Record<string, string> = {
     "تم إنشاء المالك المحلي، لكن تسجيل الدخول فشل.",
   "ui.clientLocal.localSetupFailed": "فشل الإعداد المحلي.",
   "ui.clientLocal.localSignInFailed": "فشل تسجيل الدخول المحلي.",
-  "ui.clientLocal.localTechstackSetup": "إعداد Techstack المحلي.",
-  "ui.clientLocal.localTechstackSetupKombifyTechstack":
-    "إعداد Techstack المحلي | Techstack",
+  "ui.clientLocal.localHomelabSetup": "إعداد Homelab Runtime المحلي.",
+  "ui.clientLocal.localHomelabSetupKombifyHomelab":
+    "إعداد Homelab Runtime المحلي | Homelab Runtime",
   "ui.clientLocal.ownerName": "اسم المالك: {name}",
   "ui.clientLocal.password": "كلمة المرور",
   "ui.clientLocal.selfHostedLocalOwner": "المالك المحلي المستضاف ذاتيًا",
   "ui.clientLocal.signInLocally": "تسجيل الدخول محليًا",
   "ui.clientLocal.signingIn": "جارٍ تسجيل الدخول...",
   "ui.clientLocal.thisDeviceIsAlreadyConfigured":
-    "هذا الجهاز مُعدّ بالفعل. سجّل الدخول بحساب المالك المحلي لفتح Techstack.",
+    "هذا الجهاز مُعدّ بالفعل. سجّل الدخول بحساب المالك المحلي لفتح Homelab.",
   "ui.clientOnboarding.connectAnExistingSelfHosted":
     "الاتصال بخادم مستضاف ذاتيًا موجود",
   "ui.clientOnboarding.connectServer": "ربط الخادم",
   "ui.clientOnboarding.installLocally": "التثبيت محليًا",
   "ui.clientOnboarding.localWindowsInstallation": "التثبيت المحلي على Windows",
-  "ui.clientOnboarding.noTechstackAccountRequiredTechstack":
-    "لا حاجة إلى حساب Techstack. يعمل Techstack على هذا الجهاز ويفتح قناة تسجيل محمية برمز لشبكتك الخاصة.",
-  "ui.clientOnboarding.setUpKombifyTechstackOn":
-    "أعدّ Techstack على جهاز Windows هذا.",
+  "ui.clientOnboarding.noHomelabAccountRequiredHomelab":
+    "لا حاجة إلى حساب Homelab Runtime. يعمل Homelab Runtime على هذا الجهاز ويفتح قناة تسجيل محمية برمز لشبكتك الخاصة.",
+  "ui.clientOnboarding.setUpKombifyHomelabOn":
+    "أعدّ Homelab Runtime على جهاز Windows هذا.",
   "ui.clientOnboarding.signInWithKombifyCloud":
     "تسجيل الدخول باستخدام kombify Cloud",
   "ui.clientOnboarding.signInWithYourKombify":
@@ -1492,12 +1492,12 @@ export const ar: Record<string, string> = {
   "ui.clientOnboarding.thePrivateNetworkEnrollmentChannel":
     "تعذّر تمكين قناة التسجيل للشبكة الخاصة.",
   "ui.clientOnboarding.thisClientIsTheLocal":
-    "هذا العميل هو نقطة الدخول المحلية على سطح المكتب لتنسيق خوادمك و StackKits الخاصة بك. المسار الافتراضي يثبّت Techstack محليًا على هذا الجهاز.",
+    "هذا العميل هو نقطة الدخول المحلية على سطح المكتب لتنسيق خوادمك و StackKits الخاصة بك. المسار الافتراضي يثبّت Homelab Runtime محليًا على هذا الجهاز.",
   "ui.clientOnboarding.useLocally": "الاستخدام محليًا",
   "ui.clientOnboarding.useYourOwnSelfHosted":
     "استخدم خادمك المستضاف ذاتيًا بدلًا من ذلك",
-  "ui.clientOnboarding.windowsClientOnboardingKombifyTechstack":
-    "إعداد عميل Windows | Techstack",
+  "ui.clientOnboarding.windowsClientOnboardingKombifyHomelab":
+    "إعداد عميل Windows | Homelab Runtime",
   "ui.cockpitSnapshot.monitoringCockpitCouldNotBe":
     "تعذّر تحديث لوحة قيادة المراقبة.",
   "ui.common.copiedCheck": "✓ تم النسخ",
@@ -1533,7 +1533,7 @@ export const ar: Record<string, string> = {
   "ui.configurationFlow.anUnexpectedErrorOccurredPlease":
     "حدث خطأ غير متوقع. حاول مرة أخرى. إذا استمر ذلك، فتواصل مع الدعم وشارك التفاصيل التقنية.",
   "ui.configurationFlow.authenticationRequired": "المصادقة مطلوبة",
-  "ui.configurationFlow.cannotConnectToBackend": "تعذّر الوصول إلى Techstack",
+  "ui.configurationFlow.cannotConnectToBackend": "تعذّر الوصول إلى Homelab Runtime",
   "ui.configurationFlow.deploymentFailed": "تعذّر إنشاء الـ Homelab الخاص بك",
   "ui.configurationFlow.managedServerIsNotActive": "الخادم المُدار غير نشط",
   "ui.configurationFlow.permissionDenied": "تم رفض الإذن",
@@ -1556,7 +1556,7 @@ export const ar: Record<string, string> = {
   "ui.configurationFlow.youMustBeLoggedIn": "سجّل الدخول لإنشاء الـ Homelab الخاص بك.",
   "ui.configurationFlow.youMustBeLoggedIn2":
     "عليك تسجيل الدخول لإنشاء الـ Homelab الخاص بك. يرجى تسجيل الدخول أولًا.",
-  "ui.connectDevices.techstackClient": "عميل Techstack",
+  "ui.connectDevices.homelabClient": "عميل Homelab Runtime",
   "ui.creationCompletion.ownerSeedFor": "حساب المالك الخاص بك جاهز لـ {email}.",
   "ui.creationController.theAdditionalNode": "الخادم الإضافي",
   "ui.creationFailure.lease": "التأجير",
@@ -1713,9 +1713,9 @@ export const ar: Record<string, string> = {
   "ui.homelabDashboardPage.bothServiceSourcesReportedAn":
     "أبلغ مصدرا الخدمات عن مخزون فارغ: لم يحتوِ ملف بيان StackKit على أي خدمات، ولم يعثر اكتشاف Agent على أي حاويات أو وحدات قيد التشغيل.",
   "ui.homelabDashboardPage.confirmThatTheProviderResource":
-    "تأكد من أن مورد المزوّد قد أُزيل بالفعل. سيؤرشف Techstack سجل الحفظ القديم فقط ولن يحذف أي مورد لدى المزوّد.",
-  "ui.homelabDashboardPage.custodyRecordUnchangedTheTechstack":
-    "سجل الحفظ دون تغيير: تعذّر على بوابة Techstack الوصول إلى الخادم الخلفي. أعد المحاولة لهذا السجل نفسه عندما تتوفر الخدمة.",
+    "تأكد من أن مورد المزوّد قد أُزيل بالفعل. سيؤرشف Homelab Runtime سجل الحفظ القديم فقط ولن يحذف أي مورد لدى المزوّد.",
+  "ui.homelabDashboardPage.custodyRecordUnchangedTheHomelab":
+    "سجل الحفظ دون تغيير: تعذّر على بوابة Homelab Runtime الوصول إلى الخادم الخلفي. أعد المحاولة لهذا السجل نفسه عندما تتوفر الخدمة.",
   "ui.homelabDashboardPage.custodyResolutionFailed": "فشل حل سجل الحفظ",
   "ui.homelabDashboardPage.decommissionFailed": "فشلت الإزالة",
   "ui.homelabDashboardPage.deployStackkit": "مراجعة وإنشاء",
@@ -1875,9 +1875,9 @@ export const ar: Record<string, string> = {
   "ui.importExportModal.importing": "جارٍ الاستيراد...",
   "ui.importExportModal.keepThisPasswordSafeWithout":
     "احتفظ بكلمة المرور هذه في مكان آمن! بدونها لن تتمكن من استعادة بيانات الاعتماد.",
-  "ui.importExportModal.kombifyTechstackJson": "kombify-Techstack JSON",
-  "ui.importExportModal.kombifyTechstackWalletExportJson":
-    "تصدير Wallet من kombify-Techstack (.json)",
+  "ui.importExportModal.kombifyHomelabJson": "kombify-Homelab JSON",
+  "ui.importExportModal.kombifyHomelabWalletExportJson":
+    "تصدير Wallet من kombify-Homelab (.json)",
   "ui.importExportModal.min8Characters": "8 أحرف على الأقل",
   "ui.importExportModal.nativeFormatWithEncryptionSupport":
     "تنسيق أصلي يدعم التشفير. الأفضل للنسخ الاحتياطي والاستعادة.",
@@ -1938,12 +1938,12 @@ export const ar: Record<string, string> = {
   "ui.login.revealFailed": "فشل الإظهار.",
   "ui.login.revealing": "جارٍ الإظهار...",
   "ui.login.signInAsEmergencyAdmin": "تسجيل الدخول بصفة مسؤول الطوارئ",
-  "ui.login.signInKombifyTechstack": "تسجيل الدخول | Techstack",
+  "ui.login.signInKombifyHomelab": "تسجيل الدخول | Homelab Runtime",
   "ui.login.signInWithKombifyCloud": "سجّل الدخول باستخدام kombify Cloud.",
   "ui.login.signInWithTheLocal":
-    "سجّل الدخول بحساب المالك المحلي لهذا Techstack.",
-  "ui.login.techstackReconnectsThroughTheKombify":
-    "يعيد Techstack الاتصال عبر صفحة kombify Cloud التي تحتوي على هذا العرض. ولن يفتح صفحة تسجيل دخول ثانية داخل هذا الإطار.",
+    "سجّل الدخول بحساب المالك المحلي لهذا Homelab.",
+  "ui.login.homelabReconnectsThroughTheKombify":
+    "يعيد Homelab Runtime الاتصال عبر صفحة kombify Cloud التي تحتوي على هذا العرض. ولن يفتح صفحة تسجيل دخول ثانية داخل هذا الإطار.",
   "ui.login.theBootstrapPasswordHasExpired":
     "انتهت صلاحية كلمة مرور التهيئة الأولية. أعد تشغيل الخادم لإنشاء كلمة جديدة.",
   "ui.login.tooManyLoginAttemptsPlease":
@@ -1952,7 +1952,7 @@ export const ar: Record<string, string> = {
   "ui.login.useTheStoredEmergencyPassword": "استخدم كلمة مرور الطوارئ المخزّنة",
   "ui.login.youHaveBeenSignedOut": "تم تسجيل خروجك.",
   "ui.loginExperience.kombifyCloudSignInCompleted":
-    "اكتمل تسجيل الدخول إلى kombify Cloud، لكن Techstack لم يتمكن من إنشاء جلسة متصفح. حاول مرة أخرى أو تواصل مع الدعم.",
+    "اكتمل تسجيل الدخول إلى kombify Cloud، لكن Homelab Runtime لم يتمكن من إنشاء جلسة متصفح. حاول مرة أخرى أو تواصل مع الدعم.",
   "ui.managed.sizeGB": "{size} GB",
   "ui.managed.sizeGiB": "{size} GiB",
   "ui.managedCreationFlow.addNode": "إضافة Node",
@@ -1969,7 +1969,7 @@ export const ar: Record<string, string> = {
   "ui.managedCreationFlow.workerOrStorageForThis":
     "Worker أو تخزين لهذا StackKit",
   "ui.managedRuntimeRecreatePanel.thisProvisionsAndBillsA":
-    "سيؤدي هذا إلى توفير جيل جديد من الخادم المُدار وفوترته. سيعيد Techstack إنشاء التسجيل ونقاط النهاية وأدلة Guard وطرح StackKit عبر مسار الإنشاء المعتاد.",
+    "سيؤدي هذا إلى توفير جيل جديد من الخادم المُدار وفوترته. سيعيد Homelab Runtime إنشاء التسجيل ونقاط النهاية وأدلة Guard وطرح StackKit عبر مسار الإنشاء المعتاد.",
   "ui.monitoring.acrossEpisodes.one": "عبر {count} من الحلقات",
   "ui.monitoring.acrossEpisodes.other": "عبر {count} من الحلقات",
   "ui.monitoring.availabilityHistoryIsUnavailableOn": "سجل التوفر غير متاح في هذا التثبيت.",
@@ -2164,7 +2164,7 @@ export const ar: Record<string, string> = {
   "ui.peoplePanel.noHouseholdMembersYetInvite":
     "لا يوجد أفراد أسرة بعد. ادعهم من إعداد هوية Homelab.",
   "ui.peoplePanel.noKombifyClientIsLinked":
-    "لا يوجد عميل kombify مرتبط بعد. ثبّت عميل Techstack أو Companion أو Workbench ليظهر هنا.",
+    "لا يوجد عميل kombify مرتبط بعد. ثبّت عميل Homelab Runtime أو Companion أو Workbench ليظهر هنا.",
   "ui.peoplePanel.nobodyInThisFilter": "لا أحد في هذا المرشّح.",
   "ui.peoplePanel.ownerDevicesCanManageThe":
     "يمكن لأجهزة المالك إدارة Homelab، بينما يستخدم أفراد الأسرة تطبيقاته فقط.",
@@ -2228,7 +2228,7 @@ export const ar: Record<string, string> = {
   "ui.providerErrors.checkTheRuntimeLogsFor":
     "راجع سجلات وقت التشغيل لنفس Stack والمهمة وعقد التأجير والمزوّد",
   "ui.providerErrors.checkTheServerLogsDocker":
-    "راجع سجلات الخادم: 'docker compose logs techstack'",
+    "راجع سجلات الخادم: 'docker compose logs homelab'",
   "ui.providerErrors.checkTheVMLeaseEnrollment":
     "راجع أحداث تسجيل عقد تأجير VM وSentry لمعرفة خطأ المزوّد",
   "ui.providerErrors.checkWhetherCentronOrIONOS":
@@ -2264,18 +2264,18 @@ export const ar: Record<string, string> = {
   "ui.providerErrors.ifProviderSupportIsRequired":
     "إذا احتجت إلى دعم المزوّد، فأرفق رمز الخطأ من التفاصيل",
   "ui.providerErrors.ifRunningTheBinaryOutside":
-    "إذا كنت تشغّل الملف التنفيذي خارج المستودع: اضبط TECHSTACK_STACKKITS_DIR على نسخة StackKits منشورة",
+    "إذا كنت تشغّل الملف التنفيذي خارج المستودع: اضبط HOMELAB_STACKKITS_DIR على نسخة StackKits منشورة",
   "ui.providerErrors.ifThisIsANew":
     "إذا كان هذا Homelab جديدًا، فأنشئ Kit بدلًا من إضافة Node",
   "ui.providerErrors.ifThisIsANew2":
-    "إذا كانت هذه عملية نشر جديدة، فأعد تشغيل المعالج ليتمكن Techstack من إسقاط مواصفة stackkit/v2alpha1",
+    "إذا كانت هذه عملية نشر جديدة، فأعد تشغيل المعالج ليتمكن Homelab Runtime من إسقاط مواصفة stackkit/v2alpha1",
   "ui.providerErrors.joinRequiresAnArchitectureV2": "يتطلب الانضمام بنية v2",
   "ui.providerErrors.joiningASecondController": "انضمام وحدة تحكم ثانية",
   "ui.providerErrors.kitDirectoryNotFound": "لم يتم العثور على دليل Kit",
   "ui.providerErrors.kombifyMeRegistrationFailed": "فشل تسجيل kombify.me",
   "ui.providerErrors.makeSureAStackKitWas": "تأكد من تحديد StackKit أو اكتشافه",
-  "ui.providerErrors.makeSureTheKombifyTechstack":
-    "تأكد من أن خادم Techstack قيد التشغيل",
+  "ui.providerErrors.makeSureTheKombifyHomelab":
+    "تأكد من أن خادم Homelab Runtime قيد التشغيل",
   "ui.providerErrors.managedRuntimeCouldNotBe": "تعذّر تجهيز Managed Runtime",
   "ui.providerErrors.managedRuntimeCouldNotBe2": "تعذّر إنشاء Managed Runtime",
   "ui.providerErrors.managedRuntimeIsNotReady": "Managed Runtime غير جاهز بعد",
@@ -2314,7 +2314,7 @@ export const ar: Record<string, string> = {
   "ui.providerErrors.retryTheRolloutOnlyAfter":
     "أعد محاولة الطرح فقط بعد استقرار SSH وDocker وStackKits Runtime Action على الخادم الهدف",
   "ui.providerErrors.reviewTheLogsWithDocker":
-    "راجع السجلات باستخدام 'docker compose logs techstack'",
+    "راجع السجلات باستخدام 'docker compose logs homelab'",
   "ui.providerErrors.reviewTheServerLogs": "ما زالت المشكلة قائمة؟ اسأل kombify، أو افتح التفاصيل التقنية وأرسلها إلى الدعم.",
   "ui.providerErrors.runtimeActionStackkitRollout":
     "Runtime Action stackkit_rollout",
@@ -2361,8 +2361,8 @@ export const ar: Record<string, string> = {
     "تعذّر حفظ التكوين في قاعدة البيانات.",
   "ui.providerErrors.theConfigurationCouldNotBe2":
     "تعذّر تحويل التكوين إلى مواصفة نشر صالحة.",
-  "ui.providerErrors.theKombifyTechstackServerCould":
-    "تعذّر الوصول إلى خادم Techstack.",
+  "ui.providerErrors.theKombifyHomelabServerCould":
+    "تعذّر الوصول إلى خادم Homelab.",
   "ui.providerErrors.theManagedVMWasPrepared":
     "تم تجهيز VM المُدارة، لكن StackKits لم يتمكن من إنشاء نواتج الطرح أو بيانات توجيه kombify.me.",
   "ui.providerErrors.theRolloutDidNotReturn":
@@ -2371,10 +2371,10 @@ export const ar: Record<string, string> = {
     "للخدمات المحددة متطلبات متعارضة.",
   "ui.providerErrors.theSubmittedConfigurationContainsInvalid":
     "يحتوي التكوين المرسل على قيم غير صالحة أو مفقودة.",
-  "ui.providerErrors.theTeardownStoppedBecauseTechstack":
-    "توقف التفكيك لأن Techstack لم يتمكن من مطابقة الطلب مع عقد تأجير موثوق لدى المزوّد. لم تُزل أي أشياء قسرًا، لذا قد تظل موارد المزوّد موجودة.",
+  "ui.providerErrors.theTeardownStoppedBecauseHomelab":
+    "توقف التفكيك لأن Homelab Runtime لم يتمكن من مطابقة الطلب مع عقد تأجير موثوق لدى المزوّد. لم تُزل أي أشياء قسرًا، لذا قد تظل موارد المزوّد موجودة.",
   "ui.providerErrors.theVMIsReachableBut":
-    "يمكن الوصول إلى VM، لكن Techstack لم يتمكن من تجهيز Docker أو خط أساس التهيئة بشكل موثوق على خادم Managed Runtime.",
+    "يمكن الوصول إلى VM، لكن Homelab Runtime لم يتمكن من تجهيز Docker أو خط أساس التهيئة بشكل موثوق على خادم Managed Runtime.",
   "ui.providerErrors.theVMLeaseHasNot":
     "لم يُبلغ عقد تأجير VM عن مضيف SSH أو IP عام. توقف الإنشاء حتى لا تبقى العملية في مرحلة التجهيز إلى أجل غير مسمى.",
   "ui.providerErrors.theVMWasPreparedBut":
@@ -2389,8 +2389,8 @@ export const ar: Record<string, string> = {
     "عمليات إنشاء وحذف حديثة كثيرة جدًا",
   "ui.providerErrors.tooManyRecentCreateDelete":
     "عمليات إنشاء/حذف حديثة كثيرة جدًا",
-  "ui.providerErrors.tryRestartingTheKombifyTechstack":
-    "حاول إعادة تشغيل خادم kombify-Techstack",
+  "ui.providerErrors.tryRestartingTheKombifyHomelab":
+    "حاول إعادة تشغيل خادم kombify-Homelab",
   "ui.providerErrors.trySelectingFewerServices": "حاول تحديد خدمات أقل",
   "ui.providerErrors.unexpectedError": "خطأ غير متوقع",
   "ui.providerErrors.unifierProcessingError": "خطأ في معالجة Unifier",
@@ -2440,11 +2440,11 @@ export const ar: Record<string, string> = {
   "ui.requirements.hybridSetupCloudAndLocal":
     "إعداد هجين: الخوادم السحابية والمحلية متصلة",
   "ui.requirements.linuxRecommendedInstallsThePersistent":
-    "Linux (موصى به) — يثبّت Guard الصادر الدائم عبر عنوان URL الخاص بـ Core/API (/install.sh). إذا كنت تشغّله على مضيف/VM آخر، فاستبدل localhost بعنوان IP/نطاق يمكن الوصول إليه لخادم kombify-Techstack.",
+    "Linux (موصى به) — يثبّت Guard الصادر الدائم عبر عنوان URL الخاص بـ Core/API (/install.sh). إذا كنت تشغّله على مضيف/VM آخر، فاستبدل localhost بعنوان IP/نطاق يمكن الوصول إليه لخادم kombify-Homelab.",
   "ui.requirements.manualInstallationAfterBinaryDownload":
     "التثبيت اليدوي (بعد تنزيل الملف التنفيذي)",
-  "ui.requirements.techstackPreparesTheVMThen":
-    "يجهّز Techstack الـ VM ثم يتابع تثبيت StackKits القياسي.",
+  "ui.requirements.homelabPreparesTheVMThen":
+    "يجهّز Homelab Runtime الـ VM ثم يتابع تثبيت StackKits القياسي.",
   "ui.requirements.theInstallationCommandRunsOn":
     "يعمل أمر التثبيت على خادمك أو جهازك الخاص",
   "ui.requirements.ubuntuGuestOnYourProxmox":
@@ -2526,9 +2526,9 @@ export const ar: Record<string, string> = {
   "ui.serverDetail.confirmProviderRemoval": "تأكيد إزالة {name} لدى المزوّد",
   "ui.serverDetail.connectionState": "اتصال الخادم: {state}",
   "ui.serverDetail.decommissionIntro":
-    "اطلب الإزالة المضبوطة لـ {slot}. يحتفظ Techstack بسجل حفظ المزوّد إلى أن يتم التحقق من الغياب. هذا الإجراء متاح هنا فقط عن قصد.",
+    "اطلب الإزالة المضبوطة لـ {slot}. يحتفظ Homelab Runtime بسجل حفظ المزوّد إلى أن يتم التحقق من الغياب. هذا الإجراء متاح هنا فقط عن قصد.",
   "ui.serverDetail.detachIntro":
-    "ألغِ Guard Agent المحدد لـ {slot} وأزل هذا الارتباط من المخزون الحالي. يحتفظ Techstack بإيصال التدقيق النهائي ولا يجري أي استدعاء لواجهة API الخاصة بالمزوّد.",
+    "ألغِ Guard Agent المحدد لـ {slot} وأزل هذا الارتباط من المخزون الحالي. يحتفظ Homelab Runtime بإيصال التدقيق النهائي ولا يجري أي استدعاء لواجهة API الخاصة بالمزوّد.",
   "ui.serverDetail.evidence": "الدليل: {sources}",
   "ui.serverDetail.healthSource":
     "المصدر: {source}. الخادم الخلفي للمراقبة: {backend}.",
@@ -2583,7 +2583,7 @@ export const ar: Record<string, string> = {
   "ui.stepUp.checking": "جارٍ التحقق…",
   "ui.stepUp.confirm": "تأكيد تسجيل الدخول",
   "ui.stepUp.doneBody":
-    "يمكنك إغلاق هذه النافذة والعودة إلى Techstack.",
+    "يمكنك إغلاق هذه النافذة والعودة إلى Homelab.",
   "ui.stepUp.doneTitle": "تم تأكيد تسجيل الدخول",
   "ui.stepUp.notConfirmed":
     "لم يصل التأكيد بعد. أنهِه في النافذة الأخرى أو حاول مرة أخرى.",
@@ -2867,7 +2867,7 @@ export const ar: Record<string, string> = {
   "ui.settings.deleting": "جارٍ الحذف...",
   "ui.settings.deletionFailed": "فشل الحذف",
   "ui.settings.removeWithoutServer": "الخادم لم يعد موجودًا، احذف",
-  "ui.settings.serverGoneBody": "لم يرسل {servers} أي إشارة منذ عدة دقائق. إذا حذفته، فأكّد أدناه: ينهي Techstack وصوله ويزيل المكدّس من دونه.",
+  "ui.settings.serverGoneBody": "لم يرسل {servers} أي إشارة منذ عدة دقائق. إذا حذفته، فأكّد أدناه: ينهي Homelab Runtime وصوله ويزيل المكدّس من دونه.",
   "ui.settings.serverGoneTitle": "خادمه لا يستجيب",
   "ui.settings.failedToLoadDeployments": "تعذّر تحميل Homelab",
   "ui.settings.failedToLoadHomelabIdentity": "تعذّر تحميل هوية Homelab",
@@ -2966,8 +2966,8 @@ export const ar: Record<string, string> = {
   "ui.stackImportExportModal.whatWillBeExported": "ما الذي سيتم تصديره؟",
   "ui.stackImportExportModal.youWillBeRedirectedTo":
     "ستتم إعادة توجيهك إلى صفحة الإعداد خلال لحظات.",
-  "ui.stacksCreating.creatingStackkitDeploymentKombifyTechstack":
-    "جارٍ إنشاء الـ Homelab الخاص بك | Techstack",
+  "ui.stacksCreating.creatingStackkitDeploymentKombifyHomelab":
+    "جارٍ إنشاء الـ Homelab الخاص بك | Homelab Runtime",
   "ui.stacksCreating.leanBackBody":
     "لقد أنجزت دورك. نحن نجهّز كل شيء لك الآن، وشيء رائع في الطريق.",
   "ui.stacksCreating.leanBackTitle": "استرخِ، فنحن نصنع السحر من أجلك",
@@ -2977,7 +2977,7 @@ export const ar: Record<string, string> = {
   "ui.stacksCreating.tips.codeEyebrow": "البنية التحتية كشيفرة",
   "ui.stacksCreating.tips.codeTitle": "مكدسك مكتوب كشيفرة",
   "ui.stacksCreating.tips.growBody":
-    "أضف خادمًا آخر إلى هذا المكدس متى احتجت. ينسق Techstack خوادمك، ويواصل كل خادم العمل بشكل مستقل.",
+    "أضف خادمًا آخر إلى هذا المكدس متى احتجت. ينسق Homelab Runtime خوادمك، ويواصل كل خادم العمل بشكل مستقل.",
   "ui.stacksCreating.tips.growEyebrow": "التوسع",
   "ui.stacksCreating.tips.growTitle": "مساحة للنمو",
   "ui.stacksCreating.tips.label": "معلومة مفيدة",
@@ -3090,7 +3090,7 @@ export const ar: Record<string, string> = {
   "ui.stacksCreatingCreation-controller.thePreviouslyVerifiedGuardHeartbeat":
     "توقف خادمك عن الاتصال. بانتظار أن يتصل من جديد.",
   "ui.stacksCreatingCreation-controller.theProvisioningJobHasBeen":
-    "مهمة التجهيز معلّقة منذ أكثر من دقيقتين دون تقدم. يعني هذا عادةً أن المُنسِّق لا يعمل أو أنه تعطّل.\n\nتحقق من سجلات الخادم: docker compose logs techstack\nجرّب إعادة التشغيل: docker compose restart techstack",
+    "مهمة التجهيز معلّقة منذ أكثر من دقيقتين دون تقدم. يعني هذا عادةً أن المُنسِّق لا يعمل أو أنه تعطّل.\n\nتحقق من سجلات الخادم: docker compose logs homelab\nجرّب إعادة التشغيل: docker compose restart homelab",
   "ui.stacksCreatingCreation-controller.theReservedNodeCouldNot":
     "تعذّر فحص الخادم المحجوز. أعد محاولة تسجيل SSH على الاتصال المحفوظ عندما يتوفر جرد الخوادم مرة أخرى.",
   "ui.stacksCreatingCreation-controller.thisPageRequiresAJob":
@@ -3121,7 +3121,7 @@ export const ar: Record<string, string> = {
   "ui.stacksCreatingCreationCompletion.recovery": "الاسترداد",
   "ui.stacksCreatingCreationCompletion.rolloutComplete": "اكتمل الإعداد",
   "ui.stacksCreatingCreationCompletion.selfHostedRollout": "مستضاف ذاتيًا",
-  "ui.stacksCreatingCreationCompletion.techstackNowSeesThisNode":
+  "ui.stacksCreatingCreationCompletion.homelabNowSeesThisNode":
     "اتصل خادمك وهو يعمل بشكل سليم. وهو جاهز للخطوة التالية.",
   "ui.stacksCreatingCreationCompletion.theFirstLoginGatewayAnd":
     "تصلك تفاصيل أول تسجيل دخول والاسترداد بعد إعداد الـ Homelab الخاص بك («مراجعة وإنشاء»).",
@@ -3186,8 +3186,8 @@ export const ar: Record<string, string> = {
   "ui.stacksCreatingCreationInstallCommand.copy": "نسخ",
   "ui.stacksCreatingCreationInstallCommand.copyInstallationCommandToClipboard":
     "نسخ أمر التثبيت إلى الحافظة",
-  "ui.stacksCreatingCreationInstallCommand.kombifyTechstackServerUrlReachable":
-    "عنوان Techstack (يمكن لخادمك الوصول إليه):",
+  "ui.stacksCreatingCreationInstallCommand.kombifyHomelabServerUrlReachable":
+    "عنوان Homelab Runtime (يمكن لخادمك الوصول إليه):",
   "ui.stacksCreatingCreationInstallCommand.openOneHourSimulateDemo":
     "فتح معاينة Simulate التجريبية لمدة ساعة",
   "ui.stacksCreatingCreationInstallCommand.previewLifetimeIsLimitedTo":
@@ -3285,7 +3285,7 @@ export const ar: Record<string, string> = {
     "بعد تشغيل الأمر، يتصل خادمك بالـ Homelab الخاص بك. يظهر كمتصل بمجرد أن يرسل أول إشارة.",
   "ui.stacksCreatingCreationRunStatus.awaitingHeartbeat": "بانتظار خادمك",
   "ui.stacksCreatingCreationRunStatus.checkSshHostCredentialsAnd":
-    "تحقق من مضيف SSH وبيانات الاعتماد ومن قدرة الخادم على الوصول إلى Techstack.",
+    "تحقق من مضيف SSH وبيانات الاعتماد ومن قدرة الخادم على الوصول إلى Homelab.",
   "ui.stacksCreatingCreationRunStatus.connectMyNode": "ربط خادمي",
   "ui.stacksCreatingCreationRunStatus.connectingToYourNodeOver":
     "جارٍ الاتصال بخادمك عبر SSH…",
@@ -3338,18 +3338,18 @@ export const ar: Record<string, string> = {
     "جارٍ إعادة محاولة اتصال SSH…",
   "ui.stacksCreatingCreationRunStatus.runThisOneLinerOn":
     "شغّل هذا الأمر على الخادم الإضافي. يظهر كمتصل بمجرد أن يرسل إشارته ويعمل بشكل سليم.",
-  "ui.stacksCreatingCreationRunStatus.techstackUrlReachableFromThe":
-    "عنوان URL لـ Techstack يمكن للخادم الوصول إليه",
+  "ui.stacksCreatingCreationRunStatus.homelabUrlReachableFromThe":
+    "عنوان URL لـ Homelab Runtime يمكن للخادم الوصول إليه",
   "ui.stacksCreatingCreationRunStatus.theAdditionalManagedNodeIs":
     "تتم إضافة الخادم المُدار الإضافي إلى هذا Homelab وسيظهر في لوحة معلومات الخوادم عندما يبلّغ التسجيل بالنتيجة.",
   "ui.stacksCreatingCreationRunStatus.theAdditionalNodeIsRegistered":
     "تم تسجيل الخادم الإضافي في هذا Homelab ويمكنه بعد ذلك تلقي الخدمات من نشر StackKit هذا.",
   "ui.stacksCreatingCreationRunStatus.theManagedRuntimeIsNot":
-    "بيئة التشغيل المُدارة ليست قابلة للوصول بالكامل للطرح بعد. قد تكون الإشارة المعلقة هي عنوانها أو بيانات اعتمادها أو تسجيلها. جدولَ Techstack الفحص التالي.",
+    "بيئة التشغيل المُدارة ليست قابلة للوصول بالكامل للطرح بعد. قد تكون الإشارة المعلقة هي عنوانها أو بيانات اعتمادها أو تسجيلها. جدولَ Homelab Runtime الفحص التالي.",
   "ui.stacksCreatingCreationRunStatus.theProviderOperationHasNot":
-    "لم تسلّم عملية المزوّد بيئة التشغيل المُدارة الموجودة إلى طرح StackKit بعد. جدولَ Techstack فحص عقد الإيجار المحدد التالي.",
+    "لم تسلّم عملية المزوّد بيئة التشغيل المُدارة الموجودة إلى طرح StackKit بعد. جدولَ Homelab Runtime فحص عقد الإيجار المحدد التالي.",
   "ui.stacksCreatingCreationRunStatus.theScheduledCheckIsOverdue":
-    "الفحص المجدول متأخر. يتحقق Techstack من الـ Stack والمهمة المصدر وعقد الإيجار المحدد معًا، ثم يتابع الطرح فقط على VM الموجودة.",
+    "الفحص المجدول متأخر. يتحقق Homelab Runtime من الـ Stack والمهمة المصدر وعقد الإيجار المحدد معًا، ثم يتابع الطرح فقط على VM الموجودة.",
   "ui.stacksCreatingCreationRunStatus.theSshDetailsArePlanning":
     "تفاصيل SSH هي بيانات وصفية للتخطيط. اتصال Guard الحالي صادر عبر HTTPS ويبدأ بالأمر أدناه.",
   "ui.stacksCreatingCreationRunStatus.theseAccessPathsAreEnabled":
@@ -3402,7 +3402,7 @@ export const ar: Record<string, string> = {
   "ui.stacksId.noLeaseAttached": "لا يوجد عقد إيجار مرتبط",
   "ui.stacksId.noStackkitDeploymentIdProvided": "لم يتم توفير معرّف Homelab",
   "ui.stacksId.offeringSpec": "{vcpus} vCPU · {memory} GB RAM",
-  "ui.stacksId.pageTitle": "{name} | Techstack",
+  "ui.stacksId.pageTitle": "{name} | Homelab Runtime",
   "ui.stacksId.query": "الاستعلام",
   "ui.stacksId.runtime": "بيئة التشغيل",
   "ui.stacksId.series": "السلسلة",
@@ -3418,7 +3418,7 @@ export const ar: Record<string, string> = {
   "ui.stacksId.stop": "إيقاف",
   "ui.stacksId.stopManagedServer": "هل تريد إيقاف الخادم المُدار؟",
   "ui.stacksId.storedCredentials": "بيانات الاعتماد المحفوظة",
-  "ui.stacksId.techstackWillBeginProviderCleanup": "سيحذف Techstack هذا الخادم المُدار لدى المزوّد مع بياناته.",
+  "ui.stacksId.homelabWillBeginProviderCleanup": "سيحذف Homelab Runtime هذا الخادم المُدار لدى المزوّد مع بياناته.",
   "ui.stacksId.theFollowingServicesNeedCredentials":
     "تحتاج الخدمات التالية إلى إعداد بيانات اعتماد:",
   "ui.stacksId.theServerShutsDownAnd":
@@ -3426,7 +3426,7 @@ export const ar: Record<string, string> = {
   "ui.stacksId.thisPermanentlyRemovesTheSelected":
     "يؤدي هذا إلى إزالة بيانات الاعتماد المحددة نهائيًا.",
   "ui.stacksId.username": "اسم المستخدم",
-  "ui.stacksIdServersNew.addNodeKombifyTechstack": "إضافة خادم | Techstack",
+  "ui.stacksIdServersNew.addNodeKombifyHomelab": "إضافة خادم | Homelab Runtime",
   "ui.stacksIdServersServerId.activityHistory": "سجل النشاط",
   "ui.stacksIdServersServerId.addressesDomains": "العناوين والنطاقات",
   "ui.stacksIdServersServerId.agentId": "معرّف Agent",
@@ -3508,8 +3508,8 @@ export const ar: Record<string, string> = {
     "تنظيف الخادم قيد التنفيذ",
   "ui.stacksIdServersServerId.serverDetachFailed": "فشل فصل الخادم.",
   "ui.stacksIdServersServerId.serverDetailSections": "أقسام تفاصيل الخادم",
-  "ui.stacksIdServersServerId.serverDetailsKombifyTechstack":
-    "تفاصيل الخادم | Techstack",
+  "ui.stacksIdServersServerId.serverDetailsKombifyHomelab":
+    "تفاصيل الخادم | Homelab Runtime",
   "ui.stacksIdServersServerId.serverGenerationDecommissioned": "تمت إزالة جيل الخادم",
   "ui.stacksIdServersServerId.serverSettings": "إعدادات الخادم",
   "ui.stacksIdServersServerId.serviceEndpoints": "نقاط نهاية الخدمات",
@@ -3524,10 +3524,10 @@ export const ar: Record<string, string> = {
     "يغيّر هذا الخادم المحدد عبر Agent الخاص بـ StackKit المسجّل عليه.",
   "ui.stacksIdServersServerId.thisIsConfiguredStackkitIntent": "هذه نية StackKit المُعدّة؛ لم يبلّغ Guard بعد عن أدلة تثبيت مطابقة.",
   "ui.stacksIdServersServerId.thisOnlyArchivesTheStale":
-    "يؤدي هذا إلى أرشفة سجل حضانة Techstack القديم فقط. ولا يحذف أي شيء لدى المزوّد.",
+    "يؤدي هذا إلى أرشفة سجل حضانة Homelab Runtime القديم فقط. ولا يحذف أي شيء لدى المزوّد.",
   "ui.stacksIdServersServerId.thisServerHasNoManaged": "ليس لهذا الخادم عقد إيجار مُدار لدى مزوّد. لا تسمح حضانته المسجّلة حاليًا بإزالة خادم مُدار ولا بفصل الخادم المملوك ذاتيًا.",
   "ui.stacksIdServersServerId.thisServerIsALegacy":
-    "هذا الخادم سجل حضانة قديم أو غير مرتبط. أكّد أن مورد المزوّد قد أُزيل بالفعل؛ سيؤرشف Techstack هذا السجل فقط ولن يستدعي أو يحذف أي مورد لدى المزوّد.",
+    "هذا الخادم سجل حضانة قديم أو غير مرتبط. أكّد أن مورد المزوّد قد أُزيل بالفعل؛ سيؤرشف Homelab Runtime هذا السجل فقط ولن يستدعي أو يحذف أي مورد لدى المزوّد.",
   "ui.stacksIdServersServerId.thisServerIsRegisteredThrough": "هذا الخادم مسجّل عبر جرد الخوادم؛ ولا ترتبط به إجراءات الوصول إلى بيئة التشغيل المُدارة.",
   "ui.standardBundle.additionalComputeNodeForStackKit":
     "Node حوسبة إضافي لتوزيع خدمات StackKit.",
@@ -3687,7 +3687,7 @@ export const ar: Record<string, string> = {
   "ui.taskStatus.identifyingServicesBestPractices":
     "جارٍ تحديد الخدمات وأفضل الممارسات",
   "ui.taskStatus.ifAptOrUnattendedUpgrades":
-    "إذا حال apt أو unattended-upgrades دون تثبيت الحزم، يُبقي Techstack الـ VM المرتبطة ظاهرة ويعرض التشخيصات التي تم جمعها.",
+    "إذا حال apt أو unattended-upgrades دون تثبيت الحزم، يُبقي Homelab Runtime الـ VM المرتبطة ظاهرة ويعرض التشخيصات التي تم جمعها.",
   "ui.taskStatus.installingAndCheckingDocker": "جارٍ تثبيت Docker وفحصه",
   "ui.taskStatus.installingOrValidatingTheDocker":
     "جارٍ تثبيت بيئة تشغيل Docker التي تستخدمها الخدمات المحددة أو التحقق منها.",
@@ -3699,9 +3699,9 @@ export const ar: Record<string, string> = {
   "ui.taskStatus.networkSettingsAreDerivedFrom":
     "تُشتق إعدادات الشبكة من وضع الوصول لديك. الوضع المحلي فقط يستخدم شبكة Docker الداخلية؛ أما الوصول عن بُعد فيضيف الشبكة الشبكية الخاصة المناسبة للمسار أو مسار الحافة المُدار.",
   "ui.taskStatus.onceThisSucceedsTheNode":
-    "بعد نجاح هذه الخطوة يبقى خادمك ظاهرًا في Techstack حتى لو فشل التجهيز أو الطرح لاحقًا.",
+    "بعد نجاح هذه الخطوة يبقى خادمك ظاهرًا في Homelab Runtime حتى لو فشل التجهيز أو الطرح لاحقًا.",
   "ui.taskStatus.opentofuReadinessIsPartOf":
-    "جاهزية OpenTofu جزء من عقد التحضير في StackKits CLI، وليست مسار تمهيد منفصلًا تملكه Techstack.",
+    "جاهزية OpenTofu جزء من عقد التحضير في StackKits CLI، وليست مسار تمهيد منفصلًا تملكه Homelab.",
   "ui.taskStatus.persistingConfiguration": "جارٍ حفظ الإعداد بشكل دائم",
   "ui.taskStatus.persistingRolloutSpec": "جارٍ حفظ مواصفات الطرح بشكل دائم",
   "ui.taskStatus.preparingDocker": "جارٍ تحضير Docker",
@@ -3746,12 +3746,12 @@ export const ar: Record<string, string> = {
   "ui.taskStatus.stackkitsAreCuratedInfrastructureTemplates":
     "StackKits قوالب بنية تحتية منتقاة. يختار النظام القالب الذي يغطي الميزات التي حددتها بأقل قدر من الكلفة الإضافية.",
   "ui.taskStatus.startingTelemetryHandoff": "جارٍ بدء المراقبة",
-  "ui.taskStatus.techstackConsumesStackKitArtifactsHere":
-    "يستهلك Techstack هنا آثار StackKit؛ ويظل StackKits مسؤولًا عن تطبيقها.",
-  "ui.taskStatus.techstackRecordsTheManagedTarget":
-    "يسجّل Techstack الهدف المُدار ويحضّر تسليم التنسيق قبل أن ينفّذ StackKits طرح Cloud Kit.",
+  "ui.taskStatus.homelabConsumesStackKitArtifactsHere":
+    "يستهلك Homelab Runtime هنا آثار StackKit؛ ويظل StackKits مسؤولًا عن تطبيقها.",
+  "ui.taskStatus.homelabRecordsTheManagedTarget":
+    "يسجّل Homelab Runtime الهدف المُدار ويحضّر تسليم التنسيق قبل أن ينفّذ StackKits طرح Cloud Kit.",
   "ui.taskStatus.terramateReadinessBelongsToStackKits":
-    "جاهزية Terramate تنتمي إلى تحضير دورة حياة StackKits؛ ولا يشترطها Techstack لعقد إيجار VPS المُدار الأولي.",
+    "جاهزية Terramate تنتمي إلى تحضير دورة حياة StackKits؛ ولا يشترطها Homelab Runtime لعقد إيجار VPS المُدار الأولي.",
   "ui.taskStatus.theDashboardCanShowManaged":
     "يمكن للوحة المعلومات عرض الخدمات المُدارة بمجرد أن يعرضها StackKits، بينما يستمر التحقق اللاحق.",
   "ui.taskStatus.theFirstRolloutRecordsThe":
@@ -3796,7 +3796,7 @@ export const ar: Record<string, string> = {
   "ui.taskStatus.yourChosenAuthMethodIs":
     "تُطبَّق طريقة المصادقة التي اخترتها على جميع الخدمات. تحصل الإعدادات متعددة المستخدمين تلقائيًا على أذونات قائمة على المجموعات.",
   "ui.taskUpdates.anUnexpectedErrorOccurred": "حدث خطأ غير متوقع",
-  "ui.techstackBrandLogo.kombifyTechstack": "Techstack",
+  "ui.homelabBrandLogo.kombifyHomelab": "Homelab Runtime",
   "ui.terminal.title": "الطرفية · {name}",
   "ui.time.daysHours": "{days} يوم {hours} ساعة",
   "ui.time.hours": "{count} ساعة",
@@ -3857,8 +3857,8 @@ export const ar: Record<string, string> = {
   "ui.wallet.dismiss": "تجاهل",
   "ui.wallet.editItem": "تعديل {label}",
   "ui.wallet.enterNewSecretValue": "أدخل قيمة السر الجديدة",
-  "ui.wallet.enterYourCurrentLocalTechstack":
-    "أدخل كلمة مرور Techstack المحلية الحالية لكشف إدخال Wallet هذا.",
+  "ui.wallet.enterYourCurrentLocalHomelab":
+    "أدخل كلمة مرور Homelab Runtime المحلية الحالية لكشف إدخال Wallet هذا.",
   "ui.wallet.expired": "منتهي الصلاحية",
   "ui.wallet.expiredCredentials.one": "بيانات الاعتماد المنتهية: {count}",
   "ui.wallet.expiredCredentials.other": "بيانات الاعتماد المنتهية: {count}",
@@ -3878,8 +3878,8 @@ export const ar: Record<string, string> = {
     "يقيم هنا المستخدمون البشريون وهويات المسؤولين وواجهات تسجيل الدخول المملوكة للنظام بوصفها طبقة الوصول التشغيلية.",
   "ui.wallet.identity": "الهوية",
   "ui.wallet.importExport": "استيراد / تصدير",
-  "ui.wallet.kombifyTechstackAdmin": "مسؤول kombify-Techstack",
-  "ui.wallet.kombifyTechstackDeveloper": "مطوّر kombify-Techstack",
+  "ui.wallet.kombifyHomelabAdmin": "مسؤول kombify-Homelab",
+  "ui.wallet.kombifyHomelabDeveloper": "مطوّر kombify-Homelab",
   "ui.wallet.launchReadyToolsAndUrl":
     "ستظهر هنا الأدوات الجاهزة للتشغيل وإدخالات الخدمات المعتمدة على URL مع تحوّل Wallet إلى نقطة البداية المركزية.",
   "ui.wallet.localBackendAdmin": "مسؤول الواجهة الخلفية المحلية",

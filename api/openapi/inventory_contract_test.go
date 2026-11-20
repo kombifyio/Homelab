@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kombifyio/techstack/internal/contractgen/runtimeinventorygen"
+	"github.com/kombifyio/homelab/internal/contractgen/runtimeinventorygen"
 	"gopkg.in/yaml.v3"
 )
 

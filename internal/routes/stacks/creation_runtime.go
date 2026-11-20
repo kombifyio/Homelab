@@ -8,16 +8,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/providercatalog"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
+	"github.com/kombifyio/homelab/internal/providercatalog"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 )
 
 const (
-	creationAuthorityTechstack       = "techstack"
+	creationAuthorityHomelab         = "homelab"
 	creationSourceWizard             = "wizard"
 	creationServerProvisionModeField = "server_provisioning_mode"
 	creationServerConnectionField    = "server_connection_mode"
@@ -70,7 +70,7 @@ func (h crudRouteHandlers) persistCreateServerIntent(e *httpx.Event, ownerID, te
 		HealthState: string(serverregistry.HealthUnknown), ReasonCode: reasonCode,
 		ConnectionChangedAt: now,
 		Metadata: map[string]any{
-			"authority": creationAuthorityTechstack, "creation_source": creationSourceWizard,
+			"authority": creationAuthorityHomelab, "creation_source": creationSourceWizard,
 			creationServerProvisionModeField: fieldString(fields, creationServerProvisionModeField),
 			creationServerConnectionField:    fieldString(fields, creationServerConnectionField),
 		},

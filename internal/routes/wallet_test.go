@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/authsession"
-	"github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/identity"
+	"github.com/kombifyio/homelab/internal/gocommon/authsession"
+	"github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 func TestWalletRevealRequiresFreshReauth(t *testing.T) {
@@ -38,7 +38,7 @@ func TestWalletReauthProofReturnsSignedProofForOwner(t *testing.T) {
 	app := newWalletRouteTestApp(t)
 	item := createWalletRouteTestItem(t, app, "owner-1", "secret-value")
 	secret := "test-reauth-secret" // #nosec G101 -- test-only signing key.
-	t.Setenv("TECHSTACK_REAUTH_SECRET", secret)
+	t.Setenv("HOMELAB_REAUTH_SECRET", secret)
 	now := time.Date(2026, 5, 14, 10, 0, 0, 0, time.UTC)
 	timestamp, signature := signWalletPlatformReauthTestAssertion("owner-1", item.Id, secret, now)
 
@@ -79,7 +79,7 @@ func TestWalletReauthProofRejectsSessionOnly(t *testing.T) {
 	app := newWalletRouteTestApp(t)
 	item := createWalletRouteTestItem(t, app, "owner-1", "secret-value")
 	secret := "test-reauth-secret" // #nosec G101 -- test-only signing key.
-	t.Setenv("TECHSTACK_REAUTH_SECRET", secret)
+	t.Setenv("HOMELAB_REAUTH_SECRET", secret)
 	now := time.Date(2026, 5, 14, 10, 0, 0, 0, time.UTC)
 
 	handler := walletRouteHandlers{
@@ -104,7 +104,7 @@ func TestWalletReauthProofRejectsSessionOnly(t *testing.T) {
 // audited and tells the browser that a fresh sign-in resolves it.
 func TestWalletReauthProofAcceptsOnlyFreshSessionReauthBoundToTheItem(t *testing.T) {
 	secret := "test-reauth-secret" // #nosec G101 -- test-only signing key.
-	t.Setenv("TECHSTACK_REAUTH_SECRET", secret)
+	t.Setenv("HOMELAB_REAUTH_SECRET", secret)
 	now := time.Date(2026, 5, 14, 10, 0, 0, 0, time.UTC)
 	for _, tc := range []struct {
 		name   string
@@ -175,7 +175,7 @@ func TestWalletRevealAcceptsIssuedReauthProof(t *testing.T) {
 	app := newWalletRouteTestApp(t)
 	item := createWalletRouteTestItem(t, app, "owner-1", "secret-value")
 	secret := "test-reauth-secret" // #nosec G101 -- test-only signing key.
-	t.Setenv("TECHSTACK_REAUTH_SECRET", secret)
+	t.Setenv("HOMELAB_REAUTH_SECRET", secret)
 	now := time.Date(2026, 5, 14, 10, 0, 0, 0, time.UTC)
 	timestamp, signature := signWalletPlatformReauthTestAssertion("owner-1", item.Id, secret, now)
 
@@ -218,7 +218,7 @@ func TestWalletRevealRejectsDifferentOwner(t *testing.T) {
 	app := newWalletRouteTestApp(t)
 	item := createWalletRouteTestItem(t, app, "owner-1", "secret-value")
 	secret := "test-reauth-secret" // #nosec G101 -- test-only signing key.
-	t.Setenv("TECHSTACK_REAUTH_SECRET", secret)
+	t.Setenv("HOMELAB_REAUTH_SECRET", secret)
 	timestamp, signature := signWalletRevealTestAssertion("owner-2", item.Id, secret, time.Now())
 
 	body := `{"reason":"copy recovery credential","reauth_timestamp":` +
@@ -242,7 +242,7 @@ func TestWalletRevealReturnsSecretAndAudits(t *testing.T) {
 	app := newWalletRouteTestApp(t)
 	item := createWalletRouteTestItem(t, app, "owner-1", "secret-value")
 	secret := "test-reauth-secret" // #nosec G101 -- test-only signing key.
-	t.Setenv("TECHSTACK_REAUTH_SECRET", secret)
+	t.Setenv("HOMELAB_REAUTH_SECRET", secret)
 	timestamp, signature := signWalletRevealTestAssertion("owner-1", item.Id, secret, time.Now())
 
 	body := `{"reason":"copy recovery credential","reauth_timestamp":` +
@@ -391,7 +391,7 @@ func TestWalletRevealUsesControlPlaneStore(t *testing.T) {
 		t.Fatalf("UpsertWalletItem: %v", err)
 	}
 	secret := "test-reauth-secret" // #nosec G101 -- test-only signing key.
-	t.Setenv("TECHSTACK_REAUTH_SECRET", secret)
+	t.Setenv("HOMELAB_REAUTH_SECRET", secret)
 	timestamp, signature := signWalletRevealTestAssertion("owner-1", "wallet-1", secret, time.Now())
 	body := `{"reason":"copy recovery credential","reauth_timestamp":` +
 		strconv.Quote(timestamp) +
@@ -474,7 +474,7 @@ func walletStoreRequestEvent(method, target, body, userID, tenantID string) (*ht
 
 func secureWalletTestCookie(value string) *http.Cookie {
 	return &http.Cookie{
-		Name:     "techstack_session",
+		Name:     "homelab_session",
 		Value:    value,
 		Secure:   true,
 		HttpOnly: true,

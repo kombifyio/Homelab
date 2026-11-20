@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
 )
 
 const (

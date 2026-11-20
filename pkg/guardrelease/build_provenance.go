@@ -45,10 +45,10 @@ func (b *BuildProvenance) Validate() error {
 	if b.Schema != "guard.native-build/v1" || !commitPattern.MatchString(b.SourceSHA) || !commitPattern.MatchString(b.SourceTree) || !commitPattern.MatchString(b.ExecutorSHA) || !commitPattern.MatchString(b.CompilerRef) ||
 		b.ExecutorWorkflow != strings.TrimPrefix(releaseRepositoryURI, "https://github.com/")+"/.github/workflows/guard-release.yml@refs/heads/main" || b.ParentRunID <= 0 || b.ParentAttempt <= 0 || b.ChildRunID <= 0 || b.ChildAttempt != 1 ||
 		!planDigestPattern.MatchString(b.PlanDigest) || b.PlanArtifactID <= 0 || !planDigestPattern.MatchString(b.PlanArchiveDigest) || b.PlanArtifactName != fmt.Sprintf("delivery-plan-%d-%d", b.ParentRunID, b.ParentAttempt) ||
-		b.BindingName != fmt.Sprintf("delivery-dispatch-%d-%d-%x", b.ParentRunID, b.ParentAttempt, sha256.Sum256([]byte(`["techstack-service","runtime-service","publish",0]`))) || !planDigestPattern.MatchString(b.BindingDigest) || len(b.Subjects) != 4 {
+		b.BindingName != fmt.Sprintf("delivery-dispatch-%d-%d-%x", b.ParentRunID, b.ParentAttempt, sha256.Sum256([]byte(`["homelab-service","runtime-service","publish",0]`))) || !planDigestPattern.MatchString(b.BindingDigest) || len(b.Subjects) != 4 {
 		return errors.New("signed native build provenance is invalid")
 	}
-	for _, name := range []string{"techstack-linux-amd64", "techstack-linux-arm64", "stackkit-runtime-linux-amd64.tar.gz", "stackkit-runtime-linux-arm64.tar.gz"} {
+	for _, name := range []string{"homelab-linux-amd64", "homelab-linux-arm64", "stackkit-runtime-linux-amd64.tar.gz", "stackkit-runtime-linux-arm64.tar.gz"} {
 		subject, ok := b.Subjects[name]
 		if !ok || !digestPattern.MatchString(subject.SHA256) || subject.Size <= 0 {
 			return errors.New("signed native build subject is missing or invalid")

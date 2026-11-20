@@ -4,8 +4,8 @@
     name: string;
     itemId: string;
     auditPending: boolean;
-    /** Whether Techstack was allowed to use the new item, when that was asked. */
-    techstackAccess: "granted" | "failed" | "not-requested";
+    /** Whether Homelab was allowed to use the new item, when that was asked. */
+    homelabAccess: "granted" | "failed" | "not-requested";
   };
 </script>
 
@@ -53,7 +53,7 @@
     type WalletItem,
   } from "../wallet-api.js";
   import { itemTypeLabel, walletErrorMessage } from "../wallet-text.js";
-  import { TECHSTACK_SERVICE } from "../service-access.js";
+  import { HOMELAB_SERVICE } from "../service-access.js";
   import { DEFAULT_VALUE_ACCESS, type ValueAccess } from "../item-settings.js";
   import { copyText } from "../browser-io.js";
   import {
@@ -83,10 +83,10 @@
     lockAuth?: boolean;
     /** Generate an SSH key pair as soon as the dialog opens. */
     generateKey?: boolean;
-    /** Whether the "Techstack may use this" box starts checked. */
-    allowTechstackByDefault?: boolean;
-    /** Ask for the product assignment at all (Techstack's own surfaces). */
-    offerTechstackAccess?: boolean;
+    /** Whether the "Homelab may use this" box starts checked. */
+    allowHomelabByDefault?: boolean;
+    /** Ask for the product assignment at all (Homelab's own surfaces). */
+    offerHomelabAccess?: boolean;
     onclose: () => void;
     ondone: (result: WalletItemDialogResult) => void;
     /** A save that fails after the dialog was dismissed reports here. */
@@ -105,8 +105,8 @@
     lockedFields = [],
     lockAuth = false,
     generateKey = false,
-    allowTechstackByDefault,
-    offerTechstackAccess = true,
+    allowHomelabByDefault,
+    offerHomelabAccess = true,
     onclose,
     ondone,
     onerror,
@@ -142,8 +142,8 @@
       name: initialName,
       draft: { ...emptyValueDraft(), ...initialDraft },
       scope: fixedScope ? parseScope(fixedScope) : null,
-      allowTechstack:
-        allowTechstackByDefault ?? initialType === "node_access_profile",
+      allowHomelab:
+        allowHomelabByDefault ?? initialType === "node_access_profile",
     };
   })();
 
@@ -173,7 +173,7 @@
   let valueAccess = $state<ValueAccess>(DEFAULT_VALUE_ACCESS);
   let policyDraft = $state<SignPolicyDraft>(emptySignPolicyDraft());
   let policyErrors = $state<SignPolicyErrors>({});
-  let allowTechstack = $state(initial.allowTechstack);
+  let allowHomelab = $state(initial.allowHomelab);
   let submitting = $state(false);
   let failure = $state<string | null>(null);
   let generating = $state(false);
@@ -379,20 +379,20 @@
           ...(signPolicy ? { signPolicy } : {}),
         });
         clearValueDraft(draft);
-        let techstackAccess: WalletItemDialogResult["techstackAccess"] =
+        let homelabAccess: WalletItemDialogResult["homelabAccess"] =
           "not-requested";
-        if (offerTechstackAccess && allowTechstack && !sshCa) {
+        if (offerHomelabAccess && allowHomelab && !sshCa) {
           try {
-            techstackAccess = (await setServiceAccess(
+            homelabAccess = (await setServiceAccess(
               result.itemId,
-              TECHSTACK_SERVICE,
+              HOMELAB_SERVICE,
               "use",
               true,
             ))
               ? "granted"
               : "failed";
           } catch {
-            techstackAccess = "failed";
+            homelabAccess = "failed";
           }
         }
         ondone({
@@ -400,7 +400,7 @@
           name,
           itemId: result.itemId,
           auditPending: result.auditPending,
-          techstackAccess,
+          homelabAccess,
         });
       } else if (item) {
         if (composed.value === null) return;
@@ -411,7 +411,7 @@
           name: item.displayName,
           itemId: item.itemId,
           auditPending: result.auditPending,
-          techstackAccess: "not-requested",
+          homelabAccess: "not-requested",
         });
       }
     } catch (error) {
@@ -443,9 +443,9 @@
                   itemType = type;
                   if (
                     type === "node_access_profile" &&
-                    allowTechstackByDefault === undefined
+                    allowHomelabByDefault === undefined
                   )
-                    allowTechstack = true;
+                    allowHomelab = true;
                 }}
               />
               {itemTypeLabel(type)}
@@ -687,18 +687,18 @@
         </p>
       </fieldset>
 
-      {#if offerTechstackAccess}
+      {#if offerHomelabAccess}
         <label class="kw-check">
           <input
             type="checkbox"
-            data-testid="wallet-allow-techstack"
-            bind:checked={allowTechstack}
+            data-testid="wallet-allow-homelab"
+            bind:checked={allowHomelab}
             disabled={submitting}
           />
           <span>
-            {tr("kwallet.techstack.allow_label")}
+            {tr("kwallet.homelab.allow_label")}
             <span class="kw-hint kw-block"
-              >{tr("kwallet.techstack.allow_hint")}</span
+              >{tr("kwallet.homelab.allow_hint")}</span
             >
           </span>
         </label>

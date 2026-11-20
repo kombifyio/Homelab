@@ -19,7 +19,7 @@
 
   let { summary, failureId, testId, details }: Props = $props();
 
-  const STORAGE_KEY = "techstack.dashboard.dismissedFailures";
+  const STORAGE_KEY = "homelab.dashboard.dismissedFailures";
   const KEEP = 20;
 
   function readDismissed(): string[] {

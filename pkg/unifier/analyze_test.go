@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 func TestAnalyze_NilSpec(t *testing.T) {

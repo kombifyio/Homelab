@@ -11,7 +11,7 @@
     rememberWindowsLocalClientContext,
   } from "#lib/client/windows-onboarding.js";
   import { authStore } from "#lib/stores/auth.svelte.js";
-  import TechstackBrandLogo from "#lib/components/TechstackBrandLogo.svelte";
+  import HomelabBrandLogo from "#lib/components/HomelabBrandLogo.svelte";
   import Button from "#lib/components/ui/Button.svelte";
 
   let adminEmail = $state("");
@@ -131,7 +131,7 @@
 </script>
 
 <svelte:head>
-  <title>{tr("ui.clientLocal.localTechstackSetupKombifyTechstack")}</title>
+  <title>{tr("ui.clientLocal.localHomelabSetupKombifyHomelab")}</title>
 </svelte:head>
 
 <main class="min-h-screen bg-background text-foreground">
@@ -146,7 +146,7 @@
         <ArrowLeft class="h-4 w-4" />
         {tr("ui.importExportModal.back")}
       </a>
-      <TechstackBrandLogo
+      <HomelabBrandLogo
         sizes="214px"
         class="h-10 w-auto max-w-[min(58vw,360px)] object-contain object-right"
       />
@@ -164,7 +164,7 @@
         <h1
           class="text-5xl font-semibold leading-tight tracking-normal text-foreground"
         >
-          {tr("ui.clientLocal.localTechstackSetup")}
+          {tr("ui.clientLocal.localHomelabSetup")}
         </h1>
         <p class="mt-5 text-lg leading-8 text-muted-foreground">
           {windowsClient
@@ -272,7 +272,7 @@
             </div>
             <p class="mb-5 text-sm leading-6 text-muted-foreground">
               {tr("ui.clientLocal.bootstrapGuidance", {
-                command: "techstack owner bootstrap",
+                command: "homelab owner bootstrap",
               })}
             </p>
             <label

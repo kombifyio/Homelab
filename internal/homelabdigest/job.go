@@ -1,7 +1,7 @@
-// Package homelabdigest reports Techstack's Homelab numbers to the Companion
+// Package homelabdigest reports Homelab's Homelab numbers to the Companion
 // Feed digest (Feed contract v1 sections 2.4 and 2.5). The notifications engine
 // composes the daily digest; this job only upserts one contribution per owner
-// and local day, producer techstack.homelab, and only when the numbers change.
+// and local day, producer homelab.homelab, and only when the numbers change.
 package homelabdigest
 
 import (
@@ -16,8 +16,8 @@ import (
 	"time"
 	_ "time/tzdata" // the Europe/Berlin fallback must not depend on the host
 
-	"github.com/kombifyio/techstack/internal/notifications"
-	"github.com/kombifyio/techstack/pkg/releasechannel"
+	"github.com/kombifyio/homelab/internal/notifications"
+	"github.com/kombifyio/homelab/pkg/releasechannel"
 )
 
 const (
@@ -30,7 +30,7 @@ const (
 	FallbackTimezone = "Europe/Berlin"
 
 	// MessageID is the language-neutral digest line of the Homelab row.
-	MessageID = "techstack.digest.homelab"
+	MessageID = "homelab.digest.homelab"
 	// DeepLink opens the Homelab view.
 	DeepLink = "/dashboard"
 )

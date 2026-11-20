@@ -11,7 +11,7 @@
    * 1. Portal loads: /auth/sso?embedded=true&return_url=/dashboard
    * 2. This page requests the token via postMessage, or reads legacy fragments
    * 3. Sends token to /api/v1/auth/portal-verify
-   * 4. On success, the backend establishes techstack_session and this page
+   * 4. On success, the backend establishes homelab_session and this page
    *    redirects to return_url
    */
 
@@ -142,7 +142,7 @@
 </script>
 
 <svelte:head>
-  <title>{tr("ui.authSso.ssoAuthenticationKombifyTechstack")}</title>
+  <title>{tr("ui.authSso.ssoAuthenticationKombifyHomelab")}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-background flex items-center justify-center">

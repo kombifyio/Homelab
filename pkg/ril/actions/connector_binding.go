@@ -8,8 +8,8 @@ import (
 	"slices"
 	"strings"
 
-	rilaction "github.com/kombifyio/techstack/pkg/ril/actioncontract"
-	"github.com/kombifyio/techstack/pkg/ril/primitives"
+	rilaction "github.com/kombifyio/homelab/pkg/ril/actioncontract"
+	"github.com/kombifyio/homelab/pkg/ril/primitives"
 )
 
 var (

@@ -2,7 +2,7 @@
  * Browser side of the kombify Wallet value transport
  * (`kombify.wallet-transport.v1`, Gateway `services/wallet-store/src/transport.mjs`).
  *
- * Values never reach Techstack or the Gateway in plaintext: the browser
+ * Values never reach Homelab or the Gateway in plaintext: the browser
  * encrypts a captured value to the Wallet Store's capture key and decrypts a
  * revealed value with an ephemeral key pair it generated itself. The Gateway
  * only relays JWEs.

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/providercatalog"
 )
 
 // This file is the provider adapter contract outside the lifecycle verbs. The

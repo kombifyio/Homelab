@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	"github.com/kombifyio/techstack/pkg/agentcontrol"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	"github.com/kombifyio/homelab/pkg/agentcontrol"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // outcomeResolutionStepUpMaxAge bounds how old the multi-factor sign-in behind
@@ -81,7 +81,7 @@ func (h workerRouteHandlers) ownedWorkerForOutcomes(e *httpx.Event, capability s
 }
 
 func (h workerRouteHandlers) listUnresolvedOutcomes(e *httpx.Event) error {
-	ownerID, tenantID, workerID, control, err := h.ownedWorkerForOutcomes(e, "techstack.workers.outcomes.list")
+	ownerID, tenantID, workerID, control, err := h.ownedWorkerForOutcomes(e, "homelab.workers.outcomes.list")
 	if err != nil || ownerID == "" {
 		return err
 	}
@@ -100,7 +100,7 @@ func (h workerRouteHandlers) listUnresolvedOutcomes(e *httpx.Event) error {
 // person's step-up must be fresh (an agent acting for the person needs none)
 // and the revision the operator saw must still be the current one.
 func (h workerRouteHandlers) resolveOutcome(e *httpx.Event) error {
-	ownerID, tenantID, workerID, control, err := h.ownedWorkerForOutcomes(e, "techstack.workers.outcomes.resolve")
+	ownerID, tenantID, workerID, control, err := h.ownedWorkerForOutcomes(e, "homelab.workers.outcomes.resolve")
 	if err != nil || ownerID == "" {
 		return err
 	}

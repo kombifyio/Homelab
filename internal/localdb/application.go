@@ -6,13 +6,13 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/db"
 	"github.com/jackc/pgx/v5"
+	"github.com/kombifyio/homelab/pkg/db"
 )
 
 // NativeApplicationRole keeps the product's existing local identity lifecycle.
 // Hosted requests retain their separately registered, verified-context role.
-const NativeApplicationRole = "techstack_local_application"
+const NativeApplicationRole = "homelab_local_application"
 
 func nativeDBConfig(dsn string) db.Config {
 	config := db.DefaultConfig()

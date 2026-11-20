@@ -1,4 +1,4 @@
-// Package validator provides shared validation utilities for kombifyTechstack.
+// Package validator provides shared validation utilities for kombifyHomelab.
 // This package centralizes validation logic shared by Unifier preflight.
 package validator
 

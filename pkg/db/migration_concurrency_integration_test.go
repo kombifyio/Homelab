@@ -16,7 +16,7 @@ import (
 func TestIntegrationMigrateSerializesConcurrentStarters(t *testing.T) {
 	dsn := integrationDSN()
 	if dsn == "" {
-		t.Skip("TECHSTACK_TEST_POSTGRES_URL not set; skipping Postgres integration test")
+		t.Skip("HOMELAB_TEST_POSTGRES_URL not set; skipping Postgres integration test")
 	}
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
 	defer cancel()
@@ -31,7 +31,7 @@ func TestIntegrationMigrateSerializesConcurrentStarters(t *testing.T) {
 		t.Fatalf("ping integration PostgreSQL: %v", err)
 	}
 
-	schema := "techstack_migrate_concurrent_" + strings.ReplaceAll(uuid.NewString(), "-", "")
+	schema := "homelab_migrate_concurrent_" + strings.ReplaceAll(uuid.NewString(), "-", "")
 	quotedSchema := pgx.Identifier{schema}.Sanitize()
 	if _, err := adminDB.ExecContext(ctx, "CREATE SCHEMA "+quotedSchema); err != nil {
 		t.Fatalf("create isolated schema: %v", err)

@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/db"
+	"github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/db"
 )
 
 // EnvKeyCustodyDatabaseURL binds only the installation signing key store.

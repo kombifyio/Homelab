@@ -1,10 +1,10 @@
 package routes
 
 import (
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/httpx"
 	"net/http"
 
-	"github.com/kombifyio/techstack/api/openapi"
+	"github.com/kombifyio/homelab/api/openapi"
 )
 
 // RegisterOpenAPIRoutes serves the OpenAPI spec at /api/v1/openapi.yaml.

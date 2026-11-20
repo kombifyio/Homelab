@@ -15,11 +15,11 @@ import (
 	"github.com/google/uuid"
 	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 
-	"github.com/kombifyio/techstack/internal/providercontrol"
-	"github.com/kombifyio/techstack/internal/providerevidence"
-	"github.com/kombifyio/techstack/internal/substrate"
-	"github.com/kombifyio/techstack/internal/substrateruntime"
-	"github.com/kombifyio/techstack/pkg/agentcontrol"
+	"github.com/kombifyio/homelab/internal/providercontrol"
+	"github.com/kombifyio/homelab/internal/providerevidence"
+	"github.com/kombifyio/homelab/internal/substrate"
+	"github.com/kombifyio/homelab/internal/substrateruntime"
+	"github.com/kombifyio/homelab/pkg/agentcontrol"
 )
 
 // Sensitive auth boundary (kombify-StackKits-4ab3): the Guard worker transport
@@ -32,7 +32,7 @@ import (
 func TestIntegrationReservedGuestObserveFence(t *testing.T) {
 	dsn := integrationDSN()
 	if dsn == "" {
-		t.Skip("TECHSTACK_TEST_POSTGRES_URL not set; skipping Postgres integration test")
+		t.Skip("HOMELAB_TEST_POSTGRES_URL not set; skipping Postgres integration test")
 	}
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Minute)
 	defer cancel()

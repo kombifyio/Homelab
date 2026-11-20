@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/dataprofile"
-	commonedgeauth "github.com/kombifyio/techstack/internal/gocommon/edgeauth"
+	"github.com/kombifyio/homelab/internal/gocommon/dataprofile"
+	commonedgeauth "github.com/kombifyio/homelab/internal/gocommon/edgeauth"
 
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/middleware"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/middleware"
 )
 
 // dataProfileResponse is the data protection profile that applies to the
@@ -29,7 +29,7 @@ type dataProfileResponse struct {
 // returns the profile the Gateway signed for this request; without one it
 // answers the data_profile_unresolvable denial, never Standard. A self-hosted
 // install returns its boot profile. While hosted verification is off
-// (TECHSTACK_DATA_PROFILE_MODE) the route answers 404 so the UI shows nothing.
+// (HOMELAB_DATA_PROFILE_MODE) the route answers 404 so the UI shows nothing.
 func RegisterDataProfileRoutes(r *httpx.Router, mode config.DeploymentMode) {
 	selfHosted := !mode.IsSaaS()
 	r.GET("/api/v1/data-profile", func(e *httpx.Event) error {

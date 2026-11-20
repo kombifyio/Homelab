@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 // InventoryAction names an authorization decision without coupling routes to
@@ -33,21 +33,21 @@ const (
 	InventoryActionAdmin InventoryAction = "admin"
 
 	// InventoryEntitlementRead is the signed capability for read decisions.
-	InventoryEntitlementRead = "techstack.inventory.read"
+	InventoryEntitlementRead = "homelab.inventory.read"
 	// InventoryEntitlementRILRead is the paid RIL baseline capability. It grants
 	// only the dedicated RIL summary route, never the general inventory API.
-	InventoryEntitlementRILRead = "techstack.ril.read"
+	InventoryEntitlementRILRead = "homelab.ril.read"
 	// InventoryEntitlementOperate is the signed capability for operate decisions.
-	InventoryEntitlementOperate = "techstack.inventory.operate"
+	InventoryEntitlementOperate = "homelab.inventory.operate"
 	// InventoryEntitlementProvision is the signed capability for cost-bearing
 	// provision decisions.
-	InventoryEntitlementProvision = "techstack.inventory.provision"
+	InventoryEntitlementProvision = "homelab.inventory.provision"
 	// InventoryEntitlementWrite is the signed capability for write decisions.
-	InventoryEntitlementWrite = "techstack.inventory.write"
+	InventoryEntitlementWrite = "homelab.inventory.write"
 	// InventoryEntitlementTransfer is the signed capability for transfer decisions.
-	InventoryEntitlementTransfer = "techstack.inventory.transfer"
+	InventoryEntitlementTransfer = "homelab.inventory.transfer"
 	// InventoryEntitlementAdmin is the signed capability that covers every action.
-	InventoryEntitlementAdmin = "techstack.inventory.admin"
+	InventoryEntitlementAdmin = "homelab.inventory.admin"
 )
 
 // ErrInventoryAccessDenied is returned for a definitive policy denial.

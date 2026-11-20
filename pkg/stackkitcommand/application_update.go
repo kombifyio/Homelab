@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 // ApplicationUpdateOperation is the catalog operation of the single-application
-// update on a Techstack-managed node (StackKits #3262): `stackkit use-cases
+// update on a Homelab-managed node (StackKits #3262): `stackkit use-cases
 // upgrade <slug> --to <tag> --digest sha256:... --capability <file> --apply
-// --owner-approve --json`. Techstack advertises and dispatches the update only
+// --owner-approve --json`. Homelab advertises and dispatches the update only
 // when the pinned release's catalog lists it as dispatchable; the node admits
 // it only under the exact application-release.update capability of the
 // approved use case, release, digest and tested or untested kind.

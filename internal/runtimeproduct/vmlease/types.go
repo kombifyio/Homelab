@@ -1,4 +1,4 @@
-// Package vmlease owns Techstack's legacy managed-runtime product projection.
+// Package vmlease owns Homelab's legacy managed-runtime product projection.
 // Provider, billing, catalog, and provisioning fields deliberately live here,
 // outside the neutral runtimelease module.
 package vmlease
@@ -26,7 +26,7 @@ const (
 
 type BillingMode string
 
-// CustodyClass describes who owns the infrastructure. It is a Techstack
+// CustodyClass describes who owns the infrastructure. It is a Homelab
 // product projection and deliberately stays outside neutral runtime contracts.
 type CustodyClass string
 

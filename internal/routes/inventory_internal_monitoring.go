@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/portinventory"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/internal/portinventory"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // The private Cloud monitoring reads. They sit next to the runtime summary and
@@ -41,22 +41,22 @@ const (
 
 var (
 	runtimeHistorySurface = cloudReadSurface{
-		errorPrefix: "techstack.runtime_history.", unavailableReason: "runtime_history_unavailable",
-		title: "Runtime history unavailable", body: "Techstack could not resolve this runtime history safely.",
+		errorPrefix: "homelab.runtime_history.", unavailableReason: "runtime_history_unavailable",
+		title: "Runtime history unavailable", body: "Homelab Runtime could not resolve this runtime history safely.",
 		queryKeys: []string{runtimeHistoryQueryRange},
 	}
 	runtimeEventsSurface = cloudReadSurface{
-		errorPrefix: "techstack.runtime_events.", unavailableReason: "runtime_events_unavailable",
-		title: "Runtime events unavailable", body: "Techstack could not resolve these runtime events safely.",
+		errorPrefix: "homelab.runtime_events.", unavailableReason: "runtime_events_unavailable",
+		title: "Runtime events unavailable", body: "Homelab Runtime could not resolve these runtime events safely.",
 		queryKeys: []string{runtimeEventsQueryLimit},
 	}
 	runtimePortsSurface = cloudReadSurface{
-		errorPrefix: "techstack.runtime_ports.", unavailableReason: "runtime_ports_unavailable",
-		title: "Runtime ports unavailable", body: "Techstack could not resolve these open ports safely.",
+		errorPrefix: "homelab.runtime_ports.", unavailableReason: "runtime_ports_unavailable",
+		title: "Runtime ports unavailable", body: "Homelab Runtime could not resolve these open ports safely.",
 	}
 	runtimeBackupsSurface = cloudReadSurface{
-		errorPrefix: "techstack.runtime_backups.", unavailableReason: "runtime_backups_unavailable",
-		title: "Runtime backups unavailable", body: "Techstack could not resolve these backup facts safely.",
+		errorPrefix: "homelab.runtime_backups.", unavailableReason: "runtime_backups_unavailable",
+		title: "Runtime backups unavailable", body: "Homelab Runtime could not resolve these backup facts safely.",
 	}
 )
 
@@ -93,7 +93,7 @@ func (h inventoryHandlers) monitoringReader(
 	reader, ok := app.read.(controlplane.InventoryMonitoringReader)
 	if !ok {
 		_ = surface.deny(e, http.StatusServiceUnavailable, surface.unavailableReason, true,
-			"Retry after the Techstack monitoring store is available.")
+			"Retry after the Homelab Runtime monitoring store is available.")
 		return nil, nil, controlplane.InventoryReadScope{}, false
 	}
 	readScope, err := app.authorize(ctx, scope, InventoryActionRead, controlplane.InventoryReadTargetServerCollection, "")
@@ -267,7 +267,7 @@ func (h inventoryHandlers) serveRuntimePorts(e *httpx.Event, ctx context.Context
 	app := h.ownerReadApplication()
 	if app.ports == nil {
 		_ = runtimePortsSurface.deny(e, http.StatusServiceUnavailable, runtimePortsSurface.unavailableReason, true,
-			"Retry after the Techstack port inventory is available.")
+			"Retry after the Homelab Runtime port inventory is available.")
 		return
 	}
 	readScope, err := app.authorize(ctx, scope, InventoryActionRead, controlplane.InventoryReadTargetServerCollection, "")

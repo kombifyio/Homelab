@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/appreleases"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/appreleases"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/jobs"
 )
 
 // Application updates of StackKits-managed applications (owner decision
@@ -100,7 +100,7 @@ func applyApplicationReleases(ctx context.Context, version *serviceVersion, serv
 	switch {
 	case offer == nil:
 		// Verified and nothing checked is newer: compared, with the installed
-		// version as the latest one Techstack offers.
+		// version as the latest one Homelab offers.
 		version.Latest, version.UpdateAvailable, version.UpdateMode = version.Current, false, updateModeUnavailable
 		version.ReasonCode = ""
 	case evaluation.SecurityFix == nil && facts.UpdateSetting == controlplane.StackKitsUpdateWithStackKitsReleases:

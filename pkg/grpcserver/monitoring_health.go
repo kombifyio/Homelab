@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/monitoring"
+	"github.com/kombifyio/homelab/pkg/monitoring"
 )
 
 type monitorIngestHealthTracker struct {

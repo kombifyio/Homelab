@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 )
 
 func (s *PostgresStore) UpsertTenant(ctx context.Context, tenant Tenant) (*Tenant, error) {
@@ -226,7 +226,7 @@ func (s *PostgresStore) UpsertMembership(ctx context.Context, membership Members
 				-- Metadata, so an unconditional EXCLUDED here blanked the
 				-- entitlements that the standalone sign-in (v2CloudUserUpsert) had
 				-- just stored -- and the entitlement gate for inventory reads that
-				-- membership, so opening Techstack inside Cloud revoked the
+				-- membership, so opening Homelab inside Cloud revoked the
 				-- account's own inventory access (owner report 2026-09-18).
 				metadata_json = CASE
 					WHEN EXCLUDED.metadata_json IS NULL

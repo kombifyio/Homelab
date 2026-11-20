@@ -4,15 +4,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
-	"github.com/kombifyio/techstack/pkg/agentcontrol"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/serviceauth"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/pkg/agentcontrol"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/serviceauth"
 )
 
 func RegisterHouseholdRelay(r *httpx.Router, hub *agentcontrol.Hub) {
 	handle := func(e *httpx.Event) error {
-		cfg, err := serviceauth.Apply(servicecall.Config{ServiceName: "techstack", Enabled: true, RequireEd25519: true,
+		cfg, err := serviceauth.Apply(servicecall.Config{ServiceName: "homelab", Enabled: true, RequireEd25519: true,
 			AllowedCallers: []string{agentcontrol.HouseholdRelayCaller}})
 		if err != nil || hub == nil {
 			http.Error(e.Response, "household relay unavailable", 503)

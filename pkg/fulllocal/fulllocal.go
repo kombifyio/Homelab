@@ -27,10 +27,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/dataprofile"
-	"github.com/kombifyio/techstack/internal/gocommon/edition"
+	"github.com/kombifyio/homelab/internal/gocommon/dataprofile"
+	"github.com/kombifyio/homelab/internal/gocommon/edition"
 
-	"github.com/kombifyio/techstack/pkg/config"
+	"github.com/kombifyio/homelab/pkg/config"
 )
 
 // ReasonCode names a Full Local refusal in logs, gates and denial envelopes.
@@ -99,9 +99,9 @@ func Profile() dataprofile.Profile {
 var hostedSettings = []string{
 	"KOMBIFY_API_KEY",
 	"KOMBIFY_ME_API_KEY",
-	"TECHSTACK_SAAS_BUILD_PROOF",
+	"HOMELAB_SAAS_BUILD_PROOF",
 	"CLOUDFLARE_KOMBIFY_ME_ORIGIN_CA_TOKEN",
-	"TECHSTACK_SELFHOSTED_CLOUD_LOGIN_TOKEN",
+	"HOMELAB_SELFHOSTED_CLOUD_LOGIN_TOKEN",
 	"CONTEXT_DEV_LOGOLINK_ID",
 	"PUBLIC_CONTEXT_DEV_LOGOLINK_ID",
 }
@@ -143,7 +143,7 @@ func Conflicts(getenv func(string) string) []string {
 }
 
 // OTLPTraceEndpoint resolves the HTTP trace destination with the SDK's signal
-// precedence. Techstack deliberately validates both configured URLs more
+// precedence. Homelab deliberately validates both configured URLs more
 // strictly than the SDK, including overridden values: malformed input must not
 // be logged or replaced by SDK defaults, and credentials/queries are rejected.
 // Locality applies only to the effective destination. Boot and telemetry share

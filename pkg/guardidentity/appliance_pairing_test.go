@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/pairingtoken"
+	"github.com/kombifyio/homelab/pkg/pairingtoken"
 )
 
 func TestAppliancePairingUsesAccountAuthorityAndCurrentCapability(t *testing.T) {

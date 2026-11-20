@@ -117,7 +117,7 @@ type forwardPostureCatalog struct {
 // migration connection. No relation payload, key row, password or SQL message is
 // selected. The forward ledger is requalified in this same read-only snapshot.
 func (db *DB) InspectStageForwardPosture(ctx context.Context, batch []ForwardMigrationArtifact, expected ForwardBatchState) (ForwardPosture, error) {
-	proof := ForwardPosture{Schema: "techstack.forward-inspect-posture/v1", Status: "unavailable", Phase: "begin", AppliedPrefix: expected.AppliedPrefix}
+	proof := ForwardPosture{Schema: "homelab.forward-inspect-posture/v1", Status: "unavailable", Phase: "begin", AppliedPrefix: expected.AppliedPrefix}
 	if err := requireForwardPostureContext(); err != nil {
 		return proof, err
 	}
@@ -173,7 +173,7 @@ func (db *DB) InspectStageForwardPosture(ctx context.Context, batch []ForwardMig
 func requireForwardPostureContext() error {
 	pin, pinned, err := ExpectedDatabaseIdentityFromEnv()
 	if err != nil || !pinned || pin.DatabaseName != "kombify_runtime" || pin.SystemIdentifier != "7699436836349883199" ||
-		os.Getenv("TECHSTACK_DATABASE_CONTEXT") != "stage-development" || os.Getenv(EnvDatabaseMigrationMode) != "verify" || os.Getenv(EnvAllowDBGenesis) != "false" {
+		os.Getenv("HOMELAB_DATABASE_CONTEXT") != "stage-development" || os.Getenv(EnvDatabaseMigrationMode) != "verify" || os.Getenv(EnvAllowDBGenesis) != "false" {
 		return errors.New("forward posture requires the fixed read-only Stage context")
 	}
 	return nil

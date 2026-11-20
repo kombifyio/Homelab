@@ -13,7 +13,7 @@ export interface RuntimeInventoryExpectation {
   server: {
     // The declared Runtime Inventory id of the protected local server.
     targetId: string;
-    // The product server id: TECHSTACK_RUNTIME_E2E_INVENTORY_SERVER_ID, else
+    // The product server id: HOMELAB_RUNTIME_E2E_INVENTORY_SERVER_ID, else
     // the one server the owner's inventory holds.
     id: string | null;
     domain: string;
@@ -66,20 +66,20 @@ const localBasementServices: RuntimeInventoryServiceExpectation[] = [
 export function runtimeInventoryExpectation(
   env: Record<string, string | undefined> = process.env,
 ): RuntimeInventoryExpectation | null {
-  const profile = clean(env.TECHSTACK_RUNTIME_E2E_INVENTORY_PROFILE);
+  const profile = clean(env.HOMELAB_RUNTIME_E2E_INVENTORY_PROFILE);
   if (!profile) return null;
   if (profile !== LOCAL_DEMO_ANCHOR_PROFILE) {
     throw new Error(
-      `Unsupported TECHSTACK_RUNTIME_E2E_INVENTORY_PROFILE ${profile}; expected ${LOCAL_DEMO_ANCHOR_PROFILE}.`,
+      `Unsupported HOMELAB_RUNTIME_E2E_INVENTORY_PROFILE ${profile}; expected ${LOCAL_DEMO_ANCHOR_PROFILE}.`,
     );
   }
   return {
     profile: LOCAL_DEMO_ANCHOR_PROFILE,
     server: {
       targetId: "esprimo-local-demo-anchor",
-      id: clean(env.TECHSTACK_RUNTIME_E2E_INVENTORY_SERVER_ID) || null,
+      id: clean(env.HOMELAB_RUNTIME_E2E_INVENTORY_SERVER_ID) || null,
       domain: "home",
-      os: clean(env.TECHSTACK_RUNTIME_E2E_EXPECTED_OS) || "ubuntu",
+      os: clean(env.HOMELAB_RUNTIME_E2E_EXPECTED_OS) || "ubuntu",
       stackkit: "basement-kit",
       version: "5.0.0",
       variant: "bootstrapped",

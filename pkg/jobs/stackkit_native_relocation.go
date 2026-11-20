@@ -16,10 +16,10 @@ import (
 
 	wire "github.com/kombifyio/stackkits/contracts/advancedcapability"
 
-	"github.com/kombifyio/techstack/internal/advancedissuer"
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/advancedissuer"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // Workload relocation engines. The Coolify engine moves PaaS projects with
@@ -190,7 +190,7 @@ func runNativeWorkloadRelocation(ctx context.Context, cfg StackKitLifecycleConfi
 		"release_version": release.Receipt().Version, "release_archive_sha256": release.Receipt().ArchiveSHA256,
 	}
 	m.summary = map[string]interface{}{
-		"schema_version": "techstack.workload-relocation-result/v1", WorkloadRelocationResultField: m.outcome,
+		"schema_version": "homelab.workload-relocation-result/v1", WorkloadRelocationResultField: m.outcome,
 		"relocation_request_sha256": job.Snapshot().Result["relocation_request_sha256"],
 	}
 	// The pinned release must list the configuration projection and this

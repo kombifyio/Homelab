@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/kombifyio/techstack/pkg/ril/actioncontract"
+	"github.com/kombifyio/homelab/pkg/ril/actioncontract"
 )
 
 const RILOperationReceiptKey = "ril_operation_receipt"
@@ -103,7 +103,7 @@ func RILStackKitOperationJobID(tenant, owner, card, activityKey string) string {
 func rilStackKitIntentDigest(req StackKitLifecycleRequest) (string, error) {
 	req.RILOperation, req.DurableJobID, req.ServiceActionDigest = nil, "", ""
 	intent, err := json.Marshal(struct {
-		StackID string         `json:"techstack_id"`
+		StackID string         `json:"kit_deployment_id"`
 		Payload map[string]any `json:"lifecycle_payload"`
 	}{req.StackID, StackKitLifecyclePayload(req)})
 	if err != nil {
@@ -133,8 +133,8 @@ func RILStackKitOperationReceipt(req StackKitLifecycleRequest) map[string]any {
 	data, _ := json.Marshal(req.RILOperation)
 	var out map[string]any
 	_ = json.Unmarshal(data, &out)
-	out["schema_version"] = "techstack.ril-lifecycle-receipt/v1"
-	out["tenant_id"], out["owner_id"], out["techstack_id"] = req.TenantID, req.OwnerID, req.StackID
+	out["schema_version"] = "homelab.ril-lifecycle-receipt/v1"
+	out["tenant_id"], out["owner_id"], out["kit_deployment_id"] = req.TenantID, req.OwnerID, req.StackID
 	out["agent_id"], out["operation"] = req.AgentID, req.Operation
 	return out
 }

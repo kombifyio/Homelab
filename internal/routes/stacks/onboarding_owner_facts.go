@@ -5,17 +5,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
-	"github.com/kombifyio/techstack/internal/onboarding"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/serviceauth"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/internal/onboarding"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/serviceauth"
 )
 
 const (
-	ownerFactsAuthority      = "techstack"
+	ownerFactsAuthority      = "homelab"
 	ownerFactsCallerCloud    = "cloud"
 	ownerFactsFreshness      = 5 * time.Minute
-	ownerFactsErrorPrefix    = "techstack.onboarding_facts."
+	ownerFactsErrorPrefix    = "homelab.onboarding_facts."
 	ownerFactsUnavailable    = "owner_facts_unavailable"
 	ownerFactsInvalidSurface = "owner_facts_surface_invalid"
 )
@@ -35,7 +35,7 @@ type ownerFactsSnapshot struct {
 func (h onboardingHandlers) getOwnerFacts(e *httpx.Event) error {
 	if !serviceauth.CanVerify(h.serviceAuthSecret) {
 		return writeOwnerFactsDenial(e, http.StatusServiceUnavailable, ownerFactsUnavailable, true,
-			"Retry after Techstack service authentication is configured.")
+			"Retry after Homelab Runtime service authentication is configured.")
 	}
 
 	authCfg, err := serviceauth.Apply(servicecall.Config{
@@ -47,7 +47,7 @@ func (h onboardingHandlers) getOwnerFacts(e *httpx.Event) error {
 	})
 	if err != nil {
 		return writeOwnerFactsDenial(e, http.StatusServiceUnavailable, ownerFactsUnavailable, true,
-			"Retry after Techstack service authentication is configured.")
+			"Retry after Homelab Runtime service authentication is configured.")
 	}
 	auth := servicecall.RequireServiceAuth(authCfg)
 	auth(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
@@ -62,17 +62,17 @@ func (h onboardingHandlers) serveOwnerFacts(e *httpx.Event) {
 	if caller == nil || caller.Service != ownerFactsCallerCloud || caller.OnBehalfOf == nil ||
 		strings.TrimSpace(caller.OnBehalfOf.Sub) == "" || strings.TrimSpace(caller.OnBehalfOf.OrgID) == "" {
 		_ = writeOwnerFactsDenial(e, http.StatusForbidden, "tenant_context_required", false,
-			"Open Techstack from the authenticated Kombify Cloud organization and retry.")
+			"Open Homelab Runtime from the authenticated Kombify Cloud organization and retry.")
 		return
 	}
 	if e.Request.URL.RawQuery != "" || e.Request.ContentLength != 0 {
 		_ = writeOwnerFactsDenial(e, http.StatusForbidden, "principal_injection_denied", false,
-			"Do not send principal fields; Techstack derives them from the signed Cloud service identity.")
+			"Do not send principal fields; Homelab Runtime derives them from the signed Cloud service identity.")
 		return
 	}
 	if strings.TrimSpace(e.Request.PathValue("authority")) != ownerFactsAuthority {
 		_ = writeOwnerFactsDenial(e, http.StatusNotFound, ownerFactsInvalidSurface, false,
-			"Request the Techstack authority snapshot from this endpoint.")
+			"Request the Homelab Runtime authority snapshot from this endpoint.")
 		return
 	}
 
@@ -84,7 +84,7 @@ func (h onboardingHandlers) serveOwnerFacts(e *httpx.Event) {
 	)
 	if len(resolution.Facts) == 0 && len(resolution.UnavailablePredicates) > 0 {
 		_ = writeOwnerFactsDenial(e, http.StatusServiceUnavailable, ownerFactsUnavailable, true,
-			"Retry after the Techstack onboarding fact authority recovers.")
+			"Retry after the Homelab Runtime onboarding fact authority recovers.")
 		return
 	}
 
@@ -128,7 +128,7 @@ func writeOwnerFactsDenial(e *httpx.Event, status int, reasonCode string, retrya
 		"retryable":         retryable,
 		"user_guidance": map[string]any{
 			"title":      "Onboarding facts unavailable",
-			"body":       "Techstack could not resolve this onboarding snapshot safely.",
+			"body":       "Homelab Runtime could not resolve this onboarding snapshot safely.",
 			"next_steps": []string{nextStep},
 		},
 	})

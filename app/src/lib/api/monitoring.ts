@@ -1,5 +1,5 @@
 /**
- * kombify-TechStack API - Monitoring Module
+ * kombify-Homelab API - Monitoring Module
  *
  * Client for the Monitoring 2.0 PromQL query API, metric enumeration,
  * TSDB status, and alert endpoints.

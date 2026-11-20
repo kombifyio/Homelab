@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
-// The Loxone import is the typed Techstack side of the catalog operation
+// The Loxone import is the typed Homelab side of the catalog operation
 // application.home-graph.loxone-import. The node reads the Miniserver
 // structure file read-only with the Miniserver credential it keeps in its own
 // workspace (the dispatch never carries it) and answers the home graph merged

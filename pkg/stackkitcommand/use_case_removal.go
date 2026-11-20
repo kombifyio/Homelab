@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 type UseCaseRemovalKind string

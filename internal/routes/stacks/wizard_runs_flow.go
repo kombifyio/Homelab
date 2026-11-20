@@ -17,18 +17,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	"github.com/kombifyio/techstack/internal/routes/trust"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/core"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/logger"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
-	"github.com/kombifyio/techstack/pkg/orchestrator"
-	"github.com/kombifyio/techstack/pkg/specv2"
-	"github.com/kombifyio/techstack/pkg/unifier"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	"github.com/kombifyio/homelab/internal/routes/trust"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/pkg/orchestrator"
+	"github.com/kombifyio/homelab/pkg/specv2"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 // runWizardFound creates a new kit deployment: seed -> project -> validate
@@ -317,7 +317,7 @@ func (h wizardRunHandlers) projectFoundSpec(e *httpx.Event, run *wizardRunState)
 			"Kit seed templates are not configured", wizardRunDetails(
 				"wizard_seed_templates_unavailable", true,
 				"Server missing seed templates",
-				"The server has no TECHSTACK_STACKKIT_SPEC_TEMPLATES configured; wizard runs cannot project a kit spec.",
+				"The server has no HOMELAB_STACKKIT_SPEC_TEMPLATES configured; wizard runs cannot project a kit spec.",
 			))
 		return nil, true
 	}
@@ -954,7 +954,7 @@ func (h wizardRunHandlers) seedWizardJoinBase(e *httpx.Event, run *wizardRunStat
 			"Kit seed templates are not configured", wizardRunDetails(
 				"wizard_seed_templates_unavailable", true,
 				"Server missing seed templates",
-				"The server has no TECHSTACK_STACKKIT_SPEC_TEMPLATES configured; wizard runs cannot project a kit spec.",
+				"The server has no HOMELAB_STACKKIT_SPEC_TEMPLATES configured; wizard runs cannot project a kit spec.",
 			))
 		return nil, false, true
 	}

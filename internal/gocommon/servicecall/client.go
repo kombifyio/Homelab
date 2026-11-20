@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/identity"
-	"github.com/kombifyio/techstack/internal/gocommon/internal/httpsecurity"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
+	"github.com/kombifyio/homelab/internal/gocommon/internal/httpsecurity"
 )
 
 // Client is an HTTP client that attaches service-call tokens to outbound

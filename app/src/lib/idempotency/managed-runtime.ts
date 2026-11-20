@@ -3,9 +3,9 @@ import type {
   StackKitRestoreBinding,
 } from "#lib/api/stacks.js";
 
-const RECORD_VERSION = "techstack/add-managed-runtime-browser-key/v1";
+const RECORD_VERSION = "homelab/add-managed-runtime-browser-key/v1";
 const STORAGE_PREFIX = "creating:add-server:";
-const STACK_ACTION_STORAGE_PREFIX = "techstack:stack-action:v1:";
+const STACK_ACTION_STORAGE_PREFIX = "homelab:stack-action:v1:";
 
 export interface CanonicalManagedRuntimeIntent {
   stack_id: string;
@@ -339,7 +339,7 @@ export interface RestoreActivationBrowserScope {
 }
 
 export interface RestoreActivationBrowserIntent extends RestoreActivationBrowserScope {
-  version: "techstack/restore-activation-browser-intent/v1";
+  version: "homelab/restore-activation-browser-intent/v1";
   key: string;
   binding: StackKitRestoreBinding;
   jobId?: string;
@@ -374,7 +374,7 @@ export function readRestoreActivationIntent(
     typeof candidate === "string" && /^sha256:[a-f0-9]{64}$/.test(candidate);
   if (
     !value ||
-    value.version !== "techstack/restore-activation-browser-intent/v1" ||
+    value.version !== "homelab/restore-activation-browser-intent/v1" ||
     !validOpaqueKey(value.key) ||
     value.key.length > 128 ||
     value.actorId !== scope.actorId ||
@@ -408,7 +408,7 @@ export function retainRestoreActivationIntent(
     );
   const value: RestoreActivationBrowserIntent = {
     ...scope,
-    version: "techstack/restore-activation-browser-intent/v1",
+    version: "homelab/restore-activation-browser-intent/v1",
     key: browserGeneratedKey(),
     binding: { ...binding },
   };

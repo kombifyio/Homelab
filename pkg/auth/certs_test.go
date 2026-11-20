@@ -44,7 +44,7 @@ func TestNewCertManager_CreatesNewCA(t *testing.T) {
 	if !cm.caCert.IsCA {
 		t.Error("Certificate is not marked as CA")
 	}
-	if cm.caCert.Subject.CommonName != "kombifyTechstack Root CA" {
+	if cm.caCert.Subject.CommonName != "kombifyHomelab Root CA" {
 		t.Errorf("Unexpected CA CommonName: %s", cm.caCert.Subject.CommonName)
 	}
 }

@@ -1,4 +1,4 @@
-// Package serviceregistry defines Techstack's tenant-scoped service state
+// Package serviceregistry defines Homelab's tenant-scoped service state
 // vocabulary.
 //
 // # Authority

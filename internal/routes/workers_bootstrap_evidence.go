@@ -4,7 +4,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/kombifyio/techstack/internal/guardbootstrap"
+	"github.com/kombifyio/homelab/internal/guardbootstrap"
 )
 
 const bootstrapDigestPrefix = "sha256:"

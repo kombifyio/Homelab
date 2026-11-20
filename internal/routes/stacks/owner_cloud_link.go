@@ -2,7 +2,7 @@ package stacks
 
 import (
 	"context"
-	"github.com/kombifyio/techstack/internal/routes/auth"
+	"github.com/kombifyio/homelab/internal/routes/auth"
 	"strings"
 )
 

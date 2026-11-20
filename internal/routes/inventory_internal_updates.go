@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/appreleases"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/guardposture"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/appreleases"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/guardposture"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // ---------------------------------------------------------------------------
@@ -21,7 +21,7 @@ import (
 // collection policy. It is a projection only: the operating-system facts come
 // from the security evidence the node's Guard already reports (the same
 // guardposture derivation the server read model uses), and the service facts
-// from the same version comparison the services view uses. Techstack adds no
+// from the same version comparison the services view uses. Homelab adds no
 // custody and runs nothing on the node to answer it.
 //
 // What is absent stays absent: an OS fact the evidence does not state is
@@ -34,8 +34,8 @@ const (
 )
 
 var runtimeUpdatesSurface = cloudReadSurface{
-	errorPrefix: "techstack.runtime_updates.", unavailableReason: "runtime_updates_unavailable",
-	title: "Runtime updates unavailable", body: "Techstack could not resolve these update facts safely.",
+	errorPrefix: "homelab.runtime_updates.", unavailableReason: "runtime_updates_unavailable",
+	title: "Runtime updates unavailable", body: "Homelab Runtime could not resolve these update facts safely.",
 }
 
 type runtimeUpdatesOS struct {

@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/jobs"
 )
 
 const (
@@ -66,7 +66,7 @@ func (o *Orchestrator) syncStackKitRuntimeInventoryFromJobSnapshot(tenantID stri
 	if o.registry == nil || job.Result == nil || strings.TrimSpace(tenantID) == "" {
 		return nil
 	}
-	instanceID, err := o.techstackInstanceIDForInventory(tenantID, job.TargetID)
+	instanceID, err := o.homelabInstanceIDForInventory(tenantID, job.TargetID)
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func (o *Orchestrator) syncStackKitRuntimeInventoryFromJobSnapshot(tenantID stri
 	})
 }
 
-func (o *Orchestrator) techstackInstanceIDForInventory(tenantID, stackID string) (string, error) {
+func (o *Orchestrator) homelabInstanceIDForInventory(tenantID, stackID string) (string, error) {
 	tenantID = strings.TrimSpace(tenantID)
 	stackID = strings.TrimSpace(stackID)
 	if tenantID == "" || stackID == "" {
@@ -101,7 +101,7 @@ func (o *Orchestrator) techstackInstanceIDForInventory(tenantID, stackID string)
 	}
 	stack, err := store.GetStack(o.ctx, tenantID, stackID)
 	if err != nil {
-		return "", fmt.Errorf("load Techstack instance identity for inventory: %w", err)
+		return "", fmt.Errorf("load Homelab Runtime instance identity for inventory: %w", err)
 	}
 	return strings.TrimSpace(stack.InstanceID), nil
 }

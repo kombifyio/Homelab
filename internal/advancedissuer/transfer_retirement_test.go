@@ -16,7 +16,7 @@ func TestTransferRetirementIssuanceRetainsExactScopeAndRejectsWidening(t *testin
 	}
 	now := time.Date(2026, 10, 23, 22, 0, 0, 0, time.UTC)
 	recorder := &memoryRecorder{}
-	issuer, err := New(Config{IssuerID: "techstack", PrivateKey: key, Recorder: recorder, Now: func() time.Time { return now }})
+	issuer, err := New(Config{IssuerID: "homelab", PrivateKey: key, Recorder: recorder, Now: func() time.Time { return now }})
 	if err != nil {
 		t.Fatal(err)
 	}

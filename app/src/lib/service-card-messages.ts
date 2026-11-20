@@ -77,7 +77,7 @@ export const serviceCardMessages = {
     "ui.serviceCards.appUpdate.rollbackFailed":
       "The update failed and the return to {from} did not finish. Open the logs; the application needs you.",
     "ui.serviceCards.appUpdate.refused": "Not updated ({reason}).",
-    "ui.serviceCards.appUpdate.unresolved": "Techstack lost the answer of the update to {to}. Check which version runs; the application may need you.",
+    "ui.serviceCards.appUpdate.unresolved": "Homelab Runtime lost the answer of the update to {to}. Check which version runs; the application may need you.",
     "ui.serviceCards.confirmFanout":
       "Approve the governed {action} of {name}? It runs on {count} components behind this single approval, and a StackKits verify pass follows before measured state changes.",
     "ui.serviceCards.ownershipMixed": "Partly configured",
@@ -205,7 +205,7 @@ export const serviceCardMessages = {
     "ui.serviceCards.appUpdate.rollbackFailed":
       "Das Update ist fehlgeschlagen und die Rückkehr zu {from} wurde nicht abgeschlossen. Öffne die Logs; die Anwendung braucht dich.",
     "ui.serviceCards.appUpdate.refused": "Nicht aktualisiert ({reason}).",
-    "ui.serviceCards.appUpdate.unresolved": "Techstack hat die Antwort des Updates auf {to} verloren. Prüfe, welche Version läuft; die Anwendung braucht dich vielleicht.",
+    "ui.serviceCards.appUpdate.unresolved": "Homelab Runtime hat die Antwort des Updates auf {to} verloren. Prüfe, welche Version läuft; die Anwendung braucht dich vielleicht.",
     "ui.serviceCards.confirmFanout":
       "Die gesteuerte Aktion „{action}“ für {name} freigeben? Sie läuft mit dieser einen Freigabe auf {count} Komponenten, danach folgt ein StackKits-Verifizierungsdurchlauf, bevor sich der gemessene Zustand ändert.",
     "ui.serviceCards.ownershipMixed": "Teilweise konfiguriert",
@@ -333,7 +333,7 @@ export const serviceCardMessages = {
     "ui.serviceCards.appUpdate.rollbackFailed":
       "La actualización falló y la vuelta a {from} no terminó. Abre los registros; la aplicación te necesita.",
     "ui.serviceCards.appUpdate.refused": "No actualizada ({reason}).",
-    "ui.serviceCards.appUpdate.unresolved": "Techstack perdió la respuesta de la actualización a {to}. Comprueba qué versión se ejecuta; la aplicación puede necesitarte.",
+    "ui.serviceCards.appUpdate.unresolved": "Homelab Runtime perdió la respuesta de la actualización a {to}. Comprueba qué versión se ejecuta; la aplicación puede necesitarte.",
     "ui.serviceCards.confirmFanout":
       "¿Aprobar la acción gobernada «{action}» de {name}? Se ejecuta en {count} componentes con esta única aprobación y después sigue una verificación de StackKits antes de que cambie el estado medido.",
     "ui.serviceCards.ownershipMixed": "Configurada en parte",
@@ -460,7 +460,7 @@ export const serviceCardMessages = {
     "ui.serviceCards.appUpdate.rolledBack": "{to} 未能正常启动。已带着数据回到 {from}。",
     "ui.serviceCards.appUpdate.rollbackFailed": "更新失败，且回到 {from} 未完成。请打开日志；此应用需要你处理。",
     "ui.serviceCards.appUpdate.refused": "未更新（{reason}）。",
-    "ui.serviceCards.appUpdate.unresolved": "Techstack 丢失了更新到 {to} 的结果。请检查正在运行的版本；此应用可能需要你处理。",
+    "ui.serviceCards.appUpdate.unresolved": "Homelab Runtime 丢失了更新到 {to} 的结果。请检查正在运行的版本；此应用可能需要你处理。",
     "ui.serviceCards.confirmFanout":
       "批准对 {name} 执行受控的“{action}”？该操作将凭这一次批准在 {count} 个组件上运行，并在测得状态变化前进行 StackKits 验证。",
     "ui.serviceCards.ownershipMixed": "部分已配置",
@@ -581,7 +581,7 @@ export const serviceCardMessages = {
     "ui.serviceCards.appUpdate.rollbackFailed":
       "अपडेट विफल रहा और {from} पर वापसी पूरी नहीं हुई। लॉग खोलें; ऐप्लिकेशन को आपकी ज़रूरत है।",
     "ui.serviceCards.appUpdate.refused": "अपडेट नहीं हुआ ({reason})।",
-    "ui.serviceCards.appUpdate.unresolved": "Techstack को {to} पर अपडेट का उत्तर नहीं मिला। देखें कि कौन-सा संस्करण चल रहा है; ऐप्लिकेशन को आपकी ज़रूरत हो सकती है।",
+    "ui.serviceCards.appUpdate.unresolved": "Homelab Runtime को {to} पर अपडेट का उत्तर नहीं मिला। देखें कि कौन-सा संस्करण चल रहा है; ऐप्लिकेशन को आपकी ज़रूरत हो सकती है।",
     "ui.serviceCards.confirmFanout":
       "{name} के लिए नियंत्रित “{action}” स्वीकृत करें? यह इसी एक स्वीकृति से {count} घटकों पर चलता है, और मापी गई स्थिति बदलने से पहले StackKits सत्यापन होता है।",
     "ui.serviceCards.ownershipMixed": "आंशिक रूप से कॉन्फ़िगर",
@@ -708,7 +708,7 @@ export const serviceCardMessages = {
     "ui.serviceCards.appUpdate.rollbackFailed":
       "فشل التحديث ولم تكتمل العودة إلى {from}. افتح السجلات؛ التطبيق يحتاج إليك.",
     "ui.serviceCards.appUpdate.refused": "لم يتم التحديث ({reason}).",
-    "ui.serviceCards.appUpdate.unresolved": "فقدت Techstack نتيجة التحديث إلى {to}. تحقق من الإصدار الذي يعمل؛ قد يحتاج التطبيق إليك.",
+    "ui.serviceCards.appUpdate.unresolved": "فقدت Homelab Runtime نتيجة التحديث إلى {to}. تحقق من الإصدار الذي يعمل؛ قد يحتاج التطبيق إليك.",
     "ui.serviceCards.confirmFanout":
       "هل توافق على الإجراء المحكوم «{action}» لـ {name}؟ يُنفَّذ على {count} من المكوّنات بهذه الموافقة الواحدة، ثم يتبعه تحقق من StackKits قبل أن تتغير الحالة المقيسة.",
     "ui.serviceCards.ownershipMixed": "مهيأ جزئيًا",

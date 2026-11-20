@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/logger"
 )
 
 type Credential struct {
@@ -33,8 +33,8 @@ func ValidateCustody(mode config.DeploymentMode, log *logger.Logger) error {
 	}
 	if log != nil {
 		log.Warn("wallet_encryption_disabled",
-			"message", "Wallet secret writes will fail closed until TECHSTACK_ENCRYPTION_KEY is set",
-			"recommendation", "Set TECHSTACK_ENCRYPTION_KEY to a 32-byte key; plaintext secrets are never stored",
+			"message", "Wallet secret writes will fail closed until HOMELAB_ENCRYPTION_KEY is set",
+			"recommendation", "Set HOMELAB_ENCRYPTION_KEY to a 32-byte key; plaintext secrets are never stored",
 		)
 	}
 	return nil

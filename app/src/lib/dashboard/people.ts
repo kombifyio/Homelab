@@ -250,7 +250,7 @@ const OWNER_STATUS: Record<string, string> = {
 /**
  * Fold the per-deployment identity reads into owner + household. The owner
  * (the signed-in account) and the people planned in the Wizard are
- * Techstack's own records and always show; only live sign-in status and
+ * Homelab's own records and always show; only live sign-in status and
  * invited members need the homelab. A read that failed, or a Guard snapshot
  * the backend marks `identity_status_failed`, adds a notice instead of
  * passing for an empty household.

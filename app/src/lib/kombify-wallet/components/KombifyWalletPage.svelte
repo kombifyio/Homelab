@@ -1,6 +1,6 @@
 <script lang="ts">
   /**
-   * The Wallet page of hosted Techstack: the person's kombify Wallet, drawn
+   * The Wallet page of hosted Homelab: the person's kombify Wallet, drawn
    * with the Brand entity cards like the other homelab pages. The size switch
    * is presentation only and is remembered in this browser.
    */
@@ -13,7 +13,7 @@
 
   let { inlineTabs = false }: { inlineTabs?: boolean } = $props();
 
-  const VIEW_KEY = "techstack.wallet.view";
+  const VIEW_KEY = "homelab.wallet.view";
   const VIEWS: EntityCardSize[] = ["mark", "tile", "row", "card"];
   let view = $state<EntityCardSize>("row");
 

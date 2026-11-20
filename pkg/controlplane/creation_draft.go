@@ -13,7 +13,7 @@ import (
 // CreationDraft is where one owner stands in one creation process
 // (KOMBIFY-DESIGN-SYSTEM-STANDARD.md section 9): the current and furthest
 // step and the non-secret answers. Every frame of the creation flow reads it,
-// so a creation started in the Cloud popup continues on the Techstack page or
+// so a creation started in the Cloud popup continues on the Homelab page or
 // on another device. It ends on an accepted create, an explicit discard or
 // its expiry.
 type CreationDraft struct {

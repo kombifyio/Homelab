@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  kombify Homelab Runtime Windows client MSI.
+
+  This package is intentionally built from the exact Windows client stage
+  produced by scripts/package-windows-client.ps1. The stage contains the
+  WinForms/WebView2 shell, the embedded Homelab Runtime and its portable
+  helper scripts. User state is not inside INSTALLFOLDER; it lives below
+  %LOCALAPPDATA%\kombify and is therefore retained by major upgrades and
+  uninstall.
+
+  The UpgradeCode is permanent. Do not regenerate it for a new release.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:fire="http://wixtoolset.org/schemas/v4/wxs/firewall">
+  <Package
+    Name="Homelab Runtime Desktop Client $(var.DesktopEditionName)"
+    Manufacturer="kombify"
+    Version="$(var.HomelabVersion)"
+    UpgradeCode="$(var.MsiUpgradeCode)"
+    ProductCode="*"
+    Language="1033"
+    Codepage="1252"
+    Scope="perMachine"
+    InstallerVersion="500">
+
+    <SummaryInformation Description="Homelab Runtime Desktop Client" />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+    <MajorUpgrade
+      DowngradeErrorMessage="A newer version of Homelab Runtime is already installed."
+      Schedule="afterInstallInitialize" />
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="KombifyDir" Name="kombify">
+        <Directory Id="INSTALLFOLDER" Name="$(var.InstallDirectoryName)">
+<?if $(var.DesktopEdition) = Local ?>
+          <Component Id="PrivateLANFirewall" Guid="*">
+            <RegistryValue
+              Root="HKLM"
+              Key="Software\kombify\Homelab"
+              Name="PrivateLANFirewall"
+              Type="integer"
+              Value="1"
+              KeyPath="yes" />
+            <fire:FirewallException
+              Id="PrivateLANEnrollmentFirewall"
+              Name="kombify Homelab Runtime private LAN enrollment"
+              Description="Allow the explicitly enabled Homelab Runtime enrollment listener from the local subnet."
+              Port="5264"
+              Protocol="tcp"
+              Profile="private"
+              Scope="localSubnet" />
+          </Component>
+<?endif?>
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="StartMenuDir" Name="kombify">
+        <Component Id="StartMenuShortcut" Guid="*">
+          <Shortcut
+            Id="HomelabClientShortcut"
+            Name="Homelab Runtime Desktop Client"
+            Description="Open Homelab Runtime"
+            Target="[INSTALLFOLDER]kombify-homelab-client.exe"
+            WorkingDirectory="INSTALLFOLDER"
+            Icon="HomelabIcon" />
+          <RegistryValue
+            Root="HKLM"
+            Key="Software\kombify\Homelab\$(var.DesktopEdition)"
+            Name="StartMenuInstalled"
+            Type="integer"
+            Value="1"
+            KeyPath="yes" />
+          <RemoveFolder Id="RemoveStartMenuDir" Directory="StartMenuDir" On="uninstall" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <Icon Id="HomelabIcon" SourceFile="$(var.StageDir)\Assets\kombify-navy.ico" />
+    <Property Id="ARPPRODUCTICON" Value="HomelabIcon" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/kombifyio/Homelab" />
+
+    <Feature Id="ProductFeature" Title="Homelab Runtime" Level="1">
+      <ComponentGroupRef Id="StageFiles" />
+      <ComponentRef Id="StartMenuShortcut" />
+<?if $(var.DesktopEdition) = Local ?>
+      <ComponentRef Id="PrivateLANFirewall" />
+<?endif?>
+    </Feature>
+  </Package>
+
+</Wix>

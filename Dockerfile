@@ -21,17 +21,17 @@ COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY . .
 COPY --from=frontend /build/app/build-static ./internal/frontend/dist
-ARG TECHSTACK_PRODUCT_VERSION=""
+ARG HOMELAB_PRODUCT_VERSION=""
 ARG GIT_COMMIT=""
 RUN set -eu; \
-    version="${TECHSTACK_PRODUCT_VERSION:-$(tr -d '[:space:]' < VERSION)}"; \
+    version="${HOMELAB_PRODUCT_VERSION:-$(tr -d '[:space:]' < VERSION)}"; \
     printf '%s' "$version" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; \
     revision="${GIT_COMMIT:-dev}"; \
     if [ "$revision" != dev ]; then printf '%s' "$revision" | grep -Eq '^[0-9a-f]{40}$'; fi; \
     CGO_ENABLED=0 GOOS=linux go build -buildvcs=false -trimpath \
-      -tags techstack_static_ui \
+      -tags homelab_static_ui \
       -ldflags="-s -w -X main.version=${version} -X main.buildRevision=${revision}" \
-      -o /out/techstack ./cmd/techstack; \
+      -o /out/homelab ./cmd/homelab; \
     CGO_ENABLED=0 go build -mod=readonly -buildvcs=false -trimpath \
       -o /out/guard-release-tool ./cmd/guard-release-tool
 
@@ -45,25 +45,25 @@ COPY --from=backend /out/guard-release-tool /usr/local/bin/guard-release-tool
 COPY scripts/new-linux-stackkit-spec-templates.sh ./scripts/new-linux-stackkit-spec-templates.sh
 COPY docs/examples/seeds ./docs/examples/seeds
 COPY Dockerfile ./Dockerfile
-ARG STACKKIT_RELEASE_TAG="v0.58.0"
+ARG STACKKIT_RELEASE_TAG="v0.59.2"
 ARG STACKKIT_RELEASE_KIT="cloud-kit"
 ARG STACKKIT_RELEASE_BOOTSTRAP_KIT="basement-kit"
 ARG STACKKIT_RELEASE_REPO="kombifyio/StackKits"
-ARG STACKKIT_RELEASE_ARCHIVE_SHA256="6ff4b3efa1f1c2c975f596c7542a97e31cc2fc8ff14709fa18a8eec7b8150b80"
-ARG STACKKIT_RELEASE_INDEX_SHA256="9add10fa4b93dd93e30ee63ce734fd299ef6c2a17383cba65df3d2ecd33c178c"
-ARG STACKKIT_RELEASE_COMPATIBILITY_SHA256="22fa1c78549ebeed0b199e3aabb44c9d2cd084e2ed970cd604d09e72d91442a2"
-ARG STACKKIT_RELEASE_USE_CASE_CATALOG_SHA256="d0e0ec6ece3e5cd3c4ad609eaf9b8e98dfa7a15b97b012e010e5b3bdcd887b36"
+ARG STACKKIT_RELEASE_ARCHIVE_SHA256="16295a163596b165a460defe8b5b6f0f4447e3039514e0bae6779357ccb2104e"
+ARG STACKKIT_RELEASE_INDEX_SHA256="8fbd05eae691f0e93744467549da56ba682b7b381afe67fde6d0c7ee35c7b687"
+ARG STACKKIT_RELEASE_COMPATIBILITY_SHA256="2f1972e2a432ffa052b699370bd6097e8b184a247592bf331d0650751c0c90ff"
+ARG STACKKIT_RELEASE_USE_CASE_CATALOG_SHA256="34ad5102b809b6660baeb5a846802bc0ecfd0b78ad4b04ca72980e876ff5e7a2"
 ARG GIT_COMMIT=""
-ARG TECHSTACK_PRODUCT_VERSION=""
+ARG HOMELAB_PRODUCT_VERSION=""
 RUN set -eu; \
-    version="${TECHSTACK_PRODUCT_VERSION:-$(tr -d '[:space:]' < VERSION)}"; \
+    version="${HOMELAB_PRODUCT_VERSION:-$(tr -d '[:space:]' < VERSION)}"; \
     test "$version" = "$(tr -d '[:space:]' < VERSION)"; \
     printf '%s' "$GIT_COMMIT" | grep -Eq '^[0-9a-f]{40}$'; \
-    base="https://github.com/kombifyio/TechStack/releases/download/guard-v${version}"; \
+    base="https://github.com/kombifyio/Homelab/releases/download/guard-v${version}"; \
     mkdir -p /app/guard-release; \
     for asset in release-manifest.json release-manifest.sigstore.json \
-      techstack-linux-amd64 techstack-linux-amd64.sigstore.json \
-      techstack-linux-arm64 techstack-linux-arm64.sigstore.json \
+      homelab-linux-amd64 homelab-linux-amd64.sigstore.json \
+      homelab-linux-arm64 homelab-linux-arm64.sigstore.json \
       stackkit-runtime-linux-amd64.tar.gz stackkit-runtime-linux-arm64.tar.gz; do \
       curl --fail --silent --show-error --location "${base}/${asset}" --output "/app/guard-release/${asset}"; \
     done; \
@@ -96,36 +96,36 @@ RUN set -eu; \
 
 FROM alpine:3.24
 ARG GIT_COMMIT=""
-ARG TECHSTACK_PRODUCT_VERSION=""
+ARG HOMELAB_PRODUCT_VERSION=""
 LABEL org.opencontainers.image.revision="${GIT_COMMIT}" \
-      org.opencontainers.image.version="${TECHSTACK_PRODUCT_VERSION}" \
-      org.opencontainers.image.source="https://github.com/kombifyio/TechStack"
+      org.opencontainers.image.version="${HOMELAB_PRODUCT_VERSION}" \
+      org.opencontainers.image.source="https://github.com/kombifyio/Homelab"
 RUN apk upgrade --no-cache && apk add --no-cache ca-certificates curl docker-cli docker-cli-compose git jq openssh-client
-RUN addgroup -S techstack && adduser -S -G techstack techstack && mkdir -p /data && chown techstack:techstack /data
-COPY --from=backend /out/techstack /app/techstack
+RUN addgroup -S homelab && adduser -S -G homelab homelab && mkdir -p /data && chown homelab:homelab /data
+COPY --from=backend /out/homelab /app/homelab
 COPY install.sh /app/install.sh
 COPY install.ps1 /app/install.ps1
 COPY --from=signed-runtime /app/.stackkit /app/.stackkit
 COPY --from=signed-runtime /app/stackkits /app/stackkits
 COPY --from=signed-runtime /app/guard-release /app/guard-release
 ENV KOMBIFY_EDITION=selfhost-oss
-ENV TECHSTACK_AUTH_MODE=local
-ENV TECHSTACK_DATA_DIR=/data
-ENV TECHSTACK_STACKKITS_DIR=/app/stackkits
-ENV TECHSTACK_STACKKIT_CLI=/app/.stackkit/bin/stackkit
-ENV TECHSTACK_STACKKIT_ARTIFACTS_MODE=cli
-ENV TECHSTACK_STACKKIT_RELEASE_CACHE=/app/.stackkit/releases
-ENV TECHSTACK_STACKKIT_RELEASE_PIN=/app/.stackkit/stackkits-release-pin.json
-ENV TECHSTACK_STACKKIT_COMPATIBILITY_MANIFEST=/app/.stackkit/stackkits-compatibility-v1.json
-ENV TECHSTACK_STACKKIT_USE_CASE_CATALOG=/app/.stackkit/stackkits-use-case-catalog-v1.json
-ENV TECHSTACK_STACKKIT_SPEC_TEMPLATES=/app/stackkits/spec-templates
-ENV TECHSTACK_STACKKIT_RELEASE_BUNDLE=/app/guard-release/stackkit-runtime-linux-amd64.tar.gz
-ENV TECHSTACK_GUARD_RELEASE_DIR=/app/guard-release
-ENV TECHSTACK_GUARD_RELEASE_SOURCE=kombifyio/TechStack
+ENV HOMELAB_AUTH_MODE=local
+ENV HOMELAB_DATA_DIR=/data
+ENV HOMELAB_STACKKITS_DIR=/app/stackkits
+ENV HOMELAB_STACKKIT_CLI=/app/.stackkit/bin/stackkit
+ENV HOMELAB_STACKKIT_ARTIFACTS_MODE=cli
+ENV HOMELAB_STACKKIT_RELEASE_CACHE=/app/.stackkit/releases
+ENV HOMELAB_STACKKIT_RELEASE_PIN=/app/.stackkit/stackkits-release-pin.json
+ENV HOMELAB_STACKKIT_COMPATIBILITY_MANIFEST=/app/.stackkit/stackkits-compatibility-v1.json
+ENV HOMELAB_STACKKIT_USE_CASE_CATALOG=/app/.stackkit/stackkits-use-case-catalog-v1.json
+ENV HOMELAB_STACKKIT_SPEC_TEMPLATES=/app/stackkits/spec-templates
+ENV HOMELAB_STACKKIT_RELEASE_BUNDLE=/app/guard-release/stackkit-runtime-linux-amd64.tar.gz
+ENV HOMELAB_GUARD_RELEASE_DIR=/app/guard-release
+ENV HOMELAB_GUARD_RELEASE_SOURCE=kombifyio/Homelab
 ENV PORT=5260
-ENV TECHSTACK_PORT=5260
+ENV HOMELAB_PORT=5260
 EXPOSE 5260 5263
 WORKDIR /app
 VOLUME ["/data"]
-USER techstack
-ENTRYPOINT ["/app/techstack"]
+USER homelab
+ENTRYPOINT ["/app/homelab"]

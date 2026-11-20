@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in a released kombify Techstack Open Core version does not behave as documented.
+description: Something in a released kombify Homelab Runtime Open Core version does not behave as documented.
 type: Bug
 labels: ["triage/needs"]
 body:
@@ -13,7 +13,7 @@ body:
     attributes:
       label: Product
       options:
-        - "kombify Techstack Open Core"
+        - "kombify Homelab Runtime Open Core"
     validations:
       required: true
   - type: input

@@ -3,10 +3,10 @@ package routes
 import (
 	"net/http"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	kscore "github.com/kombifyio/techstack/pkg/core"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/unifier"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	kscore "github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 func (api *UnifierAPI) handleAnalyze(e *httpx.Event) error {

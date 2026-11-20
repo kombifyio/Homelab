@@ -16,26 +16,26 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // JobTypeHomelabIdentityJoin joins a further server of a homelab to the
 // homelab's Authority (homelab identity target §4, P2; ADR-036 authority
-// pointer). Techstack orchestrates across the servers and carries public or
+// pointer). Homelab orchestrates across the servers and carries public or
 // sealed documents through the pinned StackKits CLI on each server:
 //
 //  1. zone-site on the joining server: its own domain and LAN address;
 //  2. join-request on the joining server, pinned to the Authority root the
 //     Owner read at the Authority;
 //  3. join-approve at the Authority: the CLI waits for the Owner's passkey
-//     step-up in the Authority's Hub, which Techstack cannot answer, and the
+//     step-up in the Authority's Hub, which Homelab cannot answer, and the
 //     Authority signs the trust bundle and the intermediate;
 //  4. join-install on the joining server;
 //  5. client-register at the Authority (a second Owner step-up): the
 //     Authority's Pocket ID registers the joined server's TinyAuth client and
-//     seals its secret to a key Techstack generated for this job only;
-//  6. Techstack opens the sealed secret in memory only to hand it to the
+//     seals its secret to a key Homelab generated for this job only;
+//  6. Homelab opens the sealed secret in memory only to hand it to the
 //     homelab's Wallet, and the Wallet delivers it sealed to the joined
 //     server's StackKits-generated recipient key (host delivery);
 //  7. client-bind on the joined server;
@@ -43,7 +43,7 @@ import (
 //     installed on every server, each admitting only what its trust vouches
 //     for.
 //
-// Techstack signs nothing: every signature is the Authority's or a server's
+// Homelab signs nothing: every signature is the Authority's or a server's
 // own, and the Owner's approvals are passkey step-ups at the Authority.
 const JobTypeHomelabIdentityJoin JobType = "homelab_identity_join"
 
@@ -75,7 +75,7 @@ type HomelabIdentityJoinNode struct {
 
 // HomelabIdentityJoinRequest is the closed input of a join. AuthorityRoot is
 // the root fingerprint the Owner read at the Authority (its console or Hub);
-// Techstack never takes it from the Authority's own answer.
+// Homelab never takes it from the Authority's own answer.
 type HomelabIdentityJoinRequest struct {
 	TenantID      string                    `json:"tenant_id"`
 	OwnerID       string                    `json:"owner_id"`
@@ -200,7 +200,7 @@ func HomelabIdentityJoinHandler(cfg StackKitLifecycleConfig) JobHandler {
 			"homelab_id": req.HomelabID, "authority_stack_id": req.Authority.StackID, "joining_stack_id": req.Joining.StackID,
 			"authority_root": req.AuthorityRoot,
 		}
-		summary := map[string]interface{}{"schema_version": "techstack.homelab-identity-join-result/v1", HomelabIdentityJoinResultField: outcome,
+		summary := map[string]interface{}{"schema_version": "homelab.homelab-identity-join-result/v1", HomelabIdentityJoinResultField: outcome,
 			// The enqueue replay check reads the intent digest back.
 			"identity_join_request_sha256": job.Snapshot().Result["identity_join_request_sha256"]}
 		err = runHomelabIdentityJoin(ctx, cfg, job, q, req, outcome)

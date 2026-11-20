@@ -13,15 +13,15 @@ import (
 	"strings"
 	"time"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/guardrelease"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
+	"github.com/kombifyio/homelab/pkg/httpx"
 	"golang.org/x/mod/semver"
 )
 
-const artifactIndexPathEnv = "TECHSTACK_ARTIFACT_INDEX_PATH"
-const artifactIndexDigestEnv = "TECHSTACK_ARTIFACT_INDEX_SHA256"
-const artifactIndexDigestFileEnv = "TECHSTACK_ARTIFACT_INDEX_SHA256_FILE"
+const artifactIndexPathEnv = "HOMELAB_ARTIFACT_INDEX_PATH"
+const artifactIndexDigestEnv = "HOMELAB_ARTIFACT_INDEX_SHA256"
+const artifactIndexDigestFileEnv = "HOMELAB_ARTIFACT_INDEX_SHA256_FILE"
 const artifactIndexMaxBytes = 16 << 10
 
 // artifactDeliveryIndex is deployment configuration, never caller input. Its
@@ -87,7 +87,7 @@ func readArtifactDeliveryIndex() (*artifactDeliveryIndex, string, error) {
 	if err := decoder.Decode(&index); err != nil {
 		return nil, "", err
 	}
-	if decoder.Decode(new(any)) != io.EOF || index.Schema != "techstack.artifact-index/v1" ||
+	if decoder.Decode(new(any)) != io.EOF || index.Schema != "homelab.artifact-index/v1" ||
 		!semver.IsValid("v"+index.ReleaseVersion) || !artifactHexDigest(index.ManifestSHA256) ||
 		len(index.Artifacts) == 0 || len(index.Artifacts) > 4 {
 		return nil, "", fmt.Errorf("invalid artifact index")
@@ -97,7 +97,7 @@ func readArtifactDeliveryIndex() (*artifactDeliveryIndex, string, error) {
 		name := ""
 		switch entry.Kind {
 		case "guard_binary":
-			name = "techstack-" + entry.OS + "-" + entry.Arch
+			name = "homelab-" + entry.OS + "-" + entry.Arch
 		case "stackkit_runtime":
 			name = "stackkit-runtime-" + entry.OS + "-" + entry.Arch + ".tar.gz"
 		}
@@ -297,8 +297,8 @@ func (h workerRouteHandlers) admitArtifact(e *httpx.Event, kind string) error {
 		h.recordGuardTransfer(e.Request, authorization, entry.SHA256, entry.Size, now)
 	}
 	return httpx.Success(e, http.StatusOK, artifactAdmission{
-		Schema: "techstack.artifact-admission/v1", artifactDeliveryEntry: entry,
+		Schema: "homelab.artifact-admission/v1", artifactDeliveryEntry: entry,
 		ReleaseVersion: index.ReleaseVersion, ManifestSHA256: index.ManifestSHA256, IndexSHA256: indexDigest,
-		ObjectKey: "techstack/guard-v" + index.ReleaseVersion + "/sha256/" + entry.SHA256 + "/" + entry.Filename,
+		ObjectKey: "homelab/guard-v" + index.ReleaseVersion + "/sha256/" + entry.SHA256 + "/" + entry.Filename,
 	})
 }

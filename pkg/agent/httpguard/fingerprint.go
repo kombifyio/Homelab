@@ -46,8 +46,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/appcatalog"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/pkg/appcatalog"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 const (

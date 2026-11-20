@@ -2,7 +2,7 @@
 //
 // AgentEnrollmentStore is the SaaS-only Agent → (Tenant, Cert, Policy)
 // mapping that backs the Phase-7.1 mTLS-identity binding. Records live in
-// the Techstack runtime database (kombify-runtime-db in SaaS; any self-host
+// the Homelab runtime database (kombify-runtime-db in SaaS; any self-host
 // Postgres), RLS-scoped on tenant_id; see the postgres_store
 // implementation for the persistent layer. The MemoryStore is used by tests
 // and by single-tenant standalone mode.

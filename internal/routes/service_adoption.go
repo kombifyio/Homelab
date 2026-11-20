@@ -5,14 +5,14 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/runtimehealth"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/runtimehealth"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 	"io"
 	"net/http"
 	"regexp"
@@ -52,7 +52,7 @@ func (h *serviceRuntimeHandlers) adoptionTarget(e *httpx.Event, mutate bool) (ad
 	if !ok {
 		return t, httpx.RejectUnauthorized(e, "Authentication required")
 	}
-	tenant, err := tenantguard.TenantScope(requestExplicitTenantID(e), owner, "techstack.services.adoption")
+	tenant, err := tenantguard.TenantScope(requestExplicitTenantID(e), owner, "homelab.services.adoption")
 	if err != nil {
 		return t, err
 	}

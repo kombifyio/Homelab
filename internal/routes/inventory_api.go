@@ -12,18 +12,18 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/kombifyio/homelab/api/toolmanifest"
+	"github.com/kombifyio/homelab/internal/portinventory"
+	"github.com/kombifyio/homelab/internal/providercontrol"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/appcatalog"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/runtimehealth"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 	"github.com/kombifyio/stackkits/contracts/runtimeinventory"
-	"github.com/kombifyio/techstack/api/toolmanifest"
-	"github.com/kombifyio/techstack/internal/portinventory"
-	"github.com/kombifyio/techstack/internal/providercontrol"
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/appcatalog"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/runtimehealth"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
-	"github.com/kombifyio/techstack/pkg/vmleases"
 )
 
 const (
@@ -168,7 +168,7 @@ type inventoryServerHealth = runtimeinventory.ServerHealth
 type inventoryServiceLink = runtimeinventory.ServiceLink
 
 // inventoryService is the neutral contract service projection plus the
-// Techstack-owned management dimension.
+// Homelab-owned management dimension.
 type inventoryService = runtimeinventory.Service
 
 type inventoryServiceList = runtimeinventory.ServiceList
@@ -289,7 +289,7 @@ func (h inventoryHandlers) httpListServers(e *httpx.Event) error {
 		return writeInventoryHTTPError(e, err)
 	}
 	// The public RIL roster is the named companion of /v1/ril/servers/summary:
-	// a principal that may read the RIL availability view (techstack.ril.read)
+	// a principal that may read the RIL availability view (homelab.ril.read)
 	// must also be able to name its own servers. Gating it on the broader
 	// inventory-read entitlement left RIL-only principals with a count they
 	// could not resolve to a server, so the Companion could never act.
@@ -375,7 +375,7 @@ func inventoryScopeFromEvent(e *httpx.Event) (inventoryScope, error) {
 	if !ok {
 		return inventoryScope{}, &inventoryError{status: http.StatusUnauthorized, reasonCode: "authentication_required", message: "Authentication required"}
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.inventory.read")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.inventory.read")
 	if tenantErr != nil || strings.TrimSpace(tenantID) == "" {
 		return inventoryScope{}, &inventoryError{status: http.StatusForbidden, reasonCode: "tenant_context_missing", message: "Tenant context required"}
 	}
@@ -453,7 +453,7 @@ func writeInventoryHTTPError(e *httpx.Event, err error) error {
 	}
 	if inventoryErr.reasonCode == "tenant_context_missing" {
 		// Full FEATURE-ENTITLEMENT-UX envelope; keeps reason_code stable.
-		return tenantguard.Denial("techstack.inventory.read")
+		return tenantguard.Denial("homelab.inventory.read")
 	}
 	details := map[string]any{inventoryReasonCodeField: inventoryErr.reasonCode}
 	switch inventoryErr.status {

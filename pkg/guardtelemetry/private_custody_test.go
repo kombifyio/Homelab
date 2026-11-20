@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/privatefs"
-	"github.com/kombifyio/techstack/pkg/guardtelemetry"
+	"github.com/kombifyio/homelab/internal/privatefs"
+	"github.com/kombifyio/homelab/pkg/guardtelemetry"
 )
 
 func TestSpoolKeepsWritesInAdmittedPrivateCustody(t *testing.T) {

@@ -39,7 +39,7 @@ func TestIssuedCapabilityUsesCentralWireAndRetainsIssuanceScope(t *testing.T) {
 		if err := json.Unmarshal(vectorRaw, &vector); err != nil {
 			t.Fatal(err)
 		}
-		bundle := centralTrustBundle("techstack", vector.KeyID, vector.PublicKeyBase64)
+		bundle := centralTrustBundle("homelab", vector.KeyID, vector.PublicKeyBase64)
 		now := time.Date(2026, 7, 27, 15, 5, 0, 0, time.UTC)
 		if err := verifyCentralCapabilityScope(bytes.TrimSpace(raw), bundle, now, "basement-main", "owner/local/00112233445566778899aabbccddeeff", OperationRollbackCoordinated); err != nil {
 			t.Fatalf("shared conformance vector rejected by the central codec: %v", err)
@@ -49,7 +49,7 @@ func TestIssuedCapabilityUsesCentralWireAndRetainsIssuanceScope(t *testing.T) {
 	_, key, _ := ed25519.GenerateKey(nil)
 	now := time.Date(2026, 9, 24, 10, 0, 0, 0, time.UTC)
 	recorder := &memoryRecorder{}
-	issuer, err := New(Config{IssuerID: "techstack.0f1e2d3c", PrivateKey: key, Recorder: recorder, Now: func() time.Time { return now }})
+	issuer, err := New(Config{IssuerID: "homelab.0f1e2d3c", PrivateKey: key, Recorder: recorder, Now: func() time.Time { return now }})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func TestIssuedCapabilityUsesCentralWireAndRetainsIssuanceScope(t *testing.T) {
 func TestIssuedCapabilityAuthorizesTheOriginCertificateOperations(t *testing.T) {
 	_, key, _ := ed25519.GenerateKey(nil)
 	now := time.Date(2026, 10, 4, 15, 0, 0, 0, time.UTC)
-	issuer, err := New(Config{IssuerID: "techstack.0f1e2d3c", PrivateKey: key, Recorder: &memoryRecorder{}, Now: func() time.Time { return now }})
+	issuer, err := New(Config{IssuerID: "homelab.0f1e2d3c", PrivateKey: key, Recorder: &memoryRecorder{}, Now: func() time.Time { return now }})
 	if err != nil {
 		t.Fatal(err)
 	}

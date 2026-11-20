@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 
-	"github.com/kombifyio/techstack/internal/providerevidence"
+	"github.com/kombifyio/homelab/internal/providerevidence"
 )
 
 // Sensitive migration boundary (kombify-StackKits-8t7b): migration 186 admits
@@ -22,7 +22,7 @@ import (
 func TestIntegrationProxmoxAbsenceObservationAdmitted(t *testing.T) {
 	dsn := integrationDSN()
 	if dsn == "" {
-		t.Skip("TECHSTACK_TEST_POSTGRES_URL not set; skipping Postgres integration test")
+		t.Skip("HOMELAB_TEST_POSTGRES_URL not set; skipping Postgres integration test")
 	}
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Minute)
 	defer cancel()
@@ -33,12 +33,12 @@ func TestIntegrationProxmoxAbsenceObservationAdmitted(t *testing.T) {
 	generation := uuid.NewString()
 	digest := func(seed string) string { return "sha256:" + strings.Repeat(seed, 64) }
 	command := providerexecutor.Command{
-		APIVersion: "techstack.provider-executor/v1beta1", OperationID: "op-proxmox-" + suffix,
+		APIVersion: "homelab.provider-executor/v1beta1", OperationID: "op-proxmox-" + suffix,
 		Operation: providerexecutor.OperationDecommission, TenantID: "absence-tenant-" + suffix,
 		LeaseID: "lease-" + suffix, LeaseRevision: 3, RuntimeServerID: "server-" + suffix,
 		ResourceGenerationID: generation, IdempotencyKey: "idem-" + suffix,
 		ProviderID: "proxmox", AdapterID: "proxmox-substrate-v1",
-		ConnectionRef: "provider-connection://substrate/worker-" + suffix + "/lease-" + suffix,
+		ConnectionRef:  "provider-connection://substrate/worker-" + suffix + "/lease-" + suffix,
 		ConnectionHash: digest("1"), CapabilitySnapshotHash: digest("2"), ExecutionProfileHash: digest("3"),
 		ResourceGraphHash: digest("4"), LedgerRevision: 5, CommandDigest: digest("5"),
 		RequestedAt: time.Now().UTC(),

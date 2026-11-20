@@ -1,8 +1,8 @@
-// Package datasubject is Techstack's participant endpoint for the Cloud
+// Package datasubject is Homelab's participant endpoint for the Cloud
 // data-subject coordinator (stackkits/contracts/datasubject). Cloud
-// owns the account and the opaque SubjectRef; Techstack exports and erases only
+// owns the account and the opaque SubjectRef; Homelab exports and erases only
 // the control-plane rows it holds for that subject and answers a receipt signed
-// with its own Ed25519 key. Live provider resources block erasure: Techstack
+// with its own Ed25519 key. Live provider resources block erasure: Homelab
 // decommissions them first. The endpoint is service-authenticated (bound
 // service auth, caller "gateway", scope datasubject:execute) and closed unless
 // explicitly enabled.
@@ -18,14 +18,14 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
-	"github.com/kombifyio/techstack/pkg/serviceauth"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/pkg/serviceauth"
 	contract "github.com/kombifyio/stackkits/contracts/datasubject"
 )
 
 const (
 	// ServiceName is the participant name Cloud registers and verifies.
-	ServiceName = "techstack"
+	ServiceName = "homelab"
 	// Path is the service-only route.
 	Path = "/internal/v1/datasubject/requests"
 	// Scope is the signed service scope the caller must carry.
@@ -33,8 +33,8 @@ const (
 
 	maxBody = 16 << 10
 	// ReasonExecutorNotWired is reported until an Executor exists.
-	ReasonExecutorNotWired = "techstack_executor_not_wired"
-	reasonExecutionFailed  = "techstack_execution_failed"
+	ReasonExecutorNotWired = "homelab_executor_not_wired"
+	reasonExecutionFailed  = "homelab_execution_failed"
 )
 
 // ErrNothingHeld is returned by an Executor that holds no data for the subject.
@@ -52,7 +52,7 @@ type Outcome struct {
 	Retained []contract.Retained
 }
 
-// Executor resolves the opaque subject to Techstack's own data and acts on it.
+// Executor resolves the opaque subject to Homelab's own data and acts on it.
 // Both methods are idempotent on the same subject: Cloud redelivers. Erase
 // carries the request id, which names the erasure in the lease journal of a
 // decommission it admits.

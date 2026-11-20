@@ -52,7 +52,7 @@
   // Embedded only: the key install needs a fresh sign-in confirmation that
   // happens in a separate window (the frame itself must never navigate).
   let keyStepUp = $state(false);
-  // Hosted Techstack picks a server access item of the person's kombify Wallet
+  // Hosted Homelab picks a server access item of the person's kombify Wallet
   // instead of a key of the built-in one.
   const useWallet = $derived(authStore.walletSource === "kombify");
 

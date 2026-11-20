@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/grpcserver"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/grpcserver"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // "Stack it" lifecycle operations: an existing container StackKits did not
@@ -93,7 +93,7 @@ var errApplicationStackIntentChanged = errors.New("Stack it receipt retained but
 
 // ApplicationStackFailureField is the structured failure of a Stack it job:
 // the producer outcome (refused, rolled_back, rollback_failed, unhealthy) or
-// Techstack's own reason code, and the code of the first refused plan row.
+// Homelab's own reason code, and the code of the first refused plan row.
 const ApplicationStackFailureField = "application_stack_failure"
 
 // applicationStackFailed records a structured failure; the job error repeats

@@ -1,6 +1,6 @@
 # fk-normalizer/v2 vocabulary: the only words a failure template keeps.
 # One token per line, in its canonical form; lines starting with # are
-# comments. Built from the words of Techstack (including its Guard packages)
+# comments. Built from the words of Homelab Runtime (including its Guard packages)
 # and StackKits error strings, their reason and error code constants, and a
 # fixed list of common English error and operations words. Every other token
 # becomes a class placeholder. Changing this file is a new normalizer version.
@@ -2535,12 +2535,12 @@ targets
 task
 tcp
 teardown
-techstack
-techstack_erase_incomplete
-techstack_evidence_retention_unset
-techstack_executor_not_wired
-techstack_live_provider_resources
-techstack_subject_directory_unwired
+homelab
+homelab_erase_incomplete
+homelab_evidence_retention_unset
+homelab_executor_not_wired
+homelab_live_provider_resources
+homelab_subject_directory_unwired
 telegram
 telemetry
 temp

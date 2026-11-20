@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/internal/httpsecurity"
+	"github.com/kombifyio/homelab/internal/gocommon/internal/httpsecurity"
 )
 
 // Config configures the toolauth Client.

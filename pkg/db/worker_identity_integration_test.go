@@ -8,15 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	pgkdb "github.com/kombifyio/techstack/pkg/db"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	pgkdb "github.com/kombifyio/homelab/pkg/db"
 )
 
 func TestIntegrationWorkerIdentityIsTenantScopedAtomicAndReplayProof(t *testing.T) {
-	dsn := strings.TrimSpace(os.Getenv("TECHSTACK_TEST_POSTGRES_URL"))
+	dsn := strings.TrimSpace(os.Getenv("HOMELAB_TEST_POSTGRES_URL"))
 	if dsn == "" {
-		t.Skip("TECHSTACK_TEST_POSTGRES_URL not set; skipping Postgres integration test")
+		t.Skip("HOMELAB_TEST_POSTGRES_URL not set; skipping Postgres integration test")
 	}
 	database, err := pgkdb.Open(pgkdb.Config{Backend: pgkdb.StoreBackendPostgres, DSN: dsn, DriverName: pgkdb.PostgresDriverName})
 	if err != nil {

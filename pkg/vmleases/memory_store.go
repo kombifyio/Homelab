@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
 )
 
 type MemoryStore struct {

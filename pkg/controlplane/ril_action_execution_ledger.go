@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/ril/actioncontract"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/pkg/ril/actioncontract"
 )
 
 // Reserve atomically implements the shared RIL action execution ledger SPI.

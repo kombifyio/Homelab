@@ -1,6 +1,6 @@
 import { tr } from "#lib/i18n.svelte.js";
 /**
- * kombify-TechStack Initialization Tasks
+ * kombify-Homelab Initialization Tasks
  *
  * Task definitions and per-phase status aggregation for the stack creation
  * progress view.
@@ -374,7 +374,7 @@ export const STEP_DETAILS: Record<
       return tr("ui.taskStatus.preparingTheRuntimeMetadataUsed");
     },
     get detail() {
-      return tr("ui.taskStatus.techstackRecordsTheManagedTarget");
+      return tr("ui.taskStatus.homelabRecordsTheManagedTarget");
     },
   },
   validate_workers: {
@@ -418,7 +418,7 @@ export const STEP_DETAILS: Record<
       return tr("ui.taskStatus.renderingTheStackKitInfrastructureFiles");
     },
     get detail() {
-      return tr("ui.taskStatus.techstackConsumesStackKitArtifactsHere");
+      return tr("ui.taskStatus.homelabConsumesStackKitArtifactsHere");
     },
   },
   simulate_update: {

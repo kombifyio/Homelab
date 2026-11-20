@@ -9,18 +9,18 @@ import (
 
 	wire "github.com/kombifyio/stackkits/contracts/advancedcapability"
 
-	"github.com/kombifyio/techstack/internal/advancedissuer"
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/advancedissuer"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // StackKitLifecycleOwnApplication runs one own-application lifecycle step
 // (StackKits own-application.*) for an application StackKits runs as an own
 // application, for example one rebuilt by "Stack it". A read (status, logs or
 // the dry run of a mutation) changes nothing; an execution carries the review
-// digest of its dry run and the own-application.lifecycle capability Techstack
+// digest of its dry run and the own-application.lifecycle capability Homelab
 // issues for exactly that application, action, operation and review.
 const StackKitLifecycleOwnApplication = "own_application"
 
@@ -164,7 +164,7 @@ func runOwnApplicationJob(ctx context.Context, cfg StackKitLifecycleConfig, job 
 		return NewPermanentError(fmt.Errorf("own application source identity changed"))
 	}
 	base := map[string]interface{}{
-		"schema_version": "techstack.stackkit-lifecycle-result/v1", "techstack_id": req.StackID, "operation": req.Operation,
+		"schema_version": "homelab.stackkit-lifecycle-result/v1", "kit_deployment_id": req.StackID, "operation": req.Operation,
 		"agent_id": req.AgentID, "service_action_receipt": StackKitServiceActionReceipt(req),
 	}
 	read := stackkitcommand.OwnApplicationStepRead(o.Step)
@@ -306,7 +306,7 @@ func projectOwnApplicationStatus(ctx context.Context, cfg StackKitLifecycleConfi
 	if answer.Checkpoint != nil || answer.State != "" {
 		// The signed record names the checkpoint; no checkpoint means none. A
 		// tag update result names no time: keep the time already known for
-		// the same checkpoint, else the time Techstack learned of it.
+		// the same checkpoint, else the time Homelab learned of it.
 		previous := status.Checkpoint
 		status.Checkpoint = answer.Checkpoint
 		if checkpoint := status.Checkpoint; checkpoint != nil && checkpoint.At == nil {

@@ -4,7 +4,7 @@
   /**
    * KeyboardShortcuts
    *
-   * Global keyboard listener for kombify-TechStack: `g` + key jumps to a
+   * Global keyboard listener for kombify-Homelab: `g` + key jumps to a
    * page, `/` focuses the search field, `?` opens the shortcut list.
    *
    * Rules this handler keeps (WCAG 2.1.1, 2.1.4):

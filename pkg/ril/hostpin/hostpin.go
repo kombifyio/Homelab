@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const Path = "/v1/techstack/internal/ril-host-identity"
+const Path = "/v1/homelab/internal/ril-host-identity"
 
 var identityPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:@|\-]{0,255}$`)
 

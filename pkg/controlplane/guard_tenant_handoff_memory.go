@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
 )
 
 // The in-memory GuardTenantHandoffStore mirrors migrations 169 and 170: every

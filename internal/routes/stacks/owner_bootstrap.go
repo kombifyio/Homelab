@@ -9,10 +9,10 @@ import (
 	"regexp"
 	"strings"
 
-	tsauth "github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/identity"
+	tsauth "github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 const (
@@ -332,7 +332,7 @@ func edgeVerifiedProfile(ctx ownerBootstrapContext) *cloudLinkIdentity {
 
 // resolveCustomOwnerIdentity fills the owner identity for custom bootstrap
 // mode. Local owners may omit identity to inherit the signed-in kombify Cloud
-// (or Techstack) account; an explicit email still wins. Cloud-linked owners
+// (or Homelab) account; an explicit email still wins. Cloud-linked owners
 // derive every identity field from the server-side verified Cloud link.
 func resolveCustomOwnerIdentity(bootstrap *ownerBootstrapSpec, ctx ownerBootstrapContext) (bool, *ownerBootstrapDenial) {
 	if bootstrap.Source == ownerSourceCloudLinked {
@@ -632,7 +632,7 @@ func recoveryWalletFields(ownerID, stackID, stackName string, bootstrap ownerBoo
 		"access_mode":    "reveal",
 		"revealable":     true,
 		"auto_generated": true,
-		"notes":          fmt.Sprintf("Recovery passphrase hash for %s. TechStack never stores the plaintext passphrase.", stackName),
+		"notes":          fmt.Sprintf("Recovery passphrase hash for %s. Homelab Runtime never stores the plaintext passphrase.", stackName),
 	}, nil
 }
 

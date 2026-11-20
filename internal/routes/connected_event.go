@@ -13,21 +13,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/fulllocal"
-	"github.com/kombifyio/techstack/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/logger"
 )
 
 // The catalogued product event of a server bound to an account
 // (internal/standards-enforcement/posthog-event-catalog.json in the workspace).
 // It is the "server connected" step of the workspace funnel (AP16.5,
 // scripts/warehouse.mjs funnel), so it is sent where the binding happens: a
-// completed pairing redemption (the embedded Techstack setup and `stackkit
+// completed pairing redemption (the embedded Homelab setup and `stackkit
 // connect` on a server that already runs the public package) and an owner's
 // Connect request, whether or not anyone opens a dashboard afterwards.
 //
 // kombify-go-common/posthog is not used: its event-name rule requires an
 // underscore after the colon and refuses this catalogued name.
-const serverConnectedEvent = "techstack:connected"
+const serverConnectedEvent = "homelab:connected"
 
 const defaultAnalyticsHost = "https://e.kombify.io"
 
@@ -54,9 +54,9 @@ func captureServerConnected(ownerSubject, leaseID string) {
 	}
 	properties := map[string]any{
 		"connection_class":        connectionClass,
-		"service":                 "kombify-techstack",
-		"product":                 "kombify-techstack",
-		"surface":                 "techstack",
+		"service":                 "kombify-homelab",
+		"product":                 "kombify-homelab",
+		"surface":                 "homelab",
 		"env":                     analyticsEnvironment(firstNonEmptyEnv("PUBLIC_POSTHOG_ENVIRONMENT", "PUBLIC_POSTHOG_ENV")),
 		"edition":                 edition,
 		"correlation_id":          "srv_" + randomHex(8),

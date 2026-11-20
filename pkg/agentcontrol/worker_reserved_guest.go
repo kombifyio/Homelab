@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/kombifyio/techstack/internal/substrate"
+	"github.com/kombifyio/homelab/internal/substrate"
 	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 )
 

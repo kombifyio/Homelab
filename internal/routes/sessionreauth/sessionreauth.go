@@ -18,10 +18,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kombifyio/techstack/internal/gocommon/authsession"
+	"github.com/kombifyio/homelab/internal/gocommon/authsession"
 
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/logger"
 )
 
 // ReasonCode is the renewal reason this class carries on the platform
@@ -50,7 +50,7 @@ func Configure(cookieName string, secure bool) {
 
 // SetCounterHook installs the metrics sink (see routes.RegisterMetricsRoutes).
 // The hook receives the tenant label and the outcome ("recovered" or
-// "reauth_required") for techstack_auth_session_reprojections_total.
+// "reauth_required") for homelab_auth_session_reprojections_total.
 func SetCounterHook(hook func(tenantID, outcome string)) {
 	state.mu.Lock()
 	defer state.mu.Unlock()

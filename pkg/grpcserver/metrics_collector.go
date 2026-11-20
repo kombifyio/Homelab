@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/monitoring"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/monitoring"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

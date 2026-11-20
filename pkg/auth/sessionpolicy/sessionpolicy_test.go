@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/authsession"
+	"github.com/kombifyio/homelab/internal/gocommon/authsession"
 )
 
 // platform-jx5m6: the 7-day fixed session forced a new login every week; the
@@ -14,12 +14,12 @@ import (
 // ends after a year without use and has no fixed end date (AUTHENTICATION.md
 // §6, "doubt admits").
 func TestBrowserSessionRenewsActiveAndNotIdleExpired(t *testing.T) {
-	cfg := BrowserSessionConfig("techstack-test", []byte("0123456789abcdef0123456789abcdef"))
+	cfg := BrowserSessionConfig("homelab-test", []byte("0123456789abcdef0123456789abcdef"))
 	mgr, err := authsession.NewManager(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	browser, err := NewBrowser(cfg, mgr, "techstack_session", true)
+	browser, err := NewBrowser(cfg, mgr, "homelab_session", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func TestBrowserSessionRenewsActiveAndNotIdleExpired(t *testing.T) {
 		t.Fatal(err)
 	}
 	login := httptest.NewRecorder()
-	authsession.SetSessionCookie(login, "techstack_session", token, true)
+	authsession.SetSessionCookie(login, "homelab_session", token, true)
 	browser.StampLogin(login.Header())
 	loginCookies := login.Result().Cookies()
 
@@ -52,9 +52,9 @@ func TestBrowserSessionRenewsActiveAndNotIdleExpired(t *testing.T) {
 	var session, anchor *http.Cookie
 	for _, c := range renewed {
 		switch c.Name {
-		case "techstack_session":
+		case "homelab_session":
 			session = c
-		case "techstack_session_origin":
+		case "homelab_session_origin":
 			anchor = c
 		}
 	}

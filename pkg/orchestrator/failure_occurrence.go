@@ -1,8 +1,8 @@
 package orchestrator
 
 import (
-	"github.com/kombifyio/techstack/pkg/failureknowledge"
-	"github.com/kombifyio/techstack/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/failureknowledge"
+	"github.com/kombifyio/homelab/pkg/jobs"
 )
 
 // failureOccurrenceForJob normalizes the redacted receipt of a failed job into
@@ -14,7 +14,7 @@ func failureOccurrenceForJob(job jobs.JobSnapshot) *failureknowledge.Occurrence 
 	}
 	support, _ := job.Result["support_context"].(map[string]any)
 	occurrence := failureknowledge.Normalize(failureknowledge.Input{
-		Component: firstNonEmptyString(stringFromAnyMap(job.Result, "capability"), "techstack.job."+string(job.Type)),
+		Component: firstNonEmptyString(stringFromAnyMap(job.Result, "capability"), "homelab.job."+string(job.Type)),
 		Phase:     firstNonEmptyString(job.Step, stringFromAnyMap(support, "failed_step")),
 		ErrorCode: firstNonEmptyString(
 			stringFromAnyMap(support, "stackkit_reason_code"),

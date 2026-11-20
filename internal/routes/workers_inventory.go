@@ -8,20 +8,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/portinventory"
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	"github.com/kombifyio/techstack/pkg/agent/httpguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/appcatalog"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/guardlayout"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/releasechannel"
-	"github.com/kombifyio/techstack/pkg/runtimeconvergence"
-	"github.com/kombifyio/techstack/pkg/runtimehealth"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
-	"github.com/kombifyio/techstack/pkg/workerauth"
+	"github.com/kombifyio/homelab/internal/portinventory"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	"github.com/kombifyio/homelab/pkg/agent/httpguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/appcatalog"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/guardlayout"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/releasechannel"
+	"github.com/kombifyio/homelab/pkg/runtimeconvergence"
+	"github.com/kombifyio/homelab/pkg/runtimehealth"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/pkg/workerauth"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -677,7 +677,7 @@ func runtimeAgentTenantIDFromRequest(e *httpx.Event) string {
 	}
 	return firstNonEmpty(
 		e.Request.Header.Get("X-Kombify-Tenant-ID"),
-		e.Request.Header.Get("X-TechStack-Tenant-ID"),
+		e.Request.Header.Get("X-Homelab-Tenant-ID"),
 		e.Request.URL.Query().Get("tenant_id"),
 	)
 }
@@ -1034,7 +1034,7 @@ func inventoryServiceSource(svc workerInventoryService) string {
 // the evidence that the server no longer runs it; no manifest, or one that
 // declares nothing, is no evidence either way. Discovered containers never
 // count, and only a host-key-bound Guard reports identity facts; the store
-// takes the server, deployment and homelab bindings from Techstack's own
+// takes the server, deployment and homelab bindings from Homelab's own
 // records.
 func inventoryIdentityObservation(authCtx runtimeAgentAuthContext, req workerInventoryRequest) *controlplane.HomelabIdentityObservation {
 	if authCtx.IdentityBinding != controlplane.IdentityBindingHostKey || !req.ManifestObserved {

@@ -1,4 +1,4 @@
-// Package jobs provides async job processing for kombifyTechstack.
+// Package jobs provides async job processing for kombifyHomelab.
 // This file holds the job-handler config, the DestroyHandler, default-handler
 // registration, and the StackKit runtime-action/identity-handoff helpers.
 // The provision and deploy handlers live in focused sibling files:
@@ -21,13 +21,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/portinventory"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/runtimeaction"
-	"github.com/kombifyio/techstack/pkg/originca"
-	"github.com/kombifyio/techstack/pkg/secrets"
-	"github.com/kombifyio/techstack/pkg/stackrouting"
-	"github.com/kombifyio/techstack/pkg/unifier"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/internal/portinventory"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/runtimeaction"
+	"github.com/kombifyio/homelab/pkg/originca"
+	"github.com/kombifyio/homelab/pkg/secrets"
+	"github.com/kombifyio/homelab/pkg/stackrouting"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 // Step IDs that match the frontend task list in tasks.ts
@@ -98,7 +98,7 @@ type ProvisionConfig struct {
 	// WorkDir is the base directory for OpenTofu workspaces
 	WorkDir string
 	// SpecBaseDir overrides where persisted specs are written.
-	// When empty, defaults to ~/.techstack/stacks/<stack-id>/.
+	// When empty, defaults to ~/.homelab/stacks/<stack-id>/.
 	// Primarily used for tests.
 	SpecBaseDir string
 	// SpecFiles keeps the managed spec files durable outside the instance's
@@ -231,7 +231,7 @@ type NoWorkspaceDestroyReconciler func(context.Context, NoWorkspaceDestroyReconc
 // DefaultProvisionConfig returns a default configuration.
 func DefaultProvisionConfig() *ProvisionConfig {
 	return &ProvisionConfig{
-		WorkDir:     filepath.Join(os.TempDir(), "techstack-provision"),
+		WorkDir:     filepath.Join(os.TempDir(), "homelab-provision"),
 		SpecBaseDir: defaultSpecBaseDir(),
 	}
 }
@@ -243,7 +243,7 @@ func normalizeProvisionConfig(cfg *ProvisionConfig) *ProvisionConfig {
 
 	normalized := *cfg
 	if normalized.WorkDir == "" {
-		normalized.WorkDir = filepath.Join(os.TempDir(), "techstack-provision")
+		normalized.WorkDir = filepath.Join(os.TempDir(), "homelab-provision")
 	}
 	if normalized.SpecBaseDir == "" {
 		normalized.SpecBaseDir = defaultSpecBaseDir()
@@ -252,10 +252,10 @@ func normalizeProvisionConfig(cfg *ProvisionConfig) *ProvisionConfig {
 }
 
 func defaultSpecBaseDir() string {
-	if dir := strings.TrimSpace(os.Getenv("TECHSTACK_SPEC_BASE_DIR")); dir != "" {
+	if dir := strings.TrimSpace(os.Getenv("HOMELAB_SPEC_BASE_DIR")); dir != "" {
 		return filepath.Clean(dir)
 	}
-	if dataDir := strings.TrimSpace(os.Getenv("TECHSTACK_DATA_DIR")); dataDir != "" {
+	if dataDir := strings.TrimSpace(os.Getenv("HOMELAB_DATA_DIR")); dataDir != "" {
 		return filepath.Join(filepath.Clean(dataDir), "stacks")
 	}
 	return ""
@@ -980,7 +980,7 @@ func boundPortTeardownSnapshot(job *Job) (portinventory.TeardownSnapshot, error)
 	}
 	if snapshot.TenantID != payloadString(job.Payload, tenantIDField) ||
 		snapshot.OwnerSubjectID != payloadString(job.Payload, "owner_id") ||
-		snapshot.TechstackID != job.TargetID {
+		snapshot.KitDeploymentID != job.TargetID {
 		return portinventory.TeardownSnapshot{}, portinventory.ErrTeardownSnapshotMismatch
 	}
 	return snapshot, nil

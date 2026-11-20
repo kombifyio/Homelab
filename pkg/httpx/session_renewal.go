@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/api"
+	"github.com/kombifyio/homelab/pkg/api"
 )
 
 // Session renewal signal (workspace platform/standards/AUTHENTICATION.md §6,
@@ -79,7 +79,7 @@ func NewSessionRenewalError(reason string, extra map[string]any) *APIError {
 }
 
 // sessionRenewalResponse is the standard error envelope plus the contract's
-// top-level fields, so both the Techstack client and any platform client read
+// top-level fields, so both the Homelab client and any platform client read
 // the same signal.
 type sessionRenewalResponse struct {
 	Error     api.ErrorDetail `json:"error"`

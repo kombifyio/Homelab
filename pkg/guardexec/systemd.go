@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-var trialUnitPattern = regexp.MustCompile(`^techstack-guard-trial-[0-9]{1,20}$`)
+var trialUnitPattern = regexp.MustCompile(`^homelab-guard-trial-[0-9]{1,20}$`)
 
 // ExecSystemd drives the host's systemd.
 type ExecSystemd struct{}

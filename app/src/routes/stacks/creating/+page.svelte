@@ -50,7 +50,7 @@
 
 
 <svelte:head>
-  <title>{tr("ui.stacksCreating.creatingStackkitDeploymentKombifyTechstack")}</title>
+  <title>{tr("ui.stacksCreating.creatingStackkitDeploymentKombifyHomelab")}</title>
 </svelte:head>
 
 <div class="min-h-full w-full bg-background p-6 lg:p-8 overflow-x-hidden">

@@ -6,29 +6,29 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/kombifyio/techstack/internal/routes/auth"
+	"github.com/kombifyio/homelab/internal/routes/auth"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/denial"
+	"github.com/kombifyio/homelab/internal/gocommon/denial"
 	"github.com/google/uuid"
 
-	productnotifications "github.com/kombifyio/techstack/internal/notifications"
-	"github.com/kombifyio/techstack/internal/providercontrol"
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/identity"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
-	"github.com/kombifyio/techstack/pkg/logger"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
-	"github.com/kombifyio/techstack/pkg/orchestrator"
-	"github.com/kombifyio/techstack/pkg/stackrouting"
+	productnotifications "github.com/kombifyio/homelab/internal/notifications"
+	"github.com/kombifyio/homelab/internal/providercontrol"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/pkg/orchestrator"
+	"github.com/kombifyio/homelab/pkg/stackrouting"
 )
 
 const (
@@ -42,7 +42,7 @@ const (
 	runtimeProvisioningInstall       = "install-command"
 	managedRuntimeCapacityTopic      = "system.service-degraded"
 	managedServersBudgetKey          = "cloud.runtime.credits#managed_servers"
-	managedRuntimeCapacitySource     = "techstack"
+	managedRuntimeCapacitySource     = "homelab"
 )
 
 type crudRouteHandlers struct {
@@ -127,7 +127,7 @@ func (h crudRouteHandlers) listStacks(e *httpx.Event) error {
 	if err != nil {
 		return err
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "techstack.stacks.list")
+	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "homelab.stacks.list")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -156,7 +156,7 @@ func (h crudRouteHandlers) getStack(e *httpx.Event) error {
 	if authErr != nil {
 		return authErr
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "techstack.stacks.read")
+	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "homelab.stacks.read")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -185,7 +185,7 @@ func (h crudRouteHandlers) createStack(e *httpx.Event) error {
 	if authErr != nil {
 		return authErr
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "techstack.stacks.create")
+	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "homelab.stacks.create")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -426,7 +426,7 @@ func (h crudRouteHandlers) enqueueManagedRuntimeCapacityNotification(
 		return
 	}
 	occurredAt := time.Now().UTC()
-	key := fmt.Sprintf("techstack-managed-runtime-capacity:%s:%s:%s:%s", tenantID, provider, stackID, request.OperationKey)
+	key := fmt.Sprintf("homelab-managed-runtime-capacity:%s:%s:%s:%s", tenantID, provider, stackID, request.OperationKey)
 	payload := map[string]any{
 		"subject":     "Managed runtime capacity exhausted",
 		"body":        "New managed servers cannot be deployed because the provider capacity is full.",
@@ -716,7 +716,7 @@ func (h crudRouteHandlers) deployStack(e *httpx.Event) error {
 		}
 	}
 	// A rollout saves recovery material and StackKit outputs in the owner's
-	// kombify Wallet, so it does not start while Techstack may not save there.
+	// kombify Wallet, so it does not start while Homelab may not save there.
 	if walletErr := h.requireWalletCreateRight(e, stack.OwnerSubjectID); walletErr != nil {
 		return walletErr
 	}
@@ -882,7 +882,7 @@ func (h crudRouteHandlers) findOwnedStoreStack(e *httpx.Event, stackID string) (
 	if authErr != nil {
 		return nil, authErr
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "techstack.stacks.read")
+	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "homelab.stacks.read")
 	if tenantErr != nil {
 		return nil, tenantErr
 	}

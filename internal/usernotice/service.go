@@ -1,5 +1,5 @@
 // Package usernotice turns an admitted node notice into Feed items. It is the
-// Techstack producer of the `homelab.smarthome.notice` topic.
+// Homelab producer of the `homelab.smarthome.notice` topic.
 package usernotice
 
 import (
@@ -12,16 +12,16 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/kombifyio/techstack/internal/notifications"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	pkgusernotice "github.com/kombifyio/techstack/pkg/usernotice"
+	"github.com/kombifyio/homelab/internal/notifications"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	pkgusernotice "github.com/kombifyio/homelab/pkg/usernotice"
 )
 
 const (
 	// Topic is the Feed topic of a smart-home notice (Feed contract v1 2.1).
 	Topic = "homelab.smarthome.notice"
 
-	sourceApp = "techstack"
+	sourceApp = "homelab"
 )
 
 // Links reads the household identity references of an owner.
@@ -91,7 +91,7 @@ func (s *Service) Report(ctx context.Context, node pkgusernotice.Node, notice pk
 		for _, channel := range []string{"in_app", "push"} {
 			event := notifications.ProductEvent{
 				Topic: Topic, Channel: channel, Auth0UserID: recipient, TenantID: node.TenantID,
-				IdempotencyKey: fmt.Sprintf("techstack:usernotice:%s:%s:%s", noticeID, recipient, channel),
+				IdempotencyKey: fmt.Sprintf("homelab:usernotice:%s:%s:%s", noticeID, recipient, channel),
 				SourceApp:      sourceApp, EventKey: eventKey,
 				SubjectRef: "home-assistant:" + node.StackID + ":" + notice.AutomationID,
 				DeepLink:   deepLink,

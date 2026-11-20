@@ -30,14 +30,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/core"
-	"github.com/kombifyio/techstack/pkg/layout"
-	"github.com/kombifyio/techstack/pkg/ril/actions"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
-	"github.com/kombifyio/techstack/pkg/specv2"
-	"github.com/kombifyio/techstack/pkg/unifier"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/layout"
+	"github.com/kombifyio/homelab/pkg/ril/actions"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/pkg/specv2"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 // Flows that show a layout recommendation.
@@ -635,7 +635,7 @@ func (s *Service) evaluate(ctx context.Context, scope Scope, origin *controlplan
 	return out, nil
 }
 
-// withNodeNames states Techstack's own verification notes with the owner's
+// withNodeNames states Homelab's own verification notes with the owner's
 // server names; StackKits names nodes by their spec node ref, and its reasons
 // keep that ref beside their English text. The cached value stays as is.
 func withNodeNames(verification Verification, snapshot layout.Snapshot) Verification {

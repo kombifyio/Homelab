@@ -40,7 +40,7 @@ const HostedApplicationRole = "techstack_application"
 // login in hosted mode, so migration custody can never serve HTTP.
 // Findings name only the failed property, never a role name or DSN.
 func VerifyRuntimeRolePosture(ctx context.Context, q PrivilegeQuerier, posture RuntimeRolePosture) error {
-	if posture == RuntimeRoleHosted && (strings.TrimSpace(os.Getenv(EnvBackupWorkerDatabaseURL)) != "" || strings.TrimSpace(os.Getenv("TECHSTACK_BACKUP_ENTITLEMENTS_DATABASE_URL")) != "" || strings.TrimSpace(os.Getenv("TECHSTACK_BACKUP_WORKER_MODE")) != "") {
+	if posture == RuntimeRoleHosted && (strings.TrimSpace(os.Getenv(EnvBackupWorkerDatabaseURL)) != "" || strings.TrimSpace(os.Getenv("HOMELAB_BACKUP_ENTITLEMENTS_DATABASE_URL")) != "" || strings.TrimSpace(os.Getenv("HOMELAB_BACKUP_WORKER_MODE")) != "") {
 		return fmt.Errorf("%w: HTTP application received private worker custody", ErrRuntimeRoleUnsafe)
 	}
 	return verifyRuntimeRolePosture(ctx, q, posture, HostedApplicationRole)

@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/logger"
 )
 
 const (
@@ -103,11 +103,11 @@ type Config struct {
 // "managed backup store unavailable" and fail closed at the entitlement gate.
 func FromEnv() (Config, error) {
 	accountID := strings.TrimSpace(os.Getenv("CLOUDFLARE_ACCOUNT_ID"))
-	token := strings.TrimSpace(os.Getenv("TECHSTACK_BACKUPSTORE_CF_API_TOKEN"))
+	token := strings.TrimSpace(os.Getenv("HOMELAB_BACKUPSTORE_CF_API_TOKEN"))
 	if accountID == "" || token == "" {
-		return Config{}, fmt.Errorf("backupstore requires CLOUDFLARE_ACCOUNT_ID and TECHSTACK_BACKUPSTORE_CF_API_TOKEN")
+		return Config{}, fmt.Errorf("backupstore requires CLOUDFLARE_ACCOUNT_ID and HOMELAB_BACKUPSTORE_CF_API_TOKEN")
 	}
-	jurisdiction, err := normalizeJurisdiction(os.Getenv("TECHSTACK_BACKUPSTORE_R2_JURISDICTION"))
+	jurisdiction, err := normalizeJurisdiction(os.Getenv("HOMELAB_BACKUPSTORE_R2_JURISDICTION"))
 	if err != nil {
 		return Config{}, err
 	}
@@ -364,7 +364,7 @@ func (c *Client) createBucketToken(ctx context.Context, bucket, readID, writeID 
 	// com.cloudflare.edge.r2.bucket.<ACCOUNT_ID>_<JURISDICTION>_<BUCKET>.
 	resource := fmt.Sprintf("com.cloudflare.edge.r2.bucket.%s_%s_%s", c.cfg.AccountID, c.cfg.Jurisdiction, bucket)
 	payload := map[string]any{
-		"name": "techstack-backup-" + bucket,
+		"name": "homelab-backup-" + bucket,
 		"policies": []map[string]any{{
 			"effect":    "allow",
 			"resources": map[string]string{resource: "*"},

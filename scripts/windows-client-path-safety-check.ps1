@@ -7,7 +7,7 @@ $stateRoot = [IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA "kombify")).Tri
 $installRoot = [IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA "Programs\kombify")).TrimEnd("\", "/")
 $id = [Guid]::NewGuid().ToString("N")
 $safeState = Join-Path $stateRoot "techstack-client-path-contract-$id"
-$safeInstall = Join-Path $installRoot "techstack-path-contract-$id"
+$safeInstall = Join-Path $installRoot "homelab-path-contract-$id"
 
 function Assert-Rejected([string]$Name, [scriptblock]$Action) {
     $rejected = $false
@@ -54,7 +54,7 @@ Assert-Rejected "product state smoke" {
     & $smoke -SkipPackage -KeepState -KeepInstall -StateDir (Join-Path $stateRoot "techstack-client") -InstallDir $safeInstall
 }
 Assert-Rejected "product install smoke" {
-    & $smoke -SkipPackage -KeepState -KeepInstall -StateDir $safeState -InstallDir (Join-Path $installRoot "techstack")
+    & $smoke -SkipPackage -KeepState -KeepInstall -StateDir $safeState -InstallDir (Join-Path $installRoot "homelab")
 }
 
 $resetSource = Get-Content -Raw -LiteralPath $reset

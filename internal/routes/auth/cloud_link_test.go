@@ -2,8 +2,8 @@ package auth
 
 import (
 	"encoding/json"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/httpx"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -21,7 +21,7 @@ func authedCloudLinkEvent(method, path, userID string) (*httpx.Event, *httptest.
 }
 
 func TestHandleCloudLinkStart_NotConfigured(t *testing.T) {
-	t.Setenv("TECHSTACK_AUTH_CLOUD_CLIENT_ID", "")
+	t.Setenv("HOMELAB_AUTH_CLOUD_CLIENT_ID", "")
 	t.Setenv("AUTH0_CLIENT_ID", "")
 
 	e, rec := authedCloudLinkEvent(http.MethodPost, "/api/v1/auth/cloud-link/start", "operator-1")
@@ -41,8 +41,8 @@ func TestHandleCloudLinkStart_NotConfigured(t *testing.T) {
 
 func TestHandleCloudLinkStart_SaaSDeniesWithGuidance(t *testing.T) {
 	userID := "operator-1"
-	t.Setenv("TECHSTACK_AUTH_CLOUD_ISSUER", "https://cloud.example.test")
-	t.Setenv("TECHSTACK_AUTH_CLOUD_CLIENT_ID", "test-client")
+	t.Setenv("HOMELAB_AUTH_CLOUD_ISSUER", "https://cloud.example.test")
+	t.Setenv("HOMELAB_AUTH_CLOUD_CLIENT_ID", "test-client")
 
 	e, rec := authedCloudLinkEvent(http.MethodPost, "/api/v1/auth/cloud-link/start", userID)
 	if handlerErr := handleRuntimeCloudLinkStart(RuntimeStore{}, config.ModeSaaS)(e); handlerErr != nil {

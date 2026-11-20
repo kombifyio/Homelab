@@ -6,11 +6,11 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/unifier"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 const (
@@ -152,7 +152,7 @@ func (h specRouteHandlers) routeContext(e *httpx.Event) (specRouteContext, bool,
 	if authErr != nil || ownerID == "" {
 		return specRouteContext{}, false, authErr
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "techstack.stack.spec.read")
+	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "homelab.stack.spec.read")
 	if tenantErr != nil {
 		return specRouteContext{}, false, tenantErr
 	}

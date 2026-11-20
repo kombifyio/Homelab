@@ -9,10 +9,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
-// The home graph sync is the typed Techstack side of the catalog operation
+// The home graph sync is the typed Homelab side of the catalog operation
 // application.home-graph.sync. The node runs it against its own Home Assistant
 // connector credential; the graph is public household structure, never a
 // credential. The command is idempotent: a re-run of the same graph converges
@@ -61,7 +61,7 @@ type HomeGraphSyncRequest struct {
 	Restore       []HomeGraphRestoreItem `json:"restore"`
 }
 
-// HomeGraphHeader is the part of a kombify.home_graph.v1 document Techstack
+// HomeGraphHeader is the part of a kombify.home_graph.v1 document Homelab
 // reads. The document itself stays opaque: the shared schema owns its shape.
 type HomeGraphHeader struct {
 	Schema        string            `json:"schema"`

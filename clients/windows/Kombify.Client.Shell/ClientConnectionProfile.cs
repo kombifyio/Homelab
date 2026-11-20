@@ -117,7 +117,7 @@ public static partial class ClientConnectionProfileValidator
 
         if (endpoint.Scheme == Uri.UriSchemeHttp && !IsLoopback(endpoint))
         {
-            throw new ClientProfileException("Remote Techstack instances require HTTPS; HTTP is allowed only on loopback.");
+            throw new ClientProfileException("Remote Homelab Runtime instances require HTTPS; HTTP is allowed only on loopback.");
         }
 
         return new UriBuilder(endpoint.Scheme, endpoint.Host, endpoint.Port).Uri;

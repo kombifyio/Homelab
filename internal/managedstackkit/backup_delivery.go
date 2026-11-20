@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/backupstore"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/backupstore"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 	"github.com/kombifyio/stackkits/pkg/backupbinding"
 	"github.com/kombifyio/stackkits/pkg/hostdelivery"
 )
@@ -58,7 +58,7 @@ type BackupDelivery struct {
 	now       func() time.Time
 	// walletMode routes every delivery through the kombify Wallet; wallet is
 	// nil when that mode lacks its client or delivering key, and then every
-	// delivery fails closed. Techstack never seals itself in Wallet mode.
+	// delivery fails closed. Homelab never seals itself in Wallet mode.
 	walletMode bool
 	wallet     BackupWallet
 }
@@ -66,7 +66,7 @@ type BackupDelivery struct {
 // BackupDeliveryOption configures a BackupDelivery.
 type BackupDeliveryOption func(*BackupDelivery)
 
-// WithWallet selects Wallet host delivery (TECHSTACK_WALLET_SOURCE=kombify).
+// WithWallet selects Wallet host delivery (HOMELAB_WALLET_SOURCE=kombify).
 // A nil wallet keeps the mode and fails every delivery closed.
 func WithWallet(wallet BackupWallet) BackupDeliveryOption {
 	return func(d *BackupDelivery) { d.walletMode, d.wallet = true, wallet }
@@ -184,7 +184,7 @@ func (d *BackupDelivery) AdmitRecipient(ctx context.Context, scope DeliveryScope
 // Seal verifies the provisioned target is usable, then seals its credentials to
 // the admitted recipient for one operation (backup-target-import or -rebind).
 // In Wallet mode the credentials are stored as the stack's Wallet item and the
-// Wallet seals and signs the delivery; otherwise Techstack seals it itself.
+// Wallet seals and signs the delivery; otherwise Homelab seals it itself.
 // The result is ciphertext: it is the only form that leaves this process.
 func (d *BackupDelivery) Seal(ctx context.Context, scope DeliveryScope, recipient Recipient, operation string) ([]byte, error) {
 	if d == nil || len(recipient.Public) == 0 {

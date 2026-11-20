@@ -22,8 +22,8 @@ export const hi: Record<string, string> = {
   "setupReplay.body":
     "इस डिवाइस का कनेक्शन देखें, फिर परिचय दोहराएँ। आपकी सेटिंग्स का मसौदा यहीं रहेगा।",
   "setupReplay.edition": "इंस्टॉलर संस्करण",
-  "setupReplay.localEdition": "Techstack Standalone",
-  "setupReplay.cloudEdition": "Techstack Connected",
+  "setupReplay.localEdition": "Homelab Runtime Standalone",
+  "setupReplay.cloudEdition": "Homelab Runtime Connected",
   "setupReplay.connection": "कनेक्शन",
   "setupReplay.address": "पता",
   "setupReplay.browser": "वेब ब्राउज़र",
@@ -269,7 +269,7 @@ export const hi: Record<string, string> = {
     "सेटअप पता तभी सुझाता है जब चुना हुआ रास्ता पता चल जाता है।",
   "wizard.access.address.custom": "मेरा अपना डोमेन इस्तेमाल करें",
   "wizard.access.address.customBody":
-    "इस Techstack के लिए डोमेन अनुरोध सहेजिए। यह अपने आप DNS नहीं बदलता।",
+    "इस Homelab Runtime के लिए डोमेन अनुरोध सहेजिए। यह अपने आप DNS नहीं बदलता।",
   "wizard.access.address.domainLabel": "बेस डोमेन",
   "wizard.access.address.domainPlaceholder": "home.example.com",
   "wizard.access.address.prerequisites": "पता काम करने से पहले",
@@ -625,7 +625,7 @@ export const hi: Record<string, string> = {
   "hostBaseline.existing": "मौजूदा लिसनर",
   "hostBaseline.noListeners":
     "देखे गए दायरे में कोई लिसनर रिपोर्ट नहीं हुआ। रुके हुए एप्लिकेशन और दूसरे नेमस्पेस अब भी बाइंडिंग आरक्षित रख सकते हैं।",
-  "hostBaseline.recheck": "निष्पादन से पहले Techstack और StackKits ज़रूरी बाइंडिंग फिर से जाँचते हैं। टकराव के लिए समर्थित कॉन्फ़िगरेशन बदलाव, दूसरा सर्वर या समीक्षा किया हुआ माइग्रेशन चाहिए; खुला पोर्ट सार्वजनिक पहुँच का प्रमाण नहीं है।",
+  "hostBaseline.recheck": "निष्पादन से पहले Homelab Runtime और StackKits ज़रूरी बाइंडिंग फिर से जाँचते हैं। टकराव के लिए समर्थित कॉन्फ़िगरेशन बदलाव, दूसरा सर्वर या समीक्षा किया हुआ माइग्रेशन चाहिए; खुला पोर्ट सार्वजनिक पहुँच का प्रमाण नहीं है।",
   "hostBaseline.refresh": "इन्वेंटरी रीफ़्रेश करें",
   "hostBaseline.review": "सभी पोर्ट और सेवाएँ देखें",
   "wizard.smartHome.applianceRetained":
@@ -657,7 +657,7 @@ export const hi: Record<string, string> = {
   "wizard.server.hypervisor.help":
     "आपके जुड़े हुए Proxmox और उसके मौजूदा स्टोरेज और नेटवर्क का उपयोग करता है।",
   "wizard.server.hypervisor.standard":
-    "Ubuntu LTS आपके StackKits कोर को अलग VM में चलाता है। Techstack गेस्ट को अपने आप तैयार करता और जोड़ता है।",
+    "Ubuntu LTS आपके StackKits कोर को अलग VM में चलाता है। Homelab Runtime गेस्ट को अपने आप तैयार करता और जोड़ता है।",
   "wizard.server.hypervisor.appliance":
     "Home Assistant OS अलग अप्लायंस VM इस्तेमाल करता है। Ubuntu गेस्ट कोर और बाकी सेवाएँ चलाता रहता है।",
   "wizard.server.hypervisor.host": "जुड़ा हुआ Proxmox सर्वर",
@@ -694,7 +694,7 @@ export const hi: Record<string, string> = {
   "wizard.server.hypervisor.authorizeFailed":
     "गेस्ट प्रबंधन चालू नहीं हो सका। Guard का स्थानीय Proxmox कॉन्फ़िगरेशन जाँचिए और रीफ़्रेश कीजिए।",
   "wizard.server.hypervisor.progress":
-    "Techstack आपके जुड़े हुए Proxmox पर Ubuntu गेस्ट तैयार कर रहा है, फिर उसे नामांकित करके चुना हुआ StackKit चला रहा है। प्रगति उसी ऑपरेशन के साथ जारी रहती है।",
+    "Homelab Runtime आपके जुड़े हुए Proxmox पर Ubuntu गेस्ट तैयार कर रहा है, फिर उसे नामांकित करके चुना हुआ StackKit चला रहा है। प्रगति उसी ऑपरेशन के साथ जारी रहती है।",
   "nav.dashboard": "डैशबोर्ड",
   "nav.monitoring": "मॉनिटरिंग",
   "nav.services": "सेवाएँ",
@@ -747,7 +747,7 @@ export const hi: Record<string, string> = {
   "onboarding.ui.introduction.skip": "टूर छोड़ें",
   "onboarding.ui.introduction.close": "बंद करें",
   "introduction.restart": "परिचय फिर से चलाएँ",
-  "introduction.welcome.title": "आपके Techstack में स्वागत है",
+  "introduction.welcome.title": "आपके Homelab में स्वागत है",
   "introduction.welcome.body":
     "चुनिए कि आप क्या चलाना चाहते हैं, अपना सर्वर जोड़िए और सत्यापित सेवा तक सेटअप का पालन कीजिए। आपका कॉन्फ़िगरेशन संपादन योग्य रहता है। स्वास्थ्य, लॉग और अगली कार्रवाइयाँ चालू होने के बाद उसकी देखभाल में मदद करते हैं।",
   "introduction.welcome.name_label": "सबसे पहले: हम इस जगह को क्या कहें?",
@@ -765,30 +765,30 @@ export const hi: Record<string, string> = {
   "introduction.account.title": "सेटिंग्स आपके नाम के पीछे हैं",
   "introduction.account.body":
     "थीम, सहायता और आपका खाता यहीं हैं, और इसी जगह आप यह परिचय फिर से चला सकते हैं। यहाँ आप जब चाहें दिखावट को अपने हिसाब से बदल सकते हैं।",
-  "onboarding.techstack_platform.techstack_find_stackkit.title":
+  "onboarding.homelab_platform.homelab_find_stackkit.title":
     "एक StackKit चुनें",
-  "onboarding.techstack_platform.techstack_find_stackkit.body":
+  "onboarding.homelab_platform.homelab_find_stackkit.body":
     "StackKit सेवाओं का तैयार सेट है। उन्हें देखिए और उसे चुनिए जो आपके चलाने के इरादे के सबसे करीब हो।",
-  "onboarding.techstack_platform.techstack_find_stackkit.cta":
+  "onboarding.homelab_platform.homelab_find_stackkit.cta":
     "StackKits देखें",
-  "onboarding.techstack_platform.techstack_configure_intent.title":
+  "onboarding.homelab_platform.homelab_configure_intent.title":
     "बताइए यह किसलिए है",
-  "onboarding.techstack_platform.techstack_configure_intent.body":
+  "onboarding.homelab_platform.homelab_configure_intent.body":
     "आप क्या होस्ट करना चाहते हैं, इस बारे में कुछ सवालों के जवाब दीजिए। kombify जवाबों को ऐसे कॉन्फ़िगरेशन में बदल देता है जिसकी आप समीक्षा कर सकें।",
-  "onboarding.techstack_platform.techstack_configure_intent.cta":
+  "onboarding.homelab_platform.homelab_configure_intent.cta":
     "विज़ार्ड खोलें",
-  "onboarding.techstack_platform.techstack_deploy_stackkit.title":
+  "onboarding.homelab_platform.homelab_deploy_stackkit.title":
     "अपना StackKit deploy करें",
-  "onboarding.techstack_platform.techstack_deploy_stackkit.body": "योजना की पुष्टि कीजिए और kombify को StackKit आपके Homelab पर deploy करने दीजिए। आपका Homelab सेट हो जाते ही यह कदम अपने आप टिक हो जाता है।",
-  "onboarding.techstack_platform.techstack_deploy_stackkit.cta": "सेटअप जारी रखें",
-  "onboarding.techstack_platform.techstack_add_server.title": "सर्वर जोड़ें",
-  "onboarding.techstack_platform.techstack_add_server.body": "अपना सर्वर जोड़िए, या kombify को आपके लिए एक चलाने दीजिए। आपकी सेवाओं को रहने के लिए कोई जगह चाहिए।",
-  "onboarding.techstack_platform.techstack_add_server.cta": "सर्वर जोड़ें",
-  "onboarding.techstack_platform.techstack_deploy_service.title":
+  "onboarding.homelab_platform.homelab_deploy_stackkit.body": "योजना की पुष्टि कीजिए और kombify को StackKit आपके Homelab पर deploy करने दीजिए। आपका Homelab सेट हो जाते ही यह कदम अपने आप टिक हो जाता है।",
+  "onboarding.homelab_platform.homelab_deploy_stackkit.cta": "सेटअप जारी रखें",
+  "onboarding.homelab_platform.homelab_add_server.title": "सर्वर जोड़ें",
+  "onboarding.homelab_platform.homelab_add_server.body": "अपना सर्वर जोड़िए, या kombify को आपके लिए एक चलाने दीजिए। आपकी सेवाओं को रहने के लिए कोई जगह चाहिए।",
+  "onboarding.homelab_platform.homelab_add_server.cta": "सर्वर जोड़ें",
+  "onboarding.homelab_platform.homelab_deploy_service.title":
     "अपनी पहली सेवा खोलें",
-  "onboarding.techstack_platform.techstack_deploy_service.body":
+  "onboarding.homelab_platform.homelab_deploy_service.body":
     "सेवा चालू होने के बाद आप उस तक सेवाओं की सूची से पहुँच सकते हैं। यही इस सबका मकसद है।",
-  "onboarding.techstack_platform.techstack_deploy_service.cta":
+  "onboarding.homelab_platform.homelab_deploy_service.cta":
     "सेवाओं पर जाएँ",
   "onboarding.denied.policy_selfhost_byos.title": "kombify-प्रबंधित सर्वर एक Cloud सुविधा हैं",
   "onboarding.denied.policy_selfhost_byos.body": "यह इंस्टॉलेशन सेल्फ-होस्टेड चलता है, इसलिए kombify इसके लिए सर्वर प्रोविज़न नहीं करता। अपना सर्वर जोड़िए और बाकी सब वैसे ही काम करता है।",
@@ -809,10 +809,10 @@ export const hi: Record<string, string> = {
   "common.tip": "सुझाव",
   "common.moreInfo": "इस विकल्प के बारे में और जानें",
   "common.recommended": "अनुशंसित",
-  "wizard.title": "Techstack बनाएँ",
+  "wizard.title": "Homelab Runtime बनाएँ",
   "wizard.selfDisclosure.review.title": "क्या इस लिंक के जवाब इस्तेमाल करें?",
   "wizard.selfDisclosure.review.body":
-    "आपने जो लिंक खोला है, उसमें आपके बारे में ये जवाब हैं। Techstack इन्हें आपकी प्रोफ़ाइल में तभी सेव करता है और आपकी सिफ़ारिशों के लिए तभी इस्तेमाल करता है, जब आप “ये जवाब इस्तेमाल करें” चुनते हैं। अभी कुछ भी सेव नहीं हुआ है।",
+    "आपने जो लिंक खोला है, उसमें आपके बारे में ये जवाब हैं। Homelab Runtime इन्हें आपकी प्रोफ़ाइल में तभी सेव करता है और आपकी सिफ़ारिशों के लिए तभी इस्तेमाल करता है, जब आप “ये जवाब इस्तेमाल करें” चुनते हैं। अभी कुछ भी सेव नहीं हुआ है।",
   "wizard.selfDisclosure.review.notes": "कुछ और? (वैकल्पिक)",
   "wizard.selfDisclosure.review.notesHint":
     "हार्डवेयर की जानकारी, ख़ास इच्छाएँ या आपकी चिंताएँ, अपने शब्दों में।",
@@ -961,7 +961,7 @@ export const hi: Record<string, string> = {
   "wizard.goals.everything.tip":
     "हम वही चुनते हैं जो आपके अनुभव और हार्डवेयर के अनुकूल हो। आप कुछ भी हटा सकते हैं।",
   "wizard.goals.tipText":
-    "अगर आप निश्चित नहीं हैं, तो सिर्फ़ एक लक्ष्य चुनिए। kombify-Techstack एक ही सिस्टम रहता है और आप बाद में और सेवाएँ जोड़ सकते हैं। और सेटिंग्स चाहिए? नीचे उन्नत सेटिंग्स आज़माइए।",
+    "अगर आप निश्चित नहीं हैं, तो सिर्फ़ एक लक्ष्य चुनिए। kombify-Homelab एक ही सिस्टम रहता है और आप बाद में और सेवाएँ जोड़ सकते हैं। और सेटिंग्स चाहिए? नीचे उन्नत सेटिंग्स आज़माइए।",
   "wizard.goals.advancedTitle": "उन्नत उपयोग",
   "wizard.goals.showMoreDetails": "ज़्यादा ब्योरा दिखाएँ",
   "wizard.goals.showLessDetails": "कम दिखाएँ",
@@ -1326,7 +1326,7 @@ export const hi: Record<string, string> = {
   "wizard.login.recovery.hashing": "रिकवरी पासफ़्रेज़ का हैश बन रहा है...",
   "wizard.login.recovery.ready": "रिकवरी पासफ़्रेज़ तैयार है।",
   "wizard.login.passkey.help":
-    "Pocket ID रोलआउट के बाद पहले passkey का हैंडऑफ़ देता है; कोई passkey सीक्रेट Techstack में नहीं आता।",
+    "Pocket ID रोलआउट के बाद पहले passkey का हैंडऑफ़ देता है; कोई passkey सीक्रेट Homelab Runtime में नहीं आता।",
   "wizard.login.password.title": "TinyAuth गेटवे क्रेडेंशियल",
   "wizard.login.password.description":
     "एप्लिकेशन गेटवे के लिए वैकल्पिक ब्रेक-ग्लास सुरक्षा",
@@ -1440,7 +1440,7 @@ export const hi: Record<string, string> = {
     "नेटवर्क त्रुटि: Discovery API से कनेक्ट नहीं हो सका। क्या बैकएंड चल रहा है?",
   "ui.api.scanPollingTimeout": "स्कैन पोलिंग का समय समाप्त",
   "ui.api.serverSideAPIBaseURL":
-    "सर्वर-साइड API बेस URL कॉन्फ़िगर नहीं है। TECHSTACK_API_URL (रनटाइम) या VITE_API_URL (बिल्ड के समय) सेट कीजिए।",
+    "सर्वर-साइड API बेस URL कॉन्फ़िगर नहीं है। HOMELAB_API_URL (रनटाइम) या VITE_API_URL (बिल्ड के समय) सेट कीजिए।",
   "ui.argon2.addNumber": "कम से कम एक संख्या जोड़िए।",
   "ui.argon2.addSymbols":
     "पासफ़्रेज़ का अनुमान लगाना मुश्किल बनाने के लिए स्पेस या चिह्न जोड़िए।",
@@ -1457,16 +1457,16 @@ export const hi: Record<string, string> = {
   "ui.authCloud-link-complete.closeThisTabAndTry":
     "इस टैब को बंद कीजिए और विज़ार्ड से फिर कोशिश कीजिए।",
   "ui.authCloud-link-complete.kombifyCloudConnected": "kombify Cloud जुड़ गया",
-  "ui.authCloud-link-complete.kombifyCloudLinkKombifyTechstack":
-    "kombify Cloud लिंक | Techstack",
+  "ui.authCloud-link-complete.kombifyCloudLinkKombifyHomelab":
+    "kombify Cloud लिंक | Homelab Runtime",
   "ui.authCloud-link-complete.thisWindowClosesAutomatically":
     "यह विंडो अपने आप बंद हो जाएगी।",
   "ui.authCloud-link-complete.youCanCloseThisTab":
     "आप इस टैब को बंद करके विज़ार्ड पर लौट सकते हैं।",
   "ui.authSso.noSsoTokenProvided": "कोई SSO टोकन नहीं दिया गया",
   "ui.authSso.ssoAuthenticationFailed": "SSO प्रमाणीकरण विफल रहा",
-  "ui.authSso.ssoAuthenticationKombifyTechstack":
-    "SSO प्रमाणीकरण | Techstack",
+  "ui.authSso.ssoAuthenticationKombifyHomelab":
+    "SSO प्रमाणीकरण | Homelab Runtime",
   "ui.authSso.unableToVerifyYourCredentials":
     "आपके क्रेडेंशियल सत्यापित नहीं किए जा सके",
   "ui.authSso.yourKombifyCloudSessionCould":
@@ -1485,7 +1485,7 @@ export const hi: Record<string, string> = {
     "स्थानीय प्रमाणीकरण स्थिति जाँची जा रही है...",
   "ui.clientLocal.continueLocalSetup": "स्थानीय सेटअप जारी रखें",
   "ui.clientLocal.createOrSignInAs":
-    "इस सेल्फ-होस्टेड Techstack के लिए स्थानीय ओनर बनाइए या उसी के रूप में साइन इन कीजिए। सेटअप के बाद ऑपरेटर UI सीधे खुल जाता है।",
+    "इस सेल्फ-होस्टेड Homelab Runtime के लिए स्थानीय ओनर बनाइए या उसी के रूप में साइन इन कीजिए। सेटअप के बाद ऑपरेटर UI सीधे खुल जाता है।",
   "ui.clientLocal.createTheFirstLocalAdmin":
     "इस डिवाइस के लिए पहला स्थानीय एडमिन बनाइए। सेटअप के बाद यह Windows क्लाइंट ऑपरेटर UI सीधे खोल देता है।",
   "ui.clientLocal.creatingLocalOwner": "स्थानीय ओनर बनाया जा रहा है...",
@@ -1497,26 +1497,26 @@ export const hi: Record<string, string> = {
     "स्थानीय ओनर बन गया, लेकिन साइन-इन विफल रहा।",
   "ui.clientLocal.localSetupFailed": "स्थानीय सेटअप विफल रहा।",
   "ui.clientLocal.localSignInFailed": "स्थानीय साइन-इन विफल रहा।",
-  "ui.clientLocal.localTechstackSetup": "स्थानीय Techstack सेटअप।",
-  "ui.clientLocal.localTechstackSetupKombifyTechstack":
-    "स्थानीय Techstack सेटअप | Techstack",
+  "ui.clientLocal.localHomelabSetup": "स्थानीय Homelab Runtime सेटअप।",
+  "ui.clientLocal.localHomelabSetupKombifyHomelab":
+    "स्थानीय Homelab Runtime सेटअप | Homelab Runtime",
   "ui.clientLocal.ownerName": "ओनर का नाम: {name}",
   "ui.clientLocal.password": "पासवर्ड",
   "ui.clientLocal.selfHostedLocalOwner": "सेल्फ-होस्टेड स्थानीय ओनर",
   "ui.clientLocal.signInLocally": "स्थानीय रूप से साइन इन करें",
   "ui.clientLocal.signingIn": "साइन इन हो रहा है...",
   "ui.clientLocal.thisDeviceIsAlreadyConfigured":
-    "यह डिवाइस पहले से कॉन्फ़िगर है। Techstack खोलने के लिए स्थानीय ओनर खाते से साइन इन कीजिए।",
+    "यह डिवाइस पहले से कॉन्फ़िगर है। Homelab Runtime खोलने के लिए स्थानीय ओनर खाते से साइन इन कीजिए।",
   "ui.clientOnboarding.connectAnExistingSelfHosted":
     "मौजूदा सेल्फ-होस्टेड सर्वर से जुड़ें",
   "ui.clientOnboarding.connectServer": "सर्वर जोड़ें",
   "ui.clientOnboarding.installLocally": "स्थानीय रूप से इंस्टॉल करें",
   "ui.clientOnboarding.localWindowsInstallation":
     "Windows पर स्थानीय इंस्टॉलेशन",
-  "ui.clientOnboarding.noTechstackAccountRequiredTechstack":
-    "किसी Techstack खाते की ज़रूरत नहीं है। Techstack इसी डिवाइस पर चलता है और आपके निजी नेटवर्क के लिए टोकन-सुरक्षित एनरोलमेंट चैनल खोलता है।",
-  "ui.clientOnboarding.setUpKombifyTechstackOn":
-    "इस Windows डिवाइस पर Techstack सेट अप कीजिए।",
+  "ui.clientOnboarding.noHomelabAccountRequiredHomelab":
+    "किसी Homelab Runtime खाते की ज़रूरत नहीं है। Homelab Runtime इसी डिवाइस पर चलता है और आपके निजी नेटवर्क के लिए टोकन-सुरक्षित एनरोलमेंट चैनल खोलता है।",
+  "ui.clientOnboarding.setUpKombifyHomelabOn":
+    "इस Windows डिवाइस पर Homelab Runtime सेट अप कीजिए।",
   "ui.clientOnboarding.signInWithKombifyCloud": "kombify Cloud से साइन इन करें",
   "ui.clientOnboarding.signInWithYourKombify":
     "अपने kombify Cloud खाते से साइन इन कीजिए और इस डेस्कटॉप क्लाइंट को जोड़िए।",
@@ -1524,12 +1524,12 @@ export const hi: Record<string, string> = {
   "ui.clientOnboarding.thePrivateNetworkEnrollmentChannel":
     "निजी नेटवर्क का एनरोलमेंट चैनल चालू नहीं हो सका।",
   "ui.clientOnboarding.thisClientIsTheLocal":
-    "यह क्लाइंट आपके अपने सर्वरों और StackKits को ऑर्केस्ट्रेट करने के लिए स्थानीय डेस्कटॉप एंट्री है। डिफ़ॉल्ट रास्ता Techstack को इसी डिवाइस पर स्थानीय रूप से इंस्टॉल करता है।",
+    "यह क्लाइंट आपके अपने सर्वरों और StackKits को ऑर्केस्ट्रेट करने के लिए स्थानीय डेस्कटॉप एंट्री है। डिफ़ॉल्ट रास्ता Homelab Runtime को इसी डिवाइस पर स्थानीय रूप से इंस्टॉल करता है।",
   "ui.clientOnboarding.useLocally": "स्थानीय रूप से उपयोग करें",
   "ui.clientOnboarding.useYourOwnSelfHosted":
     "इसके बजाय अपना सेल्फ-होस्टेड सर्वर इस्तेमाल करें",
-  "ui.clientOnboarding.windowsClientOnboardingKombifyTechstack":
-    "Windows क्लाइंट ऑनबोर्डिंग | Techstack",
+  "ui.clientOnboarding.windowsClientOnboardingKombifyHomelab":
+    "Windows क्लाइंट ऑनबोर्डिंग | Homelab Runtime",
   "ui.cockpitSnapshot.monitoringCockpitCouldNotBe":
     "मॉनिटरिंग कॉकपिट रिफ़्रेश नहीं हो सका।",
   "ui.common.copiedCheck": "✓ कॉपी हो गया",
@@ -1567,7 +1567,7 @@ export const hi: Record<string, string> = {
   "ui.configurationFlow.anUnexpectedErrorOccurredPlease":
     "कुछ अप्रत्याशित गड़बड़ हो गई। फिर से कोशिश करें। अगर यह बार-बार हो, तो सहायता से संपर्क करें और तकनीकी विवरण साझा करें।",
   "ui.configurationFlow.authenticationRequired": "प्रमाणीकरण आवश्यक है",
-  "ui.configurationFlow.cannotConnectToBackend": "Techstack से कनेक्ट नहीं हो पा रहा",
+  "ui.configurationFlow.cannotConnectToBackend": "Homelab Runtime से कनेक्ट नहीं हो पा रहा",
   "ui.configurationFlow.deploymentFailed": "आपका Homelab नहीं बनाया जा सका",
   "ui.configurationFlow.managedServerIsNotActive":
     "प्रबंधित सर्वर सक्रिय नहीं है",
@@ -1593,7 +1593,7 @@ export const hi: Record<string, string> = {
     "अपना Homelab बनाने के लिए साइन इन करें।",
   "ui.configurationFlow.youMustBeLoggedIn2":
     "अपना Homelab बनाने के लिए आपको साइन इन होना होगा। कृपया पहले साइन इन करें।",
-  "ui.connectDevices.techstackClient": "Techstack क्लाइंट",
+  "ui.connectDevices.homelabClient": "Homelab Runtime क्लाइंट",
   "ui.creationCompletion.ownerSeedFor": "{email} के लिए आपका मालिक खाता तैयार है।",
   "ui.creationController.theAdditionalNode": "अतिरिक्त सर्वर",
   "ui.creationFailure.lease": "लीज़",
@@ -1755,9 +1755,9 @@ export const hi: Record<string, string> = {
   "ui.homelabDashboardPage.bothServiceSourcesReportedAn":
     "दोनों सेवा स्रोतों ने खाली इन्वेंटरी रिपोर्ट की: StackKit मैनिफ़ेस्ट में कोई सेवा नहीं थी और Agent खोज को कोई चलता हुआ कंटेनर या यूनिट नहीं मिला।",
   "ui.homelabDashboardPage.confirmThatTheProviderResource":
-    "पुष्टि कीजिए कि प्रदाता का रिसोर्स पहले ही हटाया जा चुका है। Techstack केवल उसका पुराना कस्टडी रिकॉर्ड संग्रहीत करेगा और प्रदाता का कोई रिसोर्स नहीं हटाएगा।",
-  "ui.homelabDashboardPage.custodyRecordUnchangedTheTechstack":
-    "कस्टडी रिकॉर्ड में कोई बदलाव नहीं: Techstack गेटवे बैकएंड तक नहीं पहुँच सका। सेवा उपलब्ध होने पर इसी रिकॉर्ड को फिर आज़माइए।",
+    "पुष्टि कीजिए कि प्रदाता का रिसोर्स पहले ही हटाया जा चुका है। Homelab Runtime केवल उसका पुराना कस्टडी रिकॉर्ड संग्रहीत करेगा और प्रदाता का कोई रिसोर्स नहीं हटाएगा।",
+  "ui.homelabDashboardPage.custodyRecordUnchangedTheHomelab":
+    "कस्टडी रिकॉर्ड में कोई बदलाव नहीं: Homelab Runtime गेटवे बैकएंड तक नहीं पहुँच सका। सेवा उपलब्ध होने पर इसी रिकॉर्ड को फिर आज़माइए।",
   "ui.homelabDashboardPage.custodyResolutionFailed": "कस्टडी समाधान विफल रहा",
   "ui.homelabDashboardPage.decommissionFailed": "हटाना विफल रहा",
   "ui.homelabDashboardPage.deployStackkit": "समीक्षा करें और बनाएँ",
@@ -1918,9 +1918,9 @@ export const hi: Record<string, string> = {
   "ui.importExportModal.importing": "इम्पोर्ट हो रहा है...",
   "ui.importExportModal.keepThisPasswordSafeWithout":
     "इस पासवर्ड को सुरक्षित रखिए! इसके बिना आप अपने क्रेडेंशियल बहाल नहीं कर पाएँगे।",
-  "ui.importExportModal.kombifyTechstackJson": "kombify-Techstack JSON",
-  "ui.importExportModal.kombifyTechstackWalletExportJson":
-    "kombify-Techstack Wallet एक्सपोर्ट (.json)",
+  "ui.importExportModal.kombifyHomelabJson": "kombify-Homelab JSON",
+  "ui.importExportModal.kombifyHomelabWalletExportJson":
+    "kombify-Homelab Wallet एक्सपोर्ट (.json)",
   "ui.importExportModal.min8Characters": "कम से कम 8 अक्षर",
   "ui.importExportModal.nativeFormatWithEncryptionSupport":
     "एन्क्रिप्शन सपोर्ट वाला नेटिव फ़ॉर्मैट। बैकअप और रिस्टोर के लिए सबसे अच्छा।",
@@ -1981,12 +1981,12 @@ export const hi: Record<string, string> = {
   "ui.login.revealFailed": "दिखाना विफल रहा।",
   "ui.login.revealing": "दिखाया जा रहा है...",
   "ui.login.signInAsEmergencyAdmin": "आपातकालीन एडमिन के रूप में साइन इन करें",
-  "ui.login.signInKombifyTechstack": "साइन इन | Techstack",
+  "ui.login.signInKombifyHomelab": "साइन इन | Homelab Runtime",
   "ui.login.signInWithKombifyCloud": "kombify Cloud से साइन इन कीजिए।",
   "ui.login.signInWithTheLocal":
-    "इस Techstack के स्थानीय ओनर खाते से साइन इन कीजिए।",
-  "ui.login.techstackReconnectsThroughTheKombify":
-    "Techstack उसी kombify Cloud पेज के ज़रिए दोबारा कनेक्ट होता है जिसमें यह व्यू है। यह इस फ़्रेम के अंदर दूसरा साइन-इन पेज नहीं खोलेगा।",
+    "इस Homelab Runtime के स्थानीय ओनर खाते से साइन इन कीजिए।",
+  "ui.login.homelabReconnectsThroughTheKombify":
+    "Homelab Runtime उसी kombify Cloud पेज के ज़रिए दोबारा कनेक्ट होता है जिसमें यह व्यू है। यह इस फ़्रेम के अंदर दूसरा साइन-इन पेज नहीं खोलेगा।",
   "ui.login.theBootstrapPasswordHasExpired":
     "बूटस्ट्रैप पासवर्ड की समय-सीमा खत्म हो गई है। नया पासवर्ड बनाने के लिए सर्वर रीस्टार्ट कीजिए।",
   "ui.login.tooManyLoginAttemptsPlease":
@@ -1996,7 +1996,7 @@ export const hi: Record<string, string> = {
     "सहेजा हुआ आपातकालीन पासवर्ड इस्तेमाल कीजिए",
   "ui.login.youHaveBeenSignedOut": "आप साइन आउट हो चुके हैं।",
   "ui.loginExperience.kombifyCloudSignInCompleted":
-    "kombify Cloud साइन-इन पूरा हुआ, लेकिन Techstack ब्राउज़र सेशन नहीं बना सका। फिर कोशिश कीजिए या सपोर्ट से संपर्क कीजिए।",
+    "kombify Cloud साइन-इन पूरा हुआ, लेकिन Homelab Runtime ब्राउज़र सेशन नहीं बना सका। फिर कोशिश कीजिए या सपोर्ट से संपर्क कीजिए।",
   "ui.managed.sizeGB": "{size} GB",
   "ui.managed.sizeGiB": "{size} GiB",
   "ui.managedCreationFlow.addNode": "Node जोड़ें",
@@ -2014,7 +2014,7 @@ export const hi: Record<string, string> = {
   "ui.managedCreationFlow.workerOrStorageForThis":
     "इस StackKit के लिए वर्कर या स्टोरेज",
   "ui.managedRuntimeRecreatePanel.thisProvisionsAndBillsA":
-    "इससे प्रबंधित सर्वर की एक नई पीढ़ी प्रोविज़न होगी और उसका बिल बनेगा। Techstack सामान्य निर्माण प्रवाह के ज़रिए एनरोलमेंट, एंडपॉइंट, Guard प्रमाण और StackKit रोलआउट फिर से स्थापित करेगा।",
+    "इससे प्रबंधित सर्वर की एक नई पीढ़ी प्रोविज़न होगी और उसका बिल बनेगा। Homelab Runtime सामान्य निर्माण प्रवाह के ज़रिए एनरोलमेंट, एंडपॉइंट, Guard प्रमाण और StackKit रोलआउट फिर से स्थापित करेगा।",
   "ui.monitoring.acrossEpisodes.one": "कुल {count} घटनाओं में",
   "ui.monitoring.acrossEpisodes.other": "कुल {count} घटनाओं में",
   "ui.monitoring.availabilityHistoryIsUnavailableOn": "इस इंस्टॉलेशन पर उपलब्धता इतिहास उपलब्ध नहीं है।",
@@ -2212,7 +2212,7 @@ export const hi: Record<string, string> = {
   "ui.peoplePanel.noHouseholdMembersYetInvite":
     "अभी कोई परिवार सदस्य नहीं है। Homelab के आइडेंटिटी सेटअप से उन्हें आमंत्रित कीजिए।",
   "ui.peoplePanel.noKombifyClientIsLinked":
-    "अभी कोई kombify क्लाइंट लिंक नहीं है। उसे यहाँ देखने के लिए Techstack क्लाइंट, Companion या Workbench इंस्टॉल कीजिए।",
+    "अभी कोई kombify क्लाइंट लिंक नहीं है। उसे यहाँ देखने के लिए Homelab Runtime क्लाइंट, Companion या Workbench इंस्टॉल कीजिए।",
   "ui.peoplePanel.nobodyInThisFilter": "इस फ़िल्टर में कोई नहीं है।",
   "ui.peoplePanel.ownerDevicesCanManageThe":
     "ओनर के डिवाइस Homelab को प्रबंधित कर सकते हैं; परिवार के सदस्य सिर्फ़ उसके ऐप्स इस्तेमाल करते हैं।",
@@ -2276,7 +2276,7 @@ export const hi: Record<string, string> = {
   "ui.providerErrors.checkTheRuntimeLogsFor":
     "उसी Stack, जॉब, लीज़ और प्रदाता के रनटाइम लॉग देखिए",
   "ui.providerErrors.checkTheServerLogsDocker":
-    "सर्वर लॉग देखिए: 'docker compose logs techstack'",
+    "सर्वर लॉग देखिए: 'docker compose logs homelab'",
   "ui.providerErrors.checkTheVMLeaseEnrollment":
     "प्रदाता त्रुटि के लिए VM लीज़ के एनरोलमेंट इवेंट और Sentry देखिए",
   "ui.providerErrors.checkWhetherCentronOrIONOS":
@@ -2314,11 +2314,11 @@ export const hi: Record<string, string> = {
   "ui.providerErrors.ifProviderSupportIsRequired":
     "अगर प्रदाता सपोर्ट की ज़रूरत हो, तो विवरण से त्रुटि कोड शामिल कीजिए",
   "ui.providerErrors.ifRunningTheBinaryOutside":
-    "अगर आप बाइनरी को रिपो के बाहर चला रहे हैं: TECHSTACK_STACKKITS_DIR को प्रकाशित StackKits चेकआउट पर सेट कीजिए",
+    "अगर आप बाइनरी को रिपो के बाहर चला रहे हैं: HOMELAB_STACKKITS_DIR को प्रकाशित StackKits चेकआउट पर सेट कीजिए",
   "ui.providerErrors.ifThisIsANew":
     "अगर यह नया Homelab है, तो Node जोड़ने के बजाय एक Kit शुरू कीजिए",
   "ui.providerErrors.ifThisIsANew2":
-    "अगर यह नई डिप्लॉयमेंट है, तो विज़ार्ड दोबारा चलाइए ताकि Techstack stackkit/v2alpha1 स्पेक बना सके",
+    "अगर यह नई डिप्लॉयमेंट है, तो विज़ार्ड दोबारा चलाइए ताकि Homelab Runtime stackkit/v2alpha1 स्पेक बना सके",
   "ui.providerErrors.joinRequiresAnArchitectureV2":
     "जुड़ने के लिए आर्किटेक्चर v2 चाहिए",
   "ui.providerErrors.joiningASecondController": "दूसरे कंट्रोलर को जोड़ना",
@@ -2327,8 +2327,8 @@ export const hi: Record<string, string> = {
     "kombify.me पंजीकरण विफल रहा",
   "ui.providerErrors.makeSureAStackKitWas":
     "सुनिश्चित कीजिए कि कोई StackKit चुना गया या पहचाना गया है",
-  "ui.providerErrors.makeSureTheKombifyTechstack":
-    "सुनिश्चित कीजिए कि Techstack सर्वर चल रहा है",
+  "ui.providerErrors.makeSureTheKombifyHomelab":
+    "सुनिश्चित कीजिए कि Homelab Runtime सर्वर चल रहा है",
   "ui.providerErrors.managedRuntimeCouldNotBe":
     "Managed Runtime तैयार नहीं हो सका",
   "ui.providerErrors.managedRuntimeCouldNotBe2":
@@ -2370,7 +2370,7 @@ export const hi: Record<string, string> = {
   "ui.providerErrors.retryTheRolloutOnlyAfter":
     "रोलआउट तभी दोबारा आज़माइए जब लक्ष्य सर्वर पर SSH, Docker और StackKits Runtime Action स्थिर हों",
   "ui.providerErrors.reviewTheLogsWithDocker":
-    "'docker compose logs techstack' से लॉग देखिए",
+    "'docker compose logs homelab' से लॉग देखिए",
   "ui.providerErrors.reviewTheServerLogs": "अब भी नहीं हुआ? kombify से पूछें, या तकनीकी विवरण खोलकर सपोर्ट को भेजें।",
   "ui.providerErrors.runtimeActionStackkitRollout":
     "Runtime Action stackkit_rollout",
@@ -2419,8 +2419,8 @@ export const hi: Record<string, string> = {
     "कॉन्फ़िगरेशन डेटाबेस में सहेजा नहीं जा सका।",
   "ui.providerErrors.theConfigurationCouldNotBe2":
     "कॉन्फ़िगरेशन को मान्य डिप्लॉयमेंट स्पेक में बदला नहीं जा सका।",
-  "ui.providerErrors.theKombifyTechstackServerCould":
-    "Techstack सर्वर तक पहुँचा नहीं जा सका।",
+  "ui.providerErrors.theKombifyHomelabServerCould":
+    "Homelab Runtime सर्वर तक पहुँचा नहीं जा सका।",
   "ui.providerErrors.theManagedVMWasPrepared":
     "प्रबंधित VM तैयार हो गई, लेकिन StackKits रोलआउट आर्टिफ़ैक्ट या kombify.me रूटिंग डेटा जनरेट नहीं कर सका।",
   "ui.providerErrors.theRolloutDidNotReturn":
@@ -2429,10 +2429,10 @@ export const hi: Record<string, string> = {
     "चुनी गई सेवाओं की आवश्यकताएँ आपस में टकराती हैं।",
   "ui.providerErrors.theSubmittedConfigurationContainsInvalid":
     "सबमिट किए गए कॉन्फ़िगरेशन में अमान्य या गायब मान हैं।",
-  "ui.providerErrors.theTeardownStoppedBecauseTechstack":
-    "टियरडाउन रुक गया क्योंकि Techstack अनुरोध को किसी प्रामाणिक प्रदाता लीज़ से मिला नहीं सका। कुछ भी ज़बरदस्ती नहीं हटाया गया, इसलिए प्रदाता के रिसोर्स अब भी मौजूद हो सकते हैं।",
+  "ui.providerErrors.theTeardownStoppedBecauseHomelab":
+    "टियरडाउन रुक गया क्योंकि Homelab Runtime अनुरोध को किसी प्रामाणिक प्रदाता लीज़ से मिला नहीं सका। कुछ भी ज़बरदस्ती नहीं हटाया गया, इसलिए प्रदाता के रिसोर्स अब भी मौजूद हो सकते हैं।",
   "ui.providerErrors.theVMIsReachableBut":
-    "VM पहुँच में है, लेकिन Techstack Managed Runtime सर्वर पर Docker या बूटस्ट्रैप बेसलाइन को भरोसेमंद ढंग से तैयार नहीं कर सका।",
+    "VM पहुँच में है, लेकिन Homelab Runtime Managed Runtime सर्वर पर Docker या बूटस्ट्रैप बेसलाइन को भरोसेमंद ढंग से तैयार नहीं कर सका।",
   "ui.providerErrors.theVMLeaseHasNot":
     "VM लीज़ ने कोई SSH होस्ट या सार्वजनिक IP रिपोर्ट नहीं किया। निर्माण रोक दिया गया ताकि ऑपरेशन अनिश्चित काल तक प्रोविज़निंग में न अटका रहे।",
   "ui.providerErrors.theVMWasPreparedBut":
@@ -2447,8 +2447,8 @@ export const hi: Record<string, string> = {
     "हाल के क्रिएट और डिलीट ऑपरेशन बहुत ज़्यादा हैं",
   "ui.providerErrors.tooManyRecentCreateDelete":
     "हाल के क्रिएट/डिलीट ऑपरेशन बहुत ज़्यादा हैं",
-  "ui.providerErrors.tryRestartingTheKombifyTechstack":
-    "kombify-Techstack सर्वर को रीस्टार्ट करके देखिए",
+  "ui.providerErrors.tryRestartingTheKombifyHomelab":
+    "kombify-Homelab सर्वर को रीस्टार्ट करके देखिए",
   "ui.providerErrors.trySelectingFewerServices": "कम सेवाएँ चुनकर देखिए",
   "ui.providerErrors.unexpectedError": "अप्रत्याशित त्रुटि",
   "ui.providerErrors.unifierProcessingError": "Unifier प्रोसेसिंग त्रुटि",
@@ -2501,11 +2501,11 @@ export const hi: Record<string, string> = {
   "ui.requirements.hybridSetupCloudAndLocal":
     "हाइब्रिड सेटअप: क्लाउड और स्थानीय सर्वर आपस में जुड़े हैं",
   "ui.requirements.linuxRecommendedInstallsThePersistent":
-    "Linux (अनुशंसित) — Core/API URL (/install.sh) के ज़रिए स्थायी आउटबाउंड Guard इंस्टॉल करता है। किसी दूसरे होस्ट/VM पर चला रहे हों, तो localhost को अपने kombify-Techstack सर्वर के पहुँच-योग्य IP/डोमेन से बदलिए।",
+    "Linux (अनुशंसित) — Core/API URL (/install.sh) के ज़रिए स्थायी आउटबाउंड Guard इंस्टॉल करता है। किसी दूसरे होस्ट/VM पर चला रहे हों, तो localhost को अपने kombify-Homelab सर्वर के पहुँच-योग्य IP/डोमेन से बदलिए।",
   "ui.requirements.manualInstallationAfterBinaryDownload":
     "मैन्युअल इंस्टॉलेशन (बाइनरी डाउनलोड के बाद)",
-  "ui.requirements.techstackPreparesTheVMThen":
-    "Techstack VM तैयार करता है, फिर मानक StackKits इंस्टॉलेशन जारी रखता है।",
+  "ui.requirements.homelabPreparesTheVMThen":
+    "Homelab Runtime VM तैयार करता है, फिर मानक StackKits इंस्टॉलेशन जारी रखता है।",
   "ui.requirements.theInstallationCommandRunsOn":
     "इंस्टॉलेशन कमांड आपके अपने सर्वर या डिवाइस पर चलता है",
   "ui.requirements.ubuntuGuestOnYourProxmox":
@@ -2591,9 +2591,9 @@ export const hi: Record<string, string> = {
     "{name} को प्रदाता से हटाने की पुष्टि करें",
   "ui.serverDetail.connectionState": "सर्वर कनेक्शन: {state}",
   "ui.serverDetail.decommissionIntro":
-    "{slot} को नियंत्रित तरीके से हटाने का अनुरोध कीजिए। जब तक उसकी अनुपस्थिति सत्यापित नहीं होती, Techstack प्रदाता का कस्टडी रिकॉर्ड रखता है। यह कार्रवाई जान-बूझकर सिर्फ़ यहीं उपलब्ध है।",
+    "{slot} को नियंत्रित तरीके से हटाने का अनुरोध कीजिए। जब तक उसकी अनुपस्थिति सत्यापित नहीं होती, Homelab Runtime प्रदाता का कस्टडी रिकॉर्ड रखता है। यह कार्रवाई जान-बूझकर सिर्फ़ यहीं उपलब्ध है।",
   "ui.serverDetail.detachIntro":
-    "{slot} के लिए सटीक Guard Agent रद्द कीजिए और इस अटैचमेंट को मौजूदा इन्वेंटरी से हटाइए। Techstack अंतिम ऑडिट रसीद रखता है और प्रदाता का कोई API कॉल नहीं करता।",
+    "{slot} के लिए सटीक Guard Agent रद्द कीजिए और इस अटैचमेंट को मौजूदा इन्वेंटरी से हटाइए। Homelab Runtime अंतिम ऑडिट रसीद रखता है और प्रदाता का कोई API कॉल नहीं करता।",
   "ui.serverDetail.evidence": "प्रमाण: {sources}",
   "ui.serverDetail.healthSource":
     "स्रोत: {source}। मॉनिटरिंग बैकएंड: {backend}।",
@@ -2648,7 +2648,7 @@ export const hi: Record<string, string> = {
   "ui.stepUp.checking": "जाँच हो रही है…",
   "ui.stepUp.confirm": "साइन-इन की पुष्टि करें",
   "ui.stepUp.doneBody":
-    "आप इस विंडो को बंद करके Techstack पर लौट सकते हैं।",
+    "आप इस विंडो को बंद करके Homelab Runtime पर लौट सकते हैं।",
   "ui.stepUp.doneTitle": "साइन-इन की पुष्टि हो गई",
   "ui.stepUp.notConfirmed":
     "पुष्टि अभी तक नहीं मिली है। इसे दूसरी विंडो में पूरा करें या फिर से कोशिश करें।",
@@ -2935,7 +2935,7 @@ export const hi: Record<string, string> = {
   "ui.settings.deleting": "हटाया जा रहा है...",
   "ui.settings.deletionFailed": "हटाना विफल रहा",
   "ui.settings.removeWithoutServer": "सर्वर अब नहीं है, हटाएँ",
-  "ui.settings.serverGoneBody": "{servers} ने कई मिनट से कोई संकेत नहीं भेजा है। यदि आपने उसे हटा दिया है, तो नीचे पुष्टि करें: Techstack उसकी पहुँच समाप्त करता है और स्टैक को उसके बिना हटा देता है।",
+  "ui.settings.serverGoneBody": "{servers} ने कई मिनट से कोई संकेत नहीं भेजा है। यदि आपने उसे हटा दिया है, तो नीचे पुष्टि करें: Homelab Runtime उसकी पहुँच समाप्त करता है और स्टैक को उसके बिना हटा देता है।",
   "ui.settings.serverGoneTitle": "इसका सर्वर जवाब नहीं दे रहा",
   "ui.settings.failedToLoadDeployments": "Homelab लोड नहीं हो सके",
   "ui.settings.failedToLoadHomelabIdentity": "Homelab पहचान लोड नहीं हो सकी",
@@ -3039,8 +3039,8 @@ export const hi: Record<string, string> = {
   "ui.stackImportExportModal.whatWillBeExported": "क्या एक्सपोर्ट किया जाएगा?",
   "ui.stackImportExportModal.youWillBeRedirectedTo":
     "आपको जल्द ही सेटअप पेज पर भेज दिया जाएगा।",
-  "ui.stacksCreating.creatingStackkitDeploymentKombifyTechstack":
-    "आपका Homelab बनाया जा रहा है | Techstack",
+  "ui.stacksCreating.creatingStackkitDeploymentKombifyHomelab":
+    "आपका Homelab बनाया जा रहा है | Homelab Runtime",
   "ui.stacksCreating.leanBackBody":
     "आपका काम पूरा हो गया। हम अभी आपके लिए सब कुछ तैयार कर रहे हैं, और जल्द ही कुछ शानदार सामने आएगा।",
   "ui.stacksCreating.leanBackTitle":
@@ -3051,7 +3051,7 @@ export const hi: Record<string, string> = {
   "ui.stacksCreating.tips.codeEyebrow": "इंफ्रास्ट्रक्चर ऐज़ कोड",
   "ui.stacksCreating.tips.codeTitle": "आपका स्टैक, कोड के रूप में",
   "ui.stacksCreating.tips.growBody":
-    "जब चाहें इस स्टैक में एक और सर्वर जोड़ें। Techstack आपके सर्वरों का समन्वय करता है और हर सर्वर अपने आप चलता रहता है।",
+    "जब चाहें इस स्टैक में एक और सर्वर जोड़ें। Homelab Runtime आपके सर्वरों का समन्वय करता है और हर सर्वर अपने आप चलता रहता है।",
   "ui.stacksCreating.tips.growEyebrow": "स्केलिंग",
   "ui.stacksCreating.tips.growTitle": "बढ़ने की जगह",
   "ui.stacksCreating.tips.label": "जानने योग्य",
@@ -3167,7 +3167,7 @@ export const hi: Record<string, string> = {
   "ui.stacksCreatingCreation-controller.thePreviouslyVerifiedGuardHeartbeat":
     "आपके सर्वर ने संपर्क करना बंद कर दिया है। उसके फिर से संपर्क करने की प्रतीक्षा है।",
   "ui.stacksCreatingCreation-controller.theProvisioningJobHasBeen":
-    "प्रोविज़निंग जॉब 2 मिनट से ज़्यादा समय से बिना प्रगति के लंबित है। आमतौर पर इसका मतलब है कि ऑर्केस्ट्रेटर नहीं चल रहा या क्रैश हो गया है।\n\nसर्वर लॉग जाँचें: docker compose logs techstack\nरीस्टार्ट करके देखें: docker compose restart techstack",
+    "प्रोविज़निंग जॉब 2 मिनट से ज़्यादा समय से बिना प्रगति के लंबित है। आमतौर पर इसका मतलब है कि ऑर्केस्ट्रेटर नहीं चल रहा या क्रैश हो गया है।\n\nसर्वर लॉग जाँचें: docker compose logs homelab\nरीस्टार्ट करके देखें: docker compose restart homelab",
   "ui.stacksCreatingCreation-controller.theReservedNodeCouldNot":
     "आरक्षित सर्वर की जाँच नहीं हो सकी। सर्वर इन्वेंटरी फिर उपलब्ध होने पर सहेजे गए कनेक्शन पर SSH एनरोलमेंट दोबारा आज़माएँ।",
   "ui.stacksCreatingCreation-controller.thisPageRequiresAJob":
@@ -3201,7 +3201,7 @@ export const hi: Record<string, string> = {
   "ui.stacksCreatingCreationCompletion.rolloutComplete": "सेटअप पूरा हुआ",
   "ui.stacksCreatingCreationCompletion.selfHostedRollout":
     "स्व-होस्टेड",
-  "ui.stacksCreatingCreationCompletion.techstackNowSeesThisNode":
+  "ui.stacksCreatingCreationCompletion.homelabNowSeesThisNode":
     "आपके सर्वर ने संपर्क कर लिया है और वह ठीक से चल रहा है। वह अगले चरण के लिए तैयार है।",
   "ui.stacksCreatingCreationCompletion.theFirstLoginGatewayAnd":
     "आपका पहला साइन-इन और रिकवरी विवरण आपका Homelab सेट होने के बाद मिलेगा (“समीक्षा करें और बनाएँ”)।",
@@ -3270,8 +3270,8 @@ export const hi: Record<string, string> = {
   "ui.stacksCreatingCreationInstallCommand.copy": "कॉपी करें",
   "ui.stacksCreatingCreationInstallCommand.copyInstallationCommandToClipboard":
     "इंस्टॉलेशन कमांड क्लिपबोर्ड पर कॉपी करें",
-  "ui.stacksCreatingCreationInstallCommand.kombifyTechstackServerUrlReachable":
-    "Techstack का पता (आपके सर्वर से पहुँचने योग्य):",
+  "ui.stacksCreatingCreationInstallCommand.kombifyHomelabServerUrlReachable":
+    "Homelab Runtime का पता (आपके सर्वर से पहुँचने योग्य):",
   "ui.stacksCreatingCreationInstallCommand.openOneHourSimulateDemo":
     "एक घंटे का Simulate डेमो पूर्वावलोकन खोलें",
   "ui.stacksCreatingCreationInstallCommand.previewLifetimeIsLimitedTo":
@@ -3371,7 +3371,7 @@ export const hi: Record<string, string> = {
   "ui.stacksCreatingCreationRunStatus.awaitingHeartbeat":
     "आपके सर्वर की प्रतीक्षा",
   "ui.stacksCreatingCreationRunStatus.checkSshHostCredentialsAnd":
-    "SSH होस्ट, क्रेडेंशियल और यह जाँचें कि सर्वर Techstack तक पहुँच सकता है।",
+    "SSH होस्ट, क्रेडेंशियल और यह जाँचें कि सर्वर Homelab Runtime तक पहुँच सकता है।",
   "ui.stacksCreatingCreationRunStatus.connectMyNode": "मेरा सर्वर जोड़ें",
   "ui.stacksCreatingCreationRunStatus.connectingToYourNodeOver":
     "SSH के ज़रिए आपके सर्वर से कनेक्ट हो रहा है…",
@@ -3427,18 +3427,18 @@ export const hi: Record<string, string> = {
     "SSH कनेक्शन दोबारा आज़माया जा रहा है…",
   "ui.stacksCreatingCreationRunStatus.runThisOneLinerOn":
     "यह कमांड अतिरिक्त सर्वर पर चलाएँ। संपर्क करने और ठीक से चलने पर वह जुड़ा हुआ दिखेगा।",
-  "ui.stacksCreatingCreationRunStatus.techstackUrlReachableFromThe":
-    "सर्वर से पहुँच योग्य Techstack URL",
+  "ui.stacksCreatingCreationRunStatus.homelabUrlReachableFromThe":
+    "सर्वर से पहुँच योग्य Homelab Runtime URL",
   "ui.stacksCreatingCreationRunStatus.theAdditionalManagedNodeIs":
     "अतिरिक्त प्रबंधित सर्वर इस Homelab में जोड़ा जाता है और एनरोलमेंट की रिपोर्ट आने पर सर्वर डैशबोर्ड में दिखाई देगा।",
   "ui.stacksCreatingCreationRunStatus.theAdditionalNodeIsRegistered":
     "अतिरिक्त सर्वर इस Homelab में पंजीकृत है और इसके बाद इस StackKit डिप्लॉयमेंट की सेवाएँ प्राप्त कर सकता है।",
   "ui.stacksCreatingCreationRunStatus.theManagedRuntimeIsNot":
-    "प्रबंधित रनटाइम अभी रोलआउट के लिए पूरी तरह पहुँच योग्य नहीं है। लंबित संकेत इसका पता, क्रेडेंशियल या एनरोलमेंट हो सकता है। Techstack ने अगली जाँच निर्धारित कर दी है।",
+    "प्रबंधित रनटाइम अभी रोलआउट के लिए पूरी तरह पहुँच योग्य नहीं है। लंबित संकेत इसका पता, क्रेडेंशियल या एनरोलमेंट हो सकता है। Homelab Runtime ने अगली जाँच निर्धारित कर दी है।",
   "ui.stacksCreatingCreationRunStatus.theProviderOperationHasNot":
-    "प्रदाता ऑपरेशन ने अभी तक मौजूदा प्रबंधित रनटाइम को StackKit रोलआउट को नहीं सौंपा है। Techstack ने अगली सटीक-लीज़ जाँच निर्धारित कर दी है।",
+    "प्रदाता ऑपरेशन ने अभी तक मौजूदा प्रबंधित रनटाइम को StackKit रोलआउट को नहीं सौंपा है। Homelab Runtime ने अगली सटीक-लीज़ जाँच निर्धारित कर दी है।",
   "ui.stacksCreatingCreationRunStatus.theScheduledCheckIsOverdue":
-    "निर्धारित जाँच में देरी हो गई है। Techstack स्टैक, स्रोत जॉब और सटीक लीज़ को एक साथ सत्यापित करता है और फिर केवल मौजूदा VM पर रोलआउट जारी रखता है।",
+    "निर्धारित जाँच में देरी हो गई है। Homelab Runtime स्टैक, स्रोत जॉब और सटीक लीज़ को एक साथ सत्यापित करता है और फिर केवल मौजूदा VM पर रोलआउट जारी रखता है।",
   "ui.stacksCreatingCreationRunStatus.theSshDetailsArePlanning":
     "SSH विवरण योजना संबंधी मेटाडेटा हैं। मौजूदा Guard कनेक्शन आउटबाउंड HTTPS है और नीचे दिए कमांड से शुरू होता है।",
   "ui.stacksCreatingCreationRunStatus.theseAccessPathsAreEnabled":
@@ -3491,7 +3491,7 @@ export const hi: Record<string, string> = {
   "ui.stacksId.noLeaseAttached": "कोई लीज़ जुड़ी नहीं है",
   "ui.stacksId.noStackkitDeploymentIdProvided": "कोई Homelab ID नहीं दी गई",
   "ui.stacksId.offeringSpec": "{vcpus} vCPU · {memory} GB RAM",
-  "ui.stacksId.pageTitle": "{name} | Techstack",
+  "ui.stacksId.pageTitle": "{name} | Homelab Runtime",
   "ui.stacksId.query": "क्वेरी",
   "ui.stacksId.runtime": "रनटाइम",
   "ui.stacksId.series": "श्रृंखला",
@@ -3507,7 +3507,7 @@ export const hi: Record<string, string> = {
   "ui.stacksId.stop": "रोकें",
   "ui.stacksId.stopManagedServer": "प्रबंधित सर्वर रोकें?",
   "ui.stacksId.storedCredentials": "सहेजे गए क्रेडेंशियल",
-  "ui.stacksId.techstackWillBeginProviderCleanup": "Techstack इस प्रबंधित सर्वर को प्रदाता पर उसके डेटा सहित हटा देगा।",
+  "ui.stacksId.homelabWillBeginProviderCleanup": "Homelab Runtime इस प्रबंधित सर्वर को प्रदाता पर उसके डेटा सहित हटा देगा।",
   "ui.stacksId.theFollowingServicesNeedCredentials":
     "इन सेवाओं के लिए क्रेडेंशियल कॉन्फ़िगर करने होंगे:",
   "ui.stacksId.theServerShutsDownAnd":
@@ -3515,7 +3515,7 @@ export const hi: Record<string, string> = {
   "ui.stacksId.thisPermanentlyRemovesTheSelected":
     "यह चुने गए क्रेडेंशियल को स्थायी रूप से हटा देता है।",
   "ui.stacksId.username": "उपयोगकर्ता नाम",
-  "ui.stacksIdServersNew.addNodeKombifyTechstack": "सर्वर जोड़ें | Techstack",
+  "ui.stacksIdServersNew.addNodeKombifyHomelab": "सर्वर जोड़ें | Homelab Runtime",
   "ui.stacksIdServersServerId.activityHistory": "गतिविधि इतिहास",
   "ui.stacksIdServersServerId.addressesDomains": "पते और डोमेन",
   "ui.stacksIdServersServerId.agentId": "Agent ID",
@@ -3599,8 +3599,8 @@ export const hi: Record<string, string> = {
   "ui.stacksIdServersServerId.serverCleanupInProgress": "सर्वर क्लीनअप जारी है",
   "ui.stacksIdServersServerId.serverDetachFailed": "सर्वर अलग करना विफल रहा।",
   "ui.stacksIdServersServerId.serverDetailSections": "सर्वर विवरण अनुभाग",
-  "ui.stacksIdServersServerId.serverDetailsKombifyTechstack":
-    "सर्वर विवरण | Techstack",
+  "ui.stacksIdServersServerId.serverDetailsKombifyHomelab":
+    "सर्वर विवरण | Homelab Runtime",
   "ui.stacksIdServersServerId.serverGenerationDecommissioned": "सर्वर जनरेशन हटा दी गई",
   "ui.stacksIdServersServerId.serverSettings": "सर्वर सेटिंग्स",
   "ui.stacksIdServersServerId.serviceEndpoints": "सेवा एंडपॉइंट",
@@ -3615,10 +3615,10 @@ export const hi: Record<string, string> = {
     "यह चुने गए सर्वर को उसके एनरोल किए गए StackKit Agent के ज़रिए बदलता है।",
   "ui.stacksIdServersServerId.thisIsConfiguredStackkitIntent": "यह कॉन्फ़िगर किया गया StackKit इंटेंट है; Guard ने अभी तक मेल खाता इंस्टॉलेशन साक्ष्य रिपोर्ट नहीं किया है।",
   "ui.stacksIdServersServerId.thisOnlyArchivesTheStale":
-    "यह केवल पुराने Techstack कस्टडी रिकॉर्ड को संग्रहीत करता है। प्रदाता के पास कुछ भी नहीं हटाता।",
+    "यह केवल पुराने Homelab Runtime कस्टडी रिकॉर्ड को संग्रहीत करता है। प्रदाता के पास कुछ भी नहीं हटाता।",
   "ui.stacksIdServersServerId.thisServerHasNoManaged": "इस सर्वर के पास कोई प्रबंधित प्रदाता लीज़ नहीं है। इसकी दर्ज कस्टडी फ़िलहाल न तो प्रबंधित सर्वर को हटाने की अनुमति देती है और न ही स्वयं के स्वामित्व वाले सर्वर को अलग करने की।",
   "ui.stacksIdServersServerId.thisServerIsALegacy":
-    "यह सर्वर एक लेगेसी या अनबाउंड कस्टडी रिकॉर्ड है। पुष्टि करें कि प्रदाता संसाधन पहले ही हटाया जा चुका है; Techstack केवल इस रिकॉर्ड को संग्रहीत करेगा और किसी प्रदाता संसाधन को न कॉल करेगा, न हटाएगा।",
+    "यह सर्वर एक लेगेसी या अनबाउंड कस्टडी रिकॉर्ड है। पुष्टि करें कि प्रदाता संसाधन पहले ही हटाया जा चुका है; Homelab Runtime केवल इस रिकॉर्ड को संग्रहीत करेगा और किसी प्रदाता संसाधन को न कॉल करेगा, न हटाएगा।",
   "ui.stacksIdServersServerId.thisServerIsRegisteredThrough": "यह सर्वर सर्वर इन्वेंटरी के ज़रिए पंजीकृत है; प्रबंधित रनटाइम पहुँच कार्रवाइयाँ जुड़ी हुई नहीं हैं।",
   "ui.standardBundle.additionalComputeNodeForStackKit":
     "StackKit सेवाओं की प्लेसमेंट के लिए अतिरिक्त कंप्यूट Node।",
@@ -3784,7 +3784,7 @@ export const hi: Record<string, string> = {
   "ui.taskStatus.identifyingServicesBestPractices":
     "सेवाएँ और सर्वोत्तम प्रथाएँ पहचानी जा रही हैं",
   "ui.taskStatus.ifAptOrUnattendedUpgrades":
-    "अगर apt या unattended-upgrades पैकेज इंस्टॉलेशन को रोक दें, तो Techstack बंधी हुई VM को दृश्य में रखता है और एकत्र किए गए डायग्नोस्टिक्स दिखाता है।",
+    "अगर apt या unattended-upgrades पैकेज इंस्टॉलेशन को रोक दें, तो Homelab Runtime बंधी हुई VM को दृश्य में रखता है और एकत्र किए गए डायग्नोस्टिक्स दिखाता है।",
   "ui.taskStatus.installingAndCheckingDocker":
     "Docker इंस्टॉल और जाँचा जा रहा है",
   "ui.taskStatus.installingOrValidatingTheDocker":
@@ -3797,9 +3797,9 @@ export const hi: Record<string, string> = {
   "ui.taskStatus.networkSettingsAreDerivedFrom":
     "नेटवर्क सेटिंग्स आपके एक्सेस मोड से तय होती हैं। केवल-स्थानीय आंतरिक Docker नेटवर्किंग इस्तेमाल करता है; रिमोट एक्सेस लेन के अनुरूप निजी मेश या प्रबंधित एज रूट जोड़ता है।",
   "ui.taskStatus.onceThisSucceedsTheNode":
-    "इसके सफल होने के बाद, तैयारी या रोलआउट बाद में विफल हो जाए तब भी आपका सर्वर Techstack में दिखता रहेगा।",
+    "इसके सफल होने के बाद, तैयारी या रोलआउट बाद में विफल हो जाए तब भी आपका सर्वर Homelab Runtime में दिखता रहेगा।",
   "ui.taskStatus.opentofuReadinessIsPartOf":
-    "OpenTofu की तैयारी StackKits CLI प्रिप कॉन्ट्रैक्ट का हिस्सा है, Techstack के स्वामित्व वाला अलग बूटस्ट्रैप मार्ग नहीं।",
+    "OpenTofu की तैयारी StackKits CLI प्रिप कॉन्ट्रैक्ट का हिस्सा है, Homelab Runtime के स्वामित्व वाला अलग बूटस्ट्रैप मार्ग नहीं।",
   "ui.taskStatus.persistingConfiguration":
     "कॉन्फ़िगरेशन स्थायी रूप से सहेजा जा रहा है",
   "ui.taskStatus.persistingRolloutSpec":
@@ -3847,12 +3847,12 @@ export const hi: Record<string, string> = {
   "ui.taskStatus.stackkitsAreCuratedInfrastructureTemplates":
     "StackKits चुने हुए इन्फ्रास्ट्रक्चर टेम्पलेट हैं। सिस्टम ऐसा टेम्पलेट चुनता है जो न्यूनतम ओवरहेड के साथ आपकी चुनी हुई सुविधाओं को कवर करे।",
   "ui.taskStatus.startingTelemetryHandoff": "मॉनिटरिंग शुरू हो रही है",
-  "ui.taskStatus.techstackConsumesStackKitArtifactsHere":
-    "Techstack यहाँ StackKit आर्टिफ़ैक्ट का उपयोग करता है; उन्हें लागू करने की ज़िम्मेदारी StackKits की ही रहती है।",
-  "ui.taskStatus.techstackRecordsTheManagedTarget":
-    "StackKits के Cloud Kit रोलआउट करने से पहले Techstack प्रबंधित लक्ष्य दर्ज करता है और ऑर्केस्ट्रेशन हैंडऑफ़ तैयार करता है।",
+  "ui.taskStatus.homelabConsumesStackKitArtifactsHere":
+    "Homelab Runtime यहाँ StackKit आर्टिफ़ैक्ट का उपयोग करता है; उन्हें लागू करने की ज़िम्मेदारी StackKits की ही रहती है।",
+  "ui.taskStatus.homelabRecordsTheManagedTarget":
+    "StackKits के Cloud Kit रोलआउट करने से पहले Homelab Runtime प्रबंधित लक्ष्य दर्ज करता है और ऑर्केस्ट्रेशन हैंडऑफ़ तैयार करता है।",
   "ui.taskStatus.terramateReadinessBelongsToStackKits":
-    "Terramate की तैयारी StackKits जीवनचक्र तैयारी का हिस्सा है; शुरुआती प्रबंधित VPS लीज़ के लिए Techstack इसे ज़रूरी नहीं मानता।",
+    "Terramate की तैयारी StackKits जीवनचक्र तैयारी का हिस्सा है; शुरुआती प्रबंधित VPS लीज़ के लिए Homelab Runtime इसे ज़रूरी नहीं मानता।",
   "ui.taskStatus.theDashboardCanShowManaged":
     "StackKits के उजागर करते ही डैशबोर्ड प्रबंधित सेवाएँ दिखा सकता है, जबकि बाद का सत्यापन जारी रहता है।",
   "ui.taskStatus.theFirstRolloutRecordsThe":
@@ -3897,7 +3897,7 @@ export const hi: Record<string, string> = {
   "ui.taskStatus.yourChosenAuthMethodIs":
     "आपका चुना हुआ ऑथ तरीका सभी सेवाओं पर लागू होता है। मल्टी-यूज़र सेटअप को अपने-आप ग्रुप-आधारित अनुमतियाँ मिलती हैं।",
   "ui.taskUpdates.anUnexpectedErrorOccurred": "एक अप्रत्याशित त्रुटि हुई",
-  "ui.techstackBrandLogo.kombifyTechstack": "Techstack",
+  "ui.homelabBrandLogo.kombifyHomelab": "Homelab Runtime",
   "ui.terminal.title": "टर्मिनल · {name}",
   "ui.time.daysHours": "{days} दिन {hours} घंटे",
   "ui.time.hours": "{count} घंटे",
@@ -3960,8 +3960,8 @@ export const hi: Record<string, string> = {
   "ui.wallet.dismiss": "खारिज करें",
   "ui.wallet.editItem": "{label} संपादित करें",
   "ui.wallet.enterNewSecretValue": "नया सीक्रेट मान दर्ज करें",
-  "ui.wallet.enterYourCurrentLocalTechstack":
-    "इस Wallet प्रविष्टि को दिखाने के लिए अपना वर्तमान स्थानीय Techstack पासवर्ड दर्ज करें।",
+  "ui.wallet.enterYourCurrentLocalHomelab":
+    "इस Wallet प्रविष्टि को दिखाने के लिए अपना वर्तमान स्थानीय Homelab Runtime पासवर्ड दर्ज करें।",
   "ui.wallet.expired": "समाप्त",
   "ui.wallet.expiredCredentials.one": "समाप्त क्रेडेंशियल: {count}",
   "ui.wallet.expiredCredentials.other": "समाप्त क्रेडेंशियल: {count}",
@@ -3981,8 +3981,8 @@ export const hi: Record<string, string> = {
     "मानव उपयोगकर्ता, एडमिन पहचानें और सिस्टम के स्वामित्व वाली लॉगिन सतहें यहाँ परिचालन पहुँच परत के रूप में रहती हैं।",
   "ui.wallet.identity": "पहचान",
   "ui.wallet.importExport": "इम्पोर्ट / एक्सपोर्ट",
-  "ui.wallet.kombifyTechstackAdmin": "kombify-Techstack एडमिन",
-  "ui.wallet.kombifyTechstackDeveloper": "kombify-Techstack डेवलपर",
+  "ui.wallet.kombifyHomelabAdmin": "kombify-Homelab एडमिन",
+  "ui.wallet.kombifyHomelabDeveloper": "kombify-Homelab डेवलपर",
   "ui.wallet.launchReadyToolsAndUrl":
     "जैसे-जैसे Wallet केंद्रीय शुरुआती बिंदु बनेगा, लॉन्च के लिए तैयार टूल और URL-आधारित सेवा प्रविष्टियाँ यहाँ दिखाई देंगी।",
   "ui.wallet.localBackendAdmin": "स्थानीय बैकएंड एडमिन",

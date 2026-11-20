@@ -10,9 +10,9 @@ import (
 	"github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 )
 
-// Registry contains explicitly enabled TechStack-owned provider adapters. An
+// Registry contains explicitly enabled Homelab-owned provider adapters. An
 // empty registry is a valid boot state; execution fails closed until an
-// adapter is registered. One TechStack authority selects operation-specific
+// adapter is registered. One Homelab authority selects operation-specific
 // crash-recoverable or at-most-once provision execution paths.
 type Registry struct {
 	mu       sync.RWMutex
@@ -109,7 +109,7 @@ func NewRegistry() *Registry {
 }
 
 // Register adds one explicitly configured adapter. Adapter identifiers are
-// TechStack configuration keys, not provider or StackKit architecture fields.
+// Homelab configuration keys, not provider or StackKit architecture fields.
 func (r *Registry) Register(adapterID string, executor CrashRecoverableExecutor) error {
 	adapterID = strings.TrimSpace(adapterID)
 	if adapterID == "" || executor == nil || nilCrashRecoverableExecutor(executor) {

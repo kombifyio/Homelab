@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/releasechannel"
+	"github.com/kombifyio/homelab/pkg/releasechannel"
 )
 
 // Retirement is the durable decommission state of one managed backup store.

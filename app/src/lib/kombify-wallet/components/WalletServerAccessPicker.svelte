@@ -1,13 +1,13 @@
 <script lang="ts">
   /**
-   * Choose the Wallet item that gives Techstack access to a server: a "server
+   * Choose the Wallet item that gives Homelab access to a server: a "server
    * access" item (host, user and an SSH private key or a password). Choosing
-   * one is the owner's decision to let Techstack use it, so the `use` right is
+   * one is the owner's decision to let Homelab use it, so the `use` right is
    * granted on selection; the page says so. The credential itself never passes
-   * through Techstack: it is created in this browser and sealed to the Wallet.
+   * through Homelab: it is created in this browser and sealed to the Wallet.
    *
    * An item has to name the server it is used for and hold the credential of
-   * the chosen sign-in method; Techstack refuses anything else. Items this
+   * the chosen sign-in method; Homelab refuses anything else. Items this
    * editor made say which they are, so the list offers those that fit, and an
    * item that says nothing stays selectable (the backend decides).
    */
@@ -16,13 +16,13 @@
   import Button from "#lib/components/ui/Button.svelte";
   import { nodeAccessFacts, sameHost } from "../item-types.js";
   import {
-    allowTechstackToUse,
+    allowHomelabToUse,
     listItems,
     listServiceAccess,
     ownerSubject,
     type WalletItem,
   } from "../wallet-api.js";
-  import { techstackMayUse } from "../service-access.js";
+  import { homelabMayUse } from "../service-access.js";
   import { walletErrorMessage } from "../wallet-text.js";
   import WalletItemDialog, {
     type WalletItemDialogResult,
@@ -107,7 +107,7 @@
   onMount(() => void load());
 
   // An item that no longer fits (the host or method was changed) is let go;
-  // when exactly one item fits and Techstack may already use it, it is chosen.
+  // when exactly one item fits and Homelab may already use it, it is chosen.
   let preselecting = 0;
   $effect(() => {
     if (loadState !== "ready") return;
@@ -124,7 +124,7 @@
     const attempt = ++preselecting;
     void listServiceAccess(only.itemId)
       .then((grants) => {
-        if (attempt !== preselecting || value || !techstackMayUse(grants))
+        if (attempt !== preselecting || value || !homelabMayUse(grants))
           return;
         allowed = true;
         onchange(only.itemId, only.displayName);
@@ -142,7 +142,7 @@
     }
     allowing = true;
     try {
-      await allowTechstackToUse(itemId);
+      await allowHomelabToUse(itemId);
       allowed = true;
       onchange(
         itemId,
@@ -223,8 +223,8 @@
   {/if}
 
   {#if allowed && value}
-    <p class="kw-notice" data-tone="ok" data-testid="wallet-techstack-notice">
-      {tr("kwallet.picker.techstack_notice")}
+    <p class="kw-notice" data-tone="ok" data-testid="wallet-homelab-notice">
+      {tr("kwallet.picker.homelab_notice")}
     </p>
   {/if}
   {#if message}
@@ -255,7 +255,7 @@
     }}
     lockedFields={["host", "user", "port"]}
     lockAuth={Boolean(method)}
-    offerTechstackAccess={false}
+    offerHomelabAccess={false}
     onclose={() => (creating = false)}
     ondone={created}
     onerror={(text) => (message = text)}

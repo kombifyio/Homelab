@@ -4,7 +4,7 @@
    * Companion's settings as sections of rows, drawn exactly like the other
    * tabs, from the product's own settings components. The data is the
    * Companion's (SETTINGS-CONTRACT 2.2 over the shell bridge); the look is
-   * Techstack's. Labels only, no explanation text; an unavailable row is
+   * Homelab's. Labels only, no explanation text; an unavailable row is
    * dimmed and carries its reason for assistive technology only.
    */
   import { onMount } from "svelte";

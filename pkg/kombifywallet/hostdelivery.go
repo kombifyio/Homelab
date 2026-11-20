@@ -10,15 +10,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/walletservice"
+	"github.com/kombifyio/homelab/internal/gocommon/walletservice"
 )
 
 // Environment of the Wallet's public delivering key. The Wallet signs every
 // host delivery with it (`WALLET_HOST_DELIVERY_KEY` holds the private half),
 // and a node opens only deliveries signed by the key it pinned.
 const (
-	EnvHostDeliveryPublicKey = "TECHSTACK_WALLET_HOST_DELIVERY_PUBLIC_KEY"
-	EnvHostDeliveryKeyID     = "TECHSTACK_WALLET_HOST_DELIVERY_KEY_ID"
+	EnvHostDeliveryPublicKey = "HOMELAB_WALLET_HOST_DELIVERY_PUBLIC_KEY"
+	EnvHostDeliveryKeyID     = "HOMELAB_WALLET_HOST_DELIVERY_KEY_ID"
 )
 
 var hostDeliveryKeyIDPattern = regexp.MustCompile(`^[A-Za-z0-9._:-]{1,128}$`)
@@ -50,10 +50,10 @@ type HostDelivery struct {
 	Version  string
 }
 
-// PlacementRef is the reference under which Techstack names the server
+// PlacementRef is the reference under which Homelab names the server
 // (its Agent) in the value deliveries it asks the Wallet for, so that a
 // later detach withdraws exactly that server (HostWithdraw). It is a
-// one-way digest: the Wallet learns no Techstack identifier. Empty for an
+// one-way digest: the Wallet learns no Homelab identifier. Empty for an
 // empty agent id.
 func PlacementRef(agentID string) string {
 	agentID = strings.TrimSpace(agentID)
@@ -118,7 +118,7 @@ type HostWithdrawal struct {
 }
 
 // HostWithdraw tells the Wallet that the server whose Agent is agentID is
-// detached: for each item Techstack delivered to that server under its
+// detached: for each item Homelab delivered to that server under its
 // PlacementRef, the Wallet drops the node from the item's host targets and
 // marks the item for rotation when the node holds its current value. Items
 // the owner delivered there herself stay untouched (a detached server may keep

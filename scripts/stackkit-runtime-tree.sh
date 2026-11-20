@@ -42,9 +42,9 @@ mkdir -p "$root/bin/providers"
 cp -R "$release/providers/." "$root/bin/providers/"
 cp "$compatibility" "$root/stackkits-compatibility-v1.json"
 cp "$catalog" "$root/stackkits-use-case-catalog-v1.json"
-# Every Techstack-managed deployment runs Advanced Mode, and Core and Agent
+# Every Homelab-managed deployment runs Advanced Mode, and Core and Agent
 # render Advanced argv only from the pinned release's own catalog. A release
-# without it cannot serve Techstack; there is no embedded fallback.
+# without it cannot serve Homelab; there is no embedded fallback.
 advanced_catalog="$release/docs/data/advanced-operations/latest.json"
 if [ ! -s "$advanced_catalog" ]; then
   echo "StackKits release is missing its Advanced operations catalog (docs/data/advanced-operations/latest.json)" >&2
@@ -62,14 +62,14 @@ jq -n \
   --arg archiveSha256 "$STACKKIT_RELEASE_ARCHIVE_SHA256" \
   --arg indexSha256 "$STACKKIT_RELEASE_INDEX_SHA256" \
   --arg binarySha256 "$binary_sha256" \
-  '{schemaVersion:"techstack.stackkit-release-pin/v2",kit:$kit,version:$version,platform:{os:"linux",arch:$arch},archiveSha256:$archiveSha256,indexSha256:$indexSha256,binarySha256:$binarySha256,binaryPath:"/app/.stackkit/bin/stackkit"}' \
+  '{schemaVersion:"homelab.stackkit-release-pin/v2",kit:$kit,version:$version,platform:{os:"linux",arch:$arch},archiveSha256:$archiveSha256,indexSha256:$indexSha256,binarySha256:$binarySha256,binaryPath:"/app/.stackkit/bin/stackkit"}' \
   > "$root/stackkits-release-pin.json"
 if [ -n "$candidate" ]; then
   # The existing producer verified this exact private index/archive before this
   # assembler is called. The resulting tree is signed by Guard; public/default
   # consumers reject this explicit pin variant, regardless of environment.
   jq -e --arg digest "$STACKKIT_RELEASE_INDEX_SHA256" '.schemaVersion == "stackkits.preview-candidate-provenance/v1" and .indexSha256 == $digest' "$candidate/candidate.provenance.json" >/dev/null
-  jq --slurpfile candidate "$candidate/candidate.provenance.json" '.schemaVersion="techstack.stackkit-preview-candidate-pin/v1" | .candidate=$candidate[0]' "$root/stackkits-release-pin.json" > "$root/pin.tmp"
+  jq --slurpfile candidate "$candidate/candidate.provenance.json" '.schemaVersion="homelab.stackkit-preview-candidate-pin/v1" | .candidate=$candidate[0]' "$root/stackkits-release-pin.json" > "$root/pin.tmp"
   mv "$root/pin.tmp" "$root/stackkits-release-pin.json"
   mkdir "$root/candidate-source"
   # These two existing public manifests remain a labelled compatibility basis.
@@ -77,7 +77,7 @@ if [ -n "$candidate" ]; then
   jq -n --arg version "$STACKKIT_RELEASE_TAG" \
     --arg compatibility "$(sha256sum "$compatibility" | cut -d' ' -f1)" \
     --arg catalog "$(sha256sum "$catalog" | cut -d' ' -f1)" \
-    '{schemaVersion:"techstack.candidate-compatibility-basis/v1",publicVersion:$version,compatibilitySha256:$compatibility,useCaseCatalogSha256:$catalog}' \
+    '{schemaVersion:"homelab.candidate-compatibility-basis/v1",publicVersion:$version,compatibilitySha256:$compatibility,useCaseCatalogSha256:$catalog}' \
     > "$root/candidate-source/compatibility-basis.json"
   for name in stackkits-preview-candidate-index-v1.json stackkits-preview-candidate-index-v1.json.intoto.jsonl payload.intoto.jsonl sigstore-trusted-root.jsonl stackkits-preview-use-case-catalog-v1.json; do
     cp "$candidate/package/$name" "$root/candidate-source/$name"

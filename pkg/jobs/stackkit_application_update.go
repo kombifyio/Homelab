@@ -9,9 +9,9 @@ import (
 
 	wire "github.com/kombifyio/stackkits/contracts/advancedcapability"
 
-	"github.com/kombifyio/techstack/internal/advancedissuer"
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/advancedissuer"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // StackKitLifecycleApplicationUpdate moves one StackKits-managed application to
@@ -36,13 +36,13 @@ const (
 	ApplicationUpdateRefused        = "refused"
 )
 
-// ApplicationUpdateUnresolved is Techstack's own outcome when the node's
+// ApplicationUpdateUnresolved is Homelab's own outcome when the node's
 // answer is missing: the update may have run, rolled back or failed there.
 const ApplicationUpdateUnresolved = "unresolved"
 
 func applicationUpdateUnresolvedResult(req StackKitLifecycleRequest) map[string]interface{} {
 	return map[string]interface{}{
-		"schema_version": "techstack.stackkit-lifecycle-result/v1", "techstack_id": req.StackID, "operation": req.Operation,
+		"schema_version": "homelab.stackkit-lifecycle-result/v1", "kit_deployment_id": req.StackID, "operation": req.Operation,
 		"agent_id": req.AgentID, "success": false, "service_action_receipt": StackKitServiceActionReceipt(req),
 		ApplicationUpdateResultField: map[string]interface{}{"result": ApplicationUpdateUnresolved, "reason_code": "node_outcome_unknown"},
 	}

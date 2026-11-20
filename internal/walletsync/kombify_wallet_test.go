@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
-	"github.com/kombifyio/techstack/pkg/kombifywallet/walletfake"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/kombifywallet/walletfake"
 )
 
 func identityOutputs(recovery map[string]interface{}) map[string]interface{} {

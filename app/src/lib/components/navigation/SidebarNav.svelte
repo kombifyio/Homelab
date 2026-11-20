@@ -1,6 +1,6 @@
 <script lang="ts">
   /**
-   * Product sidebar: package SidebarNav chrome plus Techstack header and the
+   * Product sidebar: package SidebarNav chrome plus Homelab header and the
    * shared UserMenu in the foot.
    */
   import { page } from "$app/state";
@@ -14,7 +14,7 @@
   import { features } from "#lib/stores/features.js";
   import UserMenu from "./UserMenu.svelte";
   import { stackIdentity } from "#lib/stores/stackIdentity.js";
-  import TechstackBrandLogo from "#lib/components/TechstackBrandLogo.svelte";
+  import HomelabBrandLogo from "#lib/components/HomelabBrandLogo.svelte";
   import GettingStartedPanel from "#lib/components/onboarding/GettingStartedPanel.svelte";
   import {
     NotificationBell,
@@ -76,7 +76,7 @@
   });
 
   /**
-   * The rail head shows the elongated Techstack lockup (owner, 2026-10-04: the
+   * The rail head shows the elongated Homelab lockup (owner, 2026-10-04: the
    * tools keep their product logo; the interactive BrandMark is kombify Cloud
    * only for now). It keeps the rail standard's start-page rule: a pointer
    * click on the start page unfolds a folded rail instead of navigating; a
@@ -121,12 +121,12 @@
       onclick={(event) => expandFromBrand(event, rail)}
     >
       {#if rail.collapsed}
-        <TechstackBrandLogo
+        <HomelabBrandLogo
           collapsed
           class="h-10 w-10 shrink-0 object-contain"
         />
       {:else}
-        <TechstackBrandLogo
+        <HomelabBrandLogo
           sizes="214px"
           class="h-10 w-auto max-w-full object-contain object-left"
         />

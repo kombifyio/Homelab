@@ -14,14 +14,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/dataprofile"
-	commonedgeauth "github.com/kombifyio/techstack/internal/gocommon/edgeauth"
-	"github.com/kombifyio/techstack/internal/gocommon/edgeauth/edgeauthtest"
-	"github.com/kombifyio/techstack/internal/gocommon/identity"
-	"github.com/kombifyio/techstack/internal/gocommon/tenantdb"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/features"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/internal/gocommon/dataprofile"
+	commonedgeauth "github.com/kombifyio/homelab/internal/gocommon/edgeauth"
+	"github.com/kombifyio/homelab/internal/gocommon/edgeauth/edgeauthtest"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
+	"github.com/kombifyio/homelab/internal/gocommon/tenantdb"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/features"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // testNonceSeq keeps every signed test envelope nonce unique: the edge replay
@@ -217,11 +217,11 @@ func TestEdgeIdentityMiddleware_BudgetRotationKeepsIdentityKeysSeparate(t *testi
 				e.Request.Header.Set(commonedgeauth.HeaderUserID, "auth0|budget-owner")
 				e.Request.Header.Set(commonedgeauth.HeaderOrgID, "budget-tenant")
 				e.Request.Header.Set(commonedgeauth.HeaderRequestID, "budget-rotation-request")
-				flags := map[string]bool{"techstack.managed.runtime": true}
+				flags := map[string]bool{"homelab.managed.runtime": true}
 				if version == "v2" {
-					e.Request.Header.Set(headerEdgeService, techStackDecisionAudience)
-					e.Request.Header.Set(headerPublicPrefix, techStackDecisionPublicPrefix)
-					attachSignedTechStackDecision(t, e, testEdgeAuthSecret, tc.signer, tc.keyID, flags, nil)
+					e.Request.Header.Set(headerEdgeService, homelabDecisionAudience)
+					e.Request.Header.Set(headerPublicPrefix, homelabDecisionPublicPrefix)
+					attachSignedHomelabDecision(t, e, testEdgeAuthSecret, tc.signer, tc.keyID, flags, nil)
 				} else {
 					signEdgeRequest(t, e, testEdgeAuthSecret)
 					headers, err := commonedgeauth.SignFlagHeaders(tc.signer, tc.keyID, flags, nil, time.Now())
@@ -243,7 +243,7 @@ func TestEdgeIdentityMiddleware_BudgetRotationKeepsIdentityKeysSeparate(t *testi
 				}
 				if tc.valid {
 					got, ok := commonedgeauth.FlagsFromContext(e.Request.Context())
-					if !ok || !got.Bool("techstack.managed.runtime", false) {
+					if !ok || !got.Bool("homelab.managed.runtime", false) {
 						t.Fatal("verified flag missing")
 					}
 					_, bound := got.VerifiedDecisionBinding()
@@ -293,7 +293,7 @@ func TestEdgeIdentityMiddleware_EdgeAuth_RejectsTamperedFlags(t *testing.T) {
 	}
 }
 
-func TestEdgeIdentityMiddleware_EdgeAuth_AttachesRequestBoundTechStackDecision(t *testing.T) {
+func TestEdgeIdentityMiddleware_EdgeAuth_AttachesRequestBoundHomelabDecision(t *testing.T) {
 	mw := EdgeIdentityMiddlewareWithConfig(EdgeIdentityConfig{
 		Mode:                config.ModeSaaS,
 		EdgeAuthSecret:      testEdgeAuthSecret,
@@ -304,16 +304,16 @@ func TestEdgeIdentityMiddleware_EdgeAuth_AttachesRequestBoundTechStackDecision(t
 
 	e := newTestEvent(http.MethodPost, "/api/v1/stacks/stack-1/managed-runtimes?provider=ionos")
 	e.Request.Header.Set(headerEdgeAuth, edgeAuthValueJWT)
-	e.Request.Header.Set(headerEdgeService, techStackDecisionAudience)
-	e.Request.Header.Set(headerPublicPrefix, techStackDecisionPublicPrefix)
+	e.Request.Header.Set(headerEdgeService, homelabDecisionAudience)
+	e.Request.Header.Set(headerPublicPrefix, homelabDecisionPublicPrefix)
 	e.Request.Header.Set(commonedgeauth.HeaderUserID, "auth0|owner-1")
 	e.Request.Header.Set(commonedgeauth.HeaderOrgID, "tenant-1")
 	e.Request.Header.Set(commonedgeauth.HeaderRequestID, "request-1")
-	e.Request.Header.Set(commonedgeauth.HeaderEntitlements, "techstack.managed.runtime,techstack.managed.runtime.cloudkit,techstack.managed.runtime.ionos")
-	attachSignedTechStackDecision(t, e, testEdgeAuthSecret, testEdgeFlagsSecret, "flags-primary", map[string]bool{
-		"techstack.managed.runtime":          true,
-		"techstack.managed.runtime.cloudkit": true,
-		"techstack.managed.runtime.ionos":    true,
+	e.Request.Header.Set(commonedgeauth.HeaderEntitlements, "homelab.managed.runtime,homelab.managed.runtime.cloudkit,homelab.managed.runtime.ionos")
+	attachSignedHomelabDecision(t, e, testEdgeAuthSecret, testEdgeFlagsSecret, "flags-primary", map[string]bool{
+		"homelab.managed.runtime":          true,
+		"homelab.managed.runtime.cloudkit": true,
+		"homelab.managed.runtime.ionos":    true,
 	}, map[string]any{
 		commonedgeauth.CloudRuntimeCreditsBudgetName: map[string]any{
 			"managed_servers": map[string]any{"mode": "limited", "limit": 3},
@@ -345,9 +345,9 @@ func TestEdgeIdentityMiddleware_EdgeAuth_AttachesRequestBoundTechStackDecision(t
 		t.Fatalf("credits=%#v, want limited 3", credits)
 	}
 	if binding.SubjectID != "auth0|owner-1" || binding.TenantID != "tenant-1" ||
-		binding.Audience != techStackDecisionAudience || binding.PublicPrefix != techStackDecisionPublicPrefix ||
+		binding.Audience != homelabDecisionAudience || binding.PublicPrefix != homelabDecisionPublicPrefix ||
 		binding.Method != http.MethodPost || binding.SignedPath != e.Request.URL.RequestURI() || binding.RequestID != "request-1" {
-		t.Fatalf("binding=%#v, want exact TechStack request binding", binding)
+		t.Fatalf("binding=%#v, want exact Homelab Runtime request binding", binding)
 	}
 	for _, header := range []string{
 		commonedgeauth.HeaderFlags,
@@ -373,14 +373,14 @@ func TestEdgeIdentityMiddleware_NamesTheDivergedSigningKey(t *testing.T) {
 	})
 	e := newTestEvent(http.MethodGet, "/api/v1/servers")
 	e.Request.Header.Set(headerEdgeAuth, edgeAuthValueJWT)
-	e.Request.Header.Set(headerEdgeService, techStackDecisionAudience)
-	e.Request.Header.Set(headerPublicPrefix, techStackDecisionPublicPrefix)
+	e.Request.Header.Set(headerEdgeService, homelabDecisionAudience)
+	e.Request.Header.Set(headerPublicPrefix, homelabDecisionPublicPrefix)
 	e.Request.Header.Set(commonedgeauth.HeaderUserID, "auth0|owner-1")
 	e.Request.Header.Set(commonedgeauth.HeaderOrgID, "tenant-1")
 	e.Request.Header.Set(commonedgeauth.HeaderRequestID, "request-diverged-key")
 	signEdgeRequestV2(t, e, testEdgeAuthSecret)
 	signed, err := commonedgeauth.SignFlagHeaders("a-key-this-origin-never-received",
-		"budget-20260912", map[string]bool{"techstack.managed.runtime": true}, nil, time.Now())
+		"budget-20260912", map[string]bool{"homelab.managed.runtime": true}, nil, time.Now())
 	if err != nil {
 		t.Fatalf("SignFlagHeaders: %v", err)
 	}
@@ -422,8 +422,8 @@ func TestEdgeIdentityMiddleware_DecisionDenialNamesAnOperatorFault(t *testing.T)
 	})
 	e := newTestEvent(http.MethodGet, "/api/v1/servers")
 	e.Request.Header.Set(headerEdgeAuth, edgeAuthValueJWT)
-	e.Request.Header.Set(headerEdgeService, techStackDecisionAudience)
-	e.Request.Header.Set(headerPublicPrefix, techStackDecisionPublicPrefix)
+	e.Request.Header.Set(headerEdgeService, homelabDecisionAudience)
+	e.Request.Header.Set(headerPublicPrefix, homelabDecisionPublicPrefix)
 	e.Request.Header.Set(commonedgeauth.HeaderUserID, "auth0|owner-1")
 	e.Request.Header.Set(commonedgeauth.HeaderOrgID, "tenant-1")
 	e.Request.Header.Set(commonedgeauth.HeaderRequestID, "request-diverged")
@@ -431,7 +431,7 @@ func TestEdgeIdentityMiddleware_DecisionDenialNamesAnOperatorFault(t *testing.T)
 	// A decision signed with trust material this origin does not hold — the
 	// exact shape of the production divergence.
 	diverged, err := commonedgeauth.SignFlagHeaders("a-different-flags-secret", "primary",
-		map[string]bool{"techstack.managed.runtime": true}, nil, time.Now())
+		map[string]bool{"homelab.managed.runtime": true}, nil, time.Now())
 	if err != nil {
 		t.Fatalf("SignFlagHeaders: %v", err)
 	}
@@ -476,8 +476,8 @@ func TestEdgeIdentityMiddleware_IdentityDenialNamesAnOperatorFault(t *testing.T)
 	})
 	e := newTestEvent(http.MethodGet, "/api/v1/servers")
 	e.Request.Header.Set(headerEdgeAuth, edgeAuthValueJWT)
-	e.Request.Header.Set(headerEdgeService, techStackDecisionAudience)
-	e.Request.Header.Set(headerPublicPrefix, techStackDecisionPublicPrefix)
+	e.Request.Header.Set(headerEdgeService, homelabDecisionAudience)
+	e.Request.Header.Set(headerPublicPrefix, homelabDecisionPublicPrefix)
 	e.Request.Header.Set(commonedgeauth.HeaderUserID, "auth0|owner-1")
 	e.Request.Header.Set(commonedgeauth.HeaderOrgID, "tenant-1")
 	e.Request.Header.Set(commonedgeauth.HeaderRequestID, "request-bad-signature")
@@ -514,7 +514,7 @@ func TestEdgeIdentityMiddleware_IdentityDenialNamesAnOperatorFault(t *testing.T)
 	}
 }
 
-func TestEdgeIdentityMiddleware_EdgeAuth_RejectsDetachedV1TechStackBudget(t *testing.T) {
+func TestEdgeIdentityMiddleware_EdgeAuth_RejectsDetachedV1HomelabBudget(t *testing.T) {
 	mw := EdgeIdentityMiddlewareWithConfig(EdgeIdentityConfig{
 		Mode:            config.ModeSaaS,
 		EdgeAuthSecret:  testEdgeAuthSecret,
@@ -522,14 +522,14 @@ func TestEdgeIdentityMiddleware_EdgeAuth_RejectsDetachedV1TechStackBudget(t *tes
 	})
 	e := newTestEvent(http.MethodPost, "/api/v1/stacks/stack-1/managed-runtimes")
 	e.Request.Header.Set(headerEdgeAuth, edgeAuthValueJWT)
-	e.Request.Header.Set(headerEdgeService, techStackDecisionAudience)
-	e.Request.Header.Set(headerPublicPrefix, techStackDecisionPublicPrefix)
+	e.Request.Header.Set(headerEdgeService, homelabDecisionAudience)
+	e.Request.Header.Set(headerPublicPrefix, homelabDecisionPublicPrefix)
 	e.Request.Header.Set(commonedgeauth.HeaderUserID, "auth0|owner-1")
 	e.Request.Header.Set(commonedgeauth.HeaderOrgID, "tenant-1")
 	e.Request.Header.Set(commonedgeauth.HeaderRequestID, "request-v1")
 	signEdgeRequestV2(t, e, testEdgeAuthSecret)
 	legacy, err := commonedgeauth.SignFlagHeaders(testEdgeFlagsSecret, "primary", map[string]bool{
-		"techstack.managed.runtime": true,
+		"homelab.managed.runtime": true,
 	}, map[string]any{
 		commonedgeauth.CloudRuntimeCreditsBudgetName: map[string]any{
 			"managed_servers": map[string]any{"mode": "unlimited"},
@@ -544,10 +544,10 @@ func TestEdgeIdentityMiddleware_EdgeAuth_RejectsDetachedV1TechStackBudget(t *tes
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if got := e.Response.(*httptest.ResponseRecorder).Code; got != http.StatusUnauthorized {
-		t.Fatalf("status=%d, want detached v1 TechStack budget rejected", got)
+		t.Fatalf("status=%d, want detached v1 Homelab Runtime budget rejected", got)
 	}
 	if _, ok := commonedgeauth.FlagsFromContext(e.Request.Context()); ok {
-		t.Fatal("detached v1 TechStack budget reached request context")
+		t.Fatal("detached v1 Homelab Runtime budget reached request context")
 	}
 }
 
@@ -580,14 +580,14 @@ func TestEdgeIdentityMiddleware_EdgeAuth_RejectsDecisionTransplantAndFreshness(t
 			})
 			e := newTestEvent(http.MethodPost, "/api/v1/stacks/stack-1/managed-runtimes")
 			e.Request.Header.Set(headerEdgeAuth, edgeAuthValueJWT)
-			e.Request.Header.Set(headerEdgeService, techStackDecisionAudience)
-			e.Request.Header.Set(headerPublicPrefix, techStackDecisionPublicPrefix)
+			e.Request.Header.Set(headerEdgeService, homelabDecisionAudience)
+			e.Request.Header.Set(headerPublicPrefix, homelabDecisionPublicPrefix)
 			e.Request.Header.Set(commonedgeauth.HeaderUserID, "auth0|owner-1")
 			e.Request.Header.Set(commonedgeauth.HeaderOrgID, "tenant-1")
 			e.Request.Header.Set(commonedgeauth.HeaderRequestID, "request-1")
-			attachSignedTechStackDecisionAt(
+			attachSignedHomelabDecisionAt(
 				t, e, testEdgeAuthSecret, testEdgeFlagsSecret, "flags-primary",
-				map[string]bool{"techstack.managed.runtime": true},
+				map[string]bool{"homelab.managed.runtime": true},
 				map[string]any{commonedgeauth.CloudRuntimeCreditsBudgetName: map[string]any{
 					"managed_servers": map[string]any{"mode": "limited", "limit": 3},
 				}},
@@ -898,7 +898,7 @@ func signEdgeRequestV2At(t *testing.T, e *httpx.Event, secret string, issuedAt t
 	attachDefaultFlagDecision(t, e.Request, secret)
 }
 
-func attachSignedTechStackDecision(
+func attachSignedHomelabDecision(
 	t *testing.T,
 	e *httpx.Event,
 	edgeSecret string,
@@ -907,10 +907,10 @@ func attachSignedTechStackDecision(
 	flags map[string]bool,
 	budgets map[string]any,
 ) {
-	attachSignedTechStackDecisionAt(t, e, edgeSecret, flagsSecret, flagsKeyID, flags, budgets, time.Now())
+	attachSignedHomelabDecisionAt(t, e, edgeSecret, flagsSecret, flagsKeyID, flags, budgets, time.Now())
 }
 
-func attachSignedTechStackDecisionAt(
+func attachSignedHomelabDecisionAt(
 	t *testing.T,
 	e *httpx.Event,
 	edgeSecret string,
@@ -955,7 +955,7 @@ func copyHeaders(target, source http.Header) {
 
 // TestEdgeIdentityMiddleware_EdgeAuth_V2Signature_Accepted verifies the v2 edge
 // signature (entitlements + knowledge-tier bound) is accepted after the Gateway
-// flip, proving Techstack's delegation to go-common dual-accepts v1 and v2.
+// flip, proving Homelab's delegation to go-common dual-accepts v1 and v2.
 func TestEdgeIdentityMiddleware_EdgeAuth_V2Signature_Accepted(t *testing.T) {
 	mw := EdgeIdentityMiddlewareWithConfig(EdgeIdentityConfig{
 		Mode:           config.ModeSaaS,
@@ -1006,7 +1006,7 @@ func TestEdgeIdentityMiddleware_EdgeAuth_V2Signature_AcceptsCanonicalWildcardEnt
 	e := newTestEvent("GET", "/test")
 	e.Request.Header.Set(headerEdgeAuth, edgeAuthValueJWT)
 	e.Request.Header.Set("X-User-ID", "admin-v2")
-	e.Request.Header.Set(commonedgeauth.HeaderEntitlements, "*,techstack.inventory.read")
+	e.Request.Header.Set(commonedgeauth.HeaderEntitlements, "*,homelab.inventory.read")
 	signEdgeRequestV2(t, e, testEdgeAuthSecret)
 
 	if err := mw(e); err != nil {
@@ -1016,17 +1016,17 @@ func TestEdgeIdentityMiddleware_EdgeAuth_V2Signature_AcceptsCanonicalWildcardEnt
 		t.Fatalf("canonical Gateway wildcard status = %d, want 200", got)
 	}
 	entitlements, ok := SignedEntitlementsFromContext(e.Request.Context())
-	if !ok || !entitlements.Has("*") || !entitlements.Has("techstack.inventory.read") {
+	if !ok || !entitlements.Has("*") || !entitlements.Has("homelab.inventory.read") {
 		t.Fatalf("signed wildcard entitlements = %#v", entitlements)
 	}
 }
 
 func TestValidEdgeEntitlementAllowsOnlyExactWildcard(t *testing.T) {
 	for value, want := range map[string]bool{
-		"*":                        true,
-		"techstack.inventory.read": true,
-		"admin*":                   false,
-		"*.inventory":              false,
+		"*":                      true,
+		"homelab.inventory.read": true,
+		"admin*":                 false,
+		"*.inventory":            false,
 	} {
 		if got := validEdgeEntitlement(value); got != want {
 			t.Fatalf("validEdgeEntitlement(%q) = %t, want %t", value, got, want)
@@ -1071,7 +1071,7 @@ func TestEdgeIdentityMiddleware_EdgeAuth_V2Signature_TamperedEntitlements_Return
 }
 
 func TestEdgeIdentityMiddleware_EdgeAuth_RejectsEnvelopeSignedForAnotherService(t *testing.T) {
-	e := newTestEvent("GET", "/v1/techstack/probe")
+	e := newTestEvent("GET", "/v1/homelab/probe")
 	e.Request.Header.Set(headerEdgeAuth, edgeAuthValueJWT)
 	e.Request.Header.Set(headerEdgeService, "kombify-ai")
 	e.Request.Header.Set("X-User-ID", "user-1")
@@ -1090,13 +1090,13 @@ func TestEdgeIdentityMiddleware_EdgeAuth_RejectsEnvelopeSignedForAnotherService(
 func signEdgeRequestV9(t *testing.T, e *httpx.Event, secret string) {
 	t.Helper()
 	if e.Request.Header.Get(headerEdgeService) == "" {
-		e.Request.Header.Set(headerEdgeService, "techstack")
+		e.Request.Header.Set(headerEdgeService, "homelab")
 	}
 	if e.Request.Header.Get(commonedgeauth.HeaderOrgID) == "" {
 		e.Request.Header.Set(commonedgeauth.HeaderOrgID, "org-test")
 	}
 	if e.Request.Header.Get(headerPublicPrefix) == "" {
-		e.Request.Header.Set(headerPublicPrefix, "/v1/techstack")
+		e.Request.Header.Set(headerPublicPrefix, "/v1/homelab")
 	}
 	if e.Request.Header.Get(commonedgeauth.HeaderRequestID) == "" {
 		e.Request.Header.Set(commonedgeauth.HeaderRequestID, "req-test")
@@ -1114,7 +1114,7 @@ func TestEdgeIdentityMiddleware_ActingAgentOnlyFromSignedAttestation(t *testing.
 	mw := EdgeIdentityMiddlewareWithConfig(EdgeIdentityConfig{Mode: config.ModeSaaS, EdgeAuthSecret: testEdgeAuthSecret})
 	acting := func(principalType, agentID string, sign func(*testing.T, *httpx.Event, string)) (string, bool) {
 		t.Helper()
-		e := newTestEvent("POST", "/v1/techstack/servers/s1/security/repairs")
+		e := newTestEvent("POST", "/v1/homelab/servers/s1/security/repairs")
 		e.Request.Header.Set(headerEdgeAuth, edgeAuthValueJWT)
 		e.Request.Header.Set("X-User-ID", "auth0|owner")
 		e.Request.Header.Set(commonedgeauth.HeaderPrincipalType, principalType)
@@ -1159,7 +1159,7 @@ func TestEdgeIdentityMiddleware_ActingAgentOnlyFromSignedAttestation(t *testing.
 func TestEdgeIdentityMiddleware_V9SignedEmailVerified(t *testing.T) {
 	mw := EdgeIdentityMiddlewareWithConfig(EdgeIdentityConfig{Mode: config.ModeSaaS, EdgeAuthSecret: testEdgeAuthSecret})
 	run := func(verifiedHeader string, sign func(*testing.T, *httpx.Event, string)) *httpx.Event {
-		e := newTestEvent("POST", "/v1/techstack/wizard/runs")
+		e := newTestEvent("POST", "/v1/homelab/wizard/runs")
 		e.Request.Header.Set(headerEdgeAuth, edgeAuthValueJWT)
 		e.Request.Header.Set("X-User-ID", "auth0|direct")
 		e.Request.Header.Set("X-User-Email", "direct@example.com")
@@ -1196,15 +1196,15 @@ func TestEdgeIdentityMiddleware_V9SignedEmailVerified(t *testing.T) {
 
 const testEdgeProfileSecret = "test-edge-profile-secret"
 
-// newSignedTechStackProfileEvent builds a Techstack request with a verified v2
+// newSignedHomelabProfileEvent builds a Homelab request with a verified v2
 // identity envelope and, when profile is non-nil, the Gateway profile headers
 // bound to it (kombify-Gateway data-profile.ts signProfileHeaders).
-func newSignedTechStackProfileEvent(t *testing.T, profile *dataprofile.Profile) *httpx.Event {
+func newSignedHomelabProfileEvent(t *testing.T, profile *dataprofile.Profile) *httpx.Event {
 	t.Helper()
 	e := newTestEvent(http.MethodGet, "/api/v1/stacks?limit=5")
 	e.Request.Header.Set(headerEdgeAuth, edgeAuthValueJWT)
-	e.Request.Header.Set(headerEdgeService, techStackDecisionAudience)
-	e.Request.Header.Set(headerPublicPrefix, techStackDecisionPublicPrefix)
+	e.Request.Header.Set(headerEdgeService, homelabDecisionAudience)
+	e.Request.Header.Set(headerPublicPrefix, homelabDecisionPublicPrefix)
 	e.Request.Header.Set(commonedgeauth.HeaderUserID, "auth0|alice")
 	e.Request.Header.Set(commonedgeauth.HeaderOrgID, "org-1")
 	e.Request.Header.Set(commonedgeauth.HeaderRequestID, "request-profile-1")
@@ -1263,7 +1263,7 @@ func assertNoProfileHeaders(t *testing.T, r *http.Request) {
 
 func TestEdgeIdentityMiddleware_DataProfile_ObserveAttachesVerifiedProfile(t *testing.T) {
 	mw := profileTestMiddleware(t, dataProfileModeObserve)
-	e := newSignedTechStackProfileEvent(t, euZeroProfile())
+	e := newSignedHomelabProfileEvent(t, euZeroProfile())
 	if err := mw(e); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1277,13 +1277,13 @@ func TestEdgeIdentityMiddleware_DataProfile_ObserveAttachesVerifiedProfile(t *te
 	assertNoProfileHeaders(t, e.Request)
 }
 
-// Techstack reads the scope "cloud" of a wire v2 profile; the ai scope (AI
+// Homelab reads the scope "cloud" of a wire v2 profile; the ai scope (AI
 // processing) neither tightens nor loosens it (D-2026-11-18-12).
 func TestEdgeIdentityMiddleware_DataProfile_V2ReadsTheCloudScope(t *testing.T) {
 	mw := profileTestMiddleware(t, dataProfileModeObserve)
 	split := dataprofile.Standard().WithAI(dataprofile.ResidencyEU, dataprofile.RetentionZero)
 	split.Rev, split.TS = 3, 1792700000
-	e := newSignedTechStackProfileEvent(t, &split)
+	e := newSignedHomelabProfileEvent(t, &split)
 	if err := mw(e); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1295,7 +1295,7 @@ func TestEdgeIdentityMiddleware_DataProfile_V2ReadsTheCloudScope(t *testing.T) {
 
 func TestEdgeIdentityMiddleware_DataProfile_ObserveContinuesWithoutProfile(t *testing.T) {
 	mw := profileTestMiddleware(t, dataProfileModeObserve)
-	e := newSignedTechStackProfileEvent(t, nil)
+	e := newSignedHomelabProfileEvent(t, nil)
 	if err := mw(e); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1329,9 +1329,9 @@ func TestEdgeIdentityMiddleware_DataProfile_EnforceDeniesMissingAndTampered(t *t
 			mw := profileTestMiddleware(t, dataProfileModeEnforce)
 			var e *httpx.Event
 			if name == "missing" {
-				e = newSignedTechStackProfileEvent(t, nil)
+				e = newSignedHomelabProfileEvent(t, nil)
 			} else {
-				e = newSignedTechStackProfileEvent(t, euZeroProfile())
+				e = newSignedHomelabProfileEvent(t, euZeroProfile())
 			}
 			e.Request.Header.Set(tenantdb.ContextTokenHeader, "opaque-db-context-with-no-claims")
 			tamper(e)
@@ -1357,7 +1357,7 @@ func TestEdgeIdentityMiddleware_DataProfile_EnforceDeniesMissingAndTampered(t *t
 
 func TestEdgeIdentityMiddleware_DataProfile_OffIgnoresAndStripsHeaders(t *testing.T) {
 	mw := profileTestMiddleware(t, "")
-	e := newSignedTechStackProfileEvent(t, euZeroProfile())
+	e := newSignedHomelabProfileEvent(t, euZeroProfile())
 	if err := mw(e); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1545,11 +1545,11 @@ func TestSignedDecisionsAreAuthoritativeAcrossEditions(t *testing.T) {
 				{"explicit off denies shipped feature", map[string]bool{"self.healing.enabled": false}, "self_healing", false},
 				{"signed on defeats default off", map[string]bool{"self.healing.enabled": true}, "self_healing", true},
 				{"unrelated grant cannot enable missing key", map[string]bool{"self.healing.enabled": true}, "custom_domains", false},
-				{"canonical runtime grant", map[string]bool{"techstack.managed.runtime": true}, "monthly_runtime", true},
-				{"caller alias uses canonical decision", map[string]bool{"techstack.managed.runtime": true}, "techstack_monthly_runtime", true},
-				{"canonical off beats old alias on", map[string]bool{"techstack.managed.runtime": false, "techstack_monthly_runtime": true}, "monthly_runtime", false},
+				{"canonical runtime grant", map[string]bool{"homelab.managed.runtime": true}, "monthly_runtime", true},
+				{"caller alias uses canonical decision", map[string]bool{"homelab.managed.runtime": true}, "homelab_monthly_runtime", true},
+				{"canonical off beats old alias on", map[string]bool{"homelab.managed.runtime": false, "homelab_monthly_runtime": true}, "monthly_runtime", false},
 				{"other entitlement cannot grant omitted runtime", map[string]bool{"all_features": true, "*": true, "sim.monthly.runtime.standard": true}, "monthly_runtime", false},
-				{"backup signed decision", map[string]bool{"techstack.backup.config": true}, "backup_config", true},
+				{"backup signed decision", map[string]bool{"homelab.backup.config": true}, "backup_config", true},
 			} {
 				t.Run(tc.name, func(t *testing.T) {
 					ctx := commonedgeauth.FlagsToContext(t.Context(), commonedgeauth.FlagSet{Flags: tc.flags})
@@ -1562,7 +1562,7 @@ func TestSignedDecisionsAreAuthoritativeAcrossEditions(t *testing.T) {
 						t.Fatal(err)
 					}
 					key := tc.key
-					if key == "techstack_monthly_runtime" {
+					if key == "homelab_monthly_runtime" {
 						key = "monthly_runtime"
 					}
 					if listed[key].Enabled != tc.want || !listed[key].Locked {
@@ -1650,7 +1650,7 @@ func attachDefaultFlagDecision(t *testing.T, r *http.Request, secret string) {
 	}
 	var h http.Header
 	var err error
-	if r.Header.Get(headerEdgeService) == "techstack" && edgeIdentityHasSubjectAndTenant(r) {
+	if r.Header.Get(headerEdgeService) == "homelab" && edgeIdentityHasSubjectAndTenant(r) {
 		h, err = commonedgeauth.SignDecisionHeaders(commonedgeauth.DecisionSignInput{
 			Secret: secret, KeyID: defaultEdgeKeyID, Method: r.Method, SignedPath: r.URL.RequestURI(),
 			Audience: r.Header.Get(headerEdgeService), PublicPrefix: r.Header.Get(headerPublicPrefix),
@@ -1681,7 +1681,7 @@ func TestGatewayFlagEnvelopeAbsentGrantsNothingInvalidRefuses(t *testing.T) {
 	}
 	resign := func(secret string, at time.Time) func(*http.Request) {
 		return func(r *http.Request) {
-			h, err := commonedgeauth.SignFlagHeaders(secret, defaultEdgeKeyID, map[string]bool{edgeFlagTechStackUseCaseAccessForTest: true}, map[string]any{}, at)
+			h, err := commonedgeauth.SignFlagHeaders(secret, defaultEdgeKeyID, map[string]bool{edgeFlagHomelabUseCaseAccessForTest: true}, map[string]any{}, at)
 			if err != nil {
 				panic(err)
 			}
@@ -1696,11 +1696,11 @@ func TestGatewayFlagEnvelopeAbsentGrantsNothingInvalidRefuses(t *testing.T) {
 		admitted bool
 	}{
 		{name: "v1 service, no envelope", hop: capabilitiesHop, mutate: stripFlags, admitted: true},
-		{name: "techstack decision hop, no envelope", hop: func(t *testing.T) *httpx.Event {
-			return signTechstackHop(t, "owner", "org-test", map[string]bool{})
+		{name: "homelab decision hop, no envelope", hop: func(t *testing.T) *httpx.Event {
+			return signHomelabHop(t, "owner", "org-test", map[string]bool{})
 		}, mutate: stripFlags, admitted: true},
-		{name: "techstack hop without tenant, no envelope", hop: func(t *testing.T) *httpx.Event {
-			return signTechstackHop(t, "machine-client", "", map[string]bool{})
+		{name: "homelab hop without tenant, no envelope", hop: func(t *testing.T) *httpx.Event {
+			return signHomelabHop(t, "machine-client", "", map[string]bool{})
 		}, mutate: stripFlags, admitted: true},
 		{name: "partial envelope", hop: capabilitiesHop, mutate: func(r *http.Request) {
 			stripFlags(r)
@@ -1710,7 +1710,7 @@ func TestGatewayFlagEnvelopeAbsentGrantsNothingInvalidRefuses(t *testing.T) {
 		{name: "expired envelope", hop: capabilitiesHop, mutate: resign(testEdgeAuthSecret, time.Now().Add(-time.Hour))},
 		{name: "tampered envelope", hop: capabilitiesHop, mutate: func(r *http.Request) {
 			resign(testEdgeAuthSecret, time.Now())(r)
-			r.Header.Set(commonedgeauth.HeaderFlags, `{"techstack.use-case-access":true,"techstack.inventory":true}`)
+			r.Header.Set(commonedgeauth.HeaderFlags, `{"homelab.use-case-access":true,"homelab.inventory":true}`)
 		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1746,7 +1746,7 @@ func TestGatewayFlagEnvelopeAbsentGrantsNothingInvalidRefuses(t *testing.T) {
 	}
 }
 
-const edgeFlagTechStackUseCaseAccessForTest = "techstack.use-case-access"
+const edgeFlagHomelabUseCaseAccessForTest = "homelab.use-case-access"
 
 func capabilitiesHop(t *testing.T) *httpx.Event {
 	t.Helper()
@@ -1757,16 +1757,16 @@ func capabilitiesHop(t *testing.T) *httpx.Event {
 	return e
 }
 
-// signTechstackHop signs a v2 identity for the techstack audience with the
+// signHomelabHop signs a v2 identity for the homelab audience with the
 // given subject and tenant and attaches the flag envelope the Gateway sends
 // for it: the request-bound decision with both, the detached v1 envelope
 // otherwise (kombify-Gateway docs/API_REFERENCE.md "Signed flag envelope").
-func signTechstackHop(t *testing.T, subject, tenant string, flags map[string]bool) *httpx.Event {
+func signHomelabHop(t *testing.T, subject, tenant string, flags map[string]bool) *httpx.Event {
 	t.Helper()
 	e := newTestEvent("GET", "/api/v1/stacks")
 	e.Request.Header.Set(headerEdgeAuth, edgeAuthValueJWT)
-	e.Request.Header.Set(headerEdgeService, techStackDecisionAudience)
-	e.Request.Header.Set(headerPublicPrefix, techStackDecisionPublicPrefix)
+	e.Request.Header.Set(headerEdgeService, homelabDecisionAudience)
+	e.Request.Header.Set(headerPublicPrefix, homelabDecisionPublicPrefix)
 	e.Request.Header.Set(commonedgeauth.HeaderRequestID, "req-"+strconv.FormatInt(testNonceSeq.Add(1), 10))
 	if subject != "" {
 		e.Request.Header.Set(commonedgeauth.HeaderUserID, subject)
@@ -1781,7 +1781,7 @@ func signTechstackHop(t *testing.T, subject, tenant string, flags map[string]boo
 	if subject != "" && tenant != "" {
 		h, err = commonedgeauth.SignDecisionHeaders(commonedgeauth.DecisionSignInput{
 			Secret: testEdgeAuthSecret, KeyID: defaultEdgeKeyID, Method: e.Request.Method, SignedPath: e.Request.URL.RequestURI(),
-			Audience: techStackDecisionAudience, PublicPrefix: techStackDecisionPublicPrefix, SubjectID: subject, TenantID: tenant,
+			Audience: homelabDecisionAudience, PublicPrefix: homelabDecisionPublicPrefix, SubjectID: subject, TenantID: tenant,
 			RequestID: e.Request.Header.Get(commonedgeauth.HeaderRequestID), EdgeKeyID: e.Request.Header.Get(headerEdgeKeyID),
 			EdgeTimestamp: e.Request.Header.Get(headerEdgeTimestamp), EdgeNonce: e.Request.Header.Get(headerEdgeNonce),
 			EdgeSignature: e.Request.Header.Get(headerEdgeSignature), Flags: flags, Budgets: map[string]any{},
@@ -1796,12 +1796,12 @@ func signTechstackHop(t *testing.T, subject, tenant string, flags map[string]boo
 	return e
 }
 
-// A techstack-audience hop without a person or an organisation (MCP and
+// A homelab-audience hop without a person or an organisation (MCP and
 // Gateway-internal hops) carries the detached v1 envelope, because a decision
 // binds both (platform-42ocp6.18). It is admitted with that envelope, or
 // without any envelope and then grants nothing; a tampered one is refused.
 // With both, a v1 envelope cannot stand in for the decision.
-func TestTechstackHopEnvelopeFollowsSubjectAndTenant(t *testing.T) {
+func TestHomelabHopEnvelopeFollowsSubjectAndTenant(t *testing.T) {
 	notEvaluated := map[string]bool{"$flag_evaluation:not_evaluated": true}
 	for _, tc := range []struct {
 		name            string
@@ -1818,7 +1818,7 @@ func TestTechstackHopEnvelopeFollowsSubjectAndTenant(t *testing.T) {
 			}
 		}, admitted: true, unsigned: true},
 		{name: "no tenant, tampered envelope", subject: "machine-client", mutate: func(r *http.Request) {
-			r.Header.Set(commonedgeauth.HeaderFlags, `{"techstack.inventory":true}`)
+			r.Header.Set(commonedgeauth.HeaderFlags, `{"homelab.inventory":true}`)
 		}},
 		{name: "person and tenant, decision", subject: "owner", tenant: "org-test", admitted: true},
 		{name: "person and tenant, v1 in place of the decision", subject: "owner", tenant: "org-test", mutate: func(r *http.Request) {
@@ -1833,7 +1833,7 @@ func TestTechstackHopEnvelopeFollowsSubjectAndTenant(t *testing.T) {
 		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			e := signTechstackHop(t, tc.subject, tc.tenant, notEvaluated)
+			e := signHomelabHop(t, tc.subject, tc.tenant, notEvaluated)
 			if tc.mutate != nil {
 				tc.mutate(e.Request)
 			}
@@ -1859,7 +1859,7 @@ func TestTechstackHopEnvelopeFollowsSubjectAndTenant(t *testing.T) {
 // Per key (platform-42ocp6.18): a granted feature is on; a denied, an
 // unanswered and a failed one are off for this request, and a failed
 // evaluation never refuses the request itself.
-func TestTechstackFlagDecisionsPerKey(t *testing.T) {
+func TestHomelabFlagDecisionsPerKey(t *testing.T) {
 	const signedKey = "network.discovery.enabled"
 	for _, tc := range []struct {
 		name  string
@@ -1873,7 +1873,7 @@ func TestTechstackFlagDecisionsPerKey(t *testing.T) {
 		{name: "unanswered", flags: map[string]bool{"$flag_evaluation:not_evaluated": true}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			e := signTechstackHop(t, "owner", "org-test", tc.flags)
+			e := signHomelabHop(t, "owner", "org-test", tc.flags)
 			if err := EdgeIdentityMiddlewareWithConfig(EdgeIdentityConfig{Mode: config.ModeSaaS, EdgeAuthSecret: testEdgeAuthSecret})(e); err != nil ||
 				e.Response.(*httptest.ResponseRecorder).Code != http.StatusOK {
 				t.Fatalf("a valid decision must admit the request: err=%v status=%d", err, e.Response.(*httptest.ResponseRecorder).Code)

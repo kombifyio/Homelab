@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/specv2"
-	"github.com/kombifyio/techstack/pkg/unifier"
+	"github.com/kombifyio/homelab/pkg/specv2"
+	"github.com/kombifyio/homelab/pkg/unifier"
 	"gopkg.in/yaml.v3"
 )
 
@@ -114,7 +114,7 @@ func hydratePersistedStackSpecTarget(persister *unifier.SpecPersister, target *M
 	}
 	if specv2.RequireCanonicalV2(spec) == nil {
 		// Architecture v2 rejects top-level ssh and nodes[].ip. Runtime
-		// target facts stay in Techstack metadata, never on the CLI document.
+		// target facts stay in Homelab metadata, never on the CLI document.
 		return "", "", nil
 	}
 
@@ -527,7 +527,7 @@ func repairPersistedStackSpec(persister *unifier.SpecPersister) error {
 	return nil
 }
 
-// withStackKitSpecShape projects a Techstack intent onto the shape a v1
+// withStackKitSpecShape projects a Homelab intent onto the shape a v1
 // StackSpec accepts.
 func withStackKitSpecShape(intent map[string]interface{}) map[string]interface{} {
 	return withServicesAsMap(withStackKitFromKitAlias(intent))
@@ -536,7 +536,7 @@ func withStackKitSpecShape(intent map[string]interface{}) map[string]interface{}
 // withServicesAsMap converts a list-shaped services block into the map the
 // StackKits v1 StackSpec requires.
 //
-// core.InputServiceSpecs accepts both shapes, so a Techstack intent may carry
+// core.InputServiceSpecs accepts both shapes, so a Homelab intent may carry
 // either, but the StackSpec decoder accepts only a mapping and fails the whole
 // rollout on a sequence:
 //

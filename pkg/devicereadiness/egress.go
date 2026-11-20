@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
 )
 
 // Egress lends a device a temporary way out.
@@ -172,7 +172,7 @@ func (e *Egress) Environment() string {
 }
 
 func (e *Egress) configureAPT(ctx context.Context) error {
-	content := fmt.Sprintf("// Written by Kombify Techstack device readiness for one repair.\n"+
+	content := fmt.Sprintf("// Written by Kombify Homelab Runtime device readiness for one repair.\n"+
 		"// It is removed when the repair ends; if you are reading it afterwards, remove it.\n"+
 		"Acquire::http::Proxy \"%s\";\nAcquire::https::Proxy \"%s\";\n", e.ProxyURL(), e.ProxyURL())
 

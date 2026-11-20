@@ -2,8 +2,8 @@ package providercontroljobs
 
 import (
 	"context"
-	"github.com/kombifyio/techstack/internal/providercontrol"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/internal/providercontrol"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
 )
 
 func (m *Manager) VerifyCustomerGuest(ctx context.Context, tenant, owner, stack, lease, server, operation string) error {

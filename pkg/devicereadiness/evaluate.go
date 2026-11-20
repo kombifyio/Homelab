@@ -390,7 +390,7 @@ var reachEndpointChecks = map[string]struct {
 	subject string
 	blocks  bool
 }{
-	"control-plane":  {CheckControlPlane, "the Techstack control plane", true},
+	"control-plane":  {CheckControlPlane, "the Homelab Runtime control plane", true},
 	"package-mirror": {CheckPackageMirror, "the package mirror", false},
 	"image-registry": {CheckRegistry, "the image registry", false},
 }

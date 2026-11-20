@@ -8,14 +8,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/grpcserver"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/privatechannel"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
-	"github.com/kombifyio/techstack/pkg/trustedproxy"
-	"github.com/kombifyio/techstack/pkg/workerauth"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/grpcserver"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/privatechannel"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/pkg/trustedproxy"
+	"github.com/kombifyio/homelab/pkg/workerauth"
 )
 
 type workerEnrollmentContext struct {
@@ -153,7 +153,7 @@ func (h workerRouteHandlers) workerEnrollmentResponse(e *httpx.Event, ctx worker
 	}
 	if ctx.GRPCIdentity != nil {
 		resp["grpc_mtls"] = map[string]any{
-			"schema_version":  "techstack.agent-mtls-enrollment/v1",
+			"schema_version":  "homelab.agent-mtls-enrollment/v1",
 			"agent_id":        ctx.GRPCIdentity.AgentID,
 			"tenant_id":       ctx.GRPCIdentity.TenantID,
 			"certificate_pem": string(ctx.GRPCIdentity.CertPEM),
@@ -186,7 +186,7 @@ func requestPrivateLANBridge(e *httpx.Event) (localLANBridgeRequest, bool) {
 // configured public origin wins, a LAN bridge request keeps its own private
 // origin, and only without either does the URL fall back to the Host header,
 // with forwarded protocol and host honored solely from a trusted proxy
-// (trustedproxy, TECHSTACK_TRUSTED_PROXIES).
+// (trustedproxy, HOMELAB_TRUSTED_PROXIES).
 func requestPublicBaseURL(e *httpx.Event) string {
 	if e == nil || e.Request == nil {
 		return ""

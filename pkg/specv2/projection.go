@@ -8,12 +8,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
 )
 
 // GoalAuthoring is the release-owned workload projection for selected wizard
 // goals. Workloads and local custody references come from the pinned StackKits
-// CLI; Techstack preserves them and honestly persists UnmappedGoals.
+// CLI; Homelab preserves them and honestly persists UnmappedGoals.
 // CLI-authored useCases stay off the operational spec: #KitSpecBinding
 // rejects value.spec.useCases.
 type GoalAuthoring struct {
@@ -23,7 +23,7 @@ type GoalAuthoring struct {
 	// release-owned module profile intent. Seed-owned workloads remain intact.
 	ModuleProfiles map[string]map[string]any
 	// Routes and access policies are authored by the selected release module,
-	// not synthesized from an application name by Techstack.
+	// not synthesized from an application name by Homelab.
 	Routes         map[string]map[string]any
 	AccessPolicies map[string]map[string]any
 	DataBindings   map[string]map[string]any
@@ -48,7 +48,7 @@ type Projector interface {
 	Project(ctx context.Context, seed map[string]any, intent WizardIntent, homelabID string) (*Projection, error)
 }
 
-// ReleaseProjector applies Techstack-owned identity/topology intent around
+// ReleaseProjector applies Homelab-owned identity/topology intent around
 // workload entries authored by the pinned StackKits release.
 type ReleaseProjector struct {
 	author GoalAuthor
@@ -105,7 +105,7 @@ func (p *ReleaseProjector) Project(ctx context.Context, seed map[string]any, int
 	metadata["name"] = contractID(intent.Name)
 	stackID, _ := metadata["stackId"].(string)
 	// StackKits owns this identity. Make it explicit for a new deployment so
-	// Techstack never has to equate its internal kit-deployment UUID with the
+	// Homelab never has to equate its internal kit-deployment UUID with the
 	// public ResolvedPlan stackId. Expansion preserves an already-owned id.
 	if intent.KitAssignment.Mode == KitAssignmentFound || strings.TrimSpace(stackID) == "" {
 		metadata["stackId"] = metadata["name"]
@@ -371,7 +371,7 @@ func appendUnmappedGoals(existing, extra []string) []string {
 }
 
 // StackKitInstanceID returns the explicit StackKits identity projected into a
-// validated v2 spec. Callers must not fall back to a Techstack record id.
+// validated v2 spec. Callers must not fall back to a Homelab record id.
 func StackKitInstanceID(spec map[string]any) string {
 	metadata, _ := spec["metadata"].(map[string]any)
 	value, _ := metadata["stackId"].(string)

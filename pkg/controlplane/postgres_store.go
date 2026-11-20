@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 )
 
 const tenantGUC = "app.tenant_id"

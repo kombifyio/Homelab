@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 // Availability must not be invented when the configured release authority
@@ -22,7 +22,7 @@ func TestStackKitResolverRejectsUnavailableCatalog(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.missingAuthority {
-				t.Setenv("TECHSTACK_STACKKITS_DIR", filepath.Join(t.TempDir(), "missing"))
+				t.Setenv("HOMELAB_STACKKITS_DIR", filepath.Join(t.TempDir(), "missing"))
 				t.Setenv("STACKKITS_REPO", t.TempDir())
 			}
 			result := NewStackKitResolver(tc.kits).Resolve(&core.KombinationSpec{Kit: StackKitBasement})

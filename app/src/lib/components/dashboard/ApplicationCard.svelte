@@ -22,7 +22,7 @@
   } from "#lib/dashboard/homelab-model.js";
 
   /*
-   * Techstack's adapter over Brand's ApplicationCard (entity-cards concept):
+   * Homelab's adapter over Brand's ApplicationCard (entity-cards concept):
    * it resolves the address, logo, status, placement and quick actions of an
    * application from its services and leaves the drawing to Brand.
    * - `s`: the app icon alone; a click opens the application.

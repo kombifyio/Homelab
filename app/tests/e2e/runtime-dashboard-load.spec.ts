@@ -10,20 +10,20 @@ import { authenticateRuntimeUser, type RuntimeAuthRole } from "./runtime-auth";
 // dashboard's own load must leave the product ready and answering.
 
 const PRODUCT_BASE = liveProductURL(
-  process.env.TECHSTACK_RUNTIME_E2E_PRODUCT_URL ??
-    process.env.TECHSTACK_E2E_PRODUCT_URL ??
+  process.env.HOMELAB_RUNTIME_E2E_PRODUCT_URL ??
+    process.env.HOMELAB_E2E_PRODUCT_URL ??
     process.env.PLAYWRIGHT_BASE_URL ??
-    "https://techstack.kombify.io",
+    "https://homelab.kombify.io",
 );
 const API_BASE = liveProductURL(
-  process.env.TECHSTACK_RUNTIME_E2E_API_URL ??
-    process.env.TECHSTACK_API_URL ??
+  process.env.HOMELAB_RUNTIME_E2E_API_URL ??
+    process.env.HOMELAB_API_URL ??
     PRODUCT_BASE,
 );
 // The runtime test user owns the stacks a dashboard polls. The cloud fixture,
 // the only identity of the Delivery Preview login gate, owns none, so a
 // cloud-only selection skips this step.
-const SELECTED_ROLES = (process.env.TECHSTACK_RUNTIME_E2E_AUTH_ROLES ?? "")
+const SELECTED_ROLES = (process.env.HOMELAB_RUNTIME_E2E_AUTH_ROLES ?? "")
   .split(",")
   .map((role) => role.trim())
   .filter(Boolean);
@@ -54,7 +54,7 @@ test("the dashboard's per-stack polling keeps the product ready", async ({
     productBase: PRODUCT_BASE,
     apiBase: API_BASE,
     sessionCookieName:
-      process.env.TECHSTACK_E2E_SESSION_COOKIE_NAME ?? "techstack_session",
+      process.env.HOMELAB_E2E_SESSION_COOKIE_NAME ?? "homelab_session",
   });
   const stacks = await ownerJSON(auth.token, "/api/v1/stacks");
   expect(stacks.status).toBe(200);
@@ -150,7 +150,7 @@ test("the Devices & people panel keeps the owner and lists edge devices apart", 
     productBase: PRODUCT_BASE,
     apiBase: API_BASE,
     sessionCookieName:
-      process.env.TECHSTACK_E2E_SESSION_COOKIE_NAME ?? "techstack_session",
+      process.env.HOMELAB_E2E_SESSION_COOKIE_NAME ?? "homelab_session",
   });
   const stacks = await ownerJSON(auth.token, "/api/v1/stacks");
   expect(stacks.status).toBe(200);

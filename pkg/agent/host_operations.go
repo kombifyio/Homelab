@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	agentpb "github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/secrets"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	agentpb "github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/secrets"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // Guard host operations run in the Guard itself with fixed argv: the caller

@@ -9,8 +9,8 @@ import (
 
 	"cuelang.org/go/cue"
 	cueerrors "cuelang.org/go/cue/errors"
-	"github.com/kombifyio/techstack/pkg/core"
-	"github.com/kombifyio/techstack/pkg/validator"
+	"github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/validator"
 )
 
 // PreValidator handles schema validation before the main Unifier processing.
@@ -159,7 +159,7 @@ func (v *PreValidator) validateNode(idx int, node core.NodeSpec, nodeNames map[s
 	}
 
 	// SSH config validation (optional at creation time)
-	// kombifyTechstack can run agent-based; workers connect later, so SSH may not be available yet.
+	// kombifyHomelab can run agent-based; workers connect later, so SSH may not be available yet.
 	if node.SSH != nil {
 		errors = append(errors, v.validateSSHConfig(path+".ssh", node.SSH)...)
 	}

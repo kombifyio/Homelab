@@ -3,8 +3,8 @@ package routes
 import (
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 )
 
 func serverRuntimeDisplayName(server controlplane.ServerRuntime, target serverregistry.RuntimeTarget) string {

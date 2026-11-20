@@ -3,7 +3,7 @@ package auth
 import (
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/auth/sso"
+	"github.com/kombifyio/homelab/pkg/auth/sso"
 )
 
 // launchStackIdentity projects the Stack Identity a kombify Cloud launch

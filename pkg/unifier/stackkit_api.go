@@ -5,7 +5,7 @@ package unifier
 import (
 	"fmt"
 
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 // ========== StackKit API Methods ==========

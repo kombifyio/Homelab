@@ -2,9 +2,9 @@ import type { BrowserContext, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 import { fillSecret } from "./secret-input";
 import {
-  getTechStackTestUser,
-  requireTechStackTestUser,
-} from "../../src/lib/testing/techstack-test-users";
+  getHomelabTestUser,
+  requireHomelabTestUser,
+} from "../../src/lib/testing/homelab-test-users";
 
 /**
  * Test Utilities & Helpers
@@ -17,10 +17,10 @@ import {
  */
 export const TEST_CREDENTIALS = {
   get email() {
-    return requireTechStackTestUser("admin").email;
+    return requireHomelabTestUser("admin").email;
   },
   get password() {
-    return requireTechStackTestUser("admin").password;
+    return requireHomelabTestUser("admin").password;
   },
 };
 
@@ -38,20 +38,20 @@ function requireEnv(name: string): string {
 }
 
 export function requireApiBase(): string {
-  const value = process.env.TECHSTACK_API_URL ?? process.env.API_URL;
+  const value = process.env.HOMELAB_API_URL ?? process.env.API_URL;
   if (!value)
     throw new Error(
-      "Missing API base URL. Set TECHSTACK_API_URL (or API_URL) to a full URL.",
+      "Missing API base URL. Set HOMELAB_API_URL (or API_URL) to a full URL.",
     );
   return normalizeBaseUrl(value);
 }
 
 export function requireAppBase(baseURL?: string): string {
   const value =
-    baseURL ?? process.env.TECHSTACK_APP_URL ?? process.env.PLAYWRIGHT_BASE_URL;
+    baseURL ?? process.env.HOMELAB_APP_URL ?? process.env.PLAYWRIGHT_BASE_URL;
   if (!value)
     throw new Error(
-      "Missing App base URL. Set PLAYWRIGHT_BASE_URL (or TECHSTACK_APP_URL) to a full URL.",
+      "Missing App base URL. Set PLAYWRIGHT_BASE_URL (or HOMELAB_APP_URL) to a full URL.",
     );
   return normalizeBaseUrl(value);
 }
@@ -66,7 +66,7 @@ export async function authenticateViaApi(
 ): Promise<{ token: string; userId: string }> {
   const base = apiBase ?? requireApiBase();
   const credentials =
-    email && password ? { email, password } : requireTechStackTestUser("admin");
+    email && password ? { email, password } : requireHomelabTestUser("admin");
   const response = await fetch(
     `${base}/api/collections/users/auth-with-password`,
     {
@@ -83,7 +83,7 @@ export async function authenticateViaApi(
     const body = await response.text();
     if (response.status === 401 || response.status === 403) {
       throw new Error(
-        `TechStack E2E auth failed with HTTP ${response.status}. Happy-path tests must use a configured real test user from the configured environment, not fake local credentials. Response: ${body}`,
+        `Homelab Runtime E2E auth failed with HTTP ${response.status}. Happy-path tests must use a configured real test user from the configured environment, not fake local credentials. Response: ${body}`,
       );
     }
     throw new Error(`Auth failed (HTTP ${response.status}): ${body}`);
@@ -281,7 +281,7 @@ export async function listWorkersViaApi(
  */
 export async function login(page: Page, email?: string, password?: string) {
   const credentials =
-    email && password ? { email, password } : requireTechStackTestUser("admin");
+    email && password ? { email, password } : requireHomelabTestUser("admin");
   await page.goto("/client/local", { waitUntil: "domcontentloaded" });
   await page.waitForURL(/\/client\/local|\/dashboard/, { timeout: 15_000 });
   if (page.url().includes("/dashboard")) {
@@ -331,7 +331,7 @@ export async function mockLoggedInContext(
   context: BrowserContext,
   opts: { userId?: string; email?: string; allowMockAuth?: boolean } = {},
 ) {
-  if (!opts.allowMockAuth && process.env.TECHSTACK_ALLOW_MOCK_AUTH !== "1") {
+  if (!opts.allowMockAuth && process.env.HOMELAB_ALLOW_MOCK_AUTH !== "1") {
     throw new Error(
       "mockLoggedInContext uses mocked V2 auth and is not allowed in release happy-path tests. Pass allowMockAuth only for isolated mocked-UI tests.",
     );
@@ -339,7 +339,7 @@ export async function mockLoggedInContext(
 
   const userId = opts.userId ?? "user_test";
   const email =
-    opts.email || getTechStackTestUser("admin").email || "mock-user@test.local";
+    opts.email || getHomelabTestUser("admin").email || "mock-user@test.local";
 
   await context.addInitScript(() => {
     window.sessionStorage.clear();

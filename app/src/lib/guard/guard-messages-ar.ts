@@ -90,7 +90,7 @@ export const guardMessagesAr: Record<keyof typeof guardMessages.en, string> = {
     "حدّث Guard على الخادم ليسجّل مفتاحه الخاص، ثم وافق على ذلك المفتاح هنا.",
   "guard.fact.bound.revoked": "أُلغي هذا الخادم ولم يعد مرتبطًا.",
   "guard.fact.bound.revokedNext":
-    "أعد إقران الخادم لربطه بـ Techstack الخاص بك.",
+    "أعد إقران الخادم لربطه بـ Homelab Runtime الخاص بك.",
   "guard.fact.bound.stale":
     "آخر تقرير قديم جدًا ولا يمكن معه تأكيد كيف يثبت هذا الخادم هويته.",
   "guard.fact.bound.unknown": "لم يُبلِّغ الخادم كيف يثبت هويته.",
@@ -100,7 +100,7 @@ export const guardMessagesAr: Record<keyof typeof guardMessages.en, string> = {
   "guard.fact.connected.ok": "أجاب Guard عن أمر عبر اتصاله الموثَّق.",
   "guard.fact.connected.degraded": "الاتصال متدهور.",
   "guard.fact.connected.offline":
-    "لا يُبلِّغ Guard. الخادم غير متصل أو لا يستطيع الوصول إلى Techstack.",
+    "لا يُبلِّغ Guard. الخادم غير متصل أو لا يستطيع الوصول إلى Homelab.",
   "guard.fact.connected.revoked": "أُلغي الاتصال.",
   "guard.fact.connected.stale":
     "لم يُبلِّغ Guard مؤخرًا بما يكفي لاعتباره متصلًا.",
@@ -110,9 +110,9 @@ export const guardMessagesAr: Record<keyof typeof guardMessages.en, string> = {
   "guard.fact.connected.unknown":
     "لا توجد حالة اتصال مُبلَّغ عنها لهذا الخادم.",
   "guard.fact.connected.reconnectNext":
-    "تأكد من أن الخادم يعمل ويستطيع الوصول إلى Techstack.",
+    "تأكد من أن الخادم يعمل ويستطيع الوصول إلى Homelab.",
   "guard.fact.connected.awaitingRoundTrip":
-    "يرسل Guard تقاريره، لكنه لم يُجب بعد عن أي أمر من Techstack ببيانات اعتماده الحالية.",
+    "يرسل Guard تقاريره، لكنه لم يُجب بعد عن أي أمر من Homelab Runtime ببيانات اعتماده الحالية.",
   "guard.fact.connected.roundTripStale":
     "يرسل Guard تقاريره، لكن آخر أمر أجاب عنه قديم جدًا أو أُجيب عنه ببيانات اعتماد سابقة.",
   "guard.fact.connected.roundTripNext":
@@ -447,7 +447,7 @@ export const guardMessagesAr: Record<keyof typeof guardMessages.en, string> = {
     "يحفظ Guard نقطة استعادة، ثم ينفّذ التحديث ويتراجع عنه إذا فشل.",
   "guard.updates.running": "جارٍ التحديث إلى {version}: {progress}%",
   "guard.updates.started.automatic":
-    "بدأ Techstack هذا التحديث لأن هذا الخادم يثبّت التحديثات تلقائيًا.",
+    "بدأ Homelab Runtime هذا التحديث لأن هذا الخادم يثبّت التحديثات تلقائيًا.",
   "guard.updates.started.security":
     "تثبّت kombify تصحيح الأمان هذا دون انتظار موافقتك.",
   "guard.updates.security.badge": "تصحيح أمان",

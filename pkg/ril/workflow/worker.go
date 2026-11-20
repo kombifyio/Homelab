@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/logger"
 )
 
 // WorkerConfig tunes the worker's two loops.

@@ -5,14 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardidentity"
-	"github.com/kombifyio/techstack/pkg/workerauth"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
+	"github.com/kombifyio/homelab/pkg/workerauth"
 )
 
 func TestGuardAccessTokenAcceptsSuccessorKeyDuringServiceSecretRotation(t *testing.T) {
-	t.Setenv("TECHSTACK_WORKER_AGENT_TOKEN_SECRET", "")
-	t.Setenv("TECHSTACK_WORKER_TOKEN_SECRET", "")
-	t.Setenv("TECHSTACK_WORKER_SECRET_STRICT", "")
+	t.Setenv("HOMELAB_WORKER_AGENT_TOKEN_SECRET", "")
+	t.Setenv("HOMELAB_WORKER_TOKEN_SECRET", "")
+	t.Setenv("HOMELAB_WORKER_SECRET_STRICT", "")
 	t.Setenv("SERVICE_AUTH_SECRET", "primary-secret")
 	t.Setenv("SERVICE_AUTH_SECRET_NEXT", "next-secret")
 	h := workerRouteHandlers{credentialSecret: workerauth.SecretFromEnv()}

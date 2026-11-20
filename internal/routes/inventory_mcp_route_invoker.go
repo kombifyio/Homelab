@@ -15,12 +15,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/apisurface"
-	"github.com/kombifyio/techstack/internal/gocommon/apisurface/mcpbind"
-	"github.com/kombifyio/techstack/internal/gocommon/mcporiginauth"
+	"github.com/kombifyio/homelab/internal/gocommon/apisurface"
+	"github.com/kombifyio/homelab/internal/gocommon/apisurface/mcpbind"
+	"github.com/kombifyio/homelab/internal/gocommon/mcporiginauth"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // inventoryMCPForwardedHeaders are the request-scoped, non-credential headers

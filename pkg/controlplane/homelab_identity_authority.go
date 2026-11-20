@@ -60,7 +60,7 @@ type HomelabIdentityAuthority struct {
 // identity of its own server. RunsPocketID with Origin: the applied StackKit
 // runs the managed Pocket ID for this origin. Without RunsPocketID: the
 // StackKit declares services and Pocket ID is none of them. It names no
-// server, stack or homelab; the projection takes those from Techstack's own
+// server, stack or homelab; the projection takes those from Homelab's own
 // records of the accepted Guard.
 type HomelabIdentityObservation struct {
 	RunsPocketID bool
@@ -169,14 +169,14 @@ func cloneHomelabIdentityAuthority(authority *HomelabIdentityAuthority) *Homelab
 }
 
 // homelabIdentityCandidate is one server's standing for the Authority, all
-// from Techstack's records: the homelab its live deployment belongs to and
+// from Homelab's records: the homelab its live deployment belongs to and
 // that deployment's and server's age.
 type homelabIdentityCandidate struct {
 	ServerID, StackID, HomelabID string
 	StackCreated, ServerCreated  time.Time
 }
 
-// precedes orders candidates by Techstack's records, never by report order:
+// precedes orders candidates by Homelab's records, never by report order:
 // the homelab's earliest StackKit deployment, then its earliest server, then
 // the server id. The first StackKit deployment of a homelab founds it
 // (ADR-036), so its Pocket ID is the Authority.
@@ -194,7 +194,7 @@ func (c homelabIdentityCandidate) precedes(other homelabIdentityCandidate) bool 
 // Pocket ID becomes, or stays, its homelab's Authority:
 //   - no Authority yet, or the Authority itself reporting: yes;
 //   - the Authority is still in the homelab: only a candidate that precedes it
-//     by Techstack's records, so the outcome does not depend on which Guard
+//     by Homelab's records, so the outcome does not depend on which Guard
 //     reported first;
 //   - the Authority left the homelab: only a successor that serves the same
 //     identity origin, a restore of the Authority (passkeys bind to the
@@ -219,7 +219,7 @@ func homelabIdentityTakesOver(current *HomelabIdentityAuthority, currentRank *ho
 // the homelab row is locked before the decision so concurrent claims
 // serialize.
 //
-// Every binding comes from Techstack's records, never from the report: the
+// Every binding comes from Homelab's records, never from the report: the
 // server's own live deployment, that deployment's homelab, the same tenant
 // and owner. The Authority's own reports keep its deployment and origin
 // current (stackkit migrate-domain), and an Authority whose StackKit declares

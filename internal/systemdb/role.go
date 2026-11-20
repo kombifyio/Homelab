@@ -6,7 +6,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/tenantdb"
+	"github.com/kombifyio/homelab/internal/gocommon/tenantdb"
 )
 
 // RoleRefusal names the refused principal facts (role, table and policy

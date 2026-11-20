@@ -4,13 +4,13 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/kombifyio/techstack/internal/gocommon/dataprofile"
+	"github.com/kombifyio/homelab/internal/gocommon/dataprofile"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/autoinstall"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/logger"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/autoinstall"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/logger"
 )
 
 // RegisterAutoInstallRoutes registers the host dependency endpoints. They
@@ -52,11 +52,11 @@ func requireHostOwner(re *httpx.Event) error {
 
 func refuseHostedAutoInstall(re *httpx.Event) error {
 	failure := ksapi.StructuredError{
-		Status: http.StatusForbidden, Message: "Hosted Techstack does not install software on its host",
+		Status: http.StatusForbidden, Message: "Hosted Homelab Runtime does not install software on its host",
 		ErrorCode: "host_install_unavailable", ReasonCode: "hosted_control_plane",
 		Guidance: ksapi.UserGuidance{
-			Title: "Not available on hosted Techstack",
-			Body:  "Dependencies are installed only by the owner of a self-hosted Techstack.",
+			Title: "Not available on hosted Homelab Runtime",
+			Body:  "Dependencies are installed only by the owner of a self-hosted Homelab.",
 		},
 	}
 	return httpx.Error(re, failure.Status, failure.Code(), failure.Message, failure.Details())

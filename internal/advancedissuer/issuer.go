@@ -1,5 +1,5 @@
-// Package advancedissuer is Techstack's Advanced capability issuer. One
-// Ed25519 key per Techstack installation signs short-lived
+// Package advancedissuer is Homelab's Advanced capability issuer. One
+// Ed25519 key per Homelab installation signs short-lived
 // stackkit.advanced-capability/v1 documents, each scoped to one managed
 // deployment's StackKit stack id, local Owner reference and operation set.
 // The pinned StackKits CLI verifies them offline against the
@@ -7,7 +7,7 @@
 // INIT.
 //
 // runtime-contracts-go owns the wire, canonical bytes and signing domain.
-// Techstack owns key custody, issuance admission and recording; StackKits owns
+// Homelab owns key custody, issuance admission and recording; StackKits owns
 // offline trust and local operation admission.
 package advancedissuer
 
@@ -121,8 +121,8 @@ type Issuer struct {
 
 // New validates the installation key and renders its trust bundle once.
 func New(cfg Config) (*Issuer, error) {
-	if !wire.IsTechstackIssuerID(cfg.IssuerID) {
-		return nil, fmt.Errorf("advanced issuer id %q must name a Techstack issuer", cfg.IssuerID)
+	if !wire.IsHomelabIssuerID(cfg.IssuerID) {
+		return nil, fmt.Errorf("advanced issuer id %q must name a Homelab Runtime issuer", cfg.IssuerID)
 	}
 	if len(cfg.PrivateKey) != ed25519.PrivateKeySize {
 		return nil, errors.New("advanced issuer key must be one Ed25519 private key")
@@ -181,7 +181,7 @@ type Request struct {
 	ApplicationRelease      *wire.ApplicationRelease      `json:"ApplicationRelease,omitempty"`
 	OwnApplicationLifecycle *wire.OwnApplicationLifecycle `json:"OwnApplicationLifecycle,omitempty"`
 	TenantID                string
-	// DeploymentID is the Techstack stack (managed deployment) id.
+	// DeploymentID is the Homelab stack (managed deployment) id.
 	DeploymentID string
 	// StackID is the StackKits StackSpec/ResolvedPlan stackId on the host.
 	StackID string
@@ -297,10 +297,10 @@ func (issuer *Issuer) issue(ctx context.Context, request Request, id uuid.UUID) 
 		OwnerRef:          request.OwnerRef,
 		// Both references are logical, secret-free URNs: the approving
 		// surface is the managed deployment, the decision is this capability.
-		RILRef:        "urn:kombify:techstack:ril:capability:" + id.String(),
+		RILRef:        "urn:kombify:homelab:ril:capability:" + id.String(),
 		SchemaVersion: CapabilitySchemaVersion,
 		StackID:       request.StackID,
-		UIManagerRef:  "urn:kombify:techstack:deployment:" + request.DeploymentID,
+		UIManagerRef:  "urn:kombify:homelab:deployment:" + request.DeploymentID,
 	}
 	if request.TransferRetirement != nil {
 		scope := *request.TransferRetirement

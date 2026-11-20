@@ -1,4 +1,4 @@
-// Package schema - Security policies for kombifyTechstack configurations
+// Package schema - Security policies for kombifyHomelab configurations
 package schema
 
 // #PortPolicy enforces port usage rules

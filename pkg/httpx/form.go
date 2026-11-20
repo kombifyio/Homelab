@@ -11,10 +11,10 @@ import (
 // bodies) into dst. dst must be a pointer to a struct or a map[string]any.
 //
 // It is a deliberately small reflection binder covering the scalar field kinds
-// the TechStack form routes use. Fields are matched by the "form" struct tag,
+// the Homelab form routes use. Fields are matched by the "form" struct tag,
 // falling back to the field name. This mirrors the practical subset of
 // PocketBase's router.UnmarshalRequestData; complex/nested form binding is out
-// of scope because no TechStack route relies on it (JSON is the norm).
+// of scope because no Homelab route relies on it (JSON is the norm).
 func bindFormValues(values url.Values, dst any) error {
 	if m, ok := dst.(*map[string]any); ok {
 		out := make(map[string]any, len(values))

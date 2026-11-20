@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // applicationTransferExportRoot is the node-owned parent of every export the
@@ -30,7 +30,7 @@ func stackKitApplicationTransferArgs(workDir string, command *agentpb.StackKitCo
 	if err != nil {
 		return nil, nil, err
 	}
-	directory, err := os.MkdirTemp(workDir, ".techstack-transfer-")
+	directory, err := os.MkdirTemp(workDir, ".homelab-transfer-")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -212,7 +212,7 @@ func lastJSONDocument(stdout []byte) []byte {
 func attachApplicationTransferCandidate(document []byte, tempFiles []string) ([]byte, error) {
 	candidatePath := ""
 	for _, file := range tempFiles {
-		if filepath.Base(file) == "candidate.json" && strings.HasPrefix(filepath.Base(filepath.Dir(file)), ".techstack-transfer-") {
+		if filepath.Base(file) == "candidate.json" && strings.HasPrefix(filepath.Base(filepath.Dir(file)), ".homelab-transfer-") {
 			candidatePath = file
 		}
 	}

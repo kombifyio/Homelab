@@ -1,12 +1,12 @@
-// Package monthlyruntime owns TechStack's subscription-backed runtime products.
+// Package monthlyruntime owns Homelab's subscription-backed runtime products.
 package monthlyruntime
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/providercatalog"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
 )
 
 const (

@@ -1,7 +1,7 @@
 /**
  * The detail level the person chose in the kombify Cloud account setup, read
  * through the Gateway's `/v1/cloud` route (Cloud `/api/v1/profile`) with the
- * signed-in user's own Gateway token. Without a token (self-hosted Techstack,
+ * signed-in user's own Gateway token. Without a token (self-hosted Homelab,
  * signed-out session) or a reachable Cloud it reads as unknown.
  */
 import { getGatewayToken } from "#lib/auth/gateway-auth.js";

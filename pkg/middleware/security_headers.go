@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/httputil"
+	"github.com/kombifyio/homelab/internal/gocommon/httputil"
 
-	"github.com/kombifyio/techstack/pkg/config"
+	"github.com/kombifyio/homelab/pkg/config"
 )
 
 // ApplyRequestSecurityHeaders adds request-aware frame-ancestor handling for SaaS hosts.

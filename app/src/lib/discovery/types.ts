@@ -1,6 +1,6 @@
 import { tr, stateLabel } from "#lib/i18n.svelte.js";
 /**
- * kombify-TechStack Network Discovery Types
+ * kombify-Homelab Network Discovery Types
  *
  * TypeScript definitions for network discovery functionality.
  * Mirrors the Go types in pkg/discovery/types.go

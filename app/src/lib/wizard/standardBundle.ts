@@ -1,5 +1,5 @@
 import { tr } from "#lib/i18n.svelte.js";
-/** Techstack wizard questions and intent preferences. StackKits authoring and service composition belong to the pinned release CLI. */
+/** Homelab wizard questions and intent preferences. StackKits authoring and service composition belong to the pinned release CLI. */
 
 /**
  * The wizard has one surface. Technical depth is a property of the use case

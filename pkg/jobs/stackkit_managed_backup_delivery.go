@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // ManagedBackupRecipient is a node recipient key the control plane admitted for
@@ -43,7 +43,7 @@ type ManagedBackupTargetDelivery interface {
 	NewChallenge() (string, error)
 	// DeliveryAuthority is the kombify Wallet's public delivering key the node
 	// pins before a delivery when the Wallet delivers (Wallet mode); both are
-	// empty when Techstack seals itself. In Wallet mode without a configured
+	// empty when Homelab seals itself. In Wallet mode without a configured
 	// Wallet it fails closed.
 	DeliveryAuthority() (key, keyID string, err error)
 	AdmitRecipient(ctx context.Context, tenantID, stackID, challenge string, statement []byte) (ManagedBackupRecipient, error)

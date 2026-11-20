@@ -84,7 +84,7 @@ jobs:
   release:
     # A run from any ref other than main cannot produce evidence Guards accept;
     # do not start it at all.
-    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && github.ref == 'refs/heads/main' && (github.repository == 'kombifyio/TechStack' || github.repository == 'kombifyio/TechStack')
+    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && github.ref == 'refs/heads/main' && (github.repository == 'kombifyio/Homelab' || github.repository == 'kombifyio/Homelab')
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     environment: ${{ github.event_name == 'workflow_dispatch' && 'guard-release' || 'guard-release-refresh' }}
@@ -97,7 +97,7 @@ jobs:
       RELEASE_ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && 'guard-release' || 'guard-release-refresh' }}
       # cosign is the upstream release binary at this exact version, pinned by
       # its SHA-256 (cosign_checksums.txt of that release). Building it from
-      # source took about 5 of the 6.5 minutes this job adds to every Techstack
+      # source took about 5 of the 6.5 minutes this job adds to every Homelab Runtime
       # rollout. Bump both values together in a reviewed pull request.
       COSIGN_VERSION: v3.1.3
       COSIGN_LINUX_AMD64_SHA256: 4629c757b7618056f8ddd7e2625ae9fdd94c0372a65049520bc7d9df9efc7f71
@@ -121,10 +121,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "${STACKKITS_CANDIDATE_BINDING:-}" ]; then
-            [ ! -f .techstack-public-export.json ] || {
+            [ ! -f .homelab-public-export.json ] || {
               echo '::error::Private StackKits candidates are unavailable in the public export profile.' >&2; exit 1;
             }
-            [ "$RELEASE_MODE" = candidate ] && [ "$GITHUB_REPOSITORY" = kombifyio/TechStack ] || {
+            [ "$RELEASE_MODE" = candidate ] && [ "$GITHUB_REPOSITORY" = kombifyio/Homelab ] || {
               echo '::error::Private StackKits candidate input is allowed only in the existing private Guard candidate mode.' >&2; exit 1;
             }
           fi
@@ -155,7 +155,7 @@ jobs:
             if [ "$source_sha" != "$GITHUB_SHA" ]; then
               # Historical fresh signing requires the authenticated native child.
               # Independent publishers can reuse only verified immutable bytes.
-              test ! -f .techstack-public-export.json
+              test ! -f .homelab-public-export.json
               git cat-file -e "${source_sha}:.kombify/version-policy.json"
               history="$(git rev-list --first-parent --max-count=10001 "$GITHUB_SHA" --not "${source_sha}^@")"
               test "$(printf '%s\n' "$history" | wc -l)" -le 10000
@@ -166,7 +166,7 @@ jobs:
               reuse_private=true
             fi
           fi
-          if [ -f .techstack-public-export.json ]; then
+          if [ -f .homelab-public-export.json ]; then
             # The receipt is checked before any generated files or downloads.
             node scripts/verify-public-export.mjs
             version="$(tr -d '[:space:]' < VERSION)"
@@ -181,7 +181,7 @@ jobs:
             exit 1
           fi
           if [ "$RELEASE_MODE" = refresh ]; then
-            if [ -f .techstack-public-export.json ]; then
+            if [ -f .homelab-public-export.json ]; then
               # Untagged public main may be newer than the product users run.
               # Refresh the already-published numeric product, never manufacture
               # a seed for an unreleased source/version during a schedule.
@@ -334,7 +334,7 @@ jobs:
           set -euo pipefail
           mkdir -p dist
           tag="guard-v${VERSION}"
-          binary_assets="techstack-linux-amd64 techstack-linux-amd64.sigstore.json techstack-linux-arm64 techstack-linux-arm64.sigstore.json"
+          binary_assets="homelab-linux-amd64 homelab-linux-amd64.sigstore.json homelab-linux-arm64 homelab-linux-arm64.sigstore.json"
           release_state=absent
           if [ "$RELEASE_MODE" != candidate ]; then
             if out="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" 2>&1)"; then
@@ -360,7 +360,7 @@ jobs:
             jq -e --arg source "$SOURCE_SHA" '.object.type == "commit" and .object.sha == $source' <<<"$ref" >/dev/null
           fi
           if [ "$have" -eq 4 ]; then
-            gh release download "$tag" --dir dist --pattern 'techstack-linux-*'
+            gh release download "$tag" --dir dist --pattern 'homelab-linux-*'
             for asset in $binary_assets; do
               [ -s "dist/$asset" ] || { echo "::error::release ${tag} lists ${asset} but it could not be downloaded" >&2; exit 1; }
             done
@@ -396,7 +396,7 @@ jobs:
                   --arg version "$sk_version" --arg kit "$sk_kit" --arg index "$sk_index" --arg arch "$arch" \
                   --slurpfile manifest dist/release-manifest.json \
                   '($manifest[0].stackkits | if $arch == "arm64" then .linuxArm64 else . end) as $runtime |
-                   .schemaVersion == "techstack.stackkit-release-pin/v2" and .kit == $kit and .version == $version and
+                   .schemaVersion == "homelab.stackkit-release-pin/v2" and .kit == $kit and .version == $version and
                    .platform.os == "linux" and .platform.arch == $arch and .indexSha256 == $index and
                    .archiveSha256 == $runtime.archiveSha256 and .binarySha256 == $runtime.binarySha256' >/dev/null
                 test "$(tar -xOf "$archive" .stackkit/stackkits-compatibility-v1.json | sha256sum | cut -d' ' -f1)" = "$sk_compat"
@@ -433,11 +433,11 @@ jobs:
             CGO_ENABLED=0 GOOS=linux GOARCH="$arch" go build \
               -mod=readonly -buildvcs=false -trimpath \
               -ldflags="-s -w -X main.version=${VERSION} -X main.buildRevision=${SOURCE_SHA}" \
-              -o "dist/techstack-linux-${arch}" ./cmd/techstack
+              -o "dist/homelab-linux-${arch}" ./cmd/homelab
             # A release Guard carries no build tags: the guardqualification tag
             # links a harness-only signer identity (pkg/guardrelease).
-            if go version -m "dist/techstack-linux-${arch}" | grep -Eq '^[[:space:]]+build[[:space:]]+-tags='; then
-              echo "::error::dist/techstack-linux-${arch} was built with build tags; a release Guard is built without any." >&2
+            if go version -m "dist/homelab-linux-${arch}" | grep -Eq '^[[:space:]]+build[[:space:]]+-tags='; then
+              echo "::error::dist/homelab-linux-${arch} was built with build tags; a release Guard is built without any." >&2
               exit 1
             fi
           done
@@ -451,8 +451,8 @@ jobs:
           set -euo pipefail
           for arch in amd64 arm64; do
             cosign sign-blob --yes \
-              --bundle "dist/techstack-linux-${arch}.sigstore.json" \
-              "dist/techstack-linux-${arch}"
+              --bundle "dist/homelab-linux-${arch}.sigstore.json" \
+              "dist/homelab-linux-${arch}"
           done
 
       - name: Build the release manifest
@@ -473,7 +473,7 @@ jobs:
           jq -e '.minimumAdmittedVersion and (.revokedVersions | type == "array") and (.revokedDigests | type == "array")' "$policy" >/dev/null
           artifacts="[]"
           for arch in amd64 arm64; do
-            file="dist/techstack-linux-${arch}"
+            file="dist/homelab-linux-${arch}"
             artifacts="$(jq -c --arg arch "$arch" --arg sha "$(sha256sum "$file" | cut -d' ' -f1)" --argjson size "$(stat -c %s "$file")" \
               '. + [{os:"linux",arch:$arch,sha256:$sha,size:$size}]' <<<"$artifacts")"
           done
@@ -747,7 +747,7 @@ jobs:
           names="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq '.assets[].name')"
           # Binaries and their bundles are immutable: an asset that exists must
           # be byte-identical to what this run holds, never replaced.
-          for asset in techstack-linux-amd64 techstack-linux-amd64.sigstore.json techstack-linux-arm64 techstack-linux-arm64.sigstore.json; do
+          for asset in homelab-linux-amd64 homelab-linux-amd64.sigstore.json homelab-linux-arm64 homelab-linux-arm64.sigstore.json; do
             if grep -qx "$asset" <<<"$names"; then
               check="$(mktemp -d)"
               gh release download "$tag" --dir "$check" --pattern "$asset"
@@ -798,8 +798,8 @@ jobs:
           set -euo pipefail
           files='[]'
           for asset in release-manifest.json release-manifest.sigstore.json \
-                       techstack-linux-amd64 techstack-linux-amd64.sigstore.json \
-                       techstack-linux-arm64 techstack-linux-arm64.sigstore.json \
+                       homelab-linux-amd64 homelab-linux-amd64.sigstore.json \
+                       homelab-linux-arm64 homelab-linux-arm64.sigstore.json \
                        stackkit-runtime-linux-amd64.tar.gz stackkit-runtime-linux-arm64.tar.gz; do
             test -s "dist/$asset"
             files="$(jq -c --arg name "$asset" --arg sha "$(sha256sum "dist/$asset" | cut -d' ' -f1)" \
@@ -835,10 +835,10 @@ jobs:
           path: |
             dist/release-manifest.json
             dist/release-manifest.sigstore.json
-            dist/techstack-linux-amd64
-            dist/techstack-linux-amd64.sigstore.json
-            dist/techstack-linux-arm64
-            dist/techstack-linux-arm64.sigstore.json
+            dist/homelab-linux-amd64
+            dist/homelab-linux-amd64.sigstore.json
+            dist/homelab-linux-arm64
+            dist/homelab-linux-arm64.sigstore.json
             dist/stackkit-runtime-linux-amd64.tar.gz
             dist/stackkit-runtime-linux-arm64.tar.gz
             dist/candidate-receipt.json

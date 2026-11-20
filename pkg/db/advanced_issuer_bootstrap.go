@@ -22,7 +22,7 @@ func issuerPreparationError(stage string, cause error) error {
 	return errors.New(message)
 }
 
-const EnvAdvancedIssuerDatabaseURL = "TECHSTACK_ADVANCED_ISSUER_DATABASE_URL"
+const EnvAdvancedIssuerDatabaseURL = "HOMELAB_ADVANCED_ISSUER_DATABASE_URL"
 
 // prepareAdvancedIssuerKeyLogin is the governed deployment's signing-login
 // preparation. Existing credentials are authenticated by their stored SCRAM

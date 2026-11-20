@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
-	"github.com/kombifyio/techstack/pkg/drivehealth"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/pkg/drivehealth"
 )
 
 // SourceLabel marks the series a Guard's telemetry is stored in. It is distinct

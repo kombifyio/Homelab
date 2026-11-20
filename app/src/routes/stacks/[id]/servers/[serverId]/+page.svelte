@@ -687,7 +687,7 @@
 </script>
 
 <svelte:head>
-  <title>{tr("ui.stacksIdServersServerId.serverDetailsKombifyTechstack")}</title>
+  <title>{tr("ui.stacksIdServersServerId.serverDetailsKombifyHomelab")}</title>
 </svelte:head>
 
 <div

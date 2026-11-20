@@ -92,7 +92,7 @@ describe("Wallet reveal step-up", () => {
     );
     state.fresh = true; // the Auth0 second factor completed
 
-    const back = new URL(returnTo, "https://techstack.test");
+    const back = new URL(returnTo, "https://homelab.test");
     const resume = resumeFromUrl(back);
     expect(resume).toEqual({ action: "reveal", itemId: ITEM });
     expect((await revealItem(resume!.itemId, OWNER)).value).toBe("s3cret");

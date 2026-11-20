@@ -8,9 +8,9 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/kombifyio/techstack/internal/providercontrol"
-	"github.com/kombifyio/techstack/internal/substrateprovision"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/internal/providercontrol"
+	"github.com/kombifyio/homelab/internal/substrateprovision"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 type ApplianceProvisioner interface {
@@ -35,7 +35,7 @@ func (h substrateApplianceRoutes) create(e *httpx.Event) error {
 	if err != nil {
 		return err
 	}
-	tenant, err := requireRegistryRouteTenant(e, owner, "techstack.substrates.manage")
+	tenant, err := requireRegistryRouteTenant(e, owner, "homelab.substrates.manage")
 	if err != nil {
 		return err
 	}

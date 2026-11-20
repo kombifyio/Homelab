@@ -10,7 +10,7 @@
   homelab on the last step.
 
   Answers and the step continue in every frame and on every device (draftKey):
-  Techstack keeps the non-secret part of the config per owner and process until
+  Homelab Runtime keeps the non-secret part of the config per owner and process until
   the creation is accepted, the person chooses to leave, or it expires.
   Passwords and passphrases are never stored. The steps open once the kept
   draft was read.

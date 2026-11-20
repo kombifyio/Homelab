@@ -9,16 +9,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/kombifyme"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/kombifyme"
 )
 
 // RegisterKombifyMeRoutes wires read-only kombify.me registry diagnostics.
 //
 // StackKits own kombify.me registration and service exposure during
-// stack-spec.yaml generation/apply. TechStack only lists the registry state for
+// stack-spec.yaml generation/apply. Homelab only lists the registry state for
 // diagnostics and cleanup verification. Both reads require an authenticated
 // caller. With the shared platform identity configured (SaaS), kombify.me holds
 // every tenant's managed addresses under one account, so the reads are scoped
@@ -74,7 +74,7 @@ func kombifyMeCallerScope(e *httpx.Event, platformIdentity bool) (string, error)
 	if !platformIdentity {
 		return "", nil
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), userID, "techstack.kombify-me.subdomains.read")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), userID, "homelab.kombify-me.subdomains.read")
 	if tenantErr != nil {
 		return "", tenantErr
 	}

@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
-	tsauth "github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	tsauth "github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 const (

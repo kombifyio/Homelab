@@ -3,7 +3,7 @@ package orchestrator
 import (
 	"context"
 
-	"github.com/kombifyio/techstack/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/jobs"
 )
 
 // TerminalJobObserver receives a job only after its terminal snapshot has been

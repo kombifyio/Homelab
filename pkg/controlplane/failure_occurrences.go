@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/failureknowledge"
+	"github.com/kombifyio/homelab/pkg/failureknowledge"
 )
 
 // FailureSignatureSummary groups one tenant's occurrences by signature.
@@ -91,7 +91,7 @@ func failureOccurrenceForStoredJob(job *Job, errorCode string) *failureknowledge
 	}
 	support, _ := job.Result["support_context"].(map[string]any)
 	occurrence := failureknowledge.Normalize(failureknowledge.Input{
-		Component: firstNonEmpty(stringValue(job.Result["capability"]), "techstack.job."+job.Type),
+		Component: firstNonEmpty(stringValue(job.Result["capability"]), "homelab.job."+job.Type),
 		Phase:     firstNonEmpty(job.Step, stringValue(support["failed_step"])),
 		ErrorCode: firstNonEmpty(
 			errorCode,

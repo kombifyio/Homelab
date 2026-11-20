@@ -1,4 +1,4 @@
-// Package db provides Techstack's PostgreSQL control-plane connection,
+// Package db provides Homelab's PostgreSQL control-plane connection,
 // migrations, and tenant-scoped transaction primitives.
 package db
 
@@ -21,9 +21,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 
-	"github.com/kombifyio/techstack/internal/gocommon/dataprofile"
+	"github.com/kombifyio/homelab/internal/gocommon/dataprofile"
 
-	"github.com/kombifyio/techstack/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
 )
 
 //go:embed migrations/*.sql
@@ -33,7 +33,7 @@ const (
 	// EnvDatabaseURL is the PostgreSQL connection URL used when the SQL store is enabled.
 	EnvDatabaseURL = "DATABASE_URL"
 	// EnvStoreBackend selects the configured store backend.
-	EnvStoreBackend = "TECHSTACK_STORE_BACKEND"
+	EnvStoreBackend = "HOMELAB_STORE_BACKEND"
 
 	// PostgresDriverName is the database/sql driver name registered by pgx stdlib.
 	PostgresDriverName = "pgx"
@@ -57,7 +57,7 @@ const (
 // ErrSQLStoreDisabled is returned when callers try to open a non-SQL backend.
 var ErrSQLStoreDisabled = errors.New("sql store disabled")
 
-// DB wraps a SQL database connection with kombifyTechstack-specific metadata.
+// DB wraps a SQL database connection with kombifyHomelab-specific metadata.
 type DB struct {
 	*sql.DB
 	backend StoreBackend

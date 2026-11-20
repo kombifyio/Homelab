@@ -6,13 +6,13 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
 )
 
 func TestLeaseExecutionAuthorityClosedValues(t *testing.T) {
 	for _, authority := range []LeaseExecutionAuthority{
 		LeaseExecutionAuthorityLegacySimulate,
-		LeaseExecutionAuthorityTechStackProviderControl,
+		LeaseExecutionAuthorityHomelabProviderControl,
 	} {
 		if err := validateLeaseExecutionAuthority(authority); err != nil {
 			t.Fatalf("validate %q: %v", authority, err)
@@ -54,7 +54,7 @@ func TestPostgresStoreExecutionAuthorityUsesTenantTransaction(t *testing.T) {
 	mock.ExpectCommit()
 
 	got, err := NewPostgresStore(db).ExecutionAuthority(context.Background(), "tenant-a", vmlease.LeaseID("lease-a"))
-	if err != nil || got != LeaseExecutionAuthorityTechStackProviderControl {
+	if err != nil || got != LeaseExecutionAuthorityHomelabProviderControl {
 		t.Fatalf("ExecutionAuthority = %q, %v", got, err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {

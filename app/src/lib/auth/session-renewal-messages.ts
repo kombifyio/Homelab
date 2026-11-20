@@ -19,7 +19,7 @@ export const sessionRenewalMessages = {
     "sessionRenewal.pending":
       "This is waiting for your confirmation. Nothing was changed yet.",
     "sessionRenewal.tenantContextMissing":
-      "This session has no kombify organization, so its data cannot be shown here. Open Techstack from your kombify Cloud portal, or continue to renew the session.",
+      "This session has no kombify organization, so its data cannot be shown here. Open Homelab Runtime from your kombify Cloud portal, or continue to renew the session.",
     "sessionRenewal.windowTitle": "One moment",
     "sessionRenewal.windowBody":
       "kombify is confirming your session. This window closes by itself.",
@@ -37,7 +37,7 @@ export const sessionRenewalMessages = {
     "sessionRenewal.pending":
       "Das wartet auf deine Bestätigung. Es wurde noch nichts geändert.",
     "sessionRenewal.tenantContextMissing":
-      "Diese Sitzung hat keine kombify-Organisation, deshalb können ihre Daten hier nicht angezeigt werden. Öffne Techstack über dein kombify-Cloud-Portal oder fahre fort, um die Sitzung zu erneuern.",
+      "Diese Sitzung hat keine kombify-Organisation, deshalb können ihre Daten hier nicht angezeigt werden. Öffne Homelab Runtime über dein kombify-Cloud-Portal oder fahre fort, um die Sitzung zu erneuern.",
     "sessionRenewal.windowTitle": "Einen Moment",
     "sessionRenewal.windowBody":
       "kombify bestätigt deine Sitzung. Dieses Fenster schließt sich von selbst.",
@@ -55,7 +55,7 @@ export const sessionRenewalMessages = {
     "sessionRenewal.pending":
       "Esto espera tu confirmación. Todavía no se ha cambiado nada.",
     "sessionRenewal.tenantContextMissing":
-      "Esta sesión no tiene ninguna organización de kombify, así que sus datos no se pueden mostrar aquí. Abre Techstack desde tu portal de kombify Cloud o continúa para renovar la sesión.",
+      "Esta sesión no tiene ninguna organización de kombify, así que sus datos no se pueden mostrar aquí. Abre Homelab Runtime desde tu portal de kombify Cloud o continúa para renovar la sesión.",
     "sessionRenewal.windowTitle": "Un momento",
     "sessionRenewal.windowBody":
       "kombify está confirmando tu sesión. Esta ventana se cierra sola.",
@@ -72,7 +72,7 @@ export const sessionRenewalMessages = {
     "sessionRenewal.sameTab": "在此标签页中继续",
     "sessionRenewal.pending": "此操作正在等待你的确认，目前尚未做任何更改。",
     "sessionRenewal.tenantContextMissing":
-      "此会话没有 kombify 组织，因此无法在此显示其数据。请从 kombify Cloud 门户打开 Techstack，或继续以更新会话。",
+      "此会话没有 kombify 组织，因此无法在此显示其数据。请从 kombify Cloud 门户打开 Homelab Runtime，或继续以更新会话。",
     "sessionRenewal.windowTitle": "请稍候",
     "sessionRenewal.windowBody": "kombify 正在确认你的会话。此窗口会自动关闭。",
   },
@@ -89,7 +89,7 @@ export const sessionRenewalMessages = {
     "sessionRenewal.pending":
       "यह आपकी पुष्टि की प्रतीक्षा कर रहा है। अभी तक कुछ भी नहीं बदला गया है।",
     "sessionRenewal.tenantContextMissing":
-      "इस सत्र में कोई kombify संगठन नहीं है, इसलिए इसका डेटा यहाँ नहीं दिखाया जा सकता। अपने kombify Cloud पोर्टल से Techstack खोलें, या सत्र को नवीनीकृत करने के लिए जारी रखें।",
+      "इस सत्र में कोई kombify संगठन नहीं है, इसलिए इसका डेटा यहाँ नहीं दिखाया जा सकता। अपने kombify Cloud पोर्टल से Homelab Runtime खोलें, या सत्र को नवीनीकृत करने के लिए जारी रखें।",
     "sessionRenewal.windowTitle": "एक क्षण",
     "sessionRenewal.windowBody":
       "kombify आपके सत्र की पुष्टि कर रहा है। यह विंडो अपने-आप बंद हो जाएगी।",
@@ -106,7 +106,7 @@ export const sessionRenewalMessages = {
     "sessionRenewal.sameTab": "المتابعة في علامة التبويب هذه",
     "sessionRenewal.pending": "ينتظر هذا الإجراء تأكيدك. لم يتغير شيء بعد.",
     "sessionRenewal.tenantContextMissing":
-      "لا تحتوي هذه الجلسة على مؤسسة kombify، لذا لا يمكن عرض بياناتها هنا. افتح Techstack من بوابة kombify Cloud، أو تابع لتجديد الجلسة.",
+      "لا تحتوي هذه الجلسة على مؤسسة kombify، لذا لا يمكن عرض بياناتها هنا. افتح Homelab Runtime من بوابة kombify Cloud، أو تابع لتجديد الجلسة.",
     "sessionRenewal.windowTitle": "لحظة من فضلك",
     "sessionRenewal.windowBody":
       "يؤكد kombify جلستك الآن. ستُغلق هذه النافذة تلقائيًا.",

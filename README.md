@@ -1,24 +1,24 @@
-# Techstack
+# Homelab Runtime
 
-**One command puts your homelab under Techstack.**
+**One command puts your homelab under Homelab.**
 
-Techstack is the orchestration UI and control plane for
+Homelab Runtime is the orchestration UI and control plane for
 [StackKits](https://github.com/kombifyio/StackKits). It keeps the servers and
 applications of a homelab in one inventory, plans each change across servers as a
 Terramate change set, reconciles drift, and executes the operations you approve
 through the pinned StackKits release. Run it from this repository on your own
-hardware, or use the hosted service at <https://techstack.kombify.io>.
+hardware, or use the hosted service at <https://homelab.kombify.io>.
 
 ## Connect a homelab
 
-Open the Techstack setup for your server at
+Open the Homelab Runtime setup for your server at
 <https://app.kombify.io/dashboard/tools/stack/connect>. On the server that
 already runs the StackKits public package, run the command the setup shows, as
 root:
 
 <!-- public-path:begin connect -->
 ```sh
-sudo stackkit connect --server https://techstack.kombify.io
+sudo stackkit connect --server https://homelab.kombify.io
 ```
 <!-- public-path:end connect -->
 
@@ -26,12 +26,12 @@ Paste the one-time pairing at the hidden prompt. The command prints the result:
 the server is bound to your account, and its state shows in kombify Cloud. A free
 account is enough; changes beyond that stay with the paid plans.
 
-For a Techstack you run yourself, copy the complete command and its `--server`
+For a Homelab Runtime you run yourself, copy the complete command and its `--server`
 origin from that installation's own-server setup.
 
-## Run Techstack yourself
+## Run Homelab Runtime yourself
 
-Techstack is open source and keeps runtime data, identity, credentials and
+Homelab Runtime is open source and keeps runtime data, identity, credentials and
 infrastructure authority with the operator. The self-hosted edition runs with
 `KOMBIFY_EDITION=selfhost-oss` (the default) and needs no kombify account and no
 hosted kombify service.
@@ -41,9 +41,9 @@ cd deploy/selfhosted
 cp .env.example .env
 # When building from a source checkout, set IMAGE_TAG to a published vX.Y.Z tag.
 # The .env.example attached to a GitHub Release already contains that tag.
-# Generate one value each for TECHSTACK_V2_SESSION_SECRET and POSTGRES_PASSWORD:
+# Generate one value each for HOMELAB_V2_SESSION_SECRET and POSTGRES_PASSWORD:
 openssl rand -hex 32
-# Generate TECHSTACK_ENCRYPTION_KEY (exactly 32 text bytes):
+# Generate HOMELAB_ENCRYPTION_KEY (exactly 32 text bytes):
 openssl rand -base64 24
 docker compose up -d
 ```
@@ -52,19 +52,19 @@ The default binds the HTTP and gRPC ports to localhost. Configure a trusted
 reverse proxy and HTTPS before exposing the service beyond the host.
 
 Keep the three generated secrets in `.env` stable and preserve them alongside
-your data backups. `TECHSTACK_ENCRYPTION_KEY` protects Wallet credentials and
+your data backups. `HOMELAB_ENCRYPTION_KEY` protects Wallet credentials and
 the installation's Advanced signing key; replacing it makes retained secrets
-unreadable. Runtime identity and monitoring data live in `techstack-data`, and
-control-plane state lives in `techstack-postgres-data`.
+unreadable. Runtime identity and monitoring data live in `homelab-data`, and
+control-plane state lives in `homelab-postgres-data`.
 
 After the service starts, obtain the canonical bootstrap password in
 your host terminal:
 
 ```bash
-docker compose exec techstack /app/techstack owner bootstrap
+docker compose exec homelab /app/homelab owner bootstrap
 ```
 
-For a source installation, run `techstack owner bootstrap` under the installation's
+For a source installation, run `homelab owner bootstrap` under the installation's
 operator account with its existing database and session configuration. This command
 does not start another server or initialize a database. HTTP bootstrap reveal is
 disabled. The command consumes an available envelope locally; if it expired or was
@@ -84,8 +84,8 @@ local client continues using its automatic OS-custodied device session.
 
 ## Windows local client
 
-Download `kombify-Techstack-Setup.exe` from the
-[latest release](https://github.com/kombifyio/TechStack/releases/latest) and
+Download `kombify-Homelab-Setup.exe` from the
+[latest release](https://github.com/kombifyio/Homelab/releases/latest) and
 compare its SHA-256 with `SHA256SUMS.txt` from the same release. The
 installer contains the server, the operator UI, and the database runtime; no
 kombify account is required. Windows releases are intentionally unsigned and
@@ -97,7 +97,7 @@ confirmation. A code-signing certificate is not a release prerequisite.
 ```bash
 go build ./...
 cd app && corepack enable && pnpm install --frozen-lockfile && pnpm build
-cd .. && docker build -t techstack:selfhost .
+cd .. && docker build -t homelab:selfhost .
 ```
 
 No private registry, token, or account is needed. See `BUNDLED-PACKAGES.md`

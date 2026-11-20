@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/outcome"
+	"github.com/kombifyio/homelab/pkg/outcome"
 )
 
 type jobOutcomeIdentity struct {
@@ -226,11 +226,11 @@ func pendingJobGuidance(reasonCode string) (string, string, outcome.Step) {
 			outcome.Step{ID: "wait-provider", Label: "Keep this operation open; it resumes automatically", Kind: "note"}
 	case WaitReasonManagedRuntimeEnrollment, WaitReasonCanonicalGuardEvidence:
 		return "The server connection is still being verified",
-			"Techstack is waiting for authenticated Guard evidence from the exact server before continuing.",
+			"Homelab Runtime is waiting for authenticated Guard evidence from the exact server before continuing.",
 			outcome.Step{ID: "keep-server-online", Label: "Keep the server online; the operation resumes automatically", Kind: "connect"}
 	case WaitReasonRetryBackoff:
 		return "The operation will retry automatically",
-			"A temporary dependency failed. Techstack retained the job and scheduled the next bounded attempt.",
+			"A temporary dependency failed. Homelab Runtime retained the job and scheduled the next bounded attempt.",
 			outcome.Step{ID: "wait-retry", Label: "No action is required while the retry is scheduled", Kind: "note"}
 	default:
 		return "The operation is still in progress", "The operation is waiting for a dependency and will continue automatically.",
@@ -241,19 +241,19 @@ func pendingJobGuidance(reasonCode string) (string, string, outcome.Step) {
 func jobOutcomeCapability(jobType JobType) string {
 	switch jobType {
 	case JobTypeProvision:
-		return "techstack.managed.runtime.provision"
+		return "homelab.managed.runtime.provision"
 	case JobTypeDeploy:
-		return "techstack.stackkit.deploy"
+		return "homelab.stackkit.deploy"
 	case JobTypeDestroy, JobTypeReconcileLease:
-		return "techstack.managed.runtime.decommission"
+		return "homelab.managed.runtime.decommission"
 	case JobTypeDriftCheck, JobTypeDriftResolve:
-		return "techstack.runtime.drift"
+		return "homelab.runtime.drift"
 	case JobTypeCommand:
-		return "techstack.runtime.command"
+		return "homelab.runtime.command"
 	case JobTypeStackKitLifecycle:
-		return "techstack.stackkit.lifecycle"
+		return "homelab.stackkit.lifecycle"
 	default:
-		return "techstack.job.execute"
+		return "homelab.job.execute"
 	}
 }
 
@@ -287,7 +287,7 @@ func InterruptedRolloutResult(jobID string, now time.Time) (map[string]any, erro
 		Capability: jobOutcomeCapability(JobTypeDeploy), Retryable: true,
 		UserGuidance: &outcome.Guidance{
 			Title:     "The rollout was interrupted",
-			Body:      "Techstack restarted while this rollout was running, so it stopped before finishing. Nothing is left half-reserved; retrying starts a fresh attempt from the same plan.",
+			Body:      "Homelab Runtime restarted while this rollout was running, so it stopped before finishing. Nothing is left half-reserved; retrying starts a fresh attempt from the same plan.",
 			NextSteps: []outcome.Step{{ID: "retry-rollout", Label: "Retry the rollout", Kind: "retry"}},
 		},
 		SupportContext: map[string]any{"job_id": jobID},

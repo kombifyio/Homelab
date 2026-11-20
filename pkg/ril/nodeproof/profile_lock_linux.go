@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/privatefs"
+	"github.com/kombifyio/homelab/internal/privatefs"
 )
 
 // WithHostedProfileDial holds the shared activation lock for the connection's
@@ -24,7 +24,7 @@ func AcquireHostedProfile(ctx context.Context) (func(), error) {
 	if err != nil {
 		return nil, err
 	}
-	root, err := privatefs.OpenChild(parent, "techstack-ril")
+	root, err := privatefs.OpenChild(parent, "homelab-ril")
 	parent.Close()
 	if err != nil {
 		return nil, err

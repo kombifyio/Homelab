@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/denial"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/middleware"
+	"github.com/kombifyio/homelab/internal/gocommon/denial"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/middleware"
 )
 
 // EntitlementGate decides whether the request's verified principal holds a
@@ -21,7 +21,7 @@ type EntitlementGate interface {
 	// per-request Gateway decision.
 	SignedGrant(ctx context.Context, entitlement string) bool
 	// AuthorizedGrant accepts a signed grant or the membership fallback that a
-	// verified Techstack session persisted (see contextWithMembershipAuthorization).
+	// verified Homelab session persisted (see contextWithMembershipAuthorization).
 	AuthorizedGrant(ctx context.Context, entitlement string) bool
 	// FreshMultiFactor reports a multi-factor sign-in no older than maxAge,
 	// read only from the verified edge envelope.

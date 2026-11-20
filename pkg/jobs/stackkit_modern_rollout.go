@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 const (
@@ -44,7 +44,7 @@ type FederationBindingRequest struct {
 }
 
 // FederationFabric is the external fabric authority of the inter-site link.
-// Techstack is that authority for every managed Modern deployment; StackKits
+// Homelab is that authority for every managed Modern deployment; StackKits
 // only validates, Owner-signs and adopts what it returns.
 type FederationFabric interface {
 	IssueBinding(context.Context, FederationBindingRequest) ([]byte, error)

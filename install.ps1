@@ -5,36 +5,36 @@ param(
     [switch]$Help
 )
 
-# Techstack Windows Installer
+# Homelab Windows Installer
 # Usage (wizard one-liner):
-#   $env:KOMBI_SERVER='http://<host>:5260'; $env:KOMBI_TOKEN='<token>'; irm https://install.techstack.kombify.io/install.ps1 | iex
+#   $env:KOMBI_SERVER='http://<host>:5260'; $env:KOMBI_TOKEN='<token>'; irm https://install.homelab.kombify.io/install.ps1 | iex
 # Usage (direct):
 #   .\install.ps1 [-NoInstall] [-Service]
 #
 # Env fallbacks (used when piped through iex, where -switches cannot be passed):
-#   $env:TECHSTACK_NO_INSTALL=1        # registration only, skip binary
-#   $env:TECHSTACK_REGISTRATION_ONLY=1 # legacy one-shot registration, no persistent Guard
-#   $env:TECHSTACK_AS_SERVICE=1        # install + register Windows Service
-#   $env:TECHSTACK_INSTALL_BINARY=1    # install the server runtime binary
-#   $env:TECHSTACK_VERSION=v0.6.0      # pin a release (escape hatch)
-#   $env:TECHSTACK_ALLOW_STALE=1       # allow a release below the supported baseline
+#   $env:HOMELAB_NO_INSTALL=1        # registration only, skip binary
+#   $env:HOMELAB_REGISTRATION_ONLY=1 # legacy one-shot registration, no persistent Guard
+#   $env:HOMELAB_AS_SERVICE=1        # install + register Windows Service
+#   $env:HOMELAB_INSTALL_BINARY=1    # install the server runtime binary
+#   $env:HOMELAB_VERSION=v0.6.0      # pin a release (escape hatch)
+#   $env:HOMELAB_ALLOW_STALE=1       # allow a release below the supported baseline
 #   $env:INSTALL_DIR=<path>            # override install directory
 
 $ErrorActionPreference = "Stop"
 
-$Repo = "kombifyio/TechStack"
-$BinaryName = "techstack"
+$Repo = "kombifyio/Homelab"
+$BinaryName = "homelab"
 # MIN_SUPPORTED_VERSION: oldest release whose install/agent contract this
 # installer supports. A dormant mirror serving an older "latest" is refused
-# unless TECHSTACK_ALLOW_STALE=1. Keep in lockstep with install.sh.
+# unless HOMELAB_ALLOW_STALE=1. Keep in lockstep with install.sh.
 $MinSupportedVersion = if ($env:MIN_SUPPORTED_VERSION) { $env:MIN_SUPPORTED_VERSION } else { "0.6.0" }
-$InstallDir = if ($env:INSTALL_DIR) { $env:INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "Programs\kombify\techstack" }
+$InstallDir = if ($env:INSTALL_DIR) { $env:INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "Programs\kombify\homelab" }
 
 # Merge env fallbacks into the switch flags (iex path can only pass env).
-if ($env:TECHSTACK_NO_INSTALL -eq "1") { $NoInstall = $true }
-if ($env:TECHSTACK_AS_SERVICE -eq "1") { $Service = $true }
-if ($env:TECHSTACK_STAGE_ONLY -eq "1") { $StageOnly = $true }
-$RegistrationOnly = ($env:TECHSTACK_REGISTRATION_ONLY -eq "1") -or $NoInstall
+if ($env:HOMELAB_NO_INSTALL -eq "1") { $NoInstall = $true }
+if ($env:HOMELAB_AS_SERVICE -eq "1") { $Service = $true }
+if ($env:HOMELAB_STAGE_ONLY -eq "1") { $StageOnly = $true }
+$RegistrationOnly = ($env:HOMELAB_REGISTRATION_ONLY -eq "1") -or $NoInstall
 
 function Show-Usage {
     Write-Host "Usage: install.ps1 [-NoInstall] [-Service]"
@@ -46,7 +46,7 @@ function Show-Usage {
     Write-Host ""
     Write-Host "A KOMBI_SERVER/KOMBI_TOKEN one-liner enrolls a managed server through the outbound HTTPS Guard,"
     Write-Host "which is published for Linux; on Windows it stops before the pairing capability is redeemed."
-    Write-Host "Set TECHSTACK_REGISTRATION_ONLY=1 for the legacy one-shot registration behavior."
+    Write-Host "Set HOMELAB_REGISTRATION_ONLY=1 for the legacy one-shot registration behavior."
 }
 
 # Stop-UnsupportedManagedGuard refuses a managed enrollment before anything is
@@ -60,7 +60,7 @@ function Stop-UnsupportedManagedGuard {
     Write-Host "This command enrolls a managed server through the outbound HTTPS kombify Guard, which runs on Linux." -ForegroundColor Red
     Write-Host "No Windows Guard is published, so nothing was sent to the control plane and the pairing capability was not redeemed." -ForegroundColor Yellow
     Write-Host "Run the Linux command from the dashboard on the server instead; the capability stays valid until it expires."
-    Write-Host "Set `$env:TECHSTACK_REGISTRATION_ONLY='1' only for the legacy one-shot registration without a persistent Guard."
+    Write-Host "Set `$env:HOMELAB_REGISTRATION_ONLY='1' only for the legacy one-shot registration without a persistent Guard."
     exit 1
 }
 
@@ -77,11 +77,11 @@ function Register-WorkerIfEnvSet {
     $hostName = $env:COMPUTERNAME
     if ([string]::IsNullOrWhiteSpace($hostName)) { $hostName = "worker" }
 
-    Write-Host "Registering worker with Techstack..." -ForegroundColor Cyan
+    Write-Host "Registering worker with Homelab..." -ForegroundColor Cyan
     Write-Host ("Server: {0}" -f $server) -ForegroundColor Cyan
 
     if ($server -match "^https?://(localhost|127\.)") {
-        Write-Host "Hint: On a worker/VM, localhost refers to that machine, not your Techstack host." -ForegroundColor Yellow
+        Write-Host "Hint: On a worker/VM, localhost refers to that machine, not your Homelab Runtime host." -ForegroundColor Yellow
         Write-Host "Use the host reachable IP/hostname instead (e.g. http://<host-ip>:5260)." -ForegroundColor Yellow
     }
 
@@ -100,7 +100,7 @@ function Register-WorkerIfEnvSet {
         Write-Host "Worker registered and accepted." -ForegroundColor Green
     } else {
         Write-Host "Worker registered but pending approval in the UI." -ForegroundColor Yellow
-        Write-Host "Open the Techstack dashboard and approve the worker to continue."
+        Write-Host "Open the Homelab Runtime dashboard and approve the worker to continue."
     }
 }
 
@@ -126,9 +126,9 @@ function Compare-Semver([string]$a, [string]$b) {
 }
 
 function Get-LatestVersion {
-    if ($env:TECHSTACK_VERSION) {
-        Write-Host ("Using pinned version: {0}" -f $env:TECHSTACK_VERSION) -ForegroundColor Cyan
-        return $env:TECHSTACK_VERSION
+    if ($env:HOMELAB_VERSION) {
+        Write-Host ("Using pinned version: {0}" -f $env:HOMELAB_VERSION) -ForegroundColor Cyan
+        return $env:HOMELAB_VERSION
     }
 
     Write-Host "Fetching latest version..." -ForegroundColor Cyan
@@ -142,18 +142,18 @@ function Get-LatestVersion {
     if ([string]::IsNullOrWhiteSpace($latest)) {
         Write-Host ("Failed to fetch the latest release from {0}." -f $Repo) -ForegroundColor Red
         Write-Host "Pin a known version and retry:" -ForegroundColor Yellow
-        Write-Host ("    `$env:TECHSTACK_VERSION='v{0}'; irm https://install.techstack.kombify.io/install.ps1 | iex" -f $MinSupportedVersion)
+        Write-Host ("    `$env:HOMELAB_VERSION='v{0}'; irm https://install.homelab.kombify.io/install.ps1 | iex" -f $MinSupportedVersion)
         exit 1
     }
 
     if ((Compare-Semver $latest $MinSupportedVersion) -lt 0) {
-        if ($env:TECHSTACK_ALLOW_STALE -eq "1") {
-            Write-Host ("Warning: {0} is below the supported baseline {1}; proceeding (TECHSTACK_ALLOW_STALE=1)." -f $latest, $MinSupportedVersion) -ForegroundColor Yellow
+        if ($env:HOMELAB_ALLOW_STALE -eq "1") {
+            Write-Host ("Warning: {0} is below the supported baseline {1}; proceeding (HOMELAB_ALLOW_STALE=1)." -f $latest, $MinSupportedVersion) -ForegroundColor Yellow
         } else {
             Write-Host ("Refusing to install stale release {0} (below baseline {1})." -f $latest, $MinSupportedVersion) -ForegroundColor Red
             Write-Host "The public release mirror appears to be behind. Options:" -ForegroundColor Yellow
-            Write-Host "    - Pin a version:        `$env:TECHSTACK_VERSION='v<x.y.z>'"
-            Write-Host "    - Override intentionally: `$env:TECHSTACK_ALLOW_STALE='1'"
+            Write-Host "    - Pin a version:        `$env:HOMELAB_VERSION='v<x.y.z>'"
+            Write-Host "    - Override intentionally: `$env:HOMELAB_ALLOW_STALE='1'"
             exit 1
         }
     }
@@ -172,47 +172,47 @@ function Install-Binary([string]$version) {
     # The Local client ZIP transports a separate server runtime. Never install
     # the desktop client or use this unsigned transport as a managed Guard seed.
     $productVersion = $version -replace '^v', ''
-    $asset = "kombify-techstack-client_${productVersion}_Windows_x86_64.zip"
+    $asset = "kombify-homelab-client_${productVersion}_Windows_x86_64.zip"
     $releaseUrl = "https://github.com/$Repo/releases/download/v$productVersion"
     $downloadUrl = "$releaseUrl/$asset"
-    $tmpDir = Join-Path ([IO.Path]::GetTempPath()) ("techstack-install-" + [Guid]::NewGuid())
+    $tmpDir = Join-Path ([IO.Path]::GetTempPath()) ("homelab-install-" + [Guid]::NewGuid())
     New-Item -ItemType Directory -Path $tmpDir | Out-Null
     try {
         $archive = Join-Path $tmpDir "archive.zip"
         Invoke-WebRequest -Uri $downloadUrl -OutFile $archive -TimeoutSec 300
-        $expected = $env:TECHSTACK_BINARY_SHA256
-        $digestSource = "TECHSTACK_BINARY_SHA256"
+        $expected = $env:HOMELAB_BINARY_SHA256
+        $digestSource = "HOMELAB_BINARY_SHA256"
         if ([string]::IsNullOrWhiteSpace($expected)) {
             $checksumResponse = Invoke-WebRequest -Uri "$releaseUrl/SHA256SUMS.txt" -TimeoutSec 60
             $checksums = if ($checksumResponse.Content -is [byte[]]) { [Text.Encoding]::UTF8.GetString($checksumResponse.Content) } else { [string]$checksumResponse.Content }
             $matches = @($checksums -split '\r?\n' | Where-Object { $_ -match ('^[0-9a-fA-F]{64}\s+\*?' + [regex]::Escape($asset) + '$') })
-            if ($matches.Count -ne 1) { throw "SHA256SUMS.txt must name exactly one checksum for $asset. Supply an independently obtained TECHSTACK_BINARY_SHA256 archive pin." }
+            if ($matches.Count -ne 1) { throw "SHA256SUMS.txt must name exactly one checksum for $asset. Supply an independently obtained HOMELAB_BINARY_SHA256 archive pin." }
             $expected = ($matches[0] -split '\s+')[0]
             $digestSource = "release SHA256SUMS.txt (transfer integrity only)"
         }
-        if ($expected -notmatch '^[0-9a-fA-F]{64}$') { throw "TECHSTACK_BINARY_SHA256 must be a SHA-256 archive digest." }
+        if ($expected -notmatch '^[0-9a-fA-F]{64}$') { throw "HOMELAB_BINARY_SHA256 must be a SHA-256 archive digest." }
         $actual = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
         if ($actual -ne $expected.ToLowerInvariant()) { throw "Release archive checksum mismatch; no runtime was installed." }
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         $zip = [IO.Compression.ZipFile]::OpenRead($archive)
         try {
-            $entries = @($zip.Entries | Where-Object { $_.FullName -ceq "techstack.exe" })
+            $entries = @($zip.Entries | Where-Object { $_.FullName -ceq "homelab.exe" })
             if ($entries.Count -ne 1) { throw "The Local public ZIP has no unique Windows server runtime. Use its published desktop installer for the client, or Compose for the server." }
-            $staged = Join-Path $tmpDir "techstack.exe"
+            $staged = Join-Path $tmpDir "homelab.exe"
             [IO.Compression.ZipFileExtensions]::ExtractToFile($entries[0], $staged)
         } finally { $zip.Dispose() }
         $versionOutput = & $staged version
-        if ($LASTEXITCODE -ne 0 -or ($versionOutput -join "`n") -notmatch ('(?m)^kombifyTechstack v' + [regex]::Escape($productVersion) + '\r?$')) {
+        if ($LASTEXITCODE -ne 0 -or ($versionOutput -join "`n") -notmatch ('(?m)^kombifyHomelab v' + [regex]::Escape($productVersion) + '\r?$')) {
             throw "The staged server runtime does not report the selected public version."
         }
         New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
-        $exeTarget = Join-Path $InstallDir "techstack.exe"
+        $exeTarget = Join-Path $InstallDir "homelab.exe"
         Copy-Item -LiteralPath $staged -Destination $exeTarget -Force
         @{
-            role = "techstack-server"; version = $productVersion; releaseUrl = $releaseUrl
+            role = "homelab-server"; version = $productVersion; releaseUrl = $releaseUrl
             asset = $asset; archiveSha256 = $actual; digestSource = $digestSource
-            entry = "techstack.exe"; runtimeSha256 = (Get-FileHash -LiteralPath $exeTarget -Algorithm SHA256).Hash.ToLowerInvariant()
-        } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $InstallDir "techstack-install-receipt.json") -Encoding UTF8
+            entry = "homelab.exe"; runtimeSha256 = (Get-FileHash -LiteralPath $exeTarget -Algorithm SHA256).Hash.ToLowerInvariant()
+        } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $InstallDir "homelab-install-receipt.json") -Encoding UTF8
         if (-not $StageOnly) { Add-ToUserPath $InstallDir }
         return $exeTarget
     } catch {
@@ -243,18 +243,18 @@ function Install-WindowsService([string]$exePath) {
         return
     }
 
-    $serviceName = "techstack"
+    $serviceName = "homelab"
     Write-Host "Installing Windows Service..." -ForegroundColor Cyan
     $existing = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
     if ($existing) {
         Write-Host "Service already exists; updating binary path." -ForegroundColor Cyan
-        & sc.exe config $serviceName binPath= ('"{0}" serve' -f $exePath) DisplayName= "Techstack" | Out-Null
+        & sc.exe config $serviceName binPath= ('"{0}" serve' -f $exePath) DisplayName= "Homelab Runtime" | Out-Null
     } else {
-        New-Service -Name $serviceName -BinaryPathName ('"{0}" serve' -f $exePath) -DisplayName "Techstack" -StartupType Automatic | Out-Null
+        New-Service -Name $serviceName -BinaryPathName ('"{0}" serve' -f $exePath) -DisplayName "Homelab Runtime" -StartupType Automatic | Out-Null
     }
-    Write-Host "Windows Service 'techstack' installed." -ForegroundColor Green
-    Write-Host "  Start:  Start-Service techstack"
-    Write-Host "  Status: Get-Service techstack"
+    Write-Host "Windows Service 'homelab' installed." -ForegroundColor Green
+    Write-Host "  Start:  Start-Service homelab"
+    Write-Host "  Status: Get-Service homelab"
 }
 
 # ---- Main ---------------------------------------------------------------------
@@ -262,7 +262,7 @@ function Install-WindowsService([string]$exePath) {
 if ($Help) { Show-Usage; return }
 
 Write-Host "----------------------------------------" -ForegroundColor Cyan
-Write-Host "   Techstack Installer (Windows)" -ForegroundColor Cyan
+Write-Host "   Homelab Runtime Installer (Windows)" -ForegroundColor Cyan
 Write-Host "   The Hybrid Infrastructure Unifier" -ForegroundColor Cyan
 Write-Host "----------------------------------------" -ForegroundColor Cyan
 Write-Host ""
@@ -276,7 +276,7 @@ if ($managedEnrollment) {
     Write-Host "Worker registration completed, but persistent health monitoring is not installed." -ForegroundColor Yellow
     return
 }
-if (-not $StageOnly -and $env:KOMBI_SERVER -and ($Service -or $env:TECHSTACK_INSTALL_BINARY -eq "1") -and -not $NoInstall) {
+if (-not $StageOnly -and $env:KOMBI_SERVER -and ($Service -or $env:HOMELAB_INSTALL_BINARY -eq "1") -and -not $NoInstall) {
     throw "A managed Guard must come from its enrolling control plane's signed release. This public installer stages the server runtime; use the supported Linux Guard enrollment path."
 }
 
@@ -307,6 +307,6 @@ Write-Host "Installation complete!" -ForegroundColor Green
 Write-Host "Next steps:"
 Write-Host ("  1. Run '{0} version' to verify" -f $BinaryName)
 Write-Host ("  2. Run '{0}' to see available commands" -f $BinaryName)
-if ($Service) { Write-Host "  3. Run 'Start-Service techstack' to start the service" }
+if ($Service) { Write-Host "  3. Run 'Start-Service homelab' to start the service" }
 Write-Host ("  4. Visit https://github.com/{0} for documentation" -f $Repo)
 Write-Host "----------------------------------------" -ForegroundColor Green

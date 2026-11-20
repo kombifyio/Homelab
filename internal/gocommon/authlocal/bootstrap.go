@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/authsession"
+	"github.com/kombifyio/homelab/internal/gocommon/authsession"
 )
 
 // Bootstrap ensures the break-glass admin record exists.

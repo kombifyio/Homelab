@@ -1,9 +1,9 @@
 package advancedissuer_test
 
 import (
-	"github.com/kombifyio/techstack/internal/advancedissuer"
-	"github.com/kombifyio/techstack/internal/executioncustody"
-	"github.com/kombifyio/techstack/pkg/jobs"
+	"github.com/kombifyio/homelab/internal/advancedissuer"
+	"github.com/kombifyio/homelab/internal/executioncustody"
+	"github.com/kombifyio/homelab/pkg/jobs"
 )
 
 // A native move dispatches only when the installation's issuer answers with the

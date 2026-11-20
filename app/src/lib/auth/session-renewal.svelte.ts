@@ -1,5 +1,5 @@
 /**
- * The one shared session renewal layer of the Techstack web client
+ * The one shared session renewal layer of the Homelab web client
  * (workspace platform/standards/AUTHENTICATION.md §6, "Session renewal, never
  * a sign-in error").
  *
@@ -12,7 +12,7 @@
  * ONE renewal for all waiting requests and replays each request once.
  *
  * Renewal ladder, per kind:
- * - "session" (the Techstack browser session cookie): embedded in kombify
+ * - "session" (the Homelab browser session cookie): embedded in kombify
  *   Cloud, the host re-mints the SSO token over the postMessage bridge and
  *   portal-verify re-issues the cookie; otherwise the renewal route
  *   (`/auth/renew`) opens in a small Universal Login window that completes
@@ -138,7 +138,7 @@ function sameOriginPath(raw: string): string | null {
   }
 }
 
-/** Reasons a Techstack session cookie renewal (not an API token) repairs. */
+/** Reasons a Homelab session cookie renewal (not an API token) repairs. */
 const SESSION_REASONS = new Set(["session_expired", "session_reprojection"]);
 
 function kindFor(reason: string, viaGateway: boolean): SessionRenewalKind {
@@ -228,7 +228,7 @@ function capture(
       scope.setTag("route", window.location.pathname);
     }
     scope.setLevel(outcome === "renewed" ? "info" : "warning");
-    Sentry.captureMessage("techstack_session_renewal");
+    Sentry.captureMessage("homelab_session_renewal");
   });
 }
 

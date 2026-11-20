@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardpower"
-	"github.com/kombifyio/techstack/pkg/guardrelease"
+	"github.com/kombifyio/homelab/pkg/guardpower"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
 )
 
 // Wire states of the security projection.

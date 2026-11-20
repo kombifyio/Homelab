@@ -25,7 +25,7 @@ import {
   isOnboardingConflict,
   putOnboardingAction,
   resetOnboarding,
-  TECHSTACK_JOURNEY_ID,
+  HOMELAB_JOURNEY_ID,
   type OnboardingAction,
   type OnboardingPayload,
 } from "./api.js";
@@ -68,7 +68,7 @@ class OnboardingStore {
     this.loading = true;
     this.error = null;
     try {
-      this.adopt(await getOnboarding(TECHSTACK_JOURNEY_ID));
+      this.adopt(await getOnboarding(HOMELAB_JOURNEY_ID));
     } catch (err) {
       // A failed load is not a reason to show a broken checklist; the surfaces
       // read `visible`, which stays false without a descriptor.
@@ -102,7 +102,7 @@ class OnboardingStore {
     if (this.busy) return;
     this.busy = true;
     try {
-      this.adopt(await resetOnboarding(TECHSTACK_JOURNEY_ID));
+      this.adopt(await resetOnboarding(HOMELAB_JOURNEY_ID));
     } catch (err) {
       await this.reloadAfter(err);
     } finally {
@@ -151,7 +151,7 @@ class OnboardingStore {
       this.error = err.message;
     }
     try {
-      this.adopt(await getOnboarding(TECHSTACK_JOURNEY_ID));
+      this.adopt(await getOnboarding(HOMELAB_JOURNEY_ID));
       this.error = null;
     } catch {
       // Leave the last good render in place rather than blanking the rail.

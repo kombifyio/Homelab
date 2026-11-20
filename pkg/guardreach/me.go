@@ -8,13 +8,13 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/kombifyme"
+	"github.com/kombifyio/homelab/pkg/kombifyme"
 )
 
 const meZoneDomain = "kombify.me"
 
 // Me is the kombify.me client of the control plane. It acts only with the
-// platform kombify.me identity (the Techstack `kbi_` key), the single identity
+// platform kombify.me identity (the Homelab `kbi_` key), the single identity
 // Me's Guard binding API accepts.
 type Me struct{ client *kombifyme.Client }
 

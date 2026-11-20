@@ -71,9 +71,9 @@ func TestVerifyRotatingAcceptsSuccessorSecretOnlyWhileSharedKeyRotates(t *testin
 		}
 		return token
 	}
-	t.Setenv("TECHSTACK_WORKER_AGENT_TOKEN_SECRET", "")
-	t.Setenv("TECHSTACK_WORKER_TOKEN_SECRET", "")
-	t.Setenv("TECHSTACK_WORKER_SECRET_STRICT", "")
+	t.Setenv("HOMELAB_WORKER_AGENT_TOKEN_SECRET", "")
+	t.Setenv("HOMELAB_WORKER_TOKEN_SECRET", "")
+	t.Setenv("HOMELAB_WORKER_SECRET_STRICT", "")
 	t.Setenv("SERVICE_AUTH_SECRET", "primary-secret")
 	t.Setenv("SERVICE_AUTH_SECRET_NEXT", "next-secret")
 
@@ -87,7 +87,7 @@ func TestVerifyRotatingAcceptsSuccessorSecretOnlyWhileSharedKeyRotates(t *testin
 	}
 
 	// A dedicated worker secret has its own rotation: the service successor is not a key.
-	t.Setenv("TECHSTACK_WORKER_AGENT_TOKEN_SECRET", "dedicated-secret")
+	t.Setenv("HOMELAB_WORKER_AGENT_TOKEN_SECRET", "dedicated-secret")
 	if _, err := VerifyRotating(mint("next-secret"), now); !errors.Is(err, ErrInvalidToken) {
 		t.Fatalf("successor accepted despite a dedicated worker secret: %v", err)
 	}

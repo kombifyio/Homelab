@@ -11,7 +11,7 @@ import (
 
 // PlatformProjector publishes the registry's current server state into the
 // kombify platform database, so every product can answer "which machines does
-// this user have?" from one place instead of calling Techstack and inheriting
+// this user have?" from one place instead of calling Homelab and inheriting
 // its inventory authorization (DATA-ARCHITECTURE row 1 `infra_user_servers`;
 // ADR-038; owner direction 2026-09-18).
 //

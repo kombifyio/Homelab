@@ -1,0 +1,227 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"sort"
+	"strings"
+
+	commonauthflow "github.com/kombifyio/homelab/internal/gocommon/authflow"
+	"github.com/kombifyio/homelab/internal/gocommon/oidcclient"
+
+	"github.com/kombifyio/homelab/pkg/auth/testidentity"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/demoguard"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/logger"
+)
+
+// orgTenantPrefix marks control-plane tenants that mirror an Auth0
+// organization id (the portal stamps these into app_metadata.org_id).
+const orgTenantPrefix = "org_"
+
+// personalTenantPrefix is the cross-product owner-tenant namespace minted by
+// kombify-Gateway for identities without an organization claim.
+const personalTenantPrefix = "usr:"
+
+// kombifyClaimNamespace prefixes the custom claims minted by the Auth0
+// post-login action (kombify-add-roles-to-token); the Cloudflare edge derives
+// x-org-id from the same claims.
+const kombifyClaimNamespace = "https://kombify.io/"
+
+// v2CloudTenantResolver resolves the tenant stamped into the v2 session at
+// cloud-login time so standalone and embedded resolve the same tenant
+// (one-truth rule). Chain: demo tenant -> kombify org/tenant claims (the same
+// ones the edge turns into x-org-id) -> org_* control-plane membership still listed by Auth0 -> any
+// other active membership -> Auth0 Management API organizations ->
+// owner tenant (the subject itself). The final rung mirrors the data-plane
+// owner-as-tenant behavior so a user without any provisioned org resolves the
+// SAME tenant through the browser session as through the gateway. Malformed
+// identities fail closed instead of entering a shared fixture tenant. Installed
+// only in SaaS mode.
+func v2CloudTenantResolver(store controlplane.AuthStore, orgs organizationLister) commonauthflow.TenantResolver {
+	return func(ctx context.Context, claims *oidcclient.Claims, _ string, _ string) (string, error) {
+		if claims == nil {
+			return "", fmt.Errorf("cloud identity claims are required")
+		}
+		subject := strings.TrimSpace(claims.Subject)
+		if subject == "" {
+			return "", fmt.Errorf("cloud identity subject is required")
+		}
+		if demoguard.IsDemoUser(subject) {
+			if tenantID := demoguard.DemoTenantID(); tenantID != "" {
+				return tenantID, nil
+			}
+		}
+		// Any other test identity signs in only to its own test tenant, whatever
+		// organization claims or memberships it carries (D-2026-10-22-02).
+		if testidentity.IsTestSubject(subject) {
+			return testidentity.OwnerTenant(subject), nil
+		}
+		if orgID := rawClaimString(claims,
+			kombifyClaimNamespace+"org_id",
+			kombifyClaimNamespace+"tenant_id",
+			"org_id",
+			"org",
+		); orgID != "" {
+			return orgID, nil
+		}
+		// Auth0 is the authority for organization membership. A cloud org_*
+		// membership row is only honoured while Auth0 still lists that
+		// organization; otherwise it is stale and ignored (it would be
+		// refreshed at every login and never age out). When the lookup is
+		// unavailable the stored rows stay authoritative.
+		var orgIDs []string
+		orgsKnown := false
+		if orgs != nil {
+			listed, err := orgs.UserOrganizations(ctx, subject)
+			if err != nil {
+				logger.Default().Warn("v2_cloud_org_lookup_failed", "error", err, "subject", subject)
+			} else {
+				orgIDs, orgsKnown = listed, true
+			}
+		}
+		keep := func(m controlplane.Membership) bool { return true }
+		if orgsKnown {
+			current := make(map[string]struct{}, len(orgIDs))
+			for _, id := range orgIDs {
+				current[strings.TrimSpace(id)] = struct{}{}
+			}
+			keep = func(m controlplane.Membership) bool {
+				tenantID := strings.TrimSpace(m.TenantID)
+				if m.ProviderKey != "cloud" || !strings.HasPrefix(tenantID, orgTenantPrefix) {
+					return true
+				}
+				if _, ok := current[tenantID]; ok {
+					return true
+				}
+				logger.Default().Warn("stale_org_membership_ignored", "subject", subject, "tenant", tenantID)
+				return false
+			}
+		}
+		if membership := preferredMembershipFromStoreFiltered(ctx, store, subject, keep); membership != nil {
+			return strings.TrimSpace(membership.TenantID), nil
+		}
+		if len(orgIDs) > 0 {
+			sort.Strings(orgIDs)
+			if len(orgIDs) > 1 {
+				logger.Default().Warn("org_resolution_ambiguous", "source", "auth0_mgmt", "subject", subject, "count", len(orgIDs))
+			}
+			return orgIDs[0], nil
+		}
+		// Owner tenant: the same deterministic fallback the data plane uses
+		// for identities without any org context.
+		return canonicalOwnerTenantID(subject), nil
+	}
+}
+
+func canonicalOwnerTenantID(subject string) string {
+	subject = strings.TrimSpace(subject)
+	if subject == "" {
+		return ""
+	}
+	return personalTenantPrefix + subject
+}
+
+func isOwnerTenantID(tenantID, subject string) bool {
+	tenantID = strings.TrimSpace(tenantID)
+	subject = strings.TrimSpace(subject)
+	if tenantID == "" || subject == "" {
+		return false
+	}
+	return tenantID == canonicalOwnerTenantID(subject)
+}
+
+// preferredMembershipFromStore lists the user's active memberships and picks
+// deterministically: org_* tenants win, then the newest membership (list
+// order is newest first; ties broken by tenant id).
+func preferredMembershipFromStore(ctx context.Context, store controlplane.AuthStore, userID string) *controlplane.Membership {
+	return preferredMembershipFromStoreFiltered(ctx, store, userID, nil)
+}
+
+// preferredMembershipFromStoreFiltered is preferredMembershipFromStore over
+// the memberships keep accepts (nil accepts all).
+func preferredMembershipFromStoreFiltered(ctx context.Context, store controlplane.AuthStore, userID string, keep func(controlplane.Membership) bool) *controlplane.Membership {
+	if store == nil {
+		return nil
+	}
+	userID = strings.TrimSpace(userID)
+	if userID == "" {
+		return nil
+	}
+	memberships, err := store.ListMembershipsByUser(ctx, userID)
+	if err != nil {
+		logger.Default().Warn("v2_cloud_membership_lookup_failed", "error", err, "subject", userID)
+		return nil
+	}
+	if keep != nil {
+		kept := memberships[:0:0]
+		for _, m := range memberships {
+			if keep(m) {
+				kept = append(kept, m)
+			}
+		}
+		memberships = kept
+	}
+	if len(memberships) == 0 {
+		return nil
+	}
+	seenOrgTenants := map[string]struct{}{}
+	for _, membership := range memberships {
+		if tenantID := strings.TrimSpace(membership.TenantID); strings.HasPrefix(tenantID, orgTenantPrefix) {
+			seenOrgTenants[tenantID] = struct{}{}
+		}
+	}
+	if len(seenOrgTenants) > 1 {
+		logger.Default().Warn("org_resolution_ambiguous", "source", "memberships", "subject", userID, "count", len(seenOrgTenants))
+	}
+	sorted := make([]controlplane.Membership, len(memberships))
+	copy(sorted, memberships)
+	sort.SliceStable(sorted, func(i, j int) bool {
+		iOrg := strings.HasPrefix(strings.TrimSpace(sorted[i].TenantID), orgTenantPrefix)
+		jOrg := strings.HasPrefix(strings.TrimSpace(sorted[j].TenantID), orgTenantPrefix)
+		if iOrg != jOrg {
+			return iOrg
+		}
+		if sorted[i].UpdatedAt.Equal(sorted[j].UpdatedAt) {
+			return sorted[i].TenantID < sorted[j].TenantID
+		}
+		return sorted[i].UpdatedAt.After(sorted[j].UpdatedAt)
+	})
+	picked := sorted[0]
+	if strings.TrimSpace(picked.TenantID) == "" {
+		return nil
+	}
+	return &picked
+}
+
+// preferredOrgMembershipForIdentity is the per-request variant used for
+// legacy v2 sessions whose claims carry no tenant. It only promotes org_*
+// memberships (the default-tenant chain already covers the rest) and never
+// consults the Management API.
+func preferredOrgMembershipForIdentity(ctx context.Context, store controlplane.AuthStore, id *identity.Identity) *controlplane.Membership {
+	if id == nil || !id.IsAuthenticated() {
+		return nil
+	}
+	membership := preferredMembershipFromStore(ctx, store, id.UserID)
+	if membership == nil || !strings.HasPrefix(strings.TrimSpace(membership.TenantID), orgTenantPrefix) {
+		return nil
+	}
+	return membership
+}
+
+// rawClaimString reads the first non-empty string claim from the raw ID-token
+// claim set.
+func rawClaimString(claims *oidcclient.Claims, keys ...string) string {
+	if claims == nil || claims.Raw == nil {
+		return ""
+	}
+	for _, key := range keys {
+		if value, ok := claims.Raw[key].(string); ok {
+			if value = strings.TrimSpace(value); value != "" {
+				return value
+			}
+		}
+	}
+	return ""
+}

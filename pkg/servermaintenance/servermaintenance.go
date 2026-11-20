@@ -21,8 +21,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // AgentCapability is advertised by an agent that can run the StackKits host
@@ -42,7 +42,7 @@ const (
 	MetadataHostMaintenance = "host_maintenance"
 )
 
-// Techstack maintenance policy (owner decisions 2026-09-25).
+// Homelab maintenance policy (owner decisions 2026-09-25).
 const (
 	// PlanMaxAge bounds how old the plan behind an os_update may be.
 	PlanMaxAge = 15 * time.Minute
@@ -110,7 +110,7 @@ const (
 	RefusalPlanStale = "plan_stale"
 )
 
-const machineIDDigestDomain = "kombify-techstack-host-identity/v1\x00"
+const machineIDDigestDomain = "kombify-homelab-host-identity/v1\x00"
 
 // MachineIDDigest is the domain-separated SHA-256 of a raw machine id, so the
 // id itself never leaves the host. The control plane and the agent must use

@@ -16,11 +16,11 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/drivehealth"
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/ril/nodeproof"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/drivehealth"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/ril/nodeproof"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // Backend applies the host effects of the allowlisted operations. It is the only

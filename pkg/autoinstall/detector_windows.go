@@ -244,7 +244,7 @@ func (d *detector) downloadFile(ctx context.Context, url string) (string, error)
 		return "", fmt.Errorf("download failed: HTTP %d", resp.StatusCode)
 	}
 
-	tmpFile, err := os.CreateTemp("", "techstack-*.tmp")
+	tmpFile, err := os.CreateTemp("", "homelab-*.tmp")
 	if err != nil {
 		return "", err
 	}
@@ -315,7 +315,7 @@ func openWindowsInstallRoot() (string, *os.Root, error) {
 	if programFiles == "" || !filepath.IsAbs(programFiles) {
 		return "", nil, fmt.Errorf("ProgramFiles must be an absolute path")
 	}
-	installDir := filepath.Join(programFiles, "kombifyTechstack", "bin")
+	installDir := filepath.Join(programFiles, "kombifyHomelab", "bin")
 	// #nosec G703 -- ProgramFiles is the Windows process environment boundary and is required to be absolute.
 	if err := os.MkdirAll(installDir, 0755); err != nil {
 		return "", nil, err
@@ -331,7 +331,7 @@ func openWindowsInstallRoot() (string, *os.Root, error) {
 func (d *detector) addToPath(dir string) error {
 	// Check for admin privileges before modifying system PATH
 	if !isElevated() {
-		return fmt.Errorf("modifying system PATH requires administrator privileges. Please run kombifyTechstack as administrator or add %s to PATH manually", dir)
+		return fmt.Errorf("modifying system PATH requires administrator privileges. Please run kombifyHomelab as administrator or add %s to PATH manually", dir)
 	}
 
 	// Get current PATH from registry

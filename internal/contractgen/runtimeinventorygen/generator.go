@@ -1,4 +1,4 @@
-// Package runtimeinventorygen deterministically projects the Techstack-owned
+// Package runtimeinventorygen deterministically projects the Homelab-owned
 // runtime inventory schema into the dependency-light public Go wire.
 package runtimeinventorygen
 
@@ -16,10 +16,10 @@ import (
 )
 
 const (
-	SchemaVersion    = "techstack.runtimeinventory-schema/v1"
+	SchemaVersion    = "homelab.runtimeinventory-schema/v1"
 	GeneratorVersion = "runtimeinventorygen/v1"
 	WireVersion      = "runtimeinventory/v1"
-	ManifestVersion  = "techstack.runtimeinventory-generation-manifest/v1"
+	ManifestVersion  = "homelab.runtimeinventory-generation-manifest/v1"
 )
 
 var (
@@ -112,8 +112,8 @@ func Validate(schema Schema) error {
 	if schema.PackageName != "runtimeinventory" {
 		return fmt.Errorf("packageName must be runtimeinventory")
 	}
-	if schema.SourceRepository != "github.com/kombifyio/TechStack" || schema.SourcePath != "contracts/runtimeinventory/v1/schema.json" {
-		return fmt.Errorf("schema source authority is not canonical Techstack")
+	if schema.SourceRepository != "github.com/kombifyio/Homelab" || schema.SourcePath != "contracts/runtimeinventory/v1/schema.json" {
+		return fmt.Errorf("schema source authority is not canonical Homelab")
 	}
 	if len(schema.Imports) != 1 || schema.Imports[0] != "time" {
 		return fmt.Errorf("imports must contain only time")

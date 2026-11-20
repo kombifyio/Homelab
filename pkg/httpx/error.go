@@ -1,6 +1,6 @@
 package httpx
 
-import "github.com/kombifyio/techstack/pkg/api"
+import "github.com/kombifyio/homelab/pkg/api"
 
 // APIError is a structured error a handler or middleware may return to control
 // the rendered response envelope. It is the httpx analogue of PocketBase's

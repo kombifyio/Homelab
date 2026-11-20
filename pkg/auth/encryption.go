@@ -1,4 +1,4 @@
-// Package auth provides authentication and security utilities for kombifyTechstack.
+// Package auth provides authentication and security utilities for kombifyHomelab.
 package auth
 
 import (
@@ -15,7 +15,7 @@ import (
 
 const (
 	// EncryptionKeyEnvVar is the environment variable name for the encryption key.
-	EncryptionKeyEnvVar = "TECHSTACK_ENCRYPTION_KEY"
+	EncryptionKeyEnvVar = "HOMELAB_ENCRYPTION_KEY"
 
 	// EncryptedPrefix is prepended to encrypted values for identification.
 	EncryptedPrefix = "enc:v1:"
@@ -23,7 +23,7 @@ const (
 
 var (
 	// ErrNoEncryptionKey is returned when encryption is attempted without a key.
-	ErrNoEncryptionKey = errors.New("encryption key not configured (set TECHSTACK_ENCRYPTION_KEY)")
+	ErrNoEncryptionKey = errors.New("encryption key not configured (set HOMELAB_ENCRYPTION_KEY)")
 
 	// ErrInvalidCiphertext is returned when decryption fails.
 	ErrInvalidCiphertext = errors.New("invalid or corrupted ciphertext")
@@ -44,7 +44,7 @@ var globalEncryptor *SecretEncryptor
 var encryptorOnce sync.Once
 
 // GetEncryptor returns the global SecretEncryptor instance.
-// It initializes from TECHSTACK_ENCRYPTION_KEY environment variable on first call.
+// It initializes from HOMELAB_ENCRYPTION_KEY environment variable on first call.
 func GetEncryptor() *SecretEncryptor {
 	encryptorOnce.Do(func() {
 		keyStr := os.Getenv(EncryptionKeyEnvVar)

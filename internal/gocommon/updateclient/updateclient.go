@@ -24,8 +24,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/internal/semverlite"
-	"github.com/kombifyio/techstack/internal/gocommon/updateclient/manifest"
+	"github.com/kombifyio/homelab/internal/gocommon/internal/semverlite"
+	"github.com/kombifyio/homelab/internal/gocommon/updateclient/manifest"
 )
 
 // Errors returned by this package.

@@ -23,7 +23,7 @@
  *   { type: 'ai-handover-ack', correlation_id: '...', status: 'accepted' | 'session-ready' | 'failed', ... }
  *   { type: 'view-context-request' }   the host asks for the current view
  *                                      context (after `ready`, after a frame load)
- *   { type: 'creation-command', schema: 'techstack.creation-event/v1', command, ... }
+ *   { type: 'creation-command', schema: 'homelab.creation-event/v1', command, ... }
  *     the embedded creation module's commands (see `#lib/creation/core`)
  *
  * Outbound messages (app → portal):
@@ -36,7 +36,7 @@
  *   { type: 'view-context', tool: 'kombifystack', schema: 'kombify.view-context.v1', seq, route, title, ... }
  *     the page and object the user is looking at, ids and codes only
  *     (see `#lib/view-context.ts`)
- *   { type: 'creation-event', schema: 'techstack.creation-event/v1', event, ... }
+ *   { type: 'creation-event', schema: 'homelab.creation-event/v1', event, ... }
  */
 
 import { browser } from "$app/env";
@@ -316,7 +316,7 @@ export function getPortalOrigin(): string | null {
 
 /**
  * True when an AI handover can actually reach kombify Cloud. Standalone
- * sessions (techstack.kombify.io opened directly) have no parent shell and
+ * sessions (homelab.kombify.io opened directly) have no parent shell and
  * nothing listens for the fallback event, so callers must not offer the
  * action there.
  */

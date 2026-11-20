@@ -1,17 +1,17 @@
 /**
  * kombify Cloud Stack Identity, read and written through the Gateway's
  * `/v1/cloud` route (Cloud `/api/v1/stack-identity`, StackIdentityV1) with the
- * signed-in user's own Gateway token. Techstack never calls Cloud directly and
+ * signed-in user's own Gateway token. Homelab never calls Cloud directly and
  * never holds a service credential for it.
  *
- * Without a Gateway token (self-hosted Techstack without kombify Cloud, or a
- * signed-out session) Cloud is "unavailable" and Techstack stays the only
+ * Without a Gateway token (self-hosted Homelab without kombify Cloud, or a
+ * signed-out session) Cloud is "unavailable" and Homelab stays the only
  * authority (STACKKITS-PRODUCT-BOUNDARY-STANDARD.md §10.8).
  */
 import { getGatewayToken } from "#lib/auth/gateway-auth.js";
 import { connectGatewayOrigin } from "./connectDevices";
 
-/** Cloud's StackIdentityV1 wire form (the fields Techstack syncs). */
+/** Cloud's StackIdentityV1 wire form (the fields Homelab syncs). */
 export interface CloudStackIdentityV1 {
   revision: number;
   name: string;

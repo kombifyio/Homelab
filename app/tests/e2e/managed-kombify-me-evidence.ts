@@ -1,7 +1,7 @@
 // Managed kombify.me address evidence (kombify-Gateway-annz, -7apl): the
-// addresses Techstack registered for one managed stack, read as the owner
-// through the scoped Techstack read GET /api/v1/tunnel/subdomains (no
-// operator key; Techstack answers only the caller's own owner binding), one
+// addresses Homelab registered for one managed stack, read as the owner
+// through the scoped Homelab read GET /api/v1/tunnel/subdomains (no
+// operator key; Homelab answers only the caller's own owner binding), one
 // registered first-party host answering HTTPS 200, and the same read after
 // decommission showing none of the stack's addresses remain. Each step records
 // what it observed, including a failed read; nothing here throws, so the
@@ -53,7 +53,7 @@ interface ReadArgs {
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const text = (value: unknown) => (typeof value === "string" ? value : "");
 
-// Techstack binds a stack's routes to the lower-cased stack id
+// Homelab binds a stack's routes to the lower-cased stack id
 // (pkg/kombifyme/binding.go NewManagedAddress).
 export function kombifyMeStackRef(stackId: string): string {
   return stackId.trim().toLowerCase();

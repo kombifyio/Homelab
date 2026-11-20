@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/config"
+	"github.com/kombifyio/homelab/pkg/config"
 )
 
 // EnvReleaseChannel is the retired channel selector (config.EnvReleaseChannel).

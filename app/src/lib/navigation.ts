@@ -1,7 +1,7 @@
 /**
  * Navigation Configuration - Single Source of Truth
  *
- * This file defines ALL navigation items for kombify-TechStack.
+ * This file defines ALL navigation items for kombify-Homelab.
  * Both Self-Hosted (sidebar) and SaaS (inline tabs) layouts use this config.
  *
  * Architecture:
@@ -158,7 +158,7 @@ export const mainNavItems: NavItem[] = [
     labelFallback: "Services",
     icon: Boxes,
     children: servicesChildren,
-    anchor: "techstack-services-nav",
+    anchor: "homelab-services-nav",
   },
   {
     id: "monitoring",
@@ -257,7 +257,7 @@ export const embeddedNavItems: NavItem[] = [
     labelFallback: "Services",
     icon: Boxes,
     children: servicesChildren,
-    anchor: "techstack-services-nav",
+    anchor: "homelab-services-nav",
   },
   {
     id: "embedded-monitoring",

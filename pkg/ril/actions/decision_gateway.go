@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardreach"
-	rilaction "github.com/kombifyio/techstack/pkg/ril/actioncontract"
-	"github.com/kombifyio/techstack/pkg/ril/primitives"
 	jsoncanonicalizer "github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
+	"github.com/kombifyio/homelab/pkg/guardreach"
+	rilaction "github.com/kombifyio/homelab/pkg/ril/actioncontract"
+	"github.com/kombifyio/homelab/pkg/ril/primitives"
 )
 
 type RILDecisionGateway interface {
@@ -103,7 +103,7 @@ func equipmentApproval(result guardreach.RILAuthorityResult, in BeginExecution, 
 		IssuedAt     int64  `json:"iat"`
 		Exp          int64  `json:"exp"`
 	}
-	if json.Unmarshal(payload, &lease) != nil || lease.DecisionID != receipt.DecisionID || lease.LeaseID == "" || lease.TenantID != in.TenantID || lease.OwnerSubject != in.OwnerSubjectID || lease.CardID != in.CardID || lease.Issuer != "kombify-gateway" || lease.Audience != "stackkits" || lease.Purpose != "ril-execution" || lease.Executor != "techstack" || lease.PrimitiveID != profile.ID || lease.Scope != profile.GrantScope || lease.IssuedAt <= 0 || lease.IssuedAt > time.Now().UTC().Unix() || lease.Exp <= in.Now.Unix() || lease.Exp-lease.IssuedAt > 900 {
+	if json.Unmarshal(payload, &lease) != nil || lease.DecisionID != receipt.DecisionID || lease.LeaseID == "" || lease.TenantID != in.TenantID || lease.OwnerSubject != in.OwnerSubjectID || lease.CardID != in.CardID || lease.Issuer != "kombify-gateway" || lease.Audience != "stackkits" || lease.Purpose != "ril-execution" || lease.Executor != "homelab" || lease.PrimitiveID != profile.ID || lease.Scope != profile.GrantScope || lease.IssuedAt <= 0 || lease.IssuedAt > time.Now().UTC().Unix() || lease.Exp <= in.Now.Unix() || lease.Exp-lease.IssuedAt > 900 {
 		return nil, errors.New("RIL lease binding invalid")
 	}
 	canonical, err := jsoncanonicalizer.Transform(result.Receipt)

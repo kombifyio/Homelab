@@ -14,11 +14,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servertls"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/fulllocal"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
-	"github.com/kombifyio/techstack/pkg/usernotice"
+	"github.com/kombifyio/homelab/internal/gocommon/servertls"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/usernotice"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
@@ -37,7 +37,7 @@ func (h nopHandler) WithGroup(string) slog.Handler           { return h }
 
 var nopLogger = slog.New(nopHandler{})
 
-// Client handles communication with the kombifyTechstack Core.
+// Client handles communication with the kombifyHomelab Core.
 type Client struct {
 	coreAddr   string
 	agentID    string

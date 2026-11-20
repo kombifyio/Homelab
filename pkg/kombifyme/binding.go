@@ -33,13 +33,13 @@ func InstallZonesEnabled() bool {
 // bindingRefPattern mirrors kombify.me's accepted binding reference format.
 var bindingRefPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._:-]{2,127}$`)
 
-// ManagedAddress identifies the kombify.me addresses Techstack registers for
+// ManagedAddress identifies the kombify.me addresses Homelab registers for
 // one stack with its shared platform identity (platform-7rni.10.7, D-37).
 //
 // kombify.me binds every route to OwnerRef and StackRef and refuses to hand a
 // bound route to any other binding. Label and OwnerRef are non-reversible, so
 // public hostnames and Certificate Transparency logs never carry a stack name
-// or an account subject; the stack's display name stays in Techstack.
+// or an account subject; the stack's display name stays in Homelab.
 type ManagedAddress struct {
 	// Label is the homelab_name sent to kombify.me, which derives the public
 	// base name sh-<Label>-<device fingerprint> from it.
@@ -68,7 +68,7 @@ func NewManagedAddress(tenantID, ownerID, stackID string) (ManagedAddress, error
 	}, nil
 }
 
-// OwnerRef is the non-reversible kombify.me binding reference of one Techstack
+// OwnerRef is the non-reversible kombify.me binding reference of one Homelab
 // owner inside one tenant.
 func OwnerRef(tenantID, ownerID string) (string, error) {
 	tenantID = strings.TrimSpace(tenantID)

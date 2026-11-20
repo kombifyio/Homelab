@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
 )
 
 // Boundary: the environment decides signing and verification, and a malformed
 // key fails closed instead of leaving the shared HS256 secret in charge.
 func TestEnvDrivesEd25519AndMalformedKeyFailsClosed(t *testing.T) {
-	private, public, err := servicecall.GenerateSigningKey("techstack", "ts-1")
+	private, public, err := servicecall.GenerateSigningKey("homelab", "ts-1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,8 +23,8 @@ func TestEnvDrivesEd25519AndMalformedKeyFailsClosed(t *testing.T) {
 	reset()
 	t.Cleanup(reset)
 
-	base := servicecall.Config{ServiceName: "techstack", Target: "techstack", Secret: "shared", Enabled: true,
-		AllowedCallers: []string{"techstack"}}
+	base := servicecall.Config{ServiceName: "homelab", Target: "homelab", Secret: "shared", Enabled: true,
+		AllowedCallers: []string{"homelab"}}
 	cfg, err := Apply(base)
 	if err != nil {
 		t.Fatal(err)
@@ -37,14 +37,14 @@ func TestEnvDrivesEd25519AndMalformedKeyFailsClosed(t *testing.T) {
 		return rec.Code
 	}
 
-	edToken, err := servicecall.IssueToken(cfg, "techstack", nil, "")
+	edToken, err := servicecall.IssueToken(cfg, "homelab", nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if code := reach(edToken); code != http.StatusOK {
 		t.Fatalf("EdDSA token refused: %d", code)
 	}
-	hsToken, err := servicecall.IssueToken(base, "techstack", nil, "")
+	hsToken, err := servicecall.IssueToken(base, "homelab", nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func TestEnvDrivesEd25519AndMalformedKeyFailsClosed(t *testing.T) {
 // Boundary: an Ed25519 public set alone lets a receiver verify without the
 // shared secret, and with neither configured every gate fails closed.
 func TestEd25519AloneIsEnoughAndNeitherFailsClosed(t *testing.T) {
-	private, public, err := servicecall.GenerateSigningKey("techstack", "ts-1")
+	private, public, err := servicecall.GenerateSigningKey("homelab", "ts-1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,12 +84,12 @@ func TestEd25519AloneIsEnoughAndNeitherFailsClosed(t *testing.T) {
 	if !CanVerify("") || !CanSign("") {
 		t.Fatal("Ed25519 key material alone must be enough")
 	}
-	cfg, err := Apply(servicecall.Config{ServiceName: "techstack", Target: "techstack", Enabled: true,
-		AllowedCallers: []string{"techstack"}})
+	cfg, err := Apply(servicecall.Config{ServiceName: "homelab", Target: "homelab", Enabled: true,
+		AllowedCallers: []string{"homelab"}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	token, err := servicecall.IssueToken(cfg, "techstack", nil, "")
+	token, err := servicecall.IssueToken(cfg, "homelab", nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func TestEd25519AloneIsEnoughAndNeitherFailsClosed(t *testing.T) {
 // owner identity) is signed EdDSA under the process key and accepted by a
 // receiver bound to that key; without a key nothing is signed.
 func TestSignEdDSAIsAcceptedByTheKeyBoundReceiver(t *testing.T) {
-	private, public, err := servicecall.GenerateSigningKey("techstack", "ts-1")
+	private, public, err := servicecall.GenerateSigningKey("homelab", "ts-1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,14 +123,14 @@ func TestSignEdDSAIsAcceptedByTheKeyBoundReceiver(t *testing.T) {
 	reset()
 	now := time.Now()
 	payload, _ := json.Marshal(map[string]any{
-		"iss": "kombify-techstack", "aud": "kombify-gateway", "iat": now.Unix(), "exp": now.Add(time.Minute).Unix(),
-		"svc": "techstack", "scope": "connect:techstack-nodes:read", "jti": "0123456789abcdef0123",
+		"iss": "kombify-homelab", "aud": "kombify-gateway", "iat": now.Unix(), "exp": now.Add(time.Minute).Unix(),
+		"svc": "homelab", "scope": "connect:homelab-nodes:read", "jti": "0123456789abcdef0123",
 	})
 	token, ok, err := SignEdDSA(payload)
 	if err != nil || !ok {
 		t.Fatalf("sign: ok=%v err=%v", ok, err)
 	}
-	cfg, err := Apply(servicecall.Config{ServiceName: "gateway", Target: "gateway", Enabled: true, AllowedCallers: []string{"techstack"}})
+	cfg, err := Apply(servicecall.Config{ServiceName: "gateway", Target: "gateway", Enabled: true, AllowedCallers: []string{"homelab"}})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 const (
-	stackSpecProposalAPIVersion = "techstack.kombify.io/v1alpha1"
+	stackSpecProposalAPIVersion = "homelab.kombify.io/v1alpha1"
 	stackSpecProposalKind       = "StackSpecProposal"
 )
 
@@ -46,8 +46,8 @@ func buildReviewableStackSpecProposal(spec *core.KombinationSpec) (*core.Unified
 	if copy.Metadata == nil {
 		copy.Metadata = map[string]string{}
 	}
-	copy.Metadata["techstack_spec_role"] = "review-proposal"
-	copy.Metadata["techstack_final_authority"] = "pinned-stackkit-cli"
+	copy.Metadata["homelab_spec_role"] = "review-proposal"
+	copy.Metadata["homelab_final_authority"] = "pinned-stackkit-cli"
 	return &core.UnifiedSpec{
 		APIVersion:      stackSpecProposalAPIVersion,
 		Kind:            stackSpecProposalKind,

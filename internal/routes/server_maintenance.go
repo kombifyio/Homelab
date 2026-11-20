@@ -15,26 +15,26 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/denial"
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/demoguard"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/outcome"
-	"github.com/kombifyio/techstack/pkg/runtimehealth"
-	"github.com/kombifyio/techstack/pkg/servermaintenance"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
+	"github.com/kombifyio/homelab/internal/gocommon/denial"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/demoguard"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/outcome"
+	"github.com/kombifyio/homelab/pkg/runtimehealth"
+	"github.com/kombifyio/homelab/pkg/servermaintenance"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 )
 
 // ServerMaintenanceEntitlement is the tier-gated capability for owner-requested
 // reboots and OS updates. Auth0 issues it and the Gateway signs it into the v2
-// or v7 envelope; Techstack accepts only that
+// or v7 envelope; Homelab accepts only that
 // signed grant, never the membership fallback. Together with server ownership
 // and tenant scope it is the whole authorization: no inventory entitlement or
 // FGA tuple is required, because maintaining one's own server is an owner
 // right that the tier grant, not an inventory role, meters.
-const ServerMaintenanceEntitlement = "techstack.servers.maintenance"
+const ServerMaintenanceEntitlement = "homelab.servers.maintenance"
 
 // Stable refusal reasons of POST /api/v1/servers/{serverId}/actions.
 const (
@@ -532,7 +532,7 @@ var serverMaintenanceGuidance = map[string]maintenanceGuidance{
 	},
 	maintenanceReasonControlPlaneHost: {
 		title: "This server runs the control plane",
-		body:  "Techstack does not reboot or update the host it runs on: it would stop itself before it could confirm the result.",
+		body:  "Homelab Runtime does not reboot or update the host it runs on: it would stop itself before it could confirm the result.",
 		steps: []string{"Update this host from its own console."},
 	},
 	maintenanceReasonSubstrate: {
@@ -570,7 +570,7 @@ var serverMaintenanceGuidance = map[string]maintenanceGuidance{
 	},
 	maintenanceReasonBootIDUnknown: {
 		title: "The server does not report its boot ID",
-		body:  "Techstack confirms a reboot only when the server comes back with a new boot ID, and this server's agent does not report one.",
+		body:  "Homelab Runtime confirms a reboot only when the server comes back with a new boot ID, and this server's agent does not report one.",
 		steps: []string{"Update the server agent, then retry."},
 	},
 	maintenanceReasonCapabilityMissing: {

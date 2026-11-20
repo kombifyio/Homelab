@@ -15,7 +15,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"github.com/kombifyio/techstack/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
 )
 
 // Prober performs deep discovery via SSH.
@@ -40,7 +40,7 @@ type HostKeyStore struct {
 }
 
 // NewHostKeyStore creates a new host key store. An empty path derives
-// <TECHSTACK_DATA_DIR>/known_hosts (default data/known_hosts).
+// <HOMELAB_DATA_DIR>/known_hosts (default data/known_hosts).
 func NewHostKeyStore(storePath string) *HostKeyStore {
 	if storePath == "" {
 		storePath = filepath.Join(defaultHostKeyStoreDir(), "known_hosts")
@@ -54,7 +54,7 @@ func NewHostKeyStore(storePath string) *HostKeyStore {
 }
 
 func defaultHostKeyStoreDir() string {
-	if dataDir := strings.TrimSpace(os.Getenv("TECHSTACK_DATA_DIR")); dataDir != "" {
+	if dataDir := strings.TrimSpace(os.Getenv("HOMELAB_DATA_DIR")); dataDir != "" {
 		return dataDir
 	}
 	return "data"
@@ -125,7 +125,7 @@ func (s *HostKeyStore) saveLocked() error {
 	sort.Strings(scopedKeys)
 
 	var lines []string
-	lines = append(lines, "# kombifyTechstack known hosts (TOFU - Trust On First Use)")
+	lines = append(lines, "# kombifyHomelab known hosts (TOFU - Trust On First Use)")
 	for _, scoped := range scopedKeys {
 		scope, host, _ := strings.Cut(scoped, "\x00")
 		if scope == "" {

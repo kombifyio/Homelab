@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/grpcserver"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/grpcserver"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 type recordingWorkerAgentIdentityIssuer struct {
@@ -55,7 +55,7 @@ func TestWorkerEnrollmentResponseIncludesMTLSIdentity(t *testing.T) {
 	if !ok {
 		t.Fatalf("grpc_mtls = %#v", response["grpc_mtls"])
 	}
-	if identity["schema_version"] != "techstack.agent-mtls-enrollment/v1" ||
+	if identity["schema_version"] != "homelab.agent-mtls-enrollment/v1" ||
 		identity["agent_id"] != "agent-1" || identity["tenant_id"] != "tenant-1" ||
 		identity["certificate_pem"] != "certificate" || identity["private_key_pem"] != "private-key" ||
 		identity["ca_pem"] != "ca" || identity["serial"] != "1234" ||
@@ -86,7 +86,7 @@ func TestWorkerEnrollmentResponseNamesOnlyTheBridgeItArrivedThrough(t *testing.T
 	}
 
 	forged := httptest.NewRequest(http.MethodPost, origin+"/api/v1/workers/register", nil)
-	forged.Header.Set("X-Techstack-LAN-Bridge", "1")
+	forged.Header.Set("X-Homelab-LAN-Bridge", "1")
 	response = (workerRouteHandlers{}).workerEnrollmentResponse(&httpx.Event{Request: forged, Response: httptest.NewRecorder()}, workerEnrollmentContext{WorkerID: "agent-1"})
 	if _, ok := response["private_lan_pin"]; ok {
 		t.Fatalf("a request outside the bridge was given a LAN pin: %#v", response)

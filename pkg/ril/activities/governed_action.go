@@ -1,5 +1,5 @@
 // Package activities binds the closed RIL workflow definitions to existing
-// Techstack authorities. It contains adapters, not a second action-card,
+// Homelab authorities. It contains adapters, not a second action-card,
 // transport, provider, or execution authority.
 package activities
 
@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/ril/actioncontract"
-	"github.com/kombifyio/techstack/pkg/ril/actions"
-	"github.com/kombifyio/techstack/pkg/ril/workflow"
-	"github.com/kombifyio/techstack/pkg/ril/workflows"
+	"github.com/kombifyio/homelab/pkg/ril/actioncontract"
+	"github.com/kombifyio/homelab/pkg/ril/actions"
+	"github.com/kombifyio/homelab/pkg/ril/workflow"
+	"github.com/kombifyio/homelab/pkg/ril/workflows"
 )
 
 type GovernedActionExecutor interface {

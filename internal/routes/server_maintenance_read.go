@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/denial"
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/servermaintenance"
+	"github.com/kombifyio/homelab/internal/gocommon/denial"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/servermaintenance"
 )
 
 // serverMaintenanceJobView is GET /api/v1/servers/{serverId}/actions/{jobId}.
@@ -178,7 +178,7 @@ var serverMaintenanceFailureGuidance = map[string]maintenanceGuidance{
 	},
 	servermaintenance.ReasonDispatchInterrupted: {
 		title: "The request never reached the server",
-		body:  "Techstack stopped before the server's agent picked up the command. Nothing ran on the server.",
+		body:  "Homelab Runtime stopped before the server's agent picked up the command. Nothing ran on the server.",
 		steps: []string{"Retry the request."}, retryable: true,
 	},
 	servermaintenance.RefusalPackageManagerBusy: {
@@ -193,7 +193,7 @@ var serverMaintenanceFailureGuidance = map[string]maintenanceGuidance{
 	},
 	"control_plane_host": {
 		title: "This server runs the control plane",
-		body:  "The server refused the reboot because it runs Techstack itself.",
+		body:  "The server refused the reboot because it runs Homelab Runtime itself.",
 		steps: []string{"Maintain this host from its own console."},
 	},
 	"unattended_reboot_unsupported": {

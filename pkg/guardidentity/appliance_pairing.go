@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/pairingtoken"
+	"github.com/kombifyio/homelab/pkg/pairingtoken"
 )
 
 // AppliancePairing uses the same tenant-authorized mint as the own-server wizard.

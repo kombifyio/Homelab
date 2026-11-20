@@ -9,20 +9,20 @@ import { authenticateRuntimeUser, type RuntimeAuthRole } from "./runtime-auth";
 // must finish while the product stays up.
 
 const PRODUCT_BASE = liveProductURL(
-  process.env.TECHSTACK_RUNTIME_E2E_PRODUCT_URL ??
-    process.env.TECHSTACK_E2E_PRODUCT_URL ??
+  process.env.HOMELAB_RUNTIME_E2E_PRODUCT_URL ??
+    process.env.HOMELAB_E2E_PRODUCT_URL ??
     process.env.PLAYWRIGHT_BASE_URL ??
-    "https://techstack.kombify.io",
+    "https://homelab.kombify.io",
 );
 const API_BASE = liveProductURL(
-  process.env.TECHSTACK_RUNTIME_E2E_API_URL ??
-    process.env.TECHSTACK_API_URL ??
+  process.env.HOMELAB_RUNTIME_E2E_API_URL ??
+    process.env.HOMELAB_API_URL ??
     PRODUCT_BASE,
 );
 // The runtime test user keeps stacks whose servers are long gone. The cloud
 // fixture of the Delivery Preview login gate owns none, so a cloud-only
 // selection skips this step.
-const SELECTED_ROLES = (process.env.TECHSTACK_RUNTIME_E2E_AUTH_ROLES ?? "")
+const SELECTED_ROLES = (process.env.HOMELAB_RUNTIME_E2E_AUTH_ROLES ?? "")
   .split(",")
   .map((role) => role.trim())
   .filter(Boolean);
@@ -41,7 +41,7 @@ test("removing a stack whose servers are gone keeps the product up", async ({
     productBase: PRODUCT_BASE,
     apiBase: API_BASE,
     sessionCookieName:
-      process.env.TECHSTACK_E2E_SESSION_COOKIE_NAME ?? "techstack_session",
+      process.env.HOMELAB_E2E_SESSION_COOKIE_NAME ?? "homelab_session",
   });
   const target = await offlineStack(auth.token);
   test.skip(

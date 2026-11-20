@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 func TestIntegrationWorkerEnrollmentClaimHasOneImmutableWinner(t *testing.T) {

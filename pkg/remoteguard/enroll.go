@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/guardbootstrap"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/discovery"
-	"github.com/kombifyio/techstack/pkg/pairingtoken"
-	"github.com/kombifyio/techstack/pkg/secrets"
+	"github.com/kombifyio/homelab/internal/guardbootstrap"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/discovery"
+	"github.com/kombifyio/homelab/pkg/pairingtoken"
+	"github.com/kombifyio/homelab/pkg/secrets"
 	"golang.org/x/crypto/ssh"
 )
 

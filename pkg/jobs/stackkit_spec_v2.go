@@ -8,15 +8,15 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/specv2"
-	"github.com/kombifyio/techstack/pkg/unifier"
+	"github.com/kombifyio/homelab/pkg/specv2"
+	"github.com/kombifyio/homelab/pkg/unifier"
 	"gopkg.in/yaml.v3"
 )
 
 const (
 	// stackKitSpecTemplateEnv points at the canonical v2 StackSpec documents the
 	// image authored at build time, one directory per kit.
-	stackKitSpecTemplateEnv = "TECHSTACK_STACKKIT_SPEC_TEMPLATES"
+	stackKitSpecTemplateEnv = "HOMELAB_STACKKIT_SPEC_TEMPLATES"
 
 	// canonicalStackSpecAPIVersion identifies the legacy canonical contract.
 	canonicalStackSpecAPIVersion = "stackkit/v2alpha1"
@@ -47,7 +47,7 @@ const (
 // canonicalStackSpecFor returns the path of the canonical v2 StackSpec the
 // pinned CLI should execute, deriving it from the persisted handoff when needed.
 //
-// Techstack hand-authors the handoff in the v1 shape. StackKits 0.8 reads v1
+// Homelab hand-authors the handoff in the v1 shape. StackKits 0.8 reads v1
 // only through the migration adapter, so every rollout died at generate:
 //
 //	Error: architecturev2 migration_required: StackSpec v1 is readable only
@@ -344,7 +344,7 @@ func persistProjectedStackSpec(persister *unifier.SpecPersister, specData interf
 
 // stackSpecOutputRoot reads the destination the resolved plan governs.
 //
-// Techstack used to generate into its own tofu/ directory, and the CLI refused
+// Homelab used to generate into its own tofu/ directory, and the CLI refused
 // it outright: "architecture v2 --output must resolve to governed ResolvedPlan
 // outputRoot deploy". The destination is the plan's to decide, so it is read
 // rather than assumed, and a value that is not a single relative segment is
@@ -363,7 +363,7 @@ func stackSpecOutputRoot(document map[string]interface{}) (string, error) {
 // stackSpecDomainBase resolves the routing domain for the handoff.
 //
 // This mirrors stackKitNetworkToKombinationNetwork, which is how the rest of
-// Techstack already reads a domain out of the same document: an explicit
+// Homelab already reads a domain out of the same document: an explicit
 // domain, then network.domain, then a network mode that is really a domain,
 // then kombify.me for a cloud-context stack in that address mode. metadata
 // .domain is checked too because the routing overlay writes a custom domain

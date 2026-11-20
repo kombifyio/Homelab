@@ -41,10 +41,10 @@ export function removalDataSentinelsFromEnv(): (
   workloadRefs: readonly string[],
   dataRoot: string,
 ) => Promise<void> {
-  const raw = process.env.TECHSTACK_RUNTIME_E2E_REMOVE_SENTINELS_JSON;
+  const raw = process.env.HOMELAB_RUNTIME_E2E_REMOVE_SENTINELS_JSON;
   if (!raw)
     throw new Error(
-      "Remove requires real retained-data sentinels in TECHSTACK_RUNTIME_E2E_REMOVE_SENTINELS_JSON",
+      "Remove requires real retained-data sentinels in HOMELAB_RUNTIME_E2E_REMOVE_SENTINELS_JSON",
     );
   const parsed: unknown = JSON.parse(raw);
   if (!Array.isArray(parsed) || !parsed.length || !parsed.every(isSentinel))

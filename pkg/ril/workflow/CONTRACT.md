@@ -95,7 +95,7 @@ The engine:
   history only when both owner and tenant match the authenticated inventory
   scope. Missing or foreign runs are indistinguishable and the response is
   `private, no-store`.
-- The central `/metrics` registry publishes bounded `techstack_ril_workflow_*`
+- The central `/metrics` registry publishes bounded `homelab_ril_workflow_*`
   transition, duration, and timer counters/histograms. Labels are limited to
   closed run type, step name, status, timer kind, and outcome values; run,
   tenant, owner, card, signal, and server identifiers are forbidden labels.

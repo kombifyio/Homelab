@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/privatefs"
+	"github.com/kombifyio/homelab/internal/privatefs"
 )
 
 // Bootstrap is the one-time pairing capability persisted before redemption so

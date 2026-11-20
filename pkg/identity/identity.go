@@ -1,10 +1,10 @@
 // Package identity re-exports the canonical identity types from kombify-go-common.
-// All downstream code continues to import "github.com/kombifyio/techstack/pkg/identity"
+// All downstream code continues to import "github.com/kombifyio/homelab/pkg/identity"
 // unchanged, but the implementation lives in the shared module.
 package identity
 
 import (
-	common "github.com/kombifyio/techstack/internal/gocommon/identity"
+	common "github.com/kombifyio/homelab/internal/gocommon/identity"
 )
 
 // Type aliases so existing imports continue to work.

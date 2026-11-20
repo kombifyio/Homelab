@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/runtimehealth"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/pkg/runtimehealth"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 const (
@@ -34,7 +34,7 @@ const (
 	serviceHealthUnhealthy     = "unhealthy"
 	serviceObservedReady       = "ready"
 	serviceObservedStarting    = "starting"
-	serviceRuntimeAuthority    = "techstack"
+	serviceRuntimeAuthority    = "homelab"
 	serviceStackKit            = "stackkit"
 	serviceStackKits           = "stackkits"
 	serviceStackKitManifest    = "stackkit-access-manifest"

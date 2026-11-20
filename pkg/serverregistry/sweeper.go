@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/outcome"
-	"github.com/kombifyio/techstack/pkg/runtimehealth"
+	"github.com/kombifyio/homelab/pkg/outcome"
+	"github.com/kombifyio/homelab/pkg/runtimehealth"
 )
 
 const (
@@ -433,10 +433,10 @@ func DemotionCommand(now time.Time, server Aggregate) (Command, bool) {
 		ObservedAt: now,
 		Outcome: &outcome.Decision{
 			Status: outcome.StatusDegraded, ReasonCode: reason,
-			Capability: "techstack.server.connect", ProviderID: strings.TrimSpace(server.ProviderRef), Retryable: true,
+			Capability: "homelab.server.connect", ProviderID: strings.TrimSpace(server.ProviderRef), Retryable: true,
 			UserGuidance: &outcome.Guidance{
 				Title: "The server connection needs attention",
-				Body:  "Techstack has not received a recent authenticated Guard heartbeat. The last verified inventory is retained while the connection recovers.",
+				Body:  "Homelab Runtime has not received a recent authenticated Guard heartbeat. The last verified inventory is retained while the connection recovers.",
 				NextSteps: []outcome.Step{{
 					ID: "check-guard", Label: "Check that the server and Guard service are online", Kind: "connect",
 				}},

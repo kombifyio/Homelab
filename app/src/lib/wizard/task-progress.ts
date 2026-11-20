@@ -1,5 +1,5 @@
 /**
- * kombify-TechStack creation progress
+ * kombify-Homelab creation progress
  *
  * Time-weighted progress for the creation view. Each phase contributes its
  * typical duration to the bar, so a phase that usually takes minutes fills

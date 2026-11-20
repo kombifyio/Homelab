@@ -8,16 +8,16 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/identity"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
-	"github.com/kombifyio/techstack/pkg/workerauth"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/workerauth"
 )
 
 const testWorkerCredentialSecret = "test-worker-credential-secret"
 
 func TestWorkerConnectIdempotentReplayDoesNotRotateCredential(t *testing.T) {
-	t.Setenv("TECHSTACK_WORKER_AGENT_TOKEN_SECRET", testWorkerCredentialSecret)
+	t.Setenv("HOMELAB_WORKER_AGENT_TOKEN_SECRET", testWorkerCredentialSecret)
 	store := controlplane.NewMemoryStore()
 	handler := workerRouteHandlers{wst: store, serverStore: store}
 	body := `{"server_id":"server-1","runtime_agent_id":"runtime-1","stack_id":"stack-1","hostname":"NODE-1","os":"Ubuntu","arch":"AMD64","mode":"advanced","connection_mode":"ssh","provider":"local"}`
@@ -80,7 +80,7 @@ func TestWorkerConnectIdempotentReplayDoesNotRotateCredential(t *testing.T) {
 }
 
 func TestWorkerConnectRequiresExactlyOneBoundedIdempotencyKey(t *testing.T) {
-	t.Setenv("TECHSTACK_WORKER_AGENT_TOKEN_SECRET", testWorkerCredentialSecret)
+	t.Setenv("HOMELAB_WORKER_AGENT_TOKEN_SECRET", testWorkerCredentialSecret)
 	for _, test := range []struct {
 		name   string
 		values []string
@@ -210,7 +210,7 @@ func TestWorkerCredentialConcurrentDifferentKeysHasExactlyOneWinner(t *testing.T
 }
 
 func TestWorkerCredentialRotationReplaysAndRejectsStaleGeneration(t *testing.T) {
-	t.Setenv("TECHSTACK_WORKER_AGENT_TOKEN_SECRET", testWorkerCredentialSecret)
+	t.Setenv("HOMELAB_WORKER_AGENT_TOKEN_SECRET", testWorkerCredentialSecret)
 	store := controlplane.NewMemoryStore()
 	handler := workerRouteHandlers{wst: store, serverStore: store}
 	if _, err := store.UpsertWorkerHeartbeat(t.Context(), controlplane.Worker{
@@ -293,13 +293,13 @@ func workerCredentialConcurrencyFixture(t *testing.T) (*controlplane.MemoryStore
 		t.Fatal(err)
 	}
 	return store, workerRouteHandlers{
-		wst: store, credentialSecret: []byte(testWorkerCredentialSecret),
-	}, workerCredentialRequest{
-		TenantID: "tenant-1", OwnerID: "owner-1", StackID: "stack-1",
-		ServerID: "server-1", RuntimeAgentID: "runtime-1",
-		IdempotencyKey: "concurrent-attempt-0001",
-		RequestDigest:  "c5f6f126f491f4ef6687a36a2f16e56dfadf5bb8a507417d76c0d9c29c56f1bd",
-	}
+			wst: store, credentialSecret: []byte(testWorkerCredentialSecret),
+		}, workerCredentialRequest{
+			TenantID: "tenant-1", OwnerID: "owner-1", StackID: "stack-1",
+			ServerID: "server-1", RuntimeAgentID: "runtime-1",
+			IdempotencyKey: "concurrent-attempt-0001",
+			RequestDigest:  "c5f6f126f491f4ef6687a36a2f16e56dfadf5bb8a507417d76c0d9c29c56f1bd",
+		}
 }
 
 func leftPadInteger(value, width int) string {

@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"strings"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/guardtelemetry"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/guardtelemetry"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // WorkerTelemetry is the kombify Guard telemetry ingest as the worker routes use

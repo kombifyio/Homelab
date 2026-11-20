@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 // Admission is what a Guard verified about one offered command: the exact JSON

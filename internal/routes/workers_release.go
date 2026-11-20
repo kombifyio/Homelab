@@ -12,23 +12,23 @@ import (
 	"sync/atomic"
 	"time"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/guardrelease"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/logger"
 	"github.com/google/uuid"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/logger"
 )
 
 const (
 	// guardReleaseDirEnv names the directory holding the signed Guard release the
 	// control plane publishes: release-manifest.json, its Sigstore bundle, one
-	// techstack-<os>-<arch> binary per platform and each binary's bundle. The
+	// homelab-<os>-<arch> binary per platform and each binary's bundle. The
 	// files come from the Guard release workflow; the control plane serves them
 	// unchanged and never signs anything itself.
-	guardReleaseDirEnv       = "TECHSTACK_GUARD_RELEASE_DIR"
+	guardReleaseDirEnv       = "HOMELAB_GUARD_RELEASE_DIR"
 	guardReleaseManifestFile = "release-manifest.json"
 	guardReleaseManifestSig  = "release-manifest.sigstore.json"
 	agentBinaryVersionHeader = "X-Kombify-Artifact-Version"
@@ -66,7 +66,7 @@ func guardReleaseDir() string {
 }
 
 func signedGuardBinaryName(goos, goarch string) string {
-	return fmt.Sprintf("techstack-%s-%s", goos, goarch)
+	return fmt.Sprintf("homelab-%s-%s", goos, goarch)
 }
 
 // signedGuardReleaseVersion reads the version of the release directory's manifest.

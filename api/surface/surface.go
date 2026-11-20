@@ -1,6 +1,6 @@
 // Package surface embeds the generated agent-native API surface of the
-// Techstack contract (API-FIRST-STANDARD section 9). api-surface.json is
-// generated from api/openapi/techstack-v1.yaml by `mise run api:surface`;
+// Homelab contract (API-FIRST-STANDARD section 9). api-surface.json is
+// generated from api/openapi/homelab-v1.yaml by `mise run api:surface`;
 // never edit it by hand.
 package surface
 

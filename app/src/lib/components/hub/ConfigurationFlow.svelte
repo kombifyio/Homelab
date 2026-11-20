@@ -60,10 +60,10 @@
   import { normalizeServerOutcome } from "#lib/support/server-outcome.js";
   import { type StackConfig } from "#lib/wizard/index.js";
   import {
-    buildTechstackCreationEventProperties,
+    buildHomelabCreationEventProperties,
     createPostHogClient,
-    toTechstackAnalyticsUser,
-    type TechstackCreationEventInput,
+    toHomelabAnalyticsUser,
+    type HomelabCreationEventInput,
   } from "#lib/analytics/posthog.js";
   import { tr } from "#lib/i18n.svelte.js";
   import {
@@ -625,8 +625,8 @@
 
   function stackCreationAnalyticsInput(
     config: StackConfig,
-    extra: TechstackCreationEventInput = {},
-  ): TechstackCreationEventInput {
+    extra: HomelabCreationEventInput = {},
+  ): HomelabCreationEventInput {
     return {
       wizardType: config.wizardType,
       provider: config.provider,
@@ -640,14 +640,14 @@
 
   function captureStackCreationEvent(
     event:
-      | "techstack:stack_create_started"
-      | "techstack:pipeline_previewed"
-      | "techstack:stack_created"
-      | "techstack:stack_create_failed",
-    input: TechstackCreationEventInput,
+      | "homelab:stack_create_started"
+      | "homelab:pipeline_previewed"
+      | "homelab:stack_created"
+      | "homelab:stack_create_failed",
+    input: HomelabCreationEventInput,
   ) {
     if (typeof window === "undefined") return;
-    const user = toTechstackAnalyticsUser(authStore.cloudUser);
+    const user = toHomelabAnalyticsUser(authStore.cloudUser);
     if (!user?.authSubject) return;
 
     const bootstrap = getClientBootstrap();
@@ -665,7 +665,7 @@
     }).capture(event, {
       user,
       properties: {
-        ...buildTechstackCreationEventProperties(input),
+        ...buildHomelabCreationEventProperties(input),
         deployment_mode: authStore.deploymentMode,
       },
     });
@@ -773,7 +773,7 @@
         : {}),
     });
     captureStackCreationEvent(
-      "techstack:stack_created",
+      "homelab:stack_created",
       stackCreationAnalyticsInput(config, {
         stackId: run.kit_deployment_id,
         jobId: run.job_id,
@@ -820,7 +820,7 @@
 
     try {
       captureStackCreationEvent(
-        "techstack:stack_create_started",
+        "homelab:stack_create_started",
         stackCreationAnalyticsInput(config),
       );
 
@@ -841,7 +841,7 @@
       const parsed = parseApiError(error);
       const parsedDetails = createErrorDetails(parsed.details);
       captureStackCreationEvent(
-        "techstack:stack_create_failed",
+        "homelab:stack_create_failed",
         stackCreationAnalyticsInput(config, {
           errorStatus: parsed.status,
           requestId: parsedDetails.requestId,
@@ -1021,7 +1021,7 @@
             technical: technicalLines(parsed, parsed.message),
           });
         } else if (walletRefusal) {
-          // A Wallet refusal (Techstack may not save credentials yet) is not a
+          // A Wallet refusal (Homelab may not save credentials yet) is not a
           // name conflict: the client already raised the Wallet prompt, and
           // the same answers can be submitted again once it is allowed.
           conflictStackId = null;
@@ -1303,7 +1303,7 @@
                       {tr("ui.configFlow.defaultCredentials")}
                     </p>
                     <div class="space-y-1 font-mono text-xs">
-                      <p class="text-primary">admin@techstack.local</p>
+                      <p class="text-primary">admin@homelab.local</p>
                       <p class="text-muted-foreground">
                         {tr(
                           "ui.configurationFlow.useTheAdminPasswordConfigured",

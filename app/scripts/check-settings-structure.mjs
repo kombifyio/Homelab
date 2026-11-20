@@ -1,4 +1,4 @@
-// Structural guard for Techstack's settings pages (KOMBIFY-DESIGN-SYSTEM-STANDARD.md §10.3, run first
+// Structural guard for Homelab's settings pages (KOMBIFY-DESIGN-SYSTEM-STANDARD.md §10.3, run first
 // by `pnpm check`): a settings page is drawn only from the product's own settings components and
 // layout, so it looks like every other settings page. It fails on the shape that once made the
 // Companion tab look foreign (StackKits #3405): another package's own settings renderer, a stylesheet
@@ -70,7 +70,7 @@ for (const file of walk(src)) {
   for (const specifier of specifiers(text)) {
     if (/^@[^/]+\/ui\/companion-settings(\/|$)/u.test(specifier)) {
       failures.push(
-        `${where}: imports ${specifier}; the Companion tab is drawn from Techstack's own settings components (state logic: src/lib/settings/companion/)`,
+        `${where}: imports ${specifier}; the Companion tab is drawn from Homelab Runtime's own settings components (state logic: src/lib/settings/companion/)`,
       );
     }
     if (inSurface(file) && /\.css(\?.*)?$/u.test(specifier)) {
@@ -114,5 +114,5 @@ if (failures.length > 0) {
   process.exit(1);
 }
 console.log(
-  "check-settings-structure: settings pages use only Techstack's own settings components",
+  "check-settings-structure: settings pages use only Homelab Runtime's own settings components",
 );

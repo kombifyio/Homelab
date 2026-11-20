@@ -14,7 +14,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
 export const OLD_GUARD_VERSION = "0.45.6";
-/** sha256 of the archived guard-v0.45.6 techstack-linux-amd64. */
+/** sha256 of the archived guard-v0.45.6 homelab-linux-amd64. */
 export const OLD_GUARD_SHA256 =
   "ea54cf72ea3091155a65c2d4f22fdd07339038fb2a104ec8a20cde54988fd6bc";
 const SIGNER_MOVE = [0, 45, 17];
@@ -69,14 +69,14 @@ export async function runGuardReinstallJourney(
   expect(createHash("sha256").update(oldGuard).digest("hex"), "the archived guard-v0.45.6 binary").toBe(OLD_GUARD_SHA256);
 
   // The server runs the old Guard on its existing enrollment.
-  await deps.upload(oldGuardPath, "/tmp/techstack-guard-v0.45.6");
+  await deps.upload(oldGuardPath, "/tmp/homelab-guard-v0.45.6");
   await deps.root(
-    "install -m 0755 /tmp/techstack-guard-v0.45.6 /usr/local/bin/.techstack.old && rm -f /tmp/techstack-guard-v0.45.6 && " +
-      "systemctl stop techstack-agent.service && mv -f /usr/local/bin/.techstack.old /usr/local/bin/techstack && " +
-      "install -m 0755 /usr/local/bin/techstack /usr/local/libexec/techstack-stackkit-operations && " +
+    "install -m 0755 /tmp/homelab-guard-v0.45.6 /usr/local/bin/.homelab.old && rm -f /tmp/homelab-guard-v0.45.6 && " +
+      "systemctl stop techstack-agent.service && mv -f /usr/local/bin/.homelab.old /usr/local/bin/homelab && " +
+      "install -m 0755 /usr/local/bin/homelab /usr/local/libexec/homelab-stackkit-operations && " +
       "systemctl start techstack-agent.service",
   );
-  expect(await deps.root("/usr/local/bin/techstack version")).toContain(`v${OLD_GUARD_VERSION}`);
+  expect(await deps.root("/usr/local/bin/homelab version")).toContain(`v${OLD_GUARD_VERSION}`);
   const custodyBefore = await deps.root(`sha256sum ${CUSTODY}`);
 
   // API and UI: the Guard needs a reinstall.
@@ -122,7 +122,7 @@ export async function runGuardReinstallJourney(
   }
 
   return {
-    schemaVersion: "techstack.guard-reinstall/v1",
+    schemaVersion: "homelab.guard-reinstall/v1",
     oldGuard: { version: OLD_GUARD_VERSION, sha256: OLD_GUARD_SHA256 },
     required: { api: required.state, ui: "attention" },
     reinstall: { from, to, sha256, enrollment: "unchanged", identityKey: "unchanged" },

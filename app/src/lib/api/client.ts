@@ -1,5 +1,5 @@
 /**
- * kombify-TechStack API Client - Core Utilities
+ * kombify-Homelab API Client - Core Utilities
  *
  * Low-level fetch wrapper and helper functions for API communication.
  * Handles communication with the Go backend.
@@ -28,11 +28,11 @@ import {
 // - In the browser we prefer relative URLs so the deployment can decide routing
 //   (reverse proxy, same-origin, etc.) without hardcoding any host/port.
 // - For SSR, provide an absolute base URL via env (e.g. VITE_API_URL at build
-//   time or TECHSTACK_API_URL at runtime).
+//   time or HOMELAB_API_URL at runtime).
 const ENV_API_BASE =
   import.meta.env.VITE_API_URL ||
   (typeof process !== "undefined" && process.env
-    ? process.env.TECHSTACK_API_URL || ""
+    ? process.env.HOMELAB_API_URL || ""
     : "");
 
 function isIpHost(hostname: string): boolean {
@@ -56,7 +56,7 @@ function stripTrailingSlash(url: string): string {
  */
 export const API_BASE = (() => {
   if (ENV_API_BASE) {
-    // In the browser, ignore internal Docker hostnames like `http://techstack:5260`
+    // In the browser, ignore internal Docker hostnames like `http://homelab:5260`
     // because the browser can't resolve them. Still allow explicit same-origin,
     // localhost, IPs, or real domains.
     if (typeof window !== "undefined") {
@@ -120,15 +120,15 @@ export const API_BASE = (() => {
   }
 
   // SSR: only an explicit env origin is an absolute API base. Otherwise stay
-  // same-origin so a missing TECHSTACK_API_URL cannot mint localhost.
+  // same-origin so a missing HOMELAB_API_URL cannot mint localhost.
   const env = typeof process !== "undefined" && process.env ? process.env : {};
-  const runtimeBase = env.TECHSTACK_API_URL || "";
+  const runtimeBase = env.HOMELAB_API_URL || "";
   if (runtimeBase) return stripTrailingSlash(runtimeBase);
   return "";
 })();
 
 // Cloudflare gateway base for the embedded data plane, e.g.
-// https://api.kombify.io/v1/techstack. Set at build time (VITE_GATEWAY_API_BASE).
+// https://api.kombify.io/v1/homelab. Set at build time (VITE_GATEWAY_API_BASE).
 const GATEWAY_API_BASE =
   (import.meta.env.VITE_GATEWAY_API_BASE as string | undefined)?.replace(
     /\/+$/,
@@ -145,9 +145,9 @@ function runtimeKombifyEdition(): string {
 
 /**
  * In SaaS data-plane mode, route authenticated /api/v1/* calls through the
- * Cloudflare gateway (api.kombify.io/v1/techstack/*) so the edge validates the
+ * Cloudflare gateway (api.kombify.io/v1/homelab/*) so the edge validates the
  * user's Auth0 token and signs the entitlement-flag envelope. The gateway strips
- * /v1/techstack back to /api/v1 at the origin, so /api/v1/x maps to
+ * /v1/homelab back to /api/v1 at the origin, so /api/v1/x maps to
  * `${gatewayBase}/x`.
  *
  * Pure for testability. Returns null when the call must stay same-origin:
@@ -169,7 +169,7 @@ export function resolveGatewayUrl(
   const edition = opts.kombifyEdition?.trim().toLowerCase();
   // Render PR previews must exercise the UI and API from the same candidate
   // revision. Routing them through the production gateway would validate the
-  // preview UI against whichever TechStack revision happens to be live.
+  // preview UI against whichever Homelab revision happens to be live.
   if (edition === "preview") return null;
   const shouldUseGateway =
     opts.dataPlane === "gateway" ||
@@ -263,8 +263,8 @@ function mustStaySameOrigin(endpoint: string, method?: string): boolean {
       /^\/api\/v1\/wallet\/[^/]+\/reauth-proof$/.test(path));
   // The Guard binary pins are a public read the control plane serves to
   // installers. The edge containment rule (owner_20261025_stop_render_artifact_egress)
-  // blocks every Techstack path containing "/install" on api.kombify.io and
-  // admits only this read on the Techstack origin itself; through the Gateway
+  // blocks every Homelab path containing "/install" on api.kombify.io and
+  // admits only this read on the Homelab origin itself; through the Gateway
   // the request is refused, no pin is known and no install command is shown.
   const guardPinsRead =
     (method || "GET").toUpperCase() === "GET" &&

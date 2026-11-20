@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/pkg/vmleases"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 )
 
 // A governed decommission tears down a managed lease on behalf of an owner who
@@ -27,7 +27,7 @@ type GovernedReason string
 
 const (
 	// GovernedReasonAccountErasure: the owner's confirmed account erasure
-	// reached Techstack, which removes provider resources before erasing.
+	// reached Homelab, which removes provider resources before erasing.
 	GovernedReasonAccountErasure GovernedReason = "account_erasure"
 )
 

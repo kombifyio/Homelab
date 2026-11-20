@@ -9,18 +9,18 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/orchestrator"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/orchestrator"
 )
 
 // The Loxone import route lets Cloud run `stackkit setup loxone-import` on the
 // owner's node (the node of the home graph sync) and read the merged home
 // graph back as a proposal. Cloud stores the proposal in the household home
 // graph with a new revision (and sends it here again through the home graph
-// route); Techstack never replaces the stored graph with it. The Miniserver
+// route); Homelab never replaces the stored graph with it. The Miniserver
 // credential stays on the node and never passes this route.
 const (
 	householdHomeGraphLoxoneImportPath = "/api/v1/internal/household/home-graph/loxone-import"

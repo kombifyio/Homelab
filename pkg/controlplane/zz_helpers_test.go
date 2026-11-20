@@ -3,8 +3,8 @@ package controlplane
 // Helpers of retired unit tests that the remaining boundary tests of this package still use.
 
 import (
-	"regexp"
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
+	"regexp"
 )
 
 func expectTenantGUC(mock sqlmock.Sqlmock, tenantID string) {
@@ -21,4 +21,3 @@ func workerRows() *sqlmock.Rows {
 		"capabilities_json", "resources_json", "created_at", "updated_at",
 	})
 }
-

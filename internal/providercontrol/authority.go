@@ -3,7 +3,7 @@ package providercontrol
 import "fmt"
 
 func validateExecutionAuthority(authority ExecutionAuthority) error {
-	if authority == ExecutionAuthorityTechstackProviderControl {
+	if authority == ExecutionAuthorityHomelabProviderControl {
 		return nil
 	}
 	return fmt.Errorf("%w: unsupported authority %q", ErrExecutionAuthority, authority)

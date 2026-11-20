@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { requireTechStackTestUser } from "../../src/lib/testing/techstack-test-users";
+import { requireHomelabTestUser } from "../../src/lib/testing/homelab-test-users";
 
 import {
   authenticateRuntimeUser,
@@ -7,18 +7,18 @@ import {
 } from "./runtime-auth";
 
 const PRODUCT_BASE = requireLiveProductURL(
-  process.env.TECHSTACK_RUNTIME_E2E_PRODUCT_URL ??
-    process.env.TECHSTACK_E2E_PRODUCT_URL ??
+  process.env.HOMELAB_RUNTIME_E2E_PRODUCT_URL ??
+    process.env.HOMELAB_E2E_PRODUCT_URL ??
     process.env.PLAYWRIGHT_BASE_URL ??
-    "https://techstack.kombify.io",
+    "https://homelab.kombify.io",
 );
 const API_BASE = requireLiveProductURL(
-  process.env.TECHSTACK_RUNTIME_E2E_API_URL ??
-    process.env.TECHSTACK_API_URL ??
+  process.env.HOMELAB_RUNTIME_E2E_API_URL ??
+    process.env.HOMELAB_API_URL ??
     PRODUCT_BASE,
 );
 const SESSION_COOKIE_NAME =
-  process.env.TECHSTACK_E2E_SESSION_COOKIE_NAME ?? "techstack_session";
+  process.env.HOMELAB_E2E_SESSION_COOKIE_NAME ?? "homelab_session";
 const tierClaim = "https://kombify.io/tier";
 // The token carries no entitlement list: the Gateway decides on Administration's committed
 // projection and serves the person's own decided list at GET /v1/entitlements/current.
@@ -26,8 +26,8 @@ const GATEWAY_ORIGIN = requireLiveProductURL(
   process.env.KOMBIFY_API_ORIGIN ?? "https://api.kombify.io",
 );
 const commonEntitlements = [
-  "techstack.managed.runtime",
-  "techstack.managed.runtime.cloudkit",
+  "homelab.managed.runtime",
+  "homelab.managed.runtime.cloudkit",
 ] as const;
 // Managed-server capacity comes from the quota entitlement of the token's own
 // paid tier (Cloud plan-entitlement-budgets: pro and ayn grant servers). The
@@ -45,7 +45,7 @@ const managedProviders = ["centron", "ionos"] as const;
 type ManagedProviderID = (typeof managedProviders)[number];
 
 function selectedManagedProviders(): ManagedProviderID[] {
-  const requested = (process.env.TECHSTACK_RUNTIME_E2E_PROVIDER_ID ?? "all")
+  const requested = (process.env.HOMELAB_RUNTIME_E2E_PROVIDER_ID ?? "all")
     .trim()
     .toLowerCase();
   if (!requested || requested === "all") return [...managedProviders];
@@ -53,7 +53,7 @@ function selectedManagedProviders(): ManagedProviderID[] {
     return [requested as ManagedProviderID];
   }
   throw new Error(
-    "TECHSTACK_RUNTIME_E2E_PROVIDER_ID must be exactly centron, ionos, or all",
+    "HOMELAB_RUNTIME_E2E_PROVIDER_ID must be exactly centron, ionos, or all",
   );
 }
 
@@ -128,7 +128,7 @@ async function assertManagedEntitlements(
   for (const entitlement of [
     ...commonEntitlements,
     `cloud.runtime.credits.${tier}`,
-    `techstack.managed.runtime.${providerID}`,
+    `homelab.managed.runtime.${providerID}`,
   ]) {
     expect(granted.has(entitlement), entitlement).toBe(true);
   }
@@ -138,8 +138,8 @@ async function assertAuthenticatedCloudOwner(
   token: string,
   claims: Record<string, unknown>,
 ): Promise<void> {
-  const issuer = (process.env.TECHSTACK_AUTH_CLOUD_ISSUER ?? "https://login.kombify.io").replace(/[/]+$/, "");
-  const expectedUser = requireTechStackTestUser("cloud");
+  const issuer = (process.env.HOMELAB_AUTH_CLOUD_ISSUER ?? "https://login.kombify.io").replace(/[/]+$/, "");
+  const expectedUser = requireHomelabTestUser("cloud");
   expect(
     claims.iss === issuer || claims.iss === issuer + "/",
     "The Gateway token must name the configured Auth0 authority",
@@ -193,7 +193,7 @@ for (const providerID of selectedManagedProviders()) {
     await test.info().attach(`managed-runtime-claims-${providerID}.json`, {
       body: Buffer.from(
         `${JSON.stringify({
-          kind: "techstack-managed-runtime-token-claims/v1",
+          kind: "homelab-managed-runtime-token-claims/v1",
           entitlement_source: "GET /v1/entitlements/current",
           provider_id: providerID,
           fresh_auth0_token: {
@@ -206,7 +206,7 @@ for (const providerID of selectedManagedProviders()) {
             tier,
             required_entitlements: [
               ...commonEntitlements,
-              `techstack.managed.runtime.${providerID}`,
+              `homelab.managed.runtime.${providerID}`,
             ],
           },
         })}\n`,
@@ -250,7 +250,7 @@ for (const providerID of selectedManagedProviders()) {
     await test.info().attach(`managed-runtime-authority-${providerID}.json`, {
       body: Buffer.from(
         `${JSON.stringify({
-          kind: "techstack-managed-runtime-authority-preflight/v1",
+          kind: "homelab-managed-runtime-authority-preflight/v1",
           provider_id: providerID,
           gateway: {
             budget_key: "cloud.runtime.credits",

@@ -16,8 +16,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/denial"
-	"github.com/kombifyio/techstack/internal/gocommon/edition"
+	"github.com/kombifyio/homelab/internal/gocommon/denial"
+	"github.com/kombifyio/homelab/internal/gocommon/edition"
 )
 
 // Version is the wire version of a profile without an ai scope member (v1).

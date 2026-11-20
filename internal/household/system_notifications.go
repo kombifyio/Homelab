@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
 )
 
 // NewActivationDelivery uses the existing Notifications owner. The private

@@ -27,14 +27,14 @@ func ResolveStateDir(base string) string {
 }
 
 // StateDirFromEnv resolves the runtime state directory from the environment.
-// TECHSTACK_STATE_DIR names the directory exactly; the deprecated alias
-// TECHSTACK_PB_DATA_DIR does the same. Otherwise TECHSTACK_DATA_DIR is the base
+// HOMELAB_STATE_DIR names the directory exactly; the deprecated alias
+// HOMELAB_PB_DATA_DIR does the same. Otherwise HOMELAB_DATA_DIR is the base
 // ResolveStateDir works on, and without it the base is the working directory.
 func StateDirFromEnv() string {
-	for _, name := range []string{"TECHSTACK_STATE_DIR", "TECHSTACK_PB_DATA_DIR"} {
+	for _, name := range []string{"HOMELAB_STATE_DIR", "HOMELAB_PB_DATA_DIR"} {
 		if dir := strings.TrimSpace(os.Getenv(name)); dir != "" {
 			return dir
 		}
 	}
-	return ResolveStateDir(strings.TrimSpace(os.Getenv("TECHSTACK_DATA_DIR")))
+	return ResolveStateDir(strings.TrimSpace(os.Getenv("HOMELAB_DATA_DIR")))
 }

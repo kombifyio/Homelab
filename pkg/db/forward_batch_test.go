@@ -306,7 +306,7 @@ DO $$ BEGIN FOREACH t IN ARRAY ARRAY['workers','stacks'] LOOP NULL; END LOOP; EN
 func TestIntegrationForwardBatchSurvivesConcurrentShortLocks(t *testing.T) {
 	dsn := integrationDSN()
 	if dsn == "" {
-		t.Skip("TECHSTACK_TEST_POSTGRES_URL not set; skipping Postgres integration test")
+		t.Skip("HOMELAB_TEST_POSTGRES_URL not set; skipping Postgres integration test")
 	}
 	batch, err := DeliveryForwardBatch()
 	if err != nil {
@@ -473,7 +473,7 @@ func newForwardBatchDatabase(t *testing.T, ctx context.Context, dsn string) (*DB
 		t.Skip("the forward batch case prepares a migration owner and needs a superuser test cluster")
 	}
 	id := strings.ReplaceAll(uuid.NewString(), "-", "")[:16]
-	name, owner, password := "techstack_forward_"+id, "techstack_forward_owner_"+id, uuid.NewString()
+	name, owner, password := "homelab_forward_"+id, "homelab_forward_owner_"+id, uuid.NewString()
 	statements := []string{"CREATE ROLE " + owner + " LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE PASSWORD '" + password + "'"}
 	created := []string{}
 	for _, role := range []string{"techstack_household_worker", "techstack_platform_projection_system"} {
@@ -609,7 +609,7 @@ func startForwardBatchLoad(ctx context.Context, db *sql.DB, cycle func(context.C
 
 // Production created provider_resource_free_terminalization_validate_insert
 // from a CRLF migration file, so the exact LF patch targets of migration 190
-// never matched there and Techstack 0.48.3 stopped at the release preparation
+// never matched there and Homelab 0.48.3 stopped at the release preparation
 // (2026-11-10). The bounded correction folds the read definition to LF before
 // patching and stays bound to the shipped SQL, CRLF checkout or not.
 func TestSubstrateAbsenceMigrationFoldsCRLFDefinition(t *testing.T) {

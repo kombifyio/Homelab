@@ -3,8 +3,8 @@ package oidcclient
 import (
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/identity"
-	"github.com/kombifyio/techstack/internal/gocommon/role"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
+	"github.com/kombifyio/homelab/internal/gocommon/role"
 )
 
 // IdentityFromClaims projects an OIDC [Claims] onto a

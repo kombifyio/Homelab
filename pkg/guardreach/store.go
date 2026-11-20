@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 )
 
 // ErrNotFound means no reach row exists for the worker.
@@ -31,7 +31,7 @@ type Enrollment struct {
 	// ConnectTenantID is the tenant Gateway derived for the owner's own
 	// session (its org id, else usr:<subject>), supplied only where the owner's
 	// Gateway-fronted request is present. It is authoritative; without it the
-	// tenant is mapped from the Techstack tenant by ConnectTenant.
+	// tenant is mapped from the Homelab tenant by ConnectTenant.
 	ConnectTenantID string
 }
 

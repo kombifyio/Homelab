@@ -3,7 +3,7 @@ package hostidentity
 import (
 	"errors"
 
-	"github.com/kombifyio/techstack/pkg/guardidentity"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
 )
 
 // ErrNoIdentityKey means no identity key is loaded, so nothing can be signed.

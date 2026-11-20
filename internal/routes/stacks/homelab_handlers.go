@@ -7,10 +7,10 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // getHomelab resolves the caller's canonical Homelab umbrella (ADR-0036)
@@ -21,7 +21,7 @@ func (h crudRouteHandlers) getHomelab(e *httpx.Event) error {
 	if err != nil {
 		return err
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "techstack.homelab.read")
+	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "homelab.homelab.read")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -78,7 +78,7 @@ func (h crudRouteHandlers) renameHomelab(e *httpx.Event) error {
 	if authErr != nil {
 		return authErr
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "techstack.homelab.rename")
+	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "homelab.homelab.rename")
 	// A missing tenant and a missing store are different denials: the first is
 	// an identity problem the caller can fix by re-authenticating with an
 	// organization scope, the second is a deployment shape they cannot. Route

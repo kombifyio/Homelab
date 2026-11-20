@@ -12,7 +12,7 @@ import {
   type RailPreference,
 } from "@kombiverselabs/ui/shell";
 
-export const RAIL_PREFERENCE_KEY = "techstack-rail-width";
+export const RAIL_PREFERENCE_KEY = "homelab-rail-width";
 /** The earlier format kept the fold in a second key next to a bare width. */
 const LEGACY_COLLAPSED_KEY = `${RAIL_PREFERENCE_KEY}-collapsed`;
 

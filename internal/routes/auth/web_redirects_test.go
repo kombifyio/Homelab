@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 func webRedirectRouter() *httpx.Router {
@@ -19,12 +19,12 @@ func webRedirectRouter() *httpx.Router {
 
 func TestCloudLogoutRedirectIgnoresUntrustedNextWithoutClient(t *testing.T) {
 	t.Setenv("AUTH0_CLIENT_ID", "")
-	t.Setenv("TECHSTACK_AUTH_CLOUD_CLIENT_ID", "")
+	t.Setenv("HOMELAB_AUTH_CLOUD_CLIENT_ID", "")
 
 	router := httpx.NewRouter()
 	router.GET("/auth/cloud-logout", handleCloudLogoutRedirect(config.ModeSaaS))
 	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "https://techstack.kombify.io/auth/cloud-logout?next=https://evil.example", nil)
+	req := httptest.NewRequest(http.MethodGet, "https://homelab.kombify.io/auth/cloud-logout?next=https://evil.example", nil)
 	router.ServeHTTP(recorder, req)
 	if recorder.Code != http.StatusFound {
 		t.Fatalf("status = %d, want 302", recorder.Code)
@@ -37,14 +37,14 @@ func TestCloudLogoutRedirectIgnoresUntrustedNextWithoutClient(t *testing.T) {
 func TestCloudLogoutRedirectUsesAuth0UniversalLogin(t *testing.T) {
 	t.Setenv("AUTH0_CLIENT_ID", "test-client-id")
 	t.Setenv("AUTH0_DOMAIN", "https://login.kombify.io")
-	t.Setenv("TECHSTACK_AUTH_CLOUD_CLIENT_ID", "")
-	t.Setenv("TECHSTACK_AUTH_CLOUD_ISSUER", "")
+	t.Setenv("HOMELAB_AUTH_CLOUD_CLIENT_ID", "")
+	t.Setenv("HOMELAB_AUTH_CLOUD_ISSUER", "")
 	t.Setenv("AUTH0_ISSUER", "")
 
 	router := httpx.NewRouter()
 	router.GET("/auth/cloud-logout", handleCloudLogoutRedirect(config.ModeSaaS))
 	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "https://techstack.kombify.io/auth/cloud-logout?next=https://evil.example", nil)
+	req := httptest.NewRequest(http.MethodGet, "https://homelab.kombify.io/auth/cloud-logout?next=https://evil.example", nil)
 	router.ServeHTTP(recorder, req)
 	if recorder.Code != http.StatusFound {
 		t.Fatalf("status = %d, want 302", recorder.Code)
@@ -57,7 +57,7 @@ func TestCloudLogoutRedirectUsesAuth0UniversalLogin(t *testing.T) {
 		t.Fatalf("untrusted next leaked into logout redirect: %q", got)
 	}
 	if !strings.Contains(got, "logged_out") {
-		t.Fatalf("location = %q, want return to Techstack login", got)
+		t.Fatalf("location = %q, want return to Homelab Runtime login", got)
 	}
 }
 
@@ -163,7 +163,7 @@ func TestWebAuthLogoutRoutesSaaSThroughGlobalCloudBridge(t *testing.T) {
 			router := httpx.NewRouter()
 			router.GET("/auth/logout", handleWebAuthLogoutRedirect("", config.ModeSaaS))
 			recorder := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodGet, "https://techstack.kombify.io/auth/logout", nil)
+			req := httptest.NewRequest(http.MethodGet, "https://homelab.kombify.io/auth/logout", nil)
 			if cookie != nil {
 				req.AddCookie(cookie)
 			}

@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 	"math"
 	"sort"
 	"strings"
@@ -81,7 +81,7 @@ func (a *PostgresAuthority) EvaluateCurrent(ctx context.Context, request Current
 	return currentAdmissionResult(admissionRequest, generation.State, admission), nil
 }
 
-// AdmitCurrent locks the Techstack lifecycle before the canonical server head
+// AdmitCurrent locks the Homelab lifecycle before the canonical server head
 // and persists the exact claim generation atomically. A teardown snapshot uses
 // the same first lock, so an admission is wholly before or after that snapshot.
 func (a *PostgresAuthority) AdmitCurrent(ctx context.Context, request CurrentAdmissionRequest) (CurrentAdmission, error) {
@@ -97,7 +97,7 @@ func (a *PostgresAuthority) AdmitCurrent(ctx context.Context, request CurrentAdm
 		return CurrentAdmission{}, err
 	}
 	defer tx.Rollback()
-	if err = lockTechstack(ctx, tx, request.TenantID, request.StackID); err != nil {
+	if err = lockHomelab(ctx, tx, request.TenantID, request.StackID); err != nil {
 		return CurrentAdmission{}, err
 	}
 	if err = tenantcontext.ApplyTenant(ctx, tx, request.TenantID); err != nil {
@@ -160,7 +160,7 @@ func supersedeOrphanedStackGenerations(ctx context.Context, tx *sql.Tx, ref Gene
 }
 
 // SnapshotForTeardown captures every non-released generation for one exact
-// Owner-owned Techstack deployment. It excludes concurrent admission through
+// Owner-owned Homelab deployment. It excludes concurrent admission through
 // the shared lifecycle lock and reads the complete batch in one query, so the
 // durable job receipt can never contain a partial cross-server batch.
 func (a *PostgresAuthority) SnapshotForTeardown(ctx context.Context, request TeardownSnapshotRequest) (TeardownSnapshot, error) {
@@ -176,13 +176,13 @@ func (a *PostgresAuthority) SnapshotForTeardown(ctx context.Context, request Tea
 		return TeardownSnapshot{}, err
 	}
 	defer tx.Rollback()
-	if err = lockTechstack(ctx, tx, request.TenantID, request.TechstackID); err != nil {
+	if err = lockHomelab(ctx, tx, request.TenantID, request.KitDeploymentID); err != nil {
 		return TeardownSnapshot{}, err
 	}
 	if err = tenantcontext.ApplyTenant(ctx, tx, request.TenantID); err != nil {
 		return TeardownSnapshot{}, err
 	}
-	owned, err := ownsTechstack(ctx, tx, request)
+	owned, err := ownsHomelab(ctx, tx, request)
 	if err != nil {
 		return TeardownSnapshot{}, err
 	}
@@ -213,7 +213,7 @@ func (a *PostgresAuthority) SnapshotForTeardown(ctx context.Context, request Tea
 		  AND generation.stack_id = $2
 		  AND generation.state <> 'released'
 		ORDER BY generation.server_id, generation.server_generation, generation.resolved_plan_hash
-	`, request.TenantID, request.TechstackID)
+	`, request.TenantID, request.KitDeploymentID)
 	if err != nil {
 		return TeardownSnapshot{}, err
 	}
@@ -221,7 +221,7 @@ func (a *PostgresAuthority) SnapshotForTeardown(ctx context.Context, request Tea
 	generations := make([]TeardownGeneration, 0)
 	for rows.Next() {
 		generation := TeardownGeneration{GenerationRef: GenerationRef{
-			ServerRef: ServerRef{TenantID: request.TenantID}, StackID: request.TechstackID,
+			ServerRef: ServerRef{TenantID: request.TenantID}, StackID: request.KitDeploymentID,
 		}}
 		var serverOwner string
 		var nodeRefsJSON string
@@ -270,14 +270,14 @@ func (a *PostgresAuthority) ReleaseTeardownSnapshot(ctx context.Context, snapsho
 		return err
 	}
 	defer tx.Rollback()
-	if err = lockTechstack(ctx, tx, snapshot.TenantID, snapshot.TechstackID); err != nil {
+	if err = lockHomelab(ctx, tx, snapshot.TenantID, snapshot.KitDeploymentID); err != nil {
 		return err
 	}
 	if err = tenantcontext.ApplyTenant(ctx, tx, snapshot.TenantID); err != nil {
 		return err
 	}
-	owned, err := ownsTechstack(ctx, tx, TeardownSnapshotRequest{
-		TenantID: snapshot.TenantID, OwnerSubjectID: snapshot.OwnerSubjectID, TechstackID: snapshot.TechstackID,
+	owned, err := ownsHomelab(ctx, tx, TeardownSnapshotRequest{
+		TenantID: snapshot.TenantID, OwnerSubjectID: snapshot.OwnerSubjectID, KitDeploymentID: snapshot.KitDeploymentID,
 	})
 	if err != nil {
 		return err
@@ -319,19 +319,19 @@ func (a *PostgresAuthority) ReleaseTeardownSnapshot(ctx context.Context, snapsho
 	return tx.Commit()
 }
 
-func lockTechstack(ctx context.Context, tx *sql.Tx, tenantID, techstackID string) error {
+func lockHomelab(ctx context.Context, tx *sql.Tx, tenantID, kitDeploymentID string) error {
 	_, err := tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`,
-		stableID("portinventory-techstack-lock", tenantID, techstackID))
+		stableID("portinventory-homelab-lock", tenantID, kitDeploymentID))
 	return err
 }
 
-func ownsTechstack(ctx context.Context, tx *sql.Tx, request TeardownSnapshotRequest) (bool, error) {
+func ownsHomelab(ctx context.Context, tx *sql.Tx, request TeardownSnapshotRequest) (bool, error) {
 	var marker int
 	err := tx.QueryRowContext(ctx, `
 		SELECT 1 FROM stacks
 		WHERE tenant_id = $1 AND id = $2 AND owner_subject_id = $3
 		FOR UPDATE
-	`, request.TenantID, request.TechstackID, request.OwnerSubjectID).Scan(&marker)
+	`, request.TenantID, request.KitDeploymentID, request.OwnerSubjectID).Scan(&marker)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -351,14 +351,14 @@ func matchExactTeardownBatch(ctx context.Context, tx *sql.Tx, snapshot TeardownS
 		WHERE tenant_id = $1 AND stack_id = $2
 		ORDER BY server_id, server_generation, resolved_plan_hash
 		FOR UPDATE
-	`, snapshot.TenantID, snapshot.TechstackID)
+	`, snapshot.TenantID, snapshot.KitDeploymentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		generation := TeardownGeneration{GenerationRef: GenerationRef{
-			ServerRef: ServerRef{TenantID: snapshot.TenantID}, StackID: snapshot.TechstackID,
+			ServerRef: ServerRef{TenantID: snapshot.TenantID}, StackID: snapshot.KitDeploymentID,
 		}}
 		var state ClaimState
 		if err := rows.Scan(&generation.ServerID, &generation.ServerGeneration, &generation.ResolvedPlanHash, &generation.ClaimSetDigest, &state); err != nil {
@@ -873,7 +873,7 @@ func releaseUnusedReservations(ctx context.Context, tx *sql.Tx, ref ServerRef) e
 func (a *PostgresAuthority) withServerGeneration(
 	ctx context.Context,
 	ref ServerRef,
-	techstackID string,
+	kitDeploymentID string,
 	requireAllocatable bool,
 	allowHistorical bool,
 	fn func(*sql.Tx) error,
@@ -886,8 +886,8 @@ func (a *PostgresAuthority) withServerGeneration(
 		return err
 	}
 	defer tx.Rollback()
-	if techstackID != "" {
-		if err = lockTechstack(ctx, tx, ref.TenantID, techstackID); err != nil {
+	if kitDeploymentID != "" {
+		if err = lockHomelab(ctx, tx, ref.TenantID, kitDeploymentID); err != nil {
 			return err
 		}
 	}

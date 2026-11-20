@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	agentpb "github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/secrets"
+	agentpb "github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/secrets"
 )
 
 // BackupAgentResolver resolves the enrolled agent that currently owns a

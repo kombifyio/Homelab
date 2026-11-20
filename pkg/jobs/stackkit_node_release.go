@@ -9,14 +9,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 	"google.golang.org/protobuf/proto"
 )
 
 // NodeStackKitRelease is what a node's Guard reports about its StackKits
-// runtime: the release it runs and the published one Techstack has not served
+// runtime: the release it runs and the published one Homelab has not served
 // it yet, which waits for the owner's approved governed upgrade.
 type NodeStackKitRelease struct {
 	Installed       *agentpb.StackKitReleasePin
@@ -54,7 +54,7 @@ func ReadNodeStackKitRelease(ctx context.Context, tenantID, agentID string) (Nod
 
 // AddressNodeStackKitRelease points a command at the release its node runs
 // while that node reports exactly the command's release as available.
-// Techstack serves a deployed node a newer runtime only after the approved
+// Homelab serves a deployed node a newer runtime only after the approved
 // governed upgrade, so the node keeps the CLI that compiled its stored plan,
 // and the upgrade itself runs on that CLI. A release the worker's recorded
 // target serves is not reported as withheld and keeps the command's pin. Any
@@ -128,7 +128,7 @@ func admitFirstRolloutStackKitsRelease(ctx context.Context, jobID string, req St
 }
 
 // StackKitsTargetResultField records, on an owner-approved upgrade job, the
-// StackKits target Techstack recorded for the node and its outcome.
+// StackKits target Homelab recorded for the node and its outcome.
 const StackKitsTargetResultField = "stackkits_target"
 
 // recordStackKitsTarget records the owner-approved governed upgrade's outcome

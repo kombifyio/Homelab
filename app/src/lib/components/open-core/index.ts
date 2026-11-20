@@ -5,7 +5,7 @@
  * authority for notifications and stack identity presentation
  * (the public tree installs their unmodified release tarballs from
  * app/third_party/npm, so open-core closure never justifies a local fork). Only the identity
- * normalization vocabulary stays product-local: Techstack adapts runtime
+ * normalization vocabulary stays product-local: Homelab adapts runtime
  * data into the shared components, it renders nothing of its own.
  */
 export {

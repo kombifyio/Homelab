@@ -1,5 +1,5 @@
 /**
- * The creation context of the Techstack app itself: the one place that connects
+ * The creation context of the Homelab app itself: the one place that connects
  * the creation steps to the app's stores.
  */
 import { fromStore } from "svelte/store";

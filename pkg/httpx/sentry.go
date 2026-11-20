@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/identity"
-	"github.com/kombifyio/techstack/pkg/secrets"
 	"github.com/getsentry/sentry-go"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/secrets"
 )
 
 const sentryServerErrorFlushTimeout = 2 * time.Second

@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/identity"
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/runtimeaction"
-	"github.com/kombifyio/techstack/pkg/serviceauth"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/runtimeaction"
+	"github.com/kombifyio/homelab/pkg/serviceauth"
 )
 
 const (
@@ -25,7 +25,7 @@ const (
 
 	defaultRuntimeActionPathPrefix = runtimeaction.PathPrefix
 	defaultSimulationGatePath      = runtimeaction.PathSimulateUpdate
-	runtimeActionServiceName       = "techstack"
+	runtimeActionServiceName       = "homelab"
 	runtimeActionHTTPTimeout       = 14*time.Minute + 30*time.Second
 )
 
@@ -138,21 +138,21 @@ func (r *HTTPRuntimeActionRunner) RunWithResult(ctx context.Context, req Runtime
 		return nil, fmt.Errorf("runtime action %q is not configured", runtimeActionName(r))
 	}
 	payload := RuntimeActionRequest{
-		Action:              runtimeaction.NormalizeAction(r.action),
-		StackID:             strings.TrimSpace(req.StackID),
-		StackName:           strings.TrimSpace(req.StackName),
-		StackKit:            strings.TrimSpace(req.StackKit),
-		TenantID:            strings.TrimSpace(req.TenantID),
-		OwnerID:             strings.TrimSpace(req.OwnerID),
-		StackSpec:           req.StackSpec,
-		StackSpecPath:       strings.TrimSpace(req.StackSpecPath),
-		TofuDir:             strings.TrimSpace(req.TofuDir),
-		UnifiedPath:         strings.TrimSpace(req.UnifiedPath),
-		OwnerSpecBootstrap:  normalizeOwnerSpecBootstrap(req.OwnerSpecBootstrap),
-		RuntimeTarget:       normalizeRuntimeActionTarget(req.RuntimeTarget),
-		PlatformNodes:       normalizePlatformNodes(req.PlatformNodes),
-		PreviewPolicy:       normalizePreviewPolicy(req.PreviewPolicy),
-		TechStackEnrollment: normalizeTechStackEnrollment(req.TechStackEnrollment),
+		Action:             runtimeaction.NormalizeAction(r.action),
+		StackID:            strings.TrimSpace(req.StackID),
+		StackName:          strings.TrimSpace(req.StackName),
+		StackKit:           strings.TrimSpace(req.StackKit),
+		TenantID:           strings.TrimSpace(req.TenantID),
+		OwnerID:            strings.TrimSpace(req.OwnerID),
+		StackSpec:          req.StackSpec,
+		StackSpecPath:      strings.TrimSpace(req.StackSpecPath),
+		TofuDir:            strings.TrimSpace(req.TofuDir),
+		UnifiedPath:        strings.TrimSpace(req.UnifiedPath),
+		OwnerSpecBootstrap: normalizeOwnerSpecBootstrap(req.OwnerSpecBootstrap),
+		RuntimeTarget:      normalizeRuntimeActionTarget(req.RuntimeTarget),
+		PlatformNodes:      normalizePlatformNodes(req.PlatformNodes),
+		PreviewPolicy:      normalizePreviewPolicy(req.PreviewPolicy),
+		HomelabEnrollment:  normalizeHomelabEnrollment(req.HomelabEnrollment),
 	}
 	resp, err := r.client.PostJSON(ctx, r.baseURL+r.path, payload, servicecall.OnBehalfOfIdentity(identity.FromContext(ctx)))
 	if err != nil {
@@ -185,11 +185,11 @@ func (r *HTTPRuntimeActionRunner) RunWithResult(ctx context.Context, req Runtime
 	return decoded, nil
 }
 
-func normalizeTechStackEnrollment(in *TechStackEnrollment) *TechStackEnrollment {
+func normalizeHomelabEnrollment(in *HomelabEnrollment) *HomelabEnrollment {
 	if in == nil {
 		return nil
 	}
-	out := &TechStackEnrollment{
+	out := &HomelabEnrollment{
 		TenantID:         strings.TrimSpace(in.TenantID),
 		OwnerID:          strings.TrimSpace(in.OwnerID),
 		StackID:          strings.TrimSpace(in.StackID),
@@ -202,13 +202,13 @@ func normalizeTechStackEnrollment(in *TechStackEnrollment) *TechStackEnrollment 
 		InventoryURL:     strings.TrimSpace(in.InventoryURL),
 		ChannelBootstrap: cloneAnyMap(in.ChannelBootstrap),
 	}
-	if !techStackEnrollmentRequested(out) {
+	if !homelabEnrollmentRequested(out) {
 		return nil
 	}
 	return out
 }
 
-func techStackEnrollmentRequested(in *TechStackEnrollment) bool {
+func homelabEnrollmentRequested(in *HomelabEnrollment) bool {
 	if in == nil {
 		return false
 	}
@@ -298,7 +298,7 @@ func RuntimeActionsFromEnv(base RuntimeActions) (RuntimeActions, RuntimeActionsE
 		diagnostics.Warnings = append(diagnostics.Warnings, loadErr.Error())
 	}
 	if actions.StackKitGenerator == nil {
-		stackKitsDir := strings.TrimSpace(os.Getenv("TECHSTACK_STACKKITS_DIR"))
+		stackKitsDir := strings.TrimSpace(os.Getenv("HOMELAB_STACKKITS_DIR"))
 		stackKitCLI := strings.TrimSpace(os.Getenv(stackKitCLIEnv))
 		if stackKitsDir != "" && stackKitCLI != "" {
 			actions.StackKitGenerator = NewBundledStackKitCLIGenerator(stackKitsDir)
@@ -316,8 +316,8 @@ func RuntimeActionsFromEnv(base RuntimeActions) (RuntimeActions, RuntimeActionsE
 	// IONOS-hosted services and resolves to a stale Render-pattern hostname
 	// when present.
 	simulateURL := firstRuntimeActionEnv(
-		"TECHSTACK_SIMULATE_ACTIONS_URL",
-		"TECHSTACK_KOMBISIM_URL",
+		"HOMELAB_SIMULATE_ACTIONS_URL",
+		"HOMELAB_KOMBISIM_URL",
 		"KOMBIFY_URL_VPS_SIMULATE",
 		"KOMBIFY_URL_PUBLIC_SIMULATE",
 		"KOMBISIM_URL",
@@ -325,11 +325,11 @@ func RuntimeActionsFromEnv(base RuntimeActions) (RuntimeActions, RuntimeActionsE
 
 	if actions.SimulationGate == nil {
 		if simulateURL == "" {
-			if truthyRuntimeActionEnv("TECHSTACK_ALLOW_LOCAL_SIMULATION_GATE") {
+			if truthyRuntimeActionEnv("HOMELAB_ALLOW_LOCAL_SIMULATION_GATE") {
 				actions.SimulationGate = localSimulationGateRunner{}
 				diagnostics.Configured = append(diagnostics.Configured, "Local simulation gate")
 			} else {
-				diagnostics.Warnings = append(diagnostics.Warnings, "Simulate runtime action disabled: set TECHSTACK_SIMULATE_ACTIONS_URL or TECHSTACK_KOMBISIM_URL and SERVICE_AUTH_SECRET to enable the simulation gate")
+				diagnostics.Warnings = append(diagnostics.Warnings, "Simulate runtime action disabled: set HOMELAB_SIMULATE_ACTIONS_URL or HOMELAB_KOMBISIM_URL and SERVICE_AUTH_SECRET to enable the simulation gate")
 			}
 		} else if !serviceauth.CanSign(secret) {
 			diagnostics.Warnings = append(diagnostics.Warnings, "Simulate runtime action disabled: a service auth secret or Ed25519 key is required for servicecall authentication")
@@ -338,7 +338,7 @@ func RuntimeActionsFromEnv(base RuntimeActions) (RuntimeActions, RuntimeActionsE
 				BaseURL:           simulateURL,
 				Target:            runtimeActionTargetSimulate,
 				Action:            runtimeActionSimulateUpdate,
-				Path:              firstNonEmpty(firstRuntimeActionEnv("TECHSTACK_SIMULATION_GATE_PATH"), defaultSimulationGatePath),
+				Path:              firstNonEmpty(firstRuntimeActionEnv("HOMELAB_SIMULATION_GATE_PATH"), defaultSimulationGatePath),
 				ServiceAuthSecret: secret,
 				ServiceAuthNext:   secretNext,
 			})
@@ -351,11 +351,11 @@ func RuntimeActionsFromEnv(base RuntimeActions) (RuntimeActions, RuntimeActionsE
 		}
 	}
 
-	if actions.DiagnosticsCollector == nil && !truthyRuntimeActionEnv("TECHSTACK_RUNTIME_DIAGNOSTICS_DISABLED") {
+	if actions.DiagnosticsCollector == nil && !truthyRuntimeActionEnv("HOMELAB_RUNTIME_DIAGNOSTICS_DISABLED") {
 		actions.DiagnosticsCollector = NewSSHRuntimeDiagnosticsCollector(SSHRuntimeDiagnosticsCollectorConfig{HostKeys: hostKeys})
 		diagnostics.Configured = append(diagnostics.Configured, "SSH runtime diagnostics collector")
 	}
-	if actions.TargetBootstrapper == nil && !truthyRuntimeActionEnv("TECHSTACK_RUNTIME_TARGET_BOOTSTRAP_DISABLED") {
+	if actions.TargetBootstrapper == nil && !truthyRuntimeActionEnv("HOMELAB_RUNTIME_TARGET_BOOTSTRAP_DISABLED") {
 		actions.TargetBootstrapper = NewSSHRuntimeTargetBootstrapper(SSHRuntimeTargetBootstrapperConfig{HostKeys: hostKeys})
 		diagnostics.Configured = append(diagnostics.Configured, "SSH runtime target bootstrapper")
 	}
@@ -366,7 +366,7 @@ func RuntimeActionsFromEnv(base RuntimeActions) (RuntimeActions, RuntimeActionsE
 // runtimeHostKeyStorePath keeps the managed-target pins in the control-plane
 // data directory so they survive restarts and deploys.
 func runtimeHostKeyStorePath() string {
-	dataDir := strings.TrimSpace(os.Getenv("TECHSTACK_DATA_DIR"))
+	dataDir := strings.TrimSpace(os.Getenv("HOMELAB_DATA_DIR"))
 	if dataDir == "" {
 		dataDir = "data"
 	}

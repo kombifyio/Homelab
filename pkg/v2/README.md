@@ -1,7 +1,7 @@
-# pkg/v2 — Transitional TechStack API Surface
+# pkg/v2 — Transitional Homelab Runtime API Surface
 
 This package is the typed transitional service / API surface used while
-TechStack moves away from the older PocketBase-centred runtime.
+Homelab Runtime moves away from the older PocketBase-centred runtime.
 "`v2`" is **not** a product label — it names the migration layer only.
 The product narrative lives under the three pillars (Unifier,
 Monitoring, RIL); see [`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
@@ -13,8 +13,8 @@ rename-or-integrate.
 
 ## Status — Wired Core
 
-- `pkg/v2` is wired from `cmd/techstack/main.go` behind
-  `TECHSTACK_V2_ENABLED`.
+- `pkg/v2` is wired from `cmd/homelab/main.go` behind
+  `HOMELAB_V2_ENABLED`.
 - `/api/v2/health` reports the wired DB backend status.
 - `/api/v2/whoami` is available when a session manager is attached.
 - `/api/v2/auth/*` is available when auth providers are configured.
@@ -47,8 +47,8 @@ The transitional surface does **not** own:
 
 ## Running locally
 
-The transitional surface is registered from `cmd/techstack/main.go` by
-default. Disable it explicitly with `TECHSTACK_V2_ENABLED=false` if you
+The transitional surface is registered from `cmd/homelab/main.go` by
+default. Disable it explicitly with `HOMELAB_V2_ENABLED=false` if you
 need to fall back to the legacy-only runtime. Unit tests cover the
 package directly:
 

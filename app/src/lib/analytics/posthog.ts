@@ -43,7 +43,7 @@ export interface PostHogClient {
   capture(event: string, options?: CaptureOptions): Promise<boolean>;
 }
 
-export interface TechstackCloudUserLike {
+export interface HomelabCloudUserLike {
   sub?: string | null;
   orgId?: string | null;
   organizationId?: string | null;
@@ -51,7 +51,7 @@ export interface TechstackCloudUserLike {
   roles?: string[] | null;
 }
 
-export interface TechstackCreationEventInput {
+export interface HomelabCreationEventInput {
   wizardType?: string | null;
   provider?: string | null;
   stackMode?: string | null;
@@ -83,9 +83,9 @@ export interface TechstackCreationEventInput {
 }
 
 const DEFAULT_HOST = "https://e.kombify.io";
-const DEFAULT_SERVICE = "kombify-techstack-frontend";
-const DEFAULT_PRODUCT = "kombify-techstack";
-const DEFAULT_SURFACE = "techstack";
+const DEFAULT_SERVICE = "kombify-homelab-frontend";
+const DEFAULT_PRODUCT = "kombify-homelab";
+const DEFAULT_SURFACE = "homelab";
 const DEFAULT_EDITION = "saas-standalone";
 const EVENT_NAME_PATTERN =
   /^(?:\$[A-Za-z0-9_.:-]+|[a-z0-9]+:[a-z0-9]+(?:_[a-z0-9]+)*)$/;
@@ -122,7 +122,7 @@ const MAX_PROPERTY_ARRAY_LENGTH = 25;
  *   kombify_analytics_consent=<granted|denied>|<canonical ISO time>
  *   on Domain=kombify.io, expiring twelve months after the decision.
  *
- * Techstack has no consent UI and no default of its own: embedded in Cloud
+ * Homelab has no consent UI and no default of its own: embedded in Cloud
  * or standalone, it captures and identifies nobody unless this cookie holds
  * a fresh `granted`. A missing, unreadable, malformed, future or expired
  * decision is a refusal.
@@ -311,8 +311,8 @@ function isPostHogManagedHost(hostname: string): boolean {
   return normalized === "posthog.com" || normalized.endsWith(".posthog.com");
 }
 
-export function toTechstackAnalyticsUser(
-  user: TechstackCloudUserLike | null | undefined,
+export function toHomelabAnalyticsUser(
+  user: HomelabCloudUserLike | null | undefined,
 ): AnalyticsUser | null {
   if (!user?.sub) {
     return null;
@@ -329,8 +329,8 @@ export function toTechstackAnalyticsUser(
   };
 }
 
-export function buildTechstackCreationEventProperties(
-  input: TechstackCreationEventInput,
+export function buildHomelabCreationEventProperties(
+  input: HomelabCreationEventInput,
 ): Record<string, unknown> {
   return stripUndefinedProperties({
     wizard_type: normalizeAnalyticsEnum(input.wizardType),

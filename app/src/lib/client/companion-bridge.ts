@@ -16,7 +16,7 @@ interface DocumentBinding {
 }
 
 interface CompanionWindow extends Window {
-  __kombifyTechstackDocument?: DocumentBinding;
+  __kombifyHomelabDocument?: DocumentBinding;
   chrome?: {
     webview?: {
       postMessage(message: unknown): void;
@@ -32,7 +32,7 @@ interface CompanionWindow extends Window {
   };
 }
 
-const PREFIX = "kombify.techstack.companion.";
+const PREFIX = "kombify.homelab.companion.";
 const RESULT = `${PREFIX}result.v1`;
 
 /** The five calls of the adapter (and `watch-cancel`, sent when a watch is aborted): the whole page-to-shell vocabulary. */
@@ -98,7 +98,7 @@ function call(
       settled = true;
       clearTimeout(timer);
       bridge.removeEventListener("message", receive);
-      host.removeEventListener("kombify-techstack-device-context-ready", send);
+      host.removeEventListener("kombify-homelab-device-context-ready", send);
       host.removeEventListener("pagehide", leave);
       signal?.removeEventListener("abort", abort);
       outcome();
@@ -145,7 +145,7 @@ function call(
       );
     };
     const send = () => {
-      const current = host.__kombifyTechstackDocument;
+      const current = host.__kombifyHomelabDocument;
       if (
         binding ||
         !current ||
@@ -166,7 +166,7 @@ function call(
       finish(() => reject(new CompanionBridgeError("failed")));
     let timer = setTimeout(timeout, BINDING_WAIT_MS);
     bridge.addEventListener("message", receive);
-    host.addEventListener("kombify-techstack-device-context-ready", send);
+    host.addEventListener("kombify-homelab-device-context-ready", send);
     host.addEventListener("pagehide", leave);
     signal?.addEventListener("abort", abort, { once: true });
     send();

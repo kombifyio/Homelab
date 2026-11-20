@@ -1,5 +1,5 @@
 /**
- * kombify-TechStack rollout progress
+ * kombify-Homelab rollout progress
  *
  * The pinned StackKits CLI reports every runtime owner of an apply on the
  * job's live log (phase `apply.owner`): it starts, reports `running` every 15

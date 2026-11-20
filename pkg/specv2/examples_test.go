@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
 )
 
 const examplesDir = "../../docs/examples"
@@ -86,7 +86,7 @@ func TestProjectionExamplesPreserveStackSpecContract(t *testing.T) {
 
 // TestProjectionExamplesValidateWithStackKitsCLI proves the examples against the
 // real acceptance authority. It runs wherever a StackKits CLI is available
-// (TECHSTACK_STACKKIT_CLI) and skips otherwise, so plain unit runs stay
+// (HOMELAB_STACKKIT_CLI) and skips otherwise, so plain unit runs stay
 // hermetic.
 func TestProjectionExamplesValidateWithStackKitsCLI(t *testing.T) {
 	binary := strings.TrimSpace(os.Getenv(StackKitCLIEnv))
@@ -170,7 +170,7 @@ func TestWizardInstallChoicesValidateWithStackKitsCLI(t *testing.T) {
 		t.Fatal(err)
 	}
 	author := exec.Command(binary, "--no-log", "--chdir", seedDir, "init", KitSlugBasement, "--non-interactive",
-		"--name", "techstack-spec-template", "--owner-source=local", "--owner-email", "owner@smoke.stackkit.cc",
+		"--name", "homelab-spec-template", "--owner-source=local", "--owner-email", "owner@smoke.stackkit.cc",
 		"--owner-username", "owner", "--api-version", NativeSpecAPIVersion, "--catalog-defaults")
 	// As in the image: a template is not a host install, so Basement's
 	// placement admission must not depend on this host's public address.

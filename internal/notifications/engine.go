@@ -1,7 +1,7 @@
-// Package notifications proxies a Techstack user's notification center to the
-// kombify-Notifications engine. Techstack's SvelteKit layer has no server-side
+// Package notifications proxies a Homelab user's notification center to the
+// kombify-Notifications engine. Homelab's SvelteKit layer has no server-side
 // identity, so the Go backend resolves the authenticated user and signs the
-// engine call itself (EdDSA service JWT, iss kombify-techstack, aud
+// engine call itself (EdDSA service JWT, iss kombify-homelab, aud
 // kombify-notifications, scope notifications:*), forwarding the recipient as the
 // auth0_user_id query param the engine expects (desk parity).
 package notifications
@@ -21,14 +21,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/serviceauth"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/serviceauth"
 )
 
 const (
 	defaultEngineURL = "https://kombify-notifications.onrender.com"
-	issuer           = "kombify-techstack"
+	issuer           = "kombify-homelab"
 	audience         = "kombify-notifications"
 	tokenTTL         = 5 * time.Minute
 	requestTimeout   = 12 * time.Second
@@ -51,9 +51,9 @@ type Engine struct {
 
 // SigningKeyEnv holds the Ed25519 service key ("<kid>=<seed>") this client
 // signs with when a deployment withholds the process-wide
-// SERVICE_AUTH_ED25519_PRIVATE_KEY so no other client signs as techstack there.
+// SERVICE_AUTH_ED25519_PRIVATE_KEY so no other client signs as homelab there.
 // No admitted deployment withholds it; the name stays with the engine.
-const SigningKeyEnv = "TECHSTACK_NOTIFICATIONS_ED25519_PRIVATE_KEY"
+const SigningKeyEnv = "HOMELAB_NOTIFICATIONS_ED25519_PRIVATE_KEY"
 
 // NewEngineFromEnv builds an Engine from NOTIFICATIONS_ENGINE_URL and
 // SERVICE_AUTH_SECRET. Hosted editions default to the live origin; self-hosted
@@ -111,7 +111,7 @@ func (e *Engine) signToken(scope string) (string, error) {
 		return "", ErrNotConfigured
 	}
 	cfg, err := serviceauth.Apply(servicecall.Config{
-		ServiceName:  "techstack",
+		ServiceName:  "homelab",
 		Target:       "notifications",
 		Scope:        scope,
 		Secret:       e.secret,
@@ -209,7 +209,7 @@ func (e *Engine) PutPreferences(ctx context.Context, auth0UserID string, matrix 
 }
 
 // DispatchProduct sends one idempotent in-app product notification. It is the
-// dispatch boundary used by Techstack's durable outbox worker.
+// dispatch boundary used by Homelab's durable outbox worker.
 func (e *Engine) DispatchProduct(ctx context.Context, event ProductEvent) (*DispatchResult, error) {
 	channel := strings.TrimSpace(event.Channel)
 	if channel == "" {

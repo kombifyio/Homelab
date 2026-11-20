@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/backupstore"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/backupstore"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 	"github.com/kombifyio/stackkits/pkg/hostdelivery"
 )
 
@@ -98,7 +98,7 @@ func (n node) pinnedStatement(t *testing.T, challenge string, authority ed25519.
 // In Wallet mode the managed backup target reaches the node only as the
 // Wallet's authority-signed delivery: it verifies under the key the node
 // pinned and opens there to the S3 target object, and nothing is sealed by
-// Techstack itself, not even when the Wallet is missing or the node has not
+// Homelab itself, not even when the Wallet is missing or the node has not
 // pinned its key.
 func TestWalletModeDeliversTheBackupTargetOnlyThroughTheWallet(t *testing.T) {
 	ctx := context.Background()

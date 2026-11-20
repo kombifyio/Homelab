@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/substrate"
-	"github.com/kombifyio/techstack/pkg/agent/httpguard"
+	"github.com/kombifyio/homelab/internal/substrate"
+	"github.com/kombifyio/homelab/pkg/agent/httpguard"
 )
 
 // ObserveLocalAccelerator runs the accelerator part of the probe on this

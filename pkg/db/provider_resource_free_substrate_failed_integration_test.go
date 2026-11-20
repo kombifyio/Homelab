@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 
-	"github.com/kombifyio/techstack/internal/providerevidence"
+	"github.com/kombifyio/homelab/internal/providerevidence"
 )
 
 // Sensitive migration boundary (kombify-StackKits-2w8s): migration 190 lets a
@@ -26,7 +26,7 @@ import (
 func TestIntegrationSubstrateFailedProvisionGuestAbsence(t *testing.T) {
 	dsn := integrationDSN()
 	if dsn == "" {
-		t.Skip("TECHSTACK_TEST_POSTGRES_URL not set; skipping Postgres integration test")
+		t.Skip("HOMELAB_TEST_POSTGRES_URL not set; skipping Postgres integration test")
 	}
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Minute)
 	defer cancel()
@@ -376,7 +376,7 @@ func recordReservedGuestAbsence(
 	t.Helper()
 	digest := func(fill string) string { return "sha256:" + strings.Repeat(fill, 64) }
 	command := providerexecutor.Command{
-		APIVersion: "techstack.provider-executor/v1beta1", OperationID: operationID,
+		APIVersion: "homelab.provider-executor/v1beta1", OperationID: operationID,
 		Operation: providerexecutor.OperationDecommission, TenantID: seed.tenantID,
 		LeaseID: seed.leaseID, LeaseRevision: 1, RuntimeServerID: seed.serverID,
 		ResourceGenerationID: seed.generation, IdempotencyKey: "idem-" + operationID,

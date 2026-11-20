@@ -112,7 +112,7 @@ func ensureRuntimeOwner(ctx context.Context, adminDSN string, port uint32) (stri
 // its migrations run; here the bootstrap superuser prepares them on every
 // start, so a fresh store and one created before 168 both migrate. An existing
 // role is left as it is: the migrations refuse a wrong posture or membership.
-const migrationSystemRolesSQL = `DO $techstack_local_system_roles$
+const migrationSystemRolesSQL = `DO $homelab_local_system_roles$
 DECLARE
     system_role text;
 BEGIN
@@ -121,7 +121,7 @@ BEGIN
             EXECUTE format('CREATE ROLE %I NOLOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION', system_role);
         END IF;
     END LOOP;
-END $techstack_local_system_roles$`
+END $homelab_local_system_roles$`
 
 // verifyRuntimeOwnerPosture proves, before commit, the exact owner posture the
 // migration guards check: no superuser or BYPASSRLS attribute, ownership of

@@ -24,7 +24,7 @@ var devPortalFrameOrigins = []string{
 
 // cloudPreviewOriginPattern is kombify Cloud's Render pull-request preview
 // host. Previews are the sanctioned pre-merge review surface for Cloud, and a
-// Cloud preview embeds Techstack exactly as production does, so the exact
+// Cloud preview embeds Homelab exactly as production does, so the exact
 // preview origin may frame this app. Only this pattern: a bare *.onrender.com
 // wildcard would admit every Render app. Render appends a random 4-character
 // suffix when the preview slug is already taken
@@ -51,7 +51,7 @@ func CloudPreviewFrameOrigin(raw string) string {
 }
 
 var publicOriginEnvKeys = []string{
-	"TECHSTACK_PUBLIC_ORIGIN",
+	"HOMELAB_PUBLIC_ORIGIN",
 	"PUBLIC_ORIGIN",
 	"APP_PUBLIC_ORIGIN",
 	"APP_URL",
@@ -124,7 +124,7 @@ func PublicOriginFromEnv() string {
 	return ""
 }
 
-// DefaultSaaSFrameOrigins returns the canonical portal origins TechStack can be
+// DefaultSaaSFrameOrigins returns the canonical portal origins Homelab can be
 // embedded from in SaaS mode. ALLOWED_FRAME_ORIGINS can add more without code
 // changes.
 func DefaultSaaSFrameOrigins() []string {

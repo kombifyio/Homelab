@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/agent/httpguard"
+	"github.com/kombifyio/homelab/pkg/agent/httpguard"
 )
 
 // Provenance strings that travel with a derived hardware fact. A reader can

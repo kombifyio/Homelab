@@ -10,7 +10,7 @@ import (
 )
 
 // Service coordinates network discovery operations.
-// It implements the Discovery interface for use across kombifyTechstack components.
+// It implements the Discovery interface for use across kombifyHomelab components.
 type Service struct {
 	config  *DiscoveryConfig
 	scanner *Scanner

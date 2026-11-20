@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/artifactdelivery"
+	"github.com/kombifyio/homelab/pkg/artifactdelivery"
 )
 
 // r2-mirror copies the delivery files of a verified publication to the private
@@ -28,7 +28,7 @@ import (
 // prohibition"). Every object carries R2's native SHA-256, which R2 checks
 // against the uploaded body. The Worker resolves an admitted index by its
 // digest and streams only objects whose stored SHA-256 equals the index entry,
-// so a Techstack release needs no Gateway repin and the uploader holds no
+// so a Homelab release needs no Gateway repin and the uploader holds no
 // integrity authority. The index is written last: an index in R2 always names
 // objects that are already there.
 
@@ -171,10 +171,10 @@ func releaseMirrorFiles(dir string) ([]r2MirrorFile, error) {
 	if err := json.Unmarshal(raw, &index); err != nil {
 		return nil, err
 	}
-	if index.Schema != "techstack.artifact-index/v1" || !r2VersionPattern.MatchString(index.ReleaseVersion) || len(index.Artifacts) == 0 || len(index.Artifacts) > 4 {
+	if index.Schema != "homelab.artifact-index/v1" || !r2VersionPattern.MatchString(index.ReleaseVersion) || len(index.Artifacts) == 0 || len(index.Artifacts) > 4 {
 		return nil, errors.New("invalid artifact index")
 	}
-	prefix := "techstack/guard-v" + index.ReleaseVersion + "/sha256/"
+	prefix := "homelab/guard-v" + index.ReleaseVersion + "/sha256/"
 	var files []r2MirrorFile
 	for _, entry := range index.Artifacts {
 		if !r2DigestPattern.MatchString(entry.SHA256) || filepath.Base(entry.Filename) != entry.Filename || entry.Size <= 0 {

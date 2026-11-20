@@ -3,7 +3,7 @@ package unifier
 import (
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 func TestValidate_NilSpec(t *testing.T) {

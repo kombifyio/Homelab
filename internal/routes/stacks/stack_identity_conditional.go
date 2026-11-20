@@ -12,15 +12,15 @@ import (
 	"strings"
 	"time"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // This endpoint is opt-in for a single future offline operation. The legacy
 // online PUT stays compatible while every writer advances the same revision.
 func (h crudRouteHandlers) updateStackIdentityConditional(e *httpx.Event) error {
-	tenantID, ownerID, err := h.stackIdentityScope(e, "techstack.stack_identity.write")
+	tenantID, ownerID, err := h.stackIdentityScope(e, "homelab.stack_identity.write")
 	if err != nil {
 		return err
 	}

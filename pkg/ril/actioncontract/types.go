@@ -1,4 +1,4 @@
-// Package rilaction defines Techstack's authoritative provider-free approved-action handoff.
+// Package rilaction defines Homelab's authoritative provider-free approved-action handoff.
 // It carries authority references only and never selects an executor, transport,
 // provider, lease, endpoint, or credential.
 package rilaction
@@ -73,7 +73,7 @@ type PrimitiveBinding struct {
 	OperationClass string `json:"operation_class"`
 }
 
-// ApprovalBinding references one short-lived TechStack approval receipt.
+// ApprovalBinding references one short-lived Homelab approval receipt.
 type ApprovalBinding struct {
 	ReceiptRef  string        `json:"receipt_ref"`
 	ReceiptHash string        `json:"receipt_hash"`

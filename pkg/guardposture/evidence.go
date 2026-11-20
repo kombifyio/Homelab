@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // EvidenceSchema is the StackKits host security evidence document a Guard

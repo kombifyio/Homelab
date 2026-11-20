@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 const serviceControlKey = "declared_control_service_key"

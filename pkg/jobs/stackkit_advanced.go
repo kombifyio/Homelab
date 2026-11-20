@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/advancedissuer"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/runtimeaction"
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/auth/stackkitdecision"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/advancedissuer"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/runtimeaction"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/auth/stackkitdecision"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // Internal step names of the Advanced lifecycle operations. They are not
@@ -25,12 +25,12 @@ const (
 	stackKitStepRollback        = "advanced_rollback"
 	stackKitStepRestoreDrill    = "advanced_restore_drill"
 	// The managed kombify.me origin certificate (ADR-0047): the node returns a
-	// CSR, Techstack has Cloudflare issue it, the node installs the result.
+	// CSR, Homelab has Cloudflare issue it, the node installs the result.
 	stackKitStepOriginCertificateRequest = "origin_certificate_request"
 	stackKitStepOriginCertificateInstall = "origin_certificate_install"
 
 	// StackKitModeAdvanced is the stackkit_mode every managed deployment
-	// records: Techstack dispatches Advanced Mode only.
+	// records: Homelab dispatches Advanced Mode only.
 	StackKitModeAdvanced = "advanced"
 	// StackKitModeField is the deploy-result and stack-config mode key.
 	StackKitModeField = "stackkit_mode"
@@ -87,7 +87,7 @@ func (e *AdvancedOperationUnavailableError) Unwrap() error { return e.Err }
 
 // AdvancedPrerequisiteError reports a managed rollout whose Advanced
 // prerequisite is missing: the pinned release's own operations catalog or the
-// installation's Advanced issuer. Every Techstack-managed deployment runs
+// installation's Advanced issuer. Every Homelab-managed deployment runs
 // Advanced Mode, so the rollout fails closed; there is no Standard fallback.
 type AdvancedPrerequisiteError struct {
 	Prerequisite string
@@ -304,7 +304,7 @@ func runAdvancedStackKitLifecycle(ctx context.Context, cfg StackKitLifecycleConf
 		return nil, err
 	}
 	summary := map[string]interface{}{
-		"schema_version": "techstack.stackkit-lifecycle-result/v1", "techstack_id": request.StackID,
+		"schema_version": "homelab.stackkit-lifecycle-result/v1", "kit_deployment_id": request.StackID,
 		stackKitInstanceIDField: request.StackKitInstanceID, advancedOperationField: request.Operation, "agent_id": request.AgentID,
 		StackKitModeField: StackKitModeAdvanced,
 		"capability_id":   capability.ID,

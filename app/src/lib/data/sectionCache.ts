@@ -12,7 +12,7 @@
  * signed-in session, and it must not survive it on a shared machine.
  */
 
-const PREFIX = "techstack-cache:";
+const PREFIX = "homelab-cache:";
 export const DEFAULT_MAX_AGE_MS = 5 * 60 * 1000;
 
 export interface Entry<T> {

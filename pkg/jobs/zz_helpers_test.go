@@ -3,17 +3,17 @@ package jobs
 // Helpers of retired unit tests that the remaining boundary tests of this package still use.
 
 import (
-	"github.com/kombifyio/techstack/internal/advancedissuer"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
 	"context"
-	"path/filepath"
-	"fmt"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"github.com/kombifyio/homelab/internal/advancedissuer"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 	"os"
+	"path/filepath"
 	"runtime"
-	"crypto/sha256"
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
 	"strings"
 	"testing"
 )
@@ -44,7 +44,7 @@ func typedApplyCommandResult(status string) []byte {
 	return receipt
 }
 
-const testAdvancedTrustBundle = `{"keys":[{"issuerId":"techstack.test","keyId":"ed25519://sha256/` +
+const testAdvancedTrustBundle = `{"keys":[{"issuerId":"homelab.test","keyId":"ed25519://sha256/` +
 	`56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c","publicKey":"A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"}],` +
 	`"schemaVersion":"stackkit.advanced-trust-bundle/v1"}`
 
@@ -191,4 +191,3 @@ func releaseWithAdvancedCatalogVersion(t *testing.T, version string, executable 
 	}
 	return release
 }
-

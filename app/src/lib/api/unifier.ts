@@ -1,5 +1,5 @@
 /**
- * kombify-TechStack API - Unifier & StackKits
+ * kombify-Homelab API - Unifier & StackKits
  *
  * API functions for interacting with the Unifier engine, StackKits, and Add-Ons.
  * The Unifier validates kombination specs, resolves defaults, and analyzes requirements.
@@ -475,7 +475,7 @@ export async function validatePipeline(
 }
 
 /**
- * Ask the authenticated Techstack recommendation authority to evaluate the
+ * Ask the authenticated Homelab recommendation authority to evaluate the
  * current Wizard answers. The closed request deliberately carries no
  * StackKit, tenant, subject, or DecisionContext override.
  */

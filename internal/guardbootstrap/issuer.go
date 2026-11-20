@@ -8,20 +8,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardcompat"
-	"github.com/kombifyio/techstack/pkg/pairingtoken"
-	"github.com/kombifyio/techstack/pkg/workerauth"
+	"github.com/kombifyio/homelab/pkg/guardcompat"
+	"github.com/kombifyio/homelab/pkg/pairingtoken"
+	"github.com/kombifyio/homelab/pkg/workerauth"
 )
 
 // EnvEnrollmentSeed is the dedicated derivation secret. It is kept separate
 // from the service-auth secret so that rotating one does not silently
 // invalidate in-flight node enrolments derived from the other.
-const EnvEnrollmentSeed = "TECHSTACK_GUARD_ENROLLMENT_SEED"
+const EnvEnrollmentSeed = "HOMELAB_GUARD_ENROLLMENT_SEED"
 
 const (
 	// MetadataOperationID and MetadataCloudInitSHA256 are the secret-free
@@ -266,7 +266,7 @@ func enrollmentSeed() []byte {
 // publicOrigin mirrors the probe order documented on the tunnel resolver: an
 // explicitly configured hostname always wins over anything Render injects.
 func publicOrigin() (string, bool) {
-	for _, key := range []string{"TECHSTACK_PUBLIC_ORIGIN", "TECHSTACK_PUBLIC_URL", "RENDER_EXTERNAL_URL"} {
+	for _, key := range []string{"HOMELAB_PUBLIC_ORIGIN", "HOMELAB_PUBLIC_URL", "RENDER_EXTERNAL_URL"} {
 		if raw := strings.TrimSpace(os.Getenv(key)); raw != "" {
 			if origin, err := normalizeOrigin(raw); err == nil {
 				return origin, true

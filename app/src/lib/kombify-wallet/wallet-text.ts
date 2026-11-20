@@ -87,7 +87,7 @@ export function itemStateLabel(state: string): string {
 
 /**
  * A scope for people: a stack's own name when the project id is one of the
- * stacks Techstack knows, otherwise the Wallet's generic wording.
+ * stacks Homelab knows, otherwise the Wallet's generic wording.
  */
 export function scopeLabel(
   scope: string,

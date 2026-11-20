@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/kombifyme"
+	"github.com/kombifyio/homelab/pkg/kombifyme"
 )
 
 const stackKitAddressPlanV1 = "stackkit.address-plan/v1"
@@ -88,7 +88,7 @@ func allocateManagedAddressPlan(ctx context.Context, plan stackKitAddressPlan, t
 		registration = map[string]any{
 			"homelab_name": address.Label, "kind": "self-hosted",
 			"device_fingerprint": deviceFingerprint,
-			"description":        "Managed by Kombify Techstack for " + plan.StackName,
+			"description":        "Managed by Kombify Homelab Runtime for " + plan.StackName,
 			"binding":            binding,
 		}
 	}
@@ -179,7 +179,7 @@ type ManagedAddressDeregistration struct {
 	TargetOrigin string
 }
 
-// DeregisterManagedAddresses removes the kombify.me addresses Techstack
+// DeregisterManagedAddresses removes the kombify.me addresses Homelab
 // registered for a stack and proves their absence before a decommission may
 // proceed: kombify.me's receipt names the deleted routes and the released
 // origin DNS aliases, and an independent readback by binding must list none of

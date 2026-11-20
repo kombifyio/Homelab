@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
 )
 
 // LeaseAuthorityState is the closed, read-only inventory projection of a
@@ -35,7 +35,7 @@ type LeaseInventoryRecord struct {
 // actions. Neither an authority binding nor a running lease is sufficient on
 // its own.
 func (record LeaseInventoryRecord) NativeActive() bool {
-	return normalizeLeaseExecutionAuthority(record.ExecutionAuthority) == LeaseExecutionAuthorityTechStackProviderControl &&
+	return normalizeLeaseExecutionAuthority(record.ExecutionAuthority) == LeaseExecutionAuthorityHomelabProviderControl &&
 		record.AuthorityState == LeaseAuthorityStateNativeActive
 }
 
@@ -65,7 +65,7 @@ func classifyLeaseInventory(row leaseInventoryRow, now time.Time) (LeaseInventor
 	switch authority {
 	case LeaseExecutionAuthorityLegacySimulate:
 		record.AuthorityState = LeaseAuthorityStateLegacyQuarantined
-	case LeaseExecutionAuthorityTechStackProviderControl:
+	case LeaseExecutionAuthorityHomelabProviderControl:
 		record.AuthorityState = LeaseAuthorityStateNativeInactive
 		if leaseLifecycleActive(record.Lease, now) {
 			record.AuthorityState = LeaseAuthorityStateNativeActive

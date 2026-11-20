@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/edgeauth"
-	"github.com/kombifyio/techstack/pkg/identity"
-	"github.com/kombifyio/techstack/pkg/middleware"
+	"github.com/kombifyio/homelab/internal/gocommon/edgeauth"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/middleware"
 )
 
 const jobAuthorizationPayloadKey = "_job_authorization"
@@ -53,13 +53,13 @@ func CaptureJobAuthorization(ctx context.Context, job *Job, tenantID, ownerID st
 		}
 		binding, verified := decisions.VerifiedDecisionBinding()
 		if !verified || binding.SubjectID != ownerID || binding.TenantID != tenantID ||
-			binding.Audience != "techstack" || binding.PublicPrefix != "/v1/techstack" {
+			binding.Audience != "homelab" || binding.PublicPrefix != "/v1/homelab" {
 			return
 		}
 	}
 	authorized := []string{}
-	for _, key := range []string{"techstack.inventory.read", "techstack.inventory.operate"} {
-		if grants.Has(key) || grants.Has("techstack.inventory.admin") {
+	for _, key := range []string{"homelab.inventory.read", "homelab.inventory.operate"} {
+		if grants.Has(key) || grants.Has("homelab.inventory.admin") {
 			authorized = append(authorized, key)
 		}
 	}
@@ -91,7 +91,7 @@ func contextWithJobAuthorization(ctx context.Context, job *Job) context.Context 
 		return ctx
 	}
 	for _, key := range grant.Entitlements {
-		if key != "techstack.inventory.read" && key != "techstack.inventory.operate" {
+		if key != "homelab.inventory.read" && key != "homelab.inventory.operate" {
 			return ctx
 		}
 	}

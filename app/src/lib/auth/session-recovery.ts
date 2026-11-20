@@ -22,7 +22,7 @@ export type AuthRecoveryOutcome =
   // needing renewal, which is the point: renewing cannot fix it.
   | "origin_unverifiable";
 
-export const AUTO_RELOGIN_MARKER_KEY = "techstack:auth:spa_gateway_login_at";
+export const AUTO_RELOGIN_MARKER_KEY = "homelab:auth:spa_gateway_login_at";
 // One automatic re-login per tab per 5 minutes, matching the Cloud and CMO
 // step-up guards.
 export const AUTO_RELOGIN_TTL_MS = 5 * 60_000;
@@ -137,7 +137,7 @@ export function clearAutoReloginMarker(storage?: Storage): void {
 /**
  * Called on every successful gateway-token acquisition. When a marker is
  * pending, the preceding automatic round-trip recovered the session: emit the
- * telemetry counterpart of `techstack_session_auto_relogin` and clear the
+ * telemetry counterpart of `homelab_session_auto_relogin` and clear the
  * marker so a later incident gets a fresh automatic attempt.
  */
 export function noteGatewayTokenSuccess(storage?: Storage): void {
@@ -151,6 +151,6 @@ export function noteGatewayTokenSuccess(storage?: Storage): void {
     scope.setTag("failure_class", "gateway_token");
     scope.setTag("recovery_rung", "auto_redirect");
     scope.setLevel("info");
-    Sentry.captureMessage("techstack_session_auto_relogin_recovered");
+    Sentry.captureMessage("homelab_session_auto_relogin_recovered");
   });
 }

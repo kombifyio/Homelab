@@ -9,7 +9,7 @@ import (
 	"net"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/secrets"
+	"github.com/kombifyio/homelab/pkg/secrets"
 )
 
 const dependencyFailureErrorMaxBytes = 240

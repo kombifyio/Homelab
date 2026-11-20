@@ -3,8 +3,8 @@ package routes
 import (
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/appcatalog"
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/appcatalog"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 type registryRuntimeProjection func(controlplane.ServiceRuntime, *controlplane.ServerRuntime) serviceRuntimeResponse

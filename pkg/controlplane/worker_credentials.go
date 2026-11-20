@@ -159,7 +159,7 @@ func workerCredentialResources(state WorkerCredentialState) map[string]any {
 
 // preserveWorkerCredentialResources prevents generic heartbeat/inventory
 // upserts from replacing or deleting credential authority, and the StackKits
-// target, update setting and started update Techstack owns, on an existing row.
+// target, update setting and started update Homelab owns, on an existing row.
 func preserveWorkerCredentialResources(existing, incoming map[string]any) map[string]any {
 	out := cloneMap(incoming)
 	if out == nil {

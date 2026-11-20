@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
 	"github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
 )
 
 const createFailureThreshold = 3

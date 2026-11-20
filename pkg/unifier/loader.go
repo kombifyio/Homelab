@@ -8,8 +8,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/kombifyio/techstack/internal/providercatalog"
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/internal/providercatalog"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 const vpnTypeNone = "none"
@@ -160,7 +160,7 @@ func applyInputMetadata(metadata map[string]string, input *core.InputSpec) {
 		}
 	}
 	// The legacy input mode (simple, bootstrapped, advanced) is not carried
-	// into metadata: every Techstack-managed deployment runs Advanced Mode,
+	// into metadata: every Homelab-managed deployment runs Advanced Mode,
 	// and the rollout records stackkit_mode itself.
 	setIfPresent("runtime", input.Runtime)
 	setIfPresent("context", input.Context)

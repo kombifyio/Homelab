@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kombifyio/techstack/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
 )
 
 // WorkerBindingSigner keeps the established Guard signing contract independent

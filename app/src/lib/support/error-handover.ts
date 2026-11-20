@@ -2,7 +2,7 @@ export const ERROR_AI_HANDOVER_SCHEMA = "kombify.error-handover.v1";
 export const AI_HANDOVER_SCHEMA = "kombify.ai-handover.v1";
 export const SUPPORT_AGENT_ID = "kombify-support";
 
-export type ErrorAiSource = "kombify-techstack";
+export type ErrorAiSource = "kombify-homelab";
 export type ErrorAiPanelMode = "assistant" | "support" | "ril";
 
 export interface ErrorAiHandoverContext {
@@ -167,7 +167,7 @@ export function createErrorAiHandoverContext(
   return normalizeErrorAiHandoverContext({
     ...input,
     schema: ERROR_AI_HANDOVER_SCHEMA,
-    source: "kombify-techstack",
+    source: "kombify-homelab",
     occurredAt: input.occurredAt || new Date().toISOString(),
   });
 }
@@ -177,7 +177,7 @@ export function normalizeErrorAiHandoverContext(
 ): ErrorAiHandoverContext {
   return {
     schema: ERROR_AI_HANDOVER_SCHEMA,
-    source: "kombify-techstack",
+    source: "kombify-homelab",
     surface: cleanText(input.surface, MAX_FIELD_LENGTH) || "unknown",
     title: cleanText(input.title, MAX_FIELD_LENGTH) || "Platform error",
     userMessage:
@@ -247,7 +247,7 @@ export function buildErrorAiHandoverPrompt(
 ): string {
   const context = normalizeErrorAiHandoverContext(input);
   const lines = [
-    "Please help diagnose this kombify Techstack error.",
+    "Please help diagnose this kombify Homelab Runtime error.",
     "Use only tenant-scoped data for my current authenticated kombify account. If backend or Sentry context is needed, look it up through the tenant-filtered error-context backend by request ID; do not use or reveal errors from other users.",
     "",
     `Surface: ${context.surface}`,

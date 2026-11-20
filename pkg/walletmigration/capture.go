@@ -5,9 +5,9 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/walletservice"
+	"github.com/kombifyio/homelab/internal/gocommon/walletservice"
 
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
 )
 
 // Execution failures of building a capture. None wraps a cause: a decryption
@@ -143,7 +143,7 @@ func captureValue(plan ItemPlan, itemType string, target nodeTarget, decrypt fun
 }
 
 // nodeProfile is the node_access_profile value shared with Cloud and the
-// Techstack UI.
+// Homelab UI.
 type nodeProfile struct {
 	Host       string `json:"host,omitempty"`
 	User       string `json:"user,omitempty"`

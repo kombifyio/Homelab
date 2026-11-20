@@ -71,10 +71,10 @@ import {
 
 
 const EXISTING_STACK_ID = String(
-  process.env.TECHSTACK_RUNTIME_E2E_EXISTING_STACK_ID ?? "",
+  process.env.HOMELAB_RUNTIME_E2E_EXISTING_STACK_ID ?? "",
 ).trim();
 if (
-  process.env.TECHSTACK_RUNTIME_E2E_EXISTING_STACK_ID !== undefined &&
+  process.env.HOMELAB_RUNTIME_E2E_EXISTING_STACK_ID !== undefined &&
   !EXISTING_STACK_ID
 ) {
   throw new Error("existing_target_stack_id_required");
@@ -82,11 +82,11 @@ if (
 const EXISTING_TARGET_SCENARIO =
   "stack-lifecycle deploys a stack on an owner server, then monitors, backs up, updates and removes it";
 const REQUIRE_NATIVE_HOST_PREP =
-  process.env.TECHSTACK_RUNTIME_E2E_REQUIRE_NATIVE_HOST_PREP === "1";
+  process.env.HOMELAB_RUNTIME_E2E_REQUIRE_NATIVE_HOST_PREP === "1";
 if (REQUIRE_NATIVE_HOST_PREP && (
   EXISTING_STACK_ID ||
-  String(process.env.TECHSTACK_RUNTIME_E2E_RECOVERY_STACK_ID ?? "").trim() ||
-  !/^[a-f0-9]{40}$/.test(process.env.TECHSTACK_E2E_EXPECTED_REVISION ?? "")
+  String(process.env.HOMELAB_RUNTIME_E2E_RECOVERY_STACK_ID ?? "").trim() ||
+  !/^[a-f0-9]{40}$/.test(process.env.HOMELAB_E2E_EXPECTED_REVISION ?? "")
 )) {
   throw new Error("native_host_preparation_journey_requires_exact_production_source_and_fresh_foundation");
 }
@@ -99,26 +99,26 @@ async function testSourceCommit(): Promise<string> {
   return stdout.trim();
 }
 const PRODUCT_BASE = requireLiveProductURL(
-  "TechStack product",
+  "Homelab Runtime product",
   firstProductURL(
-    process.env.TECHSTACK_RUNTIME_E2E_PRODUCT_URL,
-    process.env.TECHSTACK_E2E_PRODUCT_URL,
+    process.env.HOMELAB_RUNTIME_E2E_PRODUCT_URL,
+    process.env.HOMELAB_E2E_PRODUCT_URL,
     EXISTING_STACK_ID ? "" : process.env.PLAYWRIGHT_BASE_URL,
   ) ||
-    "https://techstack.kombify.io",
+    "https://homelab.kombify.io",
 );
 const API_BASE = requireLiveProductURL(
-  "TechStack API",
+  "Homelab Runtime API",
   firstProductURL(
-    process.env.TECHSTACK_RUNTIME_E2E_API_URL,
-    process.env.TECHSTACK_API_URL,
+    process.env.HOMELAB_RUNTIME_E2E_API_URL,
+    process.env.HOMELAB_API_URL,
     PRODUCT_BASE,
   ) || PRODUCT_BASE,
 );
 if (
   EXISTING_STACK_ID &&
-  (PRODUCT_BASE !== "https://techstack.kombify.io" ||
-    API_BASE !== "https://api.kombify.io/v1/techstack")
+  (PRODUCT_BASE !== "https://homelab.kombify.io" ||
+    API_BASE !== "https://api.kombify.io/v1/homelab")
 ) {
   throw new Error(
     "existing_target_requires_canonical_production_product_and_gateway",
@@ -127,19 +127,19 @@ if (
 // Agents talk to the stable control plane: on the Early Access channel the owner
 // server enrolls against the stable origin.
 const AGENT_ORIGIN =
-  normalizeURL(process.env.TECHSTACK_RUNTIME_E2E_AGENT_ORIGIN) || API_BASE;
+  normalizeURL(process.env.HOMELAB_RUNTIME_E2E_AGENT_ORIGIN) || API_BASE;
 const ARTIFACTS_DIR =
   process.env.RUNTIME_E2E_ARTIFACTS_DIR ?? "../artifacts/runtime-e2e";
-const DO_TAG = process.env.TECHSTACK_E2E_DO_TAG ?? "techstack-e2e";
-const DO_REGION = process.env.TECHSTACK_E2E_DO_REGION ?? "fra1";
-const DO_IMAGE = process.env.TECHSTACK_E2E_DO_IMAGE ?? "ubuntu-24-04-x64";
-const DO_SIZE = process.env.TECHSTACK_E2E_DO_SIZE ?? "s-2vcpu-4gb";
+const DO_TAG = process.env.HOMELAB_E2E_DO_TAG ?? "homelab-e2e";
+const DO_REGION = process.env.HOMELAB_E2E_DO_REGION ?? "fra1";
+const DO_IMAGE = process.env.HOMELAB_E2E_DO_IMAGE ?? "ubuntu-24-04-x64";
+const DO_SIZE = process.env.HOMELAB_E2E_DO_SIZE ?? "s-2vcpu-4gb";
 // Includes the visible Wizard's bounded pipeline preview before the create
 // request. The preview itself is capped at 60 seconds, so the response watcher
 // must not expire at the same instant.
 const CREATE_STACK_REQUEST_TIMEOUT_MS = 120_000;
 const SESSION_COOKIE_NAME =
-  process.env.TECHSTACK_E2E_SESSION_COOKIE_NAME ?? "techstack_session";
+  process.env.HOMELAB_E2E_SESSION_COOKIE_NAME ?? "homelab_session";
 const USER_OWNED_RUNTIME_STACKKIT = "basement-kit";
 const MANAGED_RUNTIME_STACKKIT = "cloud-kit";
 const SSH_USER_KNOWN_HOSTS = process.platform === "win32" ? "NUL" : "/dev/null";
@@ -147,10 +147,10 @@ const MANAGED_RUNTIME_BUDGETS = managedRuntimeObservationBudgets(process.env);
 const MANAGED_RUNTIME_PROVISION_TIMEOUT_MS =
   MANAGED_RUNTIME_BUDGETS.preparationMs;
 const MANAGED_RUNTIME_RECOVERY_STACK_ID = String(
-  process.env.TECHSTACK_RUNTIME_E2E_RECOVERY_STACK_ID ?? "",
+  process.env.HOMELAB_RUNTIME_E2E_RECOVERY_STACK_ID ?? "",
 ).trim();
 const MANAGED_RUNTIME_RECOVERY_CONFIRM = String(
-  process.env.TECHSTACK_RUNTIME_E2E_RECOVERY_CONFIRM ?? "",
+  process.env.HOMELAB_RUNTIME_E2E_RECOVERY_CONFIRM ?? "",
 ).trim();
 // A persistent test environment (for example the long-lived TEST_RIL_PRO_USER
 // managed server) is created by the same product path but must survive the
@@ -159,10 +159,10 @@ const MANAGED_RUNTIME_RECOVERY_CONFIRM = String(
 const MANAGED_RUNTIME_RETAIN_CONFIRMATION =
   "retain-persistent-test-environment";
 const MANAGED_RUNTIME_RETAIN =
-  String(process.env.TECHSTACK_RUNTIME_E2E_RETAIN_MANAGED ?? "").trim() ===
+  String(process.env.HOMELAB_RUNTIME_E2E_RETAIN_MANAGED ?? "").trim() ===
   MANAGED_RUNTIME_RETAIN_CONFIRMATION;
 const MANAGED_DOCUMENTS_MEDIA =
-  process.env.TECHSTACK_RUNTIME_E2E_MANAGED_PROFILE === "documents-media";
+  process.env.HOMELAB_RUNTIME_E2E_MANAGED_PROFILE === "documents-media";
 const STANDARD_PROFILE_GOALS = {
   family: ["files", "photos", "media", "vault", "smart-home"],
   "documents-media": ["files", "photos", "media"],
@@ -184,7 +184,7 @@ function standardProfileApplication(goal: string) {
   if (!application) throw new Error(`No pinned starter application for ${goal}`);
   return application;
 }
-const standardSelection = (process.env.TECHSTACK_RUNTIME_E2E_MANAGED_PROFILE ?? "");
+const standardSelection = (process.env.HOMELAB_RUNTIME_E2E_MANAGED_PROFILE ?? "");
 const STANDARD_PROFILE = standardSelection.startsWith("standard-")
   ? Object.keys(STANDARD_PROFILE_GOALS).find((id): id is keyof typeof STANDARD_PROFILE_GOALS => id === standardSelection.slice(9))
   : undefined;
@@ -488,7 +488,7 @@ async function postJsonWithCurl(
   timeoutMs: number,
   label: string,
 ): Promise<RuntimeHTTPResponse> {
-  const dir = await mkdtemp(path.join(tmpdir(), "techstack-runtime-post-"));
+  const dir = await mkdtemp(path.join(tmpdir(), "homelab-runtime-post-"));
   const bodyPath = path.join(dir, "body.json");
   try {
     logRuntimeE2E("runtime api post start", { label, url });
@@ -726,7 +726,7 @@ async function createManagedRuntimeStackViaWizard(
       const url = new URL(response.url());
       return (
         response.request().method() === "POST" &&
-        (url.pathname === "/v1/techstack/wizard/runs" ||
+        (url.pathname === "/v1/homelab/wizard/runs" ||
           url.pathname === "/api/v1/wizard/runs")
       );
     },
@@ -762,7 +762,7 @@ async function createManagedRuntimeStackViaWizard(
   });
 
   const requestUrl = new URL(request.url());
-  if (requestUrl.pathname !== "/v1/techstack/wizard/runs") {
+  if (requestUrl.pathname !== "/v1/homelab/wizard/runs") {
     throw new Error(
       `Managed Wizard create bypassed the signed Gateway path: ${requestUrl.origin}${requestUrl.pathname}`,
     );
@@ -779,7 +779,7 @@ async function createManagedRuntimeStackViaWizard(
   const intent = requestBody?.intent ?? {};
   const managed = requestBody?.managed ?? {};
   if (
-    intent.schema !== "techstack.wizard-intent/v1" ||
+    intent.schema !== "homelab.wizard-intent/v1" ||
     intent.run_kind !== "first-run" ||
     intent.server?.transport !== "kombify-cloud" ||
     intent.kit_assignment?.mode !== "found" ||
@@ -811,7 +811,7 @@ async function createManagedRuntimeStackViaWizard(
   const stackName = String(
     data.name ?? requestBody.intent?.name ?? stackId,
   ).trim();
-  const gatewayBase = `${requestUrl.origin}/v1/techstack`;
+  const gatewayBase = `${requestUrl.origin}/v1/homelab`;
   await attachJson(`kombify-cloud-${providerId}-wizard-create.json`, {
     provider_id: providerId,
     request_url: `${requestUrl.origin}${requestUrl.pathname}`,
@@ -832,7 +832,7 @@ async function createManagedRuntimeStackViaWizard(
 function runtimeApiUrl(apiBase: string, apiPath: string) {
   const base = apiBase.replace(/\/+$/, "");
   const path = apiPath.startsWith("/") ? apiPath : `/${apiPath}`;
-  if (base.endsWith("/v1/techstack")) {
+  if (base.endsWith("/v1/homelab")) {
     if (path === "/api/v1") return base;
     if (path.startsWith("/api/v1/")) return `${base}${path.slice(7)}`;
   }
@@ -925,7 +925,7 @@ async function writeManagedCleanupLedger(
   ledger: Record<string, unknown>,
 ) {
   const document = {
-    schema: "techstack.managed-cleanup-ledger/v1",
+    schema: "homelab.managed-cleanup-ledger/v1",
     provider_id: providerId,
     recorded_at: new Date().toISOString(),
     ...ledger,
@@ -1515,7 +1515,7 @@ async function runManagedServiceActionEvidence(args: {
       candidate.allowed_actions.includes("logs"),
   );
   if (!service?.id || !service.inventory_revision) {
-    // Decision (kombify-Techstack-j7fd.5, reversible): Techstack only mirrors
+    // Decision (kombify-Techstack-j7fd.5, reversible): Homelab only mirrors
     // the capabilities StackKits declares in the inventory, so a Guard-managed
     // Cloud Kit that declares none cannot prove service Day-2. The lane records
     // that explicitly as not proven instead of failing every managed run; once
@@ -1875,7 +1875,7 @@ async function registerWorkerThroughInstallScript(
     `curl -fsSL ${shellQuote(`${API_BASE}/install.sh`)} |`,
     `KOMBI_SERVER=${shellQuote(API_BASE)}`,
     `KOMBI_TOKEN=${shellQuote(pairing.token)}`,
-    `TECHSTACK_BINARY_SHA256=${shellQuote(binaryPin)}`,
+    `HOMELAB_BINARY_SHA256=${shellQuote(binaryPin)}`,
     "sh",
   ].join(" ");
   const result = await runSSH(
@@ -1899,7 +1899,7 @@ async function registerWorkerThroughInstallScript(
   };
 }
 
-// Hosted Techstack never serves fleet-wide diagnostics to a customer: the
+// Hosted Homelab never serves fleet-wide diagnostics to a customer: the
 // status and health reads answer one documented tenant-isolation refusal
 // (security: isolate hosted monitoring metrics by tenant, #2213). A customer
 // reads their nodes through the stack operations, the server aggregate and the
@@ -2220,7 +2220,7 @@ async function destroyRuntimeStackViaApi(
 }
 
 async function createSSHKeyPair(label: string) {
-  const dir = await mkdtemp(path.join(tmpdir(), "techstack-runtime-e2e-"));
+  const dir = await mkdtemp(path.join(tmpdir(), "homelab-runtime-e2e-"));
   const privateKeyPath = path.join(dir, "id_ed25519");
   await execFileAsync("ssh-keygen", [
     "-t",
@@ -2245,17 +2245,17 @@ async function provisionDroplet(
   scenario: RuntimeScenario,
 ) {
   const runId = runtimeRunId();
-  const keyPair = await createSSHKeyPair(`techstack-e2e-${scenario}-${runId}`);
+  const keyPair = await createSSHKeyPair(`homelab-e2e-${scenario}-${runId}`);
   let sshKey: DigitalOceanSSHKey | undefined;
   let droplet: DigitalOceanDroplet | undefined;
   try {
     await client.ensureTag(DO_TAG);
     sshKey = await client.createSSHKey(
-      `techstack-e2e-${scenario}-${runId}`,
+      `homelab-e2e-${scenario}-${runId}`,
       keyPair.publicKey,
     );
     droplet = await client.createDroplet({
-      name: `techstack-e2e-${scenario}-${runId}`.slice(0, 63),
+      name: `homelab-e2e-${scenario}-${runId}`.slice(0, 63),
       scenario,
       sshKeyId: sshKey.id,
     });
@@ -2383,9 +2383,9 @@ async function cleanupDropletResource(
 }
 
 // The layout journey's owner servers come from one supplier per run
-// (TECHSTACK_E2E_OWNER_SERVER_PROVIDER): DigitalOcean droplets or centron
+// (HOMELAB_E2E_OWNER_SERVER_PROVIDER): DigitalOcean droplets or centron
 // ccloud VPS. Either way the test plays the owner bringing their own machine;
-// Techstack meets it only through the install command.
+// Homelab meets it only through the install command.
 interface OwnerServer {
   ip: string;
   keyPair: Awaited<ReturnType<typeof createSSHKeyPair>>;
@@ -2399,7 +2399,7 @@ interface OwnerServer {
 // B3: one declared protected local server, reached through its governed SSH
 // custody (the workflow resolves it from the lab device inventory). The host
 // key is pinned before the first login; the run never deletes the server.
-const LOCAL_ANCHOR_TARGET_ID = String(process.env.TECHSTACK_E2E_LOCAL_TARGET_ID ?? "").trim();
+const LOCAL_ANCHOR_TARGET_ID = String(process.env.HOMELAB_E2E_LOCAL_TARGET_ID ?? "").trim();
 
 interface LocalAnchorIdentity {
   hostname: string;
@@ -2408,7 +2408,7 @@ interface LocalAnchorIdentity {
 }
 
 interface LocalLifecycleReceipt {
-  schemaVersion: "techstack.local-lifecycle-receipt/v1";
+  schemaVersion: "homelab.local-lifecycle-receipt/v1";
   targetId: string;
   kit: string;
   testSourceCommit: string;
@@ -2424,17 +2424,17 @@ interface LocalLifecycleReceipt {
 }
 
 async function localAnchorFromEnv() {
-  const host = String(process.env.TECHSTACK_E2E_LOCAL_TARGET_HOST ?? "").trim();
-  const user = String(process.env.TECHSTACK_E2E_LOCAL_TARGET_SSH_USER ?? "").trim();
-  const keyFile = String(process.env.TECHSTACK_E2E_LOCAL_TARGET_SSH_KEY_FILE ?? "").trim();
-  const rawPin = String(process.env.TECHSTACK_E2E_LOCAL_TARGET_HOSTKEY_SHA256 ?? "").trim().replace(/=+$/, "");
+  const host = String(process.env.HOMELAB_E2E_LOCAL_TARGET_HOST ?? "").trim();
+  const user = String(process.env.HOMELAB_E2E_LOCAL_TARGET_SSH_USER ?? "").trim();
+  const keyFile = String(process.env.HOMELAB_E2E_LOCAL_TARGET_SSH_KEY_FILE ?? "").trim();
+  const rawPin = String(process.env.HOMELAB_E2E_LOCAL_TARGET_HOSTKEY_SHA256 ?? "").trim().replace(/=+$/, "");
   const pin = rawPin.startsWith("SHA256:") ? rawPin : `SHA256:${rawPin}`;
   if (!host || !user || !keyFile || !/^SHA256:[A-Za-z0-9+/]{43}$/.test(pin)) {
     throw new Error(
-      "local_anchor_custody_missing: TECHSTACK_E2E_LOCAL_TARGET_HOST, _SSH_USER, _SSH_KEY_FILE and _HOSTKEY_SHA256 are required",
+      "local_anchor_custody_missing: HOMELAB_E2E_LOCAL_TARGET_HOST, _SSH_USER, _SSH_KEY_FILE and _HOSTKEY_SHA256 are required",
     );
   }
-  const dir = await mkdtemp(path.join(tmpdir(), "techstack-local-anchor-"));
+  const dir = await mkdtemp(path.join(tmpdir(), "homelab-local-anchor-"));
   const knownHostsPath = path.join(dir, "known_hosts");
   const scanned = (await execFileAsync("ssh-keyscan", ["-T", "10", "-t", "ed25519", host], { timeout: 30_000 })).stdout
     .split("\n")
@@ -2477,7 +2477,7 @@ function ownerServerSupplierFromEnv(): {
   provision: (index: number) => Promise<OwnerServer>;
 } {
   const provider = (
-    process.env.TECHSTACK_E2E_OWNER_SERVER_PROVIDER ?? "digitalocean"
+    process.env.HOMELAB_E2E_OWNER_SERVER_PROVIDER ?? "digitalocean"
   )
     .trim()
     .toLowerCase();
@@ -2505,12 +2505,12 @@ function ownerServerSupplierFromEnv(): {
   };
 }
 
-// centron ccloud, as Techstack's verified adapter uses it
+// centron ccloud, as Homelab's verified adapter uses it
 // (internal/provideradapters/centron): ccloud ignores the requested hostname,
 // so a server is found again only by its unique tag (at most 20 characters),
 // and it is deleted by the hostname ccloud assigned.
 const CENTRON_API = "https://ccenter.centron.de/api/v1";
-const CENTRON_TAG = "techstack-e2e";
+const CENTRON_TAG = "homelab-e2e";
 // 4 vCPU / 8 GB per node: the 4 GB host floor plus the use cases.
 const CENTRON_SIZE = { cores: 4, memoryGB: 8, diskGB: 80 };
 
@@ -2671,7 +2671,7 @@ function centronClientFromEnv() {
     clientId,
     clientSecret,
     pool,
-    (process.env.TECHSTACK_E2E_CENTRON_IMAGE ?? "ubuntu-24").trim(),
+    (process.env.HOMELAB_E2E_CENTRON_IMAGE ?? "ubuntu-24").trim(),
   );
 }
 
@@ -2679,14 +2679,14 @@ function centronClientFromEnv() {
 function centronServerTag(index: number) {
   if (
     process.env.GITHUB_ACTIONS === "true" &&
-    !process.env.TECHSTACK_E2E_CENTRON_RUN_TAG
+    !process.env.HOMELAB_E2E_CENTRON_RUN_TAG
   ) {
     throw new Error(
-      "TECHSTACK_E2E_CENTRON_RUN_TAG is required in CI so the lane's cleanup finds these servers",
+      "HOMELAB_E2E_CENTRON_RUN_TAG is required in CI so the lane's cleanup finds these servers",
     );
   }
   const prefix = (
-    process.env.TECHSTACK_E2E_CENTRON_RUN_TAG ??
+    process.env.HOMELAB_E2E_CENTRON_RUN_TAG ??
     `kte2e-${Date.now().toString(36)}`
   ).trim();
   const tag = `${prefix}-${index}`;
@@ -2733,7 +2733,7 @@ async function provisionCentronServer(
   index: number,
 ): Promise<OwnerServer> {
   const tag = centronServerTag(index);
-  const keyPair = await createSSHKeyPair(`techstack-e2e-${tag}`);
+  const keyPair = await createSSHKeyPair(`homelab-e2e-${tag}`);
   const release = async () => {
     await deleteCentronServers(client, tag).catch(() => undefined);
     await rm(keyPair.dir, { recursive: true, force: true }).catch(
@@ -2925,7 +2925,7 @@ const monthlyRuntimeLeaseProviders = [
 
 function selectedMonthlyRuntimeLeaseProviders() {
   const requested = (
-    process.env.TECHSTACK_RUNTIME_E2E_PROVIDER_ID ?? "all"
+    process.env.HOMELAB_RUNTIME_E2E_PROVIDER_ID ?? "all"
   ).trim();
   if (!requested || requested === "all") return monthlyRuntimeLeaseProviders;
   const selected = monthlyRuntimeLeaseProviders.filter(
@@ -2933,7 +2933,7 @@ function selectedMonthlyRuntimeLeaseProviders() {
   );
   if (selected.length === 0) {
     throw new Error(
-      `Unsupported TECHSTACK_RUNTIME_E2E_PROVIDER_ID=${requested}. Expected all, centron, or ionos.`,
+      `Unsupported HOMELAB_RUNTIME_E2E_PROVIDER_ID=${requested}. Expected all, centron, or ionos.`,
     );
   }
   return selected;
@@ -2944,12 +2944,12 @@ test.describe.serial("Runtime E2E scenarios", () => {
   test.beforeEach(() => {
     if (PROFILE_WINDOW) {
       expect(test.info().title).toBe(MANAGED_DOCUMENTS_MEDIA_SCENARIO);
-      expect(process.env.TECHSTACK_RUNTIME_E2E_PROVIDER_ID).toBe("ionos");
+      expect(process.env.HOMELAB_RUNTIME_E2E_PROVIDER_ID).toBe("ionos");
       expect(process.env.GITHUB_ACTIONS, "provider acceptance belongs to a governed test window").toBe("true");
-      expect(process.env.TECHSTACK_PRO_DOCUMENTS_MEDIA_WINDOW_ID).toMatch(/^[a-z0-9][a-z0-9-]{0,79}$/);
+      expect(process.env.HOMELAB_PRO_DOCUMENTS_MEDIA_WINDOW_ID).toMatch(/^[a-z0-9][a-z0-9-]{0,79}$/);
       expect(process.env.GITHUB_SHA).toMatch(/^[a-f0-9]{40}$/);
-      expect(process.env.TECHSTACK_PRO_DOCUMENTS_MEDIA_CANDIDATE_SHA).toBe(process.env.GITHUB_SHA);
-      if (STANDARD_PROFILE) expect(process.env.TECHSTACK_E2E_EXPECTED_REVISION).toBe(process.env.GITHUB_SHA);
+      expect(process.env.HOMELAB_PRO_DOCUMENTS_MEDIA_CANDIDATE_SHA).toBe(process.env.GITHUB_SHA);
+      if (STANDARD_PROFILE) expect(process.env.HOMELAB_E2E_EXPECTED_REVISION).toBe(process.env.GITHUB_SHA);
       expect(MANAGED_RUNTIME_RETAIN).toBe(false);
       expect(MANAGED_RUNTIME_RECOVERY_STACK_ID).toBe("");
     }
@@ -2966,11 +2966,11 @@ test.describe.serial("Runtime E2E scenarios", () => {
     page,
   }) => {
     test.skip(
-      process.env.TECHSTACK_RUNTIME_E2E_MANAGED_CLEANUP_CONFIRM !==
+      process.env.HOMELAB_RUNTIME_E2E_MANAGED_CLEANUP_CONFIRM !==
         "managed-e2e-stacks",
       "Explicit managed Runtime E2E cleanup confirmation is required",
     );
-    const providerId = process.env.TECHSTACK_RUNTIME_E2E_PROVIDER_ID;
+    const providerId = process.env.HOMELAB_RUNTIME_E2E_PROVIDER_ID;
     if (providerId !== "centron" && providerId !== "ionos") {
       throw new Error(
         "Managed Runtime E2E cleanup requires an exact centron or ionos provider ID",
@@ -2981,7 +2981,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
     const stacks = await getStackList(api.token, api.apiBase);
     const candidates = managedRuntimeE2ECleanupCandidates(stacks, providerId);
     const batchSize = boundedPositiveInteger(
-      process.env.TECHSTACK_RUNTIME_E2E_MANAGED_CLEANUP_BATCH_SIZE,
+      process.env.HOMELAB_RUNTIME_E2E_MANAGED_CLEANUP_BATCH_SIZE,
       5,
       10,
     );
@@ -3064,12 +3064,12 @@ test.describe.serial("Runtime E2E scenarios", () => {
   test("managed owner stack removal removes named stacks and reads back their absence", async ({
     page,
   }) => {
-    const raw = process.env.TECHSTACK_RUNTIME_E2E_REMOVE_STACK_IDS ?? "";
+    const raw = process.env.HOMELAB_RUNTIME_E2E_REMOVE_STACK_IDS ?? "";
     test.skip(!raw, "Owner stack removal runs only for named leftover stacks");
     test.setTimeout(20 * 60_000);
     const stackIds = raw.split(",").map((id) => id.trim()).filter(Boolean);
     if (stackIds.length > 10 || stackIds.some((id) => !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id))) {
-      throw new Error("TECHSTACK_RUNTIME_E2E_REMOVE_STACK_IDS takes up to ten stack UUIDs");
+      throw new Error("HOMELAB_RUNTIME_E2E_REMOVE_STACK_IDS takes up to ten stack UUIDs");
     }
     await authenticateRuntimeUser("cloud", page, RUNTIME_AUTH_OPTIONS);
     const api = await captureGatewayApiSession(page);
@@ -3116,11 +3116,11 @@ test.describe.serial("Runtime E2E scenarios", () => {
     page,
   }) => {
     test.skip(
-      process.env.TECHSTACK_RUNTIME_E2E_ABSENCE_READBACK !== "1",
+      process.env.HOMELAB_RUNTIME_E2E_ABSENCE_READBACK !== "1",
       "The absence readback runs only for a cleanup proof",
     );
     test.setTimeout(25 * 60_000);
-    const providerId = process.env.TECHSTACK_RUNTIME_E2E_PROVIDER_ID;
+    const providerId = process.env.HOMELAB_RUNTIME_E2E_PROVIDER_ID;
     if (providerId !== "centron" && providerId !== "ionos") {
       throw new Error("The absence readback requires an exact centron or ionos provider ID");
     }
@@ -3133,7 +3133,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
       if (!Number.isFinite(at)) throw new Error(`${name} is not a timestamp`);
       return at;
     };
-    const bounds = { since: bound("TECHSTACK_RUNTIME_E2E_ABSENCE_SINCE"), until: bound("TECHSTACK_RUNTIME_E2E_ABSENCE_UNTIL") };
+    const bounds = { since: bound("HOMELAB_RUNTIME_E2E_ABSENCE_SINCE"), until: bound("HOMELAB_RUNTIME_E2E_ABSENCE_UNTIL") };
     await authenticateRuntimeUser("cloud", page, RUNTIME_AUTH_OPTIONS);
     const api = await captureGatewayApiSession(page);
     const found = await managedOwnerFootprint(api.token, api.apiBase, providerId, bounds);
@@ -3142,7 +3142,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
     const removals: Array<Record<string, unknown>> = [];
     let footprint = found;
     try {
-      if (process.env.TECHSTACK_RUNTIME_E2E_ABSENCE_REMOVE === "run-leftovers" && bounds.since !== undefined && bounds.until !== undefined) {
+      if (process.env.HOMELAB_RUNTIME_E2E_ABSENCE_REMOVE === "run-leftovers" && bounds.since !== undefined && bounds.until !== undefined) {
         // Only a stack whose creation time is known to lie inside the span is destroyed.
         for (const stack of found.details.stacks.filter((row) => row.created_known)) {
           const stackId = String(stack.id ?? "").trim();
@@ -3577,7 +3577,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
           const requiredConfirmation = `destroy-managed-stack:${MANAGED_RUNTIME_RECOVERY_STACK_ID}`;
           if (MANAGED_RUNTIME_RECOVERY_CONFIRM !== requiredConfirmation) {
             throw new Error(
-              `Managed runtime recovery requires TECHSTACK_RUNTIME_E2E_RECOVERY_CONFIRM=${requiredConfirmation}`,
+              `Managed runtime recovery requires HOMELAB_RUNTIME_E2E_RECOVERY_CONFIRM=${requiredConfirmation}`,
             );
           }
           const recoveryApi = createGatewaySessionKeeper(
@@ -3612,7 +3612,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
           }
           if (recoveryProviderId !== leaseProvider.id) {
             const requestedProvider = (
-              process.env.TECHSTACK_RUNTIME_E2E_PROVIDER_ID ?? "all"
+              process.env.HOMELAB_RUNTIME_E2E_PROVIDER_ID ?? "all"
             ).trim();
             if (requestedProvider !== "all") {
               throw new Error(
@@ -3712,7 +3712,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
             session, "/api/v1/health", session.apiBase,
           );
           expect(health, "the live target must serve the window's exact revision").toMatchObject({
-            revision: process.env.TECHSTACK_PRO_DOCUMENTS_MEDIA_CANDIDATE_SHA,
+            revision: process.env.HOMELAB_PRO_DOCUMENTS_MEDIA_CANDIDATE_SHA,
             release_channel: "stable",
           });
           await assertProStandardDocumentsMediaAuthority(session);
@@ -4090,7 +4090,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
   // adding use cases shows one distribution checked against their exact
   // inventory, with plain reasons; finishing the flow accepts it, the run
   // revalidates on a fresh snapshot and the record reads back accepted.
-  // Needs two hosts at or above the 4 GB host floor (TECHSTACK_E2E_DO_SIZE
+  // Needs two hosts at or above the 4 GB host floor (HOMELAB_E2E_DO_SIZE
   // s-2vcpu-8gb): a nominal 4 GB droplet reports less than 4 GB.
   test("layout-two-node recommends a verified distribution across two owner servers and accepts it", async ({
     page,
@@ -4113,7 +4113,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
       const name = `layout-two-node-${runtimeRunId()}`;
       const found = await createLayoutWizardRun(auth.token, {
         intent: {
-          schema: "techstack.wizard-intent/v1",
+          schema: "homelab.wizard-intent/v1",
           run_kind: "first-run",
           name,
           // Only the foundation: vault and media come through the layout
@@ -4131,7 +4131,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
 
       const join = await createLayoutWizardRun(auth.token, {
         intent: {
-          schema: "techstack.wizard-intent/v1",
+          schema: "homelab.wizard-intent/v1",
           run_kind: "expansion",
           name,
           goals: [],
@@ -4155,7 +4155,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
       page.on("response", (response) => {
         if (
           response.request().method() === "POST" &&
-          /\/(?:api\/v1|v1\/techstack)\/unifier\/layout\/recommendations$/.test(
+          /\/(?:api\/v1|v1\/homelab)\/unifier\/layout\/recommendations$/.test(
             new URL(response.url()).pathname,
           )
         ) {
@@ -4195,7 +4195,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
         const runResponse = page.waitForResponse(
           (response) =>
             response.request().method() === "POST" &&
-            /\/(?:api\/v1|v1\/techstack)\/wizard\/runs$/.test(
+            /\/(?:api\/v1|v1\/homelab)\/wizard\/runs$/.test(
               new URL(response.url()).pathname,
             ),
           { timeout: CREATE_STACK_REQUEST_TIMEOUT_MS },
@@ -4303,7 +4303,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
         auth.token,
         {
           intent: {
-            schema: "techstack.wizard-intent/v1",
+            schema: "homelab.wizard-intent/v1",
             run_kind: "first-run",
             name: `guard-disconnect-${runtimeRunId()}`,
             goals: [],
@@ -4457,7 +4457,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
       expect(await invocation("techstack-agent.service"), "the Guard reconnected without a restart").toBe(guardBefore);
 
       const receipt = {
-        schemaVersion: "techstack.guard-disconnect/v1",
+        schemaVersion: "homelab.guard-disconnect/v1",
         stackId,
         serverId,
         workerId: String(before.worker_id),
@@ -4531,7 +4531,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
             auth.token,
             {
               intent: {
-                schema: "techstack.wizard-intent/v1",
+                schema: "homelab.wizard-intent/v1",
                 run_kind: "first-run",
                 name: `connected-free-${runtimeRunId()}`,
                 goals: [],
@@ -4635,8 +4635,8 @@ test.describe.serial("Runtime E2E scenarios", () => {
   test("guard-reinstall brings a Guard below the signer move forward without re-enrollment", async ({
     page,
   }) => {
-    const oldGuard = process.env.TECHSTACK_E2E_OLD_GUARD_BINARY ?? "";
-    test.skip(!oldGuard, "TECHSTACK_E2E_OLD_GUARD_BINARY names the archived guard-v0.45.6 techstack-linux-amd64");
+    const oldGuard = process.env.HOMELAB_E2E_OLD_GUARD_BINARY ?? "";
+    test.skip(!oldGuard, "HOMELAB_E2E_OLD_GUARD_BINARY names the archived guard-v0.45.6 homelab-linux-amd64");
     test.setTimeout(45 * 60_000);
     const supplier = ownerServerSupplierFromEnv();
     const auth = await authenticateRuntimeUser("oneliner", page, RUNTIME_AUTH_OPTIONS);
@@ -4648,7 +4648,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
         auth.token,
         {
           intent: {
-            schema: "techstack.wizard-intent/v1",
+            schema: "homelab.wizard-intent/v1",
             run_kind: "first-run",
             name: `guard-reinstall-${runtimeRunId()}`,
             goals: [],
@@ -4741,7 +4741,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
         "existing_target_gateway_session_origin_mismatch",
       ).toBe(API_BASE);
       const token = createGatewaySessionKeeper(page, session);
-      const supersededFixture = process.env.TECHSTACK_RUNTIME_E2E_REMOVE_SUPERSEDED_CHECKPOINT_JSON;
+      const supersededFixture = process.env.HOMELAB_RUNTIME_E2E_REMOVE_SUPERSEDED_CHECKPOINT_JSON;
       if (supersededFixture) {
         await test.step("Reject the original removal checkpoint after a later product change", () =>
           assertRemoveSupersededCheckpointRetry({
@@ -4756,7 +4756,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
             token,
             stackId: EXISTING_STACK_ID,
             expectedRevision: String(
-              process.env.TECHSTACK_E2E_EXPECTED_REVISION ?? "",
+              process.env.HOMELAB_E2E_EXPECTED_REVISION ?? "",
             ).trim(),
             url: (path) => runtimeApiUrl(API_BASE, path),
             waitForJob: (id) => waitForJobTerminal(token, id, 1_200_000),
@@ -4766,10 +4766,10 @@ test.describe.serial("Runtime E2E scenarios", () => {
         evidence,
       );
       const configurationWorkload = String(
-        process.env.TECHSTACK_RUNTIME_E2E_CONFIGURE_WORKLOAD ?? "",
+        process.env.HOMELAB_RUNTIME_E2E_CONFIGURE_WORKLOAD ?? "",
       ).trim();
       const configurationChanges = String(
-        process.env.TECHSTACK_RUNTIME_E2E_CONFIGURE_CHANGES_JSON ?? "",
+        process.env.HOMELAB_RUNTIME_E2E_CONFIGURE_CHANGES_JSON ?? "",
       ).trim();
       if (configurationWorkload || configurationChanges) {
         expect(configurationWorkload, "Configure needs an actual installed workload fixture").not.toBe("");
@@ -4786,8 +4786,8 @@ test.describe.serial("Runtime E2E scenarios", () => {
           }));
       }
 
-      const removalKind = String(process.env.TECHSTACK_RUNTIME_E2E_REMOVE_KIND ?? "").trim();
-      const removalRef = String(process.env.TECHSTACK_RUNTIME_E2E_REMOVE_REF ?? "").trim();
+      const removalKind = String(process.env.HOMELAB_RUNTIME_E2E_REMOVE_KIND ?? "").trim();
+      const removalRef = String(process.env.HOMELAB_RUNTIME_E2E_REMOVE_REF ?? "").trim();
       if (removalKind || removalRef) {
         if (removalKind !== "workload" && removalKind !== "use_case") throw new Error("Remove needs an explicit workload or use_case fixture scope");
         expect(removalRef, "Remove needs an actual installed catalog selection").not.toBe("");
@@ -4882,7 +4882,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
       });
 
       const extensionRevision =
-        String(process.env.TECHSTACK_E2E_EXPECTED_REVISION ?? "").trim() ||
+        String(process.env.HOMELAB_E2E_EXPECTED_REVISION ?? "").trim() ||
         (await testSourceCommit());
       await test.step("Add use case before full lifecycle backup, update and removal", () =>
         assertExistingTargetExtension({
@@ -5053,7 +5053,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
     try {
       // Both rollouts save credentials in the Wallet: the owner allows that
       // once, then both servers enroll and deploy at the same time.
-      const walletConsent = await allowTechstackWalletCreate(page);
+      const walletConsent = await allowHomelabWalletCreate(page);
       await attachJson("stack-lifecycle-wallet-consent.json", walletConsent);
       const deployments = await Promise.allSettled([
         enrollAndDeployLifecycleStack(
@@ -5107,7 +5107,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
       const owned = resource!;
       const destinationOwned = destinationResource!;
       const expectedRevision =
-        String(process.env.TECHSTACK_E2E_EXPECTED_REVISION ?? "").trim() ||
+        String(process.env.HOMELAB_E2E_EXPECTED_REVISION ?? "").trim() ||
         (await testSourceCommit());
       const url = (apiPath: string) => runtimeApiUrl(API_BASE, apiPath);
       const waitForJob = (id: string) =>
@@ -5631,11 +5631,11 @@ test.describe.serial("Runtime E2E scenarios", () => {
   test("local-anchor connects the declared local server through the Wizard and runs its lifecycle with the server intact", async ({
     page,
   }) => {
-    test.skip(!LOCAL_ANCHOR_TARGET_ID, "TECHSTACK_E2E_LOCAL_TARGET_ID names the declared local server");
+    test.skip(!LOCAL_ANCHOR_TARGET_ID, "HOMELAB_E2E_LOCAL_TARGET_ID names the declared local server");
     test.setTimeout(150 * 60_000);
     const anchor = await localAnchorFromEnv();
     const receipt: LocalLifecycleReceipt = {
-      schemaVersion: "techstack.local-lifecycle-receipt/v1",
+      schemaVersion: "homelab.local-lifecycle-receipt/v1",
       targetId: LOCAL_ANCHOR_TARGET_ID,
       kit: "basement-kit",
       testSourceCommit: process.env.GITHUB_SHA ?? (await testSourceCommit().catch(() => "")),
@@ -5992,7 +5992,7 @@ const MANAGED_KOMBIFY_ME_BUDGET_MS = 5 * 60_000;
 // into `evidence` as soon as it is observed, so the lifecycle receipt keeps
 // what passed when a later part throws.
 //   upgrade        the owner upgrades the deployed StackKit to the release
-//                  the control plane pins (TECHSTACK_RUNTIME_E2E_UPGRADE_TARGET_RELEASE,
+//                  the control plane pins (HOMELAB_RUNTIME_E2E_UPGRADE_TARGET_RELEASE,
 //                  as the product's own upgrade action does), then verification passes
 //   bounded_retry  the exact rollout retry is bounded to a failed rollout on
 //                  its active lease: on the converged stack it is refused
@@ -6005,7 +6005,7 @@ const MANAGED_KOMBIFY_ME_BUDGET_MS = 5 * 60_000;
 // Action wait 15, upgrade 31, verify 20 and ports 5 minutes, plus headroom.
 const MANAGED_LIFECYCLE_BUDGET_MS = 75 * 60_000;
 const MANAGED_UPGRADE_TARGET_RELEASE =
-  String(process.env.TECHSTACK_RUNTIME_E2E_UPGRADE_TARGET_RELEASE ?? "").trim() || "latest";
+  String(process.env.HOMELAB_RUNTIME_E2E_UPGRADE_TARGET_RELEASE ?? "").trim() || "latest";
 
 // The kit's upgrade policy as the StackKits release the product runs declares
 // it (`upgradePolicy.support` in the kit's CUE definition). The product names
@@ -6536,7 +6536,7 @@ async function enrollWithRunToken(
     `curl -fsSL ${shellQuote(`${API_BASE}/install.sh`)} |`,
     `KOMBI_SERVER=${shellQuote(API_BASE)}`,
     `KOMBI_TOKEN=${shellQuote(pairing)}`,
-    "TECHSTACK_AS_SERVICE=1 sh",
+    "HOMELAB_AS_SERVICE=1 sh",
   ].join(" ");
   let result: Awaited<ReturnType<typeof runSSH>>;
   try {
@@ -6639,7 +6639,7 @@ interface LifecycleHooks {
 }
 
 // The owner brings one server, runs the install command with the registration
-// token a first-run wizard prepared, allows Techstack to save in the Wallet and
+// token a first-run wizard prepared, allows Homelab to save in the Wallet and
 // starts the rollout; the rollout is started again (twice at most) when the
 // platform itself answered it with an error. What the run created is reported
 // through the hooks as soon as it exists, so the caller's cleanup sees it even
@@ -6665,7 +6665,7 @@ async function enrollAndDeployLifecycleStack(
     token,
     {
       intent: {
-        schema: "techstack.wizard-intent/v1",
+        schema: "homelab.wizard-intent/v1",
         run_kind: "first-run",
         name,
         // A run gets only the goals it selects plus the saved goals no release
@@ -6710,11 +6710,11 @@ async function enrollAndDeployLifecycleStack(
   hooks.onServer(serverId);
 
   // Deploy: a rollout saves its credentials in the owner's kombify Wallet,
-  // so the owner first allows Techstack to do that (the consent the
+  // so the owner first allows Homelab to do that (the consent the
   // product asks for once), then starts the rollout once the product says
   // it can.
   if (!run.walletConsentGranted) {
-    const walletConsent = await allowTechstackWalletCreate(page);
+    const walletConsent = await allowHomelabWalletCreate(page);
     await attachJson("stack-lifecycle-wallet-consent.json", walletConsent);
   }
   await waitForRolloutReadiness(token, stackId);
@@ -6888,7 +6888,7 @@ async function enrollOwnerServer(
     `curl -fsSL ${shellQuote(`${AGENT_ORIGIN}/install.sh`)} |`,
     `${asRoot}KOMBI_SERVER=${shellQuote(AGENT_ORIGIN)}`,
     `KOMBI_TOKEN=${shellQuote(registrationToken)}`,
-    "TECHSTACK_AS_SERVICE=1 sh",
+    "HOMELAB_AS_SERVICE=1 sh",
   ].join(" ");
   let result: Awaited<ReturnType<typeof runSSH>>;
   try {
@@ -6959,10 +6959,10 @@ async function waitForRolloutReadiness(
 }
 
 // The Wallet owner API sits at the public Gateway and takes the same Auth0
-// bearer every Techstack gateway call carries (src/lib/kombify-wallet/
+// bearer every Homelab gateway call carries (src/lib/kombify-wallet/
 // wallet-api.ts). The grant is the call the creation page's Wallet prompt
 // makes when its owner presses Allow.
-async function allowTechstackWalletCreate(page: Page) {
+async function allowHomelabWalletCreate(page: Page) {
   const session = await captureGatewayApiSession(page);
   const walletApi = `${new URL(session.apiBase).origin}/v1/wallet/services/creators`;
   const call = async (init: RequestInit = {}) => {
@@ -6983,18 +6983,18 @@ async function allowTechstackWalletCreate(page: Page) {
   const before = await call();
   expect(before.status, redactText(before.text)).toBe(200);
   const alreadyAllowed = ((before.body.services ?? []) as string[]).includes(
-    "techstack",
+    "homelab",
   );
   if (!alreadyAllowed) {
     const granted = await call({
       method: "POST",
-      body: JSON.stringify({ action: "grant", serviceId: "techstack" }),
+      body: JSON.stringify({ action: "grant", serviceId: "homelab" }),
     });
     expect(granted.status, redactText(granted.text)).toBe(200);
     expect(granted.body.granted).toBe(true);
   }
   const after = await call();
-  expect(((after.body.services ?? []) as string[]).includes("techstack")).toBe(
+  expect(((after.body.services ?? []) as string[]).includes("homelab")).toBe(
     true,
   );
   return { already_allowed: alreadyAllowed, allowed: true };
@@ -7013,7 +7013,7 @@ async function submitCloudUseCaseHandoff(
   const observe = async (response: import("@playwright/test").Response) => {
     if (
       response.request().method() !== "POST" ||
-      !/\/(?:api\/v1|v1\/techstack)\/unifier\/layout\/recommendations$/.test(
+      !/\/(?:api\/v1|v1\/homelab)\/unifier\/layout\/recommendations$/.test(
         new URL(response.url()).pathname,
       ) ||
       !response.ok()
@@ -7076,7 +7076,7 @@ async function submitCloudUseCaseHandoff(
     const submitted = page.waitForResponse(
       (response) =>
         response.request().method() === "POST" &&
-        /\/(?:api\/v1|v1\/techstack)\/wizard\/runs$/.test(
+        /\/(?:api\/v1|v1\/homelab)\/wizard\/runs$/.test(
           new URL(response.url()).pathname,
         ),
       { timeout: CREATE_STACK_REQUEST_TIMEOUT_MS },
@@ -7620,8 +7620,8 @@ async function runStackKitLifecycleOperation(
     apiBase,
   );
   expect(job.state, runtimeJobFailureSummary(job)).toBe("completed");
-  expect(result.schema_version).toBe("techstack.stackkit-lifecycle-result/v1");
-  expect(result.techstack_id).toBe(stackId);
+  expect(result.schema_version).toBe("homelab.stackkit-lifecycle-result/v1");
+  expect(result.kit_deployment_id).toBe(stackId);
   expect(result.agent_id).toBe(agentId);
   expect(result.operation).toBe(operation);
   expect(result.success, runtimeJobFailureSummary(job)).toBe(true);

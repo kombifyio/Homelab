@@ -31,7 +31,7 @@ const (
 
 	defaultBaseURL = "https://api.cloudflare.com/client/v4"
 	// ValidityDays is the requested certificate lifetime. Cloudflare sends no
-	// expiry notice, so Techstack renews at two thirds of it.
+	// expiry notice, so Homelab renews at two thirds of it.
 	ValidityDays = 90
 	requestType  = "origin-ecc"
 )

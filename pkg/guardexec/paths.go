@@ -14,10 +14,10 @@ const (
 	// artifacts, release evidence and non-secret update status.
 	DefaultHandoffDir = "/var/lib/techstack/guard-handoff"
 	// DefaultAgentPath is the installed Guard executable.
-	DefaultAgentPath = "/usr/local/bin/techstack"
+	DefaultAgentPath = "/usr/local/bin/homelab"
 	// DefaultOperationsPath is the StackKits operations executable, a copy of the
 	// Guard executable.
-	DefaultOperationsPath = "/usr/local/libexec/techstack-stackkit-operations"
+	DefaultOperationsPath = "/usr/local/libexec/homelab-stackkit-operations"
 	// DefaultOperationsSocket is where the daemon serves StackKits operations
 	// requests to the operations executable, so the credential never leaves it.
 	DefaultOperationsSocket = "/run/techstack-guard/operations.sock"

@@ -20,11 +20,11 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 
-	agentpkg "github.com/kombifyio/techstack/pkg/agent"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/guardrelease"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	agentpkg "github.com/kombifyio/homelab/pkg/agent"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 const (
@@ -377,12 +377,12 @@ type releaseEvidence struct {
 	Version            string                               `json:"version"`
 }
 
-// EnsureTechstackRuntime converges the Guard executables to the signed release
+// EnsureHomelabRuntime converges the Guard executables to the signed release
 // the control plane publishes. The unprivileged daemon downloads; the executor
 // alone authenticates, stages and switches. It never installs an artifact the
 // control plane merely vouches for.
-func (r *Remote) EnsureTechstackRuntime(ctx context.Context, cfg agentpkg.TechstackRuntimeConvergenceConfig) (agentpkg.TechstackRuntimeConvergenceResult, error) {
-	result := agentpkg.TechstackRuntimeConvergenceResult{Version: strings.TrimSpace(cfg.Version)}
+func (r *Remote) EnsureHomelabRuntime(ctx context.Context, cfg agentpkg.HomelabRuntimeConvergenceConfig) (agentpkg.HomelabRuntimeConvergenceResult, error) {
+	result := agentpkg.HomelabRuntimeConvergenceResult{Version: strings.TrimSpace(cfg.Version)}
 	cfg.StageDir = r.HandoffDir
 	localDigest, _ := agentpkg.DigestInstalledExecutable(cfg.AgentPath)
 	client := cfg.HTTPClient
@@ -437,7 +437,7 @@ func (r *Remote) EnsureTechstackRuntime(ctx context.Context, cfg agentpkg.Techst
 		// so nothing is downloaded for it.
 		return result, policyRefusal(err)
 	}
-	artifactPath, digest, artifactVersion, notModified, err := agentpkg.FetchTechstackRuntimeArtifact(ctx, cfg, localDigest)
+	artifactPath, digest, artifactVersion, notModified, err := agentpkg.FetchHomelabRuntimeArtifact(ctx, cfg, localDigest)
 	if err != nil {
 		return result, err
 	}
@@ -472,7 +472,7 @@ func (r *Remote) EnsureTechstackRuntime(ctx context.Context, cfg agentpkg.Techst
 	return result, nil
 }
 
-func (r *Remote) confirmCurrent(ctx context.Context, result agentpkg.TechstackRuntimeConvergenceResult, evidence *releaseEvidence) (agentpkg.TechstackRuntimeConvergenceResult, error) {
+func (r *Remote) confirmCurrent(ctx context.Context, result agentpkg.HomelabRuntimeConvergenceResult, evidence *releaseEvidence) (agentpkg.HomelabRuntimeConvergenceResult, error) {
 	result.SHA256 = evidence.SHA256
 	// Keep the operations executable in step with the Guard executable.
 	var status Status
@@ -483,7 +483,7 @@ func (r *Remote) confirmCurrent(ctx context.Context, result agentpkg.TechstackRu
 // fetchReleaseEvidence asks the control plane for the signed release manifest
 // and signature bundles next to the binary. A nil evidence with no error means
 // this control plane publishes no signed release.
-func fetchReleaseEvidence(ctx context.Context, client *http.Client, cfg agentpkg.TechstackRuntimeConvergenceConfig) (*releaseEvidence, error) {
+func fetchReleaseEvidence(ctx context.Context, client *http.Client, cfg agentpkg.HomelabRuntimeConvergenceConfig) (*releaseEvidence, error) {
 	evidenceURL, err := releaseEvidenceURL(cfg.URL)
 	if err != nil {
 		return nil, err
@@ -531,7 +531,7 @@ func fetchReleaseEvidence(ctx context.Context, client *http.Client, cfg agentpkg
 // Guard release. A Guard on the privilege-split layout can neither update nor
 // install a StackKits runtime without one, so a root Guard migrates only when it
 // does.
-func ReleaseEvidenceAvailable(ctx context.Context, client *http.Client, cfg agentpkg.TechstackRuntimeConvergenceConfig) (bool, error) {
+func ReleaseEvidenceAvailable(ctx context.Context, client *http.Client, cfg agentpkg.HomelabRuntimeConvergenceConfig) (bool, error) {
 	if client == nil {
 		client = &http.Client{Timeout: time.Minute}
 	}

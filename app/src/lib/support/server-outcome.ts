@@ -379,7 +379,7 @@ export function outcomeFromLatestFailure(
   return {
     status: "failed",
     reasonCode: failure.reason,
-    capability: "techstack.managed.runtime",
+    capability: "homelab.managed.runtime",
     retryable,
     userGuidance: {
       title: troubleshooting.message,

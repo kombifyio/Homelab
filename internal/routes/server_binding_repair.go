@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/trust"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/nodehandoff"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
+	"github.com/kombifyio/homelab/internal/routes/trust"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/nodehandoff"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 )
 
 // BindingRepairMinter issues the one-time install command that pairs one
@@ -94,7 +94,7 @@ func bindingRepairEnvironment(server controlplane.ServerRuntime) string {
 
 func (h serverRuntimeHandlers) bindingRepairPair(e *httpx.Event) error {
 	e.Response.Header().Set("Cache-Control", "private, no-store")
-	server, err := h.ownedServer(e, "techstack.servers.binding-repair")
+	server, err := h.ownedServer(e, "homelab.servers.binding-repair")
 	if err != nil || server == nil {
 		return err
 	}

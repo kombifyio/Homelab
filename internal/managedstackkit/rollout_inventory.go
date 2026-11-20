@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	cloudOperationsExecutable = "/usr/local/libexec/techstack-stackkit-operations"
+	cloudOperationsExecutable = "/usr/local/libexec/homelab-stackkit-operations"
 	cloudOperationsChannel    = "host-channel-cloud-main"
 	cloudOperationsSite       = "cloud"
 	cloudOperationsNode       = "cloud-main"

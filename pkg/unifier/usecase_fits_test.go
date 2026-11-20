@@ -3,7 +3,7 @@ package unifier
 import (
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 func TestOmittedOnTierRejectsMediaLow(t *testing.T) {
@@ -47,9 +47,9 @@ func TestResolveComputeTierRecommendsLowFromRAMFloor(t *testing.T) {
 
 func TestBuildDecisionTraceOmitsMediaOnLowWithoutSourceCheckout(t *testing.T) {
 	t.Setenv("STACKKITS_REPO", "")
-	t.Setenv("TECHSTACK_STACKKITS_DIR", "")
+	t.Setenv("HOMELAB_STACKKITS_DIR", "")
 	t.Setenv("STACKKITS_PATH", "")
-	t.Setenv("TECHSTACK_STACKKIT_USE_CASE_CATALOG", "")
+	t.Setenv("HOMELAB_STACKKIT_USE_CASE_CATALOG", "")
 
 	media := BuildDecisionTrace(&core.KombinationSpec{
 		Metadata: map[string]string{"compute_tier": "low", "use_cases": "media"},

@@ -103,7 +103,7 @@ const (
 
 // netplanDHCPDropin is written as a drop-in with a high sort order so it wins
 // over whatever the device already declares, and can be removed to undo.
-const netplanDHCPDropin = `# Written by Kombify Techstack device readiness.
+const netplanDHCPDropin = `# Written by Kombify Homelab Runtime device readiness.
 # Remove this file and run "netplan apply" to undo.
 network:
   version: 2
@@ -117,7 +117,7 @@ network:
       optional: true
 `
 
-const resolvedFallbackDropin = `# Written by Kombify Techstack device readiness.
+const resolvedFallbackDropin = `# Written by Kombify Homelab Runtime device readiness.
 # Remove this file and restart systemd-resolved to undo.
 [Resolve]
 FallbackDNS=9.9.9.9 1.1.1.1
@@ -283,7 +283,7 @@ func Resolutions() []Resolution {
 			AppliesTo: CheckControlPlane, Mode: ModeHint,
 			Summary: "This device is configured to reach the outside through a proxy, so the repair path must go through it rather than around it.",
 			Guidance: []string{
-				"Confirm the proxy allows the package mirror, the image registry and the Techstack origin.",
+				"Confirm the proxy allows the package mirror, the image registry and the Homelab Runtime origin.",
 				"Readiness does not open its own way out while a proxy is configured: two egress paths on one device produce failures that are very hard to read.",
 			},
 		},
@@ -302,7 +302,7 @@ func Resolutions() []Resolution {
 			AppliesTo: CheckHypervisor, Mode: ModeHint,
 			Summary: "This device is a hypervisor node, so it is where hosts come from rather than a host itself.",
 			Guidance: []string{
-				"Register it as a substrate; Techstack then builds a standard image on it and creates the guest that gets enrolled.",
+				"Register it as a substrate; Homelab Runtime then builds a standard image on it and creates the guest that gets enrolled.",
 				"The node itself is never turned into a StackKits host: that would put the workload and the thing that runs it in the same place.",
 			},
 		},

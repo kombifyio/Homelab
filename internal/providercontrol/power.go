@@ -15,7 +15,7 @@ import (
 // managed power reconcile. Stop and start keep the exact resource generation:
 // no resource is created, replaced, or deleted, and decommission remains the
 // only destroy.
-const PowerDesiredSpecSchemaVersion = "techstack/provider-power-spec/v1"
+const PowerDesiredSpecSchemaVersion = "homelab/provider-power-spec/v1"
 
 // PowerConvergenceTimeout bounds read-only convergence polling after the one
 // side-effecting power step. A guest that never reaches the desired state

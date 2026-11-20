@@ -121,7 +121,7 @@ func testCSR(t *testing.T, hosts ...string) (csrPEM string, keyPEM string) {
 		string(pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER}))
 }
 
-// Decommission revokes every certificate Techstack still holds for the stack
+// Decommission revokes every certificate Homelab still holds for the stack
 // at Cloudflare, tolerates a retry against an already revoked one, and
 // surfaces a real failure instead of dropping custody.
 func TestDecommissionRevokesTheIssuedCertificate(t *testing.T) {

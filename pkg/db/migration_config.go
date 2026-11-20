@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-const EnvMigrationDatabaseURL = "TECHSTACK_MIGRATION_DATABASE_URL"
+const EnvMigrationDatabaseURL = "HOMELAB_MIGRATION_DATABASE_URL"
 
 // MigrationConfigFromEnv selects the separate migration-owner connection when
 // one is configured and otherwise falls back to the ordinary runtime binding.

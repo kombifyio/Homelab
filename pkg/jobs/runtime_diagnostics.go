@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/fulllocal"
-	"github.com/kombifyio/techstack/pkg/secrets"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/secrets"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -209,13 +209,13 @@ func runtimeDiagnosticsCommands(action string) []runtimeDiagnosticsCommandSpec {
 			{name: "cloud_init_status", command: "cloud-init status --long 2>&1 || true"},
 			{name: "cloud_init_digest", command: "if [ -f /var/lib/cloud/instance/user-data.txt ]; then printf 'sha256:'; sha256sum /var/lib/cloud/instance/user-data.txt | awk '{print $1}'; else printf 'unavailable\\n'; fi"},
 			{name: "cloud_final_journal", command: "journalctl -u cloud-final.service --no-pager -n 120 -o short-iso 2>&1 || true"},
-			{name: "bootstrap_log", command: "tail -n 160 /var/log/kombify-techstack-bootstrap.log 2>&1 || true"},
+			{name: "bootstrap_log", command: "tail -n 160 /var/log/kombify-homelab-bootstrap.log 2>&1 || true"},
 			{name: "host_security", command: "printf 'ufw='; ufw status 2>&1 | head -n 20 || true; printf 'sshd_config='; if sshd -t >/dev/null 2>&1; then echo valid; else echo invalid; fi; systemctl is-active ssh sshd 2>&1 || true"},
-			{name: "techstack_agent", command: runtimeDiagnosticsAgentCommand},
+			{name: "homelab_agent", command: runtimeDiagnosticsAgentCommand},
 		}
 	}
 	return []runtimeDiagnosticsCommandSpec{
-		{name: "techstack_agent", command: runtimeDiagnosticsAgentCommand},
+		{name: "homelab_agent", command: runtimeDiagnosticsAgentCommand},
 		{name: "system", command: "set -o pipefail 2>/dev/null; uname -a; uptime; cat /etc/os-release 2>/dev/null | head -n 8"},
 		{name: "docker_status", command: "systemctl is-active docker 2>&1 || service docker status 2>&1 || true"},
 		{name: "docker_ps", command: "docker ps -a --format '{{.ID}}\t{{.Names}}\t{{.State}}\t{{.Status}}\t{{.Ports}}' 2>&1 | head -n 120"},

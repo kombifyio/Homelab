@@ -1,6 +1,6 @@
 import { tr } from "#lib/i18n.svelte.js";
 /**
- * kombify-TechStack Deployment Requirements
+ * kombify-Homelab Deployment Requirements
  *
  * Derives server/resource requirements from a stack configuration and renders
  * the worker installation commands. Split out of tasks.ts so the requirements
@@ -84,7 +84,7 @@ export function calculateRequirements(config: {
       minTotalServers: 1,
       description: tr("ui.requirements.ubuntuGuestOnYourProxmox"),
       details: [
-        tr("ui.requirements.techstackPreparesTheVMThen"),
+        tr("ui.requirements.homelabPreparesTheVMThen"),
         ...(config.goals?.["smart-home"]
           ? [tr("ui.requirements.homeAssistantOSCanRun")]
           : []),
@@ -227,7 +227,7 @@ export function generateGuardRepairInstallCommand(
 
 /**
  * A private-LAN bridge presents a self-signed key. curl and the installer
- * trust it only by the pin carried in the pasted command. TECHSTACK_BINARY_SHA256
+ * trust it only by the pin carried in the pasted command. HOMELAB_BINARY_SHA256
  * makes install.sh refuse any Guard binary other than the pinned release.
  */
 function linuxInstallCommand(
@@ -237,9 +237,9 @@ function linuxInstallCommand(
   binaryPin: string,
 ): string {
   if (lanPin) {
-    return `curl -fsSL --insecure --pinnedpubkey "${lanPin}" ${baseUrl}/install.sh | KOMBI_SERVER="${baseUrl}" KOMBI_TOKEN="${registrationToken}" KOMBI_PRIVATE_LAN_PIN="${lanPin}" TECHSTACK_BINARY_SHA256="${binaryPin}" TECHSTACK_AS_SERVICE=1 bash`;
+    return `curl -fsSL --insecure --pinnedpubkey "${lanPin}" ${baseUrl}/install.sh | KOMBI_SERVER="${baseUrl}" KOMBI_TOKEN="${registrationToken}" KOMBI_PRIVATE_LAN_PIN="${lanPin}" HOMELAB_BINARY_SHA256="${binaryPin}" HOMELAB_AS_SERVICE=1 bash`;
   }
-  return `curl -fsSL ${baseUrl}/install.sh | KOMBI_SERVER="${baseUrl}" KOMBI_TOKEN="${registrationToken}" TECHSTACK_BINARY_SHA256="${binaryPin}" TECHSTACK_AS_SERVICE=1 bash`;
+  return `curl -fsSL ${baseUrl}/install.sh | KOMBI_SERVER="${baseUrl}" KOMBI_TOKEN="${registrationToken}" HOMELAB_BINARY_SHA256="${binaryPin}" HOMELAB_AS_SERVICE=1 bash`;
 }
 
 export function normalizeWorkerInstallBaseUrl(serverUrl: string): string {

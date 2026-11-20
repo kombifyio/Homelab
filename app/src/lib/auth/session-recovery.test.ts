@@ -83,7 +83,7 @@ describe("noteGatewayTokenSuccess", () => {
 
     expect(storage.getItem(AUTO_RELOGIN_MARKER_KEY)).toBeNull();
     expect(sentryState.captureMessage).toHaveBeenCalledWith(
-      "techstack_session_auto_relogin_recovered",
+      "homelab_session_auto_relogin_recovered",
     );
   });
 

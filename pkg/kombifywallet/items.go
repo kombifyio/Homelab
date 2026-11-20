@@ -5,17 +5,17 @@ import (
 	"crypto/subtle"
 	"slices"
 
-	"github.com/kombifyio/techstack/internal/gocommon/walletservice"
+	"github.com/kombifyio/homelab/internal/gocommon/walletservice"
 )
 
-// Item types Techstack creates, re-exported so callers import one package.
+// Item types Homelab creates, re-exported so callers import one package.
 const (
 	ItemTypeGenericSecret = walletservice.ItemTypeGenericSecret
 	ItemTypeConfiguration = walletservice.ItemTypeConfiguration
 	ItemTypeNodeAccess    = walletservice.ItemTypeNodeAccessProfile
 )
 
-// ItemSpec describes one Wallet item Techstack writes for an owner. Its
+// ItemSpec describes one Wallet item Homelab writes for an owner. Its
 // identity inside the owner's Wallet is the triple scope, type and display
 // name (the Name for a configuration item), so a repeated write converges on
 // one item.
@@ -42,7 +42,7 @@ type EnsureResult struct {
 }
 
 // Create stores a new item for the owner and returns its Wallet item id. The
-// Gateway grants Techstack use and manage on the new item.
+// Gateway grants Homelab use and manage on the new item.
 func (c *Client) Create(ctx context.Context, owner string, spec ItemSpec) (string, error) {
 	wallet, err := c.service()
 	if err != nil {
@@ -63,7 +63,7 @@ func createInput(owner string, spec ItemSpec) walletservice.CreateInput {
 }
 
 // Ensure makes sure the owner's Wallet holds the item with this value. It
-// lists the items Techstack may manage, finds the one with the spec's identity
+// lists the items Homelab may manage, finds the one with the spec's identity
 // and either creates it, leaves it alone, or adds a version when the stored
 // value differs. A concurrent Ensure of the same spec may create twice; the
 // next call finds the earlier one first and converges on it.
@@ -114,7 +114,7 @@ func findItem(items []walletservice.Item, spec ItemSpec) *walletservice.Item {
 	return &items[index]
 }
 
-// Items lists the owner's Wallet items Techstack holds a right on: display
+// Items lists the owner's Wallet items Homelab holds a right on: display
 // metadata, scope, state and rights, never a value. The migration finds the
 // items an interrupted run left behind with it.
 func (c *Client) Items(ctx context.Context, owner string) ([]walletservice.Item, error) {
@@ -129,7 +129,7 @@ func (c *Client) Items(ctx context.Context, owner string) ([]walletservice.Item,
 	return items, nil
 }
 
-// Reveal delivers the current value of an item Techstack wrote, for example the
+// Reveal delivers the current value of an item Homelab wrote, for example the
 // recovery hash an owner spec hands to a StackKit. The caller wipes the result.
 func (c *Client) Reveal(ctx context.Context, owner, itemID string) (walletservice.Secret, error) {
 	wallet, err := c.service()

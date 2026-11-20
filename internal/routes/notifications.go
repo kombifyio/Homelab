@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/kombifyio/techstack/internal/notifications"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/internal/notifications"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // RegisterNotificationsRoutes mounts the notification-center proxy. The browser

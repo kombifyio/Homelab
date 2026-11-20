@@ -247,7 +247,7 @@ func BuildProvisionResolutionRequest(
 		ExpectedHeadSequence: record.Head.Sequence, ExpectedHeadReceiptDigest: record.Head.ReceiptDigest,
 		ExpectedResolutionRevision: observation.ObservedResolutionRevision,
 		IdempotencyKey:             idempotencyKey, OperatorSubjectID: operatorSubjectID,
-		OperatorAttestationRef: "provider-attestation://techstack/operator-resolution/" + observation.OperationID,
+		OperatorAttestationRef: "provider-attestation://homelab/operator-resolution/" + observation.OperationID,
 		OperatorAttestationDigest: prefixedSHA256(
 			"providercontrol/operator-resolution/v1",
 			[]byte(operatorSubjectID+"\x00"+required+"\x00"+observation.SnapshotDigest),
@@ -260,7 +260,7 @@ func verifyProvisionResolutionOperatorAttestation(
 	request ProvisionResolutionRequest,
 ) error {
 	required := "adopt-provision:" + observation.OperationID
-	expectedRef := "provider-attestation://techstack/operator-resolution/" + observation.OperationID
+	expectedRef := "provider-attestation://homelab/operator-resolution/" + observation.OperationID
 	expectedDigest := prefixedSHA256(
 		"providercontrol/operator-resolution/v1",
 		[]byte(request.OperatorSubjectID+"\x00"+required+"\x00"+observation.SnapshotDigest),

@@ -9,13 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/identity"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
-	"github.com/kombifyio/techstack/pkg/vmleases"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 )
 
 const (
@@ -324,14 +324,14 @@ func managedRuntimeServerID(id vmlease.LeaseID) string {
 }
 
 // reservedPlatformNodeNames are names a single node/server must never carry:
-// "TechStack" is the platform's name for the WHOLE homelab (all nodes + all
+// "Homelab" is the platform's name for the WHOLE homelab (all nodes + all
 // rolled-out StackKits of a user), so a single node bearing it is a dangerous
 // collision.
 var reservedPlatformNodeNames = map[string]bool{
-	"techstack":         true,
-	"kombify":           true,
-	"kombify-techstack": true,
-	"kombifytechstack":  true,
+	"homelab":         true,
+	"kombify":         true,
+	"kombify-homelab": true,
+	"kombifyhomelab":  true,
 }
 
 // IsReservedPlatformNodeName reports whether name collides with the platform
@@ -339,9 +339,8 @@ var reservedPlatformNodeNames = map[string]bool{
 func IsReservedPlatformNodeName(name string) bool {
 	normalized := normalizeReservedPlatformNodeName(name)
 	return reservedPlatformNodeNames[normalized] ||
-		strings.HasPrefix(normalized, "techstack-") ||
-		strings.HasPrefix(normalized, "kombify-techstack-") ||
-		strings.HasPrefix(normalized, "kombifytechstack-")
+		strings.HasPrefix(normalized, "kombify-homelab-") ||
+		strings.HasPrefix(normalized, "kombifyhomelab-")
 }
 
 func normalizeReservedPlatformNodeName(name string) string {

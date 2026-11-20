@@ -6,7 +6,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
 )
 
 const rilAuthorityPath = "/v1/internal/ril/authority"
@@ -24,8 +24,8 @@ type RILAuthorityResult struct {
 	LeaseID     string          `json:"leaseId"`
 }
 
-// RILAuthority calls the Gateway's request-bound Techstack service route. The
-// caller supplies identities already checked by Techstack's owner-scoped route.
+// RILAuthority calls the Gateway's request-bound Homelab service route. The
+// caller supplies identities already checked by Homelab's owner-scoped route.
 func (g *Gateway) RILAuthority(ctx context.Context, owner, tenant, operation, cardID, lease, executionID, fence string) (RILAuthorityResult, error) {
 	var result RILAuthorityResult
 	if g == nil || owner == "" || tenant == "" || cardID == "" || (operation != "prepare" && operation != "issue" && operation != "claim") {

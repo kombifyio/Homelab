@@ -9,12 +9,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/tenantdb"
-	"github.com/kombifyio/techstack/internal/systemdb"
-	"github.com/kombifyio/techstack/pkg/db"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
+	"github.com/kombifyio/homelab/internal/gocommon/tenantdb"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/kombifyio/homelab/internal/systemdb"
+	"github.com/kombifyio/homelab/pkg/db"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 )
 
 const readerRole = "techstack_platform_projection_system"
@@ -52,12 +52,12 @@ func OpenFromEnv(ctx context.Context) (*Runtime, error) {
 	if !r.Enabled {
 		return r, nil
 	}
-	r.reader, err = openDatabase(ctx, "TECHSTACK_PLATFORM_PROJECTION_DATABASE_URL", "TECHSTACK_PLATFORM_PROJECTION_EXPECTED_DATABASE_IDENTITY", "kombify_runtime", readerRole, channel)
+	r.reader, err = openDatabase(ctx, "HOMELAB_PLATFORM_PROJECTION_DATABASE_URL", "HOMELAB_PLATFORM_PROJECTION_EXPECTED_DATABASE_IDENTITY", "kombify_runtime", readerRole, channel)
 	if err != nil {
 		return nil, err
 	}
 	refuse := func(err error) (*Runtime, error) { r.Close(); return nil, err }
-	r.writer, err = openDatabase(ctx, "TECHSTACK_PLATFORM_PROJECTION_CLOUD_DATABASE_URL", "TECHSTACK_PLATFORM_PROJECTION_CLOUD_EXPECTED_DATABASE_IDENTITY", "kombify", writerRole, channel)
+	r.writer, err = openDatabase(ctx, "HOMELAB_PLATFORM_PROJECTION_CLOUD_DATABASE_URL", "HOMELAB_PLATFORM_PROJECTION_CLOUD_EXPECTED_DATABASE_IDENTITY", "kombify", writerRole, channel)
 	if err != nil {
 		return refuse(err)
 	}
@@ -72,9 +72,9 @@ func OpenFromEnv(ctx context.Context) (*Runtime, error) {
 	if err = systemdb.VerifyPrivileges(ctx, r.writer, map[string]string{"kombify_ctx.role_class": "SELECT", "public.kombify_db_migrations": "SELECT", "public.infra_user_servers": "SELECT,INSERT,UPDATE", "public.infra_projection_marks": "SELECT,INSERT,UPDATE"}, nil, functions); err != nil {
 		return refuse(err)
 	}
-	name, system, _ := strings.Cut(strings.TrimSpace(os.Getenv("TECHSTACK_PLATFORM_PROJECTION_EXPECTED_DATABASE_IDENTITY")), "@")
+	name, system, _ := strings.Cut(strings.TrimSpace(os.Getenv("HOMELAB_PLATFORM_PROJECTION_EXPECTED_DATABASE_IDENTITY")), "@")
 	if err = (&db.DB{DB: r.reader}).VerifyMigrationsAtFloor(ctx, db.ExpectedDatabaseIdentity{DatabaseName: name, SystemIdentifier: system}, db.PlatformProjectionSchemaFloor); err != nil {
-		return refuse(errors.New("platform projection Techstack migration verification failed"))
+		return refuse(errors.New("platform projection Homelab Runtime migration verification failed"))
 	}
 	var migrated bool
 	if r.writer.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM public.kombify_db_migrations WHERE version='000277_infra_projection_system_role.up.sql' AND NOT dirty AND applied_at IS NOT NULL AND checksum=$1)`, cloudMigrationSHA256).Scan(&migrated) != nil || !migrated {
@@ -116,7 +116,7 @@ func openDatabase(ctx context.Context, dsnEnv, pinEnv, database, role, channel s
 const cloudMigrationSHA256 = "e24b748f459d096287fd97ca96174187f7787b26936eb60398f90283791c86ab"
 
 func validateEnvironment() (string, string, error) {
-	channel := strings.TrimSpace(os.Getenv("TECHSTACK_RELEASE_CHANNEL"))
+	channel := strings.TrimSpace(os.Getenv("HOMELAB_RELEASE_CHANNEL"))
 	if channel != "preview" && channel != "stable" {
 		return "", "", errors.New("platform projection requires explicit preview or stable release channel")
 	}
@@ -126,12 +126,12 @@ func validateEnvironment() (string, string, error) {
 	if "" != "" {
 		return "", "", errors.New("platform projection received unrelated custody")
 	}
-	for _, name := range []string{"DATABASE_URL", db.EnvMigrationDatabaseURL, "TECHSTACK_MANAGED_TEST_ADMIN_DATABASE_URL", "TECHSTACK_PROVIDER_CONTROL_RUNTIME_DATABASE_URL", "TECHSTACK_ADVANCED_ISSUER_DATABASE_URL", "TECHSTACK_ADVANCED_ISSUER_KEY", "TECHSTACK_ENCRYPTION_KEY", "TECHSTACK_ADVANCED_ISSUER_CALLER_GRANTS", "TECHSTACK_DB_CONTEXT_KEY", "SERVICE_AUTH_SECRET", "SERVICE_AUTH_SECRET_NEXT", "TECHSTACK_HOUSEHOLD_WORKER_DATABASE_URL", "TECHSTACK_HOUSEHOLD_CLOUD_DATABASE_URL", "TECHSTACK_BACKUP_WORKER_DATABASE_URL", "TECHSTACK_BACKUP_ENTITLEMENTS_DATABASE_URL", "TECHSTACK_BACKUP_WORKER_MODE", "TECHSTACK_HOUSEHOLD_WORKER_MODE"} {
+	for _, name := range []string{"DATABASE_URL", db.EnvMigrationDatabaseURL, "HOMELAB_MANAGED_TEST_ADMIN_DATABASE_URL", "HOMELAB_PROVIDER_CONTROL_RUNTIME_DATABASE_URL", "HOMELAB_ADVANCED_ISSUER_DATABASE_URL", "HOMELAB_ADVANCED_ISSUER_KEY", "HOMELAB_ENCRYPTION_KEY", "HOMELAB_ADVANCED_ISSUER_CALLER_GRANTS", "HOMELAB_DB_CONTEXT_KEY", "SERVICE_AUTH_SECRET", "SERVICE_AUTH_SECRET_NEXT", "HOMELAB_HOUSEHOLD_WORKER_DATABASE_URL", "HOMELAB_HOUSEHOLD_CLOUD_DATABASE_URL", "HOMELAB_BACKUP_WORKER_DATABASE_URL", "HOMELAB_BACKUP_ENTITLEMENTS_DATABASE_URL", "HOMELAB_BACKUP_WORKER_MODE", "HOMELAB_HOUSEHOLD_WORKER_MODE"} {
 		if strings.TrimSpace(os.Getenv(name)) != "" {
 			return "", "", errors.New("platform projection received unrelated custody")
 		}
 	}
-	enabled := os.Getenv("TECHSTACK_PLATFORM_PROJECTION_ENABLED")
+	enabled := os.Getenv("HOMELAB_PLATFORM_PROJECTION_ENABLED")
 	if enabled != "true" && enabled != "false" {
 		return "", "", errors.New("platform projection requires explicit enablement")
 	}

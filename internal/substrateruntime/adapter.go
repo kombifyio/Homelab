@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
-	"github.com/kombifyio/techstack/internal/providercontrol"
-	"github.com/kombifyio/techstack/internal/providerevidence"
-	"github.com/kombifyio/techstack/internal/substrate"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/internal/providercontrol"
+	"github.com/kombifyio/homelab/internal/providerevidence"
+	"github.com/kombifyio/homelab/internal/substrate"
+	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 )
 
 type WorkerTransport interface {

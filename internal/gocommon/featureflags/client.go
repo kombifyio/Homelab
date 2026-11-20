@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 

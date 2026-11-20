@@ -14,9 +14,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 
-	"github.com/kombifyio/techstack/internal/providercatalog"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
 )
 
 const (

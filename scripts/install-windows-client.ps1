@@ -1,5 +1,5 @@
 param(
-    [string]$InstallDir = "$env:LOCALAPPDATA\Programs\kombify\techstack",
+    [string]$InstallDir = "$env:LOCALAPPDATA\Programs\kombify\homelab",
     [ValidateSet("local", "server")]
     [string]$Mode = "local",
     [string]$ServerUrl = "",
@@ -16,11 +16,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 $sourceDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$clientExe = Join-Path $sourceDir "kombify-techstack-client.exe"
-$runtimeExe = Join-Path $sourceDir "techstack.exe"
+$clientExe = Join-Path $sourceDir "kombify-homelab-client.exe"
+$runtimeExe = Join-Path $sourceDir "homelab.exe"
 
-if (!(Test-Path $clientExe)) { throw "kombify-techstack-client.exe not found: $clientExe" }
-if (!(Test-Path $runtimeExe)) { throw "techstack.exe not found: $runtimeExe" }
+if (!(Test-Path $clientExe)) { throw "kombify-homelab-client.exe not found: $clientExe" }
+if (!(Test-Path $runtimeExe)) { throw "homelab.exe not found: $runtimeExe" }
 if ($Mode -eq "server" -and [string]::IsNullOrWhiteSpace($ServerUrl)) { throw "Mode server requires -ServerUrl." }
 
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
@@ -42,7 +42,7 @@ $config = [ordered]@{
     mode = $Mode
     localUiUrl = $LocalUiUrl
     localOnboardingUrl = $LocalOnboardingUrl
-    runtimeExecutablePath = (Join-Path $InstallDir "techstack.exe")
+    runtimeExecutablePath = (Join-Path $InstallDir "homelab.exe")
     runtimeDataDir = $RuntimeDataDir
     runtimeStartupTimeoutSeconds = $RuntimeStartupTimeoutSeconds
     autoStartRuntime = -not $NoRuntimeStart.IsPresent
@@ -54,25 +54,27 @@ if (!$NoShortcuts) {
     $programsDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\kombify"
     New-Item -ItemType Directory -Force -Path $programsDir | Out-Null
     $shell = New-Object -ComObject WScript.Shell
-    # The shortcut was named "kombify TechStack Client" before the product name lost its prefix.
+    # Earlier releases named the shortcut "kombify TechStack Client" and then "Techstack Client"; both are removed.
     Remove-Item -LiteralPath (Join-Path $programsDir "kombify TechStack Client.lnk") -Force -ErrorAction SilentlyContinue
-    $shortcut = $shell.CreateShortcut((Join-Path $programsDir "Techstack Client.lnk"))
-    $shortcut.TargetPath = Join-Path $InstallDir "kombify-techstack-client.exe"
+    Remove-Item -LiteralPath (Join-Path $programsDir "Techstack Client.lnk") -Force -ErrorAction SilentlyContinue
+    $shortcut = $shell.CreateShortcut((Join-Path $programsDir "Homelab Runtime Desktop Client.lnk"))
+    $shortcut.TargetPath = Join-Path $InstallDir "kombify-homelab-client.exe"
     $shortcut.WorkingDirectory = $InstallDir
-    $shortcut.Description = "Techstack Client"
-    $shortcut.IconLocation = Join-Path $InstallDir "kombify-techstack-client.exe"
+    $shortcut.Description = "Homelab Runtime Desktop Client"
+    $shortcut.IconLocation = Join-Path $InstallDir "kombify-homelab-client.exe"
     $shortcut.Save()
 
     if ($DesktopShortcut) {
         Remove-Item -LiteralPath (Join-Path ([Environment]::GetFolderPath("Desktop")) "kombify TechStack Client.lnk") -Force -ErrorAction SilentlyContinue
-        $desktopShortcut = $shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath("Desktop")) "Techstack Client.lnk"))
-        $desktopShortcut.TargetPath = Join-Path $InstallDir "kombify-techstack-client.exe"
+        Remove-Item -LiteralPath (Join-Path ([Environment]::GetFolderPath("Desktop")) "Techstack Client.lnk") -Force -ErrorAction SilentlyContinue
+        $desktopShortcut = $shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath("Desktop")) "Homelab Runtime Desktop Client.lnk"))
+        $desktopShortcut.TargetPath = Join-Path $InstallDir "kombify-homelab-client.exe"
         $desktopShortcut.WorkingDirectory = $InstallDir
-        $desktopShortcut.Description = "Techstack Client"
-        $desktopShortcut.IconLocation = Join-Path $InstallDir "kombify-techstack-client.exe"
+        $desktopShortcut.Description = "Homelab Runtime Desktop Client"
+        $desktopShortcut.IconLocation = Join-Path $InstallDir "kombify-homelab-client.exe"
         $desktopShortcut.Save()
     }
 }
 
-Write-Host "Techstack Client installed at $InstallDir"
-if ($Launch) { Start-Process -FilePath (Join-Path $InstallDir "kombify-techstack-client.exe") }
+Write-Host "Homelab Runtime Desktop Client installed at $InstallDir"
+if ($Launch) { Start-Process -FilePath (Join-Path $InstallDir "kombify-homelab-client.exe") }

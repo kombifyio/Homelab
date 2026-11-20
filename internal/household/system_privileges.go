@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/kombifyio/techstack/internal/systemdb"
+	"github.com/kombifyio/homelab/internal/systemdb"
 )
 
 // homeGraphCloudMigration is the Cloud migration that grants the household
@@ -33,7 +33,7 @@ func verifyHouseholdPrivileges(ctx context.Context, pool *sql.DB, cloud bool) er
 		tables["public.household_node_projections"] = "SELECT,INSERT,UPDATE"
 		columns["public.users"] = "id,auth_subject,email,name,avatar_url"
 		functions["public.household_reduce_lifecycle(integer)"] = true
-		// Cloud and Techstack release independently: the expected set follows
+		// Cloud and Homelab release independently: the expected set follows
 		// the Cloud ledger, so the worker starts before and after 000404.
 		homeGraph, err := cloudMigrationApplied(ctx, pool, homeGraphCloudMigration)
 		if err != nil {

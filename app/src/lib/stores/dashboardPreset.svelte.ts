@@ -1,5 +1,5 @@
 /**
- * The owner's dashboard preset. Techstack has no general preferences API, so
+ * The owner's dashboard preset. Homelab has no general preferences API, so
  * this follows the navigation preview shape setting (#2377) and stores the
  * choice on the device, keyed by the signed-in owner so two owners sharing a
  * browser keep their own choice.
@@ -12,7 +12,7 @@ import {
   type DashboardPresetId,
 } from "#lib/dashboard/presets.js";
 
-const STORAGE_PREFIX = "techstack-dashboard-preset";
+const STORAGE_PREFIX = "homelab-dashboard-preset";
 
 function storageKey(ownerKey: string): string {
   return `${STORAGE_PREFIX}:${ownerKey}`;

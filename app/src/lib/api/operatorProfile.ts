@@ -2,7 +2,7 @@
  * Operator self-disclosure API (KOMBIFY-DESIGN-SYSTEM-STANDARD.md §9.4).
  *
  * The client sends raw voluntary answers only. The capability profile in the
- * response is derived by the Techstack Unifier; the browser never computes or
+ * response is derived by the Homelab Unifier; the browser never computes or
  * sends a score.
  */
 import { fetchApi } from "./client";
@@ -22,9 +22,9 @@ export interface OperatorSelfDisclosure {
 
 /**
  * How the answers reached the store: `link` answers arrived as URL state and
- * were confirmed by the operator, `techstack` answers were typed in Techstack.
+ * were confirmed by the operator, `homelab` answers were typed in Homelab.
  */
-export type SelfDisclosureWriteSource = "link" | "techstack";
+export type SelfDisclosureWriteSource = "link" | "homelab";
 
 export interface OperatorSelfDisclosureRecord {
   disclosure: OperatorSelfDisclosure;

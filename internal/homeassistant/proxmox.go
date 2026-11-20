@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/substrate"
+	"github.com/kombifyio/homelab/internal/substrate"
 )
 
 // ProxmoxMigrationRuntime controls only the exact locally granted source and

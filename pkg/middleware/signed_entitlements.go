@@ -120,7 +120,7 @@ func AuthorizedEntitlementsFromContext(ctx context.Context) (SignedEntitlements,
 func WithJobEntitlements(ctx context.Context, entitlements ...string) context.Context {
 	values := make(map[string]struct{}, len(entitlements))
 	for _, key := range entitlements {
-		if key == "techstack.inventory.read" || key == "techstack.inventory.operate" {
+		if key == "homelab.inventory.read" || key == "homelab.inventory.operate" {
 			values[key] = struct{}{}
 		}
 	}

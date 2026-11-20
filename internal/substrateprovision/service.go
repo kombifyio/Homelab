@@ -1,5 +1,5 @@
 // Package substrateprovision prepares customer-owned guests through the same
-// lease and provider-operation authority used by the rest of Techstack.
+// lease and provider-operation authority used by the rest of Homelab.
 package substrateprovision
 
 import (
@@ -10,16 +10,16 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/guardbootstrap"
-	"github.com/kombifyio/techstack/internal/providercontrol"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/internal/substrate"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/internal/guardbootstrap"
+	"github.com/kombifyio/homelab/internal/providercontrol"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/internal/substrate"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
 )
 
 type Admission interface {
@@ -223,7 +223,7 @@ func (s *Service) Prepare(ctx context.Context, r Request) (Result, error) {
 		TenantID: r.TenantID, OwnerSubjectID: r.OwnerID, RuntimeSlotKey: slotKey, RuntimeSlotID: providercontrol.DeriveManagedRuntimeSlotID(r.TenantID, r.StackID, slotKey), RuntimeServerID: serverID, IdempotencyKey: leaseID,
 		Lease: vmlease.Lease{ID: vmlease.LeaseID(leaseID), Subject: vmlease.Subject{Kind: vmlease.SubjectUser, ID: r.OwnerID, OrgID: r.TenantID}, Resource: vmlease.ResourceRef{ProviderID: "proxmox", EngineVMID: r.Placement.ServerID + "/" + strconv.Itoa(guestID)}, CustodyClass: vmlease.CustodyCustomerSubstrate, BillingMode: vmlease.BillingModeLocal, LifecycleClass: vmlease.LifecycleClassOneTime, DesiredState: vmlease.DesiredStateRunning, RestartPolicy: vmlease.RestartPolicyNone, RecreatePolicy: vmlease.RecreatePolicyNever, Metadata: map[string]string{
 			"runtime_offering_id": r.Placement.ProfileID, "stack_id": r.StackID, "node_id": r.NodeID, "substrate_intent_hash": intentHash, "substrate_request_key": requestKeyHash, providercontrol.SubstrateServerMetadata: r.Placement.ServerID, providercontrol.SubstrateRevisionMetadata: strconv.FormatInt(revision, 10), providercontrol.SubstrateGuestMetadata: strconv.Itoa(guestID)}},
-		Server: providercontrol.NativeAdmissionServer{StackID: r.StackID, Name: guest.Name, Metadata: map[string]any{"server_provisioning_mode": "hypervisor", "server_connection_mode": "substrate-guard", "node_id": r.NodeID, "substrate_profile": r.Placement.ProfileID}}, DesiredSpecRef: "desired-spec://techstack/leases/" + leaseID + "/revisions/1", DesiredSpec: desired,
+		Server: providercontrol.NativeAdmissionServer{StackID: r.StackID, Name: guest.Name, Metadata: map[string]any{"server_provisioning_mode": "hypervisor", "server_connection_mode": "substrate-guard", "node_id": r.NodeID, "substrate_profile": r.Placement.ProfileID}}, DesiredSpecRef: "desired-spec://homelab/leases/" + leaseID + "/revisions/1", DesiredSpec: desired,
 	})
 	if err != nil {
 		return Result{}, err

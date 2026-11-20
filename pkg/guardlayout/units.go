@@ -86,21 +86,21 @@ TimeoutStopSec=20
 # Stopping the Guard stops everything it started, and (through PartOf on the
 # executor) the privileged executions it requested.
 KillMode=control-group
-Environment=TECHSTACK_ACCESS_MANIFEST=/opt/stackkit/.stackkit/access.json,/root/my-homelab/.stackkit/access.json
-Environment=TECHSTACK_AGENT_EXECUTABLE_PATH=%[3]s
-Environment=TECHSTACK_OPERATIONS_EXECUTABLE_PATH=%[4]s
-Environment=TECHSTACK_GUARD_EXECUTOR_SOCKET=%[5]s
+Environment=HOMELAB_ACCESS_MANIFEST=/opt/stackkit/.stackkit/access.json,/root/my-homelab/.stackkit/access.json
+Environment=HOMELAB_AGENT_EXECUTABLE_PATH=%[3]s
+Environment=HOMELAB_OPERATIONS_EXECUTABLE_PATH=%[4]s
+Environment=HOMELAB_GUARD_EXECUTOR_SOCKET=%[5]s
 
 # Its own protected state: identity key, journal, enrollment copy (0700) and the
 # handoff directory shared with the executor.
-StateDirectory=techstack/guard techstack/guard-handoff
+StateDirectory=homelab/guard homelab/guard-handoff
 StateDirectoryMode=0700
 # The enrollment file is the one path outside its state the daemon may write: a
 # revoked Guard has to empty it (the file lives in the root-owned /etc/techstack,
 # so it is bound read-write as a file; the directory stays read-only and the file
 # can be emptied but not replaced or unlinked). "-" ignores a host that has none.
 ReadWritePaths=-%[6]s
-RuntimeDirectory=techstack-guard
+RuntimeDirectory=homelab-guard
 RuntimeDirectoryMode=0750
 UMask=0077
 
@@ -200,20 +200,20 @@ InaccessiblePaths=/var/lib/techstack/guard -%[3]s
 func ExecutorEnvText(p UnitParams) string {
 	power := ""
 	if p.PowerEnabled {
-		power = "TECHSTACK_GUARD_EXECUTOR_POWER=1\n"
-		power += "TECHSTACK_GUARD_EXECUTOR_POWER_SERVICES=" + strings.Join(p.PowerServices, ",") + "\n"
-		power += "TECHSTACK_GUARD_EXECUTOR_POWER_STORAGE_UNITS=" + strings.Join(p.PowerStorageUnits, ",") + "\n"
+		power = "HOMELAB_GUARD_EXECUTOR_POWER=1\n"
+		power += "HOMELAB_GUARD_EXECUTOR_POWER_SERVICES=" + strings.Join(p.PowerServices, ",") + "\n"
+		power += "HOMELAB_GUARD_EXECUTOR_POWER_STORAGE_UNITS=" + strings.Join(p.PowerStorageUnits, ",") + "\n"
 	}
 	return strings.TrimLeft(fmt.Sprintf(`
 # kombify Guard privileged executor environment. Root-owned; requests cannot change it.
-TECHSTACK_ACCESS_MANIFEST=/opt/stackkit/.stackkit/access.json,/root/my-homelab/.stackkit/access.json
-TECHSTACK_STACKKIT_RELEASE_PIN=/app/.stackkit/stackkits-release-pin.json
-TECHSTACK_STACKKIT_RELEASE_CACHE=/var/lib/techstack/.stackkit/releases
-TECHSTACK_AGENT_EXECUTABLE_PATH=%[1]s
-TECHSTACK_OPERATIONS_EXECUTABLE_PATH=%[2]s
-TECHSTACK_GUARD_USER=%[3]s
+HOMELAB_ACCESS_MANIFEST=/opt/stackkit/.stackkit/access.json,/root/my-homelab/.stackkit/access.json
+HOMELAB_STACKKIT_RELEASE_PIN=/app/.stackkit/stackkits-release-pin.json
+HOMELAB_STACKKIT_RELEASE_CACHE=/var/lib/techstack/.stackkit/releases
+HOMELAB_AGENT_EXECUTABLE_PATH=%[1]s
+HOMELAB_OPERATIONS_EXECUTABLE_PATH=%[2]s
+HOMELAB_GUARD_USER=%[3]s
 %[4]s# Unsigned local builds are refused unless an operator sets this explicitly:
-# TECHSTACK_GUARD_ALLOW_UNSIGNED_UPDATES=1
+# HOMELAB_GUARD_ALLOW_UNSIGNED_UPDATES=1
 `, p.BinaryPath, p.OperationsPath, p.GuardUser, power), "\n")
 }
 

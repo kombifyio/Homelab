@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/authlocal"
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/internal/gocommon/authlocal"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 // RuntimeStore binds the existing PostgreSQL auth authority to the running

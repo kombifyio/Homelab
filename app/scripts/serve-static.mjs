@@ -4,7 +4,7 @@
  *
  * Serves `build-static/` with an index.html SPA fallback and reverse-proxies
  * backend paths (/api/*, /install.sh, /install.ps1, /metrics, health probes)
- * to TECHSTACK_API_URL. This keeps the docker-compose `app` service (frontend
+ * to HOMELAB_API_URL. This keeps the docker-compose `app` service (frontend
  * on its own port, backend on another) working without the retired
  * adapter-node SSR process. Production deployments do not use this server —
  * the Go binary serves the embedded SPA itself.
@@ -20,13 +20,13 @@ const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
 );
-const staticDir = process.env.TECHSTACK_STATIC_DIR
-  ? path.resolve(process.env.TECHSTACK_STATIC_DIR)
+const staticDir = process.env.HOMELAB_STATIC_DIR
+  ? path.resolve(process.env.HOMELAB_STATIC_DIR)
   : path.join(rootDir, "build-static");
 const host = process.env.HOST || "0.0.0.0";
 const port = Number(process.env.PORT || 5261);
 const backendBase = (
-  process.env.TECHSTACK_API_URL ||
+  process.env.HOMELAB_API_URL ||
   process.env.API_URL ||
   ""
 ).replace(/\/+$/, "");
@@ -84,7 +84,7 @@ function proxy(req, res, url) {
     res.statusCode = 502;
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.end(
-      "Backend base URL is not configured. Set TECHSTACK_API_URL for the static frontend proxy.",
+      "Backend base URL is not configured. Set HOMELAB_API_URL for the static frontend proxy.",
     );
     return;
   }

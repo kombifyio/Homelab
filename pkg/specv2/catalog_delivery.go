@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
 )
 
 // CatalogDelivery is the compatibility authority's verdict for one catalog.

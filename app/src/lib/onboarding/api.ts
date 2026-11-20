@@ -13,7 +13,7 @@ import type {
 
 import { ApiRequestError, fetchApi } from "#lib/api/client.js";
 
-export const TECHSTACK_JOURNEY_ID = "techstack.platform";
+export const HOMELAB_JOURNEY_ID = "homelab.platform";
 
 /** The closed action vocabulary the endpoint accepts. */
 export type OnboardingAction =
@@ -34,7 +34,7 @@ function endpoint(journeyId: string, suffix = ""): string {
 }
 
 export async function getOnboarding(
-  journeyId: string = TECHSTACK_JOURNEY_ID,
+  journeyId: string = HOMELAB_JOURNEY_ID,
 ): Promise<OnboardingPayload> {
   const response = await fetchApi<OnboardingPayload>(endpoint(journeyId));
   return response.data;
@@ -61,7 +61,7 @@ export async function putOnboardingAction(
     headers["If-Match"] = `"${options.expectRevision}"`;
   }
   const response = await fetchApi<OnboardingPayload>(
-    endpoint(options.journeyId ?? TECHSTACK_JOURNEY_ID),
+    endpoint(options.journeyId ?? HOMELAB_JOURNEY_ID),
     {
       method: "PUT",
       headers,
@@ -76,7 +76,7 @@ export async function putOnboardingAction(
 }
 
 export async function resetOnboarding(
-  journeyId: string = TECHSTACK_JOURNEY_ID,
+  journeyId: string = HOMELAB_JOURNEY_ID,
 ): Promise<OnboardingPayload> {
   const response = await fetchApi<OnboardingPayload>(
     endpoint(journeyId, "/reset"),

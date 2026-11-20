@@ -1,6 +1,6 @@
 // Package kombifyme transports authenticated kombify.me registry operations.
 // StackKits owns the secret-free address plan and concrete route binding;
-// Techstack supplies managed-runtime and account custody at this boundary.
+// Homelab supplies managed-runtime and account custody at this boundary.
 package kombifyme
 
 import (

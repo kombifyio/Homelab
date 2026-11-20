@@ -15,12 +15,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	tsauth "github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	tsauth "github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // Cloud-link flow: a self-hosted operator connects their kombify Cloud profile
@@ -35,7 +35,7 @@ const (
 	cloudLinkPurposeOwnerLink = "owner-link"
 	cloudLinkCompletePath     = "/auth/cloud-link-complete"
 	cloudLinkCallbackPath     = "/api/v1/auth/cloud-link/callback"
-	cloudLinkBindingCookie    = "techstack_cloud_link"
+	cloudLinkBindingCookie    = "homelab_cloud_link"
 
 	cloudLinkUnavailableErrorCode = "cloud_link_unavailable"
 	reasonCloudOIDCNotConfigured  = "cloud_oidc_not_configured"
@@ -261,7 +261,7 @@ func cloudLinkNotConfigured(e *httpx.Event) error {
 			"title": "kombify Cloud login is not configured",
 			"body":  "This instance has no cloud OIDC issuer/client configured, so a kombify Cloud profile cannot be linked.",
 			"next_steps": []string{
-				"Configure TECHSTACK_AUTH_CLOUD_ISSUER, TECHSTACK_AUTH_CLOUD_CLIENT_ID, and TECHSTACK_AUTH_CLOUD_CLIENT_SECRET.",
+				"Configure HOMELAB_AUTH_CLOUD_ISSUER, HOMELAB_AUTH_CLOUD_CLIENT_ID, and HOMELAB_AUTH_CLOUD_CLIENT_SECRET.",
 				"Alternatively, use a local owner instead of the cloud-linked owner.",
 			},
 		},
@@ -278,7 +278,7 @@ func cloudLinkUnavailableOnSaaS(e *httpx.Event) error {
 		"retryable":   false,
 		"user_guidance": map[string]any{
 			"title": "Your kombify Cloud account is already connected",
-			"body":  "On techstack.kombify.io you sign in with your kombify Cloud account, so there is nothing to link. Cloud link connects a kombify Cloud profile to a self-hosted Techstack install.",
+			"body":  "On homelab.kombify.io you sign in with your kombify Cloud account, so there is nothing to link. Cloud link connects a kombify Cloud profile to a self-hosted Homelab Runtime install.",
 			"next_steps": []string{
 				"Continue with your current account; stacks you create use it as the owner.",
 				"To link a Cloud profile to a self-hosted install, start Cloud link from that install.",

@@ -11,15 +11,15 @@ import { authenticateRuntimeUser } from "./runtime-auth";
 // production service.
 // This step only reads; the removal itself goes through the product.
 
-const STACK_ID = process.env.TECHSTACK_B3_CLEANUP_STACK_ID?.trim() ?? "";
-const SERVER_ID = process.env.TECHSTACK_B3_CLEANUP_SERVER_ID?.trim() ?? "";
+const STACK_ID = process.env.HOMELAB_B3_CLEANUP_STACK_ID?.trim() ?? "";
+const SERVER_ID = process.env.HOMELAB_B3_CLEANUP_SERVER_ID?.trim() ?? "";
 const PRODUCT_BASE = liveProductURL(
-  process.env.TECHSTACK_RUNTIME_E2E_PRODUCT_URL ||
-    process.env.TECHSTACK_E2E_PRODUCT_URL ||
-    "https://techstack.kombify.io",
+  process.env.HOMELAB_RUNTIME_E2E_PRODUCT_URL ||
+    process.env.HOMELAB_E2E_PRODUCT_URL ||
+    "https://homelab.kombify.io",
 );
 const API_BASE = liveProductURL(
-  process.env.TECHSTACK_RUNTIME_E2E_API_URL || PRODUCT_BASE,
+  process.env.HOMELAB_RUNTIME_E2E_API_URL || PRODUCT_BASE,
 );
 const CHANNELS = ["stable"] as const;
 const READBACK = resolve(
@@ -35,7 +35,7 @@ test("a failed B3 run's stack is gone for its owner and its server is retired", 
     productBase: PRODUCT_BASE,
     apiBase: API_BASE,
     sessionCookieName:
-      process.env.TECHSTACK_E2E_SESSION_COOKIE_NAME ?? "techstack_session",
+      process.env.HOMELAB_E2E_SESSION_COOKIE_NAME ?? "homelab_session",
     fixturePrefix: "TEST_RIL_PRO_USER",
   });
   const channels = [];
@@ -72,7 +72,7 @@ test("a failed B3 run's stack is gone for its owner and its server is retired", 
     });
   }
   const readback = {
-    schema_version: "techstack.b3-cleanup-readback/v2",
+    schema_version: "homelab.b3-cleanup-readback/v2",
     observed_at: new Date().toISOString(),
     api_base: API_BASE,
     owner: "TEST_RIL_PRO_USER",

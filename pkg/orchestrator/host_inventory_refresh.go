@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 func (o *Orchestrator) requestHostInventory(ctx context.Context, tenantID, serverID, stackID string, deadline time.Time) error {

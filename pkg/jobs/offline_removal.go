@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/portinventory"
+	"github.com/kombifyio/homelab/internal/portinventory"
 )
 
 const (
@@ -36,7 +36,7 @@ const (
 	// stale-heartbeat window, and the owner named it as gone.
 	OfflineRemovalBasisOwnerConfirmation = "owner_confirmation"
 
-	offlineRemovalEvidenceVersion = "techstack.offline-stack-removal/v1"
+	offlineRemovalEvidenceVersion = "homelab.offline-stack-removal/v1"
 )
 
 // OfflineRemovalServerEvidence is what the control plane observed about one
@@ -54,13 +54,13 @@ type OfflineRemovalServerEvidence struct {
 // execution on the listed servers. Servers of the stack that are not listed
 // keep the typed removal on their node.
 type OfflineRemovalEvidence struct {
-	SchemaVersion string                         `json:"schema_version"`
-	TechstackID   string                         `json:"techstack_id"`
-	TenantID      string                         `json:"tenant_id"`
-	OwnerID       string                         `json:"owner_id"`
-	Basis         string                         `json:"basis"`
-	ConfirmedAt   time.Time                      `json:"confirmed_at"`
-	Servers       []OfflineRemovalServerEvidence `json:"servers"`
+	SchemaVersion   string                         `json:"schema_version"`
+	KitDeploymentID string                         `json:"kit_deployment_id"`
+	TenantID        string                         `json:"tenant_id"`
+	OwnerID         string                         `json:"owner_id"`
+	Basis           string                         `json:"basis"`
+	ConfirmedAt     time.Time                      `json:"confirmed_at"`
+	Servers         []OfflineRemovalServerEvidence `json:"servers"`
 }
 
 // DestroyWorkspaceStateRetiresProjection reports whether a destroy that recorded
@@ -99,10 +99,10 @@ type OfflineServerRetireResult struct {
 type OfflineServerRetirer func(context.Context, OfflineServerRetireRequest) (OfflineServerRetireResult, error)
 
 // NewOfflineRemovalEvidence builds and validates the evidence for one removal.
-func NewOfflineRemovalEvidence(techstackID, tenantID, ownerID string, confirmedAt time.Time, servers []OfflineRemovalServerEvidence) (OfflineRemovalEvidence, error) {
+func NewOfflineRemovalEvidence(kitDeploymentID, tenantID, ownerID string, confirmedAt time.Time, servers []OfflineRemovalServerEvidence) (OfflineRemovalEvidence, error) {
 	evidence := OfflineRemovalEvidence{
-		SchemaVersion: offlineRemovalEvidenceVersion,
-		TechstackID:   strings.TrimSpace(techstackID), TenantID: strings.TrimSpace(tenantID), OwnerID: strings.TrimSpace(ownerID),
+		SchemaVersion:   offlineRemovalEvidenceVersion,
+		KitDeploymentID: strings.TrimSpace(kitDeploymentID), TenantID: strings.TrimSpace(tenantID), OwnerID: strings.TrimSpace(ownerID),
 		Basis: OfflineRemovalBasisOwnerConfirmation, ConfirmedAt: confirmedAt.UTC(),
 		Servers: append([]OfflineRemovalServerEvidence(nil), servers...),
 	}
@@ -135,7 +135,7 @@ func DecodeOfflineRemovalEvidence(value any) (OfflineRemovalEvidence, error) {
 }
 
 func (evidence OfflineRemovalEvidence) Validate() error {
-	for _, value := range []string{evidence.TechstackID, evidence.TenantID, evidence.OwnerID} {
+	for _, value := range []string{evidence.KitDeploymentID, evidence.TenantID, evidence.OwnerID} {
 		if value == "" || value != strings.TrimSpace(value) {
 			return errors.New("offline removal evidence identity is incomplete")
 		}
@@ -192,7 +192,7 @@ func boundOfflineRemovalEvidence(job *Job, snapshot portinventory.TeardownSnapsh
 	if err != nil {
 		return OfflineRemovalEvidence{}, false, err
 	}
-	if evidence.TechstackID != job.TargetID || evidence.TenantID != payloadString(job.Payload, tenantIDField) ||
+	if evidence.KitDeploymentID != job.TargetID || evidence.TenantID != payloadString(job.Payload, tenantIDField) ||
 		evidence.OwnerID != payloadString(job.Payload, "owner_id") {
 		return OfflineRemovalEvidence{}, false, errors.New("offline removal evidence does not match the destroy job")
 	}

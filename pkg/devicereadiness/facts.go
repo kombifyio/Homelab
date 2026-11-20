@@ -21,7 +21,7 @@ import "time"
 
 // SchemaVersion identifies the machine-readable readiness report. It is part of
 // the HTTP and CLI boundary, so it changes only with the report shape.
-const SchemaVersion = "techstack.device-readiness/v1"
+const SchemaVersion = "homelab.device-readiness/v1"
 
 // Status is the closed outcome vocabulary for a single check and for a report.
 type Status string

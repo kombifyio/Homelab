@@ -2,7 +2,7 @@
  * Product nav config → package NavItems, for both shells.
  *
  * The sidebar and the embedded tab bar used to map separately and each
- * dropped `children`, which is why no flyout ever opened in Techstack. One
+ * dropped `children`, which is why no flyout ever opened in Homelab. One
  * mapper now carries children (labels localized here), the live preview for
  * the section, and the coach anchor.
  */

@@ -8,8 +8,8 @@ Build the WiX v4 MSI and Burn setup.exe from the staged Windows client.
 The stage is produced by scripts/package-windows-client.ps1. This script does
 not build or copy product binaries itself. It creates:
 
-  kombify-Techstack-x64.msi
-  kombify-Techstack-Setup.exe
+  kombify-Homelab-x64.msi
+  kombify-Homelab-Setup.exe
 
 The outputs are deliberately unsigned. Signing is a separate release concern
 and must never prevent an alpha/public OSS package from being produced.
@@ -140,27 +140,27 @@ $suffix = if ($DesktopEdition -eq "Cloud") { "-Cloud" } else { "" }
 # Customer-visible edition name (D-2026-11-11-05). $DesktopEdition stays the engineering identifier
 # (feed, file names, install folder, upgrade codes, registry key); only display text uses this value.
 $desktopEditionName = if ($DesktopEdition -eq "Cloud") { "Connected" } else { "Standalone" }
-$msiPath = Join-Path $output "kombify-Techstack$suffix-x64.msi"
-$bundlePath = Join-Path $output "kombify-Techstack$suffix-Setup.exe"
-$installDirectoryName = if ($DesktopEdition -eq "Cloud") { "techstack-cloud" } else { "techstack" }
+$msiPath = Join-Path $output "kombify-Homelab$suffix-x64.msi"
+$bundlePath = Join-Path $output "kombify-Homelab$suffix-Setup.exe"
+$installDirectoryName = if ($DesktopEdition -eq "Cloud") { "homelab-cloud" } else { "homelab" }
 $msiUpgradeCode = if ($DesktopEdition -eq "Cloud") { "{E509478A-80C8-4AD4-994E-5D409AD5FB00}" } else { "{F85F01B8-7612-47AB-9666-29BEC1BE0E10}" }
 $bundleUpgradeCode = if ($DesktopEdition -eq "Cloud") { "{DB4EAFA7-84CD-4F2B-BFB6-E81427A5F6BC}" } else { "{E832F922-4AEC-4C41-A7B6-9546279CD913}" }
-$msiSource = Join-Path $root "installer\wix\TechStack.wxs"
-$bundleSource = Join-Path $root "installer\wix\TechStack.Bundle.wxs"
+$msiSource = Join-Path $root "installer\wix\Homelab.wxs"
+$bundleSource = Join-Path $root "installer\wix\Homelab.Bundle.wxs"
 
 foreach ($required in @(
-    (Join-Path $stage "kombify-techstack-client.exe"),
+    (Join-Path $stage "kombify-homelab-client.exe"),
     (Join-Path $stage "Assets\kombify-navy.ico")
 )) {
     if (!(Test-Path -LiteralPath $required -PathType Leaf)) {
         throw "Windows client stage is incomplete; missing $required"
     }
 }
-if ($DesktopEdition -eq "Local" -and !(Test-Path -LiteralPath (Join-Path $stage "techstack.exe") -PathType Leaf)) {
-    throw "Standalone Windows client stage is incomplete; missing techstack.exe"
+if ($DesktopEdition -eq "Local" -and !(Test-Path -LiteralPath (Join-Path $stage "homelab.exe") -PathType Leaf)) {
+    throw "Standalone Windows client stage is incomplete; missing homelab.exe"
 }
-if ($DesktopEdition -eq "Cloud" -and (Test-Path -LiteralPath (Join-Path $stage "techstack.exe"))) {
-    throw "Connected Windows client stage cannot contain the local Techstack runtime."
+if ($DesktopEdition -eq "Cloud" -and (Test-Path -LiteralPath (Join-Path $stage "homelab.exe"))) {
+    throw "Connected Windows client stage cannot contain the local Homelab Runtime."
 }
 
 New-Item -ItemType Directory -Force -Path $output | Out-Null
@@ -177,7 +177,7 @@ Invoke-Wix @(
     "-arch", "x64",
     "-ext", "WixToolset.Firewall.wixext",
     "-intermediatefolder", (Join-Path $intermediate "msi"),
-    "-d", "TechStackVersion=$Version",
+    "-d", "HomelabVersion=$Version",
     "-d", "StageDir=$stage",
     "-d", "DesktopEdition=$DesktopEdition",
     "-d", "DesktopEditionName=$desktopEditionName",
@@ -194,7 +194,7 @@ Invoke-Wix @(
     "-arch", "x64",
     "-ext", "WixToolset.Bal.wixext",
     "-intermediatefolder", (Join-Path $intermediate "bundle"),
-    "-d", "TechStackVersion=$Version",
+    "-d", "HomelabVersion=$Version",
     "-d", "StageDir=$stage",
     "-d", "DesktopEdition=$DesktopEdition",
     "-d", "DesktopEditionName=$desktopEditionName",

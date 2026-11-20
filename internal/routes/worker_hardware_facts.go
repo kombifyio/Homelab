@@ -3,7 +3,7 @@ package routes
 import (
 	"encoding/json"
 
-	"github.com/kombifyio/techstack/pkg/agent/httpguard"
+	"github.com/kombifyio/homelab/pkg/agent/httpguard"
 )
 
 // workerHardwareKey is the member of the stored host map that holds the

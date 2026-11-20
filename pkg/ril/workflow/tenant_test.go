@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/db"
+	"github.com/kombifyio/homelab/pkg/db"
 )
 
 // Tenant omission must deny before a pool or workflow activity is reached.

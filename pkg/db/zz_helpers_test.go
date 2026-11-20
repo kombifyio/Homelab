@@ -4,12 +4,12 @@ package db
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"database/sql"
+	"fmt"
+	"net/url"
+	"os"
 	"strings"
 	"testing"
-	"net/url"
 )
 
 func postgresDSNWithSearchPath(dsn, searchPath string) (string, error) {
@@ -65,4 +65,3 @@ func readEmbeddedMigrationForIntegration(t *testing.T, name string) string {
 func quotePostgresTestIdentifier(identifier string) string {
 	return `"` + strings.ReplaceAll(identifier, `"`, `""`) + `"`
 }
-

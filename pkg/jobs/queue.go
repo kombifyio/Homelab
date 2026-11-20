@@ -1,4 +1,4 @@
-// Package jobs provides async job queue processing for kombifyTechstack.
+// Package jobs provides async job queue processing for kombifyHomelab.
 package jobs
 
 import (
@@ -12,10 +12,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/logger"
-	"github.com/kombifyio/techstack/pkg/providererrors"
-	"github.com/kombifyio/techstack/pkg/releasechannel"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/providererrors"
+	"github.com/kombifyio/homelab/pkg/releasechannel"
 )
 
 // JobType defines the type of job.

@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardidentity"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
 )
 
 // Document states published to a Guard and to the server read model.

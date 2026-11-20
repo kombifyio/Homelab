@@ -33,7 +33,7 @@ export const creationFlowMessages = {
     "wizard.server.fit.stale": "Hardware data needs a fresh check",
     "wizard.server.fit.unconfirmed": "Not confirmed: {reason}",
     "wizard.server.fit.unknown": "Fit is unknown",
-    "creation.embed.continueFull": "Continue in Techstack",
+    "creation.embed.continueFull": "Continue in Homelab Runtime",
     "wizard.server.homelab.title":
       "In your Homelab",
     "wizard.server.homelab.lead":
@@ -192,7 +192,7 @@ export const creationFlowMessages = {
     "wizard.server.fit.stale": "Hardwaredaten erneut prüfen",
     "wizard.server.fit.unconfirmed": "Nicht bestätigt: {reason}",
     "wizard.server.fit.unknown": "Eignung unbekannt",
-    "creation.embed.continueFull": "In Techstack weitermachen",
+    "creation.embed.continueFull": "In Homelab Runtime weitermachen",
     "wizard.server.homelab.title":
       "In deinem Homelab",
     "wizard.server.homelab.lead":
@@ -353,7 +353,7 @@ export const creationFlowMessages = {
     "wizard.server.fit.stale": "Comprueba de nuevo los datos del hardware",
     "wizard.server.fit.unconfirmed": "Sin confirmar: {reason}",
     "wizard.server.fit.unknown": "Compatibilidad desconocida",
-    "creation.embed.continueFull": "Continuar en Techstack",
+    "creation.embed.continueFull": "Continuar en Homelab Runtime",
     "wizard.server.homelab.title":
       "En tu Homelab",
     "wizard.server.homelab.lead":
@@ -513,7 +513,7 @@ export const creationFlowMessages = {
     "wizard.server.fit.stale": "需要重新检查硬件信息",
     "wizard.server.fit.unconfirmed": "未确认：{reason}",
     "wizard.server.fit.unknown": "适配情况未知",
-    "creation.embed.continueFull": "在 Techstack 中继续",
+    "creation.embed.continueFull": "在 Homelab Runtime 中继续",
     "wizard.server.homelab.title":
       "在你的 Homelab 中",
     "wizard.server.homelab.lead":
@@ -665,7 +665,7 @@ export const creationFlowMessages = {
     "wizard.server.fit.stale": "हार्डवेयर जानकारी फिर जाँचें",
     "wizard.server.fit.unconfirmed": "पुष्टि नहीं: {reason}",
     "wizard.server.fit.unknown": "अनुकूलता अज्ञात है",
-    "creation.embed.continueFull": "Techstack में जारी रखें",
+    "creation.embed.continueFull": "Homelab Runtime में जारी रखें",
     "wizard.server.homelab.title":
       "आपके Homelab में",
     "wizard.server.homelab.lead":
@@ -824,7 +824,7 @@ export const creationFlowMessages = {
     "wizard.server.fit.stale": "أعد فحص معلومات الأجهزة",
     "wizard.server.fit.unconfirmed": "غير مؤكد: {reason}",
     "wizard.server.fit.unknown": "الملاءمة غير معروفة",
-    "creation.embed.continueFull": "المتابعة في Techstack",
+    "creation.embed.continueFull": "المتابعة في Homelab Runtime",
     "wizard.server.homelab.title":
       "في Homelab الخاص بك",
     "wizard.server.homelab.lead":

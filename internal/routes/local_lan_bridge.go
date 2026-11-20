@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // LocalLANBridgeStatus is the loopback control-plane view of the private-LAN

@@ -2,7 +2,7 @@ package specv2
 
 import (
 	"fmt"
-	"github.com/kombifyio/techstack/internal/substrate"
+	"github.com/kombifyio/homelab/internal/substrate"
 )
 
 func hasSmartHomeSelection(intent WizardIntent) bool {

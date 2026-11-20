@@ -1,8 +1,8 @@
 /**
  * Browser client of the kombify Wallet owner API at the public Gateway
  * (`https://api.kombify.io/v1/wallet/*`). The Gateway authenticates the
- * signed-in person's Auth0 access token (the same bearer every Techstack
- * gateway call carries) and derives the Wallet owner from its `sub`; Techstack
+ * signed-in person's Auth0 access token (the same bearer every Homelab
+ * gateway call carries) and derives the Wallet owner from its `sub`; Homelab
  * itself is not in the path. Every value it sends or receives is a JWE the
  * transport (`transport.ts`) produced or will open; nothing here logs or
  * stores a response body.
@@ -27,8 +27,8 @@ import {
 import {
   creatorServicesFrom,
   serviceGrantsFrom,
-  TECHSTACK_SERVICE,
-  techstackMayUse,
+  HOMELAB_SERVICE,
+  homelabMayUse,
   type ServiceRightsGrant,
   type WalletRight,
   type WalletService,
@@ -515,7 +515,7 @@ export async function deleteItem(
   );
 }
 
-// --- product assignment (Techstack) -----------------------------------------
+// --- product assignment (Homelab) -----------------------------------------
 
 /** The rights the kombify products hold on one item. */
 export async function listServiceAccess(
@@ -553,13 +553,13 @@ export async function setServiceAccess(
 }
 
 /**
- * Make sure Techstack holds the `use` right on an item, granting it when it is
- * missing. Used where picking an item is the owner's decision to let Techstack
+ * Make sure Homelab holds the `use` right on an item, granting it when it is
+ * missing. Used where picking an item is the owner's decision to let Homelab
  * act with it (a server's access profile, a stack credential).
  */
-export async function allowTechstackToUse(itemId: string): Promise<void> {
-  if (techstackMayUse(await listServiceAccess(itemId))) return;
-  if (!(await setServiceAccess(itemId, TECHSTACK_SERVICE, "use", true)))
+export async function allowHomelabToUse(itemId: string): Promise<void> {
+  if (homelabMayUse(await listServiceAccess(itemId))) return;
+  if (!(await setServiceAccess(itemId, HOMELAB_SERVICE, "use", true)))
     throw new WalletApiError(
       502,
       "service_access_response_invalid",

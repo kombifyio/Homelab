@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"regexp"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 const HomeGraphAdoptionOperationName = "application.home-graph.adopt"

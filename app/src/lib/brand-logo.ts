@@ -1,7 +1,7 @@
 import type { ServiceCatalogLogo } from "#lib/api/services.js";
 
 /**
- * Brand icons of the applications Techstack shows. Every logo comes from our
+ * Brand icons of the applications Homelab shows. Every logo comes from our
  * own asset host (`APP_ICON_BASE`): homarr-labs/dashboard-icons (Apache-2.0)
  * mirrored there, Simple Icons (CC0-1.0) as fallback, provider and kombify
  * icons from their own sources. A logo is never hot-linked from a third party
@@ -17,7 +17,7 @@ import type { ServiceCatalogLogo } from "#lib/api/services.js";
 /** Where the mirrored application icons live; file names equal their slugs. */
 export const APP_ICON_BASE = "https://assets.kombify.io/brand/app-icons/";
 
-export const BRAND_LOGO_CONTEXT = "techstack-brand-logo-domain";
+export const BRAND_LOGO_CONTEXT = "homelab-brand-logo-domain";
 
 export interface BrandLogoContext {
   readonly domain: string;

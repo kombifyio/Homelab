@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/authlocal"
+	"github.com/kombifyio/homelab/internal/gocommon/authlocal"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 func TestPostgresStoreSavesBreakglassRecordInAuthStore(t *testing.T) {
@@ -17,7 +17,7 @@ func TestPostgresStoreSavesBreakglassRecordInAuthStore(t *testing.T) {
 	showUntil := time.Date(2026, 5, 28, 17, 0, 0, 0, time.UTC)
 
 	if err := store.Save(ctx, &authlocal.Record{
-		Email:        "breakglass@techstack.local",
+		Email:        "breakglass@homelab.local",
 		PasswordHash: "$2a$hash",
 		ShowPassword: "show-once",
 		ShowUntil:    showUntil,
@@ -30,7 +30,7 @@ func TestPostgresStoreSavesBreakglassRecordInAuthStore(t *testing.T) {
 	if admin.TenantID != "tenant-1" || admin.ID != authlocal.BreakGlassRecordID {
 		t.Fatalf("unexpected admin identity: %#v", admin)
 	}
-	if admin.Email != "breakglass@techstack.local" || admin.PasswordHash != "$2a$hash" {
+	if admin.Email != "breakglass@homelab.local" || admin.PasswordHash != "$2a$hash" {
 		t.Fatalf("unexpected admin credentials: %#v", admin)
 	}
 	if admin.Metadata[breakglassMetadataShowPassword] != "show-once" {

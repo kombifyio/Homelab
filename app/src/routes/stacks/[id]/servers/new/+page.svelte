@@ -7,7 +7,7 @@
 </script>
 
 <svelte:head>
-  <title>{tr("ui.stacksIdServersNew.addNodeKombifyTechstack")}</title>
+  <title>{tr("ui.stacksIdServersNew.addNodeKombifyHomelab")}</title>
 </svelte:head>
 
 <ManagedCreationFlow {stackId} />

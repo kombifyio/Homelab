@@ -13,8 +13,8 @@ import (
 )
 
 // Household identity references implement the link authority of Kombify
-// Connect decision D10: Techstack alone ties a Cloud (Auth0) subject to a
-// homelab identity, because only Techstack reaches the node through its Guard.
+// Connect decision D10: Homelab alone ties a Cloud (Auth0) subject to a
+// homelab identity, because only Homelab reaches the node through its Guard.
 // The homelab identity provider stays the authority for the person; a reference
 // holds no credential, passkey, session or activation link.
 const (

@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // Configure is authoring only. The receiving Guard chooses a new output file
@@ -19,7 +19,7 @@ func stackKitUseCaseConfigureArgs(workDir string, command *agentpb.StackKitComma
 	if err != nil {
 		return nil, nil, err
 	}
-	directory, err := os.MkdirTemp(workDir, ".techstack-configure-")
+	directory, err := os.MkdirTemp(workDir, ".homelab-configure-")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -54,7 +54,7 @@ func stackKitUseCaseConfigureArgs(workDir string, command *agentpb.StackKitComma
 }
 
 func attachUseCaseConfigureCandidate(command *agentpb.StackKitCommand, result *agentpb.StackKitResult, tempFiles []string) error {
-	if err := attachStackKitIntentCandidate(result, tempFiles, ".techstack-configure-"); err != nil {
+	if err := attachStackKitIntentCandidate(result, tempFiles, ".homelab-configure-"); err != nil {
 		return err
 	}
 	_, err := stackkitcommand.ParseUseCaseConfigurationEvidence(command, result)

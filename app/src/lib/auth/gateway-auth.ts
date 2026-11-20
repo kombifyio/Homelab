@@ -1,10 +1,10 @@
 /**
- * Gateway token acquisition for the SaaS TechStack SPA.
+ * Gateway token acquisition for the SaaS Homelab SPA.
  *
- * The Cloudflare edge at `api.kombify.io/v1/techstack/*` needs the user's
+ * The Cloudflare edge at `api.kombify.io/v1/homelab/*` needs the user's
  * Auth0 access token (audience = the kombify API). Embedded Cloud frames get
  * that token from the parent portal. Standalone Universal Login users (including
- * the demo account) only mint a Techstack session cookie, so this module must
+ * the demo account) only mint a Homelab session cookie, so this module must
  * acquire the API token itself. Silent refresh first; auth init and the
  * recovery ladder start one SPA SSO round-trip so the operator is not stuck
  * on a dead error banner.

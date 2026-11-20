@@ -10,12 +10,12 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/kombifyio/techstack/pkg/guardidentity"
-	"github.com/kombifyio/techstack/pkg/kombifyme"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
+	"github.com/kombifyio/homelab/pkg/kombifyme"
 )
 
 const (
-	revocationCursorName = "gateway-techstack-node-revocations"
+	revocationCursorName = "gateway-homelab-node-revocations"
 	revocationPageSize   = 100
 
 	defaultPassInterval   = 15 * time.Second
@@ -32,7 +32,7 @@ const (
 
 	defaultRevokeReason = "detached"
 	ownerRevokeReason   = "owner_request"
-	ownerProxyPrefix    = "service:techstack:"
+	ownerProxyPrefix    = "service:homelab:"
 )
 
 // Connect is the Gateway registration surface the control plane drives.
@@ -603,7 +603,7 @@ func (s *Service) applyRevocation(ctx context.Context, event Revocation) error {
 			continue
 		}
 		// The node's agent link goes while the Guard still answers (the node
-		// deletes its pin on techstack-node.revoked); the Gateway already
+		// deletes its pin on homelab-node.revoked); the Gateway already
 		// issues no envelope for the revoked node.
 		if target, tried := s.removeAgentLink(ctx, *row); tried {
 			if err := s.recordAgentLinkRemoval(ctx, *row, target); err != nil {

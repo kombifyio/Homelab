@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -80,7 +80,7 @@ func (c *HouseholdRelayClient) register(ctx context.Context, tenant, agent strin
 	if err != nil {
 		return nil, err
 	}
-	challengeToken, err := servicecall.IssueBoundToken(c.config, "techstack", challengeBinding, "")
+	challengeToken, err := servicecall.IssueBoundToken(c.config, "homelab", challengeBinding, "")
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (c *HouseholdRelayClient) register(ctx context.Context, tenant, agent strin
 	if err != nil {
 		return nil, err
 	}
-	token, err := servicecall.IssueBoundToken(c.config, "techstack", binding, envelope.Nonce)
+	token, err := servicecall.IssueBoundToken(c.config, "homelab", binding, envelope.Nonce)
 	if err != nil {
 		return nil, err
 	}

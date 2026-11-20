@@ -14,23 +14,23 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/fulllocal"
-	"github.com/kombifyio/techstack/pkg/guardrelease"
-	"github.com/kombifyio/techstack/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
+	"github.com/kombifyio/homelab/pkg/logger"
 )
 
 const (
 	guardReleaseSeedManifestFile = "release-manifest-seed.json"
 	guardReleaseSeedManifestSig  = "release-manifest-seed.sigstore.json"
 	// guardReleaseRefreshEnv set to "off" disables the manifest refresher.
-	guardReleaseRefreshEnv = "TECHSTACK_GUARD_RELEASE_REFRESH"
+	guardReleaseRefreshEnv = "HOMELAB_GUARD_RELEASE_REFRESH"
 	// guardReleaseSourceEnv names the GitHub repository (owner/name) whose
 	// guard-v<version> release the refresher reads.
-	guardReleaseSourceEnv = "TECHSTACK_GUARD_RELEASE_SOURCE"
+	guardReleaseSourceEnv = "HOMELAB_GUARD_RELEASE_SOURCE"
 	// guardReleaseRefreshIntervalEnv is how often the refresher looks, default 1h.
-	guardReleaseRefreshIntervalEnv = "TECHSTACK_GUARD_RELEASE_REFRESH_INTERVAL"
+	guardReleaseRefreshIntervalEnv = "HOMELAB_GUARD_RELEASE_REFRESH_INTERVAL"
 
-	defaultGuardReleaseSource   = "kombifyio/TechStack"
+	defaultGuardReleaseSource   = "kombifyio/Homelab"
 	defaultGuardRefreshInterval = time.Hour
 	minGuardRefreshInterval     = time.Minute
 	guardManifestAgeAlarm       = 26 * time.Hour
@@ -125,7 +125,7 @@ type guardReleaseRefresher struct {
 // publishes it as an asset of the release of the same version. This fetches that
 // asset, verifies it with the same pinned signer identity every Guard enforces
 // before serving it, and keeps the newest verified one. It does nothing when the
-// image carries no signed release or TECHSTACK_GUARD_RELEASE_REFRESH is "off".
+// image carries no signed release or HOMELAB_GUARD_RELEASE_REFRESH is "off".
 // Only the manifest is refreshed: the binaries of a published version never
 // change, and a new version goes live only with a new image.
 func StartGuardReleaseRefresher(ctx context.Context) {
@@ -379,7 +379,7 @@ func (r *guardReleaseRefresher) get(ctx context.Context, target, accept string, 
 		return nil, err
 	}
 	request.Header.Set("Accept", accept)
-	request.Header.Set("User-Agent", "kombify-techstack-guard-release-refresh")
+	request.Header.Set("User-Agent", "kombify-homelab-guard-release-refresh")
 	if r.token != "" {
 		request.Header.Set("Authorization", "Bearer "+r.token)
 	}

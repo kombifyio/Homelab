@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 // A decision receipt (StackKits docs/DECISION-RECEIPTS.md) is the platform's
@@ -49,7 +49,7 @@ func stackKitDecisionReceiptArgs(workDir string, command *agentpb.StackKitComman
 		!stackKitDecisionPrincipalShape.MatchString(principal) {
 		return nil, nil, fmt.Errorf("the decision receipt or its acting principal is malformed")
 	}
-	path, err := writeStackKitPrivateFile(workDir, ".techstack-decision-receipt-*.jws", []byte(receipt))
+	path, err := writeStackKitPrivateFile(workDir, ".homelab-decision-receipt-*.jws", []byte(receipt))
 	if err != nil {
 		return nil, nil, fmt.Errorf("write decision receipt: %w", err)
 	}

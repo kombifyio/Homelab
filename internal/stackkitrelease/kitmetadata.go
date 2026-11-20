@@ -62,7 +62,7 @@ func decodePinnedMetadata(data []byte) (pinnedMetadataDocument, error) {
 	if err := json.Unmarshal(data, &document); err != nil {
 		return document, fmt.Errorf("decode pinned kit metadata: %w", err)
 	}
-	if document.SchemaVersion != "techstack.stackkits-kit-metadata/v1" || document.Source.Module != "github.com/kombifyio/stackkits" ||
+	if document.SchemaVersion != "homelab.stackkits-kit-metadata/v1" || document.Source.Module != "github.com/kombifyio/stackkits" ||
 		document.Source.Version == "" || !strings.HasPrefix(document.Source.ModuleSum, "h1:") || len(document.Source.SourceCommit) != 40 || len(document.Documents) == 0 {
 		return document, fmt.Errorf("pinned kit metadata has incomplete source identity")
 	}

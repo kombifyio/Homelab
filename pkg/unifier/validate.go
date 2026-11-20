@@ -10,7 +10,7 @@ import (
 
 	"cuelang.org/go/cue"
 	cueerrors "cuelang.org/go/cue/errors"
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 const validationTimeout = 5 * time.Second
@@ -77,7 +77,7 @@ func (e *Engine) Validate(spec *core.KombinationSpec) (*core.ValidationResult, e
 		}, nil
 	}
 
-	// Admit the Techstack input selection through released metadata. The
+	// Admit the Homelab input selection through released metadata. The
 	// canonical StackSpec is separately authored and validated by the pinned CLI.
 	if spec.Kit != "" {
 		if _, kitErr := e.GetStackKitInfo(spec.Kit); kitErr != nil {

@@ -1,5 +1,5 @@
 /**
- * Unified Auth Store for kombify-TechStack
+ * Unified Auth Store for kombify-Homelab
  *
  * Manages authentication state across both self-hosted and
  * cloud-hosted (kombify Cloud SSO) deployment modes. This store is the single
@@ -54,7 +54,7 @@ import {
   noteGatewayTokenSuccess,
   shouldAttemptAutoRelogin,
 } from "#lib/auth/session-recovery.js";
-import { clearTechstackSecuritySessionState } from "#lib/logout-cleanup.js";
+import { clearHomelabSecuritySessionState } from "#lib/logout-cleanup.js";
 
 import { tr } from "#lib/i18n.svelte.js";
 const CLOUD_PORTAL_SESSION_PROVIDER_ID = "cloud";
@@ -94,7 +94,7 @@ function captureSessionCheckInDoubt(
       scope.setTag("route", window.location.pathname);
     }
     scope.setLevel("warning");
-    Sentry.captureMessage("techstack_session_check_in_doubt");
+    Sentry.captureMessage("homelab_session_check_in_doubt");
   });
 }
 
@@ -621,7 +621,7 @@ class AuthStore {
   async clearSession(): Promise<void> {
     await logoutLocalSession();
     await clearGatewayAuth();
-    clearTechstackSecuritySessionState();
+    clearHomelabSecuritySessionState();
     this.cloudUser = null;
     this.v2SessionActive = false;
     this.v2SessionUnconfirmed = false;
@@ -700,7 +700,7 @@ class AuthStore {
     this.cloudUser = null;
     this.v2SessionActive = false;
     this.v2SessionUnconfirmed = false;
-    clearTechstackSecuritySessionState();
+    clearHomelabSecuritySessionState();
     this.loading = false;
     this.error = null;
   }

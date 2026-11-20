@@ -36,7 +36,7 @@ func TreeDigest(root string) (string, error) {
 // one local archive-digest marker after authenticating the extracted tree; it
 // is not a release member and cannot be included in the signed tree digest.
 func InstalledTreeDigest(root string) (string, error) {
-	const marker = ".techstack-bundle-sha256"
+	const marker = ".homelab-bundle-sha256"
 	info, err := os.Lstat(filepath.Join(root, marker))
 	if err != nil {
 		return "", err

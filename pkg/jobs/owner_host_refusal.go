@@ -13,7 +13,7 @@ const stackKitHostPreflightRefusal = "host preflight refused to mutate this host
 
 // ownerHostRefusalError marks a rollout failure that the owner's own server
 // reported about itself. It is an expected outcome of that server's state, not
-// a Techstack fault: the job still fails with the same message and guidance,
+// a Homelab fault: the job still fails with the same message and guidance,
 // but it is not reported to Sentry as a server error.
 type ownerHostRefusalError struct {
 	Err error

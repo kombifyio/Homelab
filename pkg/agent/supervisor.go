@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 // Supervisor owns the agent lifecycle: it dials Core, registers, runs the

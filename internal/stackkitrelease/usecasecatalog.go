@@ -2,7 +2,7 @@ package stackkitrelease
 
 // The StackKits use-case catalog published beside the exact release artifact.
 // StackKits owns the CUE authority (foundation/use_case_catalog.cue); this
-// reads its release projection and nothing else. Techstack must never grow a
+// reads its release projection and nothing else. Homelab must never grow a
 // second, hand-written map of what a use case is built from.
 
 import (
@@ -10,7 +10,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"github.com/kombifyio/techstack/pkg/guardrelease"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
 	"io"
 	"os"
 	"path/filepath"
@@ -24,7 +24,7 @@ var pinnedUseCaseCatalogJSON []byte
 
 // UseCaseCatalogEnv points at the use-case catalog published beside the exact
 // StackKits release artifact, alongside the compatibility manifest.
-const UseCaseCatalogEnv = "TECHSTACK_STACKKIT_USE_CASE_CATALOG"
+const UseCaseCatalogEnv = "HOMELAB_STACKKIT_USE_CASE_CATALOG"
 
 const (
 	useCaseCatalogSchema = "stackkits-use-case-catalog/v1"
@@ -34,7 +34,7 @@ const (
 
 // UseCaseComponent is one product a use case is built from. The role vocabulary
 // is StackKits' (#UseCaseCatalogComponent.role) and is passed through verbatim;
-// Techstack does not reinterpret or collapse it.
+// Homelab does not reinterpret or collapse it.
 type UseCaseComponent struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -415,7 +415,7 @@ func singleModuleAlternative(alternatives []UseCaseAlternative, id string) (UseC
 	return UseCaseAlternative{}, false
 }
 
-// ConfigurationSettings projects the release catalog facts that Techstack can
+// ConfigurationSettings projects the release catalog facts that Homelab can
 // safely record as Wizard preferences. StackKits' declared settings remain
 // authoritative and win on an id collision. Service choices come only from
 // primary/alternative components; an option installs when the release marks

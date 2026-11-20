@@ -1,5 +1,5 @@
 /**
- * kombify-TechStack Wizard Types
+ * kombify-Homelab Wizard Types
  *
  * Central type definitions for the wizard system.
  * The creation wizard produces a StackConfig as output.
@@ -197,7 +197,7 @@ export interface RemoteServerConfig {
   sshKeyLabel: string;
   sshPassword: string;
   /**
-   * Hosted Techstack: the kombify Wallet "server access" item that holds the
+   * Hosted Homelab: the kombify Wallet "server access" item that holds the
    * SSH credential. When set, no key label or password is sent.
    */
   sshWalletItemId?: string;
@@ -213,7 +213,7 @@ export interface ServerProvisioningConfig {
   substrate?: SubstrateGuestConfig;
 }
 
-/** Placement stays in Techstack; it never enters a StackKits ResolvedPlan. */
+/** Placement stays in Homelab; it never enters a StackKits ResolvedPlan. */
 export interface SubstrateGuestConfig {
   advisoryInventory?: {
     cpu: number;
@@ -509,7 +509,7 @@ export function applyServerProvisioningMode(
         config.owner.displayName = "";
         config.owner.recoveryPassphraseHash = "";
         config.owner.recoveryMaterialRef ||=
-          "techstack://recovery/stacks/homelab";
+          "homelab://recovery/stacks/homelab";
         config.identity.toolProvider = "pocket-id";
         config.identity.homelabProvider = "pocket-id";
         config.identity.requiresPasskeys = true;
@@ -562,7 +562,7 @@ export function applyWizardDeploymentLane(
       config.owner.displayName = "";
       config.owner.recoveryPassphraseHash = "";
       config.owner.recoveryMaterialRef ||=
-        "techstack://recovery/stacks/homelab";
+        "homelab://recovery/stacks/homelab";
       config.identity.toolProvider = "pocket-id";
       config.identity.homelabProvider = "pocket-id";
       config.identity.requiresPasskeys = true;

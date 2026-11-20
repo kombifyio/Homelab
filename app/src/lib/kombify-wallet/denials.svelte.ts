@@ -1,10 +1,10 @@
 /**
- * Refusals of Techstack's own API that concern the kombify Wallet. The backend
+ * Refusals of Homelab's own API that concern the kombify Wallet. The backend
  * answers them with a structured denial (`reason_code`, `retryable`,
  * `user_guidance`, plus `required_right`, `item_id` or `wallet_reason` where
  * they apply). This module recognises them wherever they come from, turns each
  * into a localized message, and raises the one prompt a person can act on: let
- * Techstack save credentials in the Wallet, or let it use one item.
+ * Homelab save credentials in the Wallet, or let it use one item.
  * `WalletPromptHost` (mounted once in the layout) shows the prompt.
  */
 import { tr } from "#lib/i18n.svelte.js";

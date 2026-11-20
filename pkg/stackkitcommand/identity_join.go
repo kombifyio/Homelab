@@ -8,17 +8,17 @@ import (
 	"regexp"
 	"slices"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
-// One Authority across servers (homelab identity target §4, P2). Techstack
+// One Authority across servers (homelab identity target §4, P2). Homelab
 // carries the join of a further server to the homelab's Authority as closed
 // hand-off steps through the pinned StackKits CLI: the join request on the
 // joining server, the Owner's approval at the Authority (the Owner's passkey
-// step-up in the Authority's Hub is the gate, Techstack cannot answer it),
+// step-up in the Authority's Hub is the gate, Homelab cannot answer it),
 // the install of the Authority-signed trust bundle, the registration of the
 // joined server's sign-in client, its binding after Wallet host delivery and
-// the homelab DNS zone. Every document is public or sealed; Techstack signs
+// the homelab DNS zone. Every document is public or sealed; Homelab signs
 // none of them.
 const (
 	// IdentityJoinCapability marks an agent whose StackKits CLI runs the
@@ -38,7 +38,7 @@ const (
 
 	// IdentityJoinRequestInputSchema is the input of identity-join-request:
 	// the root fingerprint the Owner read at the Authority and the hostnames.
-	IdentityJoinRequestInputSchema = "techstack.identity-join-request-input/v1"
+	IdentityJoinRequestInputSchema = "homelab.identity-join-request-input/v1"
 )
 
 var (

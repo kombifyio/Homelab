@@ -75,7 +75,7 @@ export const screenMessages = {
       "Network error: Could not connect to Discovery API. Is the backend running?",
     "ui.api.scanPollingTimeout": "Scan polling timeout",
     "ui.api.serverSideAPIBaseURL":
-      "Server-side API base URL is not configured. Set TECHSTACK_API_URL (runtime) or VITE_API_URL (build time).",
+      "Server-side API base URL is not configured. Set HOMELAB_API_URL (runtime) or VITE_API_URL (build time).",
     "ui.argon2.addNumber": "Add at least one number.",
     "ui.argon2.addSymbols":
       "Add spaces or symbols to make the passphrase harder to guess.",
@@ -93,16 +93,16 @@ export const screenMessages = {
       "Close this tab and try again from the wizard.",
     "ui.authCloud-link-complete.kombifyCloudConnected":
       "kombify Cloud connected",
-    "ui.authCloud-link-complete.kombifyCloudLinkKombifyTechstack":
-      "kombify Cloud Link | Techstack",
+    "ui.authCloud-link-complete.kombifyCloudLinkKombifyHomelab":
+      "kombify Cloud Link | Homelab Runtime",
     "ui.authCloud-link-complete.thisWindowClosesAutomatically":
       "This window closes automatically.",
     "ui.authCloud-link-complete.youCanCloseThisTab":
       "You can close this tab and return to the wizard.",
     "ui.authSso.noSsoTokenProvided": "No SSO token provided",
     "ui.authSso.ssoAuthenticationFailed": "SSO authentication failed",
-    "ui.authSso.ssoAuthenticationKombifyTechstack":
-      "SSO Authentication | Techstack",
+    "ui.authSso.ssoAuthenticationKombifyHomelab":
+      "SSO Authentication | Homelab Runtime",
     "ui.authSso.unableToVerifyYourCredentials":
       "Unable to verify your credentials",
     "ui.authSso.yourKombifyCloudSessionCould":
@@ -119,7 +119,7 @@ export const screenMessages = {
     "ui.clientLocal.checkingLocalAuthState": "Checking local auth state...",
     "ui.clientLocal.continueLocalSetup": "Continue local setup",
     "ui.clientLocal.createOrSignInAs":
-      "Create or sign in as the local owner for this self-hosted Techstack. After setup, the operator UI opens directly.",
+      "Create or sign in as the local owner for this self-hosted Homelab Runtime. After setup, the operator UI opens directly.",
     "ui.clientLocal.createTheFirstLocalAdmin":
       "Create the first local admin for this device. After setup, this Windows client opens the operator UI directly.",
     "ui.clientLocal.creatingLocalOwner": "Creating local owner...",
@@ -131,26 +131,26 @@ export const screenMessages = {
       "Local owner was created, but sign-in failed.",
     "ui.clientLocal.localSetupFailed": "Local setup failed.",
     "ui.clientLocal.localSignInFailed": "Local sign-in failed.",
-    "ui.clientLocal.localTechstackSetup": "Local TechStack setup.",
-    "ui.clientLocal.localTechstackSetupKombifyTechstack":
-      "Local TechStack setup | Techstack",
+    "ui.clientLocal.localHomelabSetup": "Local Homelab Runtime setup.",
+    "ui.clientLocal.localHomelabSetupKombifyHomelab":
+      "Local Homelab Runtime setup | Homelab Runtime",
     "ui.clientLocal.ownerName": "Owner name: {name}",
     "ui.clientLocal.password": "Password",
     "ui.clientLocal.selfHostedLocalOwner": "Self-hosted local owner",
     "ui.clientLocal.signInLocally": "Sign in locally",
     "ui.clientLocal.signingIn": "Signing in...",
     "ui.clientLocal.thisDeviceIsAlreadyConfigured":
-      "This device is already configured. Sign in with the local owner account to open Techstack.",
+      "This device is already configured. Sign in with the local owner account to open Homelab.",
     "ui.clientOnboarding.connectAnExistingSelfHosted":
       "Connect an existing self-hosted server",
     "ui.clientOnboarding.connectServer": "Connect server",
     "ui.clientOnboarding.installLocally": "Install locally",
     "ui.clientOnboarding.localWindowsInstallation":
       "Local Windows installation",
-    "ui.clientOnboarding.noTechstackAccountRequiredTechstack":
-      "No Techstack account required. Techstack runs on this device and opens a token-protected enrollment channel for your private network.",
-    "ui.clientOnboarding.setUpKombifyTechstackOn":
-      "Set up Techstack on this Windows device.",
+    "ui.clientOnboarding.noHomelabAccountRequiredHomelab":
+      "No Homelab Runtime account required. Homelab Runtime runs on this device and opens a token-protected enrollment channel for your private network.",
+    "ui.clientOnboarding.setUpKombifyHomelabOn":
+      "Set up Homelab Runtime on this Windows device.",
     "ui.clientOnboarding.signInWithKombifyCloud": "Sign in with kombify Cloud",
     "ui.clientOnboarding.signInWithYourKombify":
       "Sign in with your kombify Cloud account and connect this desktop client.",
@@ -158,12 +158,12 @@ export const screenMessages = {
     "ui.clientOnboarding.thePrivateNetworkEnrollmentChannel":
       "The private-network enrollment channel could not be enabled.",
     "ui.clientOnboarding.thisClientIsTheLocal":
-      "This client is the local desktop entry for orchestrating your own servers and StackKits. The default path installs Techstack locally on this device.",
+      "This client is the local desktop entry for orchestrating your own servers and StackKits. The default path installs Homelab Runtime locally on this device.",
     "ui.clientOnboarding.useLocally": "Use locally",
     "ui.clientOnboarding.useYourOwnSelfHosted":
       "Use your own self-hosted server instead",
-    "ui.clientOnboarding.windowsClientOnboardingKombifyTechstack":
-      "Windows Client Onboarding | Techstack",
+    "ui.clientOnboarding.windowsClientOnboardingKombifyHomelab":
+      "Windows Client Onboarding | Homelab Runtime",
     "ui.cockpitSnapshot.monitoringCockpitCouldNotBe":
       "Monitoring cockpit could not be refreshed.",
     "ui.common.copiedCheck": "✓ Copied",
@@ -202,7 +202,7 @@ export const screenMessages = {
       "Something unexpected went wrong. Try again. If it keeps happening, contact support and share the technical details.",
     "ui.configurationFlow.authenticationRequired": "Authentication required",
     "ui.configurationFlow.cannotConnectToBackend":
-      "Techstack can't be reached",
+      "Homelab Runtime can't be reached",
     "ui.configurationFlow.deploymentFailed": "Your Homelab couldn't be created",
     "ui.configurationFlow.managedServerIsNotActive":
       "Managed server is not active",
@@ -228,7 +228,7 @@ export const screenMessages = {
       "Please sign in to create your Homelab.",
     "ui.configurationFlow.youMustBeLoggedIn2":
       "You need to be signed in to create your Homelab. Please sign in first.",
-    "ui.connectDevices.techstackClient": "Techstack client",
+    "ui.connectDevices.homelabClient": "Homelab Runtime client",
     "ui.creationCompletion.ownerSeedFor":
       "Your owner account is prepared for {email}.",
     "ui.creationController.theAdditionalNode": "The additional server",
@@ -397,9 +397,9 @@ export const screenMessages = {
     "ui.homelabDashboardPage.bothServiceSourcesReportedAn":
       "Both service sources reported an empty inventory: the StackKit manifest contained no services, and agent discovery found no running containers or units.",
     "ui.homelabDashboardPage.confirmThatTheProviderResource":
-      "Confirm that the provider resource has already been removed. Techstack will archive only its stale custody record and will not delete a provider resource.",
-    "ui.homelabDashboardPage.custodyRecordUnchangedTheTechstack":
-      "Custody record unchanged: the Techstack gateway could not reach the backend. Retry this exact record when the service is available.",
+      "Confirm that the provider resource has already been removed. Homelab Runtime will archive only its stale custody record and will not delete a provider resource.",
+    "ui.homelabDashboardPage.custodyRecordUnchangedTheHomelab":
+      "Custody record unchanged: the Homelab Runtime gateway could not reach the backend. Retry this exact record when the service is available.",
     "ui.homelabDashboardPage.custodyResolutionFailed":
       "Custody resolution failed",
     "ui.homelabDashboardPage.decommissionFailed": "Removal failed",
@@ -565,9 +565,9 @@ export const screenMessages = {
     "ui.importExportModal.importing": "Importing...",
     "ui.importExportModal.keepThisPasswordSafeWithout":
       "Keep this password safe! Without it, you won't be able to restore your credentials.",
-    "ui.importExportModal.kombifyTechstackJson": "kombify-Techstack JSON",
-    "ui.importExportModal.kombifyTechstackWalletExportJson":
-      "kombify-Techstack wallet export (.json)",
+    "ui.importExportModal.kombifyHomelabJson": "kombify-Homelab JSON",
+    "ui.importExportModal.kombifyHomelabWalletExportJson":
+      "kombify-Homelab wallet export (.json)",
     "ui.importExportModal.min8Characters": "Min. 8 characters",
     "ui.importExportModal.nativeFormatWithEncryptionSupport":
       "Native format with encryption support. Best for backup and restore.",
@@ -630,12 +630,12 @@ export const screenMessages = {
     "ui.login.revealFailed": "Reveal failed.",
     "ui.login.revealing": "Revealing...",
     "ui.login.signInAsEmergencyAdmin": "Sign in as emergency admin",
-    "ui.login.signInKombifyTechstack": "Sign in | Techstack",
+    "ui.login.signInKombifyHomelab": "Sign in | Homelab Runtime",
     "ui.login.signInWithKombifyCloud": "Sign in with kombify Cloud.",
     "ui.login.signInWithTheLocal":
-      "Sign in with the local owner account for this Techstack.",
-    "ui.login.techstackReconnectsThroughTheKombify":
-      "Techstack reconnects through the kombify Cloud page that contains this view. It will not open a second sign-in page inside this frame.",
+      "Sign in with the local owner account for this Homelab.",
+    "ui.login.homelabReconnectsThroughTheKombify":
+      "Homelab Runtime reconnects through the kombify Cloud page that contains this view. It will not open a second sign-in page inside this frame.",
     "ui.login.theBootstrapPasswordHasExpired":
       "The bootstrap password has expired. Restart the server to generate a new one.",
     "ui.login.tooManyLoginAttemptsPlease":
@@ -645,7 +645,7 @@ export const screenMessages = {
       "Use the stored emergency password",
     "ui.login.youHaveBeenSignedOut": "You have been signed out.",
     "ui.loginExperience.kombifyCloudSignInCompleted":
-      "kombify Cloud sign-in completed, but Techstack could not create a browser session. Try again or contact support.",
+      "kombify Cloud sign-in completed, but Homelab Runtime could not create a browser session. Try again or contact support.",
     "ui.managed.sizeGB": "{size} GB",
     "ui.managed.sizeGiB": "{size} GiB",
     "ui.managedCreationFlow.addNode": "Add Node",
@@ -663,7 +663,7 @@ export const screenMessages = {
     "ui.managedCreationFlow.workerOrStorageForThis":
       "Worker or storage for this StackKit",
     "ui.managedRuntimeRecreatePanel.thisProvisionsAndBillsA":
-      "This provisions and bills a new managed server generation. Techstack will re-establish enrollment, endpoints, Guard evidence, and the StackKit rollout through the normal creation flow.",
+      "This provisions and bills a new managed server generation. Homelab Runtime will re-establish enrollment, endpoints, Guard evidence, and the StackKit rollout through the normal creation flow.",
     "ui.monitoring.acrossEpisodes.one": "across {count} episode",
     "ui.monitoring.acrossEpisodes.other": "across {count} episodes",
     "ui.monitoring.availabilityHistoryIsUnavailableOn":
@@ -875,7 +875,7 @@ export const screenMessages = {
     "ui.peoplePanel.noHouseholdMembersYetInvite":
       "No household members yet. Invite them from the homelab identity setup.",
     "ui.peoplePanel.noKombifyClientIsLinked":
-      "No kombify client is linked yet. Install the Techstack client, Companion or Workbench to see it here.",
+      "No kombify client is linked yet. Install the Homelab Runtime client, Companion or Workbench to see it here.",
     "ui.peoplePanel.nobodyInThisFilter": "Nobody in this filter.",
     "ui.peoplePanel.ownerDevicesCanManageThe":
       "Owner devices can manage the homelab; household members only use its apps.",
@@ -942,7 +942,7 @@ export const screenMessages = {
     "ui.providerErrors.checkTheRuntimeLogsFor":
       "Check the runtime logs for the same stack, job, lease, and provider",
     "ui.providerErrors.checkTheServerLogsDocker":
-      "Check the server logs: 'docker compose logs techstack'",
+      "Check the server logs: 'docker compose logs homelab'",
     "ui.providerErrors.checkTheVMLeaseEnrollment":
       "Check the VM lease enrollment events and Sentry for the provider error",
     "ui.providerErrors.checkWhetherCentronOrIONOS":
@@ -980,11 +980,11 @@ export const screenMessages = {
     "ui.providerErrors.ifProviderSupportIsRequired":
       "If provider support is required, include the error code from the details",
     "ui.providerErrors.ifRunningTheBinaryOutside":
-      "If running the binary outside the repo: set TECHSTACK_STACKKITS_DIR to a published StackKits checkout",
+      "If running the binary outside the repo: set HOMELAB_STACKKITS_DIR to a published StackKits checkout",
     "ui.providerErrors.ifThisIsANew":
       "If this is a new homelab, found a kit instead of adding a Node",
     "ui.providerErrors.ifThisIsANew2":
-      "If this is a new deployment, retry the Wizard so Techstack can project a stackkit/v2alpha1 spec",
+      "If this is a new deployment, retry the Wizard so Homelab Runtime can project a stackkit/v2alpha1 spec",
     "ui.providerErrors.joinRequiresAnArchitectureV2":
       "join requires an architecture v2",
     "ui.providerErrors.joiningASecondController": "joining a second controller",
@@ -993,8 +993,8 @@ export const screenMessages = {
       "kombify.me registration failed",
     "ui.providerErrors.makeSureAStackKitWas":
       "Make sure a StackKit was selected or detected",
-    "ui.providerErrors.makeSureTheKombifyTechstack":
-      "Make sure the Techstack server is running",
+    "ui.providerErrors.makeSureTheKombifyHomelab":
+      "Make sure the Homelab Runtime server is running",
     "ui.providerErrors.managedRuntimeCouldNotBe":
       "Managed Runtime could not be prepared",
     "ui.providerErrors.managedRuntimeCouldNotBe2":
@@ -1035,7 +1035,7 @@ export const screenMessages = {
     "ui.providerErrors.retryTheRolloutOnlyAfter":
       "Retry the rollout only after SSH, Docker, and the StackKits Runtime Action are stable on the target server",
     "ui.providerErrors.reviewTheLogsWithDocker":
-      "Review the logs with 'docker compose logs techstack'",
+      "Review the logs with 'docker compose logs homelab'",
     "ui.providerErrors.reviewTheServerLogs": "Still stuck? Ask kombify, or open Technical details and send them to support.",
     "ui.providerErrors.runtimeActionStackkitRollout":
       "runtime action stackkit_rollout",
@@ -1084,8 +1084,8 @@ export const screenMessages = {
       "The configuration could not be saved to the database.",
     "ui.providerErrors.theConfigurationCouldNotBe2":
       "The configuration could not be transformed into a valid deployment spec.",
-    "ui.providerErrors.theKombifyTechstackServerCould":
-      "The Techstack server could not be reached.",
+    "ui.providerErrors.theKombifyHomelabServerCould":
+      "The Homelab Runtime server could not be reached.",
     "ui.providerErrors.theManagedVMWasPrepared":
       "The managed VM was prepared, but StackKits could not generate the rollout artifacts or kombify.me routing data.",
     "ui.providerErrors.theRolloutDidNotReturn":
@@ -1094,10 +1094,10 @@ export const screenMessages = {
       "The selected services have conflicting requirements.",
     "ui.providerErrors.theSubmittedConfigurationContainsInvalid":
       "The submitted configuration contains invalid or missing values.",
-    "ui.providerErrors.theTeardownStoppedBecauseTechstack":
-      "The teardown stopped because Techstack could not match the request to an authoritative provider lease. Nothing was force-removed, so provider resources may still exist.",
+    "ui.providerErrors.theTeardownStoppedBecauseHomelab":
+      "The teardown stopped because Homelab Runtime could not match the request to an authoritative provider lease. Nothing was force-removed, so provider resources may still exist.",
     "ui.providerErrors.theVMIsReachableBut":
-      "The VM is reachable, but Techstack could not prepare Docker or the bootstrap baseline reliably on the Managed Runtime server.",
+      "The VM is reachable, but Homelab Runtime could not prepare Docker or the bootstrap baseline reliably on the Managed Runtime server.",
     "ui.providerErrors.theVMLeaseHasNot":
       "The VM lease has not reported an SSH host or public IP. Creation stopped so the operation cannot remain in provisioning indefinitely.",
     "ui.providerErrors.theVMWasPreparedBut":
@@ -1112,8 +1112,8 @@ export const screenMessages = {
       "too many recent create and delete operations",
     "ui.providerErrors.tooManyRecentCreateDelete":
       "too many recent create/delete operations",
-    "ui.providerErrors.tryRestartingTheKombifyTechstack":
-      "Try restarting the kombify-Techstack server",
+    "ui.providerErrors.tryRestartingTheKombifyHomelab":
+      "Try restarting the kombify-Homelab server",
     "ui.providerErrors.trySelectingFewerServices":
       "Try selecting fewer services",
     "ui.providerErrors.unexpectedError": "Unexpected error",
@@ -1166,11 +1166,11 @@ export const screenMessages = {
     "ui.requirements.hybridSetupCloudAndLocal":
       "Hybrid setup: Cloud and local servers are connected",
     "ui.requirements.linuxRecommendedInstallsThePersistent":
-      "Linux (recommended) — installs the persistent outbound Guard through the Core/API URL (/install.sh). If running on another host/VM, replace localhost with the reachable IP/domain of your kombify-Techstack server.",
+      "Linux (recommended) — installs the persistent outbound Guard through the Core/API URL (/install.sh). If running on another host/VM, replace localhost with the reachable IP/domain of your kombify-Homelab server.",
     "ui.requirements.manualInstallationAfterBinaryDownload":
       "Manual installation (after binary download)",
-    "ui.requirements.techstackPreparesTheVMThen":
-      "Techstack prepares the VM, then continues the standard StackKits installation.",
+    "ui.requirements.homelabPreparesTheVMThen":
+      "Homelab Runtime prepares the VM, then continues the standard StackKits installation.",
     "ui.requirements.theInstallationCommandRunsOn":
       "The installation command runs on your own server or device",
     "ui.requirements.ubuntuGuestOnYourProxmox":
@@ -1258,9 +1258,9 @@ export const screenMessages = {
       "Confirm provider removal for {name}",
     "ui.serverDetail.connectionState": "Server connection: {state}",
     "ui.serverDetail.decommissionIntro":
-      "Request the controlled removal of {slot}. Techstack keeps the provider custody record until absence is verified. This action is intentionally available only here.",
+      "Request the controlled removal of {slot}. Homelab Runtime keeps the provider custody record until absence is verified. This action is intentionally available only here.",
     "ui.serverDetail.detachIntro":
-      "Revoke the exact Guard Agent for {slot} and remove this attachment from current inventory. Techstack keeps the terminal audit receipt and performs no provider API call.",
+      "Revoke the exact Guard Agent for {slot} and remove this attachment from current inventory. Homelab Runtime keeps the terminal audit receipt and performs no provider API call.",
     "ui.serverDetail.evidence": "Evidence: {sources}",
     "ui.serverDetail.healthSource":
       "Source: {source}. Monitoring backend: {backend}.",
@@ -1317,7 +1317,7 @@ export const screenMessages = {
     "ui.stepUp.checking": "Checking…",
     "ui.stepUp.confirm": "Confirm sign-in",
     "ui.stepUp.doneBody":
-      "You can close this window and return to Techstack.",
+      "You can close this window and return to Homelab.",
     "ui.stepUp.doneTitle": "Sign-in confirmed",
     "ui.stepUp.notConfirmed":
       "The confirmation has not arrived yet. Finish it in the other window, or try again.",
@@ -1616,7 +1616,7 @@ export const screenMessages = {
     "ui.settings.deletionFailed": "Deletion failed",
     "ui.settings.removeWithoutServer": "The server is gone, remove it",
     "ui.settings.serverGoneBody":
-      "{servers} has not reported for several minutes. If you deleted it, confirm below: Techstack ends its access and removes the stack without it.",
+      "{servers} has not reported for several minutes. If you deleted it, confirm below: Homelab Runtime ends its access and removes the stack without it.",
     "ui.settings.serverGoneTitle": "Its server does not answer",
     "ui.settings.failedToLoadDeployments": "Failed to load homelabs",
     "ui.settings.failedToLoadHomelabIdentity":
@@ -1728,8 +1728,8 @@ export const screenMessages = {
     "ui.stackImportExportModal.whatWillBeExported": "What will be exported?",
     "ui.stackImportExportModal.youWillBeRedirectedTo":
       "You will be redirected to the setup page shortly.",
-    "ui.stacksCreating.creatingStackkitDeploymentKombifyTechstack":
-      "Creating your Homelab | Techstack",
+    "ui.stacksCreating.creatingStackkitDeploymentKombifyHomelab":
+      "Creating your Homelab | Homelab Runtime",
     "ui.stacksCreating.leanBackBody":
       "You did your part. We're setting everything up for you right now, and something great is on its way.",
     "ui.stacksCreating.leanBackTitle": "Lean back – we're doing the magic",
@@ -1739,7 +1739,7 @@ export const screenMessages = {
     "ui.stacksCreating.tips.codeEyebrow": "Infrastructure as code",
     "ui.stacksCreating.tips.codeTitle": "Your stack, written as code",
     "ui.stacksCreating.tips.growBody":
-      "Add another server to this stack whenever you need it. Techstack coordinates your servers, and each one keeps running on its own.",
+      "Add another server to this stack whenever you need it. Homelab Runtime coordinates your servers, and each one keeps running on its own.",
     "ui.stacksCreating.tips.growEyebrow": "Scaling",
     "ui.stacksCreating.tips.growTitle": "Room to grow",
     "ui.stacksCreating.tips.label": "Good to know",
@@ -1854,7 +1854,7 @@ export const screenMessages = {
     "ui.stacksCreatingCreation-controller.thePreviouslyVerifiedGuardHeartbeat":
       "Your server stopped checking in. Waiting for it to check in again.",
     "ui.stacksCreatingCreation-controller.theProvisioningJobHasBeen":
-      "The provisioning job has been pending for over 2 minutes without progress. This usually means the orchestrator is not running or has crashed.\n\nCheck the server logs: docker compose logs techstack\nTry restarting: docker compose restart techstack",
+      "The provisioning job has been pending for over 2 minutes without progress. This usually means the orchestrator is not running or has crashed.\n\nCheck the server logs: docker compose logs homelab\nTry restarting: docker compose restart homelab",
     "ui.stacksCreatingCreation-controller.theReservedNodeCouldNot":
       "The reserved server could not be checked. Retry SSH enrollment on the saved connection once the server inventory is available again.",
     "ui.stacksCreatingCreation-controller.thisPageRequiresAJob":
@@ -1889,7 +1889,7 @@ export const screenMessages = {
     "ui.stacksCreatingCreationCompletion.recovery": "Recovery",
     "ui.stacksCreatingCreationCompletion.rolloutComplete": "Setup complete",
     "ui.stacksCreatingCreationCompletion.selfHostedRollout": "Self-hosted",
-    "ui.stacksCreatingCreationCompletion.techstackNowSeesThisNode":
+    "ui.stacksCreatingCreationCompletion.homelabNowSeesThisNode":
       "Your server has checked in and is healthy. It is ready for the next step.",
     "ui.stacksCreatingCreationCompletion.theFirstLoginGatewayAnd":
       "Your first sign-in and recovery details arrive once your Homelab is set up (“Review and create”).",
@@ -1958,8 +1958,8 @@ export const screenMessages = {
     "ui.stacksCreatingCreationInstallCommand.copy": "Copy",
     "ui.stacksCreatingCreationInstallCommand.copyInstallationCommandToClipboard":
       "Copy installation command to clipboard",
-    "ui.stacksCreatingCreationInstallCommand.kombifyTechstackServerUrlReachable":
-      "Techstack address (reachable from your server):",
+    "ui.stacksCreatingCreationInstallCommand.kombifyHomelabServerUrlReachable":
+      "Homelab Runtime address (reachable from your server):",
     "ui.stacksCreatingCreationInstallCommand.openOneHourSimulateDemo":
       "Open one-hour Simulate demo preview",
     "ui.stacksCreatingCreationInstallCommand.previewLifetimeIsLimitedTo":
@@ -2060,7 +2060,7 @@ export const screenMessages = {
     "ui.stacksCreatingCreationRunStatus.awaitingHeartbeat":
       "Waiting for your server",
     "ui.stacksCreatingCreationRunStatus.checkSshHostCredentialsAnd":
-      "Check SSH host, credentials, and that the server can reach Techstack.",
+      "Check SSH host, credentials, and that the server can reach Homelab.",
     "ui.stacksCreatingCreationRunStatus.connectMyNode": "Connect my server",
     "ui.stacksCreatingCreationRunStatus.connectingToYourNodeOver":
       "Connecting to your server over SSH…",
@@ -2113,18 +2113,18 @@ export const screenMessages = {
       "Retrying SSH connection…",
     "ui.stacksCreatingCreationRunStatus.runThisOneLinerOn":
       "Run this command on the additional server. It shows as connected once it has checked in and is healthy.",
-    "ui.stacksCreatingCreationRunStatus.techstackUrlReachableFromThe":
-      "Techstack URL reachable from the server",
+    "ui.stacksCreatingCreationRunStatus.homelabUrlReachableFromThe":
+      "Homelab Runtime URL reachable from the server",
     "ui.stacksCreatingCreationRunStatus.theAdditionalManagedNodeIs":
       "The additional managed server is added to this Homelab and will appear in the server dashboard once enrollment reports back.",
     "ui.stacksCreatingCreationRunStatus.theAdditionalNodeIsRegistered":
       "The additional server is registered with this Homelab and can then receive services from this StackKit deployment.",
     "ui.stacksCreatingCreationRunStatus.theManagedRuntimeIsNot":
-      "The Managed Runtime is not fully reachable for rollout yet. The pending signal may be its address, credentials, or enrollment. Techstack scheduled the next check.",
+      "The Managed Runtime is not fully reachable for rollout yet. The pending signal may be its address, credentials, or enrollment. Homelab Runtime scheduled the next check.",
     "ui.stacksCreatingCreationRunStatus.theProviderOperationHasNot":
-      "The provider operation has not yet handed the existing Managed Runtime over to the StackKit rollout. Techstack scheduled the next exact-lease check.",
+      "The provider operation has not yet handed the existing Managed Runtime over to the StackKit rollout. Homelab Runtime scheduled the next exact-lease check.",
     "ui.stacksCreatingCreationRunStatus.theScheduledCheckIsOverdue":
-      "The scheduled check is overdue. Techstack validates the stack, source job, and exact lease together, then continues only the rollout on the existing VM.",
+      "The scheduled check is overdue. Homelab Runtime validates the stack, source job, and exact lease together, then continues only the rollout on the existing VM.",
     "ui.stacksCreatingCreationRunStatus.theSshDetailsArePlanning":
       "The SSH details are planning metadata. The current Guard connection is outbound HTTPS and starts with the command below.",
     "ui.stacksCreatingCreationRunStatus.theseAccessPathsAreEnabled":
@@ -2177,7 +2177,7 @@ export const screenMessages = {
     "ui.stacksId.noLeaseAttached": "No lease attached",
     "ui.stacksId.noStackkitDeploymentIdProvided": "No homelab ID provided",
     "ui.stacksId.offeringSpec": "{vcpus} vCPU · {memory} GB RAM",
-    "ui.stacksId.pageTitle": "{name} | Techstack",
+    "ui.stacksId.pageTitle": "{name} | Homelab Runtime",
     "ui.stacksId.query": "Query",
     "ui.stacksId.runtime": "Runtime",
     "ui.stacksId.series": "Series",
@@ -2193,8 +2193,8 @@ export const screenMessages = {
     "ui.stacksId.stop": "Stop",
     "ui.stacksId.stopManagedServer": "Stop managed server?",
     "ui.stacksId.storedCredentials": "Stored Credentials",
-    "ui.stacksId.techstackWillBeginProviderCleanup":
-      "Techstack will delete this managed server at the provider, including its data.",
+    "ui.stacksId.homelabWillBeginProviderCleanup":
+      "Homelab Runtime will delete this managed server at the provider, including its data.",
     "ui.stacksId.theFollowingServicesNeedCredentials":
       "The following services need credentials to be configured:",
     "ui.stacksId.theServerShutsDownAnd":
@@ -2202,8 +2202,8 @@ export const screenMessages = {
     "ui.stacksId.thisPermanentlyRemovesTheSelected":
       "This permanently removes the selected credential.",
     "ui.stacksId.username": "Username",
-    "ui.stacksIdServersNew.addNodeKombifyTechstack":
-      "Add server | Techstack",
+    "ui.stacksIdServersNew.addNodeKombifyHomelab":
+      "Add server | Homelab Runtime",
     "ui.stacksIdServersServerId.activityHistory": "Activity history",
     "ui.stacksIdServersServerId.addressesDomains": "Addresses & domains",
     "ui.stacksIdServersServerId.agentId": "Agent ID",
@@ -2290,8 +2290,8 @@ export const screenMessages = {
       "Server cleanup in progress",
     "ui.stacksIdServersServerId.serverDetachFailed": "Server detach failed.",
     "ui.stacksIdServersServerId.serverDetailSections": "Server detail sections",
-    "ui.stacksIdServersServerId.serverDetailsKombifyTechstack":
-      "Server Details | Techstack",
+    "ui.stacksIdServersServerId.serverDetailsKombifyHomelab":
+      "Server Details | Homelab Runtime",
     "ui.stacksIdServersServerId.serverGenerationDecommissioned":
       "Server generation removed",
     "ui.stacksIdServersServerId.serverSettings": "Server settings",
@@ -2308,11 +2308,11 @@ export const screenMessages = {
     "ui.stacksIdServersServerId.thisIsConfiguredStackkitIntent":
       "This is the configured StackKit intent; the Guard has not reported matching installation evidence yet.",
     "ui.stacksIdServersServerId.thisOnlyArchivesTheStale":
-      "This only archives the stale Techstack custody record. It does not delete anything at the provider.",
+      "This only archives the stale Homelab Runtime custody record. It does not delete anything at the provider.",
     "ui.stacksIdServersServerId.thisServerHasNoManaged":
       "This server has no managed provider lease. Its recorded custody does not currently authorize either removing a managed server or detaching a self-owned one.",
     "ui.stacksIdServersServerId.thisServerIsALegacy":
-      "This server is a legacy or unbound custody record. Confirm that the provider resource has already been removed; Techstack will archive only this record and will not call or delete a provider resource.",
+      "This server is a legacy or unbound custody record. Confirm that the provider resource has already been removed; Homelab Runtime will archive only this record and will not call or delete a provider resource.",
     "ui.stacksIdServersServerId.thisServerIsRegisteredThrough":
       "This server is registered through the server inventory; managed runtime access actions are not attached.",
     "ui.standardBundle.additionalComputeNodeForStackKit":
@@ -2484,7 +2484,7 @@ export const screenMessages = {
     "ui.taskStatus.identifyingServicesBestPractices":
       "Identifying services & best practices",
     "ui.taskStatus.ifAptOrUnattendedUpgrades":
-      "If apt or unattended upgrades block package installation, Techstack keeps the bound VM visible and shows the collected diagnostics.",
+      "If apt or unattended upgrades block package installation, Homelab Runtime keeps the bound VM visible and shows the collected diagnostics.",
     "ui.taskStatus.installingAndCheckingDocker":
       "Installing and checking Docker",
     "ui.taskStatus.installingOrValidatingTheDocker":
@@ -2497,9 +2497,9 @@ export const screenMessages = {
     "ui.taskStatus.networkSettingsAreDerivedFrom":
       "Network settings are derived from your access mode. Local-only uses internal Docker networking; remote access adds the lane-appropriate private mesh or managed edge route.",
     "ui.taskStatus.onceThisSucceedsTheNode":
-      "Once this succeeds, your server stays visible in Techstack even if preparation or rollout fails later.",
+      "Once this succeeds, your server stays visible in Homelab Runtime even if preparation or rollout fails later.",
     "ui.taskStatus.opentofuReadinessIsPartOf":
-      "OpenTofu readiness is part of the StackKits CLI prep contract, not a separate Techstack-owned bootstrap path.",
+      "OpenTofu readiness is part of the StackKits CLI prep contract, not a separate Homelab-owned bootstrap path.",
     "ui.taskStatus.persistingConfiguration": "Persisting configuration",
     "ui.taskStatus.persistingRolloutSpec": "Saving your plan",
     "ui.taskStatus.preparingDocker": "Preparing Docker",
@@ -2545,12 +2545,12 @@ export const screenMessages = {
     "ui.taskStatus.stackkitsAreCuratedInfrastructureTemplates":
       "StackKits are curated infrastructure templates. The system picks one that covers your selected features with minimal overhead.",
     "ui.taskStatus.startingTelemetryHandoff": "Starting monitoring",
-    "ui.taskStatus.techstackConsumesStackKitArtifactsHere":
-      "Techstack consumes StackKit artifacts here; StackKits remains responsible for applying them.",
-    "ui.taskStatus.techstackRecordsTheManagedTarget":
-      "Techstack records the managed target and prepares the orchestration handoff before StackKits performs the Cloud Kit rollout.",
+    "ui.taskStatus.homelabConsumesStackKitArtifactsHere":
+      "Homelab Runtime consumes StackKit artifacts here; StackKits remains responsible for applying them.",
+    "ui.taskStatus.homelabRecordsTheManagedTarget":
+      "Homelab Runtime records the managed target and prepares the orchestration handoff before StackKits performs the Cloud Kit rollout.",
     "ui.taskStatus.terramateReadinessBelongsToStackKits":
-      "Terramate readiness belongs to StackKits lifecycle preparation; Techstack does not require it for the initial managed VPS lease.",
+      "Terramate readiness belongs to StackKits lifecycle preparation; Homelab Runtime does not require it for the initial managed VPS lease.",
     "ui.taskStatus.theDashboardCanShowManaged":
       "The dashboard can show managed services as soon as StackKits exposes them, while later verification continues.",
     "ui.taskStatus.theFirstRolloutRecordsThe":
@@ -2595,7 +2595,7 @@ export const screenMessages = {
     "ui.taskStatus.yourChosenAuthMethodIs":
       "Your chosen auth method is applied across all services. Multi-user setups get group-based permissions automatically.",
     "ui.taskUpdates.anUnexpectedErrorOccurred": "An unexpected error occurred",
-    "ui.techstackBrandLogo.kombifyTechstack": "Techstack",
+    "ui.homelabBrandLogo.kombifyHomelab": "Homelab Runtime",
     "ui.terminal.title": "Terminal · {name}",
     "ui.time.daysHours": "{days} d {hours} h",
     "ui.time.hours": "{count} h",
@@ -2658,8 +2658,8 @@ export const screenMessages = {
     "ui.wallet.dismiss": "Dismiss",
     "ui.wallet.editItem": "Edit {label}",
     "ui.wallet.enterNewSecretValue": "Enter new secret value",
-    "ui.wallet.enterYourCurrentLocalTechstack":
-      "Enter your current local Techstack password to reveal this wallet entry.",
+    "ui.wallet.enterYourCurrentLocalHomelab":
+      "Enter your current local Homelab Runtime password to reveal this wallet entry.",
     "ui.wallet.expired": "Expired",
     "ui.wallet.expiredCredentials.one": "{count} Expired Credential",
     "ui.wallet.expiredCredentials.other": "{count} Expired Credentials",
@@ -2677,8 +2677,8 @@ export const screenMessages = {
       "Human users, admin identities, and system-owned login surfaces live here as the operational access layer.",
     "ui.wallet.identity": "Identity",
     "ui.wallet.importExport": "Import / Export",
-    "ui.wallet.kombifyTechstackAdmin": "kombify-Techstack Admin",
-    "ui.wallet.kombifyTechstackDeveloper": "kombify-Techstack Developer",
+    "ui.wallet.kombifyHomelabAdmin": "kombify-Homelab Admin",
+    "ui.wallet.kombifyHomelabDeveloper": "kombify-Homelab Developer",
     "ui.wallet.launchReadyToolsAndUrl":
       "Launch-ready tools and URL-backed service entries will surface here as Wallet becomes the central starting point.",
     "ui.wallet.localBackendAdmin": "Local backend admin",
@@ -2846,7 +2846,7 @@ export const screenMessages = {
       "Netzwerkfehler: Verbindung zur Discovery-API nicht möglich. Läuft das Backend?",
     "ui.api.scanPollingTimeout": "Zeitüberschreitung beim Abfragen des Scans",
     "ui.api.serverSideAPIBaseURL":
-      "Die serverseitige API-Basis-URL ist nicht konfiguriert. Setze TECHSTACK_API_URL (Laufzeit) oder VITE_API_URL (Build-Zeit).",
+      "Die serverseitige API-Basis-URL ist nicht konfiguriert. Setze HOMELAB_API_URL (Laufzeit) oder VITE_API_URL (Build-Zeit).",
     "ui.argon2.addNumber": "Füge mindestens eine Zahl hinzu.",
     "ui.argon2.addSymbols":
       "Füge Leerzeichen oder Symbole hinzu, damit die Passphrase schwerer zu erraten ist.",
@@ -2865,8 +2865,8 @@ export const screenMessages = {
       "Schließe diesen Tab und versuche es erneut im Assistenten.",
     "ui.authCloud-link-complete.kombifyCloudConnected":
       "kombify Cloud verbunden",
-    "ui.authCloud-link-complete.kombifyCloudLinkKombifyTechstack":
-      "kombify Cloud Link | Techstack",
+    "ui.authCloud-link-complete.kombifyCloudLinkKombifyHomelab":
+      "kombify Cloud Link | Homelab Runtime",
     "ui.authCloud-link-complete.thisWindowClosesAutomatically":
       "Dieses Fenster schließt sich automatisch.",
     "ui.authCloud-link-complete.youCanCloseThisTab":
@@ -2874,8 +2874,8 @@ export const screenMessages = {
     "ui.authSso.noSsoTokenProvided": "Kein SSO-Token angegeben",
     "ui.authSso.ssoAuthenticationFailed":
       "SSO-Authentifizierung fehlgeschlagen",
-    "ui.authSso.ssoAuthenticationKombifyTechstack":
-      "SSO-Authentifizierung | Techstack",
+    "ui.authSso.ssoAuthenticationKombifyHomelab":
+      "SSO-Authentifizierung | Homelab Runtime",
     "ui.authSso.unableToVerifyYourCredentials":
       "Deine Zugangsdaten konnten nicht überprüft werden",
     "ui.authSso.yourKombifyCloudSessionCould":
@@ -2894,7 +2894,7 @@ export const screenMessages = {
       "Lokaler Anmeldestatus wird geprüft...",
     "ui.clientLocal.continueLocalSetup": "Lokale Einrichtung fortsetzen",
     "ui.clientLocal.createOrSignInAs":
-      "Erstelle den lokalen Owner für dieses selbst gehostete Techstack oder melde dich als dieser an. Nach der Einrichtung öffnet sich direkt die Operator-Oberfläche.",
+      "Erstelle den lokalen Owner für dieses selbst gehostete Homelab Runtime oder melde dich als dieser an. Nach der Einrichtung öffnet sich direkt die Operator-Oberfläche.",
     "ui.clientLocal.createTheFirstLocalAdmin":
       "Erstelle den ersten lokalen Admin für dieses Gerät. Nach der Einrichtung öffnet dieser Windows-Client direkt die Operator-Oberfläche.",
     "ui.clientLocal.creatingLocalOwner": "Lokaler Owner wird erstellt...",
@@ -2906,26 +2906,26 @@ export const screenMessages = {
       "Der lokale Owner wurde erstellt, aber die Anmeldung ist fehlgeschlagen.",
     "ui.clientLocal.localSetupFailed": "Lokale Einrichtung fehlgeschlagen.",
     "ui.clientLocal.localSignInFailed": "Lokale Anmeldung fehlgeschlagen.",
-    "ui.clientLocal.localTechstackSetup": "Lokale Techstack-Einrichtung.",
-    "ui.clientLocal.localTechstackSetupKombifyTechstack":
-      "Lokale Techstack-Einrichtung | Techstack",
+    "ui.clientLocal.localHomelabSetup": "Lokale Homelab-Einrichtung.",
+    "ui.clientLocal.localHomelabSetupKombifyHomelab":
+      "Lokale Homelab-Einrichtung | Homelab Runtime",
     "ui.clientLocal.ownerName": "Name des Owners: {name}",
     "ui.clientLocal.password": "Passwort",
     "ui.clientLocal.selfHostedLocalOwner": "Lokaler Owner (selbst gehostet)",
     "ui.clientLocal.signInLocally": "Lokal anmelden",
     "ui.clientLocal.signingIn": "Anmeldung läuft...",
     "ui.clientLocal.thisDeviceIsAlreadyConfigured":
-      "Dieses Gerät ist bereits eingerichtet. Melde dich mit dem Konto des lokalen Owners an, um Techstack zu öffnen.",
+      "Dieses Gerät ist bereits eingerichtet. Melde dich mit dem Konto des lokalen Owners an, um Homelab Runtime zu öffnen.",
     "ui.clientOnboarding.connectAnExistingSelfHosted":
       "Einen bestehenden selbst gehosteten Server verbinden",
     "ui.clientOnboarding.connectServer": "Server verbinden",
     "ui.clientOnboarding.installLocally": "Lokal installieren",
     "ui.clientOnboarding.localWindowsInstallation":
       "Lokale Windows-Installation",
-    "ui.clientOnboarding.noTechstackAccountRequiredTechstack":
-      "Kein Techstack-Konto erforderlich. Techstack läuft auf diesem Gerät und öffnet einen tokengeschützten Enrollment-Kanal für dein privates Netzwerk.",
-    "ui.clientOnboarding.setUpKombifyTechstackOn":
-      "Techstack auf diesem Windows-Gerät einrichten.",
+    "ui.clientOnboarding.noHomelabAccountRequiredHomelab":
+      "Kein Homelab-Konto erforderlich. Homelab Runtime läuft auf diesem Gerät und öffnet einen tokengeschützten Enrollment-Kanal für dein privates Netzwerk.",
+    "ui.clientOnboarding.setUpKombifyHomelabOn":
+      "Homelab Runtime auf diesem Windows-Gerät einrichten.",
     "ui.clientOnboarding.signInWithKombifyCloud": "Mit kombify Cloud anmelden",
     "ui.clientOnboarding.signInWithYourKombify":
       "Melde dich mit deinem kombify-Cloud-Konto an und verbinde diesen Desktop-Client.",
@@ -2933,12 +2933,12 @@ export const screenMessages = {
     "ui.clientOnboarding.thePrivateNetworkEnrollmentChannel":
       "Der Enrollment-Kanal für das private Netzwerk konnte nicht aktiviert werden.",
     "ui.clientOnboarding.thisClientIsTheLocal":
-      "Dieser Client ist der lokale Desktop-Einstieg zur Orchestrierung deiner eigenen Server und StackKits. Standardmäßig wird Techstack lokal auf diesem Gerät installiert.",
+      "Dieser Client ist der lokale Desktop-Einstieg zur Orchestrierung deiner eigenen Server und StackKits. Standardmäßig wird Homelab Runtime lokal auf diesem Gerät installiert.",
     "ui.clientOnboarding.useLocally": "Lokal nutzen",
     "ui.clientOnboarding.useYourOwnSelfHosted":
       "Stattdessen deinen eigenen selbst gehosteten Server verwenden",
-    "ui.clientOnboarding.windowsClientOnboardingKombifyTechstack":
-      "Windows-Client-Onboarding | Techstack",
+    "ui.clientOnboarding.windowsClientOnboardingKombifyHomelab":
+      "Windows-Client-Onboarding | Homelab Runtime",
     "ui.cockpitSnapshot.monitoringCockpitCouldNotBe":
       "Das Monitoring-Cockpit konnte nicht aktualisiert werden.",
     "ui.common.copiedCheck": "✓ Kopiert",
@@ -2978,7 +2978,7 @@ export const screenMessages = {
     "ui.configurationFlow.authenticationRequired":
       "Authentifizierung erforderlich",
     "ui.configurationFlow.cannotConnectToBackend":
-      "Techstack ist nicht erreichbar",
+      "Homelab Runtime ist nicht erreichbar",
     "ui.configurationFlow.deploymentFailed":
       "Dein Homelab konnte nicht erstellt werden",
     "ui.configurationFlow.managedServerIsNotActive":
@@ -3005,7 +3005,7 @@ export const screenMessages = {
       "Melde dich an, um dein Homelab zu erstellen.",
     "ui.configurationFlow.youMustBeLoggedIn2":
       "Du musst angemeldet sein, um dein Homelab zu erstellen. Bitte melde dich zuerst an.",
-    "ui.connectDevices.techstackClient": "Techstack-Client",
+    "ui.connectDevices.homelabClient": "Homelab-Client",
     "ui.creationCompletion.ownerSeedFor":
       "Dein Eigentümer-Konto für {email} ist vorbereitet.",
     "ui.creationController.theAdditionalNode": "Der zusätzliche Server",
@@ -3183,9 +3183,9 @@ export const screenMessages = {
     "ui.homelabDashboardPage.bothServiceSourcesReportedAn":
       "Beide Service-Quellen haben ein leeres Inventar gemeldet: Das StackKit-Manifest enthielt keine Services und die Agent-Erkennung hat keine laufenden Container oder Units gefunden.",
     "ui.homelabDashboardPage.confirmThatTheProviderResource":
-      "Bestätige, dass die Ressource beim Anbieter bereits entfernt wurde. Techstack archiviert nur den veralteten Custody-Eintrag und löscht keine Ressource beim Anbieter.",
-    "ui.homelabDashboardPage.custodyRecordUnchangedTheTechstack":
-      "Custody-Eintrag unverändert: Das Techstack-Gateway konnte das Backend nicht erreichen. Wiederhole genau diesen Eintrag, sobald der Dienst verfügbar ist.",
+      "Bestätige, dass die Ressource beim Anbieter bereits entfernt wurde. Homelab Runtime archiviert nur den veralteten Custody-Eintrag und löscht keine Ressource beim Anbieter.",
+    "ui.homelabDashboardPage.custodyRecordUnchangedTheHomelab":
+      "Custody-Eintrag unverändert: Das Homelab-Gateway konnte das Backend nicht erreichen. Wiederhole genau diesen Eintrag, sobald der Dienst verfügbar ist.",
     "ui.homelabDashboardPage.custodyResolutionFailed":
       "Custody-Auflösung fehlgeschlagen",
     "ui.homelabDashboardPage.decommissionFailed": "Entfernen fehlgeschlagen",
@@ -3358,9 +3358,9 @@ export const screenMessages = {
     "ui.importExportModal.importing": "Wird importiert...",
     "ui.importExportModal.keepThisPasswordSafeWithout":
       "Bewahre dieses Passwort sicher auf! Ohne es kannst du deine Zugangsdaten nicht wiederherstellen.",
-    "ui.importExportModal.kombifyTechstackJson": "kombify-Techstack JSON",
-    "ui.importExportModal.kombifyTechstackWalletExportJson":
-      "kombify-Techstack-Wallet-Export (.json)",
+    "ui.importExportModal.kombifyHomelabJson": "kombify-Homelab JSON",
+    "ui.importExportModal.kombifyHomelabWalletExportJson":
+      "kombify-Homelab-Wallet-Export (.json)",
     "ui.importExportModal.min8Characters": "Mind. 8 Zeichen",
     "ui.importExportModal.nativeFormatWithEncryptionSupport":
       "Natives Format mit Verschlüsselungsunterstützung. Ideal für Backup und Wiederherstellung.",
@@ -3426,12 +3426,12 @@ export const screenMessages = {
     "ui.login.revealFailed": "Anzeigen fehlgeschlagen.",
     "ui.login.revealing": "Wird angezeigt...",
     "ui.login.signInAsEmergencyAdmin": "Als Notfall-Admin anmelden",
-    "ui.login.signInKombifyTechstack": "Anmelden | Techstack",
+    "ui.login.signInKombifyHomelab": "Anmelden | Homelab Runtime",
     "ui.login.signInWithKombifyCloud": "Mit kombify Cloud anmelden.",
     "ui.login.signInWithTheLocal":
-      "Melde dich mit dem Konto des lokalen Owners für dieses Techstack an.",
-    "ui.login.techstackReconnectsThroughTheKombify":
-      "Techstack verbindet sich über die kombify-Cloud-Seite neu, die diese Ansicht enthält. Innerhalb dieses Frames wird keine zweite Anmeldeseite geöffnet.",
+      "Melde dich mit dem Konto des lokalen Owners für dieses Homelab Runtime an.",
+    "ui.login.homelabReconnectsThroughTheKombify":
+      "Homelab Runtime verbindet sich über die kombify-Cloud-Seite neu, die diese Ansicht enthält. Innerhalb dieses Frames wird keine zweite Anmeldeseite geöffnet.",
     "ui.login.theBootstrapPasswordHasExpired":
       "Das Bootstrap-Passwort ist abgelaufen. Starte den Server neu, um ein neues zu erzeugen.",
     "ui.login.tooManyLoginAttemptsPlease":
@@ -3441,7 +3441,7 @@ export const screenMessages = {
       "Das gespeicherte Notfall-Passwort verwenden",
     "ui.login.youHaveBeenSignedOut": "Du wurdest abgemeldet.",
     "ui.loginExperience.kombifyCloudSignInCompleted":
-      "Die kombify-Cloud-Anmeldung wurde abgeschlossen, aber Techstack konnte keine Browsersitzung erstellen. Versuche es erneut oder wende dich an den Support.",
+      "Die kombify-Cloud-Anmeldung wurde abgeschlossen, aber Homelab Runtime konnte keine Browsersitzung erstellen. Versuche es erneut oder wende dich an den Support.",
     "ui.managed.sizeGB": "{size} GB",
     "ui.managed.sizeGiB": "{size} GiB",
     "ui.managedCreationFlow.addNode": "Node hinzufügen",
@@ -3459,7 +3459,7 @@ export const screenMessages = {
     "ui.managedCreationFlow.workerOrStorageForThis":
       "Worker oder Speicher für dieses StackKit",
     "ui.managedRuntimeRecreatePanel.thisProvisionsAndBillsA":
-      "Dadurch wird eine neue Generation des verwalteten Servers bereitgestellt und abgerechnet. Techstack stellt Registrierung, Endpunkte, Guard-Nachweise und den StackKit-Rollout über den normalen Erstellungsablauf wieder her.",
+      "Dadurch wird eine neue Generation des verwalteten Servers bereitgestellt und abgerechnet. Homelab Runtime stellt Registrierung, Endpunkte, Guard-Nachweise und den StackKit-Rollout über den normalen Erstellungsablauf wieder her.",
     "ui.monitoring.acrossEpisodes.one": "über {count} Episode",
     "ui.monitoring.acrossEpisodes.other": "über {count} Episoden",
     "ui.monitoring.availabilityHistoryIsUnavailableOn":
@@ -3674,7 +3674,7 @@ export const screenMessages = {
     "ui.peoplePanel.noHouseholdMembersYetInvite":
       "Noch keine Haushaltsmitglieder. Lade sie über die Identitätseinrichtung des Homelabs ein.",
     "ui.peoplePanel.noKombifyClientIsLinked":
-      "Noch kein kombify-Client verknüpft. Installiere den Techstack-Client, Companion oder Workbench, damit er hier erscheint.",
+      "Noch kein kombify-Client verknüpft. Installiere den Homelab-Client, Companion oder Workbench, damit er hier erscheint.",
     "ui.peoplePanel.nobodyInThisFilter": "Niemand in diesem Filter.",
     "ui.peoplePanel.ownerDevicesCanManageThe":
       "Owner-Geräte können das Homelab verwalten; Haushaltsmitglieder nutzen nur dessen Apps.",
@@ -3743,7 +3743,7 @@ export const screenMessages = {
     "ui.providerErrors.checkTheRuntimeLogsFor":
       "Prüfe die Runtime-Logs für denselben Stack, Job, dasselbe Lease und denselben Anbieter",
     "ui.providerErrors.checkTheServerLogsDocker":
-      "Prüfe die Server-Logs: 'docker compose logs techstack'",
+      "Prüfe die Server-Logs: 'docker compose logs homelab'",
     "ui.providerErrors.checkTheVMLeaseEnrollment":
       "Prüfe die Registrierungsereignisse des VM-Leases und Sentry auf den Anbieterfehler",
     "ui.providerErrors.checkWhetherCentronOrIONOS":
@@ -3781,11 +3781,11 @@ export const screenMessages = {
     "ui.providerErrors.ifProviderSupportIsRequired":
       "Falls der Anbieter-Support nötig ist, gib den Fehlercode aus den Details an",
     "ui.providerErrors.ifRunningTheBinaryOutside":
-      "Wenn du das Binary außerhalb des Repos ausführst: Setze TECHSTACK_STACKKITS_DIR auf einen veröffentlichten StackKits-Checkout",
+      "Wenn du das Binary außerhalb des Repos ausführst: Setze HOMELAB_STACKKITS_DIR auf einen veröffentlichten StackKits-Checkout",
     "ui.providerErrors.ifThisIsANew":
       "Wenn dies ein neues Homelab ist, gründe ein Kit, statt einen Node hinzuzufügen",
     "ui.providerErrors.ifThisIsANew2":
-      "Wenn dies ein neues Deployment ist, wiederhole den Assistenten, damit Techstack eine stackkit/v2alpha1-Spezifikation projizieren kann",
+      "Wenn dies ein neues Deployment ist, wiederhole den Assistenten, damit Homelab Runtime eine stackkit/v2alpha1-Spezifikation projizieren kann",
     "ui.providerErrors.joinRequiresAnArchitectureV2":
       "Der Beitritt erfordert eine Architektur-v2",
     "ui.providerErrors.joiningASecondController":
@@ -3795,8 +3795,8 @@ export const screenMessages = {
       "kombify.me-Registrierung fehlgeschlagen",
     "ui.providerErrors.makeSureAStackKitWas":
       "Stelle sicher, dass ein StackKit ausgewählt oder erkannt wurde",
-    "ui.providerErrors.makeSureTheKombifyTechstack":
-      "Stelle sicher, dass der kombify-Techstack-Server läuft",
+    "ui.providerErrors.makeSureTheKombifyHomelab":
+      "Stelle sicher, dass der kombify-Homelab-Server läuft",
     "ui.providerErrors.managedRuntimeCouldNotBe":
       "Managed Runtime konnte nicht vorbereitet werden",
     "ui.providerErrors.managedRuntimeCouldNotBe2":
@@ -3840,7 +3840,7 @@ export const screenMessages = {
     "ui.providerErrors.retryTheRolloutOnlyAfter":
       "Wiederhole den Rollout erst, wenn SSH, Docker und die StackKits Runtime Action auf dem Zielserver stabil sind",
     "ui.providerErrors.reviewTheLogsWithDocker":
-      "Sieh dir die Logs mit 'docker compose logs techstack' an",
+      "Sieh dir die Logs mit 'docker compose logs homelab' an",
     "ui.providerErrors.reviewTheServerLogs": "Klappt es weiter nicht? Frag kombify oder öffne die technischen Details und schick sie an den Support.",
     "ui.providerErrors.runtimeActionStackkitRollout":
       "Runtime-Action stackkit_rollout",
@@ -3891,8 +3891,8 @@ export const screenMessages = {
       "Die Konfiguration konnte nicht in der Datenbank gespeichert werden.",
     "ui.providerErrors.theConfigurationCouldNotBe2":
       "Die Konfiguration konnte nicht in eine gültige Deployment-Spezifikation umgewandelt werden.",
-    "ui.providerErrors.theKombifyTechstackServerCould":
-      "Der kombify-Techstack-Server war nicht erreichbar.",
+    "ui.providerErrors.theKombifyHomelabServerCould":
+      "Der kombify-Homelab-Server war nicht erreichbar.",
     "ui.providerErrors.theManagedVMWasPrepared":
       "Die verwaltete VM wurde vorbereitet, aber StackKits konnte die Rollout-Artefakte oder die kombify.me-Routing-Daten nicht erzeugen.",
     "ui.providerErrors.theRolloutDidNotReturn":
@@ -3901,10 +3901,10 @@ export const screenMessages = {
       "Die gewählten Services haben widersprüchliche Anforderungen.",
     "ui.providerErrors.theSubmittedConfigurationContainsInvalid":
       "Die übermittelte Konfiguration enthält ungültige oder fehlende Werte.",
-    "ui.providerErrors.theTeardownStoppedBecauseTechstack":
-      "Der Abbau wurde gestoppt, weil Techstack die Anfrage keinem maßgeblichen Anbieter-Lease zuordnen konnte. Es wurde nichts zwangsweise entfernt, daher können Ressourcen beim Anbieter noch existieren.",
+    "ui.providerErrors.theTeardownStoppedBecauseHomelab":
+      "Der Abbau wurde gestoppt, weil Homelab Runtime die Anfrage keinem maßgeblichen Anbieter-Lease zuordnen konnte. Es wurde nichts zwangsweise entfernt, daher können Ressourcen beim Anbieter noch existieren.",
     "ui.providerErrors.theVMIsReachableBut":
-      "Die VM ist erreichbar, aber Techstack konnte Docker oder die Bootstrap-Basis auf dem Managed-Runtime-Server nicht zuverlässig vorbereiten.",
+      "Die VM ist erreichbar, aber Homelab Runtime konnte Docker oder die Bootstrap-Basis auf dem Managed-Runtime-Server nicht zuverlässig vorbereiten.",
     "ui.providerErrors.theVMLeaseHasNot":
       "Das VM-Lease hat weder einen SSH-Host noch eine öffentliche IP gemeldet. Die Erstellung wurde gestoppt, damit der Vorgang nicht endlos in der Bereitstellung bleibt.",
     "ui.providerErrors.theVMWasPreparedBut":
@@ -3921,8 +3921,8 @@ export const screenMessages = {
       "zu viele kürzliche Erstell- und Löschvorgänge",
     "ui.providerErrors.tooManyRecentCreateDelete":
       "zu viele kürzliche Erstell-/Löschvorgänge",
-    "ui.providerErrors.tryRestartingTheKombifyTechstack":
-      "Versuche, den kombify-Techstack-Server neu zu starten",
+    "ui.providerErrors.tryRestartingTheKombifyHomelab":
+      "Versuche, den kombify-Homelab-Server neu zu starten",
     "ui.providerErrors.trySelectingFewerServices":
       "Versuche, weniger Services auszuwählen",
     "ui.providerErrors.unexpectedError": "Unerwarteter Fehler",
@@ -3977,11 +3977,11 @@ export const screenMessages = {
     "ui.requirements.hybridSetupCloudAndLocal":
       "Hybride Einrichtung: Cloud- und lokale Server sind verbunden",
     "ui.requirements.linuxRecommendedInstallsThePersistent":
-      "Linux (empfohlen) — installiert den dauerhaften ausgehenden Guard über die Core-/API-URL (/install.sh). Wenn du auf einem anderen Host/einer anderen VM ausführst, ersetze localhost durch die erreichbare IP/Domain deines kombify-Techstack-Servers.",
+      "Linux (empfohlen) — installiert den dauerhaften ausgehenden Guard über die Core-/API-URL (/install.sh). Wenn du auf einem anderen Host/einer anderen VM ausführst, ersetze localhost durch die erreichbare IP/Domain deines kombify-Homelab-Servers.",
     "ui.requirements.manualInstallationAfterBinaryDownload":
       "Manuelle Installation (nach dem Binary-Download)",
-    "ui.requirements.techstackPreparesTheVMThen":
-      "Techstack bereitet die VM vor und setzt dann die Standard-StackKits-Installation fort.",
+    "ui.requirements.homelabPreparesTheVMThen":
+      "Homelab Runtime bereitet die VM vor und setzt dann die Standard-StackKits-Installation fort.",
     "ui.requirements.theInstallationCommandRunsOn":
       "Der Installationsbefehl läuft auf deinem eigenen Server oder Gerät",
     "ui.requirements.ubuntuGuestOnYourProxmox":
@@ -4075,9 +4075,9 @@ export const screenMessages = {
       "Entfernung von {name} beim Anbieter bestätigen",
     "ui.serverDetail.connectionState": "Serververbindung: {state}",
     "ui.serverDetail.decommissionIntro":
-      "Fordere die kontrollierte Entfernung von {slot} an. Techstack behält den Custody-Eintrag des Anbieters, bis die Abwesenheit verifiziert ist. Diese Aktion ist bewusst nur hier verfügbar.",
+      "Fordere die kontrollierte Entfernung von {slot} an. Homelab Runtime behält den Custody-Eintrag des Anbieters, bis die Abwesenheit verifiziert ist. Diese Aktion ist bewusst nur hier verfügbar.",
     "ui.serverDetail.detachIntro":
-      "Widerrufe den genauen Guard Agent für {slot} und entferne diese Anbindung aus dem aktuellen Inventar. Techstack behält den abschließenden Audit-Beleg und führt keinen API-Aufruf beim Anbieter aus.",
+      "Widerrufe den genauen Guard Agent für {slot} und entferne diese Anbindung aus dem aktuellen Inventar. Homelab Runtime behält den abschließenden Audit-Beleg und führt keinen API-Aufruf beim Anbieter aus.",
     "ui.serverDetail.evidence": "Nachweis: {sources}",
     "ui.serverDetail.healthSource":
       "Quelle: {source}. Monitoring-Backend: {backend}.",
@@ -4136,7 +4136,7 @@ export const screenMessages = {
     "ui.stepUp.checking": "Wird geprüft…",
     "ui.stepUp.confirm": "Anmeldung bestätigen",
     "ui.stepUp.doneBody":
-      "Du kannst dieses Fenster schließen und zu Techstack zurückkehren.",
+      "Du kannst dieses Fenster schließen und zu Homelab Runtime zurückkehren.",
     "ui.stepUp.doneTitle": "Anmeldung bestätigt",
     "ui.stepUp.notConfirmed":
       "Die Bestätigung ist noch nicht angekommen. Schließe sie im anderen Fenster ab oder versuche es erneut.",
@@ -4443,7 +4443,7 @@ export const screenMessages = {
     "ui.settings.deletionFailed": "Löschen fehlgeschlagen",
     "ui.settings.removeWithoutServer": "Der Server ist weg, entfernen",
     "ui.settings.serverGoneBody":
-      "{servers} hat sich seit mehreren Minuten nicht gemeldet. Wenn du ihn gelöscht hast, bestätige unten: Techstack beendet seinen Zugriff und entfernt den Stack ohne ihn.",
+      "{servers} hat sich seit mehreren Minuten nicht gemeldet. Wenn du ihn gelöscht hast, bestätige unten: Homelab Runtime beendet seinen Zugriff und entfernt den Stack ohne ihn.",
     "ui.settings.serverGoneTitle": "Sein Server antwortet nicht",
     "ui.settings.failedToLoadDeployments":
       "Homelabs konnten nicht geladen werden",
@@ -4563,8 +4563,8 @@ export const screenMessages = {
     "ui.stackImportExportModal.whatWillBeExported": "Was wird exportiert?",
     "ui.stackImportExportModal.youWillBeRedirectedTo":
       "Du wirst in Kürze zur Einrichtungsseite weitergeleitet.",
-    "ui.stacksCreating.creatingStackkitDeploymentKombifyTechstack":
-      "Dein Homelab wird erstellt | Techstack",
+    "ui.stacksCreating.creatingStackkitDeploymentKombifyHomelab":
+      "Dein Homelab wird erstellt | Homelab Runtime",
     "ui.stacksCreating.leanBackBody":
       "Deinen Teil hast du geschafft. Wir richten gerade alles für dich ein – gleich gibt es etwas richtig Schönes zu sehen.",
     "ui.stacksCreating.leanBackTitle":
@@ -4575,7 +4575,7 @@ export const screenMessages = {
     "ui.stacksCreating.tips.codeEyebrow": "Infrastructure as Code",
     "ui.stacksCreating.tips.codeTitle": "Dein Stack als Code",
     "ui.stacksCreating.tips.growBody":
-      "Füge diesem Stack jederzeit einen weiteren Server hinzu. Techstack koordiniert deine Server, und jeder läuft trotzdem eigenständig.",
+      "Füge diesem Stack jederzeit einen weiteren Server hinzu. Homelab Runtime koordiniert deine Server, und jeder läuft trotzdem eigenständig.",
     "ui.stacksCreating.tips.growEyebrow": "Skalierung",
     "ui.stacksCreating.tips.growTitle": "Platz zum Wachsen",
     "ui.stacksCreating.tips.label": "Gut zu wissen",
@@ -4697,7 +4697,7 @@ export const screenMessages = {
     "ui.stacksCreatingCreation-controller.thePreviouslyVerifiedGuardHeartbeat":
       "Dein Server meldet sich nicht mehr. Warte darauf, dass er sich wieder meldet.",
     "ui.stacksCreatingCreation-controller.theProvisioningJobHasBeen":
-      "Der Bereitstellungs-Job hängt seit über 2 Minuten ohne Fortschritt. Das bedeutet meist, dass der Orchestrator nicht läuft oder abgestürzt ist.\n\nPrüfe die Server-Logs: docker compose logs techstack\nVersuche einen Neustart: docker compose restart techstack",
+      "Der Bereitstellungs-Job hängt seit über 2 Minuten ohne Fortschritt. Das bedeutet meist, dass der Orchestrator nicht läuft oder abgestürzt ist.\n\nPrüfe die Server-Logs: docker compose logs homelab\nVersuche einen Neustart: docker compose restart homelab",
     "ui.stacksCreatingCreation-controller.theReservedNodeCouldNot":
       "Der reservierte Server konnte nicht geprüft werden. Versuche die SSH-Registrierung über die gespeicherte Verbindung erneut, sobald das Server-Inventar wieder verfügbar ist.",
     "ui.stacksCreatingCreation-controller.thisPageRequiresAJob":
@@ -4734,7 +4734,7 @@ export const screenMessages = {
     "ui.stacksCreatingCreationCompletion.rolloutComplete":
       "Einrichtung abgeschlossen",
     "ui.stacksCreatingCreationCompletion.selfHostedRollout": "Selbst gehostet",
-    "ui.stacksCreatingCreationCompletion.techstackNowSeesThisNode":
+    "ui.stacksCreatingCreationCompletion.homelabNowSeesThisNode":
       "Dein Server hat sich gemeldet und läuft einwandfrei. Er ist bereit für den nächsten Schritt.",
     "ui.stacksCreatingCreationCompletion.theFirstLoginGatewayAnd":
       "Deine erste Anmeldung und die Wiederherstellungsdaten erhältst du, sobald dein Homelab eingerichtet ist („Prüfen und erstellen“).",
@@ -4806,8 +4806,8 @@ export const screenMessages = {
     "ui.stacksCreatingCreationInstallCommand.copy": "Kopieren",
     "ui.stacksCreatingCreationInstallCommand.copyInstallationCommandToClipboard":
       "Installationsbefehl in die Zwischenablage kopieren",
-    "ui.stacksCreatingCreationInstallCommand.kombifyTechstackServerUrlReachable":
-      "kombify-Techstack-Adresse (von deinem Server erreichbar):",
+    "ui.stacksCreatingCreationInstallCommand.kombifyHomelabServerUrlReachable":
+      "kombify-Homelab-Adresse (von deinem Server erreichbar):",
     "ui.stacksCreatingCreationInstallCommand.openOneHourSimulateDemo":
       "Einstündige Simulate-Demovorschau öffnen",
     "ui.stacksCreatingCreationInstallCommand.previewLifetimeIsLimitedTo":
@@ -4910,7 +4910,7 @@ export const screenMessages = {
     "ui.stacksCreatingCreationRunStatus.awaitingHeartbeat":
       "Wartet auf deinen Server",
     "ui.stacksCreatingCreationRunStatus.checkSshHostCredentialsAnd":
-      "Prüfe SSH-Host, Zugangsdaten und ob der Server Techstack erreichen kann.",
+      "Prüfe SSH-Host, Zugangsdaten und ob der Server Homelab Runtime erreichen kann.",
     "ui.stacksCreatingCreationRunStatus.connectMyNode":
       "Meinen Server verbinden",
     "ui.stacksCreatingCreationRunStatus.connectingToYourNodeOver":
@@ -4965,18 +4965,18 @@ export const screenMessages = {
       "SSH-Verbindung wird erneut versucht…",
     "ui.stacksCreatingCreationRunStatus.runThisOneLinerOn":
       "Führe diesen Befehl auf dem zusätzlichen Server aus. Er gilt als verbunden, sobald er sich gemeldet hat und einwandfrei läuft.",
-    "ui.stacksCreatingCreationRunStatus.techstackUrlReachableFromThe":
-      "Techstack-URL, die vom Server aus erreichbar ist",
+    "ui.stacksCreatingCreationRunStatus.homelabUrlReachableFromThe":
+      "Homelab-URL, die vom Server aus erreichbar ist",
     "ui.stacksCreatingCreationRunStatus.theAdditionalManagedNodeIs":
       "Der zusätzliche verwaltete Server wird diesem Homelab hinzugefügt und erscheint im Server-Dashboard, sobald die Registrierung zurückmeldet.",
     "ui.stacksCreatingCreationRunStatus.theAdditionalNodeIsRegistered":
       "Der zusätzliche Server ist bei diesem Homelab registriert und kann danach Dienste aus diesem StackKit-Deployment erhalten.",
     "ui.stacksCreatingCreationRunStatus.theManagedRuntimeIsNot":
-      "Die Managed Runtime ist für den Rollout noch nicht vollständig erreichbar. Das ausstehende Signal kann ihre Adresse, Zugangsdaten oder Registrierung betreffen. Techstack hat die nächste Prüfung geplant.",
+      "Die Managed Runtime ist für den Rollout noch nicht vollständig erreichbar. Das ausstehende Signal kann ihre Adresse, Zugangsdaten oder Registrierung betreffen. Homelab Runtime hat die nächste Prüfung geplant.",
     "ui.stacksCreatingCreationRunStatus.theProviderOperationHasNot":
-      "Der Provider-Vorgang hat die bestehende Managed Runtime noch nicht an den StackKit-Rollout übergeben. Techstack hat die nächste Prüfung des exakten Leases geplant.",
+      "Der Provider-Vorgang hat die bestehende Managed Runtime noch nicht an den StackKit-Rollout übergeben. Homelab Runtime hat die nächste Prüfung des exakten Leases geplant.",
     "ui.stacksCreatingCreationRunStatus.theScheduledCheckIsOverdue":
-      "Die geplante Prüfung ist überfällig. Techstack validiert Stack, Quell-Job und exakten Lease gemeinsam und setzt dann nur den Rollout auf der bestehenden VM fort.",
+      "Die geplante Prüfung ist überfällig. Homelab Runtime validiert Stack, Quell-Job und exakten Lease gemeinsam und setzt dann nur den Rollout auf der bestehenden VM fort.",
     "ui.stacksCreatingCreationRunStatus.theSshDetailsArePlanning":
       "Die SSH-Angaben sind Planungsmetadaten. Die aktuelle Guard-Verbindung ist ausgehend über HTTPS und startet mit dem Befehl unten.",
     "ui.stacksCreatingCreationRunStatus.theseAccessPathsAreEnabled":
@@ -5037,7 +5037,7 @@ export const screenMessages = {
     "ui.stacksId.noLeaseAttached": "Kein Lease verknüpft",
     "ui.stacksId.noStackkitDeploymentIdProvided": "Keine Homelab-ID angegeben",
     "ui.stacksId.offeringSpec": "{vcpus} vCPU · {memory} GB RAM",
-    "ui.stacksId.pageTitle": "{name} | Techstack",
+    "ui.stacksId.pageTitle": "{name} | Homelab Runtime",
     "ui.stacksId.query": "Abfrage",
     "ui.stacksId.runtime": "Runtime",
     "ui.stacksId.series": "Serie",
@@ -5053,8 +5053,8 @@ export const screenMessages = {
     "ui.stacksId.stop": "Stoppen",
     "ui.stacksId.stopManagedServer": "Verwalteten Server stoppen?",
     "ui.stacksId.storedCredentials": "Gespeicherte Zugangsdaten",
-    "ui.stacksId.techstackWillBeginProviderCleanup":
-      "Techstack löscht diesen verwalteten Server beim Anbieter samt seinen Daten.",
+    "ui.stacksId.homelabWillBeginProviderCleanup":
+      "Homelab Runtime löscht diesen verwalteten Server beim Anbieter samt seinen Daten.",
     "ui.stacksId.theFollowingServicesNeedCredentials":
       "Für die folgenden Dienste müssen Zugangsdaten konfiguriert werden:",
     "ui.stacksId.theServerShutsDownAnd":
@@ -5062,8 +5062,8 @@ export const screenMessages = {
     "ui.stacksId.thisPermanentlyRemovesTheSelected":
       "Dadurch werden die ausgewählten Zugangsdaten dauerhaft entfernt.",
     "ui.stacksId.username": "Benutzername",
-    "ui.stacksIdServersNew.addNodeKombifyTechstack":
-      "Server hinzufügen | Techstack",
+    "ui.stacksIdServersNew.addNodeKombifyHomelab":
+      "Server hinzufügen | Homelab Runtime",
     "ui.stacksIdServersServerId.activityHistory": "Aktivitätsverlauf",
     "ui.stacksIdServersServerId.addressesDomains": "Adressen & Domains",
     "ui.stacksIdServersServerId.agentId": "Agent-ID",
@@ -5156,8 +5156,8 @@ export const screenMessages = {
       "Trennen des Servers fehlgeschlagen.",
     "ui.stacksIdServersServerId.serverDetailSections":
       "Abschnitte der Serverdetails",
-    "ui.stacksIdServersServerId.serverDetailsKombifyTechstack":
-      "Serverdetails | Techstack",
+    "ui.stacksIdServersServerId.serverDetailsKombifyHomelab":
+      "Serverdetails | Homelab Runtime",
     "ui.stacksIdServersServerId.serverGenerationDecommissioned":
       "Server-Generation entfernt",
     "ui.stacksIdServersServerId.serverSettings": "Servereinstellungen",
@@ -5174,11 +5174,11 @@ export const screenMessages = {
     "ui.stacksIdServersServerId.thisIsConfiguredStackkitIntent":
       "Dies ist der konfigurierte StackKit-Intent; der Guard hat noch keine passenden Installationsnachweise gemeldet.",
     "ui.stacksIdServersServerId.thisOnlyArchivesTheStale":
-      "Dies archiviert nur den veralteten Techstack-Obhutseintrag. Beim Provider wird nichts gelöscht.",
+      "Dies archiviert nur den veralteten Homelab-Obhutseintrag. Beim Provider wird nichts gelöscht.",
     "ui.stacksIdServersServerId.thisServerHasNoManaged":
       "Dieser Server hat keinen verwalteten Provider-Lease. Seine erfasste Obhut berechtigt derzeit weder zum Entfernen eines verwalteten Servers noch zum Trennen eines eigenen Servers.",
     "ui.stacksIdServersServerId.thisServerIsALegacy":
-      "Dieser Server ist ein Legacy- oder ungebundener Obhutseintrag. Bestätige, dass die Provider-Ressource bereits entfernt wurde; Techstack archiviert nur diesen Eintrag und ruft keine Provider-Ressource auf oder löscht sie.",
+      "Dieser Server ist ein Legacy- oder ungebundener Obhutseintrag. Bestätige, dass die Provider-Ressource bereits entfernt wurde; Homelab Runtime archiviert nur diesen Eintrag und ruft keine Provider-Ressource auf oder löscht sie.",
     "ui.stacksIdServersServerId.thisServerIsRegisteredThrough":
       "Dieser Server ist über das Serverinventar registriert; Zugriffsaktionen der verwalteten Runtime sind nicht angebunden.",
     "ui.standardBundle.additionalComputeNodeForStackKit":
@@ -5359,7 +5359,7 @@ export const screenMessages = {
     "ui.taskStatus.identifyingServicesBestPractices":
       "Dienste & Best Practices werden ermittelt",
     "ui.taskStatus.ifAptOrUnattendedUpgrades":
-      "Wenn apt oder unattended-upgrades die Paketinstallation blockieren, hält Techstack die gebundene VM sichtbar und zeigt die gesammelte Diagnose.",
+      "Wenn apt oder unattended-upgrades die Paketinstallation blockieren, hält Homelab Runtime die gebundene VM sichtbar und zeigt die gesammelte Diagnose.",
     "ui.taskStatus.installingAndCheckingDocker":
       "Docker wird installiert und geprüft",
     "ui.taskStatus.installingOrValidatingTheDocker":
@@ -5372,9 +5372,9 @@ export const screenMessages = {
     "ui.taskStatus.networkSettingsAreDerivedFrom":
       "Die Netzwerkeinstellungen werden aus deinem Zugriffsmodus abgeleitet. „Nur lokal“ nutzt internes Docker-Netzwerk; Fernzugriff fügt das zur Lane passende private Mesh oder die verwaltete Edge-Route hinzu.",
     "ui.taskStatus.onceThisSucceedsTheNode":
-      "Sobald dies gelingt, bleibt dein Server in Techstack sichtbar, auch wenn Vorbereitung oder Rollout später fehlschlagen.",
+      "Sobald dies gelingt, bleibt dein Server in Homelab Runtime sichtbar, auch wenn Vorbereitung oder Rollout später fehlschlagen.",
     "ui.taskStatus.opentofuReadinessIsPartOf":
-      "Die OpenTofu-Bereitschaft ist Teil des Vorbereitungsvertrags der StackKits-CLI, kein separater, von Techstack verantworteter Bootstrap-Pfad.",
+      "Die OpenTofu-Bereitschaft ist Teil des Vorbereitungsvertrags der StackKits-CLI, kein separater, von Homelab Runtime verantworteter Bootstrap-Pfad.",
     "ui.taskStatus.persistingConfiguration": "Konfiguration wird gespeichert",
     "ui.taskStatus.persistingRolloutSpec":
       "Plan speichern",
@@ -5427,12 +5427,12 @@ export const screenMessages = {
     "ui.taskStatus.stackkitsAreCuratedInfrastructureTemplates":
       "StackKits sind kuratierte Infrastrukturvorlagen. Das System wählt eine aus, die deine ausgewählten Funktionen mit minimalem Overhead abdeckt.",
     "ui.taskStatus.startingTelemetryHandoff": "Monitoring wird gestartet",
-    "ui.taskStatus.techstackConsumesStackKitArtifactsHere":
-      "Techstack verarbeitet hier StackKit-Artefakte; StackKits bleibt für deren Anwendung verantwortlich.",
-    "ui.taskStatus.techstackRecordsTheManagedTarget":
-      "Techstack erfasst das verwaltete Ziel und bereitet die Orchestrierungs-Übergabe vor, bevor StackKits den Cloud-Kit-Rollout durchführt.",
+    "ui.taskStatus.homelabConsumesStackKitArtifactsHere":
+      "Homelab Runtime verarbeitet hier StackKit-Artefakte; StackKits bleibt für deren Anwendung verantwortlich.",
+    "ui.taskStatus.homelabRecordsTheManagedTarget":
+      "Homelab Runtime erfasst das verwaltete Ziel und bereitet die Orchestrierungs-Übergabe vor, bevor StackKits den Cloud-Kit-Rollout durchführt.",
     "ui.taskStatus.terramateReadinessBelongsToStackKits":
-      "Die Terramate-Bereitschaft gehört zur Lebenszyklus-Vorbereitung von StackKits; Techstack benötigt sie für den initialen verwalteten VPS-Lease nicht.",
+      "Die Terramate-Bereitschaft gehört zur Lebenszyklus-Vorbereitung von StackKits; Homelab Runtime benötigt sie für den initialen verwalteten VPS-Lease nicht.",
     "ui.taskStatus.theDashboardCanShowManaged":
       "Das Dashboard kann verwaltete Dienste anzeigen, sobald StackKits sie bereitstellt, während die spätere Verifizierung weiterläuft.",
     "ui.taskStatus.theFirstRolloutRecordsThe":
@@ -5478,7 +5478,7 @@ export const screenMessages = {
       "Deine gewählte Auth-Methode wird auf alle Dienste angewendet. Mehrbenutzer-Setups erhalten automatisch gruppenbasierte Berechtigungen.",
     "ui.taskUpdates.anUnexpectedErrorOccurred":
       "Ein unerwarteter Fehler ist aufgetreten",
-    "ui.techstackBrandLogo.kombifyTechstack": "Techstack",
+    "ui.homelabBrandLogo.kombifyHomelab": "Homelab Runtime",
     "ui.terminal.title": "Terminal · {name}",
     "ui.time.daysHours": "{days} T {hours} Std",
     "ui.time.hours": "{count} Std",
@@ -5541,8 +5541,8 @@ export const screenMessages = {
     "ui.wallet.dismiss": "Schließen",
     "ui.wallet.editItem": "{label} bearbeiten",
     "ui.wallet.enterNewSecretValue": "Neuen Secret-Wert eingeben",
-    "ui.wallet.enterYourCurrentLocalTechstack":
-      "Gib dein aktuelles lokales Techstack-Passwort ein, um diesen Wallet-Eintrag anzuzeigen.",
+    "ui.wallet.enterYourCurrentLocalHomelab":
+      "Gib dein aktuelles lokales Homelab-Passwort ein, um diesen Wallet-Eintrag anzuzeigen.",
     "ui.wallet.expired": "Abgelaufen",
     "ui.wallet.expiredCredentials.one": "{count} abgelaufene Zugangsdaten",
     "ui.wallet.expiredCredentials.other": "{count} abgelaufene Zugangsdaten",
@@ -5561,8 +5561,8 @@ export const screenMessages = {
       "Menschliche Nutzer, Admin-Identitäten und systemeigene Anmeldeoberflächen befinden sich hier als operative Zugriffsebene.",
     "ui.wallet.identity": "Identität",
     "ui.wallet.importExport": "Import / Export",
-    "ui.wallet.kombifyTechstackAdmin": "kombify-Techstack-Admin",
-    "ui.wallet.kombifyTechstackDeveloper": "kombify-Techstack-Entwickler",
+    "ui.wallet.kombifyHomelabAdmin": "kombify-Homelab-Admin",
+    "ui.wallet.kombifyHomelabDeveloper": "kombify-Homelab-Entwickler",
     "ui.wallet.launchReadyToolsAndUrl":
       "Startbereite Tools und URL-basierte Diensteinträge erscheinen hier, sobald Wallet zum zentralen Ausgangspunkt wird.",
     "ui.wallet.localBackendAdmin": "Lokaler Backend-Admin",

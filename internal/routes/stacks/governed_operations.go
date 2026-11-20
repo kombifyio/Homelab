@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/orchestrator"
-	"github.com/kombifyio/techstack/pkg/ril/actioncontract"
-	"github.com/kombifyio/techstack/pkg/ril/actions"
-	"github.com/kombifyio/techstack/pkg/ril/activities"
-	"github.com/kombifyio/techstack/pkg/ril/workflows"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/orchestrator"
+	"github.com/kombifyio/homelab/pkg/ril/actioncontract"
+	"github.com/kombifyio/homelab/pkg/ril/actions"
+	"github.com/kombifyio/homelab/pkg/ril/activities"
+	"github.com/kombifyio/homelab/pkg/ril/workflows"
 )
 
 var ErrGovernedOperationPending = errors.New("governed node operation has no terminal result")
@@ -263,8 +263,8 @@ func (b *GovernedOperationBackend) result(ctx context.Context, input activities.
 	if job.State == "pending" || job.State == "running" || job.State == "waiting" {
 		return job, true, nil
 	}
-	if job.State != "completed" || job.CompletedAt == nil || job.Result["schema_version"] != "techstack.stackkit-lifecycle-result/v1" ||
-		job.Result["techstack_id"] != card.Template.StackID || job.Result["agent_id"] != admitted.Request.Target.RuntimeInstanceRef ||
+	if job.State != "completed" || job.CompletedAt == nil || job.Result["schema_version"] != "homelab.stackkit-lifecycle-result/v1" ||
+		job.Result["kit_deployment_id"] != card.Template.StackID || job.Result["agent_id"] != admitted.Request.Target.RuntimeInstanceRef ||
 		job.Result["operation"] != operation || job.Result["success"] != true {
 		return job, false, ErrGovernedNodeFailed
 	}

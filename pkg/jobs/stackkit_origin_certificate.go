@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/advancedissuer"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/runtimeaction"
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/originca"
+	"github.com/kombifyio/homelab/internal/advancedissuer"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/runtimeaction"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/originca"
 )
 
 // OriginCertificateResultField is the job-result key of the managed origin
@@ -154,7 +154,7 @@ func (m *managedOriginCertificate) run(ctx context.Context, sender StackKitComma
 
 // rotateManagedOriginCertificate requests a CSR from the node, has Cloudflare
 // issue it, installs the result and only then revokes the superseded
-// certificate. The key exists on the node alone; Techstack handles the CSR,
+// certificate. The key exists on the node alone; Homelab handles the CSR,
 // the public certificate and Cloudflare ids. With force false a certificate
 // that already covers hosts and is within two thirds of its lifetime is kept.
 func rotateManagedOriginCertificate(ctx context.Context, d *advancedDispatcher, service *originca.Service, jobID string, hosts []string, force bool) (map[string]interface{}, error) {
@@ -250,7 +250,7 @@ func reissueOriginCertificateForRoutes(ctx context.Context, service *originca.Se
 // success, the still-degraded component with the failing stage otherwise.
 func repairPublicTLS(ctx context.Context, cfg StackKitLifecycleConfig, d *advancedDispatcher, jobID string, request StackKitLifecycleRequest, release stackkitrelease.Release) (map[string]interface{}, error) {
 	summary := map[string]interface{}{
-		"schema_version": "techstack.stackkit-lifecycle-result/v1", "techstack_id": request.StackID,
+		"schema_version": "homelab.stackkit-lifecycle-result/v1", "kit_deployment_id": request.StackID,
 		advancedOperationField: request.Operation, "agent_id": request.AgentID, StackKitModeField: StackKitModeAdvanced,
 	}
 	certificate, err := rotateManagedOriginCertificate(ctx, d, cfg.OriginCertificates, jobID, request.OriginHosts, true)

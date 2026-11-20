@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/apisurface"
+	"github.com/kombifyio/homelab/internal/gocommon/apisurface"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )

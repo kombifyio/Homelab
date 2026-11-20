@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/agent/hostidentity"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/pairingtoken"
+	"github.com/kombifyio/homelab/pkg/agent/hostidentity"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/pairingtoken"
 )
 
 // The control plane commits the first authenticated confirmation but its answer

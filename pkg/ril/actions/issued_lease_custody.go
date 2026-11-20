@@ -11,13 +11,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/guardreach"
+	"github.com/kombifyio/homelab/pkg/guardreach"
 )
 
 // Issued RIL authority never crosses the workflow or public request boundary.
 // The same configured key already protects the subsequent typed Guard queue.
 func rilLeaseCipher() (cipher.AEAD, error) {
-	key, err := base64.StdEncoding.DecodeString(strings.TrimSpace(os.Getenv("TECHSTACK_RIL_QUEUE_ENCRYPTION_KEY")))
+	key, err := base64.StdEncoding.DecodeString(strings.TrimSpace(os.Getenv("HOMELAB_RIL_QUEUE_ENCRYPTION_KEY")))
 	if err != nil || len(key) != 32 {
 		return nil, fmt.Errorf("RIL lease custody unavailable")
 	}

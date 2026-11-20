@@ -53,19 +53,19 @@ type OpaqueTokenContext struct {
 
 // StrictSecretEnv, when true, makes the dedicated worker secret mandatory: the
 // platform-wide SERVICE_AUTH_SECRET is then never used to sign or derive worker
-// credentials. Turn it on once TECHSTACK_WORKER_AGENT_TOKEN_SECRET is
+// credentials. Turn it on once HOMELAB_WORKER_AGENT_TOKEN_SECRET is
 // provisioned; it fails a deployment that lacks the dedicated secret at boot
 // (ErrDedicatedSecretRequired) instead of silently sharing one key between the
 // service identity and every worker credential.
-const StrictSecretEnv = "TECHSTACK_WORKER_SECRET_STRICT"
+const StrictSecretEnv = "HOMELAB_WORKER_SECRET_STRICT"
 
 // ErrDedicatedSecretRequired reports strict mode without a dedicated secret.
-var ErrDedicatedSecretRequired = errors.New("workerauth: " + StrictSecretEnv + " requires TECHSTACK_WORKER_AGENT_TOKEN_SECRET")
+var ErrDedicatedSecretRequired = errors.New("workerauth: " + StrictSecretEnv + " requires HOMELAB_WORKER_AGENT_TOKEN_SECRET")
 
 func dedicatedSecret() string {
 	return firstNonEmpty(
-		os.Getenv("TECHSTACK_WORKER_AGENT_TOKEN_SECRET"),
-		os.Getenv("TECHSTACK_WORKER_TOKEN_SECRET"),
+		os.Getenv("HOMELAB_WORKER_AGENT_TOKEN_SECRET"),
+		os.Getenv("HOMELAB_WORKER_TOKEN_SECRET"),
 	)
 }
 
@@ -143,7 +143,7 @@ func PurposeKey(base []byte, purpose string) []byte {
 	if len(base) == 0 || strings.TrimSpace(purpose) == "" {
 		return nil
 	}
-	key, err := hkdf.Key(sha256.New, base, nil, "kombify-techstack/worker-auth/"+purpose, 32)
+	key, err := hkdf.Key(sha256.New, base, nil, "kombify-homelab/worker-auth/"+purpose, 32)
 	if err != nil {
 		return nil
 	}
@@ -259,7 +259,7 @@ func DeriveOpaqueToken(secret []byte, ctx OpaqueTokenContext) (string, error) {
 		IdempotencyKey string `json:"idempotency_key"`
 		Generation     int64  `json:"generation"`
 	}{
-		Domain:   "kombify-techstack/runtime-agent-opaque/v1",
+		Domain:   "kombify-homelab/runtime-agent-opaque/v1",
 		TenantID: ctx.TenantID, OwnerID: ctx.OwnerID, StackID: ctx.StackID,
 		ServerID: ctx.ServerID, RuntimeAgentID: ctx.RuntimeAgentID,
 		RequestDigest: ctx.RequestDigest, IdempotencyKey: ctx.IdempotencyKey,

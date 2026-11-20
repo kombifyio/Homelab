@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/logger"
-	"github.com/kombifyio/techstack/pkg/privatechannel"
+	"github.com/kombifyio/homelab/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/privatechannel"
 )
 
 // NetworkMode represents the networking mode for registry exposure.
@@ -331,18 +331,18 @@ func (r *RegistryURLResolver) resolveAuto(ctx context.Context) (string, error) {
 }
 
 // resolveSaaSExternal returns the operator-configured public URL for this
-// TechStack instance when running on a managed cloud host (e.g. Render).
+// Homelab instance when running on a managed cloud host (e.g. Render).
 // On SaaS hosts the LAN/loopback address the process binds to is never
 // reachable from the workers a customer wants to enroll, so we prefer an
 // explicitly configured public hostname.
 //
 // Probe order (first non-empty wins):
-//  1. TECHSTACK_PUBLIC_ORIGIN - canonical hosted-URL knob (see .env.example).
-//  2. TECHSTACK_PUBLIC_URL    - alias accepted for forward compatibility.
+//  1. HOMELAB_PUBLIC_ORIGIN - canonical hosted-URL knob (see .env.example).
+//  2. HOMELAB_PUBLIC_URL    - alias accepted for forward compatibility.
 //  3. RENDER_EXTERNAL_URL     - Render-injected fully qualified URL.
 //  4. RENDER_EXTERNAL_HOSTNAME - Render-injected hostname (we add https://).
 func (r *RegistryURLResolver) resolveSaaSExternal() (string, bool) {
-	for _, key := range []string{"TECHSTACK_PUBLIC_ORIGIN", "TECHSTACK_PUBLIC_URL", "RENDER_EXTERNAL_URL"} {
+	for _, key := range []string{"HOMELAB_PUBLIC_ORIGIN", "HOMELAB_PUBLIC_URL", "RENDER_EXTERNAL_URL"} {
 		if raw := strings.TrimSpace(os.Getenv(key)); raw != "" {
 			if normalized, ok := normalizeSaaSExternalURL(raw); ok {
 				return normalized, true

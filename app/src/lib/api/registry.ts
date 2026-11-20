@@ -90,7 +90,7 @@ export interface CanonicalGuardReachTarget {
   applicability?: "applicable" | "not_applicable";
   /** kombify.me address, set on the kombify_me target once registered. */
   address?: string;
-  /** Connect techstack-node id, set on the connect target once registered. */
+  /** Connect homelab-node id, set on the connect target once registered. */
   node_id?: string;
   reason_code?: string;
 }

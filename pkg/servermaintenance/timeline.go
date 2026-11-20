@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/outcome"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/outcome"
 )
 
 // Server timeline events of owner maintenance. The request itself is
@@ -19,7 +19,7 @@ const (
 )
 
 // maintenanceCapability is the entitlement the outcome is attributed to.
-const maintenanceCapability = "techstack.servers.maintenance"
+const maintenanceCapability = "homelab.servers.maintenance"
 
 // recordTimeline writes the server event for a reboot or OS update that
 // changed state: the pending outcome of the request moves on, becomes an

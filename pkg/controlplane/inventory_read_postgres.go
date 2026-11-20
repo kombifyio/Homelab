@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 )
 
 func (s *PostgresStore) GetInventoryServer(ctx context.Context, scope InventoryReadScope, serverID string) (*ServerRuntime, error) {

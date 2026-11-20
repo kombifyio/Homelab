@@ -15,17 +15,17 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/onboarding"
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/internal/onboarding"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 const (
 	maxOnboardingBodyBytes = 16 << 10
 
-	onboardingCapability = "techstack.onboarding"
+	onboardingCapability = "homelab.onboarding"
 
 	// onboardingErrorDerivedOnly marks a client trying to report itself
 	// through a step that spends money.

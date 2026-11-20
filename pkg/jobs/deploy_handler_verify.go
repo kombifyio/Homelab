@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/runtimeproduct/runtimeaction"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/grpcserver"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/runtimeaction"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/grpcserver"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // runVerify verifies login-protected services through the pinned StackKits
@@ -51,7 +51,7 @@ func (r *deployRollout) runVerify(ctx context.Context) error {
 	r.persistRuntimeProgress()
 	if err := r.activatePortClaims(ctx); err != nil {
 		return wrapProvisionCause(StepPortAdmission, fmt.Errorf("activate verified runtime listeners: %w", err),
-			"The StackKit rollout verified, but Techstack could not activate its exact host-listener generation. The reservation remains fail-closed for reconciliation.")
+			"The StackKit rollout verified, but Homelab Runtime could not activate its exact host-listener generation. The reservation remains fail-closed for reconciliation.")
 	}
 	return nil
 }
@@ -104,7 +104,7 @@ func (r *deployRollout) runRestoreDrill(ctx context.Context) error {
 //
 //nolint:gocyclo // moved unchanged from deploy_handler.go
 func (r *deployRollout) runTypedStackKitRestoreDrill(ctx context.Context) (map[string]interface{}, error) {
-	if r == nil || r.cfg == nil || r.cfg.StackKitCommander == nil || r.actionReq.TechStackEnrollment == nil || r.job == nil || r.unifiedSpec == nil {
+	if r == nil || r.cfg == nil || r.cfg.StackKitCommander == nil || r.actionReq.HomelabEnrollment == nil || r.job == nil || r.unifiedSpec == nil {
 		return nil, fmt.Errorf("typed StackKits restore dispatcher is not configured")
 	}
 	release, err := TargetStackKitReleaseForStack(ctx, r.actionReq.TenantID, r.actionReq.StackID)
@@ -130,7 +130,7 @@ func (r *deployRollout) runTypedStackKitRestoreDrill(ctx context.Context) (map[s
 		StackKitInstanceID: stackName,
 		TenantID:           r.actionReq.TenantID,
 		OwnerID:            r.actionReq.OwnerID,
-		AgentID:            r.actionReq.TechStackEnrollment.RuntimeAgentID,
+		AgentID:            r.actionReq.HomelabEnrollment.RuntimeAgentID,
 		NodeRef:            PrimaryStackKitNodeRef(r.unifiedSpec.StackKit),
 		Operation:          StackKitLifecyclePlan,
 		WorkingDirectory:   defaultStackKitNodeWorkspace,
@@ -205,5 +205,5 @@ func nativeRestoreDrillOperationID(kind, stackKitInstanceID, planHash string) st
 	digest := sha256.Sum256([]byte(strings.Join([]string{
 		strings.TrimSpace(stackKitInstanceID), strings.TrimSpace(planHash), strings.TrimSpace(kind),
 	}, "\x00")))
-	return fmt.Sprintf("techstack-restore-drill-%s-%x", kind, digest[:16])
+	return fmt.Sprintf("homelab-restore-drill-%s-%x", kind, digest[:16])
 }

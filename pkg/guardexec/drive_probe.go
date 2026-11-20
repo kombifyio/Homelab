@@ -3,7 +3,7 @@ package guardexec
 import (
 	"context"
 
-	"github.com/kombifyio/techstack/pkg/drivehealth"
+	"github.com/kombifyio/homelab/pkg/drivehealth"
 )
 
 // DriveProbeBackend is an optional read-only executor capability, allowing old

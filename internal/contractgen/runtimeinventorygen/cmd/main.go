@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kombifyio/techstack/internal/contractgen/runtimeinventorygen"
+	"github.com/kombifyio/homelab/internal/contractgen/runtimeinventorygen"
 )
 
 func main() {
-	schema := flag.String("schema", "contracts/runtimeinventory/v1/schema.json", "canonical Techstack runtime inventory schema")
+	schema := flag.String("schema", "contracts/runtimeinventory/v1/schema.json", "canonical Homelab Runtime inventory schema")
 	output := flag.String("output", "contracts/runtimeinventory/v1", "verified generation bundle directory")
 	check := flag.Bool("check", false, "fail when checked-in outputs differ from generation")
 	flag.Parse()

@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/stackrouting"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/stackrouting"
 )
 
 func RegisterDomainMonitoringRoutes(router *httpx.Router, monitor *stackrouting.DomainMonitor) {
@@ -17,7 +17,7 @@ func RegisterDomainMonitoringRoutes(router *httpx.Router, monitor *stackrouting.
 		if err != nil {
 			return err
 		}
-		tenant, err := tenantguard.TenantScope(requestExplicitTenantID(e), owner, "techstack.monitor.domains.read")
+		tenant, err := tenantguard.TenantScope(requestExplicitTenantID(e), owner, "homelab.monitor.domains.read")
 		if err != nil {
 			return err
 		}
