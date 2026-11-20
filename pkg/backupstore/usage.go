@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 )
 
 // ErrBucketMissing reports that a managed backup bucket does not exist at the

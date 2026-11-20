@@ -1,14 +1,14 @@
 // Package stackkitdecision is the producer side of the platform's signed
 // decision receipt for a destructive StackKits operation (platform-8f0n2.20).
 //
-// Techstack is the decision ledger's only filer. It files the exact binding a
+// Homelab is the decision ledger's only filer. It files the exact binding a
 // StackKits node recomputes before the operation's first effect, reads the
 // signed receipt back, checks what it can before anything is dispatched, and
 // rebuilds the compact JWS the node verifies and spends. The node stays the
 // authority that verifies and spends the receipt.
 //
 // The binding is defined once, in the StackKits consumer's
-// docs/DECISION-RECEIPTS.md section "Binding definition". Techstack cannot
+// docs/DECISION-RECEIPTS.md section "Binding definition". Homelab cannot
 // import that package (another module, an internal path), so this package
 // builds the same bytes itself; its tests pin them to the consumer's vectors.
 package stackkitdecision

@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
 )
 
 // UseCaseFit is the StackKits package compute-tier surface Unifier reads.

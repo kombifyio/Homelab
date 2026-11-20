@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/kombifyio/techstack/pkg/ril/actioncontract"
-	"github.com/kombifyio/techstack/pkg/ril/workflow"
+	"github.com/kombifyio/homelab/pkg/ril/actioncontract"
+	"github.com/kombifyio/homelab/pkg/ril/workflow"
 )
 
 const (

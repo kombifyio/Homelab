@@ -1,5 +1,5 @@
 #!/bin/sh
-# Kombify Techstack device readiness probe.
+# Kombify Homelab device readiness probe.
 #
 # Runs on a device that is not enrolled yet and may have no network at all, so
 # it depends on nothing but a POSIX shell and the coreutils every Debian-family
@@ -10,7 +10,7 @@
 # unknown and an invented one would be indistinguishable from a measurement.
 #
 # The executor passes:
-#   KOMBIFY_PROBE_CONTROL_PLANE  host[:port] of the Techstack origin
+#   KOMBIFY_PROBE_CONTROL_PLANE  host[:port] of the Homelab origin
 #   KOMBIFY_PROBE_PACKAGE_MIRROR host of the package mirror
 #   KOMBIFY_PROBE_IMAGE_REGISTRY host of the image registry
 # Endpoints are reported back by role, never by hostname, so the evaluation
@@ -581,7 +581,7 @@ probe_hardware() {
 # GPU a guest could receive. It reads sysfs and nothing else, so it is cheap
 # enough to repeat with the inventory.
 if [ "${KOMBIFY_PROBE_SCOPE:-}" = accelerators ]; then
-    printf '{"schemaVersion":"techstack.device-readiness/v1"'
+    printf '{"schemaVersion":"homelab.device-readiness/v1"'
     printf ',%s' "$(probe_hypervisor)"
     printf ',%s' "$(probe_accelerators)"
     printf ',"probeErrors":%s' "$(emit_string_array < "$PROBE_ERROR_FILE")"
@@ -593,14 +593,14 @@ fi
 # machine is. It reads procfs and sysfs and nothing else, so it runs without
 # privileges and is cheap enough to repeat every few minutes.
 if [ "${KOMBIFY_PROBE_SCOPE:-}" = hardware ]; then
-    printf '{"schemaVersion":"techstack.device-readiness/v1"'
+    printf '{"schemaVersion":"homelab.device-readiness/v1"'
     printf ',%s' "$(probe_hardware)"
     printf ',"probeErrors":%s' "$(emit_string_array < "$PROBE_ERROR_FILE")"
     printf '}\n'
     exit 0
 fi
 
-printf '{"schemaVersion":"techstack.device-readiness/v1"'
+printf '{"schemaVersion":"homelab.device-readiness/v1"'
 printf ',%s' "$(probe_os)"
 printf ',%s' "$(probe_kernel)"
 printf ',%s' "$(probe_interfaces)"

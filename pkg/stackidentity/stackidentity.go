@@ -1,11 +1,11 @@
-// Package stackidentity holds the Stack Identity rules Techstack applies to its
+// Package stackidentity holds the Stack Identity rules Homelab applies to its
 // local copy (the homelab row) and to the sync with kombify Cloud.
 //
 // Authority (STACKKITS-PRODUCT-BOUNDARY-STANDARD.md §10.8):
-//   - Without kombify Cloud, Techstack is the only authority. Local edits are
+//   - Without kombify Cloud, Homelab is the only authority. Local edits are
 //     final and nothing is ever pushed.
 //   - Connected to Cloud, Cloud's StackIdentityV1 record is the account
-//     authority and Techstack keeps a revisioned copy. There is exactly one
+//     authority and Homelab keeps a revisioned copy. There is exactly one
 //     name: the homelab name is the Stack Identity name.
 package stackidentity
 
@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 // MaxNameLength is StackIdentityV1's name bound (controlplane owns the rule
@@ -24,7 +24,7 @@ const MaxNameLength = controlplane.MaxStackIdentityNameLength
 // a character on create. It matches the open-core default identity.
 const DefaultCharacterID = "rocket"
 
-// Local is the Techstack copy as the homelab row stores it.
+// Local is the Homelab copy as the homelab row stores it.
 type Local struct {
 	Name string
 	// Named is false while the homelab still carries its generated name; a
@@ -71,7 +71,7 @@ type Decision struct {
 //  1. Same content on both sides: in sync. This is also how a successful push
 //     is confirmed - the client passes Cloud's response back.
 //  2. Cloud has no record: a chosen local name is pushed with If-Match "0"
-//     (Techstack-first naming adopts the local name into Cloud instead of
+//     (Homelab-first naming adopts the local name into Cloud instead of
 //     creating a second one); a generated name stays local.
 //  3. First link (never matched a Cloud revision) and Cloud has a record:
 //     Cloud wins. The account identity other products already show is not

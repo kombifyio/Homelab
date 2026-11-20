@@ -4,8 +4,8 @@ import (
 	"path"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 // smallInternalDiskGB is the largest internal disk that also moves container

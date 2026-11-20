@@ -75,7 +75,7 @@ type hostProofClaims struct {
 
 // HostProofInput describes one proof a Guard signs.
 type HostProofInput struct {
-	// Issuer is the Techstack worker id (GuardPrincipal), Subject the server id.
+	// Issuer is the Homelab worker id (GuardPrincipal), Subject the server id.
 	Issuer, Subject string
 	// TenantID is the tenant the verifier acts for; the control plane names it
 	// because only it knows how each verifier derives a tenant.

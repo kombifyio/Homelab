@@ -3,7 +3,7 @@ package providercontrol
 import (
 	"context"
 
-	"github.com/kombifyio/techstack/internal/gocommon/tenantdb"
+	"github.com/kombifyio/homelab/internal/gocommon/tenantdb"
 )
 
 // SystemAuthorityContext removes a caller's signed database context token

@@ -17,7 +17,7 @@ func TestBackupRenewalIssuedOnlyForExactAdmittedRestore(t *testing.T) {
 	now := time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC)
 	key := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{42}, ed25519.SeedSize))
 	recorder := &memoryRecorder{}
-	issuer, err := New(Config{IssuerID: "techstack", PrivateKey: key, Recorder: recorder, Now: func() time.Time { return now }})
+	issuer, err := New(Config{IssuerID: "homelab", PrivateKey: key, Recorder: recorder, Now: func() time.Time { return now }})
 	if err != nil {
 		t.Fatal(err)
 	}

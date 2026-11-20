@@ -12,10 +12,10 @@ import (
 
 	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 
-	"github.com/kombifyio/techstack/internal/providercontrol"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
+	"github.com/kombifyio/homelab/internal/providercontrol"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 )
 
 const (
@@ -113,7 +113,7 @@ func (p *NativePowerController) RequestPower(
 			Targets:        candidate.Targets,
 			DesiredSpec: &providercontrol.DesiredSpecRevision{
 				TenantID: candidate.TenantID, LeaseID: candidate.LeaseID, Revision: candidate.SpecRevision,
-				Ref:     "desired-spec://techstack/leases/" + candidate.LeaseID + "/revisions/" + strconv.FormatUint(candidate.SpecRevision, 10),
+				Ref:     "desired-spec://homelab/leases/" + candidate.LeaseID + "/revisions/" + strconv.FormatUint(candidate.SpecRevision, 10),
 				Digest:  providercontrol.DesiredSpecDigest(payload),
 				Payload: payload, CreatedAt: candidate.RequestedAt,
 			},

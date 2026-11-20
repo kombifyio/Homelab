@@ -47,7 +47,7 @@
         throw new Error(tr("ui.substrateEnrollment.aConnectionCommandCouldNot"));
       }
       // Only URL origins and the closed token alphabet enter the shell command.
-      command = `curl -fsSL '${shellOrigin}/install.sh' | KOMBI_SERVER='${shellOrigin}' KOMBI_TOKEN='${result.data.token}' TECHSTACK_BINARY_SHA256='${binaryPin}' TECHSTACK_AS_SERVICE=1 bash`;
+      command = `curl -fsSL '${shellOrigin}/install.sh' | KOMBI_SERVER='${shellOrigin}' KOMBI_TOKEN='${result.data.token}' HOMELAB_BINARY_SHA256='${binaryPin}' HOMELAB_AS_SERVICE=1 bash`;
       expiresAt = result.data.expires_at;
     } catch (cause) {
       error =

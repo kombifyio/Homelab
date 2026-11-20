@@ -37,7 +37,7 @@ export interface CreationFacts {
   readonly serverMode: string;
   readonly hypervisorGuestValid: boolean;
   readonly remoteHost: string;
-  /** Hosted Techstack reaches a server with a Wallet item instead of a typed credential. */
+  /** Hosted Homelab reaches a server with a Wallet item instead of a typed credential. */
   readonly usesWallet: boolean;
   readonly walletItemChosen: boolean;
   readonly accessMode: string | undefined;

@@ -2,7 +2,7 @@
 
 package middleware
 
-import "github.com/kombifyio/techstack/pkg/httpx"
+import "github.com/kombifyio/homelab/pkg/httpx"
 
 // SentryMiddleware is a pass-through in the Full Local build (tag
 // kombify_full_local): there is no error-reporting client to install.

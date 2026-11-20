@@ -1,4 +1,4 @@
-// Package enrollment models the link between a local TechStack instance and
+// Package enrollment models the link between a local Homelab instance and
 // the wider kombify ecosystem (notably kombify Cloud).
 //
 // An enrollment record sits one layer above pkg/instance:
@@ -34,7 +34,7 @@ import (
 // fileName is the canonical enrollment file relative to the data dir.
 const fileName = "enrollment.json"
 
-// Mode describes how a TechStack instance is enrolled.
+// Mode describes how a Homelab instance is enrolled.
 type Mode string
 
 const (

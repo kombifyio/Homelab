@@ -13,10 +13,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/edgeauth"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/identity"
-	"github.com/kombifyio/techstack/pkg/middleware"
+	"github.com/kombifyio/homelab/internal/gocommon/edgeauth"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/middleware"
 )
 
 type gatewayEntry struct {
@@ -124,7 +124,7 @@ func (g *GatewayAdmission) admit(ctx context.Context, grant CallerGrant, action 
 			return nil, denied
 		}
 		binding, ok := flags.VerifiedDecisionBinding()
-		if !ok || id == nil || !id.EmailVerified || id.UserID != grant.OwnerID || id.OrgID != grant.TenantID || binding.SubjectID != grant.OwnerID || binding.TenantID != grant.TenantID || binding.Method != envelope.Method || binding.Audience != "techstack" || binding.PublicPrefix != "/v1/techstack" {
+		if !ok || id == nil || !id.EmailVerified || id.UserID != grant.OwnerID || id.OrgID != grant.TenantID || binding.SubjectID != grant.OwnerID || binding.TenantID != grant.TenantID || binding.Method != envelope.Method || binding.Audience != "homelab" || binding.PublicPrefix != "/v1/homelab" {
 			return nil, denied
 		}
 		seconds, err := strconv.ParseInt(envelope.Header.Get(edgeauth.HeaderEdgeTimestamp), 10, 64)

@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 func TestWalletHTTPDerivesOwnerAndProtectsIdentity(t *testing.T) {

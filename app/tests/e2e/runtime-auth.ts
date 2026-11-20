@@ -3,16 +3,16 @@ import { fillSecret } from "../helpers/secret-input";
 import { type Page } from "@playwright/test";
 
 import {
-  requireTechStackTestUser,
-  type TechStackTestUserRole,
-} from "../../src/lib/testing/techstack-test-users";
+  requireHomelabTestUser,
+  type HomelabTestUserRole,
+} from "../../src/lib/testing/homelab-test-users";
 import {
   AUTH0_FORM_ERROR_PATTERN,
   compactAuth0Error,
 } from "../../src/lib/testing/auth0-errors";
 
 export type RuntimeAuthRole = Extract<
-  TechStackTestUserRole,
+  HomelabTestUserRole,
   "oneliner" | "remote" | "cloud"
 >;
 
@@ -59,7 +59,7 @@ export async function authenticateRuntimeUser(
 ): Promise<RuntimeAuthSession> {
   const user = options.fixturePrefix
     ? canonicalRuntimeFixture(options.fixturePrefix)
-    : requireTechStackTestUser(role);
+    : requireHomelabTestUser(role);
 
   await page.goto(options.entryPath ?? "/login", {
     waitUntil: "domcontentloaded",
@@ -77,7 +77,7 @@ export async function authenticateRuntimeUser(
     user.email,
     user.password,
     options.expectedAuthIssuer ??
-      process.env.TECHSTACK_AUTH_CLOUD_ISSUER ??
+      process.env.HOMELAB_AUTH_CLOUD_ISSUER ??
       "https://login.kombify.io",
   );
   const totpSecret =
@@ -90,7 +90,7 @@ export async function authenticateRuntimeUser(
   const token = await browserSessionToken(page, options);
   if (!token) {
     throw new Error(
-      "Auth0 browser login did not produce a TechStack API session token",
+      "Auth0 browser login did not produce a Homelab Runtime API session token",
     );
   }
   return { token };
@@ -174,8 +174,8 @@ export async function fetchBrowserWhoAmI(page: Page): Promise<{
 }
 
 // captureGatewayApiSession observes an authenticated SPA data-plane request,
-// so its bearer is minted for the public /v1/techstack surface rather than a
-// private TechStack session. Do not couple this to a particular dashboard read:
+// so its bearer is minted for the public /v1/homelab surface rather than a
+// private Homelab session. Do not couple this to a particular dashboard read:
 // the owner-scoped UI may load stacks, homelab, inventory, or another aggregate.
 // The bearer is never written to a log or artifact.
 export async function captureGatewayApiSession(
@@ -187,7 +187,7 @@ export async function captureGatewayApiSession(
       const authorization = request.headers()["authorization"] ?? "";
       return (
         request.method() === "GET" &&
-        url.pathname.startsWith("/v1/techstack/") &&
+        url.pathname.startsWith("/v1/homelab/") &&
         /^Bearer\s+\S+/i.test(authorization)
       );
     },
@@ -200,10 +200,10 @@ export async function captureGatewayApiSession(
   const authorization = request.headers()["authorization"] ?? "";
   const token = authorization.replace(/^Bearer\s+/i, "").trim();
   if (!token) {
-    throw new Error("Techstack dashboard omitted its Auth0 Gateway token");
+    throw new Error("Homelab Runtime dashboard omitted its Auth0 Gateway token");
   }
   const url = new URL(request.url());
-  return { token, apiBase: `${url.origin}/v1/techstack` };
+  return { token, apiBase: `${url.origin}/v1/homelab` };
 }
 
 // A Gateway bearer for owner API calls: either a fixed token (short scenarios)
@@ -347,7 +347,7 @@ async function browserSessionToken(
   return (
     cookies.find(
       (cookie) =>
-        cookie.name === (options.sessionCookieName ?? "techstack_session"),
+        cookie.name === (options.sessionCookieName ?? "homelab_session"),
     )?.value ?? ""
   );
 }
@@ -554,7 +554,7 @@ async function waitForRuntimeDashboard(page: Page) {
     const formError = await auth0FormErrorMessage(page, 500);
     if (formError) {
       throw new Error(
-        `Runtime Auth0 login failed before TechStack callback: ${formError}. Current location: ${safeLocation(page.url())}`,
+        `Runtime Auth0 login failed before Homelab Runtime callback: ${formError}. Current location: ${safeLocation(page.url())}`,
       );
     }
     if (/\/dashboard(?:[/?#]|$)/.test(page.url())) return;

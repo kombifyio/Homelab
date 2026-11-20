@@ -1,4 +1,4 @@
-// Package orchestrator provides the central orchestration layer for kombifyTechstack.
+// Package orchestrator provides the central orchestration layer for kombifyHomelab.
 package orchestrator
 
 import (
@@ -11,23 +11,23 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/identity"
-	"github.com/kombifyio/techstack/internal/portinventory"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
-	"github.com/kombifyio/techstack/pkg/logger"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
-	"github.com/kombifyio/techstack/pkg/nodehandoff"
-	"github.com/kombifyio/techstack/pkg/originca"
-	"github.com/kombifyio/techstack/pkg/runtimehealth"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
-	"github.com/kombifyio/techstack/pkg/specv2"
-	"github.com/kombifyio/techstack/pkg/stackrouting"
-	"github.com/kombifyio/techstack/pkg/vmleases"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
+	"github.com/kombifyio/homelab/internal/portinventory"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/pkg/nodehandoff"
+	"github.com/kombifyio/homelab/pkg/originca"
+	"github.com/kombifyio/homelab/pkg/runtimehealth"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/specv2"
+	"github.com/kombifyio/homelab/pkg/stackrouting"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 )
 
 // ErrNoAssignedWorkers is retained as the public compatibility sentinel for a
@@ -48,7 +48,7 @@ var ErrManagedLeaseReconciliationDurabilityUnavailable = errors.New("managed lea
 
 // ErrManagedRuntimeLeaseNotNativeActive keeps rollout fail-closed when a
 // stack still references historical, unbound, expired, or otherwise inactive
-// lease inventory. Only an explicitly bound TechStack provider-control lease
+// lease inventory. Only an explicitly bound Homelab provider-control lease
 // may become a rollout target.
 var ErrManagedRuntimeLeaseNotNativeActive = errors.New("managed runtime lease is not native-active")
 
@@ -312,7 +312,7 @@ func workerCountFromEnvironment() int {
 		defaultWorkers = 4
 		maxWorkers     = 64
 	)
-	raw := strings.TrimSpace(os.Getenv("TECHSTACK_JOB_WORKERS"))
+	raw := strings.TrimSpace(os.Getenv("HOMELAB_JOB_WORKERS"))
 	if raw == "" {
 		return defaultWorkers
 	}
@@ -1956,7 +1956,7 @@ func (o *Orchestrator) DestroyStackWithOptions(stackID string, opts ProvisionSta
 	}
 	if o.cfg.PortInventory != nil {
 		snapshot, snapshotErr := o.cfg.PortInventory.SnapshotForTeardown(ctx, portinventory.TeardownSnapshotRequest{
-			TenantID: stack.tenantID, OwnerSubjectID: stack.ownerID, TechstackID: stack.id,
+			TenantID: stack.tenantID, OwnerSubjectID: stack.ownerID, KitDeploymentID: stack.id,
 		})
 		if snapshotErr == nil {
 			snapshotErr = portinventory.ValidateTeardownSnapshot(snapshot)
@@ -2094,7 +2094,7 @@ func (o *Orchestrator) managedRuntimeDecommissionRequired(ctx context.Context, s
 			continue
 		}
 		_, managedProvider := serverruntime.MonthlyRuntimeProfileForProvider(strings.ToLower(strings.TrimSpace(lease.Resource.ProviderID)))
-		customerSubstrate := record.ExecutionAuthority == vmleases.LeaseExecutionAuthorityTechStackProviderControl &&
+		customerSubstrate := record.ExecutionAuthority == vmleases.LeaseExecutionAuthorityHomelabProviderControl &&
 			lease.CustodyClass == vmlease.CustodyCustomerSubstrate
 		if monthlyruntime.IsMonthlyRuntimeMetadata(lease.Metadata) || managedProvider || customerSubstrate {
 			// Cancellation, archived desired state, and a missing local workspace do

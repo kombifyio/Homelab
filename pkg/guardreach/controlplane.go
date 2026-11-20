@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 )
 
 // ControlPlane resolves the live worker and host-key binding from the

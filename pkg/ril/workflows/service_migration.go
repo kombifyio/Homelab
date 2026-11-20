@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/ril/workflow"
+	"github.com/kombifyio/homelab/pkg/ril/workflow"
 )
 
 // Activity names dispatched by the service-migration workflow. Concrete

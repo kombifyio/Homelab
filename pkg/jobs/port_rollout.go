@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/portinventory"
+	"github.com/kombifyio/homelab/internal/portinventory"
 )
 
 const portLifecycleReconciliationTimeout = 5 * time.Second
@@ -77,17 +77,17 @@ func (r *deployRollout) admitRuntimeListeners(ctx context.Context, apply bool) e
 	if r == nil || r.cfg == nil {
 		return wrapProvisionError(StepPortAdmission,
 			"runtime listener authority is not configured",
-			"Techstack cannot evaluate or reserve compiler-declared host listeners. No host mutation was started.")
+			"Homelab Runtime cannot evaluate or reserve compiler-declared host listeners. No host mutation was started.")
 	}
-	enrollment := r.actionReq.TechStackEnrollment
+	enrollment := r.actionReq.HomelabEnrollment
 	if enrollment == nil || strings.TrimSpace(enrollment.TenantID) == "" || strings.TrimSpace(enrollment.ServerID) == "" {
 		return wrapProvisionError(StepPortAdmission,
 			"runtime listener admission requires an exact tenant-owned RuntimeServer",
-			"Techstack could not bind the compiler plan to a canonical runtime server. No host mutation was started.")
+			"Homelab Runtime could not bind the compiler plan to a canonical runtime server. No host mutation was started.")
 	}
 	document, err := readResolvedPlanForPortAdmission(r.actionReq.UnifiedPath)
 	if err != nil {
-		return wrapProvisionCause(StepPortAdmission, err, "Techstack could not read the canonical compiler plan. No host mutation was started.")
+		return wrapProvisionCause(StepPortAdmission, err, "Homelab Runtime could not read the canonical compiler plan. No host mutation was started.")
 	}
 	listenerSet, projectionErr := parseResolvedPlanListenerSet(document)
 	if listenerSet.PlanHash == "" {
@@ -114,7 +114,7 @@ func (r *deployRollout) admitRuntimeListeners(ctx context.Context, apply bool) e
 		}
 		return wrapProvisionError(StepPortAdmission,
 			"runtime listener authority is not configured",
-			"Techstack cannot evaluate or reserve compiler-declared host listeners. No host mutation was started.")
+			"Homelab Runtime cannot evaluate or reserve compiler-declared host listeners. No host mutation was started.")
 	}
 	request := portinventory.CurrentAdmissionRequest{
 		TenantID: strings.TrimSpace(enrollment.TenantID), ServerID: strings.TrimSpace(enrollment.ServerID),
@@ -143,9 +143,9 @@ func (r *deployRollout) admitRuntimeListeners(ctx context.Context, apply bool) e
 	return nil
 }
 
-// continueWithoutPortProjection keeps Techstack's optional port inventory out
+// continueWithoutPortProjection keeps Homelab's optional port inventory out
 // of the StackKits execution authority. A valid, hash-bound ResolvedPlan may
-// use a custom or newer listener shape that this Techstack release cannot
+// use a custom or newer listener shape that this Homelab release cannot
 // project yet. That makes port visibility unavailable; it does not make the
 // user-owned StackKit invalid and must not stop apply.
 
@@ -164,7 +164,7 @@ func (set resolvedPlanListenerSet) portRequirements() []portinventory.Requiremen
 
 // requirePrimaryRuntimeTarget binds the compiler node to the same central kit
 // binding used by typed Apply. The exact RuntimeServer is already selected by
-// TechStackEnrollment.ServerID; PlatformNodes are supplemental nodes and must
+// HomelabEnrollment.ServerID; PlatformNodes are supplemental nodes and must
 // not become a second authority for the primary server.
 func (set resolvedPlanListenerSet) requirePrimaryRuntimeTarget(stackKit string) error {
 	if len(set.Listeners) == 0 {
@@ -264,7 +264,7 @@ func (r *deployRollout) portAdmissionError(err error) error {
 		return wrapProvisionCause(StepPortAdmission, conflict, conflict.UserGuidance.Body)
 	}
 	return wrapProvisionCause(StepPortAdmission, fmt.Errorf("runtime listener admission failed: %w", err),
-		"Techstack could not reserve the compiler-declared host listeners. No host mutation was started.")
+		"Homelab Runtime could not reserve the compiler-declared host listeners. No host mutation was started.")
 }
 
 // awaitHostBaseline admits the rollout once the node's listener inventory is

@@ -14,14 +14,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 	"google.golang.org/protobuf/proto"
 )
 
 // Dedicated custody: the deployment supplies this 32-byte random key from
 // company secrets. Rotation deliberately invalidates in-flight envelopes.
-const rilQueueKeyEnv = "TECHSTACK_RIL_QUEUE_ENCRYPTION_KEY"
+const rilQueueKeyEnv = "HOMELAB_RIL_QUEUE_ENCRYPTION_KEY"
 
 // A fresh Gateway claim cannot extend the original admission. Carry the
 // earliest caller/grant deadline into both queue authority and ciphertext AAD,
@@ -70,7 +70,7 @@ func rilProofAAD(tenant, worker, id, digest string, expires int64) ([]byte, erro
 	if tenant == "" || worker == "" || id == "" || digest == "" || expires <= 0 {
 		return nil, fmt.Errorf("RIL proof binding incomplete")
 	}
-	return json.Marshal(rilProofBinding{"techstack.ril-queue-proof/v1", tenant, worker, id, digest, expires})
+	return json.Marshal(rilProofBinding{"homelab.ril-queue-proof/v1", tenant, worker, id, digest, expires})
 }
 func sealRILProof(key []byte, tenant, worker, id string, proof *agentpb.RILExecutionProof, expires int64, now time.Time) ([]byte, error) {
 	digest, err := stackkitcommand.RILProofDigest(proof)

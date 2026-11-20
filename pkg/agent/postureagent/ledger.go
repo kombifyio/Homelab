@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/guardposture"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardposture"
 )
 
 const (

@@ -3,9 +3,9 @@ package orchestrator
 import (
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/kombifywallet/walletfake"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/kombifywallet/walletfake"
 )
 
 // With the kombify Wallet as the source, a completed rollout saves its StackKit

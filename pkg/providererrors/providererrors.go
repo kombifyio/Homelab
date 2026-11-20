@@ -1,5 +1,5 @@
 // Package providererrors extracts stable, supportable signals from provider
-// control-plane errors without making the providers part of TechStack state.
+// control-plane errors without making the providers part of Homelab state.
 package providererrors
 
 import (
@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/providercatalog"
 )
 
 const (

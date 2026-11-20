@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

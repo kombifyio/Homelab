@@ -9,16 +9,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/denial"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/guardreach"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/middleware"
-	"github.com/kombifyio/techstack/pkg/ril/actioncontract"
-	"github.com/kombifyio/techstack/pkg/ril/actions"
-	"github.com/kombifyio/techstack/pkg/ril/primitives"
+	"github.com/kombifyio/homelab/internal/gocommon/denial"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/guardreach"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/middleware"
+	"github.com/kombifyio/homelab/pkg/ril/actioncontract"
+	"github.com/kombifyio/homelab/pkg/ril/actions"
+	"github.com/kombifyio/homelab/pkg/ril/primitives"
 )
 
 type GovernedActionWorkflow interface {
@@ -44,7 +44,7 @@ type GovernedActionRouteConfig struct {
 		GetServerRuntime(ctx context.Context, tenantID, serverID string) (*controlplane.ServerRuntime, error)
 	}
 	Now func() time.Time
-	// Background turns the request's context into Techstack system work, so
+	// Background turns the request's context into Homelab system work, so
 	// an executor-bound execution outlives a cancelled request (an update runs
 	// up to its rollback budget) instead of recording a false failure while
 	// the node completes it.
@@ -350,13 +350,13 @@ func writeGovernedActionEntitlementDenial(e *httpx.Event, err error) error {
 	env := denial.Envelope{
 		ErrorCode:        reason,
 		ReasonCode:       reason,
-		Capability:       "techstack.ril.execute",
-		RequiredFeatures: []string{"techstack.ril.execute"},
-		MissingFeatures:  []string{"techstack.ril.grant"},
+		Capability:       "homelab.ril.execute",
+		RequiredFeatures: []string{"homelab.ril.execute"},
+		MissingFeatures:  []string{"homelab.ril.grant"},
 		Retryable:        false,
 		UserGuidance: denial.UserGuidance{
 			Title: "This RIL action cannot run yet",
-			Body:  "Techstack stopped before starting the durable workflow because the required execution grant is missing, expired, or insufficient.",
+			Body:  "Homelab Runtime stopped before starting the durable workflow because the required execution grant is missing, expired, or insufficient.",
 			NextSteps: []string{
 				"Approve the action card with a live delegated grant.",
 				"Retry only after the grant and connector binding are present.",
@@ -364,9 +364,9 @@ func writeGovernedActionEntitlementDenial(e *httpx.Event, err error) error {
 		},
 	}
 	if errors.Is(err, actions.ErrConnectorBindingRequired) || errors.Is(err, actions.ErrConnectorGrantInsufficient) {
-		env.MissingFeatures = []string{"techstack.ril.connector_binding"}
+		env.MissingFeatures = []string{"homelab.ril.connector_binding"}
 		env.UserGuidance.Title = "This RIL action needs a connector binding"
-		env.UserGuidance.Body = "Techstack stopped before starting the durable workflow because the exact connector binding is missing or cannot mutate."
+		env.UserGuidance.Body = "Homelab Runtime stopped before starting the durable workflow because the exact connector binding is missing or cannot mutate."
 		env.UserGuidance.NextSteps = []string{
 			"Bind the action card to an active connector grant.",
 			"Retry the execute request through Gateway so the signed connector projection is present.",

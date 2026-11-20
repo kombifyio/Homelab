@@ -1,4 +1,4 @@
-// Package auth provides authentication and authorization for kombifyTechstack.
+// Package auth provides authentication and authorization for kombifyHomelab.
 // Implements hybrid auth: mTLS for agents, JWT+Sessions for users, API keys for CLI.
 package auth
 

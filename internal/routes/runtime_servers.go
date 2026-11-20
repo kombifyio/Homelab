@@ -11,17 +11,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/portinventory"
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/guardposture"
-	"github.com/kombifyio/techstack/pkg/guardpower"
-	"github.com/kombifyio/techstack/pkg/guardreach"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
-	"github.com/kombifyio/techstack/pkg/outcome"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
+	"github.com/kombifyio/homelab/internal/portinventory"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/guardposture"
+	"github.com/kombifyio/homelab/pkg/guardpower"
+	"github.com/kombifyio/homelab/pkg/guardreach"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/outcome"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 )
 
 type ServerRuntimeRouteConfig struct {
@@ -325,7 +325,7 @@ func (h serverRuntimeHandlers) detach(e *httpx.Event) error {
 	if !ok {
 		return httpx.Unauthorized(e, "Authentication required")
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.servers.detach")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.servers.detach")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -376,7 +376,7 @@ func (h serverRuntimeHandlers) detach(e *httpx.Event) error {
 //
 // The Wallet owner is the server's recorded owner: DetachSelfOwnedServer
 // refuses anyone but the server's OwnerSubjectID, so ownerID is that owner,
-// not merely whoever is signed in. Techstack does not record which Wallet
+// not merely whoever is signed in. Homelab does not record which Wallet
 // owner each delivery to the server was made for (deliveries use the stack
 // owner); a delivery made from another owner's Wallet, such as a stack owned
 // by someone else in the tenant, is not withdrawn here, and that owner
@@ -409,7 +409,7 @@ func (h serverRuntimeHandlers) list(e *httpx.Event) error {
 	if !ok {
 		return httpx.Unauthorized(e, "Authentication required")
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.servers.list")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.servers.list")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -514,7 +514,7 @@ func serverRuntimeHiddenFromCurrentInventory(server controlplane.ServerRuntime) 
 }
 
 func (h serverRuntimeHandlers) get(e *httpx.Event) error {
-	server, err := h.ownedServer(e, "techstack.servers.read")
+	server, err := h.ownedServer(e, "homelab.servers.read")
 	if err != nil || server == nil {
 		return err
 	}
@@ -547,7 +547,7 @@ func (h serverRuntimeHandlers) reachByWorker(ctx context.Context, tenantID strin
 }
 
 func (h serverRuntimeHandlers) portInventory(e *httpx.Event) error {
-	server, err := h.ownedServer(e, "techstack.servers.read")
+	server, err := h.ownedServer(e, "homelab.servers.read")
 	if err != nil || server == nil {
 		return err
 	}
@@ -568,7 +568,7 @@ func (h serverRuntimeHandlers) portInventory(e *httpx.Event) error {
 }
 
 func (h serverRuntimeHandlers) transitions(e *httpx.Event) error {
-	server, err := h.ownedServer(e, "techstack.servers.transitions")
+	server, err := h.ownedServer(e, "homelab.servers.transitions")
 	if err != nil || server == nil {
 		return err
 	}

@@ -9,11 +9,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/auth/stackkitdecision"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/guardreach"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/auth/stackkitdecision"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/guardreach"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // The producer of the platform's signed decision receipt (platform-8f0n2.20)
@@ -144,7 +144,7 @@ func obtainStackKitDecisionReceipt(ctx context.Context, cfg StackKitLifecycleCon
 				"the operation's authority expires before the Owner could answer; start the operation again")
 		}
 	}
-	operationID := "techstack-" + track.jobID + "-" + facts.Operation
+	operationID := "homelab-" + track.jobID + "-" + facts.Operation
 	filed, err := ledger.FileStackKitDecision(ctx, req.OwnerID, req.TenantID, guardreach.StackKitDecisionFiling{OperationID: operationID, Intent: facts.Intent()})
 	if err != nil {
 		return nil, decisionLedgerRefusal(err, "")
@@ -345,7 +345,7 @@ func requireDecisionReceipt(ctx context.Context, cfg StackKitLifecycleConfig, tr
 // stackKitDecisionIDSafe keeps the ledger operation id inside the ledger's
 // id shape ([A-Za-z0-9][A-Za-z0-9._:-]{3,127}).
 func stackKitDecisionIDSafe(jobID string) bool {
-	if jobID == "" || len("techstack-"+jobID+"-"+stackkitdecision.OperationAdvancedChangeSetApply) > 128 {
+	if jobID == "" || len("homelab-"+jobID+"-"+stackkitdecision.OperationAdvancedChangeSetApply) > 128 {
 		return false
 	}
 	for _, r := range jobID {
@@ -407,7 +407,7 @@ func requireDecisionReceiptNode(ctx context.Context, req StackKitLifecycleReques
 
 // stackKitDecisionLedger is the process-wide ledger client, installed at
 // startup with the same Gateway service identity and key the RIL decisions
-// use (cmd/techstack). A config's own DecisionLedger takes precedence.
+// use (cmd/homelab). A config's own DecisionLedger takes precedence.
 var stackKitDecisionLedger atomic.Pointer[StackKitDecisionLedger]
 
 // SetStackKitDecisionLedger installs the decision ledger client; nil removes

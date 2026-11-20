@@ -7,17 +7,17 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/auth"
 )
 
-// ValueEncoding says how the Techstack wallet stored one value.
+// ValueEncoding says how the Homelab wallet stored one value.
 type ValueEncoding string
 
 const (
 	// ValueAbsent means the row carries no value in this field.
 	ValueAbsent ValueEncoding = "absent"
 	// ValueEncryptedV1 is an enc:v1: AES-256-GCM envelope under
-	// TECHSTACK_ENCRYPTION_KEY.
+	// HOMELAB_ENCRYPTION_KEY.
 	ValueEncryptedV1 ValueEncoding = "enc_v1"
 	// ValuePlaintext is stored as written: legacy plaintext for a secret or
 	// TOTP field, the normal form for usernames, public keys and notes.
@@ -41,7 +41,7 @@ var (
 // holding a SourceValue in an unexported field shows an address, not content.
 type rawValue struct{ stored string }
 
-// SourceValue is one value exactly as the Techstack wallet stored it. It never
+// SourceValue is one value exactly as the Homelab wallet stored it. It never
 // formats, marshals or logs its content: every printing path renders a
 // redaction that names only the encoding. Open is the only way to read it.
 type SourceValue struct {

@@ -6,11 +6,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/tenantdb"
+	"github.com/kombifyio/homelab/internal/gocommon/tenantdb"
 	"github.com/jackc/pgx/v5"
 )
 
-// RuntimeSystemRole is the hosted login for Techstack system work that carries
+// RuntimeSystemRole is the hosted login for Homelab system work that carries
 // no Edge-signed database context: background loops, Guard ingress, Cloud
 // service-to-service routes and the Guard gRPC listener. It holds the same
 // finite object capability as HostedApplicationRole, is registered as a system
@@ -23,7 +23,7 @@ const RuntimeSystemRole = "techstack_runtime_system"
 // EnvRuntimeSystemDatabaseURL is the system login's DSN in every hosted
 // runtime. Native Local and Guard serve through their single product-native
 // login and never receive it.
-const EnvRuntimeSystemDatabaseURL = "TECHSTACK_RUNTIME_SYSTEM_DATABASE_URL"
+const EnvRuntimeSystemDatabaseURL = "HOMELAB_RUNTIME_SYSTEM_DATABASE_URL"
 
 var errRuntimeSystemCustody = errors.New("runtime system login requires its distinct verified-transport database custody")
 

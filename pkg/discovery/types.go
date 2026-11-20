@@ -1,4 +1,4 @@
-// Package discovery provides network device discovery functionality for kombifyTechstack.
+// Package discovery provides network device discovery functionality for kombifyHomelab.
 // It supports passive (ARP/Ping), active (port scan), and deep (SSH probe) discovery.
 package discovery
 
@@ -46,7 +46,7 @@ const (
 type DeviceRole string
 
 const (
-	RoleMain    DeviceRole = "main"    // Primary kombifyTechstack controller
+	RoleMain    DeviceRole = "main"    // Primary kombifyHomelab controller
 	RoleWorker  DeviceRole = "worker"  // Worker node
 	RoleStorage DeviceRole = "storage" // Storage-focused node
 	RoleUtility DeviceRole = "utility" // Utility services (DNS, monitoring)
@@ -248,8 +248,8 @@ func DefaultActivePorts() []int {
 		1900, // UPnP/SSDP (gateway indicator)
 		2375, // Docker (unencrypted)
 		2376, // Docker (TLS)
-		5260, // kombifyTechstack Core
-		5263, // kombifyTechstack gRPC
+		5260, // kombifyHomelab Core
+		5263, // kombifyHomelab gRPC
 		6443, // Kubernetes API
 		8006, // Proxmox VE
 		8080, // HTTP Alt

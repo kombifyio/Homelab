@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 var ErrPlanExecutionBindingMissing = errors.New("the inspected plan has no native local Owner binding projection")

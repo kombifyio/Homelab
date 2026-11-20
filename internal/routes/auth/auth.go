@@ -2,9 +2,9 @@
 package auth
 
 import (
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
 )
 
 // RouteConfig carries optional auth route dependencies that are only available

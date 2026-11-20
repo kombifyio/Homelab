@@ -14,31 +14,31 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/db"
+	"github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/db"
 
 	wire "github.com/kombifyio/stackkits/contracts/advancedcapability"
 )
 
 // EnvIssuerKey overrides the stored installation key with an unpadded
 // standard-Base64 32-byte Ed25519 seed. It exists for tests and local
-// development only and is refused unless TECHSTACK_ENV names one of them.
-const EnvIssuerKey = "TECHSTACK_ADVANCED_ISSUER_KEY"
+// development only and is refused unless HOMELAB_ENV names one of them.
+const EnvIssuerKey = "HOMELAB_ADVANCED_ISSUER_KEY"
 
 // TrustedIssuerID is the only Advanced issuer id StackKits accepts
 // (advancedcapability.TrustedIssuerID). The stored issuer_id
-// ("techstack.<uuid>") stays the installation label that governed preparation
+// ("homelab.<uuid>") stays the installation label that governed preparation
 // and Delivery attest; it is never presented on the wire, or every signed
 // Advanced operation is denied as advanced_capability_untrusted_key. The key id
 // derives from the public key alone, so both name the same identity.
-const TrustedIssuerID = "techstack"
+const TrustedIssuerID = "homelab"
 
 // ErrTrustBindingMissing reports that a deployment's host has not imported
 // this installation's trust bundle yet.
 var ErrTrustBindingMissing = errors.New("advanced trust binding is not recorded for this deployment")
 
 // PostgresStore keeps the installation key encrypted at rest with the
-// TECHSTACK_ENCRYPTION_KEY secret encryptor and records issuances and trust
+// HOMELAB_ENCRYPTION_KEY secret encryptor and records issuances and trust
 // bindings under tenant RLS.
 type PostgresStore struct {
 	db        *db.DB
@@ -86,7 +86,7 @@ func (store *PostgresStore) LoadOrCreateKey(ctx context.Context) (string, ed2551
 	if err != nil {
 		return "", nil, fmt.Errorf("encrypt advanced issuer key: %w", err)
 	}
-	issuerID := "techstack." + uuid.NewString()
+	issuerID := "homelab." + uuid.NewString()
 	if _, err := store.keyDB.ExecContext(ctx, `
 		INSERT INTO advanced_issuer_keys (singleton, issuer_id, key_id, public_key, private_key_enc)
 		VALUES (true, $1, $2, $3, $4)
@@ -205,7 +205,7 @@ func openStore(ctx context.Context, store *PostgresStore, err error) (*Issuer, e
 		return nil, err
 	}
 	if override := strings.TrimSpace(os.Getenv(EnvIssuerKey)); override != "" {
-		if !envOverrideAllowed(os.Getenv("TECHSTACK_ENV")) {
+		if !envOverrideAllowed(os.Getenv("HOMELAB_ENV")) {
 			return nil, fmt.Errorf("%s is for tests and local development only", EnvIssuerKey)
 		}
 		key, seedErr := keyFromSeed(override)

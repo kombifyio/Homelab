@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
 )
 
 // walletHostDeliveryAdapter seals kombify Wallet items to StackKits nodes for

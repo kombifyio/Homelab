@@ -10,12 +10,12 @@ import (
 	"time"
 )
 
-// Techstack-owned worker keys of StackKits update management (D-2026-11-02-03).
+// Homelab-owned worker keys of StackKits update management (D-2026-11-02-03).
 // Heartbeats and Guard inventory never replace them.
 const (
 	// WorkerStackKitsUpdateBehaviorResourceKey holds the node's update setting.
 	WorkerStackKitsUpdateBehaviorResourceKey = "stackkits_update_behavior"
-	// WorkerStackKitsUpdateAttemptResourceKey holds the one update Techstack
+	// WorkerStackKitsUpdateAttemptResourceKey holds the one update Homelab
 	// started without a click: automatically or as a security patch.
 	WorkerStackKitsUpdateAttemptResourceKey = "stackkits_update_attempt"
 )
@@ -23,7 +23,7 @@ const (
 // Update settings of a node (D-2026-11-12-06), one setting for the StackKits
 // release and the applications it manages. The default is ask.
 //
-//   - ask: Techstack proposes; the owner approves a StackKits release, and a
+//   - ask: Homelab proposes; the owner approves a StackKits release, and a
 //     checked (tested) application version is offered with one click.
 //   - automatic: a StackKits release starts without a click; checked
 //     application versions apply in the maintenance window.
@@ -47,7 +47,7 @@ func ValidStackKitsUpdateBehavior(behavior string) bool {
 	return false
 }
 
-// Triggers of an update Techstack starts without a click.
+// Triggers of an update Homelab starts without a click.
 const (
 	StackKitsUpdateTriggerAutomatic = "automatic"
 	StackKitsUpdateTriggerSecurity  = "security"
@@ -60,7 +60,7 @@ type WorkerStackKitsUpdateBehavior struct {
 	SetAt    time.Time `json:"set_at"`
 }
 
-// WorkerStackKitsUpdateAttempt is the update Techstack started for a release
+// WorkerStackKitsUpdateAttempt is the update Homelab started for a release
 // without a click. One release is started at most once this way; a failed one
 // waits for the owner's Approve.
 type WorkerStackKitsUpdateAttempt struct {
@@ -102,7 +102,7 @@ func WorkerStackKitsUpdateBehaviorOf(worker *Worker) WorkerStackKitsUpdateBehavi
 	return behavior
 }
 
-// WorkerStackKitsUpdateAttemptOf reads the update Techstack started without a click.
+// WorkerStackKitsUpdateAttemptOf reads the update Homelab started without a click.
 func WorkerStackKitsUpdateAttemptOf(worker *Worker) (WorkerStackKitsUpdateAttempt, bool) {
 	var attempt WorkerStackKitsUpdateAttempt
 	if worker == nil || !decodeWorkerResource(worker.Resources[WorkerStackKitsUpdateAttemptResourceKey], &attempt) || strings.TrimSpace(attempt.Version) == "" {

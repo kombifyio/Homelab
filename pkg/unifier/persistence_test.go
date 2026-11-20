@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 func TestNewSpecPersister(t *testing.T) {
@@ -57,8 +57,8 @@ func TestSpecPersister_SaveRequirementsSpec(t *testing.T) {
 		t.Fatalf("LoadRequirementsSpec failed: %v", err)
 	}
 
-	if loaded.APIVersion != "techstack/v1" {
-		t.Errorf("APIVersion = %q, want %q", loaded.APIVersion, "techstack/v1")
+	if loaded.APIVersion != "homelab/v1" {
+		t.Errorf("APIVersion = %q, want %q", loaded.APIVersion, "homelab/v1")
 	}
 	if loaded.Kind != "RequirementsSpec" {
 		t.Errorf("Kind = %q, want %q", loaded.Kind, "RequirementsSpec")
@@ -100,8 +100,8 @@ func TestSpecPersister_SaveUnifiedSpec(t *testing.T) {
 	if loaded.Name != "my-homelab" {
 		t.Errorf("Name = %q, want %q", loaded.Name, "my-homelab")
 	}
-	if loaded.APIVersion != "techstack/v1" {
-		t.Errorf("APIVersion = %q, want %q", loaded.APIVersion, "techstack/v1")
+	if loaded.APIVersion != "homelab/v1" {
+		t.Errorf("APIVersion = %q, want %q", loaded.APIVersion, "homelab/v1")
 	}
 }
 

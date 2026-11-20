@@ -1,4 +1,4 @@
-// Package routes provides REST API routes for kombifyTechstack.
+// Package routes provides REST API routes for kombifyHomelab.
 // This file contains tunnel management routes for Sprint 14 (Seamless Networking).
 package routes
 
@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	"github.com/kombifyio/techstack/internal/routes/trust"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/tunnel"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	"github.com/kombifyio/homelab/internal/routes/trust"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/tunnel"
 )
 
 // RegisterTunnelRoutes registers tunnel management routes.
@@ -166,7 +166,7 @@ func RegisterTunnelRoutes(r *httpx.Router, resolver *tunnel.RegistryURLResolver,
 
 // tunnelInstallCommand answers the install commands for a new server. A
 // caller that names no pairing token gets a fresh one minted for it, so an
-// agent never handles a token it did not receive from Techstack.
+// agent never handles a token it did not receive from Homelab.
 func tunnelInstallCommand(e *httpx.Event, resolver *tunnel.RegistryURLResolver, pairing trust.RouteStores) error {
 	if e.Request.Method != http.MethodPost {
 		return httpx.MethodNotAllowed(e, e.Request.Method)
@@ -212,7 +212,7 @@ func tunnelInstallCommand(e *httpx.Event, resolver *tunnel.RegistryURLResolver, 
 				"reason_code": "pairing_token_authority_unavailable", "retryable": true,
 			})
 		}
-		tenantID, err := tenantguard.TenantScope(requestExplicitTenantID(e), userID, "techstack.trust.pairing-tokens.create")
+		tenantID, err := tenantguard.TenantScope(requestExplicitTenantID(e), userID, "homelab.trust.pairing-tokens.create")
 		if err != nil {
 			return err
 		}

@@ -5,8 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // Losing the native auth store must not revive a local database or admit

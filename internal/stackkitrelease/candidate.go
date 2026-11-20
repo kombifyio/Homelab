@@ -5,7 +5,7 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/kombifyio/techstack/pkg/guardrelease"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
 )
 
 // StageCandidateAssignment is native factory configuration for one synthetic

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/nodehandoff"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/nodehandoff"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 )
 
 var (

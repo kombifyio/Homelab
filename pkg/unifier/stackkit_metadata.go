@@ -7,14 +7,14 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
 )
 
 func stackKitMetadataAuthority(explicit ...string) (string, error) {
 	if len(explicit) > 0 && strings.TrimSpace(explicit[0]) != "" {
 		return secureExistingDir(explicit[0])
 	}
-	for _, name := range []string{"TECHSTACK_STACKKITS_DIR", "STACKKITS_REPO", "STACKKITS_PATH"} {
+	for _, name := range []string{"HOMELAB_STACKKITS_DIR", "STACKKITS_REPO", "STACKKITS_PATH"} {
 		if directory := strings.TrimSpace(os.Getenv(name)); directory != "" {
 			root, err := secureExistingDir(directory)
 			if err != nil {

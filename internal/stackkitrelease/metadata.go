@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardrelease"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
 )
 
 // ResolveLinuxRuntimeMetadata preserves the managed node's signed release
@@ -126,9 +126,9 @@ func ResolveLinuxRuntimeMetadata(dir string) (Release, error) {
 // image-pinned catalog that the artifact route uses. The catalog's manifest
 // digest anchors the seed copied into this target metadata directory.
 func admitPinnedOuterRuntimeArchive(seedRaw []byte, current *guardrelease.Manifest) error {
-	indexPath := strings.TrimSpace(os.Getenv("TECHSTACK_ARTIFACT_INDEX_PATH"))
-	want := strings.TrimSpace(os.Getenv("TECHSTACK_ARTIFACT_INDEX_SHA256"))
-	if digestPath := strings.TrimSpace(os.Getenv("TECHSTACK_ARTIFACT_INDEX_SHA256_FILE")); digestPath != "" {
+	indexPath := strings.TrimSpace(os.Getenv("HOMELAB_ARTIFACT_INDEX_PATH"))
+	want := strings.TrimSpace(os.Getenv("HOMELAB_ARTIFACT_INDEX_SHA256"))
+	if digestPath := strings.TrimSpace(os.Getenv("HOMELAB_ARTIFACT_INDEX_SHA256_FILE")); digestPath != "" {
 		bound, err := readBoundedRegularFile(digestPath, 65)
 		if err != nil {
 			return fmt.Errorf("managed runtime index digest: %w", err)
@@ -162,7 +162,7 @@ func admitPinnedOuterRuntimeArchive(seedRaw []byte, current *guardrelease.Manife
 			Filename string `json:"filename"`
 		} `json:"artifacts"`
 	}
-	if err := decodeStrict(raw, &index); err != nil || index.Schema != "techstack.artifact-index/v1" ||
+	if err := decodeStrict(raw, &index); err != nil || index.Schema != "homelab.artifact-index/v1" ||
 		index.ReleaseVersion != current.Version || index.ManifestSHA256 != fmt.Sprintf("%x", sha256.Sum256(seedRaw)) ||
 		len(index.Artifacts) == 0 || len(index.Artifacts) > 4 {
 		return fmt.Errorf("managed runtime index does not match the signed release seed")

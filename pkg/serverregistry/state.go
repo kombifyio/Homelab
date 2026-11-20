@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/runtimehealth"
+	"github.com/kombifyio/homelab/pkg/runtimehealth"
 )
 
 type LifecycleState string

@@ -17,7 +17,7 @@ import (
 // command evidence of one tenant may be bound to another tenant only after that
 // evidence left the Guard's state: the prior tenant's custodian (its owner)
 // confirms an export or a quarantine in the control plane and receives a
-// one-time confirmation; on the server, `techstack agent handoff` writes the
+// one-time confirmation; on the server, `homelab agent handoff` writes the
 // prior tenant's journal entries, outcomes and identity state to a root-only
 // archive outside the Guard state, removes them from the state securely and
 // records a receipt. The re-pairing Guard declares what it still holds and
@@ -88,7 +88,7 @@ func NewHandoffConfirmation(tenantID, disposition string, now time.Time) (Handof
 }
 
 // Token encodes the confirmation as the single string the operator passes to
-// `techstack agent handoff --confirmation`.
+// `homelab agent handoff --confirmation`.
 func (c HandoffConfirmation) Token() string {
 	raw, _ := json.Marshal(c)
 	return confirmationTokenPrefix + base64.RawURLEncoding.EncodeToString(raw)
@@ -241,7 +241,7 @@ func (p *PriorCustody) AdmitRebind(tenantID string, custodyTenants []string, key
 	}
 	for _, held := range declared.HeldTenants {
 		if strings.TrimSpace(held) != tenantID {
-			return nil, Denyf(CodeTenantHandoffRequired, "this server still holds command evidence of another tenant; its owner must confirm an export or quarantine and the operator must run `techstack agent handoff` first")
+			return nil, Denyf(CodeTenantHandoffRequired, "this server still holds command evidence of another tenant; its owner must confirm an export or quarantine and the operator must run `homelab agent handoff` first")
 		}
 	}
 	if len(declared.Receipts) > MaxHandoffReceipts {
@@ -269,7 +269,7 @@ func (p *PriorCustody) AdmitRebind(tenantID string, custodyTenants []string, key
 	}
 	for _, custody := range custodyTenants {
 		if custody = strings.TrimSpace(custody); custody != "" && custody != tenantID && !covered[custody] {
-			return nil, Denyf(CodeTenantHandoffRequired, "this server's key served another tenant; its owner must confirm an export or quarantine and the operator must run `techstack agent handoff` before it can be paired here")
+			return nil, Denyf(CodeTenantHandoffRequired, "this server's key served another tenant; its owner must confirm an export or quarantine and the operator must run `homelab agent handoff` before it can be paired here")
 		}
 	}
 	return consume, nil

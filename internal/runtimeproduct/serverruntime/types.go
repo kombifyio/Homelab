@@ -1,4 +1,4 @@
-// Package serverruntime owns Techstack-specific managed-runtime product state.
+// Package serverruntime owns Homelab-specific managed-runtime product state.
 // These provider, billing, feature and SSH projections are intentionally not
 // part of the shared neutral runtime contracts.
 package serverruntime
@@ -12,11 +12,11 @@ type BillingCadence string
 const BillingCadenceMonthly BillingCadence = "monthly"
 
 const (
-	RuntimeLaneMonthly                    = "monthly-runtime"
-	FeatureTechStackMonthlyRuntime        = "techstack_monthly_runtime"
-	FeatureTechStackMonthlyRuntimeCentron = "techstack_monthly_runtime_centron"
-	FeatureTechStackMonthlyRuntimeIONOS   = "techstack_monthly_runtime_ionos"
-	FeatureTechStackMonthlyRuntimeBaseKit = "techstack_monthly_runtime_basekit"
+	RuntimeLaneMonthly                  = "monthly-runtime"
+	FeatureHomelabMonthlyRuntime        = "homelab_monthly_runtime"
+	FeatureHomelabMonthlyRuntimeCentron = "homelab_monthly_runtime_centron"
+	FeatureHomelabMonthlyRuntimeIONOS   = "homelab_monthly_runtime_ionos"
+	FeatureHomelabMonthlyRuntimeBaseKit = "homelab_monthly_runtime_basekit"
 )
 
 type RuntimeOfferingID string

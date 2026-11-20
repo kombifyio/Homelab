@@ -1,4 +1,4 @@
-// Package middleware provides HTTP middleware components for kombifyTechstack.
+// Package middleware provides HTTP middleware components for kombifyHomelab.
 package middleware
 
 import (
@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 const (

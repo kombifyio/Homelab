@@ -1,5 +1,5 @@
 param(
-    [string]$InstallDir = "$env:LOCALAPPDATA\Programs\kombify\techstack",
+    [string]$InstallDir = "$env:LOCALAPPDATA\Programs\kombify\homelab",
     [string]$StateDir = "$env:LOCALAPPDATA\kombify\techstack-client",
     [switch]$RemoveState,
     [switch]$WhatIf
@@ -77,9 +77,11 @@ foreach ($process in $processes) {
 }
 
 $shortcutPaths = @(
+    (Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\kombify\Homelab Runtime Desktop Client.lnk"),
+    (Join-Path ([Environment]::GetFolderPath("Desktop")) "Homelab Runtime Desktop Client.lnk"),
+    # Shortcuts written by releases before the rename ("Techstack Client") and before the product name lost its prefix ("kombify TechStack Client").
     (Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\kombify\Techstack Client.lnk"),
     (Join-Path ([Environment]::GetFolderPath("Desktop")) "Techstack Client.lnk"),
-    # Shortcuts written before the product name lost its prefix.
     (Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\kombify\kombify TechStack Client.lnk"),
     (Join-Path ([Environment]::GetFolderPath("Desktop")) "kombify TechStack Client.lnk")
 )
@@ -126,7 +128,7 @@ if (Test-Path -LiteralPath $resolvedInstall) {
 }
 
 if ($RemoveState) {
-    Write-Host "Techstack Client uninstalled with state removal."
+    Write-Host "Homelab Runtime Desktop Client uninstalled with state removal."
 } else {
-    Write-Host "Techstack Client uninstalled; state and Credential Manager entries preserved at $resolvedState"
+    Write-Host "Homelab Runtime Desktop Client uninstalled; state and Credential Manager entries preserved at $resolvedState"
 }

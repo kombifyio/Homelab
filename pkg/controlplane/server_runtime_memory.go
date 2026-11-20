@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/outcome"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/outcome"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 )
 
 func (s *MemoryStore) UpsertServerRuntime(_ context.Context, server ServerRuntime) (*ServerRuntime, error) {

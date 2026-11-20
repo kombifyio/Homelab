@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/config"
+	"github.com/kombifyio/homelab/pkg/config"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,9 +41,9 @@ func TestApplyPlatformAuthPolicy_LeavesSelfHostedUntouched(t *testing.T) {
 }
 
 func TestApplySelfHostedCloudLoginGate_FallsBackToLocalWithoutEnrollment(t *testing.T) {
-	t.Setenv("TECHSTACK_PUBLIC_ORIGIN", "https://stack.example.com")
-	t.Setenv("TECHSTACK_SELFHOSTED_CLOUD_LOGIN_TOKEN", "")
-	t.Setenv("TECHSTACK_SELFHOSTED_CLOUD_LOGIN_PUBLIC_KEY", "")
+	t.Setenv("HOMELAB_PUBLIC_ORIGIN", "https://stack.example.com")
+	t.Setenv("HOMELAB_SELFHOSTED_CLOUD_LOGIN_TOKEN", "")
+	t.Setenv("HOMELAB_SELFHOSTED_CLOUD_LOGIN_PUBLIC_KEY", "")
 
 	response := AuthModeResponse{
 		Mode:            "cloud",
@@ -69,12 +69,12 @@ func TestResolveCloudAuthorizationURL_UsesEnvFallback(t *testing.T) {
 	t.Setenv("AUTH0_ISSUER", "login.kombify.io")
 	t.Setenv("AUTH0_CLIENT_ID", "test-client-id")
 
-	req := httptest.NewRequest(http.MethodGet, "https://techstack.kombify.io/api/v1/auth/mode", nil)
-	req.Host = "techstack.kombify.io"
+	req := httptest.NewRequest(http.MethodGet, "https://homelab.kombify.io/api/v1/auth/mode", nil)
+	req.Host = "homelab.kombify.io"
 
 	authURL := resolveCloudAuthorizationURL(req)
 	if assert.NotNil(t, authURL) {
-		assert.Equal(t, "https://techstack.kombify.io/api/v2/auth/login", *authURL)
+		assert.Equal(t, "https://homelab.kombify.io/api/v2/auth/login", *authURL)
 	}
 }
 
@@ -82,17 +82,17 @@ func TestResolveCloudAuthorizationURL_UsesAuth0IssuerFallback(t *testing.T) {
 	t.Setenv("AUTH0_ISSUER", "login.kombify.io")
 	t.Setenv("AUTH0_CLIENT_ID", "legacy-client-id")
 
-	req := httptest.NewRequest(http.MethodGet, "https://techstack.kombify.io/api/v1/auth/mode", nil)
-	req.Host = "techstack.kombify.io"
+	req := httptest.NewRequest(http.MethodGet, "https://homelab.kombify.io/api/v1/auth/mode", nil)
+	req.Host = "homelab.kombify.io"
 
 	authURL := resolveCloudAuthorizationURL(req)
 	if assert.NotNil(t, authURL) {
-		assert.Equal(t, "https://techstack.kombify.io/api/v2/auth/login", *authURL)
+		assert.Equal(t, "https://homelab.kombify.io/api/v2/auth/login", *authURL)
 	}
 }
 
 func TestCloudIssuerFromEnvDefaultsToLoginKombify(t *testing.T) {
-	t.Setenv("TECHSTACK_AUTH_CLOUD_ISSUER", "")
+	t.Setenv("HOMELAB_AUTH_CLOUD_ISSUER", "")
 	t.Setenv("AUTH0_DOMAIN", "")
 	t.Setenv("AUTH0_ISSUER", "")
 
@@ -100,7 +100,7 @@ func TestCloudIssuerFromEnvDefaultsToLoginKombify(t *testing.T) {
 }
 
 func TestCloudIssuerFromEnvUsesCanonicalConfiguredIssuer(t *testing.T) {
-	t.Setenv("TECHSTACK_AUTH_CLOUD_ISSUER", "https://login.kombify.io/")
+	t.Setenv("HOMELAB_AUTH_CLOUD_ISSUER", "https://login.kombify.io/")
 	t.Setenv("AUTH0_DOMAIN", "")
 	t.Setenv("AUTH0_ISSUER", "")
 
@@ -108,8 +108,8 @@ func TestCloudIssuerFromEnvUsesCanonicalConfiguredIssuer(t *testing.T) {
 }
 
 func TestBuildOAuthLogoutURL_UsesOIDCEndpoint(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "https://techstack.kombify.io/auth/logout", nil)
-	req.Host = "techstack.kombify.io"
+	req := httptest.NewRequest(http.MethodGet, "https://homelab.kombify.io/auth/logout", nil)
+	req.Host = "homelab.kombify.io"
 
 	logoutURL := buildOAuthLogoutURL(
 		config.DefaultCloudAuthIssuer,
@@ -120,11 +120,11 @@ func TestBuildOAuthLogoutURL_UsesOIDCEndpoint(t *testing.T) {
 	assert.Contains(t, logoutURL, "https://login.kombify.io/oidc/logout")
 	assert.Contains(t, logoutURL, "client_id=test-client-id")
 	assert.Contains(t, logoutURL, "post_logout_redirect_uri=")
-	assert.Contains(t, logoutURL, "https%3A%2F%2Ftechstack.kombify.io%2Flogin%3Flogged_out%3D1")
+	assert.Contains(t, logoutURL, "https%3A%2F%2Fhomelab.kombify.io%2Flogin%3Flogged_out%3D1")
 }
 
 func TestBuildOAuthLogoutURL_UsesPublicOriginForLoopbackHosts(t *testing.T) {
-	t.Setenv("TECHSTACK_PUBLIC_ORIGIN", "https://techstack.kombify.io")
+	t.Setenv("HOMELAB_PUBLIC_ORIGIN", "https://homelab.kombify.io")
 
 	req := httptest.NewRequest(http.MethodGet, "http://127.0.0.1:5262/auth/logout", nil)
 	req.Host = "127.0.0.1:5262"
@@ -135,12 +135,12 @@ func TestBuildOAuthLogoutURL_UsesPublicOriginForLoopbackHosts(t *testing.T) {
 		req,
 	)
 
-	assert.Contains(t, logoutURL, "post_logout_redirect_uri=https%3A%2F%2Ftechstack.kombify.io%2Flogin%3Flogged_out%3D1")
+	assert.Contains(t, logoutURL, "post_logout_redirect_uri=https%3A%2F%2Fhomelab.kombify.io%2Flogin%3Flogged_out%3D1")
 	assert.NotContains(t, logoutURL, "127.0.0.1%3A5262")
 }
 
 func TestRedirectOriginDoesNotInventLocalhost(t *testing.T) {
-	t.Setenv("TECHSTACK_PUBLIC_ORIGIN", "")
+	t.Setenv("HOMELAB_PUBLIC_ORIGIN", "")
 	t.Setenv("PUBLIC_ORIGIN", "")
 	t.Setenv("APP_PUBLIC_ORIGIN", "")
 	t.Setenv("APP_URL", "")

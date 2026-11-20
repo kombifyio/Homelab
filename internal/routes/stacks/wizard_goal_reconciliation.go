@@ -9,10 +9,10 @@ import (
 	"sort"
 	"strings"
 
-	productnotifications "github.com/kombifyio/techstack/internal/notifications"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/logger"
-	"github.com/kombifyio/techstack/pkg/specv2"
+	productnotifications "github.com/kombifyio/homelab/internal/notifications"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/specv2"
 )
 
 const wizardGoalActivationTopic = "product.news"
@@ -150,7 +150,7 @@ func (h wizardRunHandlers) enqueueWizardGoalActivationNotifications(ctx context.
 	}
 	release := strings.TrimSpace(h.cfg.ReleaseVersion)
 	for _, goal := range run.activatedGoals {
-		key := fmt.Sprintf("techstack-wizard-goal-activated:%s:%s:%s:%s", run.tenantID, run.homelab.ID, release, goal)
+		key := fmt.Sprintf("homelab-wizard-goal-activated:%s:%s:%s:%s", run.tenantID, run.homelab.ID, release, goal)
 		err := h.cfg.NotificationOutbox.Enqueue(ctx, productnotifications.ProductEvent{
 			Topic:          wizardGoalActivationTopic,
 			Channel:        "in_app",
@@ -165,7 +165,7 @@ func (h wizardRunHandlers) enqueueWizardGoalActivationNotifications(ctx context.
 				"release":    release,
 				"homelab_id": run.homelab.ID,
 				"stack_id":   stackID,
-				"source_app": "techstack",
+				"source_app": "homelab",
 				"event_key":  "wizard.goal_activated",
 				"link_url":   "/dashboard",
 			},

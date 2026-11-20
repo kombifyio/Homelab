@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/runtimeconvergence"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/runtimeconvergence"
 )
 
 func normalizeRuntimeConvergence(snapshot **runtimeconvergence.Snapshot) error {

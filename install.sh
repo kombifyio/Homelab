@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# Techstack Installer Script
-# Usage: curl -fsSL https://raw.githubusercontent.com/kombifyio/TechStack/main/install.sh | sh
+# Homelab Installer Script
+# Usage: curl -fsSL https://raw.githubusercontent.com/kombifyio/Homelab/main/install.sh | sh
 
 set -e
 
@@ -13,11 +13,11 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO="kombifyio/TechStack"
-BINARY_NAME="techstack"
+REPO="kombifyio/Homelab"
+BINARY_NAME="homelab"
 INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
-OPERATIONS_DIR="${TECHSTACK_OPERATIONS_DIR:-/usr/local/libexec}"
-OPERATIONS_BINARY_NAME="techstack-stackkit-operations"
+OPERATIONS_DIR="${HOMELAB_OPERATIONS_DIR:-/usr/local/libexec}"
+OPERATIONS_BINARY_NAME="homelab-stackkit-operations"
 
 # MIN_SUPPORTED_VERSION is the oldest release whose install path this installer
 # supports. If the public mirror's "latest" release is below it, the mirror is
@@ -25,11 +25,11 @@ OPERATIONS_BINARY_NAME="techstack-stackkit-operations"
 # lockstep with releases that change the install/agent contract.
 MIN_SUPPORTED_VERSION="${MIN_SUPPORTED_VERSION:-0.6.10}"
 
-NO_INSTALL="${TECHSTACK_NO_INSTALL:-0}"
-STAGE_ONLY="${TECHSTACK_STAGE_ONLY:-0}"
+NO_INSTALL="${HOMELAB_NO_INSTALL:-0}"
+STAGE_ONLY="${HOMELAB_STAGE_ONLY:-0}"
 REINSTALL_GUARD="0"
-AS_SERVICE="${TECHSTACK_AS_SERVICE:-}"
-if [ "${TECHSTACK_REGISTRATION_ONLY:-0}" = "1" ]; then
+AS_SERVICE="${HOMELAB_AS_SERVICE:-}"
+if [ "${HOMELAB_REGISTRATION_ONLY:-0}" = "1" ]; then
     AS_SERVICE="0"
 elif [ -z "$AS_SERVICE" ]; then
     if [ -n "${KOMBI_SERVER:-}" ] && [ -n "${KOMBI_TOKEN:-}" ]; then
@@ -164,11 +164,11 @@ usage() {
     echo "  --service         Install and enable SystemD service (Linux only)"
     echo "  --stage-only      Stage the verified server runtime only; no enrollment or service changes"
     echo "  --reinstall-guard Reinstall the Guard of this enrolled server in place (root; keeps its enrollment)"
-    echo "                    TECHSTACK_GUARD_RELEASE_SIGNER=<certificate identity> also requires its cosign signature"
+    echo "                    HOMELAB_GUARD_RELEASE_SIGNER=<certificate identity> also requires its cosign signature"
     echo ""
     echo "A KOMBI_SERVER/KOMBI_TOKEN worker one-liner installs the persistent Guard by default."
     echo "For an already enrolled worker, also set KOMBI_RUNTIME_AGENT_ID and KOMBI_TENANT_ID."
-    echo "Set TECHSTACK_REGISTRATION_ONLY=1 for the legacy one-shot registration behavior."
+    echo "Set HOMELAB_REGISTRATION_ONLY=1 for the legacy one-shot registration behavior."
 }
 
 parse_args() {
@@ -194,14 +194,14 @@ parse_args() {
 }
 
 prepare_existing_runtime_enrollment() {
-    KOMBI_SERVER=${KOMBI_SERVER:-${TECHSTACK_SERVER_URL:-}}
-    KOMBI_TOKEN=${KOMBI_TOKEN:-${TECHSTACK_AGENT_TOKEN:-}}
-    KOMBI_RUNTIME_AGENT_ID=${KOMBI_RUNTIME_AGENT_ID:-${TECHSTACK_RUNTIME_AGENT_ID:-}}
-    KOMBI_TENANT_ID=${KOMBI_TENANT_ID:-${TECHSTACK_TENANT_ID:-}}
-    KOMBI_OWNER_ID=${KOMBI_OWNER_ID:-${TECHSTACK_OWNER_ID:-}}
-    KOMBI_STACK_ID=${KOMBI_STACK_ID:-${TECHSTACK_STACK_ID:-}}
-    KOMBI_LEASE_ID=${KOMBI_LEASE_ID:-${TECHSTACK_LEASE_ID:-}}
-    KOMBI_SERVER_ID=${KOMBI_SERVER_ID:-${TECHSTACK_SERVER_ID:-}}
+    KOMBI_SERVER=${KOMBI_SERVER:-${HOMELAB_SERVER_URL:-}}
+    KOMBI_TOKEN=${KOMBI_TOKEN:-${HOMELAB_AGENT_TOKEN:-}}
+    KOMBI_RUNTIME_AGENT_ID=${KOMBI_RUNTIME_AGENT_ID:-${HOMELAB_RUNTIME_AGENT_ID:-}}
+    KOMBI_TENANT_ID=${KOMBI_TENANT_ID:-${HOMELAB_TENANT_ID:-}}
+    KOMBI_OWNER_ID=${KOMBI_OWNER_ID:-${HOMELAB_OWNER_ID:-}}
+    KOMBI_STACK_ID=${KOMBI_STACK_ID:-${HOMELAB_KIT_DEPLOYMENT_ID:-}}
+    KOMBI_LEASE_ID=${KOMBI_LEASE_ID:-${HOMELAB_LEASE_ID:-}}
+    KOMBI_SERVER_ID=${KOMBI_SERVER_ID:-${HOMELAB_SERVER_ID:-}}
     if [ -z "${KOMBI_RUNTIME_AGENT_ID:-}" ] && [ -z "${KOMBI_TENANT_ID:-}" ]; then
         return 0
     fi
@@ -232,7 +232,7 @@ prepare_existing_runtime_enrollment() {
 }
 
 # enroll_with_guard_binary redeems the pairing capability through the installed
-# Guard binary (`techstack agent enroll`). The Guard generates its identity key on
+# Guard binary (`homelab agent enroll`). The Guard generates its identity key on
 # this server, binds it during redemption, persists the enrollment atomically and
 # deletes the capability once the binding is confirmed, so the credential the
 # control plane issues is bound to this host. Returns 1 when the installed binary
@@ -278,7 +278,7 @@ enroll_with_guard_binary() {
             echo "${GREEN}✓ Worker registered and accepted.${NC}"
         else
             echo "${YELLOW}Worker registered but pending approval in the UI.${NC}"
-            echo "Open the Techstack dashboard and approve the worker to continue."
+            echo "Open the Homelab Runtime dashboard and approve the worker to continue."
         fi
         WORKER_REGISTERED="1"
         GUARD_ENROLLED="1"
@@ -371,14 +371,14 @@ worker_register_if_env_set() {
 
     print_localhost_hint() {
         echo "${YELLOW}Hint:${NC} You are using a localhost URL (${SERVER})." >&2
-        echo "On a worker/VM, localhost refers to that machine (not your Techstack host)." >&2
-        echo "Use the Techstack host's reachable IP/hostname instead (e.g. http://<host-ip>:5260)." >&2
+        echo "On a worker/VM, localhost refers to that machine (not your Homelab Runtime host)." >&2
+        echo "Use the Homelab Runtime host's reachable IP/hostname instead (e.g. http://<host-ip>:5260)." >&2
         if is_likely_vm; then
             echo "${YELLOW}Note:${NC} You appear to be running inside a VM. Replace localhost accordingly." >&2
         fi
     }
 
-    echo "${CYAN}Registering worker with Techstack...${NC}"
+    echo "${CYAN}Registering worker with Homelab...${NC}"
     echo "${CYAN}Server:${NC} ${SERVER}" 
 
     REGISTER_TMP_DIR=$(mktemp -d)
@@ -454,7 +454,7 @@ worker_register_if_env_set() {
         echo "${GREEN}✓ Worker registered and accepted.${NC}"
     elif echo "$RESP" | grep -q '"accepted"[[:space:]]*:[[:space:]]*false'; then
         echo "${YELLOW}Worker registered but pending approval in the UI.${NC}"
-        echo "Open the Techstack dashboard and approve the worker to continue."
+        echo "Open the Homelab Runtime dashboard and approve the worker to continue."
     else
         bootstrap_log error "Worker registration returned an invalid enrollment response."
         echo "${RED}Worker registration response was not recognized.${NC}" >&2
@@ -527,12 +527,12 @@ version_lt() {
 }
 
 # Get the release version to install. Precedence:
-#   1. TECHSTACK_VERSION env  -> explicit pin, no lookup (escape hatch).
+#   1. HOMELAB_VERSION env  -> explicit pin, no lookup (escape hatch).
 #   2. GitHub "latest" release -> validated against MIN_SUPPORTED_VERSION so a
 #      dormant mirror can never silently ship an ancient binary.
 get_latest_version() {
-    if [ -n "${TECHSTACK_VERSION:-}" ]; then
-        LATEST_VERSION="$TECHSTACK_VERSION"
+    if [ -n "${HOMELAB_VERSION:-}" ]; then
+        LATEST_VERSION="$HOMELAB_VERSION"
         echo "${CYAN}Using pinned version: ${LATEST_VERSION}${NC}"
         return 0
     fi
@@ -544,7 +544,7 @@ get_latest_version() {
         echo "${RED}Failed to fetch the latest release from ${REPO}.${NC}" >&2
         echo "${YELLOW}The public release mirror may be unreachable or rate-limited.${NC}" >&2
         echo "${YELLOW}Pin a known version and retry:${NC}" >&2
-        echo "    TECHSTACK_VERSION=v${MIN_SUPPORTED_VERSION} curl -fsSL https://install.techstack.kombify.io | sh" >&2
+        echo "    HOMELAB_VERSION=v${MIN_SUPPORTED_VERSION} curl -fsSL https://install.homelab.kombify.io | sh" >&2
         exit 1
     fi
 
@@ -552,13 +552,13 @@ get_latest_version() {
     # operator explicitly opts in — a dormant mirror serving an old "latest"
     # tag is the exact failure this guards against.
     if version_lt "$LATEST_VERSION" "$MIN_SUPPORTED_VERSION"; then
-        if [ "${TECHSTACK_ALLOW_STALE:-0}" = "1" ]; then
-            echo "${YELLOW}Warning: ${LATEST_VERSION} is below the supported baseline ${MIN_SUPPORTED_VERSION}; proceeding because TECHSTACK_ALLOW_STALE=1.${NC}" >&2
+        if [ "${HOMELAB_ALLOW_STALE:-0}" = "1" ]; then
+            echo "${YELLOW}Warning: ${LATEST_VERSION} is below the supported baseline ${MIN_SUPPORTED_VERSION}; proceeding because HOMELAB_ALLOW_STALE=1.${NC}" >&2
         else
             echo "${RED}Refusing to install stale release ${LATEST_VERSION} (below supported baseline ${MIN_SUPPORTED_VERSION}).${NC}" >&2
             echo "${YELLOW}The public release mirror (${REPO}) appears to be behind. Options:${NC}" >&2
-            echo "    - Pin a specific version:   TECHSTACK_VERSION=v<x.y.z> <installer>" >&2
-            echo "    - Override intentionally:   TECHSTACK_ALLOW_STALE=1 <installer>" >&2
+            echo "    - Pin a specific version:   HOMELAB_VERSION=v<x.y.z> <installer>" >&2
+            echo "    - Override intentionally:   HOMELAB_ALLOW_STALE=1 <installer>" >&2
             exit 1
         fi
     fi
@@ -596,7 +596,7 @@ guard_enrollment_resumable() {
 
 # canonical_arch prints the control plane's name for an architecture. The
 # artifact routes admit only these names at the edge, so a control-plane URL
-# never carries the uname spelling (x86_64 is refused there before Techstack).
+# never carries the uname spelling (x86_64 is refused there before Homelab).
 canonical_arch() {
     case "$1" in
         x86_64|amd64) echo amd64 ;;
@@ -606,13 +606,13 @@ canonical_arch() {
     esac
 }
 
-# pinned_binary_sha256 prints the TECHSTACK_BINARY_SHA256 pin for one
+# pinned_binary_sha256 prints the HOMELAB_BINARY_SHA256 pin for one
 # architecture. The pin is one bare digest or the dashboard's per-architecture
 # list "amd64=<sha256>,arm64=<sha256>"; a list without an entry for this
 # architecture prints nothing, so the caller fails closed.
 pinned_binary_sha256() {
     _pin_arch=$(canonical_arch "$1")
-    _pins=$(printf '%s' "${TECHSTACK_BINARY_SHA256:-}" | tr 'A-F,' 'a-f ')
+    _pins=$(printf '%s' "${HOMELAB_BINARY_SHA256:-}" | tr 'A-F,' 'a-f ')
     _pin=""
     case "$_pins" in
         *=*)
@@ -636,7 +636,7 @@ pinned_binary_sha256() {
 # pairing capability in an HTTPS Authorization header without consuming it;
 # integrity metadata is verified before install and one-time redemption.
 install_binary_from_control_plane() {
-    if [ -z "${KOMBI_SERVER:-}" ] || [ "$OS" != "linux" ] || [ -n "${TECHSTACK_VERSION:-}" ]; then
+    if [ -z "${KOMBI_SERVER:-}" ] || [ "$OS" != "linux" ] || [ -n "${HOMELAB_VERSION:-}" ]; then
         return 1
     fi
     if ! command -v sha256sum >/dev/null 2>&1; then
@@ -649,21 +649,21 @@ install_binary_from_control_plane() {
         exit 1
     fi
 
-    DOWNLOAD_TIMEOUT=${TECHSTACK_BINARY_DOWNLOAD_TIMEOUT:-300}
+    DOWNLOAD_TIMEOUT=${HOMELAB_BINARY_DOWNLOAD_TIMEOUT:-300}
     case "$DOWNLOAD_TIMEOUT" in
         ''|*[!0-9]*)
-            echo "${RED}TECHSTACK_BINARY_DOWNLOAD_TIMEOUT must be a positive number of seconds.${NC}" >&2
+            echo "${RED}HOMELAB_BINARY_DOWNLOAD_TIMEOUT must be a positive number of seconds.${NC}" >&2
             exit 1
             ;;
     esac
     if [ "$DOWNLOAD_TIMEOUT" -le 0 ]; then
-        echo "${RED}TECHSTACK_BINARY_DOWNLOAD_TIMEOUT must be greater than zero.${NC}" >&2
+        echo "${RED}HOMELAB_BINARY_DOWNLOAD_TIMEOUT must be greater than zero.${NC}" >&2
         exit 1
     fi
 
     CONTROL_PLANE_BINARY_URL="${SERVER}/api/v1/agent/binary/${OS}/$(canonical_arch "$ARCH")"
     TMP_DIR=$(mktemp -d)
-    BINARY_TMP="${TMP_DIR}/techstack"
+    BINARY_TMP="${TMP_DIR}/homelab"
     HEADERS_TMP="${TMP_DIR}/headers"
     AUTH_HEADER_TMP="${TMP_DIR}/authorization"
     printf 'Authorization: Bearer %s\n' "$KOMBI_TOKEN" > "$AUTH_HEADER_TMP"
@@ -765,16 +765,16 @@ install_binary_from_control_plane() {
             ;;
     esac
 
-    if [ -n "${TECHSTACK_BINARY_SHA256:-}" ]; then
+    if [ -n "${HOMELAB_BINARY_SHA256:-}" ]; then
         PINNED_SHA256=$(pinned_binary_sha256 "$ARCH")
         if [ "${#PINNED_SHA256}" -ne 64 ]; then
-            echo "${RED}TECHSTACK_BINARY_SHA256 has no valid SHA-256 for ${OS}/${ARCH}.${NC}" >&2
+            echo "${RED}HOMELAB_BINARY_SHA256 has no valid SHA-256 for ${OS}/${ARCH}.${NC}" >&2
             cleanup_control_plane_download
             trap - 0 1 2 15
             exit 1
         fi
         if [ "$PINNED_SHA256" != "$EXPECTED_SHA256" ]; then
-            echo "${RED}The control plane served a Guard binary other than the pinned release (TECHSTACK_BINARY_SHA256).${NC}" >&2
+            echo "${RED}The control plane served a Guard binary other than the pinned release (HOMELAB_BINARY_SHA256).${NC}" >&2
             cleanup_control_plane_download
             trap - 0 1 2 15
             exit 1
@@ -852,7 +852,7 @@ probe_signed_guard_release() {
 
 # verify_release_archive checks a downloaded public-release archive against a
 # SHA-256 before anything from it is extracted or installed. An operator-supplied
-# TECHSTACK_BINARY_SHA256 (obtained out of band) is the authenticating pin. Without
+# HOMELAB_BINARY_SHA256 (obtained out of band) is the authenticating pin. Without
 # it the digest comes from the release's own SHA256SUMS.txt: that detects a
 # corrupt or mismatched download, but it is served by the same origin as the
 # archive and therefore proves transfer integrity only, never authenticity.
@@ -867,13 +867,13 @@ verify_release_archive() {
         echo "${RED}sha256sum or shasum is required to verify the downloaded release archive.${NC}" >&2
         return 1
     fi
-    if [ -n "${TECHSTACK_BINARY_SHA256:-}" ]; then
+    if [ -n "${HOMELAB_BINARY_SHA256:-}" ]; then
         _expected=$(pinned_binary_sha256 "$ARCH")
-        _source="TECHSTACK_BINARY_SHA256"
+        _source="HOMELAB_BINARY_SHA256"
     else
         if ! curl -fsSL "https://github.com/${REPO}/releases/download/${LATEST_VERSION}/SHA256SUMS.txt" -o checksums.txt; then
             echo "${RED}The release publishes no SHA256SUMS.txt, so the archive cannot be verified.${NC}" >&2
-            echo "${YELLOW}Pin the archive digest obtained out of band: TECHSTACK_BINARY_SHA256=<sha256> <installer>${NC}" >&2
+            echo "${YELLOW}Pin the archive digest obtained out of band: HOMELAB_BINARY_SHA256=<sha256> <installer>${NC}" >&2
             return 1
         fi
         _expected=$(awk -v name="$_asset" '$2 == name || $2 == "*" name { digest=tolower($1); n++ } END { if (n == 1) print digest }' checksums.txt)
@@ -901,7 +901,7 @@ install_binary() (
         return 1
     fi
     case "$OS/$ARCH" in
-        linux/x86_64) RUNTIME_ENTRY="techstack-linux-amd64" ;;
+        linux/x86_64) RUNTIME_ENTRY="homelab-linux-amd64" ;;
         *) echo "The public runtime transport supports Linux x86_64. Use the published Compose image, or install.ps1 for Windows x64." >&2; return 1 ;;
     esac
     PRODUCT_VERSION=${LATEST_VERSION#v}
@@ -910,7 +910,7 @@ install_binary() (
         return 1
     fi
     command -v unzip >/dev/null 2>&1 || { echo "Install unzip to extract the published runtime transport, or use the Compose bundle." >&2; return 1; }
-    PUBLIC_ASSET="kombify-techstack-client_${PRODUCT_VERSION}_Windows_x86_64.zip"
+    PUBLIC_ASSET="kombify-homelab-client_${PRODUCT_VERSION}_Windows_x86_64.zip"
     DOWNLOAD_URL="https://github.com/${REPO}/releases/download/v${PRODUCT_VERSION}/${PUBLIC_ASSET}"
     TMP_DIR=$(mktemp -d)
     trap 'rm -rf "$TMP_DIR"' 0
@@ -930,7 +930,7 @@ install_binary() (
     chmod 0755 "$BINARY_NAME"
     if [ "$STAGE_ONLY" != 1 ]; then
         REPORTED_VERSION=$("./$BINARY_NAME" version) || return 1
-        if ! printf '%s\n' "$REPORTED_VERSION" | grep -Fx "kombifyTechstack v${PRODUCT_VERSION}" >/dev/null; then
+        if ! printf '%s\n' "$REPORTED_VERSION" | grep -Fx "kombifyHomelab v${PRODUCT_VERSION}" >/dev/null; then
             echo "The staged server runtime does not report the selected public version; nothing was installed." >&2
             return 1
         fi
@@ -950,12 +950,12 @@ install_binary() (
     else
         RUNTIME_SHA256=$(shasum -a 256 "$INSTALL_DIR/$BINARY_NAME" | awk '{print tolower($1)}')
     fi
-    printf '{"role":"techstack-server","version":"%s","releaseUrl":"%s","asset":"%s","archiveSha256":"%s","digestSource":"%s","entry":"%s","runtimeSha256":"%s"}\n' \
+    printf '{"role":"homelab-server","version":"%s","releaseUrl":"%s","asset":"%s","archiveSha256":"%s","digestSource":"%s","entry":"%s","runtimeSha256":"%s"}\n' \
         "$PRODUCT_VERSION" "${DOWNLOAD_URL%/*}" "$PUBLIC_ASSET" "$_actual" "$_source" "$RUNTIME_ENTRY" "$RUNTIME_SHA256" > receipt.json
     if [ -w "$INSTALL_DIR" ]; then
-        cp receipt.json "$INSTALL_DIR/techstack-install-receipt.json"
+        cp receipt.json "$INSTALL_DIR/homelab-install-receipt.json"
     else
-        sudo cp receipt.json "$INSTALL_DIR/techstack-install-receipt.json"
+        sudo cp receipt.json "$INSTALL_DIR/homelab-install-receipt.json"
     fi
     echo "Verified server runtime staged at ${INSTALL_DIR}/${BINARY_NAME}."
 )
@@ -1168,11 +1168,11 @@ install_systemd_service() {
         return $?
     fi
 
-    # Create techstack user if it doesn't exist
-    if ! getent passwd techstack >/dev/null 2>&1; then
-        echo "${CYAN}Creating techstack system user...${NC}"
+    # Create homelab user if it doesn't exist
+    if ! getent passwd homelab >/dev/null 2>&1; then
+        echo "${CYAN}Creating homelab system user...${NC}"
         if [ -w /etc/passwd ] || command -v sudo >/dev/null 2>&1; then
-            sudo useradd --system --home /var/lib/techstack --shell /usr/sbin/nologin techstack 2>/dev/null || true
+            sudo useradd --system --home /var/lib/techstack --shell /usr/sbin/nologin homelab 2>/dev/null || true
         fi
     fi
 
@@ -1180,13 +1180,13 @@ install_systemd_service() {
     for dir in /var/lib/techstack /var/log/techstack /etc/techstack; do
         if [ ! -d "$dir" ]; then
             sudo mkdir -p "$dir"
-            sudo chown techstack:techstack "$dir" 2>/dev/null || true
+            sudo chown homelab:homelab "$dir" 2>/dev/null || true
         fi
     done
 
     # Download and install service file
-    SERVICE_URL="https://raw.githubusercontent.com/${REPO}/main/packaging/techstack.service"
-    SERVICE_FILE="/lib/systemd/system/techstack.service"
+    SERVICE_URL="https://raw.githubusercontent.com/${REPO}/main/packaging/homelab.service"
+    SERVICE_FILE="/lib/systemd/system/homelab.service"
 
     echo "${CYAN}Downloading service file...${NC}"
     if sudo curl -fsSL "$SERVICE_URL" -o "$SERVICE_FILE"; then
@@ -1195,14 +1195,14 @@ install_systemd_service() {
         
         echo "${GREEN}✓ SystemD service installed${NC}"
         echo ""
-        echo "To start Techstack:"
-        echo "  sudo systemctl start techstack"
+        echo "To start Homelab:"
+        echo "  sudo systemctl start homelab"
         echo ""
         echo "To enable at boot:"
-        echo "  sudo systemctl enable techstack"
+        echo "  sudo systemctl enable homelab"
         echo ""
         echo "To check status:"
-        echo "  sudo systemctl status techstack"
+        echo "  sudo systemctl status homelab"
     else
         echo "${RED}Failed to download service file${NC}"
         echo "You can manually create the service file at $SERVICE_FILE"
@@ -1219,8 +1219,8 @@ install_legacy_guard_unit() {
     umask 077
     cat > "$UNIT_TMP" <<EOF
 [Unit]
-Description=Techstack Guard (outbound HTTPS runtime channel)
-Documentation=https://github.com/kombifyio/TechStack
+Description=Homelab Guard (outbound HTTPS runtime channel)
+Documentation=https://github.com/kombifyio/Homelab
 After=network-online.target
 Wants=network-online.target
 
@@ -1254,11 +1254,11 @@ ReadOnlyPaths=/etc/techstack -/root/my-homelab
 # executors install packages and converge /etc while keeping the enrollment
 # itself read-only through the more-specific ReadOnlyPaths entry above.
 ReadWritePaths=/app /opt /srv /mnt /media ${INSTALL_DIR%/} ${OPERATIONS_DIR} /etc /usr /var /run /root/.docker -/home/kombify/.ssh
-Environment=TECHSTACK_ACCESS_MANIFEST=/opt/stackkit/.stackkit/access.json,/root/my-homelab/.stackkit/access.json
-Environment=TECHSTACK_STACKKIT_RELEASE_PIN=/app/.stackkit/stackkits-release-pin.json
-Environment=TECHSTACK_STACKKIT_RELEASE_CACHE=/var/lib/techstack/.stackkit/releases
-Environment=TECHSTACK_AGENT_EXECUTABLE_PATH=${BINARY_PATH}
-Environment=TECHSTACK_OPERATIONS_EXECUTABLE_PATH=${OPERATIONS_DIR%/}/${OPERATIONS_BINARY_NAME}
+Environment=HOMELAB_ACCESS_MANIFEST=/opt/stackkit/.stackkit/access.json,/root/my-homelab/.stackkit/access.json
+Environment=HOMELAB_STACKKIT_RELEASE_PIN=/app/.stackkit/stackkits-release-pin.json
+Environment=HOMELAB_STACKKIT_RELEASE_CACHE=/var/lib/techstack/.stackkit/releases
+Environment=HOMELAB_AGENT_EXECUTABLE_PATH=${BINARY_PATH}
+Environment=HOMELAB_OPERATIONS_EXECUTABLE_PATH=${OPERATIONS_DIR%/}/${OPERATIONS_BINARY_NAME}
 
 [Install]
 WantedBy=multi-user.target
@@ -1276,7 +1276,7 @@ EOF
 # installed Guard reports the layout as switched; otherwise the caller installs
 # the legacy unit, so a host is never left without a running Guard.
 install_split_guard_layout() {
-    if [ "$SUBSTRATE_HOST" = 1 ] || [ "${TECHSTACK_GUARD_LAYOUT:-split}" = legacy ]; then
+    if [ "$SUBSTRATE_HOST" = 1 ] || [ "${HOMELAB_GUARD_LAYOUT:-split}" = legacy ]; then
         return 1
     fi
     if ! command -v systemctl >/dev/null 2>&1; then
@@ -1390,13 +1390,13 @@ url_origin() {
 }
 
 # verify_guard_signature checks the staged Guard against its release's Sigstore
-# bundle when TECHSTACK_GUARD_RELEASE_SIGNER names the release workflow identity
+# bundle when HOMELAB_GUARD_RELEASE_SIGNER names the release workflow identity
 # (the certificate SAN). The SHA-256 the control plane names is always checked;
 # this also proves the release workflow signed exactly these bytes, and once a
 # signer is named it fails closed.
 verify_guard_signature() {
     _binary=$1
-    if [ -z "${TECHSTACK_GUARD_RELEASE_SIGNER:-}" ]; then
+    if [ -z "${HOMELAB_GUARD_RELEASE_SIGNER:-}" ]; then
         echo "${YELLOW}No release signer named: the Guard is verified by the SHA-256 its control plane names.${NC}"
         return 0
     fi
@@ -1418,14 +1418,14 @@ verify_guard_signature() {
         return 1
     fi
     if ! cosign verify-blob --bundle "$_sig_dir/bundle.json" \
-        --certificate-identity "$TECHSTACK_GUARD_RELEASE_SIGNER" \
+        --certificate-identity "$HOMELAB_GUARD_RELEASE_SIGNER" \
         --certificate-oidc-issuer "$GUARD_RELEASE_ISSUER" "$_binary" >/dev/null 2>&1; then
         rm -rf "$_sig_dir"
-        echo "${RED}cosign (2.4 or later) could not verify the Guard against ${TECHSTACK_GUARD_RELEASE_SIGNER}; nothing was changed.${NC}" >&2
+        echo "${RED}cosign (2.4 or later) could not verify the Guard against ${HOMELAB_GUARD_RELEASE_SIGNER}; nothing was changed.${NC}" >&2
         return 1
     fi
     rm -rf "$_sig_dir"
-    echo "${GREEN}✓ cosign verified the Guard against ${TECHSTACK_GUARD_RELEASE_SIGNER}.${NC}"
+    echo "${GREEN}✓ cosign verified the Guard against ${HOMELAB_GUARD_RELEASE_SIGNER}.${NC}"
 }
 
 # guard_restarted restarts the Guard and reports whether it still runs as the
@@ -1434,14 +1434,14 @@ verify_guard_signature() {
 # layout also replaces its process, so it is held back for this check.
 guard_restarted() {
     install -d -m 0755 "${GUARD_REINSTALL_DROPIN%/*}"
-    printf '[Service]\nEnvironment=TECHSTACK_GUARD_AUTO_MIGRATE=0\n' > "$GUARD_REINSTALL_DROPIN"
+    printf '[Service]\nEnvironment=HOMELAB_GUARD_AUTO_MIGRATE=0\n' > "$GUARD_REINSTALL_DROPIN"
     systemctl daemon-reload || return 1
     systemctl restart "$GUARD_SERVICE" || return 1
     _pid=$(systemctl show -p MainPID --value "$GUARD_SERVICE")
     if [ -z "$_pid" ] || [ "$_pid" = 0 ]; then
         return 1
     fi
-    sleep "${TECHSTACK_REINSTALL_SETTLE_SECONDS:-20}"
+    sleep "${HOMELAB_REINSTALL_SETTLE_SECONDS:-20}"
     systemctl is-active --quiet "$GUARD_SERVICE" || return 1
     [ "$(systemctl show -p MainPID --value "$GUARD_SERVICE")" = "$_pid" ]
 }
@@ -1490,7 +1490,7 @@ reinstall_rollback() {
 
 reinstall_guard() {
     if [ "$(id -u)" != 0 ]; then
-        echo "${RED}Run the Guard reinstall as root (the command from Techstack uses sudo).${NC}" >&2
+        echo "${RED}Run the Guard reinstall as root (the command from Homelab Runtime uses sudo).${NC}" >&2
         exit 1
     fi
     detect_platform
@@ -1499,7 +1499,7 @@ reinstall_guard() {
         exit 1
     fi
     if [ -z "${KOMBI_SERVER:-}" ] || [ -z "${KOMBI_TOKEN:-}" ]; then
-        echo "${RED}KOMBI_SERVER and KOMBI_TOKEN are required: copy the reinstall command from Techstack.${NC}" >&2
+        echo "${RED}KOMBI_SERVER and KOMBI_TOKEN are required: copy the reinstall command from Homelab.${NC}" >&2
         exit 1
     fi
     SERVER=${KOMBI_SERVER%/}
@@ -1517,7 +1517,7 @@ reinstall_guard() {
     fi
     _enrolled_origin=$(url_origin "$(sed -n 's/.*"heartbeat_url"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$GUARD_ENROLLMENT_FILE" | head -n 1)")
     if [ "$_enrolled_origin" != "$(url_origin "$SERVER")" ]; then
-        echo "${RED}This Guard is enrolled with ${_enrolled_origin:-another control plane}, not ${SERVER}; copy the reinstall command from that Techstack.${NC}" >&2
+        echo "${RED}This Guard is enrolled with ${_enrolled_origin:-another control plane}, not ${SERVER}; copy the reinstall command from that Homelab.${NC}" >&2
         exit 1
     fi
     _old_version=$(guard_binary_version "$GUARD_BINARY")
@@ -1609,7 +1609,7 @@ reinstall_guard() {
 # Main installation flow
 main() {
     echo "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo "${CYAN}   Techstack Installer${NC}"
+    echo "${CYAN}   Homelab Runtime Installer${NC}"
     echo "${CYAN}   The Hybrid Infrastructure Unifier${NC}"
     echo "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
@@ -1627,7 +1627,7 @@ main() {
     fi
     prepare_existing_runtime_enrollment
     trap bootstrap_failed 0
-    bootstrap_phase starting "Techstack installer started."
+    bootstrap_phase starting "Homelab Runtime installer started."
 
     if [ "$NO_INSTALL" = "1" ]; then
         worker_register_if_env_set
@@ -1636,22 +1636,22 @@ main() {
     fi
 
     # The worker one-liner is durable by default. This branch is retained only
-    # for an explicit TECHSTACK_REGISTRATION_ONLY=1 compatibility request.
-    if [ -n "${KOMBI_SERVER:-}" ] && [ -n "${KOMBI_TOKEN:-}" ] && [ "$AS_SERVICE" != "1" ] && [ "${TECHSTACK_INSTALL_BINARY:-0}" != "1" ]; then
+    # for an explicit HOMELAB_REGISTRATION_ONLY=1 compatibility request.
+    if [ -n "${KOMBI_SERVER:-}" ] && [ -n "${KOMBI_TOKEN:-}" ] && [ "$AS_SERVICE" != "1" ] && [ "${HOMELAB_INSTALL_BINARY:-0}" != "1" ]; then
         worker_register_if_env_set
         echo "${YELLOW}Worker registration completed, but persistent health monitoring is not installed.${NC}"
-        echo "Unset TECHSTACK_REGISTRATION_ONLY (or pass --service) to install and start the outbound HTTPS Guard."
+        echo "Unset HOMELAB_REGISTRATION_ONLY (or pass --service) to install and start the outbound HTTPS Guard."
         return 0
     fi
 
     bootstrap_phase platform "Detecting the server platform."
     detect_platform
-    bootstrap_phase binary "Installing the pinned Techstack Guard binary."
+    bootstrap_phase binary "Installing the pinned Homelab Runtime Guard binary."
     if guard_enrollment_resumable; then
         echo "${CYAN}An enrollment of this server with this pairing capability was interrupted; keeping the installed Guard binary and resuming it.${NC}"
     elif install_binary_from_control_plane; then
         :
-    elif [ -n "${KOMBI_SERVER:-}" ] && [ -n "${KOMBI_TOKEN:-}" ] && [ "$OS" = "linux" ] && [ -z "${TECHSTACK_VERSION:-}" ]; then
+    elif [ -n "${KOMBI_SERVER:-}" ] && [ -n "${KOMBI_TOKEN:-}" ] && [ "$OS" = "linux" ] && [ -z "${HOMELAB_VERSION:-}" ]; then
         # A managed Linux Guard is installed only from the control plane that
         # enrolls it, which serves the binary with the digest its release
         # evidence names. There is no fallback to a public mirror.
@@ -1697,7 +1697,7 @@ main() {
         if [ "$WORKER_REGISTERED" = "1" ]; then
             echo "  3. Run 'sudo systemctl status techstack-agent' to verify continuous monitoring"
         else
-            echo "  3. Run 'sudo systemctl start techstack' to start the service"
+            echo "  3. Run 'sudo systemctl start homelab' to start the service"
         fi
     fi
     echo "  4. Visit https://github.com/${REPO} for documentation"

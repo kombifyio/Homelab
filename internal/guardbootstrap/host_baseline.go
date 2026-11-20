@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/guardcompat"
+	"github.com/kombifyio/homelab/pkg/guardcompat"
 )
 
 const ubuntuHostPackages = "ca-certificates curl docker.io docker-compose-v2 nftables fail2ban unattended-upgrades openssh-server ufw"

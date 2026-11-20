@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 // Legacy node references are resolved against the same server authority used by

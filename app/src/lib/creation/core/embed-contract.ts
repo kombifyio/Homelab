@@ -1,12 +1,12 @@
 /**
- * What a host page and the embedded creation module say to each other. Techstack
+ * What a host page and the embedded creation module say to each other. Homelab
  * owns this contract; a host reads the event schema and ignores any other. JSON
- * schemas: docs/contracts/techstack.creation-*.v1.schema.json.
+ * schemas: docs/contracts/homelab.creation-*.v1.schema.json.
  */
 import { CREATION_STEP_KEYS, type CreationStepKey } from "./steps";
 
-export const CREATION_ENTRY_SCHEMA = "techstack.creation-entry/v1";
-export const CREATION_EVENT_SCHEMA = "techstack.creation-event/v1";
+export const CREATION_ENTRY_SCHEMA = "homelab.creation-entry/v1";
+export const CREATION_EVENT_SCHEMA = "homelab.creation-event/v1";
 export const CREATION_EMBED_PATH = "/embed/creation";
 
 export const CREATION_ENTRY_PROCESSES = [
@@ -69,7 +69,7 @@ export function creationEntryPath(entry: CreationEntry): string {
   return `${CREATION_EMBED_PATH}?${params.toString()}`;
 }
 
-/** The same entry on Techstack's own pages, for "continue in Techstack". */
+/** The same entry on Homelab's own pages, for "continue in Homelab". */
 export function creationFullPath(entry: CreationEntry): string {
   const params = new URLSearchParams();
   if (entry.useCase) params.set("use-case", entry.useCase);

@@ -10,14 +10,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/tenantdb"
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
-	"github.com/kombifyio/techstack/pkg/vmleases"
+	"github.com/kombifyio/homelab/internal/gocommon/tenantdb"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 )
 
 type managedRuntimeRecreator interface {
@@ -57,7 +57,7 @@ func monthlyRuntimeRecreateHandler(svc *monthlyruntime.Service, recreator manage
 		if !ok {
 			return httpx.Unauthorized(e, "Authentication required")
 		}
-		tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), userID, "techstack.monthly-runtimes.recreate")
+		tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), userID, "homelab.monthly-runtimes.recreate")
 		if tenantErr != nil {
 			return tenantErr
 		}
@@ -114,7 +114,7 @@ func monthlyRuntimeCleanupReadbackHandler(svc *monthlyruntime.Service) func(*htt
 		if !ok {
 			return httpx.Unauthorized(e, "Authentication required")
 		}
-		tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), userID, "techstack.monthly-runtimes.cleanup.read")
+		tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), userID, "homelab.monthly-runtimes.cleanup.read")
 		if tenantErr != nil {
 			return tenantErr
 		}
@@ -137,7 +137,7 @@ func monthlyRuntimeResolveCustodyHandler(svc *monthlyruntime.Service) func(*http
 		if !ok {
 			return httpx.Unauthorized(e, "Authentication required")
 		}
-		tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), userID, "techstack.monthly-runtimes.custody.resolve")
+		tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), userID, "homelab.monthly-runtimes.custody.resolve")
 		if tenantErr != nil {
 			return tenantErr
 		}
@@ -174,7 +174,7 @@ func monthlyRuntimeActionHandler(svc *monthlyruntime.Service, action serverrunti
 		if !ok {
 			return httpx.Unauthorized(e, "Authentication required")
 		}
-		tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), userID, "techstack.monthly-runtimes."+string(action))
+		tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), userID, "homelab.monthly-runtimes."+string(action))
 		if tenantErr != nil {
 			return tenantErr
 		}
@@ -209,7 +209,7 @@ func monthlyRuntimeDecommissionHandler(svc *monthlyruntime.Service) func(*httpx.
 		if !ok {
 			return httpx.Unauthorized(e, "Authentication required")
 		}
-		tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), userID, "techstack.monthly-runtimes.decommission")
+		tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), userID, "homelab.monthly-runtimes.decommission")
 		if tenantErr != nil {
 			return tenantErr
 		}
@@ -249,7 +249,7 @@ func monthlyRuntimeReconnectHandler(svc *monthlyruntime.Service) func(*httpx.Eve
 		if !ok {
 			return httpx.Unauthorized(e, "Authentication required")
 		}
-		tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), userID, "techstack.monthly-runtimes.reconnect")
+		tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), userID, "homelab.monthly-runtimes.reconnect")
 		if tenantErr != nil {
 			return tenantErr
 		}
@@ -350,7 +350,7 @@ func monthlyRuntimeOperationsHandler(svc *monthlyruntime.Service) func(*httpx.Ev
 		if !ok {
 			return httpx.Unauthorized(e, "Authentication required")
 		}
-		tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), userID, "techstack.monthly-runtimes.operations.read")
+		tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), userID, "homelab.monthly-runtimes.operations.read")
 		if tenantErr != nil {
 			return tenantErr
 		}
@@ -427,7 +427,7 @@ func monthlyRuntimeError(e *httpx.Event, err error) error {
 			"Another start or stop of this managed server is still converging", monthlyRuntimeDay2Details(
 				"managed_power_transition_in_progress", true,
 				"A power change is still in progress",
-				"Techstack is still converging the previous start or stop. No new provider action was dispatched.",
+				"Homelab Runtime is still converging the previous start or stop. No new provider action was dispatched.",
 				"Wait until the server reports running or stopped, then retry."))
 	case errors.Is(err, monthlyruntime.ErrPowerNotAdmitted):
 		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
@@ -441,7 +441,7 @@ func monthlyRuntimeError(e *httpx.Event, err error) error {
 			"The managed server could not be reached over its management channel", monthlyRuntimeDay2Details(
 				"managed_node_channel_unavailable", true,
 				"The server is not reachable right now",
-				"Techstack could not open its management channel to the server, so no node change was made.",
+				"Homelab Runtime could not open its management channel to the server, so no node change was made.",
 				"Check that the server is running, then retry. If it stays unreachable, use reconnect."))
 	case errors.Is(err, monthlyruntime.ErrRuntimeStopped):
 		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,

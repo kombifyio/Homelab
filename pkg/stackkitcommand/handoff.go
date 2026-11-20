@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 const (
@@ -18,7 +18,7 @@ const (
 	MaxHandoffDocumentBytes = 128 << 10
 
 	// HandoffResultVersion is the data schema of a hand-off command result.
-	HandoffResultVersion = "techstack.federation-handoff-result/v1"
+	HandoffResultVersion = "homelab.federation-handoff-result/v1"
 
 	HandoffMemberAdmit   = "member-admit"
 	HandoffMemberJoin    = "member-join"

@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/orchestrator"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/orchestrator"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 const householdHomeGraphAdoptionPath = "/api/v1/internal/household/home-graph/adoption"

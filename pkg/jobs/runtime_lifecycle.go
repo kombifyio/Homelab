@@ -7,7 +7,7 @@ import (
 
 const (
 	runtimeLifecycleResultKey         = "runtime_lifecycle"
-	runtimeLifecycleVersion           = "techstack.runtime-lifecycle/v1"
+	runtimeLifecycleVersion           = "homelab.runtime-lifecycle/v1"
 	runtimeLifecyclePending           = "pending"
 	runtimeLifecycleRunning           = "running"
 	runtimeLifecycleCompleted         = "completed"

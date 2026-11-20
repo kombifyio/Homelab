@@ -59,8 +59,8 @@
   }
   const result = $derived(record(job?.result));
   const matching = $derived(
-    result?.schema_version === "techstack.stackkit-lifecycle-result/v1" &&
-      result.techstack_id === stackId &&
+    result?.schema_version === "homelab.stackkit-lifecycle-result/v1" &&
+      result.kit_deployment_id === stackId &&
       result.agent_id === agentId &&
       result.operation === operation,
   );

@@ -89,7 +89,7 @@ func (t *tracingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 
 func httpTracer(tracer trace.Tracer) trace.Tracer {
 	if tracer == nil {
-		return otel.Tracer("github.com/kombifyio/techstack/internal/gocommon/observability")
+		return otel.Tracer("github.com/kombifyio/homelab/internal/gocommon/observability")
 	}
 	return tracer
 }

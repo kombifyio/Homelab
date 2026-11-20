@@ -74,7 +74,7 @@
     !loading && acceptableLayoutRecommendation(view) !== undefined,
   );
   const verificationReasons = $derived(view?.verification.reasons ?? []);
-  // Notes beside a verified result are Techstack's own, localized codes.
+  // Notes beside a verified result are Homelab's own, localized codes.
   const verifiedNotes = $derived(
     verified
       ? verificationReasons.filter((reason) => !reason.code.startsWith("stackkits:"))

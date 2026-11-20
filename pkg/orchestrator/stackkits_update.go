@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/runtimeconvergence"
-	"github.com/kombifyio/techstack/pkg/stackkitsupdate"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/runtimeconvergence"
+	"github.com/kombifyio/homelab/pkg/stackkitsupdate"
 )
 
 // ErrStackKitsUpdateUnavailable means the node's update state cannot be read
@@ -32,7 +32,7 @@ type StackKitsUpdateView struct {
 	ChangelogURL string `json:"changelog_url,omitempty"`
 	// Proposal is present while a release is available.
 	Proposal *stackkitsupdate.Proposal `json:"proposal,omitempty"`
-	// Started is the update Techstack started without a click.
+	// Started is the update Homelab started without a click.
 	Started *controlplane.WorkerStackKitsUpdateAttempt `json:"started,omitempty"`
 	// LastUpgrade is the outcome of the last governed upgrade on the node; a
 	// failed one was rolled back to Installed.
@@ -51,7 +51,7 @@ func (o *Orchestrator) stackKitsUpdateStore() (controlplane.WorkerStackKitsUpdat
 }
 
 // ownedStackKitsWorker reads a node of the owner; ownerID empty skips the
-// owner check for Techstack's own evaluation.
+// owner check for Homelab's own evaluation.
 func (o *Orchestrator) ownedStackKitsWorker(ctx context.Context, tenantID, ownerID, workerID string) (*controlplane.Worker, error) {
 	if o == nil || o.workerStore == nil {
 		return nil, ErrStackKitsUpdateUnavailable
@@ -124,7 +124,7 @@ func (o *Orchestrator) stackKitsUpdateView(ctx context.Context, worker *controlp
 // stackKitsProposal ranks the pending release notes by the use cases the
 // node's stack activates. A stack without a readable spec or catalog still
 // gets the proposal, with every change under "the rest"; resolved is false
-// then, and Techstack starts nothing for that node on its own.
+// then, and Homelab starts nothing for that node on its own.
 func (o *Orchestrator) stackKitsProposal(ctx context.Context, worker *controlplane.Worker, installed, available string) (proposal stackkitsupdate.Proposal, resolved bool) {
 	notes, err := stackkitrelease.PinnedReleaseNotes()
 	if err != nil {
@@ -139,7 +139,7 @@ func (o *Orchestrator) stackKitsProposal(ctx context.Context, worker *controlpla
 			activated = stackkitsupdate.ActivatedUseCases(catalog, spec)
 		}
 	}
-	// A Guard observation never authorizes an update beyond the release Techstack
+	// A Guard observation never authorizes an update beyond the release Homelab
 	// actually serves, or a release whose notes are from another pin.
 	target, targetErr := jobs.CachedTargetStackKitRelease()
 	releaseMatches := targetErr == nil && target != nil && stackKitsReleaseTag(target.Receipt().Version) == stackKitsReleaseTag(available)

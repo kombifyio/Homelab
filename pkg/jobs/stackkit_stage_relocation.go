@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
 )
 
 func relocationCandidateRelease(ctx context.Context, req WorkloadRelocationRequest) (*stackkitrelease.Release, error) {

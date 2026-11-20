@@ -32,7 +32,7 @@ var (
 	ErrProvisionResolutionEvidence = errors.New("providercontrol: provision resolution evidence is not verified")
 )
 
-// ProvisionResolutionOutcome is TechStack-local decision state. It is not a
+// ProvisionResolutionOutcome is Homelab-local decision state. It is not a
 // providerexecutor receipt phase and never authorizes another provider call.
 type ProvisionResolutionOutcome string
 
@@ -461,7 +461,7 @@ func provisionResolutionSnapshotMatches(
 }
 
 func validateProvisionResolutionHead(record OperationRecord) error {
-	if record.ExecutionAuthority != ExecutionAuthorityTechstackProviderControl ||
+	if record.ExecutionAuthority != ExecutionAuthorityHomelabProviderControl ||
 		record.Command.Operation != providerexecutor.OperationProvision ||
 		record.ProvisionDispatch != ProvisionDispatchAtMostOnceManualReconcile ||
 		len(record.Head.Resources) != 0 {
@@ -479,7 +479,7 @@ func validateProvisionResolutionHead(record OperationRecord) error {
 }
 
 func isTerminalHandleFreeAMOProvisionHead(record OperationRecord) bool {
-	return record.ExecutionAuthority == ExecutionAuthorityTechstackProviderControl &&
+	return record.ExecutionAuthority == ExecutionAuthorityHomelabProviderControl &&
 		record.Command.Operation == providerexecutor.OperationProvision &&
 		record.ProvisionDispatch == ProvisionDispatchAtMostOnceManualReconcile &&
 		record.Head.Status == providerexecutor.StatusFailed &&

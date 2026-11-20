@@ -10,8 +10,8 @@ import (
 	"io"
 	"reflect"
 
+	"github.com/kombifyio/homelab/internal/managedstackkit"
 	"github.com/kombifyio/stackkits/contracts/runtimeexecutor"
-	"github.com/kombifyio/techstack/internal/managedstackkit"
 )
 
 // OwnerBinding is retained during authenticated enrollment of the exact

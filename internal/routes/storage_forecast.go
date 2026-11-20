@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/monitoring"
-	"github.com/kombifyio/techstack/pkg/storageforecast"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/monitoring"
+	"github.com/kombifyio/homelab/pkg/storageforecast"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql"
 )

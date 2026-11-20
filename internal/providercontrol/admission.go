@@ -14,13 +14,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/homelab/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 	"github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
-	"github.com/kombifyio/techstack/internal/providercatalog"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
-	"github.com/kombifyio/techstack/pkg/vmleases"
 )
 
 const (
@@ -481,7 +481,7 @@ func (a *NativeAdmission) insertNativeAdmissionTx(
 		return NativeProvisionAdmissionResult{}, authorityErr
 	}
 	record, created, beginOperationErr := a.ledger.beginOperationInTx(
-		ctx, tx, ExecutionAuthorityTechstackProviderControl, prepared.profileSnapshot,
+		ctx, tx, ExecutionAuthorityHomelabProviderControl, prepared.profileSnapshot,
 		prepared.provisionDispatch, prepared.command, prepared.initial, prepared.desiredSpec,
 	)
 	if beginOperationErr != nil {
@@ -602,7 +602,7 @@ func nativeAdmissionReplayCustodyMatches(
 	leaseID string,
 	request NativeProvisionAdmissionRequest,
 ) bool {
-	return executionAuthority == string(ExecutionAuthorityTechstackProviderControl) &&
+	return executionAuthority == string(ExecutionAuthorityHomelabProviderControl) &&
 		record.Command.LeaseRevision == vmleases.NativeAdmissionLeaseRevision &&
 		record.Command.RuntimeServerID == request.RuntimeServerID && record.Command.LeaseID == leaseID &&
 		record.Command.Operation == providerexecutor.OperationProvision &&
@@ -621,7 +621,7 @@ func insertNativeExecutionAuthorityTx(
 			tenant_id, lease_id, execution_authority, bound_at
 		) VALUES ($1,$2,$3,$4)
 		ON CONFLICT DO NOTHING
-	`, tenantID, leaseID, ExecutionAuthorityTechstackProviderControl, boundAt)
+	`, tenantID, leaseID, ExecutionAuthorityHomelabProviderControl, boundAt)
 	if err != nil {
 		return fmt.Errorf("providercontrol: bind native execution authority: %w", err)
 	}

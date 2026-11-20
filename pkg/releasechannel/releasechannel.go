@@ -1,6 +1,6 @@
 // Package releasechannel decides which deployment runs a homelab's work.
 //
-// Techstack has one channel (D-2026-11-11-07), so every admitted deployment is
+// Homelab has one channel (D-2026-11-11-07), so every admitted deployment is
 // production and owns every tenant. The predicates remain because the queue and
 // provider-control paths still call them; they are constant true.
 package releasechannel
@@ -8,7 +8,7 @@ package releasechannel
 import (
 	"errors"
 
-	"github.com/kombifyio/techstack/pkg/config"
+	"github.com/kombifyio/homelab/pkg/config"
 )
 
 var ErrTenantNotOwned = errors.New("deployment does not own tenant execution")

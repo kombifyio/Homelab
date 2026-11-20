@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/ril/primitives"
 	jsoncanonicalizer "github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/pkg/ril/primitives"
 )
 
 type DecisionRequester struct {

@@ -18,7 +18,7 @@
 
   import {
     INTRODUCTION_START_EVENT,
-    TECHSTACK_INTRODUCTION,
+    HOMELAB_INTRODUCTION,
     markIntroductionCompleted,
     markIntroductionDismissed,
     markIntroductionStarted,
@@ -222,7 +222,7 @@
 
 <Introduction
   {open}
-  stops={TECHSTACK_INTRODUCTION}
+  stops={HOMELAB_INTRODUCTION}
   resolveMessage={resolveOnboardingMessage}
   navigate={(route) => void goto(route)}
   onComplete={finish}

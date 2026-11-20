@@ -11,14 +11,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kombifyio/techstack/internal/gocommon/apisurface"
-	"github.com/kombifyio/techstack/internal/gocommon/apisurface/mcpbind"
+	"github.com/kombifyio/homelab/internal/gocommon/apisurface"
+	"github.com/kombifyio/homelab/internal/gocommon/apisurface/mcpbind"
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/kombifyio/techstack/api/surface"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/api/surface"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 const (
@@ -33,7 +33,7 @@ const (
 	// official SDK only carries tool extensions in `_meta`, so each listed tool
 	// publishes it there.
 	inventoryMCPRequiredCapability = "x-kombify-capability"
-	inventoryMCPServerName         = "kombify-techstack"
+	inventoryMCPServerName         = "kombify-homelab"
 	inventoryMCPStackIDField       = "stack_id"
 	inventoryMCPStatusField        = "status"
 	// JSON-RPC server-error codes from the implementation-defined range
@@ -65,8 +65,8 @@ func registerInventoryMCPRoutes(r *httpx.Router, h inventoryHandlers) {
 	}
 	r.POST("/api/v1/mcp", handler)
 	r.GET("/api/v1/mcp", methodNotAllowed)
-	r.POST("/v1/mcp/public/techstack", handler)
-	r.GET("/v1/mcp/public/techstack", methodNotAllowed)
+	r.POST("/v1/mcp/public/homelab", handler)
+	r.GET("/v1/mcp/public/homelab", methodNotAllowed)
 }
 
 // inventoryMCPCaller is the authenticated request context every MCP method
@@ -128,10 +128,10 @@ func newInventoryMCPHandler(h inventoryHandlers, routes inventoryMCPRouteLookup)
 func (h inventoryHandlers) newInventoryMCPServer(routes inventoryMCPRouteLookup) *mcpsdk.Server {
 	server := mcpsdk.NewServer(&mcpsdk.Implementation{
 		Name:    inventoryMCPServerName,
-		Title:   "Techstack",
+		Title:   "Homelab Runtime",
 		Version: firstNonEmptyString(h.version, inventoryMCPDevelopmentVersion),
 	}, &mcpsdk.ServerOptions{
-		Instructions: "Policy-scoped Techstack tools generated from the OpenAPI contract: reads (techstack.inventory.read), writes and validations (techstack.inventory.write), confirmation-gated runtime operations (techstack.inventory.operate) and cost-bearing provisioning (techstack.inventory.provision). Tenant and subject identity are derived from authenticated context and must never be supplied as tool arguments.",
+		Instructions: "Policy-scoped Homelab Runtime tools generated from the OpenAPI contract: reads (homelab.inventory.read), writes and validations (homelab.inventory.write), confirmation-gated runtime operations (homelab.inventory.operate) and cost-bearing provisioning (homelab.inventory.provision). Tenant and subject identity are derived from authenticated context and must never be supplied as tool arguments.",
 		Capabilities: &mcpsdk.ServerCapabilities{Tools: &mcpsdk.ToolCapabilities{}},
 	})
 	// The catalog is the embedded, generated API surface; a build that cannot

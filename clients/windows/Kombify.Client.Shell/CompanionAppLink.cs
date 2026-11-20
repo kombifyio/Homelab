@@ -81,11 +81,11 @@ public static class CompanionAppLinkError
 /// <summary>The products a context report or an open-in-app target may name (a claim, not OS evidence).</summary>
 public static class CompanionProduct
 {
-    public const string Techstack = "techstack";
+    public const string Homelab = "homelab";
     public const string Paperwork = "paperwork";
     public const string Workbench = "workbench";
 
-    internal static bool Valid(string? product) => product is Techstack or Paperwork or Workbench;
+    internal static bool Valid(string? product) => product is Homelab or Paperwork or Workbench;
 }
 
 /// <summary>

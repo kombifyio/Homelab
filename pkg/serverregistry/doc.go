@@ -1,4 +1,4 @@
-// Package serverregistry defines Techstack's tenant-scoped server aggregate.
+// Package serverregistry defines Homelab's tenant-scoped server aggregate.
 //
 // # Authority
 //

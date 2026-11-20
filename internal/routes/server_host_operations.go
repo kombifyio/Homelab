@@ -12,13 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/agentcontrol"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/ril/primitives"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/agentcontrol"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/ril/primitives"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // Stable refusal reasons of the server host operation routes. Refusals the
@@ -127,9 +127,9 @@ func (h *serverHostOperationsHandlers) hostOpsEligibility(ctx context.Context, s
 // (the card's own admission repeats the node rules).
 func (h serverRuntimeHandlers) hostOpsServer(e *httpx.Event, mutating bool, capability string) (*hostOpsTarget, error) {
 	ops := h.hostOps
-	capabilityScope := "techstack.servers.host.inspect"
+	capabilityScope := "homelab.servers.host.inspect"
 	if mutating {
-		capabilityScope = "techstack.servers.host.operate"
+		capabilityScope = "homelab.servers.host.operate"
 	}
 	server, err := h.ownedServer(e, capabilityScope)
 	if err != nil || server == nil {

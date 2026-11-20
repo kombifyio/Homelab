@@ -1,9 +1,9 @@
 package agent
 
 import (
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 func (executor *StackKitExecutor) ApplicationCapabilities() []string {

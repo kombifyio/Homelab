@@ -6,18 +6,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/kombifyio/techstack/internal/substrate"
+	"github.com/kombifyio/homelab/internal/substrate"
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/nodehandoff"
-	"github.com/kombifyio/techstack/pkg/outcome"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
-	"github.com/kombifyio/techstack/pkg/vmleases"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/nodehandoff"
+	"github.com/kombifyio/homelab/pkg/outcome"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 )
 
 // guardObservationSkewWindow is the maximum clock skew admitted on a Guard
@@ -342,10 +342,10 @@ func (h workerRouteHandlers) projectServerInventory(ctx context.Context, worker 
 func awaitingGuardOutcome(providerID string) *outcome.Decision {
 	return &outcome.Decision{
 		Status: outcome.StatusPending, ReasonCode: "awaiting_guard_heartbeat",
-		Capability: "techstack.server.connect", ProviderID: strings.TrimSpace(providerID), Retryable: false,
+		Capability: "homelab.server.connect", ProviderID: strings.TrimSpace(providerID), Retryable: false,
 		UserGuidance: &outcome.Guidance{
 			Title: "Server connection is being verified",
-			Body:  "The server is registered. Techstack is waiting for its authenticated Guard heartbeat.",
+			Body:  "The server is registered. Homelab Runtime is waiting for its authenticated Guard heartbeat.",
 			NextSteps: []outcome.Step{{
 				ID: "keep-server-online", Label: "Keep the server online; this view updates automatically", Kind: "note",
 			}},
@@ -359,7 +359,7 @@ func inventoryServerOutcome(health serverregistry.HealthState, providerID string
 	}
 	return &outcome.Decision{
 		Status: outcome.StatusDegraded, ReasonCode: "worker_reported_degraded",
-		Capability: "techstack.server.health", ProviderID: strings.TrimSpace(providerID), Retryable: false,
+		Capability: "homelab.server.health", ProviderID: strings.TrimSpace(providerID), Retryable: false,
 		UserGuidance: &outcome.Guidance{
 			Title: "The server is connected, but a service needs attention",
 			Body:  "Guard reported a host-critical service as unhealthy. The last verified inventory remains available for diagnosis.",

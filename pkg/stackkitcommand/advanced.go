@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 const (
@@ -89,7 +89,7 @@ func validateAdvancedFields(command *agentpb.StackKitCommand) error {
 		}
 	}
 	if command.DriftMode == agentpb.StackKitDriftMode_STACKKIT_DRIFT_MODE_STANDARD {
-		return fmt.Errorf("StackKit Standard drift mode is never dispatched for a Techstack-managed deployment")
+		return fmt.Errorf("StackKit Standard drift mode is never dispatched for a Homelab-managed deployment")
 	}
 	return nil
 }

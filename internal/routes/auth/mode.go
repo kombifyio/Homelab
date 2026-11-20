@@ -9,12 +9,12 @@ import (
 	"os"
 	"strings"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/cloudlogin"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/cloudlogin"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
 )
 
 const v2CloudLoginPath = "/api/v2/auth/login"
@@ -158,7 +158,7 @@ func applyPlatformAuthPolicy(response *AuthModeResponse, deployMode config.Deplo
 }
 
 func envRequestsCloudAuth() bool {
-	switch strings.TrimSpace(os.Getenv("TECHSTACK_AUTH_MODE")) {
+	switch strings.TrimSpace(os.Getenv("HOMELAB_AUTH_MODE")) {
 	case "saas", "cloud":
 		return true
 	default:
@@ -175,7 +175,7 @@ func resolveCloudAuthorizationURL(req *http.Request) *string {
 
 	// The shared v2 authflow is the canonical browser entrypoint for kombify Cloud
 	// sign-in. Keep issuer/client resolution as the enablement gate, but route the
-	// browser through the local handler so TechStack owns provider selection,
+	// browser through the local handler so Homelab owns provider selection,
 	// state, callback handling, and session minting consistently.
 	authURL := buildCloudLoginURL(req)
 	return &authURL
@@ -199,7 +199,7 @@ func resolveCloudLogoutURL(req *http.Request) *string {
 func cloudIssuerFromEnv() string {
 	if issuer := normalizeCloudIssuer(
 		firstEnv(
-			"TECHSTACK_AUTH_CLOUD_ISSUER",
+			"HOMELAB_AUTH_CLOUD_ISSUER",
 			"AUTH0_ISSUER",
 			"AUTH0_DOMAIN",
 		),
@@ -210,7 +210,7 @@ func cloudIssuerFromEnv() string {
 }
 
 func cloudClientIDFromEnv() string {
-	return firstEnv("TECHSTACK_AUTH_CLOUD_CLIENT_ID", "AUTH0_CLIENT_ID")
+	return firstEnv("HOMELAB_AUTH_CLOUD_CLIENT_ID", "AUTH0_CLIENT_ID")
 }
 
 func firstEnv(keys ...string) string {

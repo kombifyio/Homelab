@@ -6,7 +6,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/tenantdb"
+	"github.com/kombifyio/homelab/internal/gocommon/tenantdb"
 )
 
 // ErrNoDatabase is returned when a scoped transaction has no pool to begin on.
@@ -16,7 +16,7 @@ type systemRouteKey struct{}
 
 type systemRoute struct{ application, system *sql.DB }
 
-// WithSystemDatabase marks ctx as Techstack system work: background loops,
+// WithSystemDatabase marks ctx as Homelab system work: background loops,
 // Guard ingress and service-to-service calls that carry no Edge-signed
 // database context. Every transaction that would begin on the hosted
 // application pool begins on the dedicated system login instead, so the

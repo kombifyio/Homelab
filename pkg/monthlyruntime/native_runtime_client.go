@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/providercatalog"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
 )
 
 var (
@@ -44,7 +44,7 @@ func NativeRuntimeActionUnsupportedDetails(err error) map[string]any {
 	}
 	reasonCode := "native_action_not_implemented"
 	title := "This managed-server action is not available"
-	body := "Techstack did not dispatch a provider mutation. Refresh the server state or choose a supported lifecycle action."
+	body := "Homelab Runtime did not dispatch a provider mutation. Refresh the server state or choose a supported lifecycle action."
 	retryable := false
 	nextSteps := []string{
 		"Refresh the managed server to see its current provider and Guard state.",
@@ -54,11 +54,11 @@ func NativeRuntimeActionUnsupportedDetails(err error) map[string]any {
 	case serverruntime.RuntimeActionStop, serverruntime.RuntimeActionStart:
 		reasonCode = "managed_power_control_unavailable"
 		title = "Managed power control is not available"
-		body = "This Techstack deployment has no provider-control power executor configured. No provider or node change was made."
+		body = "This Homelab Runtime deployment has no provider-control power executor configured. No provider or node change was made."
 	case serverruntime.RuntimeActionEnableSSH, serverruntime.RuntimeActionDisableSSH:
 		reasonCode = "managed_ssh_access_unavailable"
 		title = "Managed SSH access control is not available"
-		body = "This Techstack deployment has no execution-channel SSH controller configured. No node change was made."
+		body = "This Homelab Runtime deployment has no execution-channel SSH controller configured. No node change was made."
 	case serverruntime.RuntimeActionSSHInfo:
 		reasonCode = "managed_ssh_custody_pending"
 		title = "Managed SSH access is not ready"

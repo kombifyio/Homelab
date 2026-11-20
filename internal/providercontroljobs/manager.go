@@ -14,19 +14,19 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
 	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
 
-	"github.com/kombifyio/techstack/internal/providercatalog"
-	"github.com/kombifyio/techstack/internal/providercontrol"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/providercontrol"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
 )
 
 const (
-	desiredSpecSchemaVersion = "techstack/provider-desired-spec/v2"
+	desiredSpecSchemaVersion = "homelab/provider-desired-spec/v2"
 	defaultOfferingID        = "monthly-runtime-standard"
 )
 
@@ -399,7 +399,7 @@ func normalizeManagedLeaseRequest(req jobs.ManagedLeaseRequest) (normalizedManag
 					"services":                services,
 				},
 			},
-			DesiredSpecRef: "desired-spec://techstack/leases/" + string(leaseID) + "/revisions/1",
+			DesiredSpecRef: "desired-spec://homelab/leases/" + string(leaseID) + "/revisions/1",
 			DesiredSpec:    specJSON,
 		},
 	}, nil

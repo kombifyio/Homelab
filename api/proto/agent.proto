@@ -1,11 +1,11 @@
-// kombify Techstack Agent Protocol
+// kombify Homelab Agent Protocol
 // gRPC with mTLS for secure, bidirectional agent communication
 
 syntax = "proto3";
 
-package techstack.agent.v1;
+package homelab.agent.v1;
 
-option go_package = "github.com/kombifyio/techstack/pkg/api/agentpb";
+option go_package = "github.com/kombifyio/homelab/pkg/api/agentpb";
 
 // AgentService handles communication between Core and Agents
 service AgentService {
@@ -85,7 +85,7 @@ enum StackKitOperation {
   STACKKIT_OPERATION_UPGRADE = 5;
   STACKKIT_OPERATION_DRIFT_DETECT = 6;
   // Retired (kept for wire compatibility): Standard drift reconcile is never
-  // dispatched for a Techstack-managed deployment. Validation rejects it;
+  // dispatched for a Homelab-managed deployment. Validation rejects it;
   // managed deployments reconcile through ADVANCED_DRIFT_RECONCILE.
   STACKKIT_OPERATION_DRIFT_RECONCILE = 7;
   STACKKIT_OPERATION_PLAN = 8;
@@ -120,12 +120,12 @@ enum StackKitOperation {
   // backup policy or authority change; it is idempotent for an unchanged
   // owner, authority and policy.
   STACKKIT_OPERATION_BACKUP_CONFIGURE = 23;
-  // Import the Techstack installation's Advanced issuer trust bundle
+  // Import the Homelab installation's Advanced issuer trust bundle
   // (stackkit.advanced-trust-bundle/v1, field advanced_trust_bundle) into the
   // node's Owner-bound trust store. Every managed rollout runs it after INIT so
-  // the host verifies Techstack-issued Advanced capabilities offline.
+  // the host verifies Homelab-issued Advanced capabilities offline.
   STACKKIT_OPERATION_ADVANCED_TRUST_IMPORT = 24;
-  // Advanced Mode operations (ADR-0045). Each carries one Techstack-issued
+  // Advanced Mode operations (ADR-0045). Each carries one Homelab-issued
   // capability (field advanced_capability) that allows the
   // stackkit.advanced-operations/v1 catalog operation named below. Core issues
   // one capability per operator operation: a change-set flow uses the same
@@ -220,7 +220,7 @@ enum StackKitOperation {
   STACKKIT_OPERATION_HOUSEHOLD_REMOVE = 52;
   // Wallet items on the node (StackKits pkg/hostdelivery). The kombify Wallet,
   // not the control plane, seals each value to the node's host delivery
-  // recipient key; Techstack carries the node's public statement to the Wallet
+  // recipient key; Homelab carries the node's public statement to the Wallet
   // and the ciphertext back.
   // `stackkit host delivery recipient`: prove the node's host delivery
   // recipient key, answering recipient_challenge, and pin the Wallet's
@@ -331,7 +331,7 @@ enum StackKitOperation {
   STACKKIT_OPERATION_USE_CASE_UPGRADE = 77;
   // "Stack it" (StackKits application.stack.*, agent capability
   // stackkit.application-stack.v1): one existing single container StackKits did
-  // not install is rebuilt as an own application (techstack.own-application/v4).
+  // not install is rebuilt as an own application (homelab.own-application/v4).
   // Each carries application_container_id and own_application_name.
   // application.stack.plan: kept/changed/refused rows and the plan digest.
   STACKKIT_OPERATION_APPLICATION_STACK_PLAN = 78;
@@ -369,7 +369,7 @@ enum StackKitOperation {
 
 enum StackKitDriftMode {
   STACKKIT_DRIFT_MODE_UNSPECIFIED = 0;
-  // Retired (kept for wire compatibility): every Techstack-managed deployment
+  // Retired (kept for wire compatibility): every Homelab-managed deployment
   // runs Advanced Mode, so validation rejects STANDARD.
   STACKKIT_DRIFT_MODE_STANDARD = 1;
   STACKKIT_DRIFT_MODE_ADVANCED = 2;
@@ -784,7 +784,7 @@ message StackKitCommand {
   string relocation_transfer_id = 72;
   // USE_CASE_CONFIGURE only: strict public catalog intent. Guard chooses every argv and candidate path.
   bytes use_case_configuration_json = 73;
-  // APPLICATION_TRANSFER only: closed techstack.application-transfer-step/v1
+  // APPLICATION_TRANSFER only: closed homelab.application-transfer-step/v1
   // request (at most 1 MiB): the step, the selection, the peer address and
   // the signed public documents of earlier steps. Never a secret or a path.
   bytes application_transfer_json = 74;
@@ -881,7 +881,7 @@ message StackKitResult {
   StackKitReleasePin release = 11;
   // The Agent sets this only when the exact pinned StackKits CLI successfully
   // returned native backup evidence after StackKits performed its local Owner
-  // custody verification. Techstack does not possess that Owner public key.
+  // custody verification. Homelab does not possess that Owner public key.
   bool pinned_cli_evidence_verified = 12;
   // SHA-256 of command_result_json, binding the attestation to the exact bytes
   // transported on the authenticated Agent result channel.

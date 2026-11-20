@@ -1,4 +1,4 @@
-// Package vmleases implements TechStack's VM lease authority.
+// Package vmleases implements Homelab's VM lease authority.
 package vmleases
 
 import (
@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
 )
 
 var (

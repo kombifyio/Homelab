@@ -2,8 +2,8 @@
 
 ## Reporting a vulnerability
 
-Report suspected vulnerabilities in kombify Techstack Open Core privately through
-[GitHub private vulnerability reporting](https://github.com/kombifyio/TechStack/security/advisories/new) or by e-mail to [info@kombify.io](mailto:info@kombify.io) (contact file:
+Report suspected vulnerabilities in kombify Homelab Runtime Open Core privately through
+[GitHub private vulnerability reporting](https://github.com/kombifyio/Homelab/security/advisories/new) or by e-mail to [info@kombify.io](mailto:info@kombify.io) (contact file:
 https://kombify.io/.well-known/security.txt, policy: https://kombify.io/security).
 Never open a public issue, pull request or discussion for a security problem.
 
@@ -30,7 +30,7 @@ its installer, the container image, and the Compose deployment in this
 repository.
 
 Out of scope: infrastructure you operate yourself (hosts, reverse proxies,
-DNS, and the StackKits you deploy with Techstack), and hosted kombify services,
+DNS, and the StackKits you deploy with Homelab Runtime), and hosted kombify services,
 which have their own reporting path on [kombify.io](https://kombify.io).
 
 ## Release integrity

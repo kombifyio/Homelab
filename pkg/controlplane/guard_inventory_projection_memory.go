@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 )
 
 // ApplyGuardInventoryProjection atomically commits one Guard event and every

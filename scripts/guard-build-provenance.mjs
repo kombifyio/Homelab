@@ -10,12 +10,12 @@ export function guardBuildProvenance(directory,env=process.env) {
   const source=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
   if(env.GITHUB_REPOSITORY!==binding?.parent?.repository||env.GITHUB_RUN_ATTEMPT!=='1'||env.RELEASE_MODE!=='publish'||
       !/^[a-f0-9]{40}$/.test(source)||source!==env.SOURCE_SHA||source!==binding?.plan?.source_sha||
-      binding.schema!=='delivery.dispatch-binding/v1'||binding.plan.product_id!=='techstack'||
+      binding.schema!=='delivery.dispatch-binding/v1'||binding.plan.product_id!=='homelab'||
       binding.child?.run_id!==Number(env.GITHUB_RUN_ID)||binding.child.run_attempt!==1||binding.child.head_sha!==env.GITHUB_SHA||
       binding.child.workflow!=='.github/workflows/guard-release.yml'||binding.child.repository!==env.GITHUB_REPOSITORY||
-      binding.slot?.group!=='techstack-service'||binding.slot.artifact!=='runtime-service'||binding.slot.operation!=='publish'||binding.slot.step_index!==0||
+      binding.slot?.group!=='homelab-service'||binding.slot.artifact!=='runtime-service'||binding.slot.operation!=='publish'||binding.slot.step_index!==0||
       !/^sha256:[a-f0-9]{64}$/.test(value.binding_digest??''))throw new Error('guard_native_build_authority_denied');
-  const subjects=Object.fromEntries(['techstack-linux-amd64','techstack-linux-arm64','stackkit-runtime-linux-amd64.tar.gz','stackkit-runtime-linux-arm64.tar.gz'].map(name=>{
+  const subjects=Object.fromEntries(['homelab-linux-amd64','homelab-linux-arm64','stackkit-runtime-linux-amd64.tar.gz','stackkit-runtime-linux-arm64.tar.gz'].map(name=>{
     const file=path.join(directory,name);return [name,{sha256:createHash('sha256').update(readFileSync(file)).digest('hex'),size:statSync(file).size}];
   }));
   return {schema:'guard.native-build/v1',sourceSha:source,sourceTree:execFileSync('git',['rev-parse','HEAD^{tree}'],{encoding:'utf8'}).trim(),

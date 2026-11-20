@@ -170,7 +170,7 @@
       {tr("ui.stacksCreatingCreationFailure.askCompanion")}
     </button>
   {:else if creation.failedTask}
-    <!-- Embedded in kombify Cloud, Techstack's own Companion is not
+    <!-- Embedded in kombify Cloud, Homelab Runtime's own Companion is not
          mounted: the host's Companion takes the failure instead. The
          button renders only where such a host exists. -->
     <ErrorAiHandoverButton

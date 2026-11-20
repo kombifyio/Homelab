@@ -7,14 +7,14 @@ import { expect, test } from "@playwright/test";
 // A spec that stubs /api/v1/auth/portal-verify can only prove the iframe *calls*
 // portal-verify — never that the real backend establishes a usable session.
 // That blind spot is exactly how the 401-loop shipped: portal-verify returned a
-// body token but issued no techstack_session, so every subsequent API call
+// body token but issued no homelab_session, so every subsequent API call
 // 401'd.
 //
 // This spec runs against the live SaaS product / Render Preview (no mocks): the
 // parent-minted SSO token is exchanged at the REAL portal-verify, and the
-// resulting techstack_session cookie must authenticate a protected endpoint.
+// resulting homelab_session cookie must authenticate a protected endpoint.
 // Skipped where the shared SSO secret is unavailable (local dev); supplied via
-// the configured CI secret source in CI and the Render-Preview staging gate.
+// the CI secret store and the Render-Preview staging gate.
 
 function firstDefined(
   ...values: Array<string | undefined>
@@ -37,32 +37,32 @@ function requireLiveHttpsOrigin(label: string, value: string): string {
 }
 
 const API_BASE = requireLiveHttpsOrigin(
-  "TechStack API",
+  "Homelab Runtime API",
   firstDefined(
-    process.env.TECHSTACK_RUNTIME_E2E_API_URL,
-    process.env.TECHSTACK_API_URL,
-    process.env.TECHSTACK_RUNTIME_E2E_PRODUCT_URL,
-    process.env.TECHSTACK_E2E_PRODUCT_URL,
+    process.env.HOMELAB_RUNTIME_E2E_API_URL,
+    process.env.HOMELAB_API_URL,
+    process.env.HOMELAB_RUNTIME_E2E_PRODUCT_URL,
+    process.env.HOMELAB_E2E_PRODUCT_URL,
     process.env.PLAYWRIGHT_BASE_URL,
-  ) ?? "https://techstack.kombify.io",
+  ) ?? "https://homelab.kombify.io",
 );
 
 const SESSION_COOKIE_NAME =
-  process.env.TECHSTACK_E2E_SESSION_COOKIE_NAME ?? "techstack_session";
+  process.env.HOMELAB_E2E_SESSION_COOKIE_NAME ?? "homelab_session";
 
-// The Techstack-only HS256 secret kombify Cloud signs SSO tokens with and
-// TechStack verifies against. A mismatch here is the "secret drift" failure mode — this
+// The Homelab-only HS256 secret kombify Cloud signs SSO tokens with and
+// Homelab verifies against. A mismatch here is the "secret drift" failure mode — this
 // test fails loudly (portal-verify 401) instead of leaving it to manual review.
 const SSO_SECRET = firstDefined(
-  process.env.TECHSTACK_E2E_SSO_JWT_SECRET,
-  process.env.TECHSTACK_SSO_JWT_SECRET,
+  process.env.HOMELAB_E2E_SSO_JWT_SECRET,
+  process.env.HOMELAB_SSO_JWT_SECRET,
 );
 
 const SSO_TOOL_ID = "kombifystack";
 const SSO_SUBJECT =
-  process.env.TECHSTACK_E2E_SSO_SUBJECT ?? "auth0|techstack-e2e-embedded-sso";
+  process.env.HOMELAB_E2E_SSO_SUBJECT ?? "auth0|homelab-e2e-embedded-sso";
 const SSO_EMAIL =
-  process.env.TECHSTACK_E2E_SSO_EMAIL ?? "embedded-sso-e2e@kombify.test";
+  process.env.HOMELAB_E2E_SSO_EMAIL ?? "embedded-sso-e2e@kombify.test";
 
 function base64url(input: Buffer | string): string {
   return Buffer.from(input)
@@ -100,10 +100,10 @@ function mintSsoToken(secret: string): string {
 test.describe("Embedded SSO session (mock-free)", () => {
   test.skip(
     !SSO_SECRET,
-    "SSO secret unavailable; set TECHSTACK_SSO_JWT_SECRET (a configured secret source) to run",
+    "SSO secret unavailable; set HOMELAB_SSO_JWT_SECRET (a configured secret source) to run",
   );
 
-  test("portal-verify issues a techstack_session that authenticates the API", async ({
+  test("portal-verify issues a homelab_session that authenticates the API", async ({
     playwright,
   }) => {
     const ctx = await playwright.request.newContext({ baseURL: API_BASE });
@@ -118,7 +118,7 @@ test.describe("Embedded SSO session (mock-free)", () => {
       });
       expect(
         verify.status(),
-        "portal-verify must accept the parent-minted SSO token; 401 here means the Cloud/TechStack SSO secret drifted",
+        "portal-verify must accept the parent-minted SSO token; 401 here means the Cloud/Homelab SSO secret drifted",
       ).toBe(200);
 
       // Regression assertion: the exchange must ESTABLISH the session the

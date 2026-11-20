@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 // The public runtime keeps only the provider-neutral recovery seam. Hosted

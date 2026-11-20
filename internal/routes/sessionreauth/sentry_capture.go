@@ -5,7 +5,7 @@ package sessionreauth
 import (
 	"github.com/getsentry/sentry-go"
 
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 func captureSentry(e *httpx.Event, level string, message string, tags map[string]string) {

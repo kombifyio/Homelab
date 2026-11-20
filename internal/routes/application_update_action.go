@@ -10,14 +10,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/appreleases"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/appreleases"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // Single-application update (owner decision D-2026-11-12-06, workspace

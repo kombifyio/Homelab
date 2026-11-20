@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/releasechannel"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/releasechannel"
 )
 
 var state struct {
@@ -86,7 +86,7 @@ func Denial(capability string) *httpx.APIError {
 			"title": "Organization context required",
 			"body":  "Your session carries no kombify organization, so tenant data cannot be shown. This protects you from seeing different data here than in kombify Cloud.",
 			"next_steps": []string{
-				"Open Techstack from your kombify Cloud portal",
+				"Open Homelab Runtime from your kombify Cloud portal",
 				"Choose an organization in kombify Cloud, then return here",
 			},
 		},

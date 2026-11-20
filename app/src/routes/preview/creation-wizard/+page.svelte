@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-  <title>{tr("wizard.preview.label")} | Techstack</title>
+  <title>{tr("wizard.preview.label")} | Homelab Runtime</title>
   <meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 

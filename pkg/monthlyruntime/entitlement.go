@@ -5,11 +5,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/providercatalog"
 )
 
 // ManagedRuntimeEntitlementDecision is the single account/provider
-// availability decision shared by every Techstack managed-create surface.
+// availability decision shared by every Homelab managed-create surface.
 type ManagedRuntimeEntitlementDecision struct {
 	Denied           bool
 	Message          string
@@ -72,15 +72,15 @@ func deniedManagedRuntimeEntitlement(providerID, reasonCode string, requiredFeat
 // exception. Both switches are required so one stale environment flag cannot
 // authorize a cost-bearing managed provider path.
 // LocalManagedRuntimeE2EAllowed opens managed monthly-runtime creation on a
-// non-SaaS Core for test lanes only: TECHSTACK_ENV development (the Docker
+// non-SaaS Core for test lanes only: HOMELAB_ENV development (the Docker
 // deployment-target E2E) or local (the loopback Core of
 // scripts/os-compat/managed-lab-lane.py --substrate provider), and both
 // explicit test flags. Every other environment keeps the SaaS-only rule.
 func LocalManagedRuntimeE2EAllowed() bool {
-	environment := strings.ToLower(strings.TrimSpace(os.Getenv("TECHSTACK_ENV")))
+	environment := strings.ToLower(strings.TrimSpace(os.Getenv("HOMELAB_ENV")))
 	return (environment == "development" || environment == "local") &&
-		truthyManagedRuntimeEntitlementEnv("TECHSTACK_ALLOW_LOCAL_SIMULATION_GATE") &&
-		truthyManagedRuntimeEntitlementEnv("TECHSTACK_ALLOW_LOCAL_MANAGED_RUNTIME_E2E")
+		truthyManagedRuntimeEntitlementEnv("HOMELAB_ALLOW_LOCAL_SIMULATION_GATE") &&
+		truthyManagedRuntimeEntitlementEnv("HOMELAB_ALLOW_LOCAL_MANAGED_RUNTIME_E2E")
 }
 
 func truthyManagedRuntimeEntitlementEnv(name string) bool {
@@ -95,13 +95,13 @@ func truthyManagedRuntimeEntitlementEnv(name string) bool {
 // LocalRuntimeE2EBackupGrantTenant names the one tenant whose backup
 // entitlement a managed-runtime test lane may hold without the signed chain
 // (owner decision 2026-10-03). It applies only on a non-SaaS Core with
-// TECHSTACK_ENV=local and both runtime E2E test flags (the
+// HOMELAB_ENV=local and both runtime E2E test flags (the
 // LocalManagedRuntimeE2EAllowed exception), and only to the tenant the lane
-// provisions (TECHSTACK_RUNTIME_E2E_TENANT_ID). It grants the entitlement
+// provisions (HOMELAB_RUNTIME_E2E_TENANT_ID). It grants the entitlement
 // only; every other admission check is unchanged.
 func LocalRuntimeE2EBackupGrantTenant(saas bool) string {
-	if saas || !strings.EqualFold(strings.TrimSpace(os.Getenv("TECHSTACK_ENV")), "local") || !LocalManagedRuntimeE2EAllowed() {
+	if saas || !strings.EqualFold(strings.TrimSpace(os.Getenv("HOMELAB_ENV")), "local") || !LocalManagedRuntimeE2EAllowed() {
 		return ""
 	}
-	return strings.TrimSpace(os.Getenv("TECHSTACK_RUNTIME_E2E_TENANT_ID"))
+	return strings.TrimSpace(os.Getenv("HOMELAB_RUNTIME_E2E_TENANT_ID"))
 }

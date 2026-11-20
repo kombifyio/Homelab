@@ -2,7 +2,7 @@ package specv2
 
 import (
 	"encoding/json"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/runtimeaction"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/runtimeaction"
 	"strings"
 )
 

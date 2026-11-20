@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/agentcontrol"
-	agentpb "github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/grpcserver"
-	"github.com/kombifyio/techstack/pkg/servermaintenance"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/agentcontrol"
+	agentpb "github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/grpcserver"
+	"github.com/kombifyio/homelab/pkg/servermaintenance"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // Host maintenance command budgets. StackKits bounds plan to 3 minutes and

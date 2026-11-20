@@ -13,7 +13,7 @@
 //   - [Discover] — best-effort fetch of `.well-known/openid-configuration`.
 //
 // Identity bridge: [IdentityFromClaims] converts an OIDC [Claims] into a
-// [github.com/kombifyio/techstack/internal/gocommon/identity.Identity] so that
+// [github.com/kombifyio/homelab/internal/gocommon/identity.Identity] so that
 // downstream middleware can keep using the existing identity context plumbing.
 //
 // Self-hosted vs SaaS: callers configure the same client with a different

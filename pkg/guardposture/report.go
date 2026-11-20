@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/guardpower"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardpower"
 )
 
 // ReportSchema is the Guard-to-control-plane posture report.

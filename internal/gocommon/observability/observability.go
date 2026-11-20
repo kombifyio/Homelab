@@ -48,7 +48,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/identity"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	sentry "github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
 )

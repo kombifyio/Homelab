@@ -3,7 +3,7 @@ import type { LogoTheme } from "#lib/brand-logo.js";
 /*
  * The resolved UI theme as the logo picker needs it. The store in theme.ts can
  * hold `system`; the root `data-theme` attribute is the resolved value and also
- * follows host-pushed theme changes in embedded Techstack, so one observer on
+ * follows host-pushed theme changes in embedded Homelab, so one observer on
  * it serves every logo on the page.
  */
 function read(): LogoTheme {

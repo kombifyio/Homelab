@@ -14,20 +14,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/appcatalog"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/monitoring"
-	"github.com/kombifyio/techstack/pkg/runtimehealth"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
-	"github.com/kombifyio/techstack/pkg/secrets"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/appcatalog"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/monitoring"
+	"github.com/kombifyio/homelab/pkg/runtimehealth"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/pkg/secrets"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 type ServiceRuntimeRouteConfig struct {
@@ -326,7 +326,7 @@ func (h *serviceRuntimeHandlers) applicationReadModel(e *httpx.Event) ([]service
 	if !ok {
 		return nil, httpx.RejectUnauthorized(e, "Authentication required")
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.service-applications.read")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.service-applications.read")
 	if tenantErr != nil {
 		return nil, tenantErr
 	}
@@ -507,14 +507,14 @@ func publicApplicationAddress(access map[string]any) string {
 // action changes one managed service. A log read is not an action: it has
 // its own read operation, requestLogs.
 func (h *serviceRuntimeHandlers) action(e *httpx.Event) error {
-	return h.serviceRequest(e, "techstack.services.actions", decodeServiceActionRequest)
+	return h.serviceRequest(e, "homelab.services.actions", decodeServiceActionRequest)
 }
 
 // requestLogs asks the service's agent for a fresh bounded log page. It runs
 // the same inventory-bound, idempotent read job the action endpoint used to
 // queue for `logs`, so the change and the read are separate operations.
 func (h *serviceRuntimeHandlers) requestLogs(e *httpx.Event) error {
-	return h.serviceRequest(e, "techstack.services.logs", decodeServiceLogsRequest)
+	return h.serviceRequest(e, "homelab.services.logs", decodeServiceLogsRequest)
 }
 
 func (h *serviceRuntimeHandlers) serviceRequest(
@@ -917,7 +917,7 @@ func (h *serviceRuntimeHandlers) logs(e *httpx.Event) error {
 	if !ok {
 		return httpx.Unauthorized(e, "Authentication required")
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.services.logs")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.services.logs")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -1035,7 +1035,7 @@ func (h *serviceRuntimeHandlers) list(e *httpx.Event) error {
 	if !ok {
 		return httpx.Unauthorized(e, "Authentication required")
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.services.list")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.services.list")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -1103,7 +1103,7 @@ func (h *serviceRuntimeHandlers) get(e *httpx.Event) error {
 	if serviceID == "" {
 		return httpx.BadRequest(e, "Service ID is required", nil)
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.services.read")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.services.read")
 	if tenantErr != nil {
 		return tenantErr
 	}

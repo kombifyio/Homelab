@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/providercatalog"
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/internal/providercatalog"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 // validateFreshManagedProviderSpec enforces provider identity before the job

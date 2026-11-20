@@ -4,11 +4,11 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/specv2"
-	"github.com/kombifyio/techstack/pkg/unifier"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/specv2"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 func (api *UnifierAPI) handleListStackKits(e *httpx.Event) error {
@@ -88,7 +88,7 @@ func (api *UnifierAPI) handleDetectAddons(e *httpx.Event) error {
 }
 
 // handleUseCaseCatalog serves the StackKits use-case catalog. The Unifier and
-// Wizard consume the image-published catalog when TECHSTACK_STACKKIT_USE_CASE_CATALOG
+// Wizard consume the image-published catalog when HOMELAB_STACKKIT_USE_CASE_CATALOG
 // is set, otherwise the catalog generated from the pinned StackKits module.
 // They never load CUE from a STACKKITS_REPO checkout.
 func (api *UnifierAPI) handleUseCaseCatalog(e *httpx.Event) error {

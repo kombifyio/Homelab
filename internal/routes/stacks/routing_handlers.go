@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/logger"
-	"github.com/kombifyio/techstack/pkg/stackrouting"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/stackrouting"
 )
 
 type putStackRoutingRequest struct {
@@ -25,7 +25,7 @@ type putStackRoutingRequest struct {
 }
 
 func (h crudRouteHandlers) getStackRouting(e *httpx.Event) error {
-	principal, err := routingPrincipal(e, "techstack.stack.routing.read")
+	principal, err := routingPrincipal(e, "homelab.stack.routing.read")
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,7 @@ func (h crudRouteHandlers) getStackRouting(e *httpx.Event) error {
 }
 
 func (h crudRouteHandlers) listStackRoutingTargets(e *httpx.Event) error {
-	principal, err := routingPrincipal(e, "techstack.stack.routing.targets.read")
+	principal, err := routingPrincipal(e, "homelab.stack.routing.targets.read")
 	if err != nil {
 		return err
 	}
@@ -51,7 +51,7 @@ func (h crudRouteHandlers) listStackRoutingTargets(e *httpx.Event) error {
 }
 
 func (h crudRouteHandlers) putStackRouting(e *httpx.Event) error {
-	principal, err := routingPrincipal(e, "techstack.stack.routing.update")
+	principal, err := routingPrincipal(e, "homelab.stack.routing.update")
 	if err != nil {
 		return err
 	}

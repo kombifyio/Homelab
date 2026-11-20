@@ -11,13 +11,13 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"github.com/kombifyio/techstack/pkg/agentcontrol"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/guardidentity"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/agentcontrol"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // maxTypedResultBytes bounds one typed result submission: the StackKits result

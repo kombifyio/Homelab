@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/dataprofile"
+	"github.com/kombifyio/homelab/internal/gocommon/dataprofile"
 )
 
 // Signed data protection profile headers (kombify workspace

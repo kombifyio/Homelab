@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/guardidentity"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // identityUpgradeStepUpMaxAge bounds the multi-factor sign-in behind an owner's
@@ -93,7 +93,7 @@ func (h workerRouteHandlers) ownedWorkerForIdentity(e *httpx.Event, capability s
 // identityUpgradeStatus shows the owner whether a server still authenticates with
 // its bearer credential alone and which key, if any, awaits approval.
 func (h workerRouteHandlers) identityUpgradeStatus(e *httpx.Event) error {
-	_, tenantID, workerID, ok := h.ownedWorkerForIdentity(e, "techstack.workers.identity.upgrade.read")
+	_, tenantID, workerID, ok := h.ownedWorkerForIdentity(e, "homelab.workers.identity.upgrade.read")
 	if !ok {
 		return nil
 	}
@@ -117,7 +117,7 @@ type identityUpgradeApproveRequest struct {
 // bound by accident. The person presents a fresh second factor; an agent acting
 // for the person names the same exact fingerprint and needs none.
 func (h workerRouteHandlers) identityUpgradeApprove(e *httpx.Event) error {
-	ownerID, tenantID, workerID, ok := h.ownedWorkerForIdentity(e, "techstack.workers.identity.upgrade.approve")
+	ownerID, tenantID, workerID, ok := h.ownedWorkerForIdentity(e, "homelab.workers.identity.upgrade.approve")
 	if !ok {
 		return nil
 	}
@@ -153,7 +153,7 @@ func (h workerRouteHandlers) identityUpgradeApprove(e *httpx.Event) error {
 // key is not the server's: a rejected key must ask again, and rotating the
 // server credential ends the holder's access to the bind endpoint.
 func (h workerRouteHandlers) identityUpgradeReject(e *httpx.Event) error {
-	ownerID, tenantID, workerID, ok := h.ownedWorkerForIdentity(e, "techstack.workers.identity.upgrade.reject")
+	ownerID, tenantID, workerID, ok := h.ownedWorkerForIdentity(e, "homelab.workers.identity.upgrade.reject")
 	if !ok {
 		return nil
 	}
@@ -177,7 +177,7 @@ func (h workerRouteHandlers) identityUpgradeList(e *httpx.Event) error {
 	if authErr != nil || ownerID == "" {
 		return nil
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.workers.identity.upgrade.read")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.workers.identity.upgrade.read")
 	if tenantErr != nil {
 		return nil
 	}

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/auth"
 )
 
 // IssueRequest describes a certificate to mint for an agent and the enrollment
@@ -25,7 +25,7 @@ type IssueRequest struct {
 }
 
 // IssuedIdentity is the bundle returned to an agent after enrollment. The agent
-// writes CertPEM/KeyPEM/CACertPEM to disk and runs `techstack agent` with them.
+// writes CertPEM/KeyPEM/CACertPEM to disk and runs `homelab agent` with them.
 type IssuedIdentity struct {
 	AgentID    string
 	TenantID   string

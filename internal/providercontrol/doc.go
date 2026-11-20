@@ -1,4 +1,4 @@
-// Package providercontrol is TechStack's internal provider lifecycle authority.
+// Package providercontrol is Homelab's internal provider lifecycle authority.
 //
 // # Authority
 //
@@ -15,7 +15,7 @@
 //
 // Provider calls are allowed only after a durable command and resource intent
 // exist. All operation-specific execution paths remain under the single
-// techstack_provider_control authority; their safety modes are TechStack
+// techstack_provider_control authority; their safety modes are Homelab
 // catalog and ledger state, not providerexecutor receipt-wire fields.
 // Crash-recoverable adapters may replay an exact head only through their
 // admitted recovery mechanism. An at-most-once provision whose current head is

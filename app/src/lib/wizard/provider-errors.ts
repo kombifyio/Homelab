@@ -1,6 +1,6 @@
 import { tr } from "#lib/i18n.svelte.js";
 /**
- * kombify-TechStack Provider Error Classification
+ * kombify-Homelab Provider Error Classification
  *
  * Parsing, classification, and user-facing detail rendering for Unifier and
  * managed-runtime/cloud-provider errors. Split out of tasks.ts so the error
@@ -38,12 +38,12 @@ export const ERROR_TROUBLESHOOTING = {
       return tr("ui.providerErrors.networkErrorWhileSaving");
     },
     get details() {
-      return tr("ui.providerErrors.theKombifyTechstackServerCould");
+      return tr("ui.providerErrors.theKombifyHomelabServerCould");
     },
     get steps() {
       return [
         tr("ui.providerErrors.checkYourInternetConnection"),
-        tr("ui.providerErrors.makeSureTheKombifyTechstack"),
+        tr("ui.providerErrors.makeSureTheKombifyHomelab"),
         tr("ui.providerErrors.checkThatPort5260Is"),
         tr("ui.providerErrors.withDockerUseDockerPs"),
       ];
@@ -199,7 +199,7 @@ export const ERROR_TROUBLESHOOTING = {
         tr("ui.providerErrors.checkThatThePocketBaseDatabase"),
         tr("ui.providerErrors.verifyWritePermissionsForThe"),
         tr("ui.providerErrors.withDockerEnsureTheVolume"),
-        tr("ui.providerErrors.tryRestartingTheKombifyTechstack"),
+        tr("ui.providerErrors.tryRestartingTheKombifyHomelab"),
       ];
     },
   },
@@ -240,7 +240,7 @@ export const ERROR_TROUBLESHOOTING = {
       return tr("ui.providerErrors.thisDeploymentCouldNotBe");
     },
     get details() {
-      return tr("ui.providerErrors.theTeardownStoppedBecauseTechstack");
+      return tr("ui.providerErrors.theTeardownStoppedBecauseHomelab");
     },
     get steps() {
       return [

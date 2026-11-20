@@ -23,7 +23,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/oidcclient"
+	"github.com/kombifyio/homelab/internal/gocommon/oidcclient"
 )
 
 // Errors returned by the interactive flows.

@@ -7,10 +7,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"github.com/kombifyio/techstack/internal/managedstackkit"
-	"github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/backupstore"
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/internal/managedstackkit"
+	"github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/backupstore"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 )
 
 // EnrollmentStore persists only already authenticated, canonically validated

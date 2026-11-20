@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 // Metrics use the existing admitted Guard telemetry and PromQL read backend.
@@ -21,7 +21,7 @@ func (h *serviceRuntimeHandlers) serviceMetrics(e *httpx.Event) error {
 	if !ok {
 		return httpx.Unauthorized(e, "Authentication required")
 	}
-	tenantID, err := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.services.read")
+	tenantID, err := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.services.read")
 	if err != nil {
 		return err
 	}

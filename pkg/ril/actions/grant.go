@@ -3,7 +3,7 @@ package actions
 import (
 	"time"
 
-	rilaction "github.com/kombifyio/techstack/pkg/ril/actioncontract"
+	rilaction "github.com/kombifyio/homelab/pkg/ril/actioncontract"
 )
 
 // RefuseUnentitledStart denies a new RIL execution before any durable workflow

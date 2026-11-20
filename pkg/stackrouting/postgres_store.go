@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 )
 
 type PostgresStore struct {

@@ -14,7 +14,7 @@ import (
 // identity for release routes, refresh, and managed-target metadata.
 func NewConfiguredVerifier(now func() time.Time) (*Verifier, error) {
 	options := Options{Now: now}
-	if path := strings.TrimSpace(os.Getenv("TECHSTACK_GUARD_RELEASE_TRUSTED_ROOT")); path != "" {
+	if path := strings.TrimSpace(os.Getenv("HOMELAB_GUARD_RELEASE_TRUSTED_ROOT")); path != "" {
 		file, err := os.Open(path)
 		if err != nil {
 			return nil, fmt.Errorf("read configured Guard release trusted root: %w", err)
@@ -33,7 +33,7 @@ func NewConfiguredVerifier(now func() time.Time) (*Verifier, error) {
 		}
 		options.TrustedRootJSON = root
 	}
-	issuer, san := strings.TrimSpace(os.Getenv("TECHSTACK_GUARD_RELEASE_SIGNER_ISSUER")), strings.TrimSpace(os.Getenv("TECHSTACK_GUARD_RELEASE_SIGNER_SAN_REGEXP"))
+	issuer, san := strings.TrimSpace(os.Getenv("HOMELAB_GUARD_RELEASE_SIGNER_ISSUER")), strings.TrimSpace(os.Getenv("HOMELAB_GUARD_RELEASE_SIGNER_SAN_REGEXP"))
 	if issuer != "" || san != "" {
 		options.Identity = Identity{Issuer: issuer, SANRegexp: san}
 	}

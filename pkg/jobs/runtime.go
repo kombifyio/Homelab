@@ -10,16 +10,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/guardbootstrap"
-	"github.com/kombifyio/techstack/internal/providercatalog"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/runtimeaction"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
-	"github.com/kombifyio/techstack/pkg/vmleases"
+	"github.com/kombifyio/homelab/internal/guardbootstrap"
+	"github.com/kombifyio/homelab/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/runtimeaction"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 )
 
 const (
@@ -339,28 +339,28 @@ func NewStaticManagedRuntimeTargetResolver(target ManagedRuntimeTarget) *StaticM
 
 func NewStaticManagedRuntimeTargetResolverFromEnv() *StaticManagedRuntimeTargetResolver {
 	host := firstNonEmpty(
-		os.Getenv("TECHSTACK_DEV_MONTHLY_RUNTIME_TARGET_HOST"),
-		os.Getenv("TECHSTACK_DEV_MONTHLY_RUNTIME_TARGET_PUBLIC_IP"),
-		os.Getenv("TECHSTACK_DEV_MONTHLY_RUNTIME_TARGET_PRIVATE_IP"),
+		os.Getenv("HOMELAB_DEV_MONTHLY_RUNTIME_TARGET_HOST"),
+		os.Getenv("HOMELAB_DEV_MONTHLY_RUNTIME_TARGET_PUBLIC_IP"),
+		os.Getenv("HOMELAB_DEV_MONTHLY_RUNTIME_TARGET_PRIVATE_IP"),
 	)
 	if host == "" {
 		return nil
 	}
 	port := 0
-	if raw := strings.TrimSpace(os.Getenv("TECHSTACK_DEV_MONTHLY_RUNTIME_TARGET_SSH_PORT")); raw != "" {
+	if raw := strings.TrimSpace(os.Getenv("HOMELAB_DEV_MONTHLY_RUNTIME_TARGET_SSH_PORT")); raw != "" {
 		if parsed, err := strconv.Atoi(raw); err == nil {
 			port = parsed
 		}
 	}
 	return NewStaticManagedRuntimeTargetResolver(ManagedRuntimeTarget{
 		Host:      host,
-		PublicIP:  firstNonEmpty(os.Getenv("TECHSTACK_DEV_MONTHLY_RUNTIME_TARGET_PUBLIC_IP"), host),
-		PrivateIP: os.Getenv("TECHSTACK_DEV_MONTHLY_RUNTIME_TARGET_PRIVATE_IP"),
-		SSHUser:   firstNonEmpty(os.Getenv("TECHSTACK_DEV_MONTHLY_RUNTIME_TARGET_SSH_USER"), guardbootstrap.ExecutionChannelUser),
+		PublicIP:  firstNonEmpty(os.Getenv("HOMELAB_DEV_MONTHLY_RUNTIME_TARGET_PUBLIC_IP"), host),
+		PrivateIP: os.Getenv("HOMELAB_DEV_MONTHLY_RUNTIME_TARGET_PRIVATE_IP"),
+		SSHUser:   firstNonEmpty(os.Getenv("HOMELAB_DEV_MONTHLY_RUNTIME_TARGET_SSH_USER"), guardbootstrap.ExecutionChannelUser),
 		SSHPort:   firstPositiveInt(port, 22),
 		DockerHost: strings.TrimSpace(firstNonEmpty(
-			os.Getenv("TECHSTACK_DEV_MONTHLY_RUNTIME_TARGET_DOCKER_HOST"),
-			os.Getenv("TECHSTACK_E2E_LOCAL_DOCKER_HOST"),
+			os.Getenv("HOMELAB_DEV_MONTHLY_RUNTIME_TARGET_DOCKER_HOST"),
+			os.Getenv("HOMELAB_E2E_LOCAL_DOCKER_HOST"),
 		)),
 		Source: "dev-static-target",
 	})
@@ -387,24 +387,24 @@ type SSHBootstrap = runtimeaction.SSHBootstrap
 type PreviewPolicy = runtimeaction.PreviewPolicy
 
 type RuntimeActionRequest struct {
-	Action              runtimeaction.Action `json:"action"`
-	StackID             string               `json:"stack_id"`
-	StackName           string               `json:"stack_name,omitempty"`
-	StackKit            string               `json:"stackkit,omitempty"`
-	TenantID            string               `json:"tenant_id,omitempty"`
-	OwnerID             string               `json:"owner_id,omitempty"`
-	StackSpec           json.RawMessage      `json:"stack_spec,omitempty"`
-	StackSpecPath       string               `json:"stack_spec_path,omitempty"`
-	TofuDir             string               `json:"tofu_dir,omitempty"`
-	UnifiedPath         string               `json:"unified_path,omitempty"`
-	OwnerSpecBootstrap  *OwnerSpecBootstrap  `json:"owner_spec_bootstrap,omitempty"`
-	RuntimeTarget       *RuntimeActionTarget `json:"runtime_target,omitempty"`
-	PlatformNodes       []PlatformNode       `json:"platform_nodes,omitempty"`
-	PreviewPolicy       *PreviewPolicy       `json:"preview_policy,omitempty"`
-	TechStackEnrollment *TechStackEnrollment `json:"techstack_enrollment,omitempty"`
+	Action             runtimeaction.Action `json:"action"`
+	StackID            string               `json:"stack_id"`
+	StackName          string               `json:"stack_name,omitempty"`
+	StackKit           string               `json:"stackkit,omitempty"`
+	TenantID           string               `json:"tenant_id,omitempty"`
+	OwnerID            string               `json:"owner_id,omitempty"`
+	StackSpec          json.RawMessage      `json:"stack_spec,omitempty"`
+	StackSpecPath      string               `json:"stack_spec_path,omitempty"`
+	TofuDir            string               `json:"tofu_dir,omitempty"`
+	UnifiedPath        string               `json:"unified_path,omitempty"`
+	OwnerSpecBootstrap *OwnerSpecBootstrap  `json:"owner_spec_bootstrap,omitempty"`
+	RuntimeTarget      *RuntimeActionTarget `json:"runtime_target,omitempty"`
+	PlatformNodes      []PlatformNode       `json:"platform_nodes,omitempty"`
+	PreviewPolicy      *PreviewPolicy       `json:"preview_policy,omitempty"`
+	HomelabEnrollment  *HomelabEnrollment   `json:"homelab_enrollment,omitempty"`
 }
 
-type TechStackEnrollment struct {
+type HomelabEnrollment struct {
 	TenantID         string         `json:"tenant_id,omitempty"`
 	OwnerID          string         `json:"owner_id,omitempty"`
 	StackID          string         `json:"stack_id,omitempty"`
@@ -1125,7 +1125,7 @@ func normalizeRuntimeActionTarget(target *RuntimeActionTarget) *RuntimeActionTar
 func managedRuntimeTargetHasRuntimeActionCredential(target *ManagedRuntimeTarget) bool {
 	target = normalizeManagedRuntimeTarget(target)
 	// KeyPath is intentionally excluded: provider key paths are local to the
-	// VM authority/Simulate container and cannot be dereferenced by TechStack or
+	// VM authority/Simulate container and cannot be dereferenced by Homelab or
 	// the StackKits runtime action service in production.
 	return target != nil && firstNonEmpty(target.DockerHost, target.SSHClientPrivateKey, target.SSHPrivateKey, target.SSHProviderPrivateKey, target.SSHPassword) != ""
 }
@@ -1150,7 +1150,7 @@ func managedRuntimeTargetCredentialUnavailableError(leaseID string, target *Mana
 	}
 	detail := "RuntimeActionSSHInfo must provide private_key, client_private_key, password, or docker_host for StackKits rollout"
 	if keyPathOnly {
-		detail += "; provider-local key_path alone is not usable across TechStack/StackKits service boundaries"
+		detail += "; provider-local key_path alone is not usable across Homelab/StackKits service boundaries"
 	}
 	if strings.TrimSpace(leaseID) == "" {
 		return fmt.Errorf("%w: %s target has no transportable rollout credential: %s", ErrManagedRuntimeTargetCredentialFailed, source, detail)

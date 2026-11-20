@@ -1,10 +1,10 @@
-// Package household is the Techstack side of the Companion Feed household:
+// Package household is the Homelab side of the Companion Feed household:
 // the owner-approved projection of a Cloud household member to the owner's
 // homelab, and the Kombify Connect D10 link between a Cloud (Auth0) subject and
 // a Pocket ID identity on one stack.
 //
-// Cloud holds household membership (a Space). Techstack alone ties a Cloud
-// subject to a homelab identity, because only Techstack reaches the node through
+// Cloud holds household membership (a Space). Homelab alone ties a Cloud
+// subject to a homelab identity, because only Homelab reaches the node through
 // its Guard. The homelab identity provider stays the authority for the person:
 // an invitation alone never links, and nothing here stores a credential.
 package household
@@ -22,10 +22,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/oidcclient"
+	"github.com/kombifyio/homelab/internal/gocommon/oidcclient"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // Projection actions.
@@ -67,7 +67,7 @@ func ParseNodeApps(catalogIDs []string) ([]string, error) {
 
 // Projection statuses, the values Cloud reads (Cloud household service):
 // projected means the invite or removal was issued to the node, none means the
-// owner has no homelab, pending means the node could not take it now. Techstack
+// owner has no homelab, pending means the node could not take it now. Homelab
 // keeps no queue: Cloud holds the pending projection and re-sends it, which is
 // idempotent.
 const (
@@ -184,14 +184,14 @@ type OwnerTenants interface {
 	ResolveOwnerTenant(ctx context.Context, hintTenant, ownerSubject string) (string, error)
 }
 
-// Issuers resolves the Pocket ID issuer of a stack from Techstack's own service
+// Issuers resolves the Pocket ID issuer of a stack from Homelab's own service
 // inventory. A token's own issuer claim is never trusted for this.
 type Issuers interface {
 	PocketIDIssuer(ctx context.Context, tenantID, stackID string) (string, error)
 }
 
 // PocketIDInventory reports whether a stack runs the StackKits-managed Pocket ID
-// issuer, from Techstack's own service inventory, and whether the stack reported
+// issuer, from Homelab's own service inventory, and whether the stack reported
 // any inventory. When a Service has one, it selects the identity stacks instead
 // of Issuers (identityStacks).
 type PocketIDInventory interface {
@@ -618,7 +618,7 @@ type LinkProof struct {
 }
 
 // CompleteLink verifies the member's Pocket ID login and marks the reference
-// linked. The ID token must verify against the issuer Techstack knows for the
+// linked. The ID token must verify against the issuer Homelab knows for the
 // stack, carry the nonce Cloud used, and name the invited person: the Pocket ID
 // username, or else the invited e-mail address.
 func (s *Service) CompleteLink(ctx context.Context, proof LinkProof) (*controlplane.HomelabIdentityRef, error) {

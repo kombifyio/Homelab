@@ -30,7 +30,7 @@ func WalletUnavailable(detail string) *Denial {
 		Retryable:  false,
 		Message:    "the kombify Wallet is not configured for this run (" + detail + "); nothing was read, decrypted or written",
 		UserGuidance: []string{
-			"Run execute with the hosted Wallet configuration: TECHSTACK_WALLET_SOURCE=kombify and the TECHSTACK_WALLET_* settings.",
+			"Run execute with the hosted Wallet configuration: HOMELAB_WALLET_SOURCE=kombify and the HOMELAB_WALLET_* settings.",
 			"Execute never falls back to the legacy store.",
 		},
 	}
@@ -43,9 +43,9 @@ func EncryptionKeyRequired() *Denial {
 		ErrorCode:  ErrorCodeEncryptionKeyRequired,
 		ReasonCode: "legacy_key_missing",
 		Retryable:  false,
-		Message:    "TECHSTACK_ENCRYPTION_KEY is missing or not a 32-byte key; nothing was read, decrypted or written",
+		Message:    "HOMELAB_ENCRYPTION_KEY is missing or not a 32-byte key; nothing was read, decrypted or written",
 		UserGuidance: []string{
-			"Provide the installation's TECHSTACK_ENCRYPTION_KEY for this run; execute reads the legacy values with it and writes them to the Wallet.",
+			"Provide the installation's HOMELAB_ENCRYPTION_KEY for this run; execute reads the legacy values with it and writes them to the Wallet.",
 		},
 	}
 }
@@ -59,7 +59,7 @@ func ExecuteIsASubcommand() *Denial {
 		Retryable:  false,
 		Message:    "plan only plans; nothing was read, decrypted or written",
 		UserGuidance: []string{
-			"Run `techstack wallet-migration execute --tenant <id>` to move the rows into the kombify Wallet.",
+			"Run `homelab wallet-migration execute --tenant <id>` to move the rows into the kombify Wallet.",
 		},
 	}
 }

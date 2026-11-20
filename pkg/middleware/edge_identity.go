@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
-	commonedgeauth "github.com/kombifyio/techstack/internal/gocommon/edgeauth"
-	"github.com/kombifyio/techstack/internal/gocommon/tenantdb"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/identity"
+	commonedgeauth "github.com/kombifyio/homelab/internal/gocommon/edgeauth"
+	"github.com/kombifyio/homelab/internal/gocommon/tenantdb"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 // userPlanContextKey is a context key for the user's subscription plan/tier.
@@ -64,7 +64,7 @@ type EdgeIdentityConfig struct {
 	// This keyring remains separate from the request-decision keyring.
 	EdgeAuthKeyID     string
 	EdgeAuthNextKeyID string
-	// EdgeFlagsSecret signs request-bound TechStack v2 decisions. When empty,
+	// EdgeFlagsSecret signs request-bound Homelab v2 decisions. When empty,
 	// EDGE_FLAGS_SECRET is used, then the identity secret as a compatibility
 	// fallback. Legacy v1 rollout flags are never commercial authority.
 	EdgeFlagsSecret     string
@@ -111,8 +111,8 @@ const (
 	headerPublicPrefix   = "X-Kombify-Public-Prefix"
 	headerUserScope      = "X-User-Scope"
 
-	techStackDecisionAudience     = "techstack"
-	techStackDecisionPublicPrefix = "/v1/techstack"
+	homelabDecisionAudience     = "homelab"
+	homelabDecisionPublicPrefix = "/v1/homelab"
 
 	// edgeSignatureVersion is the v1 signature prefix. Version negotiation and
 	// crypto now live in go-common/edgeauth; this constant is retained for the
@@ -372,14 +372,14 @@ func attachEdgeFlags(e *httpx.Event, cfg EdgeIdentityConfig) error {
 	if err := assertKnownEdgeFlagsKeyID(e.Request, keys); err != nil {
 		return err
 	}
-	if strings.TrimSpace(e.Request.Header.Get(headerEdgeService)) == techStackDecisionAudience && edgeIdentityHasSubjectAndTenant(e.Request) {
+	if strings.TrimSpace(e.Request.Header.Get(headerEdgeService)) == homelabDecisionAudience && edgeIdentityHasSubjectAndTenant(e.Request) {
 		flags, err := commonedgeauth.VerifyDecisionHeadersWithKeys(e.Request, commonedgeauth.DecisionVerifyConfig{
 			PrimarySecret:        keys.PrimarySecret,
 			NextSecret:           keys.NextSecret,
 			PrimaryKeyID:         keys.PrimaryKeyID,
 			NextKeyID:            keys.NextKeyID,
-			ExpectedAudience:     techStackDecisionAudience,
-			ExpectedPublicPrefix: techStackDecisionPublicPrefix,
+			ExpectedAudience:     homelabDecisionAudience,
+			ExpectedPublicPrefix: homelabDecisionPublicPrefix,
 			SignatureWindow:      cfg.EdgeSignatureWindow,
 			IdentityConfig: commonedgeauth.Config{
 				EdgeAuthSecret:     firstNonEmpty(cfg.EdgeAuthSecret, os.Getenv("EDGE_AUTH_SECRET")),
@@ -397,7 +397,7 @@ func attachEdgeFlags(e *httpx.Event, cfg EdgeIdentityConfig) error {
 		return nil
 	}
 
-	// Other services sharing the TechStack origin, and a techstack hop whose
+	// Other services sharing the Homelab origin, and a homelab hop whose
 	// signed identity has no subject or no tenant, carry the detached v1
 	// envelope: a request-bound decision binds both, so the Gateway cannot
 	// sign one there (kombify-Gateway docs/API_REFERENCE.md "Signed flag
@@ -412,7 +412,7 @@ func attachEdgeFlags(e *httpx.Event, cfg EdgeIdentityConfig) error {
 }
 
 // edgeIdentityHasSubjectAndTenant reads the identity headers the verified
-// edge signature binds. With both, a techstack hop must carry the
+// edge signature binds. With both, a homelab hop must carry the
 // request-bound decision and a detached v1 envelope is refused; dropping
 // either value would break the identity signature.
 func edgeIdentityHasSubjectAndTenant(r *http.Request) bool {
@@ -464,7 +464,7 @@ func hasAnyEdgeFlagHeader(r *http.Request) bool {
 // signs for routes that reach this origin (see kombify-Gateway
 // cloudflare-edge router.ts).
 var edgeExpectedServices = []string{
-	"techstack", "capabilities", "capability-catalog", "supply-dock-catalog",
+	"homelab", "capabilities", "capability-catalog", "supply-dock-catalog",
 	"capability-activations", "connector-vault", "harness-policy", "ril",
 }
 
@@ -481,7 +481,7 @@ var edgeReplayGuard = commonedgeauth.NewMemoryReplayGuard(10*time.Minute, 0)
 // so those headers cannot be forged downstream; v7 also binds the step-up
 // facts, which it returns with bound=true; v9 also binds the Auth0
 // email_verified fact, returned as emailVerified (false for every other
-// version). Techstack no longer hand-rolls
+// version). Homelab no longer hand-rolls
 // the edge-signature crypto — go-common is the single source of truth for the
 // contract (platform/standards/EDGE-AUTH-RESPONSIBILITY-STANDARD.md), so the
 // Gateway flip from v1 to v2 is accepted here without a further code change.
@@ -583,7 +583,7 @@ func writeEdgeDecisionUnverifiable(e *httpx.Event) {
 			"retryable":   true,
 			"user_guidance": map[string]any{
 				"title": "Service could not verify this request",
-				"body":  "Techstack could not verify the gateway's signed decision. This is a service-side trust problem; signing in again does not change it.",
+				"body":  "Homelab Runtime could not verify the gateway's signed decision. This is a service-side trust problem; signing in again does not change it.",
 				"next_steps": []string{
 					"Retry in a moment",
 					"If it persists, this needs an operator, not another sign-in",

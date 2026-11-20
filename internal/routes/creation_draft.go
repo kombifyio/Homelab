@@ -9,18 +9,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // The creation draft surface (KOMBIFY-DESIGN-SYSTEM-STANDARD.md section 9).
 //
 // Every frame of the creation flow (page, sheet, single step, the embedded
 // module in the Cloud popup) keeps where the owner stands under one key per
-// process and target, so "Continue in Techstack" or another device opens the
+// process and target, so "Continue in Homelab" or another device opens the
 // same step with the same answers. Only the signed-in owner reads or writes
 // their drafts, in their tenant. A draft never holds a secret: a field that
 // carries a password, passphrase, token, key or other secret is refused here,
@@ -28,7 +28,7 @@ import (
 
 const (
 	maxCreationDraftBodyBytes = controlplane.MaxCreationDraftAnswersBytes + 1<<10
-	creationDraftCapability   = "techstack.creation.draft"
+	creationDraftCapability   = "homelab.creation.draft"
 
 	creationDraftReasonInvalid        = "creation_draft_invalid"
 	creationDraftReasonSecret         = "creation_draft_secret_field"

@@ -10,22 +10,22 @@ import (
 	"strings"
 	"time"
 
-	agentpkg "github.com/kombifyio/techstack/pkg/agent"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	agentpkg "github.com/kombifyio/homelab/pkg/agent"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 // powerEnabledEnv is the executor-side admission of the UPS power sequence. The
 // Guard layout writes it only when the owner turned UPS protection on; without
 // it every power request is refused, so a compromised daemon cannot power the
 // host off through this channel.
-const powerEnabledEnv = "TECHSTACK_GUARD_EXECUTOR_POWER"
+const powerEnabledEnv = "HOMELAB_GUARD_EXECUTOR_POWER"
 
 // The executor's own admission of what the daemon may stop. The daemon's
 // policy is not an authority the privileged side can trust; the layout writes
 // these root-owned lists when the owner enables protection.
 const (
-	powerServicesEnv = "TECHSTACK_GUARD_EXECUTOR_POWER_SERVICES"
-	powerUnitsEnv    = "TECHSTACK_GUARD_EXECUTOR_POWER_STORAGE_UNITS"
+	powerServicesEnv = "HOMELAB_GUARD_EXECUTOR_POWER_SERVICES"
+	powerUnitsEnv    = "HOMELAB_GUARD_EXECUTOR_POWER_STORAGE_UNITS"
 )
 
 const (

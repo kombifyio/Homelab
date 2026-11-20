@@ -1,17 +1,17 @@
 openapi: 3.1.0
 info:
-  title: kombify-TechStack API
+  title: kombify-Homelab API
   description: |
-    REST API for kombify-TechStack -- the hybrid cloud control plane for homelabs.
+    REST API for kombify-Homelab -- the hybrid cloud control plane for homelabs.
 
-    kombify-TechStack manages infrastructure through a spec-driven architecture:
+    kombify-Homelab manages infrastructure through a spec-driven architecture:
     validate YAML specs via CUE, generate OpenTofu configurations, and manage
     nodes through a gRPC agent protocol.
 
     ## Authentication
 
     Authenticated endpoints accept an OIDC/JWKS bearer token or an API key
-    where documented. Self-hosted TechStack defaults to Pocket ID as identity
+    where documented. Self-hosted Homelab defaults to Pocket ID as identity
     provider. SaaS routes enter through the edge with Auth0 as the platform
     identity provider. PocketBase session exchange remains legacy migration
     compatibility only.
@@ -31,18 +31,18 @@ info:
     url: https://kombify.io
   license:
     name: Apache-2.0 AND GPL-3.0
-    url: https://github.com/kombifyio/TechStack/blob/main/LICENSE
+    url: https://github.com/kombifyio/Homelab/blob/main/LICENSE
 servers:
-  - url: https://api.kombify.io/v1/techstack
+  - url: https://api.kombify.io/v1/homelab
     description: >-
-      Production canonical (via Cloudflare edge gateway, strip-prefix). Clients MUST use this projection. The Gateway strips /v1/techstack and re-adds /api/v1 at the origin, so it resolves the /api/v1/* paths below cleanly.
+      Production canonical (via Cloudflare edge gateway, strip-prefix). Clients MUST use this projection. The Gateway strips /v1/homelab and re-adds /api/v1 at the origin, so it resolves the /api/v1/* paths below cleanly.
   - url: http://localhost:5260
     description: Local development
-  - url: https://techstack.kombify.io
+  - url: https://homelab.kombify.io
     description: Production (direct, no Gateway prefix)
   - url: https://api.kombify.io/v1/orchestrator
     description: >-
-      Legacy StackKit-Orchestrator projection of the same origin. RETAINED for backward compatibility with existing consumers only. Do NOT use for mobile or new clients: combined with the /api/v1/* paths it double-resolves (yielding /v1/orchestrator/api/v1/...). Prefer /v1/techstack.
+      Legacy StackKit-Orchestrator projection of the same origin. RETAINED for backward compatibility with existing consumers only. Do NOT use for mobile or new clients: combined with the /api/v1/* paths it double-resolves (yielding /v1/orchestrator/api/v1/...). Prefer /v1/homelab.
 tags:
   - name: Health
     description: Health checks and service info (no auth required)
@@ -285,7 +285,7 @@ paths:
         "403":
           description: data_profile_unresolvable denial with error_code, reason_code, request_id and user_guidance.
         "404":
-          description: Hosted profile verification is off on this deployment (TECHSTACK_DATA_PROFILE_MODE=off).
+          description: Hosted profile verification is off on this deployment (HOMELAB_DATA_PROFILE_MODE=off).
   /api/v1/csrf:
     get:
       operationId: getCSRFToken
@@ -403,7 +403,7 @@ paths:
         owner's singleton Homelab from the canonical StackKits stack-spec
         payload supplied as `stack_spec`. The legacy `/stacks` route and
         `stack_id` response field identify that deployment; they do not create
-        or select a second Homelab product. One TechStack instance can serve
+        or select a second Homelab product. One Homelab instance can serve
         many owners, each with their own Homelab. Legacy
         `user_config`/kombination payloads remain accepted at this compatibility
         boundary. Wizard clients should send a stable `X-Idempotency-Key`;
@@ -511,7 +511,7 @@ paths:
       tags: [Stacks, Jobs]
       summary: Join one kit deployment of the homelab to the homelab's identity Authority
       description: >-
-        Joins this kit deployment's server to the server that runs the homelab's Pocket ID (the homelab's authority pointer, never a client choice). The job runs the pinned StackKits CLI on each server: the join request pinned to `authority_root` (the root fingerprint the Owner reads at the Authority's console or Hub), the Owner's passkey approval in the Authority's Hub (the job waits up to five minutes), the install of the Authority-signed trust bundle, the joined server's sign-in client registered at the Authority (a second passkey approval) with its secret delivered only through the homelab's Wallet, and the homelab DNS zone on every server. The server joins after its StackKit init and before its first apply; its own domain is always one of the hostnames. Techstack carries the documents and signs none of them. Needs exactly one Idempotency-Key; a replay returns the same job and never asks for approval again.
+        Joins this kit deployment's server to the server that runs the homelab's Pocket ID (the homelab's authority pointer, never a client choice). The job runs the pinned StackKits CLI on each server: the join request pinned to `authority_root` (the root fingerprint the Owner reads at the Authority's console or Hub), the Owner's passkey approval in the Authority's Hub (the job waits up to five minutes), the install of the Authority-signed trust bundle, the joined server's sign-in client registered at the Authority (a second passkey approval) with its secret delivered only through the homelab's Wallet, and the homelab DNS zone on every server. The server joins after its StackKit init and before its first apply; its own domain is always one of the hostnames. Homelab carries the documents and signs none of them. Needs exactly one Idempotency-Key; a replay returns the same job and never asks for approval again.
       parameters:
         - $ref: "#/components/parameters/stackId"
         - name: Idempotency-Key
@@ -709,7 +709,7 @@ paths:
       tags: [Stacks, Inventory]
       summary: Get the post-configuration operations read model for one owned StackKit deployment
       description: >-
-        Returns the exact owner- and tenant-scoped read model used by the TechStack operations dashboard. `approved_servers` records operator approval; `connected_servers` is stricter and counts only assigned, approved Nodes with freshness-qualified canonical Guard heartbeat, connection, and health evidence. The operation is read-only and never starts rollout, provisioning, or provider work.
+        Returns the exact owner- and tenant-scoped read model used by the Homelab operations dashboard. `approved_servers` records operator approval; `connected_servers` is stricter and counts only assigned, approved Nodes with freshness-qualified canonical Guard heartbeat, connection, and health evidence. The operation is read-only and never starts rollout, provisioning, or provider work.
       parameters:
         - $ref: "#/components/parameters/stackId"
       responses:
@@ -733,7 +733,7 @@ paths:
       tags: [Stacks, Jobs]
       summary: Queue an owned node's typed Advanced or backup operation
       description: >-
-        Uses the same tenant- and owner-scoped dispatcher as the operator UI. The node executes through its authenticated channel, current release pin, native Advanced catalog and issued operation capability. Techstack never executes Terramate, apply, rollback, backup or restore itself. A mutation requires owner_approved; service locks and active server maintenance are checked before enqueue. This is the owner's console route (operator panel, Guard update approval, acceptance journeys) with the owner's own confirmation in `owner_approved`; it has no MCP tool. The agent entry for an update and a backup run is the governed action card of `run_managed_service_action` (`update`, `backup`), whose Decision the agent's equipment answers. Direct backup_run and backup_configure remain Basement-only; managed kits keep their schedule and sealed target-renewal authority. backup_configure derives the node's target and plan from existing custody and accepts no credential fields. advanced_change_set requires candidate_spec; rollback requires an exact rollback_target_ref; restore_drill may reuse a snapshot_anchor_id. ai_provider lets Private AI offer an external OpenAI-compatible provider: the kombify Wallet seals the item wallet_item_id (the provider's API key) to the node, which must be listed as a host target of that item, the node binds it to ai_provider_base_url, and a drift reconcile applies the setting. ai_provider_disable removes it. ssh_trust_recipient and ssh_trust_apply let the server trust the owner's kombify Wallet SSH CA: ssh_trust_recipient has the node answer the owner's recipient_challenge with its owner-signed recipient statement and returns it with the host target the owner lists on the CA item; the owner then asks the Wallet for the ssh-ca-trust delivery and ssh_trust_apply hands its sealed_delivery to the node, which installs TrustedUserCAKeys and the principals of each local user. Restore activation requires exactly one Idempotency-Key header, while other operations have no replay guarantee. Acceptance is not execution success; read the returned job and its scoped result to observe effects.
+        Uses the same tenant- and owner-scoped dispatcher as the operator UI. The node executes through its authenticated channel, current release pin, native Advanced catalog and issued operation capability. Homelab never executes Terramate, apply, rollback, backup or restore itself. A mutation requires owner_approved; service locks and active server maintenance are checked before enqueue. This is the owner's console route (operator panel, Guard update approval, acceptance journeys) with the owner's own confirmation in `owner_approved`; it has no MCP tool. The agent entry for an update and a backup run is the governed action card of `run_managed_service_action` (`update`, `backup`), whose Decision the agent's equipment answers. Direct backup_run and backup_configure remain Basement-only; managed kits keep their schedule and sealed target-renewal authority. backup_configure derives the node's target and plan from existing custody and accepts no credential fields. advanced_change_set requires candidate_spec; rollback requires an exact rollback_target_ref; restore_drill may reuse a snapshot_anchor_id. ai_provider lets Private AI offer an external OpenAI-compatible provider: the kombify Wallet seals the item wallet_item_id (the provider's API key) to the node, which must be listed as a host target of that item, the node binds it to ai_provider_base_url, and a drift reconcile applies the setting. ai_provider_disable removes it. ssh_trust_recipient and ssh_trust_apply let the server trust the owner's kombify Wallet SSH CA: ssh_trust_recipient has the node answer the owner's recipient_challenge with its owner-signed recipient statement and returns it with the host target the owner lists on the CA item; the owner then asks the Wallet for the ssh-ca-trust delivery and ssh_trust_apply hands its sealed_delivery to the node, which installs TrustedUserCAKeys and the principals of each local user. Restore activation requires exactly one Idempotency-Key header, while other operations have no replay guarantee. Acceptance is not execution success; read the returned job and its scoped result to observe effects.
       parameters:
         - $ref: "#/components/parameters/stackId"
         - name: Idempotency-Key
@@ -883,7 +883,7 @@ paths:
         and replays that job on later calls. Before handler entry,
         queue workers atomically acquire the durable `tenant/stack` compatibility
         execution claim; this serializes different jobs for the same StackKit
-        deployment across Techstack
+        deployment across Homelab
         replicas. The claim remains durable `running` until the handler exits,
         including during cancellation. This endpoint never invokes provider VM
         creation or selects a newer VM. A replacement found durable `running`
@@ -1779,7 +1779,7 @@ paths:
       tags: [Inventory]
       summary: Set or clear the owner-chosen name of one owned server
       description: >-
-        Writes servers.display_name, which runtime projections never overwrite. `null` or an empty string clears the rename. Requires the signed techstack.inventory.write entitlement and the FGA server `caller` relation; the write is bound to the authenticated tenant and owner, and a server outside that scope is denied without revealing whether it exists. The canonical inventory `name` reports the chosen name when one is set.
+        Writes servers.display_name, which runtime projections never overwrite. `null` or an empty string clears the rename. Requires the signed homelab.inventory.write entitlement and the FGA server `caller` relation; the write is bound to the authenticated tenant and owner, and a server outside that scope is denied without revealing whether it exists. The canonical inventory `name` reports the chosen name when one is set.
       parameters:
         - $ref: "#/components/parameters/serverId"
       requestBody:
@@ -2250,7 +2250,7 @@ paths:
       tags: [Servers]
       summary: Repair named drifted host security controls
       description: >-
-        Requests a bounded repair of controls the fresh host security evidence reports as drifted and automatically repairable. Requires the server's owner, the Edge-signed `techstack.servers.maintenance` entitlement and, on the person's own session, a fresh multi-factor sign-in (at most 300 seconds old); an agent acting for the person needs no step-up. The repair travels as a typed, journaled Guard command that runs `stackkit host security repair --apply` for exactly the named controls; StackKits refuses, before changing anything, a change that would cut the management path or lock the owner out. Bounds: one repair per server at a time (409 `repair_in_progress`), a per-control cooldown (429 `repair_cooldown`), a daily attempt budget per control (429 `repair_attempts_exhausted`) and a circuit breaker after consecutive failures (429 `repair_circuit_open`); the 429 answers carry `retry_after`. A control that is compliant (409 `control_not_drifted`), under an approved exception (`control_has_exception`), manual (`control_not_repairable`), blocked on an authorized SSH key (`needs_authorized_key`) or not observed is refused. The body is decoded strictly.
+        Requests a bounded repair of controls the fresh host security evidence reports as drifted and automatically repairable. Requires the server's owner, the Edge-signed `homelab.servers.maintenance` entitlement and, on the person's own session, a fresh multi-factor sign-in (at most 300 seconds old); an agent acting for the person needs no step-up. The repair travels as a typed, journaled Guard command that runs `stackkit host security repair --apply` for exactly the named controls; StackKits refuses, before changing anything, a change that would cut the management path or lock the owner out. Bounds: one repair per server at a time (409 `repair_in_progress`), a per-control cooldown (429 `repair_cooldown`), a daily attempt budget per control (429 `repair_attempts_exhausted`) and a circuit breaker after consecutive failures (429 `repair_circuit_open`); the 429 answers carry `retry_after`. A control that is compliant (409 `control_not_drifted`), under an approved exception (`control_has_exception`), manual (`control_not_repairable`), blocked on an authorized SSH key (`needs_authorized_key`) or not observed is refused. The body is decoded strictly.
       parameters:
         - $ref: "#/components/parameters/serverId"
       requestBody:
@@ -2304,7 +2304,7 @@ paths:
       tags: [Servers]
       summary: Approve or withdraw automatic repair of a small safe set of controls
       description: >-
-        Off by default. An approval names controls from the safe set (`allowed_controls`: brute-force protection, the firewall policy, kernel parameters and automatic security updates; never the ssh controls), expires within 90 days and never renews itself. While it is in force the control plane repairs a named control that fresh evidence reports drifted, inside the same bounds as an operator repair. Requires the owner, the `techstack.servers.maintenance` entitlement and, on the person's own session, a fresh multi-factor sign-in; an agent acting for the person needs no step-up. `enabled: false` withdraws the approval.
+        Off by default. An approval names controls from the safe set (`allowed_controls`: brute-force protection, the firewall policy, kernel parameters and automatic security updates; never the ssh controls), expires within 90 days and never renews itself. While it is in force the control plane repairs a named control that fresh evidence reports drifted, inside the same bounds as an operator repair. Requires the owner, the `homelab.servers.maintenance` entitlement and, on the person's own session, a fresh multi-factor sign-in; an agent acting for the person needs no step-up. `enabled: false` withdraws the approval.
       parameters:
         - $ref: "#/components/parameters/serverId"
       requestBody:
@@ -2357,7 +2357,7 @@ paths:
       tags: [Servers]
       summary: Re-bind a moved server to the network it is on now
       description: >-
-        Runs `stackkit network rebind` on the server through its kombify Guard: the node re-detects its LAN address, re-issues the signed LAN DNS custody record and regenerates and re-applies the workspace. The request takes no body. Requires the owner, the Inventory operate grant and the `techstack.servers.maintenance` entitlement, and a connected Guard (409 `server_network_not_ready` otherwise). A rebind that is already queued or running answers with its job instead of queueing another.
+        Runs `stackkit network rebind` on the server through its kombify Guard: the node re-detects its LAN address, re-issues the signed LAN DNS custody record and regenerates and re-applies the workspace. The request takes no body. Requires the owner, the Inventory operate grant and the `homelab.servers.maintenance` entitlement, and a connected Guard (409 `server_network_not_ready` otherwise). A rebind that is already queued or running answers with its job instead of queueing another.
       parameters:
         - $ref: "#/components/parameters/serverId"
       responses:
@@ -2381,7 +2381,7 @@ paths:
       tags: [Servers]
       summary: Read the process table of an owned server through its kombify Guard
       description: >-
-        Requires the Edge-signed `techstack.servers.maintenance` entitlement, ownership of the server in the tenant and a connected, current Guard that advertises `stackkit.host-inspect.v1`. The Guard runs one fixed `ps` and returns the busiest processes first with their user, CPU and memory share, age, systemd unit and executable name. The command line is never reported, because arguments routinely carry secrets. Refusals are client-error-envelope/v1 documents whose 409 `reason_code` is one of node_protected, agent_not_connected, heartbeat_stale or agent_capability_missing. Responses are private and must not be cached.
+        Requires the Edge-signed `homelab.servers.maintenance` entitlement, ownership of the server in the tenant and a connected, current Guard that advertises `stackkit.host-inspect.v1`. The Guard runs one fixed `ps` and returns the busiest processes first with their user, CPU and memory share, age, systemd unit and executable name. The command line is never reported, because arguments routinely carry secrets. Refusals are client-error-envelope/v1 documents whose 409 `reason_code` is one of node_protected, agent_not_connected, heartbeat_stale or agent_capability_missing. Responses are private and must not be cached.
       parameters:
         - $ref: "#/components/parameters/serverId"
         - name: limit
@@ -2439,7 +2439,7 @@ paths:
       tags: [Servers]
       summary: Start, stop or restart one unmanaged container through the server's kombify Guard
       description: >-
-        Requires the Edge-signed `techstack.servers.maintenance` entitlement, ownership of the server in the tenant, the Inventory operate grant on the server and a connected, current Guard that advertises `stackkit.host-operate.v1`. The body is decoded strictly: exact lowercase keys `container` (a container name or id) and `action` (start, stop or restart), no duplicates, no unknown fields, no approval flag. The action is one governed RIL action card, its only write path: the primitive `start-host-container`, `stop-host-container` or `restart-host-container` binds exactly this verb and this container (`host-container-ref`) on the server's node, its one Gateway Decision is answered by the acting agent's equipment (D-2026-10-23-06), and it runs through the same lease, one-use claim, node proof, dispatcher and evidence as `/v1/ril/action-cards`. The server's stack must have an applied plan (409 `host_action_plan_unavailable`). The response names the card in `action_card_id` and its execution in `job_id`; read it back with `get_action_card`: the evidence carries the Guard's verdict. The Guard resolves the container to its full id, refuses a StackKits-managed container, one carrying any StackKits label (`container_managed`, use the managed service actions), a container that is removed when it stops (`container_autoremove`, that would be a deletion) and the platform's own agents (`container_protected`), acts on that id and reads the state again; an action that does not reach its target state fails with `state_not_reached`. Nothing is deleted: removing a container or its data is not an action. A retry with the same Idempotency-Key converges on the same card instead of running the action twice, and a different body under the same key is 409. There is no free-form shell path. Refusals are client-error-envelope/v1 documents; 409 `reason_code` is one of node_protected, agent_not_connected, heartbeat_stale, agent_capability_missing, container_protected, host_action_stack_unavailable or host_action_plan_unavailable at the route, or a governed-action reason (entitlement, a running stack mutation, maintenance, a stale target) when the card is created or begins. The Guard's own refusals and failures (container_managed, container_autoremove, container_not_found, engine_unavailable, precheck_failed, action_failed, state_not_reached, readback_failed) are the card's evidence summary codes `guard-refused-<code>` and `guard-failed-<code>` (code with hyphens). A host action no longer appears on the server timeline: the card is its record.
+        Requires the Edge-signed `homelab.servers.maintenance` entitlement, ownership of the server in the tenant, the Inventory operate grant on the server and a connected, current Guard that advertises `stackkit.host-operate.v1`. The body is decoded strictly: exact lowercase keys `container` (a container name or id) and `action` (start, stop or restart), no duplicates, no unknown fields, no approval flag. The action is one governed RIL action card, its only write path: the primitive `start-host-container`, `stop-host-container` or `restart-host-container` binds exactly this verb and this container (`host-container-ref`) on the server's node, its one Gateway Decision is answered by the acting agent's equipment (D-2026-10-23-06), and it runs through the same lease, one-use claim, node proof, dispatcher and evidence as `/v1/ril/action-cards`. The server's stack must have an applied plan (409 `host_action_plan_unavailable`). The response names the card in `action_card_id` and its execution in `job_id`; read it back with `get_action_card`: the evidence carries the Guard's verdict. The Guard resolves the container to its full id, refuses a StackKits-managed container, one carrying any StackKits label (`container_managed`, use the managed service actions), a container that is removed when it stops (`container_autoremove`, that would be a deletion) and the platform's own agents (`container_protected`), acts on that id and reads the state again; an action that does not reach its target state fails with `state_not_reached`. Nothing is deleted: removing a container or its data is not an action. A retry with the same Idempotency-Key converges on the same card instead of running the action twice, and a different body under the same key is 409. There is no free-form shell path. Refusals are client-error-envelope/v1 documents; 409 `reason_code` is one of node_protected, agent_not_connected, heartbeat_stale, agent_capability_missing, container_protected, host_action_stack_unavailable or host_action_plan_unavailable at the route, or a governed-action reason (entitlement, a running stack mutation, maintenance, a stale target) when the card is created or begins. The Guard's own refusals and failures (container_managed, container_autoremove, container_not_found, engine_unavailable, precheck_failed, action_failed, state_not_reached, readback_failed) are the card's evidence summary codes `guard-refused-<code>` and `guard-failed-<code>` (code with hyphens). A host action no longer appears on the server timeline: the card is its record.
       parameters:
         - $ref: "#/components/parameters/serverId"
         - name: Idempotency-Key
@@ -2509,7 +2509,7 @@ paths:
       tags: [Servers]
       summary: Publish the server at a kombify.me address, or stop publishing it
       description: >-
-        Nothing is published by default: a paired server has no public route and the relay carries no traffic. The owner enables it per server with an explicit `service` name and `target_port` (the origin is always the Guard host's loopback, never another machine) and may withdraw it at any time. The relay authenticates the Guard, not the visitor, so what answers on that port must protect itself. Enabling requires the owner, the `techstack.servers.maintenance` entitlement and, on the person's own session, a fresh multi-factor sign-in (reason `server_reach_step_up_required`); an agent acting for the person needs no step-up. Withdrawing is never gated. Responds with the reach section of the server read model; the reconciler then creates or withdraws the route.
+        Nothing is published by default: a paired server has no public route and the relay carries no traffic. The owner enables it per server with an explicit `service` name and `target_port` (the origin is always the Guard host's loopback, never another machine) and may withdraw it at any time. The relay authenticates the Guard, not the visitor, so what answers on that port must protect itself. Enabling requires the owner, the `homelab.servers.maintenance` entitlement and, on the person's own session, a fresh multi-factor sign-in (reason `server_reach_step_up_required`); an agent acting for the person needs no step-up. Withdrawing is never gated. Responds with the reach section of the server read model; the reconciler then creates or withdraws the route.
       parameters:
         - $ref: "#/components/parameters/serverId"
       requestBody:
@@ -2568,7 +2568,7 @@ paths:
       tags: [Servers, Jobs]
       summary: Queue an owned server OS update plan, OS update or reboot
       description: >-
-        Requires the Edge-signed `techstack.servers.maintenance` entitlement, ownership of the server in the tenant, and current server-bound standing authority for delegated native MCP calls. These three ordinary actions require no fresh MFA or separate owner_approved assertion. Reboot and os_update require expected_impact_digest from the preview the user confirmed. Impact is compared atomically at admission and again at execution claim; changed or incomplete evidence sends no command and requires a refreshed preview and renewed confirmation with a new request key. The body is decoded strictly: exact lowercase keys, no duplicates, no unknown fields. A replay with the same Idempotency-Key returns the stored receipt before target validation. One reboot or OS update and, separately, one update plan may be active per server; a job not finished by its deadline fails with `deadline_exceeded` and frees its slot. The action is offered in `allowed_actions` only when the server agent advertises `stackkit.host-maintenance.v1`, and `reboot` only when the server also reports `host_boot_id`. Refusals are client-error-envelope/v1 documents; 409 `reason_code` is one of control_plane_host, substrate_node, protected_demo_server, service_locked, maintenance_active, node_operation_active, plan_stale, agent_capability_missing, boot_id_unknown, agent_not_connected, heartbeat_stale, inventory_revision_stale, idempotency_key_reused, impact_confirmation_required, impact_changed or impact_unavailable; 403 carries entitlement_required or maintenance_origin_authority_denied.
+        Requires the Edge-signed `homelab.servers.maintenance` entitlement, ownership of the server in the tenant, and current server-bound standing authority for delegated native MCP calls. These three ordinary actions require no fresh MFA or separate owner_approved assertion. Reboot and os_update require expected_impact_digest from the preview the user confirmed. Impact is compared atomically at admission and again at execution claim; changed or incomplete evidence sends no command and requires a refreshed preview and renewed confirmation with a new request key. The body is decoded strictly: exact lowercase keys, no duplicates, no unknown fields. A replay with the same Idempotency-Key returns the stored receipt before target validation. One reboot or OS update and, separately, one update plan may be active per server; a job not finished by its deadline fails with `deadline_exceeded` and frees its slot. The action is offered in `allowed_actions` only when the server agent advertises `stackkit.host-maintenance.v1`, and `reboot` only when the server also reports `host_boot_id`. Refusals are client-error-envelope/v1 documents; 409 `reason_code` is one of control_plane_host, substrate_node, protected_demo_server, service_locked, maintenance_active, node_operation_active, plan_stale, agent_capability_missing, boot_id_unknown, agent_not_connected, heartbeat_stale, inventory_revision_stale, idempotency_key_reused, impact_confirmation_required, impact_changed or impact_unavailable; 403 carries entitlement_required or maintenance_origin_authority_denied.
       parameters:
         - $ref: "#/components/parameters/serverId"
         - name: Idempotency-Key
@@ -2603,7 +2603,7 @@ paths:
       tags: [Servers, Jobs]
       summary: Read one maintenance job of an owned server
       description: >-
-        Scoped like the POST: the Edge-signed `techstack.servers.maintenance` entitlement, the tenant, ownership of the server, and a job that belongs to this server and was requested by the caller. Anything else is 404. Maintenance jobs have their own ledger and are not served by `/api/v1/jobs/{id}`. There is no log endpoint: the job carries its outcome, and a failure carries its stable code with user guidance.
+        Scoped like the POST: the Edge-signed `homelab.servers.maintenance` entitlement, the tenant, ownership of the server, and a job that belongs to this server and was requested by the caller. Anything else is 404. Maintenance jobs have their own ledger and are not served by `/api/v1/jobs/{id}`. There is no log endpoint: the job carries its outcome, and a failure carries its stable code with user guidance.
       parameters:
         - $ref: "#/components/parameters/serverId"
         - name: jobId
@@ -2923,7 +2923,7 @@ paths:
       tags: [Services, Jobs]
       summary: Approve one reviewed own application change
       description: >-
-        Runs exactly the step a completed dry run reviewed, at most 15 minutes after it completed and only once per review (start, stop, restart, rollback, tag update, checkpoint rollback or checkpoint discard) with its review digest. Techstack issues the own-application.lifecycle capability for this application, action, operation and review digest (at most 15 minutes); the node refuses any other. A tag update re-resolves the tag, checkpoints the data, verifies and rolls image and data back on failure. Requires Owner approval.
+        Runs exactly the step a completed dry run reviewed, at most 15 minutes after it completed and only once per review (start, stop, restart, rollback, tag update, checkpoint rollback or checkpoint discard) with its review digest. Homelab issues the own-application.lifecycle capability for this application, action, operation and review digest (at most 15 minutes); the node refuses any other. A tag update re-resolves the tag, checkpoints the data, verifies and rolls image and data back on failure. Requires Owner approval.
       parameters:
         - $ref: "#/components/parameters/serviceId"
         - $ref: "#/components/parameters/ownApplicationJobId"
@@ -3392,7 +3392,7 @@ paths:
       tags: [Workers]
       summary: Confirm the handoff of a retired server's command evidence
       description: >-
-        The owner, as custodian of a detached or retired server, confirms that the command evidence its Guard still holds (journal entries, outcomes and identity state) may leave the server by `export` (an archive the operator takes off the server) or `quarantine` (a root-only directory outside the Guard state). The response shows a one-time `confirmation` exactly once and is valid for 72 hours. It is bound to the host key the worker used. The operator passes it to `techstack agent handoff --server --confirmation-file`, which has the control plane verify it for this server's key, then moves and securely removes the evidence and records a receipt. Pairing a server whose host key served another tenant, or that declares another tenant's evidence, is refused (409 `tenant_handoff_required`) until a receipt of that tenant is consumed. A receipt is consumed once, by the pairing that proves the confirmed key, before expiry; only that pairing may repeat it within 15 minutes (409 `tenant_handoff_invalid` otherwise). Requires the owner and a fresh multi-factor sign-in (at most 300 seconds old). 409 `tenant_handoff_worker_active` while the worker is not revoked or rejected, 409 `tenant_handoff_unbindable` for a worker that never bound a host key. A worker of another tenant or owner is 404.
+        The owner, as custodian of a detached or retired server, confirms that the command evidence its Guard still holds (journal entries, outcomes and identity state) may leave the server by `export` (an archive the operator takes off the server) or `quarantine` (a root-only directory outside the Guard state). The response shows a one-time `confirmation` exactly once and is valid for 72 hours. It is bound to the host key the worker used. The operator passes it to `homelab agent handoff --server --confirmation-file`, which has the control plane verify it for this server's key, then moves and securely removes the evidence and records a receipt. Pairing a server whose host key served another tenant, or that declares another tenant's evidence, is refused (409 `tenant_handoff_required`) until a receipt of that tenant is consumed. A receipt is consumed once, by the pairing that proves the confirmed key, before expiry; only that pairing may repeat it within 15 minutes (409 `tenant_handoff_invalid` otherwise). Requires the owner and a fresh multi-factor sign-in (at most 300 seconds old). 409 `tenant_handoff_worker_active` while the worker is not revoked or rejected, 409 `tenant_handoff_unbindable` for a worker that never bound a host key. A worker of another tenant or owner is 404.
       parameters:
         - $ref: "#/components/parameters/resourceId"
       requestBody:
@@ -3437,7 +3437,7 @@ paths:
       tags: [Workers]
       summary: Check a handoff confirmation before the server removes anything
       description: >-
-        Called by `techstack agent handoff` before it moves or removes any command evidence. The request carries the one-time confirmation in the request body and exactly one `DPoP` header containing a proof signed by the server's host key and bound to the confirmation. Deployment or channel ingress policies may impose additional restrictions. 200 only for an unconsumed, unexpired confirmation that the prior owner issued for exactly that key; otherwise 409 `tenant_handoff_invalid`. Nothing is consumed.
+        Called by `homelab agent handoff` before it moves or removes any command evidence. The request carries the one-time confirmation in the request body and exactly one `DPoP` header containing a proof signed by the server's host key and bound to the confirmation. Deployment or channel ingress policies may impose additional restrictions. 200 only for an unconsumed, unexpired confirmation that the prior owner issued for exactly that key; otherwise 409 `tenant_handoff_invalid`. Nothing is consumed.
       requestBody:
         required: true
         content:
@@ -3645,7 +3645,7 @@ paths:
     post:
       operationId: connectRILServer
       tags: [Workers, RIL]
-      summary: Create an idempotent TechStack runtime enrollment
+      summary: Create an idempotent Homelab runtime enrollment
       description: >-
         Creates server_id/runtime_agent_id and returns the Guard enrollment handoff for install-command, SSH connect, or managed kombify rollout. Provider or SSH bootstrap alone does not mark the server connected. The first accepted request creates credential generation 1. Replaying the same normalized request with the same Idempotency-Key returns the exact same opaque token; another key or payload conflicts and never rotates the credential.
       parameters:
@@ -3757,7 +3757,7 @@ paths:
       tags: [Workers, RIL]
       summary: Ingest Guard service inventory
       description: >-
-        Guard-authenticated inventory ingestion for host health, channels, services, and endpoint matrix. StackKits is the source of truth for services; TechStack persists the data into worker, registry, monitoring, and RIL read models. The runtime-agent token and path bind the authoritative tenant, owner, stack, lease, server, and agent identities; payload identity fields cannot expand that authority.
+        Guard-authenticated inventory ingestion for host health, channels, services, and endpoint matrix. StackKits is the source of truth for services; Homelab persists the data into worker, registry, monitoring, and RIL read models. The runtime-agent token and path bind the authoritative tenant, owner, stack, lease, server, and agent identities; payload identity fields cannot expand that authority.
       security:
         - runtimeAgentAuth: []
       parameters:
@@ -3813,7 +3813,7 @@ paths:
       tags: [Workers]
       summary: List the unresolved operation outcomes of one kombify Guard
       description: >-
-        Lists the operations of an owned worker whose outcome is unknown: the kombify Guard recorded that the effect may or may not have happened and no observation settled it. Each one fences further changes on the server. `state` is `reconciling` while the Guard still tries to settle it and `needs_operator` once it stayed unresolved past the configured time (`TECHSTACK_GUARD_OUTCOME_NEEDS_OPERATOR_AFTER`, default 30 minutes). The time only changes how the outcome is shown; it never releases the fence. Another tenant's or owner's worker is 404.
+        Lists the operations of an owned worker whose outcome is unknown: the kombify Guard recorded that the effect may or may not have happened and no observation settled it. Each one fences further changes on the server. `state` is `reconciling` while the Guard still tries to settle it and `needs_operator` once it stayed unresolved past the configured time (`HOMELAB_GUARD_OUTCOME_NEEDS_OPERATOR_AFTER`, default 30 minutes). The time only changes how the outcome is shown; it never releases the fence. Another tenant's or owner's worker is 404.
       parameters:
         - $ref: "#/components/parameters/resourceId"
       responses:
@@ -4397,7 +4397,7 @@ paths:
       tags: [Discovery]
       summary: Deep probe a caller-owned device
       description: >-
-        Logs in to the device over SSH with the login held in the Wallet item `ssh_wallet_item_id` (a kombify Wallet node access item assigned to Techstack and bound to this IP or to no host, or an SSH key or password item of the built-in wallet whose URL names this IP) and reads its system facts. The login is resolved inside Techstack for this probe only and never answered. This contract accepts no password or private key. Callers other than the owner of a self-hosted installation may only probe IPs from their own discovery results; the owner may probe arbitrary IPs. Local control planes only (409 `lan_executor_required` on a hosted one).
+        Logs in to the device over SSH with the login held in the Wallet item `ssh_wallet_item_id` (a kombify Wallet node access item assigned to Homelab and bound to this IP or to no host, or an SSH key or password item of the built-in wallet whose URL names this IP) and reads its system facts. The login is resolved inside Homelab for this probe only and never answered. This contract accepts no password or private key. Callers other than the owner of a self-hosted installation may only probe IPs from their own discovery results; the owner may probe arbitrary IPs. Local control planes only (409 `lan_executor_required` on a hosted one).
       requestBody:
         required: true
         content:
@@ -4423,7 +4423,7 @@ paths:
       tags: [Discovery]
       summary: Test SSH connectivity to a device
       description: >-
-        Opens one SSH connection with the login held in the Wallet item `ssh_wallet_item_id` (its key when it holds one, otherwise its password; a built-in wallet item must name this IP as its URL), resolved inside Techstack and never answered; nothing is stored. This contract accepts no password. A failed connection answers 200 with `success: false`. Callers other than the owner of a self-hosted installation may only test IPs from their own discovery results; the owner may test arbitrary IPs. Local control planes only.
+        Opens one SSH connection with the login held in the Wallet item `ssh_wallet_item_id` (its key when it holds one, otherwise its password; a built-in wallet item must name this IP as its URL), resolved inside Homelab and never answered; nothing is stored. This contract accepts no password. A failed connection answers 200 with `success: false`. Callers other than the owner of a self-hosted installation may only test IPs from their own discovery results; the owner may test arbitrary IPs. Local control planes only.
       requestBody:
         required: true
         content:
@@ -4686,7 +4686,7 @@ paths:
       tags: [Tunnel]
       summary: Generate worker install command with tunnel URL
       description: >-
-        Answers the Linux (and, outside the LAN bridge, Windows) command that installs and enrolls a new server through the current registry URL. Techstack mints the one-time pairing token the command carries (15 minutes) and answers its id and expiry; the token is never an argument. With mode reinstall-guard it answers the Linux command for a server whose Guard update state is reinstall_required: run as root on that server, it installs the current Guard in place and keeps the enrollment and identity key unchanged. The token then only downloads the Guard and is never redeemed.
+        Answers the Linux (and, outside the LAN bridge, Windows) command that installs and enrolls a new server through the current registry URL. Homelab mints the one-time pairing token the command carries (15 minutes) and answers its id and expiry; the token is never an argument. With mode reinstall-guard it answers the Linux command for a server whose Guard update state is reinstall_required: run as root on that server, it installs the current Guard in place and keeps the enrollment and identity key unchanged. The token then only downloads the Guard and is never redeemed.
       requestBody:
         required: false
         content:
@@ -5165,7 +5165,7 @@ paths:
       tags: [Wallet]
       summary: Create a wallet item without secret values
       description: >-
-        Creates a wallet item owned by the caller in the resolved tenant and returns it redacted. The server assigns the id. `secret` and `totp` values are entered by the person in the Wallet and are not part of this contract; an item created here has no secret until the person adds one, and a secret can never be read back through this API without the person's fresh re-authentication. Only deployments that keep credentials in Techstack's own Wallet serve this route; elsewhere it answers 409 `self_hosted_only`.
+        Creates a wallet item owned by the caller in the resolved tenant and returns it redacted. The server assigns the id. `secret` and `totp` values are entered by the person in the Wallet and are not part of this contract; an item created here has no secret until the person adds one, and a secret can never be read back through this API without the person's fresh re-authentication. Only deployments that keep credentials in Homelab's own Wallet serve this route; elsewhere it answers 409 `self_hosted_only`.
       requestBody:
         required: true
         content:
@@ -5242,7 +5242,7 @@ paths:
       description: |
         Biometric-gated. Requires a fresh trusted-reauth HMAC proof (timestamp +
         signature, 5-minute window) supplied in the body or the
-        `X-Kombify-Reauth-*` / `X-TechStack-Reauth-*` headers. Returns the
+        `X-Kombify-Reauth-*` / `X-Homelab-Reauth-*` headers. Returns the
         plaintext recovery values once; the reveal is audited server-side.
       parameters:
         - $ref: "#/components/parameters/resourceId"
@@ -5592,14 +5592,14 @@ paths:
         "200":
           description: Dependency status
         "403":
-          description: Only the owner of a self-hosted Techstack; hosted Techstack refuses every caller (reason_code hosted_control_plane)
+          description: Only the owner of a self-hosted Homelab; hosted Homelab refuses every caller (reason_code hosted_control_plane)
   /api/v1/autoinstall/install:
     post:
       operationId: installDependencies
       tags: [Health]
       summary: Install missing dependencies
       description: >-
-        Installs the missing host dependencies (OpenTofu, cloudflared, Docker) on the machine a self-hosted Techstack runs on, all of them or the named ones. Only the owner of a self-hosted Techstack may call it, and an agent acts with the owner's reach there; hosted Techstack refuses every caller with 403 `host_install_unavailable` (reason_code `hosted_control_plane`) before anything is detected.
+        Installs the missing host dependencies (OpenTofu, cloudflared, Docker) on the machine a self-hosted Homelab runs on, all of them or the named ones. Only the owner of a self-hosted Homelab may call it, and an agent acts with the owner's reach there; hosted Homelab refuses every caller with 403 `host_install_unavailable` (reason_code `hosted_control_plane`) before anything is detected.
       requestBody:
         content:
           application/json:
@@ -5612,7 +5612,7 @@ paths:
         "200":
           description: Installation result
         "403":
-          description: Only the owner of a self-hosted Techstack; hosted Techstack refuses every caller (reason_code hosted_control_plane)
+          description: Only the owner of a self-hosted Homelab; hosted Homelab refuses every caller (reason_code hosted_control_plane)
   /metrics:
     get:
       operationId: getMetrics
@@ -5894,7 +5894,7 @@ paths:
       tags: [Monthly Runtime]
       summary: Archive a legacy or unbound custody record after provider cleanup
       description: >
-        Removes a non-executable legacy or unbound lease from the active dashboard only after the owner confirms that its provider resource was already removed. This operation never contacts or deletes a provider resource and is rejected for Techstack provider-controlled generations.
+        Removes a non-executable legacy or unbound lease from the active dashboard only after the owner confirms that its provider resource was already removed. This operation never contacts or deletes a provider resource and is rejected for Homelab provider-controlled generations.
 
       parameters:
         - $ref: "#/components/parameters/monthlyRuntimeLeaseId"
@@ -5921,7 +5921,7 @@ paths:
           description: Invalid or schema-incompatible confirmation body
         "409":
           description: >
-            Provider cleanup was not confirmed, or the lease remains under Techstack provider control and must use the decommission lifecycle.
+            Provider cleanup was not confirmed, or the lease remains under Homelab provider control and must use the decommission lifecycle.
 
   /api/v1/monthly-runtimes/{lease_id}/reconnect:
     post:
@@ -6009,7 +6009,7 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
-          description: Lease is not under Techstack provider-control custody
+          description: Lease is not under Homelab provider-control custody
         "503":
           description: Provider-control readback authority is unavailable
   /api/v1/monthly-runtimes/{lease_id}/recreate:
@@ -6068,7 +6068,7 @@ paths:
         - name: journeyId
           in: path
           required: true
-          description: Journey id, for example `techstack.platform`.
+          description: Journey id, for example `homelab.platform`.
           schema: {type: string, minLength: 1}
         - name: If-Match
           in: header
@@ -6085,7 +6085,7 @@ paths:
               required: [action]
               properties:
                 action: {type: string, enum: [complete, skip, dismiss, resume, coach_seen]}
-                step_id: {type: string, description: "Required for complete, skip and coach_seen, for example `techstack.add_server`."}
+                step_id: {type: string, description: "Required for complete, skip and coach_seen, for example `homelab.add_server`."}
                 source: {type: string, enum: [reported, manual], description: "Who asserts the completion; empty means reported for complete and manual for skip."}
       responses:
         "200":
@@ -6152,7 +6152,7 @@ paths:
         - name: journeyId
           in: path
           required: true
-          description: Journey id, for example `techstack.platform`.
+          description: Journey id, for example `homelab.platform`.
           schema: {type: string, minLength: 1}
       responses:
         "200":
@@ -6715,9 +6715,9 @@ paths:
                   type: object
                   additionalProperties: false
                   required: [schema, run_kind, name, kit_assignment]
-                  description: Closed wizard intent (techstack.wizard-intent/v1). The backend projects it onto the pinned StackKits kit seed; owner identity never travels here.
+                  description: Closed wizard intent (homelab.wizard-intent/v1). The backend projects it onto the pinned StackKits kit seed; owner identity never travels here.
                   properties:
-                    schema: {type: string, const: "techstack.wizard-intent/v1"}
+                    schema: {type: string, const: "homelab.wizard-intent/v1"}
                     run_kind: {type: string, enum: [first-run, expansion]}
                     homelab_id: {type: string}
                     name: {type: string, minLength: 1, description: Display name of the StackKit deployment.}
@@ -6929,9 +6929,9 @@ paths:
                   type: object
                   additionalProperties: false
                   required: [schema, run_kind, name, kit_assignment]
-                  description: Closed wizard intent (techstack.wizard-intent/v1). The backend projects it onto the pinned StackKits kit seed; owner identity never travels here.
+                  description: Closed wizard intent (homelab.wizard-intent/v1). The backend projects it onto the pinned StackKits kit seed; owner identity never travels here.
                   properties:
-                    schema: {type: string, const: "techstack.wizard-intent/v1"}
+                    schema: {type: string, const: "homelab.wizard-intent/v1"}
                     run_kind: {type: string, enum: [first-run, expansion]}
                     homelab_id: {type: string}
                     name: {type: string, minLength: 1, description: Display name of the StackKit deployment.}
@@ -7210,7 +7210,7 @@ paths:
       tags: [Auth]
       summary: Start linking a kombify Cloud profile (PKCE sign-in)
       description: >-
-        Self-hosted installs only. Mints a single-use PKCE state, stores it for 10 minutes, binds it to the calling browser with the `techstack_cloud_link` cookie and returns the hosted authorization URL that the browser opens (popup or full-page redirect). The callback accepts the sign-in only from the same browser, so the flow cannot be completed outside the browser that started it. Answers 409 on the SaaS edition and when no Cloud OIDC issuer is configured.
+        Self-hosted installs only. Mints a single-use PKCE state, stores it for 10 minutes, binds it to the calling browser with the `homelab_cloud_link` cookie and returns the hosted authorization URL that the browser opens (popup or full-page redirect). The callback accepts the sign-in only from the same browser, so the flow cannot be completed outside the browser that started it. Answers 409 on the SaaS edition and when no Cloud OIDC issuer is configured.
       responses:
         "200":
           description: Hosted authorization URL for the browser
@@ -7281,7 +7281,7 @@ paths:
       tags: [Services]
       summary: Link an existing Home Assistant instance read-only
       description: >-
-        Probes a Home Assistant instance from a local executor with the long-lived access token held in the Wallet item `token_wallet_item_id` (a kombify Wallet item assigned to Techstack, or a built-in wallet API key or OAuth token item whose URL names this instance; resolved inside Techstack, never answered) and records a read-only observed service. This contract accepts no token. The token is used for this probe only and is never stored in the registry row. Self-hosted installs only (503 `lan_executor_unavailable` otherwise). The call is idempotent: an already linked instance returns `existing: true` without a new probe.
+        Probes a Home Assistant instance from a local executor with the long-lived access token held in the Wallet item `token_wallet_item_id` (a kombify Wallet item assigned to Homelab, or a built-in wallet API key or OAuth token item whose URL names this instance; resolved inside Homelab, never answered) and records a read-only observed service. This contract accepts no token. The token is used for this probe only and is never stored in the registry row. Self-hosted installs only (503 `lan_executor_unavailable` otherwise). The call is idempotent: an already linked instance returns `existing: true` without a new probe.
       requestBody:
         required: true
         content:
@@ -7364,7 +7364,7 @@ paths:
       tags: [Wallet]
       summary: Update the metadata of a wallet item
       description: >-
-        Merges the supplied fields into an item the caller owns and returns it redacted. Fields that are not supplied keep their value, including the stored secret and TOTP, which this contract can neither read nor change: the person sets those in the Wallet. The item kind and owner are immutable. An item owned by someone else answers 404. Only deployments that keep credentials in Techstack's own Wallet serve this route; elsewhere it answers 409 `self_hosted_only`.
+        Merges the supplied fields into an item the caller owns and returns it redacted. Fields that are not supplied keep their value, including the stored secret and TOTP, which this contract can neither read nor change: the person sets those in the Wallet. The item kind and owner are immutable. An item owned by someone else answers 404. Only deployments that keep credentials in Homelab's own Wallet serve this route; elsewhere it answers 409 `self_hosted_only`.
       parameters:
         - $ref: "#/components/parameters/resourceId"
       requestBody:
@@ -7406,7 +7406,7 @@ paths:
       tags: [Wallet]
       summary: Delete a wallet item
       description: >-
-        Deletes an item the caller owns, including its encrypted secret and TOTP. An item owned by someone else answers 404. Only deployments that keep credentials in Techstack's own Wallet serve this route; elsewhere it answers 409 `self_hosted_only`.
+        Deletes an item the caller owns, including its encrypted secret and TOTP. An item owned by someone else answers 404. Only deployments that keep credentials in Homelab's own Wallet serve this route; elsewhere it answers 409 `self_hosted_only`.
       parameters:
         - $ref: "#/components/parameters/resourceId"
       responses:
@@ -7834,7 +7834,7 @@ paths:
       tags: [Services]
       summary: Attach an owned Home Assistant instance to a pending owner enrollment
       description: >-
-        Binds the instance's endpoint and the long-lived access token held in the Wallet item `token_wallet_item_id` (a kombify Wallet item assigned to Techstack, or a built-in wallet API key or OAuth token item whose URL names this instance; resolved inside Techstack, never answered; this contract accepts no token) to a pending owner enrollment of an owned stack, with the lifecycle grants and baseline settings the owner chooses. The token is stored encrypted and an existing attachment is never overwritten (409 `attachment_rejected`). Self-hosted installs only (503 otherwise).
+        Binds the instance's endpoint and the long-lived access token held in the Wallet item `token_wallet_item_id` (a kombify Wallet item assigned to Homelab, or a built-in wallet API key or OAuth token item whose URL names this instance; resolved inside Homelab, never answered; this contract accepts no token) to a pending owner enrollment of an owned stack, with the lifecycle grants and baseline settings the owner chooses. The token is stored encrypted and an existing attachment is never overwritten (409 `attachment_rejected`). Self-hosted installs only (503 otherwise).
       requestBody:
         required: true
         content:
@@ -7891,7 +7891,7 @@ paths:
       tags: [Auth]
       summary: Mark one notification of the signed-in user as read
       description: >-
-        Marks one item of the authenticated user's notification feed as read. Techstack signs the call to the notifications engine for the authenticated user, so only that user's own items can be changed; an unknown item answers 404. The engine's answer is passed through unchanged and is not wrapped in the `data` envelope.
+        Marks one item of the authenticated user's notification feed as read. Homelab signs the call to the notifications engine for the authenticated user, so only that user's own items can be changed; an unknown item answers 404. The engine's answer is passed through unchanged and is not wrapped in the `data` envelope.
       parameters:
         - name: id
           in: path
@@ -7922,7 +7922,7 @@ paths:
       tags: [Auth]
       summary: Dismiss one notification of the signed-in user
       description: >-
-        Removes one item from the authenticated user's notification feed. Techstack signs the call to the notifications engine for the authenticated user, so only that user's own items can be dismissed; an unknown item answers 404. The engine's answer is passed through unchanged and is not wrapped in the `data` envelope.
+        Removes one item from the authenticated user's notification feed. Homelab signs the call to the notifications engine for the authenticated user, so only that user's own items can be dismissed; an unknown item answers 404. The engine's answer is passed through unchanged and is not wrapped in the `data` envelope.
       parameters:
         - name: id
           in: path
@@ -7973,7 +7973,7 @@ paths:
       tags: [Auth]
       summary: Set which channels the signed-in user receives each notification topic on
       description: >-
-        Writes the topic-by-channel preference matrix of the authenticated user. Techstack forwards the body (at most 1 MiB) to the notifications engine unchanged; the engine rejects unknown topics and channels with 400 and silently ignores channels that are locked for a topic. The answer is the fresh matrix, not wrapped in the `data` envelope. Quiet hours and the Telegram link are read-only here.
+        Writes the topic-by-channel preference matrix of the authenticated user. Homelab forwards the body (at most 1 MiB) to the notifications engine unchanged; the engine rejects unknown topics and channels with 400 and silently ignores channels that are locked for a topic. The answer is the fresh matrix, not wrapped in the `data` envelope. Quiet hours and the Telegram link are read-only here.
       requestBody:
         required: true
         content:
@@ -8053,7 +8053,7 @@ paths:
                       profile:
                         type: object
                         description: Capability profile the Unifier derives from the answers.
-                      source: {type: string, enum: [link, techstack]}
+                      source: {type: string, enum: [link, homelab]}
                       updated_at: {type: string, format: date-time}
                   meta: {$ref: "#/components/schemas/ResponseMeta"}
         "401": {$ref: "#/components/responses/Unauthorized"}
@@ -8075,8 +8075,8 @@ paths:
               properties:
                 source:
                   type: string
-                  enum: [link, techstack]
-                  description: link when the answers arrived as URL state and the operator confirmed them; techstack when typed in a Techstack surface.
+                  enum: [link, homelab]
+                  description: link when the answers arrived as URL state and the operator confirmed them; homelab when typed in a Homelab surface.
                 disclosure:
                   type: object
                   additionalProperties: false
@@ -8684,7 +8684,7 @@ paths:
       tags: [Inventory, RIL]
       summary: Create a governed action card for one owned server
       description: >-
-        Stores a card that describes one approved-action primitive, its target and its evidence sink for the authenticated owner. The card starts as `awaiting_grant` (no `grant` given) or `awaiting_approval` and runs nothing until it is approved and executed. An executor-bound primitive (`check-backup`, `run-backup`, `start-service`, `stop-service`, `restart-service`, `update-service`, `verify-stackkit-state`) takes its contract hash from the stack's pinned StackKits release. The caller names only its target scope and the input that selects the target (the `runtime-instance-ref` service key of a start, stop, restart or update); Techstack derives every target ref (server, StackKits node, current worker) and the derived inputs (an adopted application's exact container `application-ref`, the update's target release, the backup contract) from fresh inventory and refuses a supplied ref that differs. It requires the card's connector binding, which must carry the primitive's grant scope when the card executes; it carries no grant, waits in `awaiting_approval` and cannot be approved by a person: its one Gateway Decision is answered by the acting agent's equipment when it is executed. The body is decoded strictly and must stay under 64 KiB.
+        Stores a card that describes one approved-action primitive, its target and its evidence sink for the authenticated owner. The card starts as `awaiting_grant` (no `grant` given) or `awaiting_approval` and runs nothing until it is approved and executed. An executor-bound primitive (`check-backup`, `run-backup`, `start-service`, `stop-service`, `restart-service`, `update-service`, `verify-stackkit-state`) takes its contract hash from the stack's pinned StackKits release. The caller names only its target scope and the input that selects the target (the `runtime-instance-ref` service key of a start, stop, restart or update); Homelab derives every target ref (server, StackKits node, current worker) and the derived inputs (an adopted application's exact container `application-ref`, the update's target release, the backup contract) from fresh inventory and refuses a supplied ref that differs. It requires the card's connector binding, which must carry the primitive's grant scope when the card executes; it carries no grant, waits in `awaiting_approval` and cannot be approved by a person: its one Gateway Decision is answered by the acting agent's equipment when it is executed. The body is decoded strictly and must stay under 64 KiB.
       requestBody:
         required: true
         content:
@@ -8976,7 +8976,7 @@ paths:
       tags: [Discovery]
       summary: Look at a not-yet-enrolled device over SSH and report whether it is ready
       description: >-
-        Opens one SSH session to the named machine, reads its facts (network, proxy, virtualization, enrollment reachability) and answers a readiness report; nothing on the device changes. The login comes from the Wallet item connection.wallet_item_id, resolved inside Techstack for this request only and never answered or stored. Registered only on a local (non-SaaS) control plane and requires the signed techstack.device.prepare entitlement. Unknown body fields are refused. The first request may omit host_key_fingerprint; the answer then carries the key the device presented so it can be pinned on the next call.
+        Opens one SSH session to the named machine, reads its facts (network, proxy, virtualization, enrollment reachability) and answers a readiness report; nothing on the device changes. The login comes from the Wallet item connection.wallet_item_id, resolved inside Homelab for this request only and never answered or stored. Registered only on a local (non-SaaS) control plane and requires the signed homelab.device.prepare entitlement. Unknown body fields are refused. The first request may omit host_key_fingerprint; the answer then carries the key the device presented so it can be pinned on the next call.
       requestBody:
         required: true
         content:
@@ -9023,7 +9023,7 @@ paths:
       tags: [Discovery]
       summary: Apply catalog fixes to a not-yet-enrolled device over SSH
       description: >-
-        Connects to the named machine over SSH, runs the named catalog resolutions in order (only catalog ids are accepted), optionally opens a temporary egress path while they run, and probes again to report the result. Requires the signed techstack.device.prepare entitlement, and techstack.device.egress when egress is true. Registered only on a local (non-SaaS) control plane. The login comes from the Wallet item connection.wallet_item_id, resolved inside Techstack for this request only. A failing resolution stops the run with 409 and the receipts collected so far.
+        Connects to the named machine over SSH, runs the named catalog resolutions in order (only catalog ids are accepted), optionally opens a temporary egress path while they run, and probes again to report the result. Requires the signed homelab.device.prepare entitlement, and homelab.device.egress when egress is true. Registered only on a local (non-SaaS) control plane. The login comes from the Wallet item connection.wallet_item_id, resolved inside Homelab for this request only. A failing resolution stops the run with 409 and the receipts collected so far.
       requestBody:
         required: true
         content:
@@ -9213,7 +9213,7 @@ components:
     runtimeAgentAuth:
       type: http
       scheme: bearer
-      bearerFormat: TechStack-Runtime-Agent
+      bearerFormat: Homelab-Runtime-Agent
       description: Runtime-agent credential bound to the exact tenant, placement, server, and worker identity. Signed, opaque, and explicit legacy compatibility tokens are validated fail-closed by the worker runtime.
     apiKey:
       type: apiKey
@@ -9400,7 +9400,7 @@ components:
       description: Persisted proof of one approved governed action; contains no replayable credential.
       required: [api_version, action_card_id, execution_id, trace_id, approval, execution, verification, evidence]
       properties:
-        api_version: {type: string, const: techstack.ril-action-step-receipt/v1}
+        api_version: {type: string, const: homelab.ril-action-step-receipt/v1}
         action_card_id: {type: string}
         execution_id: {type: string}
         trace_id: {type: string}
@@ -10314,7 +10314,7 @@ components:
         available: {type: string}
         changelog_url: {type: string}
         proposal: {type: object, description: The pending StackKits release with its highlights.}
-        started: {type: object, description: The update Techstack started without a click.}
+        started: {type: object, description: The update Homelab started without a click.}
         last_upgrade: {type: object, description: The outcome of the last governed upgrade.}
     ApplicationAdvisory:
       type: object
@@ -11457,7 +11457,7 @@ components:
           description: kombify.me address (kombify_me target, registered only).
         node_id:
           type: string
-          description: Connect techstack-node id (connect target, registered only).
+          description: Connect homelab-node id (connect target, registered only).
         reason_code:
           type: string
           description: Stable structured reason for a pending or failed target.
@@ -11763,7 +11763,7 @@ components:
         wallet_withdrawal:
           type: object
           description: >-
-            Present when a kombify Wallet is configured. For the items Techstack delivered to the server, the Wallet drops its node from their host targets and marks those it holds as needing rotation. A failure never undoes the detach; detaching again retries it.
+            Present when a kombify Wallet is configured. For the items Homelab delivered to the server, the Wallet drops its node from their host targets and marks those it holds as needing rotation. A failure never undoes the detach; detaching again retries it.
           required: [state, targets_removed, items_need_rotation]
           properties:
             state: {type: string, enum: [recorded, failed]}
@@ -12671,7 +12671,7 @@ components:
           format: date-time
         error_code:
           type: string
-          enum: [techstack_runtime_unavailable, stackkits_runtime_unavailable, agent_restart_required]
+          enum: [homelab_runtime_unavailable, stackkits_runtime_unavailable, agent_restart_required]
           description: Stable component code; raw executor errors are never sent.
     WorkerInventoryRequest:
       type: object
@@ -13177,7 +13177,7 @@ components:
           description: Full Git commit SHA for the deployed artifact; omitted for development builds.
         service:
           type: string
-          example: techstack
+          example: homelab
         time:
           type: string
           format: date-time
@@ -13186,7 +13186,7 @@ components:
       properties:
         service:
           type: string
-          example: techstack
+          example: homelab
         version:
           type: string
         revision:
@@ -13208,7 +13208,7 @@ components:
       properties:
         tool:
           type: string
-          example: kombify-techstack
+          example: kombify-homelab
         version:
           type: string
         description:
@@ -13415,7 +13415,7 @@ components:
           type: string
           minLength: 1
           description: >-
-            Exact canonical ServerRuntime target belonging to the stack and owner. For a managed lease this is the server_id exposed by the operations/ worker projection. If that read-model row is not present yet, TechStack may create only this deterministic ID from the validated exact lease.
+            Exact canonical ServerRuntime target belonging to the stack and owner. For a managed lease this is the server_id exposed by the operations/ worker projection. If that read-model row is not present yet, Homelab may create only this deterministic ID from the validated exact lease.
         lease_id:
           type: string
           minLength: 1
@@ -13993,7 +13993,7 @@ components:
           example: fk-normalizer/v2
         component:
           type: string
-          description: Failing capability, for example techstack.stackkit.deploy.
+          description: Failing capability, for example homelab.stackkit.deploy.
         phase:
           type: string
           description: Step in which the operation failed; empty when unknown.
@@ -14063,7 +14063,7 @@ components:
           description: Failure signature the resolution was applied to; the tenant must have an occurrence of it.
         procedure:
           type: string
-          pattern: "^(stackkits|techstack):[a-z0-9][a-z0-9._:/@#-]{1,199}$"
+          pattern: "^(stackkits|homelab):[a-z0-9][a-z0-9._:/@#-]{1,199}$"
           example: stackkits:nextcloud/repair-data-permissions
           description: Product procedure reference of the applied fix step.
         job_id:
@@ -14721,7 +14721,7 @@ components:
       type: object
       description: |
         Fresh platform re-authentication assertion. The trusted-reauth proof may
-        also be supplied via the `X-Kombify-Reauth-*` / `X-TechStack-Reauth-*`
+        also be supplied via the `X-Kombify-Reauth-*` / `X-Homelab-Reauth-*`
         request headers.
       properties:
         reason:
@@ -14765,7 +14765,7 @@ components:
       description: |
         Reveal request gated by a fresh trusted-reauth HMAC proof. The
         timestamp/signature may instead be supplied via the
-        `X-Kombify-Reauth-*` / `X-TechStack-Reauth-*` request headers.
+        `X-Kombify-Reauth-*` / `X-Homelab-Reauth-*` request headers.
       required: [reauth_timestamp, reauth_signature]
       properties:
         reason:

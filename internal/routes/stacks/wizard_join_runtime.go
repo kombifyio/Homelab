@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/nodehandoff"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
-	"github.com/kombifyio/techstack/pkg/specv2"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/nodehandoff"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/specv2"
 )
 
 const (
@@ -59,7 +59,7 @@ func (h crudRouteHandlers) persistJoinServerIntent(
 
 	now := time.Now().UTC()
 	metadata := map[string]any{
-		"authority":                      creationAuthorityTechstack,
+		"authority":                      creationAuthorityHomelab,
 		"creation_source":                joinServerIntentSource,
 		creationServerProvisionModeField: strings.TrimSpace(provisioningMode),
 		"spec_node_id":                   nodeID,

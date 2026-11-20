@@ -3,7 +3,7 @@ package nodeproof
 import (
 	"encoding/json"
 	"errors"
-	"github.com/kombifyio/techstack/internal/privatefs"
+	"github.com/kombifyio/homelab/internal/privatefs"
 	"os"
 	"strings"
 )

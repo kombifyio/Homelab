@@ -2,14 +2,14 @@
  * Navigation ownership for a hosted tool embed.
  *
  * Cloud can keep its site navigation authoritative while an embedded
- * Techstack document is open by adding `host_navigation=true` to the iframe
+ * Homelab document is open by adding `host_navigation=true` to the iframe
  * URL. The flag is deliberately explicit and scoped to the current browser
  * URL; standalone and self-hosted sessions never infer host ownership.
  */
 
 export const HOST_NAVIGATION_QUERY = "host_navigation";
 
-const LOCAL_APP_ORIGIN = "https://techstack.local";
+const LOCAL_APP_ORIGIN = "https://homelab.local";
 
 /** Return true only for the explicit hosted-navigation value. */
 export function hostNavigationRequested(

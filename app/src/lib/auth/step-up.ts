@@ -21,7 +21,7 @@ export const WALLET_REVEAL_STEP_UP_REASON = "wallet_reveal_step_up_required";
 /** Same-origin page the sign-in returns to inside the step-up window. */
 export const STEP_UP_COMPLETE_PATH = "/auth/reauth-complete";
 
-const STEP_UP_CHANNEL = "kombify-techstack-step-up";
+const STEP_UP_CHANNEL = "kombify-homelab-step-up";
 const STEP_UP_MESSAGE = "kombify:step-up-complete";
 const POPUP_POLL_MS = 500;
 

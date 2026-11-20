@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardrelease"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
 )
 
 // AuthenticateManifest verifies a release manifest from the handoff directory

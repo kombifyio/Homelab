@@ -1,4 +1,4 @@
-// Package federationfabric is Techstack's side of the external inter-site
+// Package federationfabric is Homelab's side of the external inter-site
 // fabric authority for a managed Modern deployment. It authors the opaque,
 // unsigned ExternalFederationLinkBinding for the requirement the Home node
 // compiled; StackKits validates, Owner-signs and adopts it. It creates no
@@ -74,7 +74,7 @@ func (issuer *Issuer) Issue(request Request) ([]byte, error) {
 
 func stable(label string, parts ...string) []byte {
 	digest := sha256.New()
-	_, _ = digest.Write([]byte("techstack.federation-fabric/v1\x00" + label))
+	_, _ = digest.Write([]byte("homelab.federation-fabric/v1\x00" + label))
 	for _, part := range parts {
 		_, _ = digest.Write([]byte{0})
 		_, _ = digest.Write([]byte(part))

@@ -3,8 +3,8 @@ package vmleases
 // Helpers of retired unit tests that the remaining boundary tests of this package still use.
 
 import (
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
 	"time"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
 )
 
 func testLease(now time.Time) vmlease.Lease {
@@ -21,4 +21,3 @@ func testLease(now time.Time) vmlease.Lease {
 		ValidUntil:     now.Add(time.Hour),
 	}
 }
-

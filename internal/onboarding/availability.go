@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/providercatalog"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/internal/providercatalog"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
 )
 
 // UserGuidance is the explain-don't-hide payload of an unavailable step

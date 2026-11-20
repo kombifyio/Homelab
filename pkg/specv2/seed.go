@@ -14,7 +14,7 @@ const (
 	// image authored at build time, one directory per kit. Seeds remain the
 	// topology base; the admitted release CLI authors only selected workload
 	// entries per request from its embedded CUE authority.
-	SpecTemplatesEnv = "TECHSTACK_STACKKIT_SPEC_TEMPLATES"
+	SpecTemplatesEnv = "HOMELAB_STACKKIT_SPEC_TEMPLATES"
 )
 
 // SeedSource loads the canonical kit seed a projection starts from.

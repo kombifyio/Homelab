@@ -154,7 +154,7 @@ export const layoutMessages = {
     "layout.reason.no_combination_fits":
       "There is no way to distribute the apps you picked so that all of them fit.",
 
-    "layout.addUseCases.pageTitle": "Add use cases | Techstack",
+    "layout.addUseCases.pageTitle": "Add use cases | Homelab Runtime",
     "layout.addUseCases.entry": "Add use cases",
     "layout.addUseCases.title": "Add use cases",
     "layout.addUseCases.subtitle":
@@ -378,7 +378,7 @@ export const layoutMessages = {
     "layout.reason.no_combination_fits":
       "Es gibt keine Verteilung, auf der alle ausgewählten Apps Platz haben.",
 
-    "layout.addUseCases.pageTitle": "Use Cases hinzufügen | Techstack",
+    "layout.addUseCases.pageTitle": "Use Cases hinzufügen | Homelab Runtime",
     "layout.addUseCases.entry": "Use Cases hinzufügen",
     "layout.addUseCases.title": "Use Cases hinzufügen",
     "layout.addUseCases.subtitle":
@@ -604,7 +604,7 @@ export const layoutMessages = {
     "layout.reason.no_combination_fits":
       "No hay ninguna forma de distribuir las apps elegidas para que quepan todas.",
 
-    "layout.addUseCases.pageTitle": "Añadir casos de uso | Techstack",
+    "layout.addUseCases.pageTitle": "Añadir casos de uso | Homelab Runtime",
     "layout.addUseCases.entry": "Añadir casos de uso",
     "layout.addUseCases.title": "Añadir casos de uso",
     "layout.addUseCases.subtitle":
@@ -815,7 +815,7 @@ export const layoutMessages = {
     "layout.reason.no_combination_fits":
       "没有任何分配方式能让你选择的所有应用都放得下。",
 
-    "layout.addUseCases.pageTitle": "添加用例 | Techstack",
+    "layout.addUseCases.pageTitle": "添加用例 | Homelab Runtime",
     "layout.addUseCases.entry": "添加用例",
     "layout.addUseCases.title": "添加用例",
     "layout.addUseCases.subtitle":
@@ -1029,7 +1029,7 @@ export const layoutMessages = {
     "layout.reason.no_combination_fits":
       "आपके चुने ऐप्स को इस तरह बाँटने का कोई तरीका नहीं है कि सभी समा जाएँ।",
 
-    "layout.addUseCases.pageTitle": "यूज़ केस जोड़ें | Techstack",
+    "layout.addUseCases.pageTitle": "यूज़ केस जोड़ें | Homelab Runtime",
     "layout.addUseCases.entry": "यूज़ केस जोड़ें",
     "layout.addUseCases.title": "यूज़ केस जोड़ें",
     "layout.addUseCases.subtitle":
@@ -1246,7 +1246,7 @@ export const layoutMessages = {
     "layout.reason.no_combination_fits":
       "لا توجد طريقة لتوزيع التطبيقات التي اخترتها بحيث تتسع جميعها.",
 
-    "layout.addUseCases.pageTitle": "إضافة حالات استخدام | Techstack",
+    "layout.addUseCases.pageTitle": "إضافة حالات استخدام | Homelab Runtime",
     "layout.addUseCases.entry": "إضافة حالات استخدام",
     "layout.addUseCases.title": "إضافة حالات استخدام",
     "layout.addUseCases.subtitle":

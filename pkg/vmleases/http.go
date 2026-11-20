@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/pkg/serviceauth"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/serviceauth"
 )
 
 const (
@@ -40,7 +40,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	authCfg, err := serviceauth.Apply(servicecall.Config{
-		ServiceName:    "techstack",
+		ServiceName:    "homelab",
 		Secret:         serviceAuthSecret,
 		SecretNext:     strings.TrimSpace(h.cfg.ServiceAuthNext),
 		AllowedCallers: []string{serviceCallerCloud},
@@ -56,7 +56,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) serveAuthed(w http.ResponseWriter, r *http.Request) {
 	if !cloudRuntimeLeaseSurface(r) {
 		writeCloudRuntimeLeaseDenial(w, http.StatusForbidden, "cloud_surface_not_allowed", false,
-			"Use the TechStack-native provider-control API for managed runtime operations.")
+			"Use the Homelab-native provider-control API for managed runtime operations.")
 		return
 	}
 	if !h.authorizeCloudRuntimeLeaseRequest(w, r) {
@@ -92,7 +92,7 @@ func (h *Handler) authorizeCloudRuntimeLeaseRequest(w http.ResponseWriter, r *ht
 	}
 	if r.URL.RawQuery != "" {
 		writeCloudRuntimeLeaseDenial(w, http.StatusForbidden, "tenant_injection_denied", false,
-			"Do not send tenant query parameters; TechStack derives the tenant from the signed Cloud service identity.")
+			"Do not send tenant query parameters; Homelab Runtime derives the tenant from the signed Cloud service identity.")
 		return false
 	}
 	return true
@@ -100,14 +100,14 @@ func (h *Handler) authorizeCloudRuntimeLeaseRequest(w http.ResponseWriter, r *ht
 
 func writeCloudRuntimeLeaseDenial(w http.ResponseWriter, status int, reasonCode string, retryable bool, nextStep string) {
 	writeJSON(w, status, map[string]any{
-		"error_code":        "techstack.runtime_lease." + reasonCode,
+		"error_code":        "homelab.runtime_lease." + reasonCode,
 		"reason_code":       reasonCode,
 		"required_features": []string{},
 		"missing_features":  []string{},
 		"retryable":         retryable,
 		"user_guidance": map[string]any{
 			"title":      "Runtime lease request denied",
-			"body":       "TechStack could not accept this Cloud runtime lease request safely.",
+			"body":       "Homelab Runtime could not accept this Cloud runtime lease request safely.",
 			"next_steps": []string{nextStep},
 		},
 	})

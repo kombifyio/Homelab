@@ -19,13 +19,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/privatefs"
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/internal/privatefs"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
 )
 
 const (
 	maxStackKitRuntimeBundleBytes   int64 = 4 << 30
-	stackKitRuntimeBundleDigestFile       = ".techstack-bundle-sha256"
+	stackKitRuntimeBundleDigestFile       = ".homelab-bundle-sha256"
 	legacyTarRegularFileType              = byte(0) // NUL is the legacy regular-file type flag.
 )
 
@@ -45,13 +45,13 @@ type StackKitRuntimeConvergenceResult struct {
 	IndexSHA256 string
 	OS          string
 	Arch        string
-	// UpdateAvailable is the published runtime Techstack withholds until the
+	// UpdateAvailable is the published runtime Homelab withholds until the
 	// owner approved the governed upgrade.
 	UpdateAvailable *StackKitRuntimeUpdate
 }
 
 // EnsureRuntime converges an enrolled Agent to the bundle its authenticated
-// Techstack control plane serves it: the node's approved StackKits release,
+// Homelab control plane serves it: the node's approved StackKits release,
 // which is the published one only once the owner approved it.
 func (executor *StackKitExecutor) EnsureRuntime(ctx context.Context, cfg StackKitRuntimeBootstrapConfig) error {
 	_, err := executor.EnsureRuntimeEvidence(ctx, cfg)
@@ -164,7 +164,7 @@ func FetchStackKitRuntimeBundle(ctx context.Context, cfg StackKitRuntimeBootstra
 	if len(expected) != sha256.Size*2 {
 		return StackKitRuntimeBundle{}, fmt.Errorf("StackKits release checksum is missing")
 	}
-	tmp, err := os.CreateTemp(cfg.StageDir, "techstack-stackkit-release-*.tar.gz")
+	tmp, err := os.CreateTemp(cfg.StageDir, "homelab-stackkit-release-*.tar.gz")
 	if err != nil {
 		return StackKitRuntimeBundle{}, err
 	}

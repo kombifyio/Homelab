@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/clientpairing"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/identity"
-	"github.com/kombifyio/techstack/pkg/outcome"
+	"github.com/kombifyio/homelab/pkg/clientpairing"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/outcome"
 )
 
 const (
@@ -93,7 +93,7 @@ func clientPairingIssueHandler(cfg ClientPairingRouteConfig) httpx.HandlerFunc {
 				"client_pairing_forbidden", "tenant_binding_mismatch", false,
 				"Tenant binding rejected",
 				"The signed-in account does not belong to this instance's configured account authority.",
-				"Sign in through the OIDC provider configured for this TechStack instance.")
+				"Sign in through the OIDC provider configured for this Homelab Runtime instance.")
 		}
 
 		envelope, err := service.Issue(e.Request.Context(), clientpairing.IssueRequest{
@@ -248,7 +248,7 @@ func writeClientPairingRedeemError(w http.ResponseWriter, err error) error {
 			"client_pairing_rejected", "invalid_pairing_code", false,
 			"Pairing code is invalid",
 			"The code is malformed or was not issued by this account authority.",
-			"Scan a fresh QR code from the intended TechStack instance.")
+			"Scan a fresh QR code from the intended Homelab Runtime instance.")
 	default:
 		return writeClientPairingError(w, http.StatusServiceUnavailable,
 			"client_pairing_unavailable", "pairing_redemption_failed", true,
@@ -284,7 +284,7 @@ func writeClientPairingError(w http.ResponseWriter, status int, errorCode, reaso
 	}
 	decision, err := outcome.Normalize(outcome.Decision{
 		Status: outcomeStatus, ErrorCode: errorCode, ReasonCode: reasonCode,
-		Capability: "techstack.client.pairing", Retryable: retryable,
+		Capability: "homelab.client.pairing", Retryable: retryable,
 		UserGuidance: &outcome.Guidance{
 			Title: title, Body: body,
 			NextSteps: []outcome.Step{{ID: "pairing-next-step", Label: nextStep, Kind: stepKind}},

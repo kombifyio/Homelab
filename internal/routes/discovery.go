@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/discovery"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/discovery"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 type DiscoveryHandler struct {
@@ -196,7 +196,7 @@ func (h *DiscoveryHandler) capabilities(e *httpx.Event) error {
 }
 
 func (h *DiscoveryHandler) requireLAN(e *httpx.Event) error {
-	return httpx.Error(e, http.StatusConflict, "lan_executor_required", "Connect a local Techstack client or an authorized LAN executor to discover this network. Manual hypervisor connection remains available.", nil)
+	return httpx.Error(e, http.StatusConflict, "lan_executor_required", "Connect a local Homelab Runtime client or an authorized LAN executor to discover this network. Manual hypervisor connection remains available.", nil)
 }
 
 func (h *DiscoveryHandler) networks(e *httpx.Event) error {
@@ -490,7 +490,7 @@ func decodeDiscoveryProbeRequest(body io.Reader) (discoveryProbeRequest, error) 
 
 // walletSSH resolves the Wallet item a probe or test names, for a login to ip.
 func (h *DiscoveryHandler) walletSSH(e *httpx.Event, ownerID, itemID, ip string) (*walletSSHCredential, error) {
-	tenantID, err := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.discovery.wallet")
+	tenantID, err := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.discovery.wallet")
 	if err != nil {
 		return nil, err
 	}

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
 )
 
 // ScanActive performs an active port scan on discovered or specified hosts.

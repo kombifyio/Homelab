@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardpower"
+	"github.com/kombifyio/homelab/pkg/guardpower"
 )
 
 // ErrNotFound means no posture row exists for the worker.

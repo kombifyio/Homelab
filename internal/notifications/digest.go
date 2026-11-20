@@ -11,8 +11,8 @@ import (
 // DigestScope is the service-JWT scope of the digest contributions route.
 const DigestScope = "notifications:digest"
 
-// DigestProducerHomelab is the producer id of Techstack's Homelab numbers.
-const DigestProducerHomelab = "techstack.homelab"
+// DigestProducerHomelab is the producer id of Homelab's Homelab numbers.
+const DigestProducerHomelab = "homelab.homelab"
 
 // DigestSectionHomelab is the Feed section the Homelab numbers belong to.
 const DigestSectionHomelab = "homelab"
@@ -32,7 +32,7 @@ type DigestMessage struct {
 	Params map[string]any `json:"params"`
 }
 
-// DigestPointer is a pointer a digest row offers; Techstack sends none.
+// DigestPointer is a pointer a digest row offers; Homelab sends none.
 type DigestPointer struct {
 	SubjectRef string `json:"subject_ref"`
 	DeepLink   string `json:"deep_link"`

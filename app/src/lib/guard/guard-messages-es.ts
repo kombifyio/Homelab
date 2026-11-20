@@ -97,7 +97,7 @@ export const guardMessagesEs: Record<keyof typeof guardMessages.en, string> = {
   "guard.fact.bound.revoked":
     "Este servidor fue revocado y ya no está vinculado.",
   "guard.fact.bound.revokedNext":
-    "Vuelve a emparejar el servidor para vincularlo a tu Techstack.",
+    "Vuelve a emparejar el servidor para vincularlo a tu Homelab.",
   "guard.fact.bound.stale":
     "El último informe es demasiado antiguo para confirmar cómo este servidor demuestra su identidad.",
   "guard.fact.bound.unknown":
@@ -109,7 +109,7 @@ export const guardMessagesEs: Record<keyof typeof guardMessages.en, string> = {
     "Guard respondió a un comando a través de su conexión autenticada.",
   "guard.fact.connected.degraded": "La conexión está degradada.",
   "guard.fact.connected.offline":
-    "Guard no informa. El servidor está sin conexión o no puede alcanzar Techstack.",
+    "Guard no informa. El servidor está sin conexión o no puede alcanzar Homelab.",
   "guard.fact.connected.revoked": "La conexión fue revocada.",
   "guard.fact.connected.stale":
     "Guard no ha informado hace lo suficientemente poco como para contar como conectado.",
@@ -120,9 +120,9 @@ export const guardMessagesEs: Record<keyof typeof guardMessages.en, string> = {
   "guard.fact.connected.unknown":
     "No se informa ningún estado de conexión para este servidor.",
   "guard.fact.connected.reconnectNext":
-    "Comprueba que el servidor está encendido y puede alcanzar Techstack.",
+    "Comprueba que el servidor está encendido y puede alcanzar Homelab.",
   "guard.fact.connected.awaitingRoundTrip":
-    "Guard informa, pero aún no ha respondido a ningún comando de Techstack con su credencial actual.",
+    "Guard informa, pero aún no ha respondido a ningún comando de Homelab Runtime con su credencial actual.",
   "guard.fact.connected.roundTripStale":
     "Guard informa, pero el último comando que respondió es demasiado antiguo o se respondió con una credencial anterior.",
   "guard.fact.connected.roundTripNext":
@@ -490,7 +490,7 @@ export const guardMessagesEs: Record<keyof typeof guardMessages.en, string> = {
     "El Guard guarda un punto de control, ejecuta la actualización y la revierte si falla.",
   "guard.updates.running": "Actualizando a {version}: {progress} %",
   "guard.updates.started.automatic":
-    "Techstack inició esta actualización porque este servidor instala las actualizaciones automáticamente.",
+    "Homelab Runtime inició esta actualización porque este servidor instala las actualizaciones automáticamente.",
   "guard.updates.started.security":
     "kombify instala este parche de seguridad sin esperar tu aprobación.",
   "guard.updates.security.badge": "Parche de seguridad",

@@ -1,11 +1,11 @@
 import { tr } from "#lib/i18n.svelte.js";
 export const cloudDeviceLoginUrl = "https://kombify.io/device";
 export const cloudUiLoginUrl =
-  "https://techstack.kombify.io/login?manual=1&client=windows";
+  "https://homelab.kombify.io/login?manual=1&client=windows";
 export const selfHostedLocalOwnerUrl = "/client/local";
 export const windowsLocalClientReturnUrl = "/client/local?client=windows";
 export const selfHostedOnboardingUrl = "/client/onboarding?client=windows";
-export const windowsClientContextStorageKey = "techstack.windowsClientContext";
+export const windowsClientContextStorageKey = "homelab.windowsClientContext";
 export const windowsLocalClientContextValue = "local";
 
 export const cloudLoginUrl = cloudDeviceLoginUrl;

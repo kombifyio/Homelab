@@ -8,10 +8,10 @@ import (
 	"net/url"
 	"regexp"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
 )
 
-// The decision ledger's StackKits store (kombify-Gateway #3129). Techstack is
+// The decision ledger's StackKits store (kombify-Gateway #3129). Homelab is
 // its only admitted filer: it files with its service identity, acting for the
 // Owner, and reads the answer back with a fresh one-use token per read.
 const (
@@ -22,7 +22,7 @@ const (
 
 var stackKitDecisionIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{3,127}$`)
 
-// StackKitDecisionFiling is one decision Techstack files: the operation id
+// StackKitDecisionFiling is one decision Homelab files: the operation id
 // the ledger replays the same decision for, and the intent it signs.
 type StackKitDecisionFiling struct {
 	// OperationID is stable for one operator request, so filing it again

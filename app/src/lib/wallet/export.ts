@@ -293,7 +293,7 @@ export function downloadExport(
   const url = URL.createObjectURL(blob);
 
   const date = new Date().toISOString().split("T")[0];
-  const defaultFilename = `techstack-wallet-${date}${exportData.encrypted ? "-encrypted" : ""}.json`;
+  const defaultFilename = `homelab-wallet-${date}${exportData.encrypted ? "-encrypted" : ""}.json`;
 
   const a = document.createElement("a");
   a.href = url;
@@ -312,7 +312,7 @@ export function downloadCSV(csvContent: string, filename?: string): void {
   const url = URL.createObjectURL(blob);
 
   const date = new Date().toISOString().split("T")[0];
-  const defaultFilename = `techstack-wallet-${date}.csv`;
+  const defaultFilename = `homelab-wallet-${date}.csv`;
 
   const a = document.createElement("a");
   a.href = url;
@@ -334,7 +334,7 @@ export function downloadBitwardenJSON(
   const url = URL.createObjectURL(blob);
 
   const date = new Date().toISOString().split("T")[0];
-  const defaultFilename = `techstack-wallet-bitwarden-${date}.json`;
+  const defaultFilename = `homelab-wallet-bitwarden-${date}.json`;
 
   const a = document.createElement("a");
   a.href = url;

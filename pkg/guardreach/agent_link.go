@@ -18,7 +18,7 @@ import (
 // The homelab identity agent link (HOMELAB-IDENTITY-ACCESS-TARGET section 7,
 // Gateway ADR 0042 "Agent node envelope contract"). The Gateway answers the
 // Connect registration of a server with the node's agent envelope
-// verification key (agent_envelope). Techstack checks it against the
+// verification key (agent_envelope). Homelab checks it against the
 // registration, keeps it on the server's reach row and delivers it, with the
 // server, the Connect tenant, the node owner's subject and the D10-linked
 // household members, to the node over the Guard (StackKit AGENT_LINK_INSTALL).

@@ -27,13 +27,13 @@ jobs:
           test "$(tr -d '[:space:]' < VERSION)" = "$version"
       - name: Build exact public image
         env:
-          IMAGE: ghcr.io/kombifyio/techstack-open-core
+          IMAGE: ghcr.io/kombifyio/homelab-open-core
         run: |
           set -euo pipefail
           echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           docker build \
             --build-arg GIT_COMMIT="${GITHUB_SHA}" \
-            --build-arg TECHSTACK_PRODUCT_VERSION="${GITHUB_REF_NAME#v}" \
+            --build-arg HOMELAB_PRODUCT_VERSION="${GITHUB_REF_NAME#v}" \
             -t "${IMAGE}:${GITHUB_REF_NAME}" \
             -t "${IMAGE}:sha-${GITHUB_SHA}" .
           docker push "${IMAGE}:${GITHUB_REF_NAME}"
@@ -91,7 +91,7 @@ jobs:
         shell: pwsh
         run: |
           $version = (Get-Content -Raw VERSION).Trim()
-          .\scripts\build-windows-runtime-pair.ps1 -Version $version -SourceRevision $env:GITHUB_SHA -WindowsOutputPath 'dist\windows-runtime-pair\techstack.exe' -LinuxOutputPath 'dist\windows-runtime-pair\techstack-linux-amd64'
+          .\scripts\build-windows-runtime-pair.ps1 -Version $version -SourceRevision $env:GITHUB_SHA -WindowsOutputPath 'dist\windows-runtime-pair\homelab.exe' -LinuxOutputPath 'dist\windows-runtime-pair\homelab-linux-amd64'
           go build -mod=readonly -buildvcs=false -trimpath -o 'dist\windows-runtime-pair\guard-release-tool.exe' ./cmd/guard-release-tool
           if ($LASTEXITCODE -ne 0) { throw "Canonical Guard verifier build failed." }
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -136,17 +136,17 @@ jobs:
         run: |
           $version = (Get-Content -Raw VERSION).Trim()
           if ($env:GITHUB_REF_NAME -ne "v$version") { throw "Numeric tag and public source version differ." }
-          gh release download "guard-v$version" --repo $env:GITHUB_REPOSITORY --dir 'dist\guard-release' --pattern 'release-manifest*' --pattern 'techstack-linux-*' --pattern 'stackkit-runtime-linux-*.tar.gz'
+          gh release download "guard-v$version" --repo $env:GITHUB_REPOSITORY --dir 'dist\guard-release' --pattern 'release-manifest*' --pattern 'homelab-linux-*' --pattern 'stackkit-runtime-linux-*.tar.gz'
           if ($LASTEXITCODE -ne 0) { throw "Exact-source public Guard publication is required before packaging." }
-          pwsh -NoProfile -File .\scripts\package-windows-client.ps1 -Version $version -RuntimeExe 'dist\windows-runtime-pair\techstack.exe' -LinuxRuntimeExe 'dist\guard-release\techstack-linux-amd64' -SpecTemplatesPath 'dist\spec-templates' -GuardReleaseDirectory 'dist\guard-release' -GuardReleaseTool 'dist\windows-runtime-pair\guard-release-tool.exe'
+          pwsh -NoProfile -File .\scripts\package-windows-client.ps1 -Version $version -RuntimeExe 'dist\windows-runtime-pair\homelab.exe' -LinuxRuntimeExe 'dist\guard-release\homelab-linux-amd64' -SpecTemplatesPath 'dist\spec-templates' -GuardReleaseDirectory 'dist\guard-release' -GuardReleaseTool 'dist\windows-runtime-pair\guard-release-tool.exe'
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: windows-client
           path: |
-            dist/windows-client/kombify-Techstack-Setup.exe
-            dist/windows-client/kombify-Techstack-x64.msi
-            dist/windows-client/kombify-techstack-client_*_Windows_x86_64.zip
-            dist/windows-client/kombify-techstack-client_*_Windows_x86_64.zip.sha256
+            dist/windows-client/kombify-Homelab-Setup.exe
+            dist/windows-client/kombify-Homelab-x64.msi
+            dist/windows-client/kombify-homelab-client_*_Windows_x86_64.zip
+            dist/windows-client/kombify-homelab-client_*_Windows_x86_64.zip.sha256
             dist/windows-client/SHA256SUMS.txt
             dist/windows-client/UNSIGNED-WINDOWS-RELEASE.txt
           if-no-files-found: error
@@ -180,9 +180,9 @@ jobs:
           files: |
             deploy/selfhosted/docker-compose.yml
             deploy/selfhosted/.env.example
-            dist/windows-client/kombify-Techstack-Setup.exe
-            dist/windows-client/kombify-Techstack-x64.msi
-            dist/windows-client/kombify-techstack-client_*_Windows_x86_64.zip
-            dist/windows-client/kombify-techstack-client_*_Windows_x86_64.zip.sha256
+            dist/windows-client/kombify-Homelab-Setup.exe
+            dist/windows-client/kombify-Homelab-x64.msi
+            dist/windows-client/kombify-homelab-client_*_Windows_x86_64.zip
+            dist/windows-client/kombify-homelab-client_*_Windows_x86_64.zip.sha256
             dist/windows-client/SHA256SUMS.txt
             dist/windows-client/UNSIGNED-WINDOWS-RELEASE.txt

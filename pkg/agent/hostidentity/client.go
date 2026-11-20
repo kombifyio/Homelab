@@ -16,7 +16,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardidentity"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
 )
 
 // Mode is how requests to the control plane are authenticated.

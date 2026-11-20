@@ -3,7 +3,7 @@ package v2
 import (
 	"net/http"
 
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // RegisterHTTPX mounts the V2 Server's HTTP routes onto the httpx router.

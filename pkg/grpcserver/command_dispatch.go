@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

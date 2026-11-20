@@ -33,7 +33,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/identity"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 )
 
 // HeaderEdgeAuth is the edge identity marker set by the CF Edge Router after

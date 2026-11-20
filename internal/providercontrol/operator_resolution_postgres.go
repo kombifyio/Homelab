@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 	"github.com/google/uuid"
+	"github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 )
 
 const provisionResolutionTokenContextKey = "app.provider_resolution_token"

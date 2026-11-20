@@ -7,30 +7,30 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/config"
+	"github.com/kombifyio/homelab/pkg/config"
 )
 
 const (
 	// EnvExpectedDatabaseIdentity pins the database identity the migration
 	// runner must observe before executing any DDL. Format:
 	// "<database_name>" or "<database_name>@<postgres system_identifier>".
-	EnvExpectedDatabaseIdentity = "TECHSTACK_EXPECTED_DATABASE_IDENTITY"
+	EnvExpectedDatabaseIdentity = "HOMELAB_EXPECTED_DATABASE_IDENTITY"
 	// EnvAllowDBGenesis is the deliberate one-shot opt-in that lets a SaaS
 	// boot apply the migration chain to a database whose schema_migrations
 	// ledger is absent or empty. Only the exact value "true" opts in.
-	EnvAllowDBGenesis = "TECHSTACK_ALLOW_DB_GENESIS"
+	EnvAllowDBGenesis = "HOMELAB_ALLOW_DB_GENESIS"
 )
 
 var (
 	// ErrDatabaseIdentityMismatch reports that the connected database does not
-	// match the TECHSTACK_EXPECTED_DATABASE_IDENTITY pin.
+	// match the HOMELAB_EXPECTED_DATABASE_IDENTITY pin.
 	ErrDatabaseIdentityMismatch = errors.New("database identity mismatch")
 	// ErrImplicitGenesisRefused reports that a SaaS boot found an absent or
 	// empty schema_migrations ledger without the explicit genesis opt-in.
 	ErrImplicitGenesisRefused = errors.New("implicit database genesis refused")
 )
 
-// ExpectedDatabaseIdentity is the parsed TECHSTACK_EXPECTED_DATABASE_IDENTITY
+// ExpectedDatabaseIdentity is the parsed HOMELAB_EXPECTED_DATABASE_IDENTITY
 // pin. It anchors the runtime database env contract (AGENTS.md, incident
 // 2026-08-12): a reverted DSN must fail closed instead of letting the boot
 // chain rebuild the schema in the wrong, freshly-emptied database.
@@ -83,7 +83,7 @@ func (pin ExpectedDatabaseIdentity) Verify(databaseName, systemIdentifier string
 }
 
 // VerifyExpectedDatabaseIdentity enforces the expected-identity pin against a
-// live connection. It is a no-op when TECHSTACK_EXPECTED_DATABASE_IDENTITY is
+// live connection. It is a no-op when HOMELAB_EXPECTED_DATABASE_IDENTITY is
 // unset and fails closed when the pin cannot be verified.
 func VerifyExpectedDatabaseIdentity(ctx context.Context, querier migrationTableQuerier) error {
 	pin, pinned, err := ExpectedDatabaseIdentityFromEnv()
@@ -113,7 +113,7 @@ func VerifyExpectedDatabaseIdentity(ctx context.Context, querier migrationTableQ
 // verifyGenesisAllowed refuses implicit first-boot provisioning in SaaS
 // deployment modes: when the schema_migrations ledger is absent or empty,
 // applying the migration chain requires the explicit one-shot opt-in
-// TECHSTACK_ALLOW_DB_GENESIS=true. Self-host/dev/local modes keep today's
+// HOMELAB_ALLOW_DB_GENESIS=true. Self-host/dev/local modes keep today's
 // permissive behavior because fresh-database genesis is their normal path.
 func verifyGenesisAllowed(ctx context.Context, querier migrationTableQuerier) error {
 	mode, err := config.BootDeploymentModeFromEnv()

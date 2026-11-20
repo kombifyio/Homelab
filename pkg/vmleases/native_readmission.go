@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 )
 
 // NativeReadmissionRequest re-admits one managed runtime lease after its

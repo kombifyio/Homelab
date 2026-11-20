@@ -181,7 +181,7 @@ export function managedRuntimeObservationBudgets(
   // shorter preparation window expires before Guard can enroll and the
   // cleanup then races the still-running provision.
   const preparationMs = boundedPositiveInteger(
-    env.TECHSTACK_RUNTIME_E2E_MANAGED_PROVISION_TIMEOUT_MS,
+    env.HOMELAB_RUNTIME_E2E_MANAGED_PROVISION_TIMEOUT_MS,
     570_000,
     5_400_000,
   );

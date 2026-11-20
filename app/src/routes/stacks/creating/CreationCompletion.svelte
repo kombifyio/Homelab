@@ -59,7 +59,7 @@
       {creation.connectedServer.name}
     </h2>
     <p class="mt-2 text-sm text-muted-foreground">
-      {tr("ui.stacksCreatingCreationCompletion.techstackNowSeesThisNode")}
+      {tr("ui.stacksCreatingCreationCompletion.homelabNowSeesThisNode")}
     </p>
     {#if creation.connectedServer.connection.last_heartbeat_at}
       <details class="mt-3 text-xs text-muted-foreground">

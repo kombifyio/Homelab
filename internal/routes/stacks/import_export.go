@@ -1,24 +1,24 @@
-// Package stacks provides import/export handlers for kombifyTechstack configurations.
+// Package stacks provides import/export handlers for kombifyHomelab configurations.
 // This file handles exporting StackKits stack-spec.yaml payloads and importing
 // StackKits stack-spec.yaml or legacy kombination.yaml configuration files.
 package stacks
 
 import (
 	"encoding/json"
-	"github.com/kombifyio/techstack/internal/routes/auth"
+	"github.com/kombifyio/homelab/internal/routes/auth"
 	"io"
 	"net/http"
 	"strings"
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/artifactdelivery"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/orchestrator"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/artifactdelivery"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/orchestrator"
 )
 
 const (
@@ -127,7 +127,7 @@ func (h importExportRouteHandlers) importStack(e *httpx.Event) error {
 	if authErr != nil {
 		return authErr
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "techstack.stacks.import")
+	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "homelab.stacks.import")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -234,7 +234,7 @@ func importCreateStackRequestFromBody(body []byte, contentType string) (createSt
 		rawYAML = string(body)
 	}
 
-	name := "techstack"
+	name := "homelab"
 	if n, ok := spec["name"].(string); ok && strings.TrimSpace(n) != "" {
 		name = n
 	}
@@ -269,11 +269,11 @@ func buildStoreStackSpecExport(stack *controlplane.Stack) map[string]interface{}
 	return finalizeStackSpecExport(export, stack.Name, stack.ID)
 }
 
-func finalizeStackSpecExport(export map[string]interface{}, name, techstackID string) map[string]interface{} {
+func finalizeStackSpecExport(export map[string]interface{}, name, kitDeploymentID string) map[string]interface{} {
 	if _, hasName := export["name"]; !hasName {
 		export["name"] = name
 	}
-	// Legacy TechStack KombinationSpec exports still carry version. StackKits
+	// Legacy Homelab KombinationSpec exports still carry version. StackKits
 	// StackSpec does not, so preserve that canonical document byte-shape.
 	if _, hasVersion := export["version"]; !hasVersion && !isStackKitsStackSpec(export) {
 		export["version"] = "1.0"
@@ -285,8 +285,8 @@ func finalizeStackSpecExport(export map[string]interface{}, name, techstackID st
 		export["metadata"] = make(map[string]interface{})
 	}
 	if meta, ok := export["metadata"].(map[string]interface{}); ok {
-		meta["exported_from"] = "techstack"
-		meta[importExportLegacyStackIDKey] = techstackID
+		meta["exported_from"] = "homelab"
+		meta[importExportLegacyStackIDKey] = kitDeploymentID
 	}
 	return export
 }
@@ -313,6 +313,6 @@ func marshalToYAML(data map[string]interface{}) ([]byte, error) {
 		return nil, err
 	}
 
-	header := []byte("# kombify-TechStack Stack Spec Export\n# Exported from kombify-TechStack UI\n# Edit this file and re-import to update your configuration\n---\n")
+	header := []byte("# kombify-Homelab Stack Spec Export\n# Exported from kombify-Homelab UI\n# Edit this file and re-import to update your configuration\n---\n")
 	return append(header, yamlBytes...), nil
 }

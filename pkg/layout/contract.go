@@ -5,7 +5,7 @@
 //
 // StackKits owns the technical facts (host floors, reservations, accelerators,
 // measured provenance) and verifies a shown option against exact inventory.
-// Household policy (importance, bands) is Techstack's and lives here. Nothing
+// Household policy (importance, bands) is Homelab's and lives here. Nothing
 // in this package executes anything: a Result is advice until the user
 // accepts a Recommendation (owner decision D2, 2026-10-19).
 package layout
@@ -14,9 +14,9 @@ import "time"
 
 // Contract versions. A change to the meaning of a field is a new version.
 const (
-	SnapshotAPIVersion = "techstack.kombify.io/layout-snapshot/v1"
-	ProblemAPIVersion  = "techstack.kombify.io/layout-problem/v1"
-	ResultAPIVersion   = "techstack.kombify.io/layout-result/v1"
+	SnapshotAPIVersion = "homelab.kombify.io/layout-snapshot/v1"
+	ProblemAPIVersion  = "homelab.kombify.io/layout-problem/v1"
+	ResultAPIVersion   = "homelab.kombify.io/layout-result/v1"
 
 	KindSnapshot = "LayoutSnapshot"
 	KindProblem  = "LayoutProblem"

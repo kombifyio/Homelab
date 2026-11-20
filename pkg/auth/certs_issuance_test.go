@@ -88,7 +88,7 @@ func TestGenerateAgentCertForTenant_RequiresAgentID(t *testing.T) {
 
 func TestGenerateServerCert_SANsAndServerAuth(t *testing.T) {
 	cm := newTestCM(t)
-	gc, err := cm.GenerateServerCert("techstack.kombify.io", []string{"127.0.0.1", "localhost", "10.0.0.5"}, 30)
+	gc, err := cm.GenerateServerCert("homelab.kombify.io", []string{"127.0.0.1", "localhost", "10.0.0.5"}, 30)
 	if err != nil {
 		t.Fatalf("GenerateServerCert: %v", err)
 	}
@@ -105,7 +105,7 @@ func TestGenerateServerCert_SANsAndServerAuth(t *testing.T) {
 	}
 
 	// DNS SANs: commonName + "localhost".
-	dnsWant := map[string]bool{"techstack.kombify.io": false, "localhost": false}
+	dnsWant := map[string]bool{"homelab.kombify.io": false, "localhost": false}
 	for _, d := range cert.DNSNames {
 		if _, ok := dnsWant[d]; ok {
 			dnsWant[d] = true
@@ -138,7 +138,7 @@ func TestGenerateServerCert_SANsAndServerAuth(t *testing.T) {
 	if _, err := cert.Verify(x509.VerifyOptions{
 		Roots:     pool,
 		KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		DNSName:   "techstack.kombify.io",
+		DNSName:   "homelab.kombify.io",
 	}); err != nil {
 		t.Errorf("server cert failed chain verification: %v", err)
 	}

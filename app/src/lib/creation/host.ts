@@ -17,7 +17,7 @@ import {
 
 // Set by the module's route and kept across navigation inside the frame: a run
 // moves on to the Creation Screen, and the host still wants to hear how it ends.
-// Techstack framed as a whole tool stays silent.
+// Homelab framed as a whole tool stays silent.
 let hosted = false;
 
 export function markCreationHosted(): void {
@@ -53,7 +53,7 @@ export function useCreationEntry(): CreationEntry | null {
 let keepDraft: (() => Promise<void>) | null = null;
 
 /**
- * While set, a move to Techstack's own page first writes the frame's draft, so
+ * While set, a move to Homelab's own page first writes the frame's draft, so
  * the page opens on the same step with the same answers.
  */
 export function keepCreationDraftBeforeLeaving(
@@ -65,7 +65,7 @@ export function keepCreationDraftBeforeLeaving(
   };
 }
 
-/** Continues on Techstack's own page at `path` once the draft is written. */
+/** Continues on Homelab's own page at `path` once the draft is written. */
 export async function openCreationFull(path: string): Promise<void> {
   await keepDraft?.().catch(() => undefined);
   emitCreationEvent({ event: "open-full", path });

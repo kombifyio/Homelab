@@ -12,16 +12,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/appcatalog"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/runtimehealth"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/appcatalog"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/runtimehealth"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 const (
@@ -239,7 +239,7 @@ func (h registryRouteHandlers) importUnmanagedService(e *httpx.Event) error {
 		return httpx.BadRequest(e, "Service name is required", nil)
 	}
 
-	tenantID, err := h.requireRegistryMutationTenant(e, ownerID, "techstack.registry.services.import")
+	tenantID, err := h.requireRegistryMutationTenant(e, ownerID, "homelab.registry.services.import")
 	if err != nil {
 		return err
 	}
@@ -274,7 +274,7 @@ func (h registryRouteHandlers) registryPayload(e *httpx.Event) (registryPayload,
 	if err != nil {
 		return registryPayload{}, err
 	}
-	tenantID, err := requireRegistryRouteTenant(e, ownerID, "techstack.registry.read")
+	tenantID, err := requireRegistryRouteTenant(e, ownerID, "homelab.registry.read")
 	if err != nil {
 		return registryPayload{}, err
 	}
@@ -980,7 +980,7 @@ func (h registryRouteHandlers) deleteService(e *httpx.Event) error {
 	if serviceID == "" {
 		return httpx.BadRequest(e, "Service ID is required", nil)
 	}
-	tenantID, err := h.requireRegistryMutationTenant(e, ownerID, "techstack.registry.services.delete")
+	tenantID, err := h.requireRegistryMutationTenant(e, ownerID, "homelab.registry.services.delete")
 	if err != nil {
 		return err
 	}

@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/providercatalog"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/pkg/vmleases"
+	"github.com/kombifyio/homelab/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 )
 
 var (
@@ -241,7 +241,7 @@ func decommissionResultError(action serverruntime.RuntimeAction, err error) erro
 }
 
 // enqueueNativeDecommission transfers exact, generation-bound teardown custody
-// to Techstack provider control. Both ordinary and forced decommission use this
+// to Homelab provider control. Both ordinary and forced decommission use this
 // path in production: contacting a node-side runtime cannot prove that the
 // provider resource and billable capacity are gone. Reconcile first persists
 // the native generation-bound teardown operation (or proves terminal absence);

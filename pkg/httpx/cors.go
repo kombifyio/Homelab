@@ -7,7 +7,7 @@ import (
 )
 
 // CORSConfig configures the CORS middleware. It mirrors the subset of
-// PocketBase's apis.CORSConfig that the TechStack control plane uses: an
+// PocketBase's apis.CORSConfig that the Homelab control plane uses: an
 // explicit origin allowlist (with optional "*"), method/header allowlists,
 // credentials, exposed headers, and a preflight max-age.
 type CORSConfig struct {

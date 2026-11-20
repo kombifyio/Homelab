@@ -1,4 +1,4 @@
-// Package schema defines the extended CUE schemas for kombifyTechstack spec validation.
+// Package schema defines the extended CUE schemas for kombifyHomelab spec validation.
 // This file contains the complete kombination.yaml schema with all fields.
 package schema
 
@@ -50,7 +50,7 @@ import (
 #DNSName: =~"^[a-z][a-z0-9-]{0,61}[a-z0-9]$"
 
 // #StackKitRef validates input syntax only. Released metadata admits a kit;
-// this Techstack input schema does not declare StackKits availability.
+// this Homelab input schema does not declare StackKits availability.
 // Empty string allows automatic selection.
 #StackKitRef: "" | =~"^[a-z][a-z0-9-]*$"
 
@@ -404,7 +404,7 @@ import (
 	
 	target?: {
 		type?: "local" | "s3" | "restic" | "rclone" | *"local"
-		path?: string | *"/var/backups/techstack"
+		path?: string | *"/var/backups/homelab"
 		// S3 specific
 		bucket?: string
 		region?: string

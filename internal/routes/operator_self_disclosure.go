@@ -10,29 +10,29 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	kscore "github.com/kombifyio/techstack/pkg/core"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/unifier"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	kscore "github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 // The operator self-disclosure surface (KOMBIFY-DESIGN-SYSTEM-STANDARD.md §9.4).
 //
-// A signed-in operator may tell Techstack about themselves: how hands-on they
+// A signed-in operator may tell Homelab about themselves: how hands-on they
 // want to be, what the homelab is for, where it runs and who uses it. The
 // Cloud dashboard captures these answers and links them into the creation
 // wizard. A link only prefills: the wizard stores the answers here after the
-// operator confirms them, with source "link"; answers typed in a Techstack
-// surface use source "techstack". The body carries raw answers only. The
+// operator confirms them, with source "link"; answers typed in a Homelab
+// surface use source "homelab". The body carries raw answers only. The
 // capability profile in every response is derived by the Unifier, so no
 // client can store a score.
 
 const (
 	maxSelfDisclosureBodyBytes = 16 << 10
-	selfDisclosureCapability   = "techstack.operator.self_disclosure"
+	selfDisclosureCapability   = "homelab.operator.self_disclosure"
 
 	selfDisclosureReasonInvalid        = "self_disclosure_invalid"
 	selfDisclosureReasonNoControlPlane = "self_disclosure_requires_control_plane"
@@ -87,8 +87,8 @@ func (api *UnifierAPI) handlePutSelfDisclosure(e *httpx.Event) error {
 		decodeErr = request.Disclosure.Normalize()
 	}
 	source := strings.ToLower(strings.TrimSpace(request.Source))
-	if decodeErr == nil && source != controlplane.OperatorSelfDisclosureSourceLink && source != controlplane.OperatorSelfDisclosureSourceTechstack {
-		decodeErr = errors.New("source must be link or techstack")
+	if decodeErr == nil && source != controlplane.OperatorSelfDisclosureSourceLink && source != controlplane.OperatorSelfDisclosureSourceHomelab {
+		decodeErr = errors.New("source must be link or homelab")
 	}
 	if decodeErr != nil {
 		return httpx.Error(e, http.StatusBadRequest, ksapi.ErrCodeBadRequest,

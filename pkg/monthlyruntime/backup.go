@@ -14,12 +14,12 @@ import (
 
 const (
 	// FeatureBackupConfig gates configuration-class backups (starter+).
-	FeatureBackupConfig = "techstack.backup.config"
+	FeatureBackupConfig = "homelab.backup.config"
 	// FeatureBackupContent gates content-class backups (pro+).
-	FeatureBackupContent = "techstack.backup.content"
+	FeatureBackupContent = "homelab.backup.content"
 
 	// BackupCapability names the capability in denial envelopes.
-	BackupCapability = "techstack.backup"
+	BackupCapability = "homelab.backup"
 
 	// BackupEntitlementErrorCode marks a backup request denied by the
 	// entitlement gate.

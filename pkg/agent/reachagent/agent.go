@@ -26,9 +26,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/agent/hostidentity"
-	"github.com/kombifyio/techstack/pkg/guardidentity"
-	"github.com/kombifyio/techstack/pkg/guardreach"
+	"github.com/kombifyio/homelab/pkg/agent/hostidentity"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
+	"github.com/kombifyio/homelab/pkg/guardreach"
 )
 
 const (

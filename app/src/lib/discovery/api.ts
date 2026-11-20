@@ -1,5 +1,5 @@
 /**
- * kombify-TechStack Discovery API Client
+ * kombify-Homelab Discovery API Client
  *
  * Handles communication with the Discovery API endpoints.
  */
@@ -21,7 +21,7 @@ import { fetchWithSessionRenewal } from "#lib/auth/session-renewal.svelte.js";
 const API_BASE =
   import.meta.env.VITE_API_URL ||
   (typeof process !== "undefined" && process.env
-    ? process.env.TECHSTACK_API_URL || ""
+    ? process.env.HOMELAB_API_URL || ""
     : "");
 
 /**

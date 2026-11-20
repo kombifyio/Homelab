@@ -1,7 +1,7 @@
 /**
  * Wizard draft: the answers a person has entered and where they stand, kept by
- * Techstack per owner and creation process, so a creation started in one frame
- * (the Cloud popup, a sheet, one step alone) continues on the Techstack page
+ * Homelab per owner and creation process, so a creation started in one frame
+ * (the Cloud popup, a sheet, one step alone) continues on the Homelab page
  * or on another device, on the same step with the same answers.
  *
  * The draft never holds a secret: passwords and values derived from a typed
@@ -28,7 +28,7 @@ export interface WizardDraft {
   config: StackConfig;
 }
 
-// The names Techstack refuses to keep with a value (pkg/controlplane
+// The names Homelab refuses to keep with a value (pkg/controlplane
 // creation_draft.go): the SSH password, the recovery passphrase hash and any
 // use-case setting named like a secret.
 const SECRET_NAME =
@@ -46,7 +46,7 @@ function blankSecrets(value: unknown): void {
       continue;
     }
     // Flags and numbers carry no secret (requirePassword); anything else is
-    // blanked the way Techstack would otherwise refuse it.
+    // blanked the way Homelab would otherwise refuse it.
     if (typeof child === "string") value[name] = "";
     else if (typeof child === "object" && child !== null) value[name] = null;
   }

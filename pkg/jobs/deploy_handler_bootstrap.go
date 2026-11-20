@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
-	"github.com/kombifyio/techstack/pkg/secrets"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/pkg/secrets"
 )
 
 func (r *deployRollout) bootstrapManagedRuntimeTarget(ctx context.Context) error {
@@ -129,7 +129,7 @@ func (r *deployRollout) runStackKitPrepare(ctx context.Context, target *RuntimeA
 	prepRunner := r.cfg.RuntimeActions.StackKitPrepRunner
 	if prepRunner == nil &&
 		strings.TrimSpace(r.actionReq.StackSpecPath) != "" &&
-		!truthyRuntimeActionEnv("TECHSTACK_STACKKIT_PREP_DISABLED") {
+		!truthyRuntimeActionEnv("HOMELAB_STACKKIT_PREP_DISABLED") {
 		release, err := PinnedStackKitReleaseForStack(ctx, r.actionReq.TenantID, r.actionReq.StackID)
 		if err != nil {
 			return nil, err
@@ -161,7 +161,7 @@ func (r *deployRollout) runStackKitPrepare(ctx context.Context, target *RuntimeA
 
 func (r *deployRollout) preBootstrapManagedRuntimeTarget(ctx context.Context, target *RuntimeActionTarget) (*RuntimeTargetBootstrapResult, error) {
 	if r == nil || r.cfg == nil || r.cfg.RuntimeActions.TargetBootstrapper == nil ||
-		truthyRuntimeActionEnv("TECHSTACK_STACKKIT_PREP_PREBOOTSTRAP_DISABLED") {
+		truthyRuntimeActionEnv("HOMELAB_STACKKIT_PREP_PREBOOTSTRAP_DISABLED") {
 		return nil, nil
 	}
 	r.updateJobStepProgress(StepDockerReady, 74, "Preparing managed VPS Docker runtime before StackKits...")
@@ -382,9 +382,9 @@ func (r *deployRollout) collectRuntimeDiagnostics(ctx context.Context, runner Ru
 	leaseID := firstNonEmpty(stringFromMap(snapshot.Result, leaseIDField), stringFromMap(snapshot.Payload, leaseIDField))
 	serverID := runtimeidentity.LeaseServerID(leaseID)
 	runtimeAgentID := runtimeidentity.LeaseRuntimeAgentID(req.TenantID, leaseID)
-	if req.TechStackEnrollment != nil {
-		serverID = firstNonEmpty(req.TechStackEnrollment.ServerID, serverID)
-		runtimeAgentID = firstNonEmpty(req.TechStackEnrollment.RuntimeAgentID, runtimeAgentID)
+	if req.HomelabEnrollment != nil {
+		serverID = firstNonEmpty(req.HomelabEnrollment.ServerID, serverID)
+		runtimeAgentID = firstNonEmpty(req.HomelabEnrollment.RuntimeAgentID, runtimeAgentID)
 	}
 	request := RuntimeDiagnosticsRequest{
 		Action:         action,

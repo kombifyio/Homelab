@@ -12,7 +12,7 @@ const CREATING_SESSION_KEYS = new Set([
   "creatingStackConfig",
 ]);
 
-export function clearTechstackSecuritySessionState(): void {
+export function clearHomelabSecuritySessionState(): void {
   clearStackIdentity();
   clearCreatingSessionState();
   if (browser) clearAllWizardIdempotencyKeys();

@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/orchestrator"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/orchestrator"
 )
 
 // A removal ends the person's access on every server of the homelab that holds

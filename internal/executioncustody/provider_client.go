@@ -3,11 +3,11 @@ package executioncustody
 import (
 	"context"
 
-	"github.com/kombifyio/techstack/internal/providercatalog"
-	"github.com/kombifyio/techstack/internal/providercontrol"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/providercontrol"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
 )
 
 func (client *Remote) CreateOrBindLease(ctx context.Context, request jobs.ManagedLeaseRequest) (*jobs.ManagedLeaseResult, error) {

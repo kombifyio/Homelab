@@ -36,7 +36,7 @@
     { label: tr("nav.settings"), href: "/settings", icon: Settings },
     {
       label: tr("nav.help"),
-      href: "https://docs.kombify.io/techstack",
+      href: "https://docs.kombify.io/homelab",
       external: true,
       icon: HelpCircle,
     },

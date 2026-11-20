@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 func stackKitConnectorArgs(release stackkitrelease.Release, workDir string, c *agentpb.StackKitCommand) ([]string, []string, error) {
@@ -30,7 +30,7 @@ func stackKitConnectorArgs(release stackkitrelease.Release, workDir string, c *a
 	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		return nil, nil, fmt.Errorf("connector metadata directory is not confined to its workspace")
 	}
-	path, err := writeStackKitPrivateFile(workDir, ".techstack-connector-*.json", c.ApplicationConnectorRequestJson)
+	path, err := writeStackKitPrivateFile(workDir, ".homelab-connector-*.json", c.ApplicationConnectorRequestJson)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -66,12 +66,12 @@ func stackKitHomeGraphArgs(release stackkitrelease.Release, workDir string, c *a
 	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		return nil, nil, fmt.Errorf("home graph metadata directory is not confined to its workspace")
 	}
-	connectorPath, err := writeStackKitPrivateFile(workDir, ".techstack-connector-*.json", c.ApplicationConnectorRequestJson)
+	connectorPath, err := writeStackKitPrivateFile(workDir, ".homelab-connector-*.json", c.ApplicationConnectorRequestJson)
 	if err != nil {
 		return nil, nil, err
 	}
 	files := []string{connectorPath}
-	graphPath, err := writeStackKitPrivateFile(workDir, ".techstack-home-graph-*.json", c.HomeGraphSyncRequest)
+	graphPath, err := writeStackKitPrivateFile(workDir, ".homelab-home-graph-*.json", c.HomeGraphSyncRequest)
 	if err != nil {
 		removeStackKitTempFiles(files)
 		return nil, nil, err
@@ -112,7 +112,7 @@ func stackKitHomeGraphLoxoneImportArgs(release stackkitrelease.Release, workDir 
 	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		return nil, nil, fmt.Errorf("home graph metadata directory is not confined to its workspace")
 	}
-	graphPath, err := writeStackKitPrivateFile(workDir, ".techstack-home-graph-*.json", c.HomeGraphDocument)
+	graphPath, err := writeStackKitPrivateFile(workDir, ".homelab-home-graph-*.json", c.HomeGraphDocument)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -146,12 +146,12 @@ func stackKitHomeGraphAdoptionArgs(release stackkitrelease.Release, workDir stri
 	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		return nil, nil, fmt.Errorf("home graph metadata directory is not confined to its workspace")
 	}
-	connectorPath, err := writeStackKitPrivateFile(workDir, ".techstack-connector-*.json", c.ApplicationConnectorRequestJson)
+	connectorPath, err := writeStackKitPrivateFile(workDir, ".homelab-connector-*.json", c.ApplicationConnectorRequestJson)
 	if err != nil {
 		return nil, nil, err
 	}
 	files := []string{connectorPath}
-	graphPath, err := writeStackKitPrivateFile(workDir, ".techstack-home-graph-*.json", c.HomeGraphAdoptionRequest)
+	graphPath, err := writeStackKitPrivateFile(workDir, ".homelab-home-graph-*.json", c.HomeGraphAdoptionRequest)
 	if err != nil {
 		removeStackKitTempFiles(files)
 		return nil, nil, err

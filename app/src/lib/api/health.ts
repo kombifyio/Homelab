@@ -1,5 +1,5 @@
 /**
- * kombify-TechStack API - Health & Info Module
+ * kombify-Homelab API - Health & Info Module
  *
  * Health status and API information endpoints.
  */
@@ -52,7 +52,7 @@ export async function getHealth(): Promise<HealthStatus> {
 export async function getInfo(): Promise<ApiInfo> {
   const info = await get<ApiInfo>("/api/v1/info");
   if (!info || typeof info.version !== "string" || !info.version.trim()) {
-    throw new Error("Techstack info response is missing product version");
+    throw new Error("Homelab Runtime info response is missing product version");
   }
   return info;
 }

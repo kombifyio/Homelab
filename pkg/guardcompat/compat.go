@@ -1,5 +1,5 @@
 // Package guardcompat is the frozen command/enrollment compatibility contract
-// between the Techstack control plane and kombify Guard (Guard G01,
+// between the Homelab control plane and kombify Guard (Guard G01,
 // kombify-Techstack-b57.12.1).
 //
 // It names the contract versions both sides speak and every policy limit the
@@ -64,7 +64,7 @@ const (
 	// LegacyContractVersion is stored for a read-only command dispatched to a
 	// Guard that does not advertise BindingCapability.
 	LegacyContractVersion = "legacy"
-	// EnrollCapabilityVersion is printed by `techstack agent enroll --check`;
+	// EnrollCapabilityVersion is printed by `homelab agent enroll --check`;
 	// the installer uses it to tell a Guard that can redeem a host-key
 	// enrollment from one that cannot.
 	EnrollCapabilityVersion = "kombify-guard-enroll/1"

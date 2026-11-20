@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 // serviceRuntimeColumns is the canonical service runtime projection.

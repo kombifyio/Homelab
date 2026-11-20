@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/walletservice"
+	"github.com/kombifyio/homelab/internal/gocommon/walletservice"
 
-	"github.com/kombifyio/techstack/pkg/kombifywallet/walletfake"
+	"github.com/kombifyio/homelab/pkg/kombifywallet/walletfake"
 )
 
 const (

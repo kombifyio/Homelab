@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-// WorkerStackKitsTargetResourceKey holds the StackKits release Techstack
-// approved for a worker's node. Techstack owns it; heartbeats never replace it.
+// WorkerStackKitsTargetResourceKey holds the StackKits release Homelab
+// approved for a worker's node. Homelab owns it; heartbeats never replace it.
 const WorkerStackKitsTargetResourceKey = "stackkits_target"
 
 // Outcomes of the owner-approved governed `stackkit upgrade` to a target.

@@ -12,13 +12,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/agent/journal"
-	"github.com/kombifyio/techstack/pkg/agent/procfence"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/guardcompat"
-	"github.com/kombifyio/techstack/pkg/ril/nodeproof"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/agent/journal"
+	"github.com/kombifyio/homelab/pkg/agent/procfence"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardcompat"
+	"github.com/kombifyio/homelab/pkg/ril/nodeproof"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 const (

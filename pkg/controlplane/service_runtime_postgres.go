@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 func (s *PostgresStore) UpsertServiceRuntime(ctx context.Context, service ServiceRuntime) (*ServiceRuntime, error) {

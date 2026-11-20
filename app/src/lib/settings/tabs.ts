@@ -1,4 +1,4 @@
-// Techstack settings tabs on KOMBIFY-DESIGN-SYSTEM-STANDARD.md §10.2.1: shared tabs in the fixed
+// Homelab settings tabs on KOMBIFY-DESIGN-SYSTEM-STANDARD.md §10.2.1: shared tabs in the fixed
 // order account, identity, design, companion, notifications; the tool tab (homelab)
 // follows. The slug is the deep-link contract (`/settings?tab=<slug>`). The `companion` tab
 // exists only in the Windows client while it can show the desktop Companion (the native side

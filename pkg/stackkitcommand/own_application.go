@@ -10,13 +10,13 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 // Own-application lifecycle (StackKits #3267, docs/OWN_APPLICATIONS.md
 // "Managed nodes"): the catalog operations own-application.* that operate an
 // own application, including one rebuilt by "Stack it". Every mutation is a
-// reviewed dry run first; its review digest is bound into a Techstack
+// reviewed dry run first; its review digest is bound into a Homelab
 // own-application.lifecycle capability (name, action, operation ID, review
 // digest, at most 15 minutes) and the execution passes --capability.
 const (
@@ -72,7 +72,7 @@ var (
 	ownApplicationOperationPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`)
 )
 
-// OwnApplicationOperations are every catalog operation Techstack dispatches.
+// OwnApplicationOperations are every catalog operation Homelab dispatches.
 func OwnApplicationOperations() []string {
 	steps := []string{OwnApplicationStatus, OwnApplicationLogs, OwnApplicationReview, OwnApplicationUpdateReview, OwnApplicationCheckpointRollbackReview,
 		OwnApplicationCheckpointDiscardReview, OwnApplicationStart, OwnApplicationStop, OwnApplicationRestart, OwnApplicationUpdate,
@@ -226,7 +226,7 @@ type OwnApplicationCheckpoint struct {
 	At            *time.Time `json:"at,omitempty"`
 }
 
-// OwnApplicationResult is the secret-free projection Techstack keeps of a
+// OwnApplicationResult is the secret-free projection Homelab keeps of a
 // stackkit.own-application-result/v1 or stackkit.own-application-update/v1.
 type OwnApplicationResult struct {
 	APIVersion         string                    `json:"api_version"`
@@ -421,7 +421,7 @@ func ParseOwnApplicationResult(c *agentpb.StackKitCommand, r *agentpb.StackKitRe
 	return out, nil
 }
 
-// MaxOwnApplicationLogBytes bounds the log tail Techstack keeps and returns.
+// MaxOwnApplicationLogBytes bounds the log tail Homelab keeps and returns.
 const MaxOwnApplicationLogBytes = 64 << 10
 
 // boundedLogText keeps the last MaxOwnApplicationLogBytes of valid UTF-8 and

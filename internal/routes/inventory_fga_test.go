@@ -10,13 +10,13 @@ import (
 	"testing"
 	"time"
 
-	commonedgeauth "github.com/kombifyio/techstack/internal/gocommon/edgeauth"
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	commonedgeauth "github.com/kombifyio/homelab/internal/gocommon/edgeauth"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/pkg/httpx"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/identity"
-	"github.com/kombifyio/techstack/pkg/middleware"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/middleware"
 )
 
 type fakeInventoryRelationshipChecker struct {
@@ -511,7 +511,7 @@ func TestRuntimeSummaryProjectsSavedPlanAfterFailedJob(t *testing.T) {
 	RegisterInventoryRoutes(router, InventoryRouteConfig{RuntimeSummaryContext: func(ctx context.Context, tenant, owner string) (context.Context, string, error) {
 		return ctx, tenant, nil
 	}, ReadStore: store, Homelabs: store, WizardRuns: store, Jobs: store, OwnerStackSpecs: store, ServiceAuthSecret: secret, Now: time.Now})
-	token, err := servicecall.IssueToken(servicecall.Config{ServiceName: "cloud", Secret: secret, TokenTTL: time.Minute}, "techstack", &servicecall.OnBehalfOf{Sub: "owner-1", OrgID: "tenant-1"}, "")
+	token, err := servicecall.IssueToken(servicecall.Config{ServiceName: "cloud", Secret: secret, TokenTTL: time.Minute}, "homelab", &servicecall.OnBehalfOf{Sub: "owner-1", OrgID: "tenant-1"}, "")
 	if err != nil {
 		t.Fatal(err)
 	}

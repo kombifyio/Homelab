@@ -4,7 +4,7 @@
     <AssemblyName>Kombify.Client.Cloud</AssemblyName>
     <PackageId>Kombify.Client.Cloud</PackageId>
     <Description>Optional Windows Auth0 native login and kombify Connect adapter for Cloud installers.</Description>
-    <RepositoryUrl>https://github.com/kombifyio/TechStack</RepositoryUrl>
+    <RepositoryUrl>https://github.com/kombifyio/Homelab</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <IsPackable>true</IsPackable>

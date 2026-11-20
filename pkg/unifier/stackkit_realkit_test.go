@@ -7,15 +7,15 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/core"
-	"github.com/kombifyio/techstack/pkg/unifier"
+	"github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 // TestPublishedStackKitUnifyAndPipeline exercises the public consumer against
-// the pinned public release's metadata, preserving Techstack node and service
+// the pinned public release's metadata, preserving Homelab node and service
 // intent without loading or interpreting StackKits CUE.
 func TestPublishedStackKitUnifyAndPipeline(t *testing.T) {
-	root := os.Getenv("TECHSTACK_STACKKITS_DIR")
+	root := os.Getenv("HOMELAB_STACKKITS_DIR")
 	if root != "" {
 		if _, err := unifier.NewStackKitLoaderWithDir(root); err != nil {
 			t.Fatalf("explicit published metadata fixture: %v", err)

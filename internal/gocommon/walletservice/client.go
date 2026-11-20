@@ -15,7 +15,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
 )
 
 const (

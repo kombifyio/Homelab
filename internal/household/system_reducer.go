@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/systemdb"
+	"github.com/kombifyio/homelab/internal/systemdb"
 )
 
 const CloudHouseholdSystemRole = "kombify_cloud_household_system"

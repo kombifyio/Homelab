@@ -3,9 +3,9 @@ package controlplane
 import (
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/outcome"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/pkg/outcome"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 func cloneStack(stack Stack) *Stack {

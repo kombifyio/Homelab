@@ -1,4 +1,4 @@
-// Package logger provides structured logging for kombifyTechstack using slog
+// Package logger provides structured logging for kombifyHomelab using slog
 package logger
 
 import (
@@ -11,7 +11,7 @@ import (
 
 var globalLogger = Default()
 
-// Logger wraps slog.Logger with kombifyTechstack-specific functionality
+// Logger wraps slog.Logger with kombifyHomelab-specific functionality
 type Logger struct {
 	*slog.Logger
 }

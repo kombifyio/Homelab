@@ -6,7 +6,7 @@ import { isAppIconSlug, type AppLogoOverride } from "#lib/brand-logo.js";
  * dashboard-icons slug from our asset host. It works without storage too: a
  * blocked or full storage keeps the choice for this page view only.
  */
-const STORAGE_KEY = "techstack.appLogoOverrides.v1";
+const STORAGE_KEY = "homelab.appLogoOverrides.v1";
 
 /** One application, whatever the casing the control plane reports. */
 export function appLogoKey(

@@ -10,14 +10,14 @@ import (
 	"strings"
 	"time"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/runtimehealth"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/runtimehealth"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 type serviceConnectorRequest struct {

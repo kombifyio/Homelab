@@ -1,12 +1,12 @@
-# Support for kombify Techstack Open Core
+# Support for kombify Homelab Runtime Open Core
 
 | Need | Where |
 | --- | --- |
-| A question, setup help, sharing your setup | [Discussions](https://github.com/kombifyio/TechStack/discussions) |
-| A reproducible bug in a released version | [Bug report](https://github.com/kombifyio/TechStack/issues/new?template=bug_report.yml) |
-| An idea or a vote on one | [Discussions](https://github.com/kombifyio/TechStack/discussions) |
+| A question, setup help, sharing your setup | [Discussions](https://github.com/kombifyio/Homelab/discussions) |
+| A reproducible bug in a released version | [Bug report](https://github.com/kombifyio/Homelab/issues/new?template=bug_report.yml) |
+| An idea or a vote on one | [Discussions](https://github.com/kombifyio/Homelab/discussions) |
 | What shipped in each release | [Changelog](https://docs.kombify.io/changelog/overview) |
-| A security vulnerability | [Private advisory](https://github.com/kombifyio/TechStack/security/advisories/new), never a public issue |
+| A security vulnerability | [Private advisory](https://github.com/kombifyio/Homelab/security/advisories/new), never a public issue |
 | Your kombify account or a subscription | [kombify.io/support](https://kombify.io/support) or [info@kombify.io](mailto:info@kombify.io) |
 | Documentation | [kombify documentation](https://docs.kombify.io) |
 
@@ -17,5 +17,5 @@ output, with secrets and personal data removed.
 
 Fixes go to the latest release.
 
-StackKits bugs that do not involve Techstack belong in the
+StackKits bugs that do not involve Homelab Runtime belong in the
 [StackKits repository](https://github.com/kombifyio/stackKits/issues/new?template=bug_report.yml).

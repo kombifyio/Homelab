@@ -7,7 +7,7 @@ import (
 )
 
 const BackupWorkerRole = "techstack_backup_worker"
-const EnvBackupWorkerDatabaseURL = "TECHSTACK_BACKUP_WORKER_DATABASE_URL"
+const EnvBackupWorkerDatabaseURL = "HOMELAB_BACKUP_WORKER_DATABASE_URL"
 
 // The private worker reuses the ordinary job/lease and typed-command owners.
 // It has no issuer, key, provider, migration or object ownership capability.

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/privatefs"
-	"github.com/kombifyio/techstack/pkg/guardidentity"
+	"github.com/kombifyio/homelab/internal/privatefs"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
 )
 
 const (

@@ -10,10 +10,10 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -175,7 +175,7 @@ func runApplicationHomeGraphJob(ctx context.Context, cfg StackKitLifecycleConfig
 
 // Result fields of a Loxone import run. The proposal is the merged
 // kombify.home_graph.v1 document; Cloud reads it and stores it in the
-// household home graph, Techstack never treats it as the stored graph.
+// household home graph, Homelab never treats it as the stored graph.
 const (
 	HomeGraphLoxoneProposalResultField  = "home_graph_loxone_proposal"
 	HomeGraphLoxoneSpaceResultField     = "home_graph_space_id"

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	commonoidc "github.com/kombifyio/techstack/internal/gocommon/oidcclient"
+	commonoidc "github.com/kombifyio/homelab/internal/gocommon/oidcclient"
 )
 
 func TestNewValidatesConfig(t *testing.T) {
@@ -27,7 +27,7 @@ func TestNewValidatesConfig(t *testing.T) {
 }
 
 func TestNewDerivesJWKSURL(t *testing.T) {
-	p, err := New(Config{ID: "primary", Kind: KindPocketID, Issuer: "https://id.example/", ClientID: "techstack"})
+	p, err := New(Config{ID: "primary", Kind: KindPocketID, Issuer: "https://id.example/", ClientID: "homelab"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestNewDerivesJWKSURL(t *testing.T) {
 }
 
 func TestNewUsesCanonicalKombifyAuth0Issuer(t *testing.T) {
-	p, err := New(Config{ID: "primary", Kind: KindAuth0, Issuer: "https://login.kombify.io/", ClientID: "techstack"})
+	p, err := New(Config{ID: "primary", Kind: KindAuth0, Issuer: "https://login.kombify.io/", ClientID: "homelab"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestNewUsesCanonicalKombifyAuth0Issuer(t *testing.T) {
 }
 
 func TestNewPreservesAuth0IssuerSlashForTokenVerification(t *testing.T) {
-	p, err := New(Config{ID: "primary", Kind: KindAuth0, Issuer: "https://login.kombify.io", ClientID: "techstack"})
+	p, err := New(Config{ID: "primary", Kind: KindAuth0, Issuer: "https://login.kombify.io", ClientID: "homelab"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +83,7 @@ func TestRegistry(t *testing.T) {
 	if _, err := r.Get("missing"); err == nil {
 		t.Fatal("expected ErrUnknownProvider")
 	}
-	p, err := New(Config{ID: "p1", Kind: KindAuth0, Issuer: "https://t.eu.auth0.com", ClientID: "techstack"})
+	p, err := New(Config{ID: "p1", Kind: KindAuth0, Issuer: "https://t.eu.auth0.com", ClientID: "homelab"})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	agentpkg "github.com/kombifyio/techstack/pkg/agent"
+	agentpkg "github.com/kombifyio/homelab/pkg/agent"
 )
 
 // substrateHandoffDir holds what a substrate Guard downloads before it
@@ -43,10 +43,10 @@ func (s *SubstrateSelfUpdate) HandoffDir() string { return s.opts.HandoffDir }
 // publishes. AgentUpdated means a trial started and is about to restart this
 // Guard, so the hold quiesce took stays taken. A candidate the policy refuses
 // leaves the executable as it is and is reported as *UpdateDeniedError.
-func (s *SubstrateSelfUpdate) EnsureGuardExecutable(ctx context.Context, cfg agentpkg.TechstackRuntimeConvergenceConfig, quiesce func(context.Context) (func(), error)) (agentpkg.TechstackRuntimeConvergenceResult, error) {
+func (s *SubstrateSelfUpdate) EnsureGuardExecutable(ctx context.Context, cfg agentpkg.HomelabRuntimeConvergenceConfig, quiesce func(context.Context) (func(), error)) (agentpkg.HomelabRuntimeConvergenceResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	result := agentpkg.TechstackRuntimeConvergenceResult{Version: strings.TrimSpace(cfg.Version)}
+	result := agentpkg.HomelabRuntimeConvergenceResult{Version: strings.TrimSpace(cfg.Version)}
 	opts := s.opts
 	opts.AgentPath = cfg.AgentPath
 	if err := os.MkdirAll(opts.HandoffDir, 0o700); err != nil {

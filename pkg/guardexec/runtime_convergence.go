@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	agentpkg "github.com/kombifyio/techstack/pkg/agent"
-	"github.com/kombifyio/techstack/pkg/guardrelease"
+	agentpkg "github.com/kombifyio/homelab/pkg/agent"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
 )
 
 const runtimeCandidateFile = "stackkit-runtime-candidate.tar.gz"
@@ -75,9 +75,9 @@ func (c *runtimeConvergence) converge(ctx context.Context, cfg agentpkg.StackKit
 	recordPath := filepath.Join(cfg.StageDir, runtimeCandidateRecord)
 	candidatePath := filepath.Join(cfg.StageDir, runtimeCandidateFile)
 	scope := fmt.Sprintf("%x", sha256.Sum256([]byte(cfg.URL+"\x00"+cfg.TenantID+"\x00"+cfg.RuntimeAgentID)))
-	state := runtimeCandidate{Schema: "techstack.runtime-candidate/v1", Scope: scope}
+	state := runtimeCandidate{Schema: "homelab.runtime-candidate/v1", Scope: scope}
 	if raw, err := readBounded(recordPath, 16<<10); err == nil {
-		if err := decodeStrict(raw, &state); err != nil || state.Schema != "techstack.runtime-candidate/v1" || state.Failures < 0 || state.Failures > 32 {
+		if err := decodeStrict(raw, &state); err != nil || state.Schema != "homelab.runtime-candidate/v1" || state.Failures < 0 || state.Failures > 32 {
 			return zero, errors.New("runtime candidate record is invalid")
 		}
 	} else if !errors.Is(err, os.ErrNotExist) {
@@ -89,7 +89,7 @@ func (c *runtimeConvergence) converge(ctx context.Context, cfg agentpkg.StackKit
 				return err
 			}
 		}
-		state = runtimeCandidate{Schema: "techstack.runtime-candidate/v1", Scope: scope}
+		state = runtimeCandidate{Schema: "homelab.runtime-candidate/v1", Scope: scope}
 		return nil
 	}
 	if state.Scope != scope {
@@ -130,7 +130,7 @@ func (c *runtimeConvergence) converge(ctx context.Context, cfg agentpkg.StackKit
 	if client == nil {
 		client = &http.Client{Timeout: 5 * time.Minute}
 	}
-	signed, err := fetchReleaseEvidence(ctx, client, agentpkg.TechstackRuntimeConvergenceConfig{URL: cfg.URL, AgentToken: cfg.AgentToken, RuntimeAgentID: cfg.RuntimeAgentID, TenantID: cfg.TenantID})
+	signed, err := fetchReleaseEvidence(ctx, client, agentpkg.HomelabRuntimeConvergenceConfig{URL: cfg.URL, AgentToken: cfg.AgentToken, RuntimeAgentID: cfg.RuntimeAgentID, TenantID: cfg.TenantID})
 	if err != nil {
 		return fail(err)
 	}
@@ -187,7 +187,7 @@ func (c *runtimeConvergence) converge(ctx context.Context, cfg agentpkg.StackKit
 		return guardrelease.VerifyRuntimeBundle(admission.Runtime, file)
 	}
 	if state.SHA256 != "" && description.Valid && description.InstalledDigest != state.SHA256 {
-		// A retained candidate installs only while Techstack still serves it.
+		// A retained candidate installs only while Homelab still serves it.
 		bundle, err := agentpkg.FetchStackKitRuntimeBundle(ctx, cfg, description.InstalledDigest)
 		if err != nil {
 			return fail(err)
@@ -226,7 +226,7 @@ func (c *runtimeConvergence) converge(ctx context.Context, cfg agentpkg.StackKit
 			return fail(err)
 		}
 		if bundle.NotModified {
-			// Techstack serves the node its approved release; a signed newer
+			// Homelab serves the node its approved release; a signed newer
 			// runtime it withholds waits for the owner's approval. An installed
 			// tree that claims the admitted release but fails its signed
 			// identity stays refused.
@@ -294,7 +294,7 @@ func (c *runtimeConvergence) converge(ctx context.Context, cfg agentpkg.StackKit
 }
 
 // installedRuntime is the installed StackKits identity a description read
-// back, with the published release Techstack withholds until approval, if any.
+// back, with the published release Homelab withholds until approval, if any.
 func installedRuntime(description RuntimeDescription, update *agentpkg.StackKitRuntimeUpdate) agentpkg.StackKitRuntimeConvergenceResult {
 	return agentpkg.StackKitRuntimeConvergenceResult{
 		Version: description.Version, SHA256: description.ArchiveSHA256, IndexSHA256: description.IndexSHA256,
@@ -302,7 +302,7 @@ func installedRuntime(description RuntimeDescription, update *agentpkg.StackKitR
 	}
 }
 
-// withheldRuntime is the signed published release Techstack has not served
+// withheldRuntime is the signed published release Homelab has not served
 // the node yet.
 func withheldRuntime(admission RuntimeAdmission, description RuntimeDescription) *agentpkg.StackKitRuntimeUpdate {
 	if !admission.Signed || admission.Version == "" || stackKitReleaseTag(admission.Version) == stackKitReleaseTag(description.Version) {

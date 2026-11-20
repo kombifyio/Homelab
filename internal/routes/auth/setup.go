@@ -6,12 +6,12 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/kombifyio/techstack/internal/gocommon/authlocal"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/internal/gocommon/authlocal"
 	"github.com/google/uuid"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // setupRequest is the JSON body for the first-run setup wizard.

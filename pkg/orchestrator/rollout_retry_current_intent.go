@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/jobs"
 )
 
 func (o *Orchestrator) rolloutRetryIntentForRequest(ctx context.Context, req RolloutRetryRequest, source controlplane.Job, serverID, candidateSHA string) (map[string]any, error) {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/kombifyio/techstack/pkg/guardrelease"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
 )
 
 type candidateSourceIdentity struct {

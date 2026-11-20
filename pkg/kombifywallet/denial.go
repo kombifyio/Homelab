@@ -5,14 +5,14 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/kombifyio/techstack/internal/gocommon/walletservice"
+	"github.com/kombifyio/homelab/internal/gocommon/walletservice"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // Reason codes of the structured denials this package produces. They are part
-// of the API contract the Techstack UI branches on.
+// of the API contract the Homelab UI branches on.
 const (
 	// ReasonItemRequired: kombify mode needs ssh_wallet_item_id; a label or a
 	// plaintext password is refused.
@@ -22,9 +22,9 @@ const (
 	// ReasonItemUnsupported: a Wallet item id was sent to a deployment that
 	// still reads the legacy wallet.
 	ReasonItemUnsupported = "wallet_item_unsupported"
-	// ReasonRightMissing: the owner has not assigned the right Techstack needs.
+	// ReasonRightMissing: the owner has not assigned the right Homelab needs.
 	ReasonRightMissing = "wallet_right_missing"
-	// ReasonCreateRightMissing: Techstack may not save credentials in the
+	// ReasonCreateRightMissing: Homelab may not save credentials in the
 	// owner's Wallet yet.
 	ReasonCreateRightMissing = "wallet_create_right_missing"
 	// ReasonItemNotFound: the item does not exist, was revoked or was deleted.
@@ -43,7 +43,7 @@ const (
 	ReasonNoPublicKey = "wallet_item_no_public_key"
 	// ReasonUnavailable: the Wallet could not serve the call.
 	ReasonUnavailable = "wallet_unavailable"
-	// ReasonResponseInvalid: the Wallet answered with something Techstack
+	// ReasonResponseInvalid: the Wallet answered with something Homelab
 	// refuses to trust.
 	ReasonResponseInvalid = "wallet_response_invalid"
 	// ReasonSelfHostedOnly: the operation exists only for the legacy wallet.
@@ -170,7 +170,7 @@ func classify(err error) *Denial {
 		return &Denial{
 			Status: http.StatusBadGateway, Reason: ReasonResponseInvalid, GatewayReason: reason,
 			Title: "The kombify Wallet answered unexpectedly",
-			Body:  "Techstack did not trust the Wallet's answer, so nothing was read or saved. This is a platform problem, not something to fix in your Wallet.",
+			Body:  "Homelab Runtime did not trust the Wallet's answer, so nothing was read or saved. This is a platform problem, not something to fix in your Wallet.",
 			cause: err,
 		}
 	case walletservice.CodeInvalidRequest:
@@ -190,14 +190,14 @@ func classifyInvalid(failure *walletservice.Error, reason string) *Denial {
 		return &Denial{
 			Status: http.StatusForbidden, Reason: ReasonOwnerIneligible, GatewayReason: reason,
 			Title: "The kombify Wallet keeps items for people only",
-			Body:  "This account is not a person with a kombify Wallet, so Techstack cannot read or save Wallet items for it.",
+			Body:  "This account is not a person with a kombify Wallet, so Homelab Runtime cannot read or save Wallet items for it.",
 			cause: failure,
 		}
 	default:
 		return &Denial{
 			Status: http.StatusBadRequest, Reason: ReasonRequestInvalid, GatewayReason: reason,
 			Title: "The kombify Wallet request was refused",
-			Body:  "Techstack refused to send this request to the Wallet.",
+			Body:  "Homelab Runtime refused to send this request to the Wallet.",
 			cause: failure,
 		}
 	}
@@ -208,7 +208,7 @@ func classifyDenied(failure *walletservice.Error, reason string) *Denial {
 		// Not admitted, wrong secret, replayed token: a platform configuration
 		// problem that the owner cannot repair in the Wallet.
 		denial := unavailable(failure, reason, false)
-		denial.Body = "Techstack is not admitted to the kombify Wallet right now. Contact support if this persists."
+		denial.Body = "Homelab Runtime is not admitted to the kombify Wallet right now. Contact support if this persists."
 		return denial
 	}
 	if failure.RequiredRight == "create" && failure.ItemID == "" {
@@ -217,9 +217,9 @@ func classifyDenied(failure *walletservice.Error, reason string) *Denial {
 	return &Denial{
 		Status: http.StatusForbidden, Reason: ReasonRightMissing, RequiredRight: failure.RequiredRight, ItemID: failure.ItemID,
 		GatewayReason: reason,
-		Title:         "Allow Techstack to use this Wallet item",
-		Body:          "You have not assigned this item to Techstack yet. Techstack only uses items you share with it, and only for the server you pick.",
-		NextSteps:     []string{"Open your kombify Wallet, share the item with Techstack, then try again."},
+		Title:         "Allow Homelab Runtime to use this Wallet item",
+		Body:          "You have not assigned this item to Homelab Runtime yet. Homelab Runtime only uses items you share with it, and only for the server you pick.",
+		NextSteps:     []string{"Open your kombify Wallet, share the item with Homelab Runtime, then try again."},
 		cause:         failure,
 	}
 }
@@ -237,9 +237,9 @@ func classifyRefused(failure *walletservice.Error, reason string) *Denial {
 	case "value_use_only", "value_is_reference", "item_action_unsupported":
 		return &Denial{
 			Status: http.StatusConflict, Reason: ReasonItemUnusable, GatewayReason: reason, ItemID: failure.ItemID,
-			Title:     "Techstack cannot read that Wallet item",
-			Body:      "This item's value never leaves the Wallet or refers to another item, so Techstack cannot use it to connect to a server.",
-			NextSteps: []string{"Pick a node access item whose value Techstack may read."},
+			Title:     "Homelab Runtime cannot read that Wallet item",
+			Body:      "This item's value never leaves the Wallet or refers to another item, so Homelab Runtime cannot use it to connect to a server.",
+			NextSteps: []string{"Pick a node access item whose value Homelab Runtime may read."},
 			cause:     failure,
 		}
 	}
@@ -258,19 +258,19 @@ func unavailable(cause error, gatewayReason string, retryable bool) *Denial {
 	return &Denial{
 		Status: http.StatusServiceUnavailable, Reason: ReasonUnavailable, Retryable: retryable, GatewayReason: gatewayReason,
 		Title: "The kombify Wallet is unavailable",
-		Body:  "Techstack could not reach your kombify Wallet, so no credential was read or saved. Nothing was done with a stored copy.",
+		Body:  "Homelab Runtime could not reach your kombify Wallet, so no credential was read or saved. Nothing was done with a stored copy.",
 		cause: cause,
 	}
 }
 
-// CreateRightMissing is the denial for a Techstack that may not yet save
+// CreateRightMissing is the denial for a Homelab that may not yet save
 // credentials in the owner's Wallet.
 func CreateRightMissing(cause error) *Denial {
 	return &Denial{
 		Status: http.StatusConflict, Reason: ReasonCreateRightMissing, RequiredRight: "create",
-		Title:     "Allow Techstack to save credentials in your kombify Wallet",
-		Body:      "Techstack keeps the credentials a rollout produces, such as recovery material, in your kombify Wallet. It may not save to your Wallet yet, so the rollout did not start.",
-		NextSteps: []string{"Allow Techstack to save credentials in your kombify Wallet, then start the rollout again."},
+		Title:     "Allow Homelab Runtime to save credentials in your kombify Wallet",
+		Body:      "Homelab Runtime keeps the credentials a rollout produces, such as recovery material, in your kombify Wallet. It may not save to your Wallet yet, so the rollout did not start.",
+		NextSteps: []string{"Allow Homelab Runtime to save credentials in your kombify Wallet, then start the rollout again."},
 		cause:     cause,
 	}
 }

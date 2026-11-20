@@ -16,12 +16,12 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/identity"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
-	"github.com/kombifyio/techstack/pkg/kombifywallet/walletfake"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/kombifywallet/walletfake"
 )
 
 func nodeAccessProfile(t *testing.T, fields map[string]any) []byte {
@@ -138,7 +138,7 @@ func TestServerSSHKeyAuthorizationInKombifyModeInstallsThePublicKeyOfTheWalletIt
 	hostPublic, _, _ := ed25519.GenerateKey(rand.Reader)
 	hostKey, _ := ssh.NewPublicKey(hostPublic)
 	installed := ""
-	t.Setenv("TECHSTACK_REAUTH_SECRET", "reauth-test-secret")
+	t.Setenv("HOMELAB_REAUTH_SECRET", "reauth-test-secret")
 	h := serverTerminalHandlers{
 		servers: store, kombify: fake.Client(), now: func() time.Time { return now },
 		targets: jobs.NewStaticManagedRuntimeTargetResolver(jobs.ManagedRuntimeTarget{
@@ -166,7 +166,7 @@ func TestServerSSHKeyAuthorizationInKombifyModeInstallsThePublicKeyOfTheWalletIt
 		t.Fatalf("the response carries the private key: %s", recorder.Body.String())
 	}
 
-	// An item the owner never shared with Techstack is a structured denial.
+	// An item the owner never shared with Homelab is a structured denial.
 	unshared := fake.Grant("owner-1", kombifywallet.ItemTypeNodeAccess, "Other", "account", nodeAccessProfile(t, map[string]any{"privateKey": privatePEM}), "read")
 	denied, deniedRecorder := registryRouteStoreTestEvent(http.MethodPost, "/api/v1/servers/server-1/access/authorized-key", "owner-1", "tenant-1", map[string]any{
 		"wallet_item_id": unshared, "confirm": true, "reauth_timestamp": timestamp, "reauth_signature": signature,

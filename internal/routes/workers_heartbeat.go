@@ -10,14 +10,14 @@ import (
 	"strings"
 	"time"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/guardidentity"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/monitoring"
-	"github.com/kombifyio/techstack/pkg/runtimeconvergence"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/monitoring"
+	"github.com/kombifyio/homelab/pkg/runtimeconvergence"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 func (h workerRouteHandlers) heartbeat(e *httpx.Event) error {

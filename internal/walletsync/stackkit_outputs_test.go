@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 func TestMain(m *testing.M) {

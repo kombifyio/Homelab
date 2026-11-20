@@ -1,5 +1,5 @@
 // Package clientpairing implements the short-lived, tenant-bound capability
-// used to bind a second Kombify client to a TechStack instance.
+// used to bind a second Kombify client to a Homelab instance.
 //
 // It is deliberately separate from the worker-enrollment pairing-token domain:
 // client pairing may only hand off into the normal account/OIDC authority and

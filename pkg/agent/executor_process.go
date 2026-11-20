@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/kombifyio/techstack/pkg/validator"
+	"github.com/kombifyio/homelab/pkg/validator"
 )
 
 // runCommand executes a command with given arguments.

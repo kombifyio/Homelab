@@ -1,5 +1,5 @@
 <!--
-Thanks for contributing to kombify Techstack Open Core. This repository is a release mirror of
+Thanks for contributing to kombify Homelab Runtime Open Core. This repository is a release mirror of
 kombify's private source. Your pull request is reviewed here, then imported
 into the source with your authorship kept, and closed with a link to the
 commit and release that carry it. See CONTRIBUTING.md.

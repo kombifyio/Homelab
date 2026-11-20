@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/drivehealth"
+	"github.com/kombifyio/homelab/pkg/drivehealth"
 )
 
 // BatchSchema is the wire version of a telemetry batch.

@@ -303,7 +303,7 @@ func TestUpsertMembershipKeepsExistingMetadataWhenCallerHasNone(t *testing.T) {
 		WithArgs("tenant-1:user-1", "tenant-1", "user-1", "member", "portal", "user-1", "active", []byte("{}")).
 		WillReturnRows(membershipRows().AddRow(
 			"tenant-1:user-1", "tenant-1", "user-1", "member", "portal", "user-1", "active",
-			`{"entitlements":["techstack.inventory.read"]}`, now, now,
+			`{"entitlements":["homelab.inventory.read"]}`, now, now,
 		))
 	mock.ExpectCommit()
 

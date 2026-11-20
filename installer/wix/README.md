@@ -2,9 +2,9 @@
 
 The public Windows release contains a WiX v4 MSI and a Burn bootstrapper:
 
-- `kombify-Techstack-x64.msi` is the per-machine MSI authority and requests
+- `kombify-Homelab-x64.msi` is the per-machine MSI authority and requests
   elevation once through the normal Windows setup flow.
-- `kombify-Techstack-Setup.exe` is the user-facing bootstrapper and chains the
+- `kombify-Homelab-Setup.exe` is the user-facing bootstrapper and chains the
   exact MSI beside it.
 - `install-windows-client.ps1` and the ZIP remain the portable/development
   path.
@@ -14,7 +14,7 @@ No Windows code-signing certificate is planned or required. Release
 notes and `UNSIGNED-WINDOWS-RELEASE.txt` must make the unsigned status clear.
 
 The MSI installs only the staged application under
-`%ProgramFiles%\kombify\techstack`. Runtime data and Credential Manager
+`%ProgramFiles%\kombify\homelab`. Runtime data and Credential Manager
 entries live below `%LOCALAPPDATA%\kombify\techstack-client`; major upgrades
 and uninstall remove the installed binaries and Start Menu shortcut but retain
 that user state. Use `scripts/uninstall-windows-client.ps1 -RemoveState` for an

@@ -3,7 +3,7 @@ package controlplane
 import (
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 const (

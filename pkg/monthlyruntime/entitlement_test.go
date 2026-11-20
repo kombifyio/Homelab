@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 type managedRuntimeEntitlementChecker struct {
@@ -22,9 +22,9 @@ func (c *managedRuntimeEntitlementChecker) IsEnabled(context.Context, string, st
 // Billing is a registered sensitive boundary: every cost-bearing managed
 // provider entry point must share these fail-closed outcomes.
 func TestEvaluateManagedRuntimeEntitlement(t *testing.T) {
-	t.Setenv("TECHSTACK_ENV", "production")
-	t.Setenv("TECHSTACK_ALLOW_LOCAL_SIMULATION_GATE", "")
-	t.Setenv("TECHSTACK_ALLOW_LOCAL_MANAGED_RUNTIME_E2E", "")
+	t.Setenv("HOMELAB_ENV", "production")
+	t.Setenv("HOMELAB_ALLOW_LOCAL_SIMULATION_GATE", "")
+	t.Setenv("HOMELAB_ALLOW_LOCAL_MANAGED_RUNTIME_E2E", "")
 
 	checkErr := errors.New("feature service unavailable")
 	adminContext := identity.NewContext(context.Background(), &identity.Identity{
@@ -75,9 +75,9 @@ func TestEvaluateManagedRuntimeEntitlement(t *testing.T) {
 		})
 	}
 
-	t.Setenv("TECHSTACK_ENV", "development")
-	t.Setenv("TECHSTACK_ALLOW_LOCAL_SIMULATION_GATE", "true")
-	t.Setenv("TECHSTACK_ALLOW_LOCAL_MANAGED_RUNTIME_E2E", "true")
+	t.Setenv("HOMELAB_ENV", "development")
+	t.Setenv("HOMELAB_ALLOW_LOCAL_SIMULATION_GATE", "true")
+	t.Setenv("HOMELAB_ALLOW_LOCAL_MANAGED_RUNTIME_E2E", "true")
 	if decision := EvaluateManagedRuntimeEntitlement(context.Background(), nil, "owner-1", ProviderCentron); decision.Denied {
 		t.Fatalf("explicit local E2E path denied: %+v", decision)
 	}

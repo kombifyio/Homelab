@@ -3,23 +3,23 @@
      the finish materials are defined on :root[data-appearance][data-finish]
      and substitute var(--primary) AT THE ROOT, so a body-scoped theme left
      every color-mix()-derived material (expressive surfaces, ambient washes,
-     glass tints) on the base palette's green instead of Techstack navy.
+     glass tints) on the base palette's green instead of Homelab Runtime navy.
      CMO stamps the theme on <html> for the same reason. -->
 <html
   lang="en"
-  class="dark theme-techstack"
+  class="dark theme-homelab"
   data-appearance="dark"
   data-finish="kombify"
 >
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Techstack – plan and run your homelab</title>
+    <title>Homelab Runtime – plan and run your homelab</title>
     <meta
       name="description"
-      content="kombify Techstack is the app of kombify (kombify.io) to plan, deploy and keep your homelab and servers running."
+      content="kombify Homelab Runtime is the app of kombify (kombify.io) to plan, deploy and keep your homelab and servers running."
     />
-    <link rel="canonical" href="https://techstack.kombify.io/" />
+    <link rel="canonical" href="https://homelab.kombify.io/" />
     <script>
       // Shared client contracts check own properties during module evaluation.
       if (typeof Object.hasOwn !== "function") {
@@ -52,10 +52,10 @@
         var session = null;
         var account = null;
         try {
-          session = sessionStorage.getItem("techstack-theme-session");
+          session = sessionStorage.getItem("homelab-theme-session");
         } catch (e) {}
         try {
-          account = localStorage.getItem("techstack-account-theme");
+          account = localStorage.getItem("homelab-account-theme");
         } catch (e) {}
         var framed = true;
         try {
@@ -87,14 +87,14 @@
         var finish =
           finishes.indexOf(embedFinish) >= 0
             ? embedFinish
-            : localStorage.getItem("techstack-finish");
+            : localStorage.getItem("homelab-finish");
         if (finishes.indexOf(finish) >= 0) {
           document.documentElement.dataset.finish = finish;
         }
         // The rail preview's shape (axis navFlyout), device-only; absent
         // means the finish decides. Mirrors NAV_FLYOUTS in the design contract.
         var navShapes = ["flag", "overlap", "tether", "float"];
-        var navShape = localStorage.getItem("techstack-nav-flyout");
+        var navShape = localStorage.getItem("homelab-nav-flyout");
         if (navShapes.indexOf(navShape) >= 0) {
           document.documentElement.dataset.navFlyoutShape = navShape;
         }
@@ -104,7 +104,7 @@
     </script>
     %sveltekit.head%
   </head>
-  <body class="theme-techstack" data-sveltekit-preload-data="hover">
+  <body class="theme-homelab" data-sveltekit-preload-data="hover">
     <div style="display: contents">%sveltekit.body%</div>
   </body>
 </html>

@@ -6,13 +6,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 func TestRequireStackAuthAcceptsSignedEdgeIdentity(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/v1/stacks", nil)
-	req = req.WithContext(identity.NewContext(context.Background(), &identity.Identity{UserID: "api-key:techstack"}))
+	req = req.WithContext(identity.NewContext(context.Background(), &identity.Identity{UserID: "api-key:homelab"}))
 	e := &httpx.Event{
 		Request:  req,
 		Response: httptest.NewRecorder(),
@@ -22,7 +22,7 @@ func TestRequireStackAuthAcceptsSignedEdgeIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatalf("requireStackAuth returned error: %v", err)
 	}
-	if got != "api-key:techstack" {
+	if got != "api-key:homelab" {
 		t.Fatalf("requireStackAuth returned %q, want edge identity user ID", got)
 	}
 }

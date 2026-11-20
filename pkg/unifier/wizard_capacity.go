@@ -7,10 +7,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/core"
-	"github.com/kombifyio/techstack/pkg/logger"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
 )
 
 // The existing worker policy starts at 2048 MiB (analyze.go). Reserve that

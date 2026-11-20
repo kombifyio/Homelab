@@ -57,10 +57,10 @@ import { analyticsRelease, appVersion } from "#lib/config.js";
 import { NEW_SERVER_CREATION_HREF } from "#lib/server-links.js";
 import { authStore } from "#lib/stores/auth.svelte.js";
 import {
-  buildTechstackCreationEventProperties,
+  buildHomelabCreationEventProperties,
   createPostHogClient,
-  toTechstackAnalyticsUser,
-  type TechstackCreationEventInput,
+  toHomelabAnalyticsUser,
+  type HomelabCreationEventInput,
 } from "#lib/analytics/posthog.js";
 import {
   type Task,
@@ -302,7 +302,7 @@ let progressClockTimer: ReturnType<typeof setInterval> | null = null;
 let taskTimelineMemo: TaskTimeline = {};
 // Phase timers survive a reload of this tab: the observed times are kept per
 // job in sessionStorage.
-const TASK_TIMELINE_STORAGE_PREFIX = "techstack.creation.timeline.";
+const TASK_TIMELINE_STORAGE_PREFIX = "homelab.creation.timeline.";
 
 function restoreTaskTimeline() {
   if (Object.keys(taskTimelineMemo).length > 0) return;
@@ -658,7 +658,7 @@ function syncTaskListForOperation() {
   }
 }
 
-// Pairing authority stays in Techstack; the command never contains the capability.
+// Pairing authority stays in Homelab; the command never contains the capability.
 let installCommand = $derived(
   lanPin ? generatePinnedConnectCommand(serverUrl, lanPin, binaryPin) : registryConnectCommand,
 );
@@ -989,7 +989,7 @@ async function pollJobStatus() {
             ),
           });
           captureRolloutResultOnce(
-            "techstack:rollout_failed",
+            "homelab:rollout_failed",
             rolloutAnalyticsInput({
               jobId: (job as { id?: string }).id ?? jobId,
               stackId,
@@ -1005,7 +1005,7 @@ async function pollJobStatus() {
           stopPolling();
         } else {
           captureRolloutResultOnce(
-            "techstack:rollout_completed",
+            "homelab:rollout_completed",
             rolloutAnalyticsInput({
               jobId: (job as { id?: string }).id ?? jobId,
               stackId,
@@ -1273,8 +1273,8 @@ async function pollRemoteEnrollmentJob() {
 }
 
 function rolloutAnalyticsInput(
-  extra: TechstackCreationEventInput = {},
-): TechstackCreationEventInput {
+  extra: HomelabCreationEventInput = {},
+): HomelabCreationEventInput {
   return {
     stackId,
     jobId,
@@ -1289,8 +1289,8 @@ function rolloutAnalyticsInput(
 }
 
 function captureRolloutResultOnce(
-  event: "techstack:rollout_completed" | "techstack:rollout_failed",
-  input: TechstackCreationEventInput,
+  event: "homelab:rollout_completed" | "homelab:rollout_failed",
+  input: HomelabCreationEventInput,
 ) {
   const id = input.jobId?.trim() || jobId || "unknown";
   const key = `${event}:${id}`;
@@ -1300,11 +1300,11 @@ function captureRolloutResultOnce(
 }
 
 function captureRolloutEvent(
-  event: "techstack:rollout_completed" | "techstack:rollout_failed",
-  input: TechstackCreationEventInput,
+  event: "homelab:rollout_completed" | "homelab:rollout_failed",
+  input: HomelabCreationEventInput,
 ) {
   if (typeof window === "undefined") return;
-  const user = toTechstackAnalyticsUser(authStore.cloudUser);
+  const user = toHomelabAnalyticsUser(authStore.cloudUser);
   if (!user?.authSubject) return;
 
   const bootstrap = getClientBootstrap();
@@ -1320,7 +1320,7 @@ function captureRolloutEvent(
   }).capture(event, {
     user,
     properties: {
-      ...buildTechstackCreationEventProperties(input),
+      ...buildHomelabCreationEventProperties(input),
       deployment_mode: authStore.deploymentMode,
     },
   });
@@ -1339,7 +1339,7 @@ function captureCreationFailure(
     `${error ?? ""}\n${details ?? ""}`,
   );
   captureRolloutResultOnce(
-    "techstack:rollout_failed",
+    "homelab:rollout_failed",
     rolloutAnalyticsInput({
       jobId: id,
       stackId,
@@ -1817,7 +1817,7 @@ function askCompanionAboutFailure() {
 }
 
 // The same failure for the host's Companion when this page is embedded in
-// kombify Cloud (Techstack's own Companion is not mounted there).
+// kombify Cloud (Homelab's own Companion is not mounted there).
 let failureHandoverContext = $derived.by<ErrorAiHandoverContext | null>(() => {
   const task = failedTask;
   if (!task) return null;

@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
 )
 
 type PostgresStore struct {

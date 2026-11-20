@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardidentity"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
 )
 
 // Transport wraps base so every request to the control plane carries a

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/auth"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -51,7 +51,7 @@ func row(id, kind string, metadata map[string]any) SourceRow {
 	return SourceRow{ID: id, TenantID: testTenant, ItemType: kind, Metadata: metadata, CreatedAt: time.Unix(1_700_000_000, 0)}
 }
 
-func TestPlanItemMapsEachTechstackKindToItsWalletItem(t *testing.T) {
+func TestPlanItemMapsEachHomelabKindToItsWalletItem(t *testing.T) {
 	publicKey := authorizedKey(t)
 	type want struct {
 		target  ResourceType

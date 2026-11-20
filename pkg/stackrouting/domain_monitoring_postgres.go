@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/notifications"
+	"github.com/kombifyio/homelab/internal/notifications"
 )
 
 // DomainMonitoringPostgresStore is an internal collector boundary, never an
@@ -194,7 +194,7 @@ func (s *DomainMonitoringPostgresStore) notifyTransitions(ctx context.Context, t
 		for _, service := range row.Services {
 			serviceIDs = append(serviceIDs, service.ID)
 		}
-		event := notifications.ProductEvent{Topic: topic, Auth0UserID: target.OwnerSubjectID, TenantID: target.TenantID, IdempotencyKey: fmt.Sprintf("domain-monitor:%s:%s:%d:%s", target.TenantID, c.ID, c.Episode, c.State), Payload: map[string]any{"subject": row.Domain, "body": domainConditionDescription(c), "message_id": "domains.kind." + strings.Split(c.Kind, ":")[0], "source_app": "techstack", "domain": row.Domain, "server_id": row.ServerID, "stack_id": target.StackID, "service_ids": serviceIDs, "services": row.Services, "condition": c, "registration": row.Registration, "tls": row.TLS, "dns": row.DNS, "tls_drift": row.TLSDrift, "link_url": "/monitoring"}}
+		event := notifications.ProductEvent{Topic: topic, Auth0UserID: target.OwnerSubjectID, TenantID: target.TenantID, IdempotencyKey: fmt.Sprintf("domain-monitor:%s:%s:%d:%s", target.TenantID, c.ID, c.Episode, c.State), Payload: map[string]any{"subject": row.Domain, "body": domainConditionDescription(c), "message_id": "domains.kind." + strings.Split(c.Kind, ":")[0], "source_app": "homelab", "domain": row.Domain, "server_id": row.ServerID, "stack_id": target.StackID, "service_ids": serviceIDs, "services": row.Services, "condition": c, "registration": row.Registration, "tls": row.TLS, "dns": row.DNS, "tls_drift": row.TLSDrift, "link_url": "/monitoring"}}
 		if err := s.notifications.EnqueueTx(ctx, tx, event); err != nil {
 			return err
 		}

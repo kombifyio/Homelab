@@ -178,7 +178,7 @@ async function loginViaAuth0(page: Page, request?: APIRequestContext) {
   // cannot handle non-interactively).
   await page.waitForURL(
     (url) =>
-      /(^|\.)techstack\.kombify\.io$/.test(url.hostname) &&
+      /(^|\.)homelab\.kombify\.io$/.test(url.hostname) &&
       !url.pathname.startsWith("/api/") &&
       !url.pathname.startsWith("/login"),
     { timeout: 60_000 },
@@ -193,7 +193,7 @@ test.describe.serial("Release Smoke (Render deploy gate)", () => {
     expect(json.data?.status ?? json.status).toBe("healthy");
   });
 
-  // Set TECHSTACK_EXPECTED_REVISION (or RENDER_GIT_COMMIT) to the full SHA we
+  // Set HOMELAB_EXPECTED_REVISION (or RENDER_GIT_COMMIT) to the full SHA we
   // just dispatched. Release evidence never accepts prefixes.
   test("API health reports the deployed revision", async ({ request }) => {
     const response = await request.get(`${API_BASE}/api/v1/health`);
@@ -204,7 +204,7 @@ test.describe.serial("Release Smoke (Render deploy gate)", () => {
     expect(revision).toMatch(/^[0-9a-f]{40}$/);
 
     const expected = (
-      process.env.TECHSTACK_EXPECTED_REVISION ??
+      process.env.HOMELAB_EXPECTED_REVISION ??
       process.env.RENDER_GIT_COMMIT ??
       ""
     ).trim();
@@ -248,7 +248,7 @@ test.describe.serial("Release Smoke (Render deploy gate)", () => {
     await page.waitForTimeout(1000);
 
     await expect(
-      page.getByRole("heading", { name: "Techstack" }),
+      page.getByRole("heading", { name: "Homelab Runtime" }),
     ).toBeVisible();
 
     const methods = await fetchAuthMethods(request);
@@ -297,7 +297,7 @@ test.describe.serial("Release Smoke (Render deploy gate)", () => {
 // selector dropdown on /stacks. They need an admin session.
 //
 // Two login paths are supported:
-//   - self-hosted: local-owner form (Email + Password) on the techstack
+//   - self-hosted: local-owner form (Email + Password) on the homelab
 //     /login page
 //   - SaaS:        Auth0 Universal Login form driven through the cloud
 //     provider button; requires TEST_ADMIN_EMAIL / TEST_ADMIN_PASSWORD

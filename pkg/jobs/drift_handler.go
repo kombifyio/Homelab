@@ -1,4 +1,4 @@
-// Package jobs provides async job processing for kombifyTechstack.
+// Package jobs provides async job processing for kombifyHomelab.
 // This file contains the drift detection job handler for Sprint 6.
 package jobs
 
@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/outcome"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/outcome"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // Drift detection step IDs for frontend task tracking.
@@ -147,7 +147,7 @@ func detectManagedStackKitDrift(ctx context.Context, cfg *DriftCheckConfig, job 
 		return stackkitcommand.DriftReport{}, err
 	}
 	command.TimeoutSeconds = int32(cfg.DetectTimeout / time.Second)
-	// Every Techstack-managed deployment runs Advanced Mode: drift is
+	// Every Homelab-managed deployment runs Advanced Mode: drift is
 	// detected per Terramate stack, never in Standard mode.
 	command.DriftMode = agentpb.StackKitDriftMode_STACKKIT_DRIFT_MODE_ADVANCED
 	result, err := sendStackKitCommandBoundedForTenant(ctx, cfg.Sender, request.TenantID, request.AgentID, command)
@@ -259,7 +259,7 @@ func DriftCheckHandler(cfg *DriftCheckConfig) JobHandler {
 		case DriftStatusDrifted:
 			q.recordJobOutcome(job, outcome.Decision{
 				Status: outcome.StatusDegraded, ReasonCode: "runtime_drift_detected",
-				Capability: "techstack.runtime.drift", Retryable: false,
+				Capability: "homelab.runtime.drift", Retryable: false,
 				UserGuidance: &outcome.Guidance{
 					Title: "Infrastructure drift was detected",
 					Body:  "The observed StackKit state differs from the resolved plan. Review the affected subjects before starting reconciliation.",

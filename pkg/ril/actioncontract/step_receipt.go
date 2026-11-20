@@ -2,11 +2,11 @@ package rilaction
 
 import "fmt"
 
-// StepReceiptAPIVersionV1 identifies Techstack's typed step receipt of one
+// StepReceiptAPIVersionV1 identifies Homelab's typed step receipt of one
 // governed action. It wraps the unchanged stackkit.ril-action-evidence/v1
 // record and adds what that wire cannot carry: the AI Platform approval it ran
 // under and the count of executions the durable card audit recorded.
-const StepReceiptAPIVersionV1 = "techstack.ril-action-step-receipt/v1"
+const StepReceiptAPIVersionV1 = "homelab.ril-action-step-receipt/v1"
 
 // Step identifiers of a StepReceipt, in their fixed order.
 const (

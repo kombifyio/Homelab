@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 // A revisioned removal of a person without a projection binding is

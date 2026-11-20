@@ -77,9 +77,9 @@ const (
 	SourceStackKitsInventory = "stackkits-inventory"
 	// SourceStackKitOutputs is the StackKits apply/job output projection.
 	SourceStackKitOutputs = "stackkit_outputs"
-	// SourceTechstackRegistry is a user-declared service target created through
-	// Techstack's registry API before StackKits has reported runtime evidence.
-	SourceTechstackRegistry = "techstack-registry"
+	// SourceHomelabRegistry is a user-declared service target created through
+	// Homelab's registry API before StackKits has reported runtime evidence.
+	SourceHomelabRegistry = "techstack-registry"
 	// SourceLegacyRegistryBackfill is the bounded read-through projection of
 	// pre-aggregate registry rows.
 	SourceLegacyRegistryBackfill = "legacy-registry-backfill"
@@ -174,7 +174,7 @@ func CanonicalSource(value string) string {
 
 func isServiceSource(value string) bool {
 	switch value {
-	case SourceObserved, SourceStackKitsInventory, SourceStackKitOutputs, SourceTechstackRegistry, SourceLegacyRegistryBackfill:
+	case SourceObserved, SourceStackKitsInventory, SourceStackKitOutputs, SourceHomelabRegistry, SourceLegacyRegistryBackfill:
 		return true
 	default:
 		return false

@@ -11,16 +11,16 @@ import (
 	"strings"
 	"time"
 
-	authsession "github.com/kombifyio/techstack/internal/gocommon/authsession"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/auth/sessionpolicy"
-	"github.com/kombifyio/techstack/pkg/auth/sso"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/demoguard"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/middleware"
-	session "github.com/kombifyio/techstack/pkg/v2/auth/session"
+	authsession "github.com/kombifyio/homelab/internal/gocommon/authsession"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/auth/sessionpolicy"
+	"github.com/kombifyio/homelab/pkg/auth/sso"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/demoguard"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/middleware"
+	session "github.com/kombifyio/homelab/pkg/v2/auth/session"
 )
 
 // PortalVerifyRequest is the request body for POST /api/v1/auth/portal-verify
@@ -47,7 +47,7 @@ type CloudUserInfo struct {
 
 // PortalSession carries the V2 browser-session manager and cookie settings
 // so the embedded SSO exchange (portal-verify) mints the same
-// techstack_session session that the interactive OIDC login issues. Without
+// homelab_session session that the interactive OIDC login issues. Without
 // it the exchange cannot establish authenticated embedded requests.
 type PortalSession struct {
 	Manager *session.Manager
@@ -192,9 +192,9 @@ const ssoProviderKey = "cloud"
 // setPortalSessionCookies issues the browser session for a completed portal
 // exchange.
 //
-// The production portal (kombify.io) and this app (techstack.kombify.io) are
+// The production portal (kombify.io) and this app (homelab.kombify.io) are
 // one site, so the SameSite=Lax session cookie every login issues reaches the
-// embedded app. A kombify Cloud Render PR preview frames Techstack from
+// embedded app. A kombify Cloud Render PR preview frames Homelab from
 // *.onrender.com: that is cross-site, and a Lax cookie never accompanies the
 // embedded requests, so the exchange succeeds and /api/v2/whoami still sees no
 // session. For that one sanctioned portal origin the session and the CSRF
@@ -221,7 +221,7 @@ func setPortalSessionCookies(w http.ResponseWriter, ps PortalSession, token, por
 	return middleware.IssueCrossSiteCSRFCookie(w)
 }
 
-// mintPortalSessionToken prepares the techstack_session V2 session that the
+// mintPortalSessionToken prepares the homelab_session V2 session that the
 // embedded request path requires. A portal exchange must fail closed if this
 // browser session cannot be issued; the legacy PocketBase token alone is not a
 // valid session on the post-Edge request path.
@@ -315,19 +315,19 @@ const portalSSOClockSkew = 30 * time.Second
 // token (postMessage auth-request with fresh=true) instead of re-sending one.
 const portalSSOTokenReplayed = "sso_token_replayed"
 
-// portalSSOSecrets returns the Techstack-only portal SSO secret and its
-// optional rotation slot. Cloud signs Techstack launch tokens with a secret no
+// portalSSOSecrets returns the Homelab-only portal SSO secret and its
+// optional rotation slot. Cloud signs Homelab launch tokens with a secret no
 // other service holds; the shared SSO_JWT_SECRET is deliberately not read, so
 // services that hold it (Simulate, kombify.me provisioning) cannot mint
-// Techstack sessions.
+// Homelab sessions.
 func portalSSOSecrets() (string, string, error) {
-	secret := strings.TrimSpace(os.Getenv("TECHSTACK_SSO_JWT_SECRET"))
-	next := strings.TrimSpace(os.Getenv("TECHSTACK_SSO_JWT_SECRET_NEXT"))
+	secret := strings.TrimSpace(os.Getenv("HOMELAB_SSO_JWT_SECRET"))
+	next := strings.TrimSpace(os.Getenv("HOMELAB_SSO_JWT_SECRET_NEXT"))
 	if secret == "" {
 		secret, next = next, ""
 	}
 	if secret == "" {
-		return "", "", errors.New("TECHSTACK_SSO_JWT_SECRET not configured")
+		return "", "", errors.New("HOMELAB_SSO_JWT_SECRET not configured")
 	}
 	return secret, next, nil
 }

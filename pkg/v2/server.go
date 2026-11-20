@@ -7,17 +7,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/authsession"
-	"github.com/kombifyio/techstack/pkg/db"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/v2/auth/session"
+	"github.com/kombifyio/homelab/internal/gocommon/authsession"
+	"github.com/kombifyio/homelab/pkg/db"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/v2/auth/session"
 )
 
-// DefaultSessionCookieName preserves the established Techstack browser wire.
+// DefaultSessionCookieName preserves the established Homelab browser wire.
 // The shared authsession package intentionally defaults to kombify_session.
-const DefaultSessionCookieName = "techstack_session"
+const DefaultSessionCookieName = "homelab_session"
 
-// Server is the HTTP surface of the TechStack V2 core. At Phase 1 it serves
+// Server is the HTTP surface of the Homelab V2 core. At Phase 1 it serves
 // /api/v2/health and reports the wired DB backend status. Phase 2 adds an
 // optional authenticated /api/v2/whoami endpoint when a session manager is
 // attached.

@@ -4,8 +4,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/servermaintenance"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/servermaintenance"
 )
 
 var (

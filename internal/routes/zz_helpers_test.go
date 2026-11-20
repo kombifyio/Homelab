@@ -3,24 +3,24 @@ package routes
 // Helpers of retired unit tests that the remaining boundary tests of this package still use.
 
 import (
-	"encoding/base64"
 	"bytes"
 	"context"
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 	"net/http"
 	"net/http/httptest"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/identity"
-	"encoding/json"
 	"os"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
-	"crypto/sha256"
 	"strings"
 	"testing"
 	"time"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/pkg/vmleases"
 )
 
 const clientDiscoveryTestInstanceID = "11111111-2222-4333-8444-555555555555"
@@ -93,7 +93,7 @@ func (f fakeManagedRuntimeLeaseLister) ListInventoryByTenant(_ context.Context, 
 func nativeActiveManagedRuntimeRecord(lease vmlease.Lease) vmleases.LeaseInventoryRecord {
 	return vmleases.LeaseInventoryRecord{
 		Lease:              lease,
-		ExecutionAuthority: vmleases.LeaseExecutionAuthorityTechStackProviderControl,
+		ExecutionAuthority: vmleases.LeaseExecutionAuthorityHomelabProviderControl,
 		AuthorityState:     vmleases.LeaseAuthorityStateNativeActive,
 	}
 }
@@ -183,7 +183,7 @@ func wizardRemoteSSHTestEvent(body string) (*httpx.Event, *httptest.ResponseReco
 
 func newAgentBinaryTestHandler(t *testing.T, body, arch string) (workerRouteHandlers, *controlplane.MemoryStore) {
 	t.Helper()
-	path := t.TempDir() + "/techstack"
+	path := t.TempDir() + "/homelab"
 	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 		t.Fatalf("write fixture: %v", err)
 	}
@@ -262,4 +262,3 @@ func workerRouteTestEvent(method, target, body string) (*httpx.Event, *httptest.
 	rec := httptest.NewRecorder()
 	return &httpx.Event{Request: req, Response: rec}, rec
 }
-

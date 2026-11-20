@@ -64,7 +64,7 @@ func recordProcessor(ctx context.Context, route processorRoute, action processor
 		panic("unbound data-subject processor route")
 	}
 	if reference == "" {
-		reference = "route:sha256:" + processorRouteDigest + ":techstack." + string(route) + ":" + effects.requestID
+		reference = "route:sha256:" + processorRouteDigest + ":homelab." + string(route) + ":" + effects.requestID
 	}
 	effects.mu.Lock()
 	defer effects.mu.Unlock()

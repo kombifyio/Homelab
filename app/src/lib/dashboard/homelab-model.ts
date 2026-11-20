@@ -220,7 +220,7 @@ export function isStackedApp(members: readonly CanonicalService[]): boolean {
  * Once the StackKit on a Node is rolled out cleanly (its manifest is observed
  * and it governs at least one app), the Node shows only the apps it deployed;
  * the unstacked ones it found stay with the server's own service list. Until
- * then every found app shows, so Techstack also works on servers without a
+ * then every found app shows, so Homelab also works on servers without a
  * StackKit.
  */
 export function stackedAppsOnly(

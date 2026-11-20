@@ -16,12 +16,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/guardrelease"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/identity"
-	"github.com/kombifyio/techstack/pkg/pairingtoken"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/pairingtoken"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
 )
 
 func TestPairingRevocationReadbackMatchesCapabilityRefusalAndPreservesOtherPairing(t *testing.T) {
@@ -335,7 +335,7 @@ func TestWorkerRegisterReleasesTokenAfterPostClaimEnrollmentFailure(t *testing.T
 }
 
 func TestWorkerRegisterReusesStackPlannedServer(t *testing.T) {
-	t.Setenv("TECHSTACK_WORKER_AGENT_TOKEN_SECRET", "worker-secret")
+	t.Setenv("HOMELAB_WORKER_AGENT_TOKEN_SECRET", "worker-secret")
 	store := controlplane.NewMemoryStore()
 	plannedID := runtimeidentity.StackServerID("stack-1", "primary")
 	if _, err := store.UpsertServerRuntime(t.Context(), controlplane.ServerRuntime{
@@ -522,7 +522,7 @@ func TestArtifactAdmissionNeverServesPayloadOnRender(t *testing.T) {
 						ObjectKey                string `json:"object_key"`
 					}
 				}
-				if json.Unmarshal(body, &result) != nil || result.Data.Schema != "techstack.artifact-admission/v1" || result.Data.Size <= 0 || !strings.Contains(result.Data.ObjectKey, "/sha256/"+result.Data.SHA256+"/") {
+				if json.Unmarshal(body, &result) != nil || result.Data.Schema != "homelab.artifact-admission/v1" || result.Data.Size <= 0 || !strings.Contains(result.Data.ObjectKey, "/sha256/"+result.Data.SHA256+"/") {
 					t.Fatalf("invalid admission %s", body)
 				}
 			}
@@ -552,7 +552,7 @@ func TestArtifactAdmissionNeverServesPayloadOnRender(t *testing.T) {
 		}
 	})
 	t.Run("renewed signed policy preserves immutable delivery", func(t *testing.T) {
-		dir := os.Getenv("TECHSTACK_GUARD_RELEASE_DIR")
+		dir := os.Getenv("HOMELAB_GUARD_RELEASE_DIR")
 		seed, _, err := currentGuardManifest(dir)
 		if err != nil {
 			t.Fatal(err)
@@ -592,7 +592,7 @@ func TestArtifactAdmissionNeverServesPayloadOnRender(t *testing.T) {
 		}
 	})
 	t.Run("baked current policy revokes outer runtime before body or 304", func(t *testing.T) {
-		dir := os.Getenv("TECHSTACK_GUARD_RELEASE_DIR")
+		dir := os.Getenv("HOMELAB_GUARD_RELEASE_DIR")
 		path := filepath.Join(dir, guardReleaseManifestFile)
 		original, err := os.ReadFile(path)
 		if err != nil {
@@ -628,7 +628,7 @@ func TestArtifactAdmissionNeverServesPayloadOnRender(t *testing.T) {
 	})
 
 	t.Run("invalid index cannot select fallback", func(t *testing.T) {
-		t.Setenv("TECHSTACK_ARTIFACT_INDEX_SHA256", strings.Repeat("0", 64))
+		t.Setenv("HOMELAB_ARTIFACT_INDEX_SHA256", strings.Repeat("0", 64))
 		handler, _ := newAgentBinaryTestHandler(t, "MUST_NEVER_BE_DELIVERED", "amd64")
 		response := performAgentBinaryTestRequest(t, agentBinaryTestRouter(handler), "/api/v1/agent/binary/linux/amd64")
 		if response.Code != 503 || strings.Contains(response.Body.String(), "MUST_NEVER_BE_DELIVERED") {
@@ -660,9 +660,9 @@ func configureArtifactAdmissionTestIndex(t *testing.T) (string, string) {
 			t.Fatal(err)
 		}
 	}
-	index := map[string]any{"schema": "techstack.artifact-index/v1", "release_version": "0.43.6", "manifest_sha256": fmt.Sprintf("%x", sha256.Sum256(rawManifest)),
+	index := map[string]any{"schema": "homelab.artifact-index/v1", "release_version": "0.43.6", "manifest_sha256": fmt.Sprintf("%x", sha256.Sum256(rawManifest)),
 		"artifacts": []map[string]any{
-			{"kind": "guard_binary", "os": "linux", "arch": "amd64", "sha256": binaryHash, "size": 100, "filename": "techstack-linux-amd64"},
+			{"kind": "guard_binary", "os": "linux", "arch": "amd64", "sha256": binaryHash, "size": 100, "filename": "homelab-linux-amd64"},
 			{"kind": "stackkit_runtime", "os": "linux", "arch": "amd64", "sha256": runtimeHash, "size": 200, "filename": "stackkit-runtime-linux-amd64.tar.gz"},
 		},
 	}
@@ -671,9 +671,9 @@ func configureArtifactAdmissionTestIndex(t *testing.T) (string, string) {
 	if err := os.WriteFile(indexPath, rawIndex, 0600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("TECHSTACK_GUARD_RELEASE_DIR", dir)
-	t.Setenv("TECHSTACK_ARTIFACT_INDEX_PATH", indexPath)
-	t.Setenv("TECHSTACK_ARTIFACT_INDEX_SHA256", fmt.Sprintf("%x", sha256.Sum256(rawIndex)))
+	t.Setenv("HOMELAB_GUARD_RELEASE_DIR", dir)
+	t.Setenv("HOMELAB_ARTIFACT_INDEX_PATH", indexPath)
+	t.Setenv("HOMELAB_ARTIFACT_INDEX_SHA256", fmt.Sprintf("%x", sha256.Sum256(rawIndex)))
 
 	return binaryHash, runtimeHash
 }

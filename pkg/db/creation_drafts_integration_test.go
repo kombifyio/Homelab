@@ -11,18 +11,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 // Sensitive migration boundary (kombify-StackKits-6u4m): migration 188 adds
 // the server-side creation draft, one per tenant, owner and process key, so a
-// creation started in the Cloud popup continues on the Techstack page or on
+// creation started in the Cloud popup continues on the Homelab page or on
 // another device. The draft goes through the real store exactly as the
 // /api/v1/creation/drafts routes use it.
 func TestIntegrationCreationDraftsMigration(t *testing.T) {
 	dsn := integrationDSN()
 	if dsn == "" {
-		t.Skip("TECHSTACK_TEST_POSTGRES_URL not set; skipping Postgres integration test")
+		t.Skip("HOMELAB_TEST_POSTGRES_URL not set; skipping Postgres integration test")
 	}
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Minute)
 	defer cancel()

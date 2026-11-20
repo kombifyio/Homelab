@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 // NodeUpdateSettingReader reads the update setting of the agent's worker

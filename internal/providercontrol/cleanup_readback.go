@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
 )
 
 // ReadManagedRuntimeCleanup returns a redacted, tenant-RLS-scoped cleanup
@@ -118,7 +118,7 @@ func (l *PostgresLedger) ReadManagedRuntimeCleanup(
 			) AS absence ON TRUE
 			WHERE lease.tenant_id = $1
 			  AND lease.id = $2
-		`, tenantID, string(leaseID), string(ExecutionAuthorityTechstackProviderControl), operationEnvelopeVersion).Scan(
+		`, tenantID, string(leaseID), string(ExecutionAuthorityHomelabProviderControl), operationEnvelopeVersion).Scan(
 			&facts.ServerBound,
 			&facts.ServerTerminal,
 			&facts.ProviderOperationFound,

@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/guardposture"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/guardposture"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 )
 
 // serverPostureStepUpMaxAge bounds how old the multi-factor sign-in behind a
@@ -109,7 +109,7 @@ func (h serverRuntimeHandlers) postureStepUp(e *httpx.Event) (string, error) {
 	gate := entitlementGateOrHosted(h.postureEntitlements)
 	ctx := e.Request.Context()
 	if !gate.SignedGrant(ctx, ServerMaintenanceEntitlement) {
-		return "", writeEntitlementDenial(e, "techstack.servers.security.repair", ServerMaintenanceEntitlement)
+		return "", writeEntitlementDenial(e, "homelab.servers.security.repair", ServerMaintenanceEntitlement)
 	}
 	agentID, ok := freshPersonOrActingAgent(ctx, gate, h.now().UTC(), serverPostureStepUpMaxAge)
 	if !ok {
@@ -128,7 +128,7 @@ type postureVerifyResponse struct {
 // postureVerify asks the Guard to observe the host now. It changes nothing on
 // the host and is answered the next time the Guard checks in.
 func (h serverRuntimeHandlers) postureVerify(e *httpx.Event) error {
-	server, identity, name, err := h.postureServer(e, "techstack.servers.security.verify", false)
+	server, identity, name, err := h.postureServer(e, "homelab.servers.security.verify", false)
 	if err != nil || server == nil {
 		return err
 	}
@@ -158,7 +158,7 @@ type postureFindingResponse struct {
 // and the recent history, which are the same persisted rows the read model and
 // the alerts come from.
 func (h serverRuntimeHandlers) postureFindings(e *httpx.Event) error {
-	server, identity, _, err := h.postureServer(e, "techstack.servers.security.findings", false)
+	server, identity, _, err := h.postureServer(e, "homelab.servers.security.findings", false)
 	if err != nil || server == nil {
 		return err
 	}
@@ -184,7 +184,7 @@ func (h serverRuntimeHandlers) postureFindings(e *httpx.Event) error {
 }
 
 func (h serverRuntimeHandlers) postureRepairs(e *httpx.Event) error {
-	server, identity, _, err := h.postureServer(e, "techstack.servers.security.repairs", false)
+	server, identity, _, err := h.postureServer(e, "homelab.servers.security.repairs", false)
 	if err != nil || server == nil {
 		return err
 	}
@@ -209,7 +209,7 @@ type postureRepairRequest struct {
 // enforced where the decision is made, so a retry, a double click or a second
 // operator cannot step past one.
 func (h serverRuntimeHandlers) postureRequestRepair(e *httpx.Event) error {
-	server, identity, name, err := h.postureServer(e, "techstack.servers.security.repair", true)
+	server, identity, name, err := h.postureServer(e, "homelab.servers.security.repair", true)
 	if err != nil || server == nil {
 		return err
 	}
@@ -274,7 +274,7 @@ func writePostureRepairError(e *httpx.Event, err error, now time.Time) error {
 }
 
 func (h serverRuntimeHandlers) postureAutoRepair(e *httpx.Event) error {
-	server, identity, _, err := h.postureServer(e, "techstack.servers.security.auto-repair", false)
+	server, identity, _, err := h.postureServer(e, "homelab.servers.security.auto-repair", false)
 	if err != nil || server == nil {
 		return err
 	}
@@ -298,7 +298,7 @@ type postureAutoRepairRequest struct {
 // small safe set of controls, or withdraws it. The approval expires and never
 // renews itself.
 func (h serverRuntimeHandlers) postureSetAutoRepair(e *httpx.Event) error {
-	server, identity, _, err := h.postureServer(e, "techstack.servers.security.auto-repair.set", true)
+	server, identity, _, err := h.postureServer(e, "homelab.servers.security.auto-repair.set", true)
 	if err != nil || server == nil {
 		return err
 	}

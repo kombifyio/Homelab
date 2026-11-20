@@ -1,4 +1,4 @@
-// Package providercontroljobs adapts TechStack job lifecycle commands to the
+// Package providercontroljobs adapts Homelab job lifecycle commands to the
 // native provider-control application boundary.
 //
 // # Authority
@@ -16,7 +16,7 @@
 // durable operation, but it is never a provider-dispatch retry. This package
 // exposes no dispatch-guard reset, execute-permit minting, or ambiguous-create
 // retry surface. Crash-recoverable and at-most-once behavior are
-// operation-specific paths under the same TechStack authority, not separate
+// operation-specific paths under the same Homelab authority, not separate
 // admission lanes.
 //
 // # Secrets

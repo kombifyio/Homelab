@@ -1,4 +1,4 @@
-// Export the effective Techstack web dictionaries for exact-source localization QA.
+// Export the effective Homelab web dictionaries for exact-source localization QA.
 // French remains a draft and is not admitted to runtime locale negotiation here.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";

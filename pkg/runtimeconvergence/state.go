@@ -23,10 +23,10 @@ const (
 	ComponentReady   = "ready"
 	ComponentFailed  = "failed"
 
-	TechstackRuntimeComponent = "techstack_runtime"
+	HomelabRuntimeComponent   = "homelab_runtime"
 	StackKitsRuntimeComponent = "stackkits_runtime"
 
-	TechstackRuntimeUnavailableError = "techstack_runtime_unavailable"
+	HomelabRuntimeUnavailableError   = "homelab_runtime_unavailable"
 	StackKitsRuntimeUnavailableError = "stackkits_runtime_unavailable"
 	AgentRestartRequiredError        = "agent_restart_required"
 	ConvergenceIncompleteError       = "runtime_convergence_incomplete"
@@ -45,7 +45,7 @@ type Component struct {
 	// Release is the exact installed StackKits release; a command names it
 	// while UpdateAvailable waits for the owner. StackKits component only.
 	Release *Release `json:"release,omitempty"`
-	// UpdateAvailable is the published StackKits release Techstack has not
+	// UpdateAvailable is the published StackKits release Homelab has not
 	// served this node yet: it waits for the owner's approved upgrade.
 	// StackKits component only.
 	UpdateAvailable *Update `json:"update_available,omitempty"`
@@ -120,7 +120,7 @@ func Pending(observedAt time.Time) Snapshot {
 	return Snapshot{
 		State:      StatePending,
 		ObservedAt: observedAt,
-		Components: []Component{{Name: TechstackRuntimeComponent, State: ComponentPending, ObservedAt: observedAt}, {Name: StackKitsRuntimeComponent, State: ComponentPending, ObservedAt: observedAt}},
+		Components: []Component{{Name: HomelabRuntimeComponent, State: ComponentPending, ObservedAt: observedAt}, {Name: StackKitsRuntimeComponent, State: ComponentPending, ObservedAt: observedAt}},
 	}
 }
 
@@ -281,7 +281,7 @@ func validErrorCode(value string) bool {
 		return true
 	}
 	switch value {
-	case TechstackRuntimeUnavailableError, StackKitsRuntimeUnavailableError,
+	case HomelabRuntimeUnavailableError, StackKitsRuntimeUnavailableError,
 		AgentRestartRequiredError, ConvergenceIncompleteError:
 		return true
 	default:

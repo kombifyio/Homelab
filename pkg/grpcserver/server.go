@@ -25,13 +25,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servertls"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/logger"
-	"github.com/kombifyio/techstack/pkg/monitoring"
-	"github.com/kombifyio/techstack/pkg/usernotice"
+	"github.com/kombifyio/homelab/internal/gocommon/servertls"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/monitoring"
+	"github.com/kombifyio/homelab/pkg/usernotice"
 	collectorlogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	collectormetricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	"google.golang.org/grpc"
@@ -86,7 +86,7 @@ type Server struct {
 	// signature/expiry/revocation; enrollmentStore pins the
 	// (cert CN → tenant → allowed command classes) mapping. Both are
 	// optional in legacy callers; production wiring lives in
-	// cmd/techstack/main.go via NewWithEnrollment.
+	// cmd/homelab/main.go via NewWithEnrollment.
 	certManager     *auth.CertManager
 	enrollmentStore AgentEnrollmentStore
 	healStore       RILHealStore

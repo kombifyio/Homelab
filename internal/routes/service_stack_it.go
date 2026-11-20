@@ -7,16 +7,16 @@ import (
 	"strings"
 	"time"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // "Stack it" for any unmanaged single container: the producer rebuilds it as
-// an own application (techstack.own-application/v4, profile
+// an own application (homelab.own-application/v4, profile
 // own-application-adopted/v1). The Home Assistant in-place adoption in
 // service_adoption.go stays the profile for Home Assistant.
 const (

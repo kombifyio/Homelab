@@ -42,7 +42,7 @@
   } from "#lib/dashboard/homelab-model.js";
 
   type View = "logos" | "list" | "cards";
-  const VIEW_KEY = "techstack.apps.view";
+  const VIEW_KEY = "homelab.apps.view";
 
   let services = $state<CanonicalService[]>([]);
   let loading = $state(true);

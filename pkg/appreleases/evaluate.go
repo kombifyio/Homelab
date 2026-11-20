@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/appcatalog"
+	"github.com/kombifyio/homelab/pkg/appcatalog"
 )
 
 // Evidence states of an evaluation.

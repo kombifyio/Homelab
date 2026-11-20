@@ -1,7 +1,7 @@
 /**
  * Deployment Mode Store
  *
- * Detects and manages the display mode of kombify-TechStack:
+ * Detects and manages the display mode of kombify-Homelab:
  * - 'self-hosted': Full standalone application with left sidebar
  * - 'saas-embedded': Embedded in kombify Cloud portal with inline tabs
  *
@@ -40,7 +40,7 @@ const defaultConfig: DeploymentConfig = {
   mode: "self-hosted",
   dataPlane: "same-origin",
   hostOwnsNavigation: false,
-  instanceName: "kombify-Techstack",
+  instanceName: "kombify-Homelab",
   features: {
     showSidebar: true,
     showInlineTabs: false,
@@ -54,7 +54,7 @@ function saasEmbeddedConfig(hostOwnsNavigation = false): DeploymentConfig {
     dataPlane: "gateway",
     hostOwnsNavigation,
     portalUrl: "/",
-    instanceName: "kombify-Techstack",
+    instanceName: "kombify-Homelab",
     features: {
       showSidebar: false,
       showInlineTabs: !hostOwnsNavigation,
@@ -109,14 +109,14 @@ function createDeploymentStore() {
       const urlParams = new URLSearchParams(window.location.search);
       const isEmbeddedParam = urlParams.get("embedded") === "true";
       const isInIframe = window.parent !== window;
-      const storedOverride = localStorage.getItem("techstack-mode");
+      const storedOverride = localStorage.getItem("homelab-mode");
       const devOverride: DeploymentMode | null =
         storedOverride === "self-hosted" || storedOverride === "saas-embedded"
           ? storedOverride
           : null;
 
       if (storedOverride && !devOverride) {
-        localStorage.removeItem("techstack-mode");
+        localStorage.removeItem("homelab-mode");
       }
 
       let detectedMode: DeploymentMode = "self-hosted";
@@ -149,7 +149,7 @@ function createDeploymentStore() {
      */
     setMode: (mode: DeploymentMode) => {
       if (browser) {
-        localStorage.setItem("techstack-mode", mode);
+        localStorage.setItem("homelab-mode", mode);
       }
       set(mode === "saas-embedded" ? saasEmbeddedConfig(false) : defaultConfig);
     },
@@ -159,7 +159,7 @@ function createDeploymentStore() {
      */
     clearOverride: () => {
       if (browser) {
-        localStorage.removeItem("techstack-mode");
+        localStorage.removeItem("homelab-mode");
       }
     },
 
@@ -171,7 +171,7 @@ function createDeploymentStore() {
         const newMode: DeploymentMode =
           config.mode === "self-hosted" ? "saas-embedded" : "self-hosted";
         if (browser) {
-          localStorage.setItem("techstack-mode", newMode);
+          localStorage.setItem("homelab-mode", newMode);
         }
         return newMode === "saas-embedded"
           ? saasEmbeddedConfig(false)

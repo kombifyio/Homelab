@@ -3,11 +3,11 @@ package routes
 import (
 	"database/sql"
 	"encoding/json"
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 	"net/http"
 
-	"github.com/kombifyio/techstack/internal/substrate"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/internal/substrate"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 type substrateRoutes struct{ db *sql.DB }
@@ -25,9 +25,9 @@ func (h substrateRoutes) scope(e *httpx.Event) (*sql.Tx, string, string, error) 
 	if err != nil {
 		return nil, "", "", err
 	}
-	capability := "techstack.registry.read"
+	capability := "homelab.registry.read"
 	if e.Request.Method == http.MethodPut {
-		capability = "techstack.substrates.manage"
+		capability = "homelab.substrates.manage"
 	}
 	tenant, err := requireRegistryRouteTenant(e, owner, capability)
 	if err != nil {

@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // RegisterActivityRoutes exposes the durable audit/activity lane using the
@@ -25,7 +25,7 @@ func RegisterActivityRoutes(r *httpx.Router, store controlplane.ActivityStore) {
 		if err != nil {
 			return err
 		}
-		tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.activity.read")
+		tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.activity.read")
 		if tenantErr != nil {
 			return tenantErr
 		}

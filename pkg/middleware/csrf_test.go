@@ -485,7 +485,7 @@ func TestCSRFTokenEndpoint(t *testing.T) {
 
 func testSessionCookie() *http.Cookie {
 	return &http.Cookie{
-		Name:     "techstack_session",
+		Name:     "homelab_session",
 		Value:    "session",
 		Path:     "/",
 		HttpOnly: true,

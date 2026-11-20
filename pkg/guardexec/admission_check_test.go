@@ -12,9 +12,9 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/guardrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
 )
 
 // An operator can ask a host whether it would admit a signed manifest without

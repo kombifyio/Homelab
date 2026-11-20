@@ -13,16 +13,16 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/kombifyio/techstack/internal/gocommon/mcporiginauth"
-	"github.com/kombifyio/techstack/pkg/guardreach"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/middleware"
+	"github.com/kombifyio/homelab/internal/gocommon/mcporiginauth"
+	"github.com/kombifyio/homelab/pkg/guardreach"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/middleware"
 )
 
 const maintenanceOperationID = "runServerMaintenanceAction"
 const maintenanceToolName = "run_server_maintenance_action"
 
-// MaintenanceOriginAuthority uses the existing dedicated Techstack OBO client.
+// MaintenanceOriginAuthority uses the existing dedicated Homelab OBO client.
 // A current grant and a nonce reservation are distinct operations.
 type MaintenanceOriginAuthority interface {
 	CheckMaintenanceOrigin(context.Context, guardreach.MaintenanceOriginProof, string, string, time.Time) error
@@ -99,7 +99,7 @@ func verifyMaintenancePrincipal(ctx context.Context, principal mcporiginauth.Con
 func maintenancePrincipalMatchesEvidence(principal mcporiginauth.Context, evidence *maintenanceOriginEvidence) bool {
 	return principal.Subject == evidence.scope.ownerID && principal.OrganizationID == evidence.scope.tenantID &&
 		principal.RequestID != "" && principal.RequestID == evidence.requestID && principal.ToolName == maintenanceToolName &&
-		len(principal.OperationIDs) == 1 && principal.OperationIDs[0] == "techstack."+maintenanceOperationID &&
+		len(principal.OperationIDs) == 1 && principal.OperationIDs[0] == "homelab."+maintenanceOperationID &&
 		principal.AgentInstanceID != "" && principal.CatalogRevision != ""
 }
 
@@ -116,13 +116,13 @@ func ordinaryMaintenanceAction(action string) bool {
 // This wrapper retains evidence only; it does not parse or trust claims itself.
 func maintenanceOriginMiddleware(cfg MaintenanceOriginConfig) func(http.Handler) http.Handler {
 	return mcporiginauth.Middleware(mcporiginauth.Config{
-		Audience: "mcp-use:techstack", ServerKey: "techstack", Keys: cfg.Keys,
+		Audience: "mcp-use:homelab", ServerKey: "homelab", Keys: cfg.Keys,
 		VerifyDelegatedAuthority: func(ctx context.Context, principal mcporiginauth.Context) error {
 			return verifyMaintenancePrincipal(ctx, principal, cfg)
 		},
 		ReserveNonce: func(ctx context.Context, key string, expires time.Time) (bool, error) {
 			evidence, ok := ctx.Value(maintenanceOriginEvidenceKey{}).(*maintenanceOriginEvidence)
-			if !ok || evidence.verified == nil || cfg.Authority == nil || key != "mcp-use:techstack:techstack:"+evidence.proof.Nonce || !expires.Equal(evidence.verified.ExpiresAt) {
+			if !ok || evidence.verified == nil || cfg.Authority == nil || key != "mcp-use:homelab:homelab:"+evidence.proof.Nonce || !expires.Equal(evidence.verified.ExpiresAt) {
 				return false, errors.New("maintenance nonce binding invalid")
 			}
 			err := cfg.Authority.ReserveMaintenanceOrigin(ctx, evidence.proof, evidence.scope.ownerID, evidence.scope.tenantID, expires)
@@ -206,7 +206,7 @@ func captureMaintenanceCallOrigin(request *http.Request, scope inventoryScope, b
 	if !strings.HasPrefix(proof.Signature, "v2=") {
 		return request, true, nil
 	}
-	if request.Method != http.MethodPost || (proof.Path != "/api/v1/mcp" && proof.Path != "/v1/mcp/public/techstack") {
+	if request.Method != http.MethodPost || (proof.Path != "/api/v1/mcp" && proof.Path != "/v1/mcp/public/homelab") {
 		return nil, false, errors.New("maintenance transport invalid")
 	}
 	if len(body) > 32<<10 {

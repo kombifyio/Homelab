@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	agentpkg "github.com/kombifyio/techstack/pkg/agent"
+	agentpkg "github.com/kombifyio/homelab/pkg/agent"
 )
 
 const hostSecuritySupportTTL = 5 * time.Minute

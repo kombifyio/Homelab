@@ -1,4 +1,4 @@
-// Package middleware provides HTTP middleware components for kombifyTechstack.
+// Package middleware provides HTTP middleware components for kombifyHomelab.
 package middleware
 
 import (
@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	commonedgeauth "github.com/kombifyio/techstack/internal/gocommon/edgeauth"
-	"github.com/kombifyio/techstack/pkg/identity"
+	commonedgeauth "github.com/kombifyio/homelab/internal/gocommon/edgeauth"
+	"github.com/kombifyio/homelab/pkg/identity"
 	"golang.org/x/time/rate"
 )
 

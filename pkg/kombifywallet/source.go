@@ -1,12 +1,12 @@
-// Package kombifywallet is Techstack's adapter to the central kombify Wallet
+// Package kombifywallet is Homelab's adapter to the central kombify Wallet
 // (workspace Wallet plan, slice P3.3). In a hosted deployment that selects
-// TECHSTACK_WALLET_SOURCE=kombify, Techstack reads and writes every credential
+// HOMELAB_WALLET_SOURCE=kombify, Homelab reads and writes every credential
 // through the Wallet's product-service API instead of its legacy built-in
-// wallet (wallet_items, encrypted with TECHSTACK_ENCRYPTION_KEY).
+// wallet (wallet_items, encrypted with HOMELAB_ENCRYPTION_KEY).
 //
-// The package wraps kombify-go-common/walletservice. It adds what Techstack
+// The package wraps kombify-go-common/walletservice. It adds what Homelab
 // needs on top of the shared client: the boot switch, the node-access profile
-// convention shared with Cloud and the Techstack UI, idempotent item writes, a
+// convention shared with Cloud and the Homelab UI, idempotent item writes, a
 // create-right preflight and the mapping of Wallet failures to structured API
 // denials. It never reads the environment outside Boot, never logs a value and
 // never falls back to the legacy store: a Wallet that cannot answer fails the
@@ -18,14 +18,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
-	"github.com/kombifyio/techstack/internal/gocommon/walletservice"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/internal/gocommon/walletservice"
 
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/serviceauth"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/serviceauth"
 )
 
-// Source says where Techstack keeps the credentials of its users.
+// Source says where Homelab keeps the credentials of its users.
 type Source string
 
 const (
@@ -36,24 +36,24 @@ const (
 	SourceKombify Source = "kombify"
 )
 
-// Environment names. The service secret is the Techstack-only Gateway secret
+// Environment names. The service secret is the Homelab-only Gateway secret
 // that already signs Gateway Connect calls; the Wallet routes accept no other.
 const (
-	EnvSource               = "TECHSTACK_WALLET_SOURCE"
-	EnvServiceURL           = "TECHSTACK_WALLET_SERVICE_URL"
-	EnvRecipientKey         = "TECHSTACK_WALLET_RECIPIENT_KEY"
-	EnvRecipientGeneration  = "TECHSTACK_WALLET_RECIPIENT_GENERATION"
-	EnvCaptureKeyThumbprint = "TECHSTACK_WALLET_CAPTURE_KEY_THUMBPRINT"
-	EnvServiceSecret        = "TECHSTACK_GATEWAY_CONNECT_SERVICE_SECRET"
+	EnvSource               = "HOMELAB_WALLET_SOURCE"
+	EnvServiceURL           = "HOMELAB_WALLET_SERVICE_URL"
+	EnvRecipientKey         = "HOMELAB_WALLET_RECIPIENT_KEY"
+	EnvRecipientGeneration  = "HOMELAB_WALLET_RECIPIENT_GENERATION"
+	EnvCaptureKeyThumbprint = "HOMELAB_WALLET_CAPTURE_KEY_THUMBPRINT"
+	EnvServiceSecret        = "HOMELAB_GATEWAY_CONNECT_SERVICE_SECRET"
 	envSharedServiceSecret  = "SERVICE_AUTH_SECRET"
 
-	// ServiceID is Techstack's service id at the Wallet.
-	ServiceID = "techstack"
+	// ServiceID is Homelab's service id at the Wallet.
+	ServiceID = "homelab"
 	// DefaultServiceURL is the Gateway origin that serves /v1/wallet/service/*.
 	DefaultServiceURL = "https://api.kombify.io"
 )
 
-// ParseSource reads TECHSTACK_WALLET_SOURCE. An empty value is the legacy
+// ParseSource reads HOMELAB_WALLET_SOURCE. An empty value is the legacy
 // default; anything else must name a source.
 func ParseSource(raw string) (Source, error) {
 	switch strings.ToLower(strings.TrimSpace(raw)) {
@@ -102,7 +102,7 @@ func Boot(mode config.DeploymentMode, getenv func(string) string) (*Client, Sour
 	secret := strings.TrimSpace(getenv(EnvServiceSecret))
 	switch {
 	case secret == "":
-		return nil, "", fmt.Errorf("%s=%s requires %s (Techstack's own Gateway service secret)", EnvSource, SourceKombify, EnvServiceSecret)
+		return nil, "", fmt.Errorf("%s=%s requires %s (Homelab Runtime's own Gateway service secret)", EnvSource, SourceKombify, EnvServiceSecret)
 	case secret == strings.TrimSpace(getenv(envSharedServiceSecret)):
 		return nil, "", fmt.Errorf("%s must differ from %s; the Wallet routes never accept the shared secret", EnvServiceSecret, envSharedServiceSecret)
 	}
@@ -126,7 +126,7 @@ func Boot(mode config.DeploymentMode, getenv func(string) string) (*Client, Sour
 		RecipientGeneration:  getenv(EnvRecipientGeneration),
 		CaptureKeyThumbprint: getenv(EnvCaptureKeyThumbprint),
 	})
-	// go-common v0.8.2 admits a keyless client; Techstack's custody paths always
+	// go-common v0.8.2 admits a keyless client; Homelab's custody paths always
 	// need the recipient key, so a missing key still fails boot.
 	if strings.TrimSpace(getenv(EnvRecipientKey)) == "" {
 		return nil, "", fmt.Errorf("%s=%s is not usable: wallet client recipient_key_missing (check %s)", EnvSource, SourceKombify, EnvRecipientKey)

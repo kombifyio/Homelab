@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 func TestExternalStoragePlacesASmallDiskOntoTheConnectedVolume(t *testing.T) {

@@ -4,7 +4,7 @@
     "rewriteRelativeImportExtensions": true,
     "sourceMap": true
   },
-  // The SvelteKit 3 codemod narrows this to ["src"]; Techstack type-checked
+  // The SvelteKit 3 codemod narrows this to ["src"]; Homelab type-checked
   // its Playwright specs and Vitest mocks before the migration, so the
   // pre-migration coverage (src + test + tests + the Vite config, which also
   // holds the Vitest configuration) is kept.

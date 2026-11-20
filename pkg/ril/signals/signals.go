@@ -1,4 +1,4 @@
-// Package signals defines Techstack's stable RIL signal producer contract and
+// Package signals defines Homelab's stable RIL signal producer contract and
 // durable delivery boundary. It deliberately has no Mastra or Gateway runtime
 // dependency.
 package signals
@@ -86,8 +86,8 @@ type Observation struct {
 	AuditID           string
 	ReceivedAt        time.Time
 	Connector         *ConnectorRequirement
-	// AlertRule names the Techstack monitoring rule that produced the
-	// observation. It only selects Techstack's own remediation policy and is
+	// AlertRule names the Homelab monitoring rule that produced the
+	// observation. It only selects Homelab's own remediation policy and is
 	// never part of the wire envelope.
 	AlertRule string
 	// Title and ServiceID are optional approval-card presentation fields.

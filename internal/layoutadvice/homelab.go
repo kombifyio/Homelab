@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/core"
-	"github.com/kombifyio/techstack/pkg/layout"
-	"github.com/kombifyio/techstack/pkg/specv2"
-	"github.com/kombifyio/techstack/pkg/unifier"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/layout"
+	"github.com/kombifyio/homelab/pkg/specv2"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 // Targets a recommendation names: where its selection is carried out.

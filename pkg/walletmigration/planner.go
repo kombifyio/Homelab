@@ -11,7 +11,7 @@ import (
 )
 
 // ReportSchema identifies the dry-run report format.
-const ReportSchema = "techstack.wallet-migration-plan.v1"
+const ReportSchema = "homelab.wallet-migration-plan.v1"
 
 // ModeDryRun is the only mode that runs before the Wallet service API exists.
 const ModeDryRun = "dry_run"
@@ -45,7 +45,7 @@ type Totals struct {
 	Derived         int `json:"derived"`
 }
 
-// KindCount counts eligible rows per Techstack kind and Wallet type.
+// KindCount counts eligible rows per Homelab kind and Wallet type.
 type KindCount struct {
 	Kind   string       `json:"kind"`
 	Target ResourceType `json:"target"`
@@ -70,7 +70,7 @@ type Operations struct {
 	WalletCaptures int `json:"wallet_captures"`
 	// WalletReadBacks: one readback per capture before the source changes.
 	WalletReadBacks int `json:"wallet_readbacks"`
-	// LegacyDecryptions: enc:v1 values that need TECHSTACK_ENCRYPTION_KEY.
+	// LegacyDecryptions: enc:v1 values that need HOMELAB_ENCRYPTION_KEY.
 	LegacyDecryptions int `json:"legacy_decryptions"`
 	// PlaintextValues: legacy plaintext secret or TOTP values captured as is.
 	PlaintextValues int `json:"plaintext_values"`
@@ -272,7 +272,7 @@ func sortedWriters(writers map[Writer]int) []WriterCount {
 // WriteText renders the report for an operator terminal.
 func (r Report) WriteText(w io.Writer) error {
 	var b strings.Builder
-	fmt.Fprintf(&b, "Techstack wallet migration plan (%s, %s)\n", r.Mode, r.GeneratedAt)
+	fmt.Fprintf(&b, "Homelab Runtime wallet migration plan (%s, %s)\n", r.Mode, r.GeneratedAt)
 	fmt.Fprintf(&b, "Tenants: %s\n\n", strings.Join(r.Tenants, ", "))
 	fmt.Fprintf(&b, "Rows %d  eligible %d  quarantined %d  legacy plaintext %d  derived %d\n",
 		r.Totals.Rows, r.Totals.Eligible, r.Totals.Quarantined, r.Totals.LegacyPlaintext, r.Totals.Derived)

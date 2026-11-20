@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/walletservice"
+	"github.com/kombifyio/homelab/internal/gocommon/walletservice"
 	"golang.org/x/crypto/ssh"
 )
 
 // NodeAccess is a parsed node_access_profile value: how to log in to one
-// server over SSH. The value convention is shared with Cloud and the Techstack
+// server over SSH. The value convention is shared with Cloud and the Homelab
 // UI: a JSON object {"host","user","privateKey"} or {"host","user","password"},
 // optionally with "port" (a number) and "publicKey" (an OpenSSH line).
 //
@@ -57,7 +57,7 @@ func (n *NodeAccess) RequireHost(host string) error {
 	return &Denial{
 		Status: http.StatusConflict, Reason: ReasonHostMismatch, ItemID: n.ItemID,
 		Title:     "That Wallet item belongs to another server",
-		Body:      "The node access item you picked is saved for a different host than this server, so Techstack did not use it.",
+		Body:      "The node access item you picked is saved for a different host than this server, so Homelab Runtime did not use it.",
 		NextSteps: []string{"Pick the node access item that was saved for this server."},
 	}
 }
@@ -107,7 +107,7 @@ func (n *NodeAccess) PublicKeyLine() (line, fingerprint string, err error) {
 	return "", "", &Denial{
 		Status: http.StatusBadRequest, Reason: ReasonNoPublicKey, ItemID: n.ItemID,
 		Title: "That Wallet item has no SSH public key",
-		Body:  "Techstack could not read a public SSH key from the item. Pick an SSH key item, or add the public key to it.",
+		Body:  "Homelab Runtime could not read a public SSH key from the item. Pick an SSH key item, or add the public key to it.",
 	}
 }
 
@@ -129,7 +129,7 @@ func (c *Client) NodeAccess(ctx context.Context, owner, itemID string) (*NodeAcc
 		return nil, &Denial{
 			Status: http.StatusUnprocessableEntity, Reason: ReasonNotNodeAccess, ItemID: itemID,
 			Title:     "That Wallet item is not a node access item",
-			Body:      "Techstack expects an item with host, user and an SSH key or password. Pick a node access item.",
+			Body:      "Homelab Runtime expects an item with host, user and an SSH key or password. Pick a node access item.",
 			NextSteps: []string{"Pick a node access item from your kombify Wallet."},
 		}
 	}

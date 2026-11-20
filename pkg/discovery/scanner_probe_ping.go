@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
 )
 
 func (s *Scanner) probeHost(ctx context.Context, ip string, timeout time.Duration) *DiscoveredDevice {

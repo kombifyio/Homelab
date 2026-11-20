@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/portinventory"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/runtimeaction"
-	"github.com/kombifyio/techstack/pkg/core"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
-	"github.com/kombifyio/techstack/pkg/workerauth"
+	"github.com/kombifyio/homelab/internal/portinventory"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/runtimeaction"
+	"github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/pkg/workerauth"
 )
 
 // deployRollout holds the mutable proof/output state shared across the runtime
@@ -55,23 +55,23 @@ func newDeployRollout(cfg *ProvisionConfig, job *Job, q *Queue, prep *deployPrep
 	targetKind := firstNonEmpty(payloadString(job.Payload, "target_kind"), "unknown")
 	tenantID := managedRuntimeTenantID(job, prep.kombSpec)
 	ownerID := managedRuntimeOwnerID(job, prep.kombSpec)
-	enrollment, enrollmentErr := techStackEnrollmentForRollout(job, prep, tenantID, ownerID)
+	enrollment, enrollmentErr := homelabEnrollmentForRollout(job, prep, tenantID, ownerID)
 	if enrollmentErr != nil {
 		return nil, enrollmentErr
 	}
 	actionReq := RuntimeActionRequest{
-		StackID:             job.TargetID,
-		StackName:           prep.kombSpec.Name,
-		StackKit:            art.unifiedSpec.StackKit,
-		TenantID:            tenantID,
-		OwnerID:             ownerID,
-		StackSpecPath:       art.stackSpecPath,
-		TofuDir:             art.tofuDir,
-		UnifiedPath:         art.unifiedPath,
-		OwnerSpecBootstrap:  ownerSpecBootstrapFromPayload(job.Payload),
-		RuntimeTarget:       stackKitsRuntimeActionTargetFromManagedRuntimeTarget(prep.managedTarget),
-		PlatformNodes:       art.platformNodes,
-		TechStackEnrollment: enrollment,
+		StackID:            job.TargetID,
+		StackName:          prep.kombSpec.Name,
+		StackKit:           art.unifiedSpec.StackKit,
+		TenantID:           tenantID,
+		OwnerID:            ownerID,
+		StackSpecPath:      art.stackSpecPath,
+		TofuDir:            art.tofuDir,
+		UnifiedPath:        art.unifiedPath,
+		OwnerSpecBootstrap: ownerSpecBootstrapFromPayload(job.Payload),
+		RuntimeTarget:      stackKitsRuntimeActionTargetFromManagedRuntimeTarget(prep.managedTarget),
+		PlatformNodes:      art.platformNodes,
+		HomelabEnrollment:  enrollment,
 	}
 	e2eProof := map[string]any{
 		stackIDField:          job.TargetID,
@@ -112,7 +112,7 @@ func newDeployRollout(cfg *ProvisionConfig, job *Job, q *Queue, prep *deployPrep
 	}, nil
 }
 
-func techStackEnrollmentForRollout(job *Job, prep *deployPreparation, tenantID, ownerID string) (*TechStackEnrollment, error) {
+func homelabEnrollmentForRollout(job *Job, prep *deployPreparation, tenantID, ownerID string) (*HomelabEnrollment, error) {
 	if job == nil {
 		return nil, nil
 	}
@@ -163,7 +163,7 @@ func techStackEnrollmentForRollout(job *Job, prep *deployPreparation, tenantID, 
 			runtimeAgentID = stableRuntimeIdentifier("runtime", tenantID, serverID)
 		}
 	}
-	serverURL := publicTechStackServerURL()
+	serverURL := publicHomelabServerURL()
 	heartbeatPath := "/api/v1/workers/" + runtimeAgentID + "/heartbeat"
 	inventoryPath := "/api/v1/workers/" + runtimeAgentID + "/inventory"
 	token, tokenErr := workerauth.Issue(workerauth.SecretFromEnv(), workerauth.Claims{
@@ -185,13 +185,13 @@ func techStackEnrollmentForRollout(job *Job, prep *deployPreparation, tenantID, 
 		if allowUnsignedWorkerToken() {
 			token, _ = workerauth.OpaqueToken()
 		} else {
-			return nil, fmt.Errorf("runtime agent enrollment requires a signed worker agent token (set TECHSTACK_WORKER_AGENT_TOKEN_SECRET or, for local/dev only, %s=1): %w", envAllowUnsignedWorkerToken, firstEnrollmentTokenError(tokenErr))
+			return nil, fmt.Errorf("runtime agent enrollment requires a signed worker agent token (set HOMELAB_WORKER_AGENT_TOKEN_SECRET or, for local/dev only, %s=1): %w", envAllowUnsignedWorkerToken, firstEnrollmentTokenError(tokenErr))
 		}
 	}
 	if token == "" {
 		return nil, fmt.Errorf("runtime agent enrollment token could not be generated")
 	}
-	return &TechStackEnrollment{
+	return &HomelabEnrollment{
 		TenantID:       tenantID,
 		OwnerID:        ownerID,
 		StackID:        stackID,
@@ -200,8 +200,8 @@ func techStackEnrollmentForRollout(job *Job, prep *deployPreparation, tenantID, 
 		ServerID:       serverID,
 		RuntimeAgentID: runtimeAgentID,
 		AgentToken:     token,
-		HeartbeatURL:   absoluteTechStackURL(serverURL, heartbeatPath),
-		InventoryURL:   absoluteTechStackURL(serverURL, inventoryPath),
+		HeartbeatURL:   absoluteHomelabURL(serverURL, heartbeatPath),
+		InventoryURL:   absoluteHomelabURL(serverURL, inventoryPath),
 		ChannelBootstrap: map[string]any{
 			"tenant_id":         tenantID,
 			"owner_id":          ownerID,
@@ -209,8 +209,8 @@ func techStackEnrollmentForRollout(job *Job, prep *deployPreparation, tenantID, 
 			"lease_id":          leaseID,
 			"server_id":         serverID,
 			"runtime_agent_id":  runtimeAgentID,
-			"heartbeat_url":     absoluteTechStackURL(serverURL, heartbeatPath),
-			"inventory_url":     absoluteTechStackURL(serverURL, inventoryPath),
+			"heartbeat_url":     absoluteHomelabURL(serverURL, heartbeatPath),
+			"inventory_url":     absoluteHomelabURL(serverURL, inventoryPath),
 			"grpc_hint":         "mtls-if-http2-network-allows",
 			"ssh_liveness_role": "bootstrap-diagnostics-only",
 			"telemetry": map[string]any{
@@ -242,7 +242,7 @@ func (e *RuntimeServerIdentityMismatchError) Unwrap() error {
 // envAllowUnsignedWorkerToken opts a local/dev deploy out of fail-closed agent
 // token signing. Production and any secret-configured environment must never
 // set it — an unsigned token cannot authenticate the node phone-home.
-const envAllowUnsignedWorkerToken = "TECHSTACK_ALLOW_UNSIGNED_WORKER_TOKEN" // #nosec G101 -- env var name, not a credential value.
+const envAllowUnsignedWorkerToken = "HOMELAB_ALLOW_UNSIGNED_WORKER_TOKEN" // #nosec G101 -- env var name, not a credential value.
 
 const (
 	// simulationGateStatusField records on the job whether the optional
@@ -263,16 +263,16 @@ func firstEnrollmentTokenError(err error) error {
 	return workerauth.ErrInvalidToken
 }
 
-func publicTechStackServerURL() string {
+func publicHomelabServerURL() string {
 	return strings.TrimRight(firstNonEmpty(
-		os.Getenv("TECHSTACK_PUBLIC_ORIGIN"),
-		os.Getenv("TECHSTACK_PUBLIC_URL"),
-		os.Getenv("TECHSTACK_SERVER_URL"),
+		os.Getenv("HOMELAB_PUBLIC_ORIGIN"),
+		os.Getenv("HOMELAB_PUBLIC_URL"),
+		os.Getenv("HOMELAB_SERVER_URL"),
 		os.Getenv("RENDER_EXTERNAL_URL"),
 	), "/")
 }
 
-func absoluteTechStackURL(serverURL, path string) string {
+func absoluteHomelabURL(serverURL, path string) string {
 	path = "/" + strings.TrimLeft(strings.TrimSpace(path), "/")
 	if strings.TrimSpace(serverURL) == "" {
 		return path
@@ -313,7 +313,7 @@ func (r *deployRollout) persistRuntimeProgress() {
 // It used to hard-require the gate for managed cloud rollouts, which made every
 // one of them impossible: the simulate bridge was retired in #265, the same
 // change that set out to enable the demo managed runtime, and
-// scripts/render-environment-contract.mjs now lists TECHSTACK_KOMBISIM_URL under
+// scripts/render-environment-contract.mjs now lists HOMELAB_KOMBISIM_URL under
 // retiredLiveEnvironmentKeys and removes it on every reconciliation. So the
 // runtime demanded a variable the deployment contract deletes by design, and
 // every rollout died with "managed cloud simulation gate is not configured".
@@ -382,7 +382,7 @@ func (r *deployRollout) runRollout(ctx context.Context) error {
 		})
 		if err := r.markPortMutationStarted(ctx); err != nil {
 			return wrapProvisionCause(StepPortAdmission, fmt.Errorf("runtime listener mutation fence failed: %w", err),
-				"Techstack could not bind this rollout to its reserved host listeners. No host mutation was started.")
+				"Homelab Runtime could not bind this rollout to its reserved host listeners. No host mutation was started.")
 		}
 		if err := r.bootstrapManagedRuntimeTarget(ctx); err != nil {
 			if isJobWaitError(err) || ctx.Err() == context.Canceled {
@@ -390,7 +390,7 @@ func (r *deployRollout) runRollout(ctx context.Context) error {
 			}
 			captureJobError(ctx, err, map[string]interface{}{stepField: StepStackKitPrepare, stackIDField: r.job.TargetID, "stack_kit": r.unifiedSpec.StackKit})
 			return wrapProvisionCause(StepStackKitPrepare, fmt.Errorf("managed runtime target bootstrap failed: %w", err),
-				"TechStack could not prepare the managed VPS for the StackKits rollout.")
+				"Homelab Runtime could not prepare the managed VPS for the StackKits rollout.")
 		}
 		if r.managedRuntime {
 			completeRuntimeLifecyclePhase(r.job, runtimePhaseReachability, "Managed runtime target passed the StackKit bootstrap boundary", nil)
@@ -398,7 +398,7 @@ func (r *deployRollout) runRollout(ctx context.Context) error {
 		r.updateJobStepProgress(StepRolloutRunner, 82, "Applying StackKit services on the managed VPS...")
 		result, err := r.runTypedStackKitApply(ctx)
 		// A refusal the owner's own server reports about itself fails the job
-		// as before but is not a Techstack fault to report.
+		// as before but is not a Homelab fault to report.
 		err = classifyOwnerHostRefusal(err, r.managedRuntime)
 		if err != nil {
 			if result != nil {
@@ -550,7 +550,7 @@ func (r *deployRollout) finalize(ctx context.Context, prep *deployPreparation, a
 		"verification_status":         string(r.finalRuntimePhase),
 		metadataKeyStackKitCatalogRef: art.unifiedSpec.StackKit,
 		"e2e_proof":                   r.e2eProof,
-		// Techstack dispatches Advanced Mode only.
+		// Homelab dispatches Advanced Mode only.
 		StackKitModeField: StackKitModeAdvanced,
 	}
 	copyRoutingDispatchReceipt(result, jobSnapshot.Payload, jobSnapshot.Result)
@@ -598,7 +598,7 @@ func (r *deployRollout) finalize(ctx context.Context, prep *deployPreparation, a
 		missing := missingStackKitIdentityHandoffFields(r.stackKitOutputs)
 		// The typed v2 lifecycle has no recovery bundle: StackKits' Owner
 		// bootstrap is not part of its production commands, so there is no
-		// recovery reference for Techstack to report. Only the Owner login and
+		// recovery reference for Homelab to report. Only the Owner login and
 		// login gateway are required.
 		missing = slices.DeleteFunc(missing, func(field string) bool { return field == identityHandoffRecoveryField })
 		if len(missing) > 0 {
@@ -632,11 +632,11 @@ func (r *deployRollout) finalize(ctx context.Context, prep *deployPreparation, a
 }
 
 // completeTypedIdentityHandoff fills the Owner identity handoff of a typed
-// StackKits rollout from facts Techstack owns. The stackkit.apply-result/v2
+// StackKits rollout from facts Homelab owns. The stackkit.apply-result/v2
 // data carries no identity outputs, so the Owner login is the Owner email
-// Techstack sent to StackKits, and the login gateway is the managed address
-// Techstack registered for the StackKit's login service. Fields StackKits
-// did return are kept; fields Techstack cannot derive stay missing.
+// Homelab sent to StackKits, and the login gateway is the managed address
+// Homelab registered for the StackKit's login service. Fields StackKits
+// did return are kept; fields Homelab cannot derive stay missing.
 func (r *deployRollout) completeTypedIdentityHandoff(metadata map[string]string) {
 	for _, field := range missingStackKitIdentityHandoffFields(r.stackKitOutputs) {
 		switch field {

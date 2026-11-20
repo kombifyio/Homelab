@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/homelab/pkg/backupstore"
 	"github.com/kombifyio/stackkits/contracts/runtimeexecutor"
-	"github.com/kombifyio/techstack/pkg/backupstore"
 	"github.com/kombifyio/stackkits/pkg/backupbinding"
 )
 
@@ -165,9 +165,9 @@ func (o *Operations) Execute(ctx context.Context, input OperationsRequest) (runt
 	refSuffix := strings.TrimPrefix(observationDigest, "sha256:")
 	return runtimeexecutor.ExecutionOutcome{
 		Runtime: []runtimeexecutor.RuntimeOutcome{{RequirementID: target.RequirementID, InstanceRef: target.InstanceRef,
-			Status: runtimeexecutor.RuntimeStatusApplied, ObservationRef: "runtime-observation://techstack-cloud-backup/" + refSuffix, ObservationDigest: observationDigest}},
+			Status: runtimeexecutor.RuntimeStatusApplied, ObservationRef: "runtime-observation://homelab-cloud-backup/" + refSuffix, ObservationDigest: observationDigest}},
 		Health: []runtimeexecutor.HealthOutcome{{RequirementID: health.RequirementID, TargetRef: health.TargetRef,
-			Status: runtimeexecutor.HealthStatusHealthy, ObservationRef: "health-observation://techstack-cloud-backup/" + refSuffix, ObservationDigest: observationDigest}},
+			Status: runtimeexecutor.HealthStatusHealthy, ObservationRef: "health-observation://homelab-cloud-backup/" + refSuffix, ObservationDigest: observationDigest}},
 	}, nil
 }
 

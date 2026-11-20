@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/guardbootstrap"
-	"github.com/kombifyio/techstack/internal/providercatalog"
-	"github.com/kombifyio/techstack/pkg/core"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/internal/guardbootstrap"
+	"github.com/kombifyio/homelab/internal/providercatalog"
+	"github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
 )
 
 const managedRuntimeEnrollmentWaitStartedAtField = "managed_runtime_enrollment_wait_started_at"
@@ -662,7 +662,7 @@ func managedRuntimeTargetTerminalError(err error) bool {
 
 func managedRuntimeTargetResolveAttemptTimeout(timeout, _ time.Duration) time.Duration {
 	attemptTimeout := 30 * time.Second
-	if envTimeout := parseEnvDuration("TECHSTACK_MANAGED_RUNTIME_RESOLVE_TIMEOUT"); envTimeout > 0 {
+	if envTimeout := parseEnvDuration("HOMELAB_MANAGED_RUNTIME_RESOLVE_TIMEOUT"); envTimeout > 0 {
 		attemptTimeout = envTimeout
 	}
 	if timeout > 0 && attemptTimeout > timeout {
@@ -685,13 +685,13 @@ func managedRuntimeTargetWaitConfig(cfg *ProvisionConfig) (time.Duration, time.D
 			interval = cfg.ManagedRuntimeTargetPollInterval
 		}
 	}
-	if envTimeout := parseEnvDuration("TECHSTACK_MANAGED_RUNTIME_WAIT_TIMEOUT"); envTimeout > 0 {
+	if envTimeout := parseEnvDuration("HOMELAB_MANAGED_RUNTIME_WAIT_TIMEOUT"); envTimeout > 0 {
 		timeout = envTimeout
 	}
 	if timeout > maxTimeout {
 		timeout = maxTimeout
 	}
-	if envInterval := parseEnvDuration("TECHSTACK_MANAGED_RUNTIME_POLL_INTERVAL"); envInterval > 0 {
+	if envInterval := parseEnvDuration("HOMELAB_MANAGED_RUNTIME_POLL_INTERVAL"); envInterval > 0 {
 		interval = envInterval
 	}
 	if interval > timeout {

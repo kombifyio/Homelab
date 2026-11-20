@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
 )
 
 // SyncStackKitOutputsToKombifyWallet saves the outputs a StackKit reported in
@@ -69,7 +69,7 @@ func kombifyItemSpec(stackID, scope string, item WalletItem) (kombifywallet.Item
 	if secret != "" && !strings.HasPrefix(secret, secretReferencePrefix) {
 		return kombifywallet.ItemSpec{
 			Type: kombifywallet.ItemTypeGenericSecret, DisplayName: displayName, Scope: scope,
-			Description: "Saved by kombify Techstack from a StackKit output.", Value: []byte(secret),
+			Description: "Saved by kombify Homelab Runtime from a StackKit output.", Value: []byte(secret),
 		}, nil
 	}
 	fields := map[string]string{
@@ -89,7 +89,7 @@ func kombifyItemSpec(stackID, scope string, item WalletItem) (kombifywallet.Item
 	}
 	return kombifywallet.ItemSpec{
 		Type: kombifywallet.ItemTypeConfiguration, DisplayName: displayName, Name: name, Scope: scope,
-		Description: "Saved by kombify Techstack from a StackKit output.", Value: value,
+		Description: "Saved by kombify Homelab Runtime from a StackKit output.", Value: value,
 	}, nil
 }
 

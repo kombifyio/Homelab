@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 const MaxUseCaseConfigurationBytes = 64 << 10
@@ -106,7 +106,7 @@ type UseCaseConfigurationEvidence = NativeIntentCandidateEvidence
 
 // ParseUseCaseConfigurationEvidence consumes only a validated Guard result of
 // the pinned compiler. The hash remains the native compiler's hash; this does
-// not introduce a Techstack canonicalization or hashing algorithm.
+// not introduce a Homelab canonicalization or hashing algorithm.
 func ParseUseCaseConfigurationEvidence(c *agentpb.StackKitCommand, result *agentpb.StackKitResult) (UseCaseConfigurationEvidence, error) {
 	var evidence UseCaseConfigurationEvidence
 	config, err := DecodeUseCaseConfiguration(c.UseCaseConfigurationJson)

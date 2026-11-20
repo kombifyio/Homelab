@@ -12,15 +12,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
-	"github.com/kombifyio/techstack/pkg/vmleases"
-	"github.com/kombifyio/techstack/pkg/workerauth"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/vmleases"
+	"github.com/kombifyio/homelab/pkg/workerauth"
 )
 
 type workerConnectRequest struct {
@@ -53,7 +53,7 @@ const (
 	workerConnectCredentialEnsure workerConnectCredentialPolicy = "ensure"
 	workerConnectCredentialDefer  workerConnectCredentialPolicy = "defer"
 
-	workerCredentialIdempotencyDigestDomain = "kombify-techstack/worker-credential-idempotency/v1"
+	workerCredentialIdempotencyDigestDomain = "kombify-homelab/worker-credential-idempotency/v1"
 	workerCredentialCASAttempts             = 8
 	workerIdempotencyKeyMinLength           = 8
 	workerIdempotencyKeyMaxLength           = 256
@@ -74,7 +74,7 @@ func (h workerRouteHandlers) connectServer(e *httpx.Event) error {
 	if authErr != nil || ownerID == "" {
 		return authErr
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.workers.connect")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.workers.connect")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -459,7 +459,7 @@ func (h workerRouteHandlers) rotateServerCredential(e *httpx.Event) error {
 	if authErr != nil || ownerID == "" {
 		return authErr
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.workers.credentials.rotate")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.workers.credentials.rotate")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -648,7 +648,7 @@ func (h workerRouteHandlers) validateManagedRuntimeLeaseForConnect(e *httpx.Even
 		return false
 	}
 	if !matched.NativeActive() {
-		_ = httpx.Forbidden(e, "Managed runtime lease is not active under TechStack provider control")
+		_ = httpx.Forbidden(e, "Managed runtime lease is not active under Homelab Runtime provider control")
 		return false
 	}
 	return true

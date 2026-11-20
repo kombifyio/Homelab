@@ -47,7 +47,7 @@ func (binding *StagingRuntimeBinding) Verified() bool {
 // excludes every database outside the one governed Stage binding. No caller
 // flag, expected-identity string or bootstrap receipt can manufacture evidence.
 func VerifyStagingRuntimeBinding(ctx context.Context, database *sql.DB) (*StagingRuntimeBinding, error) {
-	verified, err := verifyStagingDatabaseRole(ctx, database, "TECHSTACK_PROVIDER_CONTROL_RUNTIME_DATABASE_URL")
+	verified, err := verifyStagingDatabaseRole(ctx, database, "HOMELAB_PROVIDER_CONTROL_RUNTIME_DATABASE_URL")
 	if err != nil {
 		return nil, err
 	}

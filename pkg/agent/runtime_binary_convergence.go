@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-const maxTechstackRuntimeBinaryBytes int64 = 512 << 20
+const maxHomelabRuntimeBinaryBytes int64 = 512 << 20
 
 const (
 	// runtimeBinarySliceBytes must stay well below the point at which the
@@ -29,7 +29,7 @@ const (
 	runtimeBinarySliceAttempts = 3
 )
 
-type TechstackRuntimeConvergenceConfig struct {
+type HomelabRuntimeConvergenceConfig struct {
 	URL, AgentToken, RuntimeAgentID, TenantID string
 	AgentPath, OperationsPath                 string
 	Version                                   string
@@ -39,18 +39,18 @@ type TechstackRuntimeConvergenceConfig struct {
 	StageDir string
 }
 
-type TechstackRuntimeConvergenceResult struct {
+type HomelabRuntimeConvergenceResult struct {
 	AgentUpdated      bool
 	OperationsUpdated bool
 	Version           string
 	SHA256            string
 }
 
-// EnsureTechstackRuntime converges both privileged node-side Techstack
+// EnsureHomelabRuntime converges both privileged node-side Homelab
 // executables to the exact binary served by the authenticated control plane.
 // The caller must restart the Agent when AgentUpdated is true.
-func (executor *StackKitExecutor) EnsureTechstackRuntime(ctx context.Context, cfg TechstackRuntimeConvergenceConfig) (TechstackRuntimeConvergenceResult, error) {
-	result := TechstackRuntimeConvergenceResult{Version: strings.TrimSpace(cfg.Version)}
+func (executor *StackKitExecutor) EnsureHomelabRuntime(ctx context.Context, cfg HomelabRuntimeConvergenceConfig) (HomelabRuntimeConvergenceResult, error) {
+	result := HomelabRuntimeConvergenceResult{Version: strings.TrimSpace(cfg.Version)}
 	if executor == nil {
 		return result, fmt.Errorf("StackKits executor is required")
 	}
@@ -58,12 +58,12 @@ func (executor *StackKitExecutor) EnsureTechstackRuntime(ctx context.Context, cf
 	defer executor.mu.Unlock()
 	for label, path := range map[string]string{"agent": cfg.AgentPath, "operations": cfg.OperationsPath} {
 		if !filepath.IsAbs(filepath.Clean(path)) {
-			return result, fmt.Errorf("techstack %s executable path must be absolute", label)
+			return result, fmt.Errorf("homelab %s executable path must be absolute", label)
 		}
 	}
 	parsedURL, err := url.Parse(strings.TrimSpace(cfg.URL))
 	if err != nil || parsedURL.Hostname() == "" || (parsedURL.Scheme != "https" && !(parsedURL.Scheme == "http" && isLoopbackHost(parsedURL.Hostname()))) {
-		return result, fmt.Errorf("techstack runtime URL must use HTTPS or loopback HTTP")
+		return result, fmt.Errorf("homelab runtime URL must use HTTPS or loopback HTTP")
 	}
 	localDigest, localErr := digestRuntimeExecutable(cfg.AgentPath)
 	client := cfg.HTTPClient
@@ -76,7 +76,7 @@ func (executor *StackKitExecutor) EnsureTechstackRuntime(ctx context.Context, cf
 	}
 	if notModified {
 		if localErr != nil {
-			return result, fmt.Errorf("control plane reports current Techstack binary but local executable is invalid: %w", localErr)
+			return result, fmt.Errorf("control plane reports current Homelab Runtime binary but local executable is invalid: %w", localErr)
 		}
 		result.SHA256 = localDigest
 		updated, err := convergeRuntimeExecutable(cfg.AgentPath, cfg.OperationsPath, localDigest)
@@ -85,7 +85,7 @@ func (executor *StackKitExecutor) EnsureTechstackRuntime(ctx context.Context, cf
 	}
 	defer os.Remove(stage)
 	if err := os.Rename(stage, cfg.AgentPath); err != nil {
-		return result, fmt.Errorf("activate Techstack Agent executable: %w", err)
+		return result, fmt.Errorf("activate Homelab Runtime Agent executable: %w", err)
 	}
 	result.AgentUpdated = localDigest != expected
 	result.SHA256 = expected
@@ -94,14 +94,14 @@ func (executor *StackKitExecutor) EnsureTechstackRuntime(ctx context.Context, cf
 	return result, err
 }
 
-// FetchTechstackRuntimeArtifact downloads the executable the authenticated
+// FetchHomelabRuntimeArtifact downloads the executable the authenticated
 // control plane serves into cfg.StageDir. It installs nothing: an unprivileged
 // Guard hands the file to the privileged executor, which authenticates it.
 // localDigest lets the control plane answer that nothing changed.
-func FetchTechstackRuntimeArtifact(ctx context.Context, cfg TechstackRuntimeConvergenceConfig, localDigest string) (path, sha256Hex, version string, notModified bool, err error) {
+func FetchHomelabRuntimeArtifact(ctx context.Context, cfg HomelabRuntimeConvergenceConfig, localDigest string) (path, sha256Hex, version string, notModified bool, err error) {
 	parsedURL, err := url.Parse(strings.TrimSpace(cfg.URL))
 	if err != nil || parsedURL.Hostname() == "" || (parsedURL.Scheme != "https" && !(parsedURL.Scheme == "http" && isLoopbackHost(parsedURL.Hostname()))) {
-		return "", "", "", false, fmt.Errorf("techstack runtime URL must use HTTPS or loopback HTTP")
+		return "", "", "", false, fmt.Errorf("homelab runtime URL must use HTTPS or loopback HTTP")
 	}
 	client := cfg.HTTPClient
 	if client == nil {
@@ -130,7 +130,7 @@ func DigestInstalledExecutable(path string) (string, error) { return digestRunti
 func fetchRuntimeArtifact(
 	ctx context.Context,
 	client *http.Client,
-	cfg TechstackRuntimeConvergenceConfig,
+	cfg HomelabRuntimeConvergenceConfig,
 	localDigest string,
 ) (string, string, string, bool, error) {
 	stageDir := cfg.StageDir
@@ -140,7 +140,7 @@ func fetchRuntimeArtifact(
 	if err := os.MkdirAll(stageDir, 0755); err != nil {
 		return "", "", "", false, err
 	}
-	stage, err := os.CreateTemp(stageDir, ".techstack-runtime-*")
+	stage, err := os.CreateTemp(stageDir, ".homelab-runtime-*")
 	if err != nil {
 		return "", "", "", false, err
 	}
@@ -171,15 +171,15 @@ func fetchRuntimeArtifact(
 		} else if slice.digest != expected {
 			// The control plane was redeployed mid-download. Restarting is the
 			// only correct answer: the slices no longer describe one artifact.
-			return abort(fmt.Errorf("techstack runtime changed while downloading"))
+			return abort(fmt.Errorf("homelab runtime changed while downloading"))
 		}
 		if _, writeErr := stage.Write(slice.body); writeErr != nil {
 			return abort(writeErr)
 		}
 		hash.Write(slice.body)
 		offset += int64(len(slice.body))
-		if offset > maxTechstackRuntimeBinaryBytes {
-			return abort(fmt.Errorf("techstack runtime exceeds size limit"))
+		if offset > maxHomelabRuntimeBinaryBytes {
+			return abort(fmt.Errorf("homelab runtime exceeds size limit"))
 		}
 		total = slice.total
 		if total <= 0 || offset >= total {
@@ -187,10 +187,10 @@ func fetchRuntimeArtifact(
 		}
 	}
 	if total > 0 && offset != total {
-		return abort(fmt.Errorf("techstack runtime is incomplete: %d of %d bytes", offset, total))
+		return abort(fmt.Errorf("homelab runtime is incomplete: %d of %d bytes", offset, total))
 	}
 	if hex.EncodeToString(hash.Sum(nil)) != expected {
-		return abort(fmt.Errorf("techstack runtime checksum mismatch"))
+		return abort(fmt.Errorf("homelab runtime checksum mismatch"))
 	}
 	if err := stage.Chmod(0755); err != nil {
 		return abort(err)
@@ -216,7 +216,7 @@ type runtimeArtifactSlice struct {
 func readRuntimeArtifactSlice(
 	ctx context.Context,
 	client *http.Client,
-	cfg TechstackRuntimeConvergenceConfig,
+	cfg HomelabRuntimeConvergenceConfig,
 	localDigest string,
 	offset int64,
 ) (runtimeArtifactSlice, error) {
@@ -246,7 +246,7 @@ func readRuntimeArtifactSlice(
 func requestRuntimeArtifactSlice(
 	ctx context.Context,
 	client *http.Client,
-	cfg TechstackRuntimeConvergenceConfig,
+	cfg HomelabRuntimeConvergenceConfig,
 	localDigest string,
 	offset int64,
 ) (runtimeArtifactSlice, error) {
@@ -272,24 +272,24 @@ func requestRuntimeArtifactSlice(
 		return runtimeArtifactSlice{notModified: true}, nil
 	}
 	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusPartialContent {
-		return runtimeArtifactSlice{}, &ArtifactHTTPError{Operation: "techstack runtime download", StatusCode: response.StatusCode, RetryAfter: ArtifactRetryAfter(response.Header.Get("Retry-After"), time.Now())}
+		return runtimeArtifactSlice{}, &ArtifactHTTPError{Operation: "homelab runtime download", StatusCode: response.StatusCode, RetryAfter: ArtifactRetryAfter(response.Header.Get("Retry-After"), time.Now())}
 	}
 	digest := strings.ToLower(strings.TrimSpace(response.Header.Get("X-Kombify-Artifact-SHA256")))
 	if len(digest) != sha256.Size*2 {
-		return runtimeArtifactSlice{}, fmt.Errorf("techstack runtime checksum is missing")
+		return runtimeArtifactSlice{}, fmt.Errorf("homelab runtime checksum is missing")
 	}
 	// A control plane that ignores Range restarts at byte 0; accepting its body
 	// at a non-zero offset would splice the artifact together wrongly.
 	if response.StatusCode == http.StatusOK && offset != 0 {
-		return runtimeArtifactSlice{}, fmt.Errorf("techstack runtime does not support resuming at %d bytes", offset)
+		return runtimeArtifactSlice{}, fmt.Errorf("homelab runtime does not support resuming at %d bytes", offset)
 	}
 
-	body, err := io.ReadAll(io.LimitReader(response.Body, maxTechstackRuntimeBinaryBytes+1))
+	body, err := io.ReadAll(io.LimitReader(response.Body, maxHomelabRuntimeBinaryBytes+1))
 	if err != nil {
 		return runtimeArtifactSlice{}, err
 	}
 	if len(body) == 0 {
-		return runtimeArtifactSlice{}, fmt.Errorf("techstack runtime slice at %d bytes is empty", offset)
+		return runtimeArtifactSlice{}, fmt.Errorf("homelab runtime slice at %d bytes is empty", offset)
 	}
 	slice := runtimeArtifactSlice{body: body, digest: digest, version: strings.TrimSpace(response.Header.Get("X-Kombify-Artifact-Version"))}
 	if response.StatusCode == http.StatusPartialContent {
@@ -308,11 +308,11 @@ func requestRuntimeArtifactSlice(
 func totalFromContentRange(header string) (int64, error) {
 	_, sizePart, found := strings.Cut(strings.TrimSpace(header), "/")
 	if !found {
-		return 0, fmt.Errorf("techstack runtime range header %q has no artifact size", header)
+		return 0, fmt.Errorf("homelab runtime range header %q has no artifact size", header)
 	}
 	total, err := strconv.ParseInt(strings.TrimSpace(sizePart), 10, 64)
 	if err != nil || total <= 0 {
-		return 0, fmt.Errorf("techstack runtime range header %q has no usable artifact size", header)
+		return 0, fmt.Errorf("homelab runtime range header %q has no usable artifact size", header)
 	}
 	return total, nil
 }
@@ -321,18 +321,18 @@ func downloadRuntimeExecutable(source io.Reader, targetPath, expected string) (s
 	if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
 		return "", err
 	}
-	stage, err := os.CreateTemp(filepath.Dir(targetPath), ".techstack-runtime-*")
+	stage, err := os.CreateTemp(filepath.Dir(targetPath), ".homelab-runtime-*")
 	if err != nil {
 		return "", err
 	}
 	stagePath := stage.Name()
 	hash := sha256.New()
-	written, copyErr := io.Copy(io.MultiWriter(stage, hash), io.LimitReader(source, maxTechstackRuntimeBinaryBytes+1))
-	if copyErr == nil && written > maxTechstackRuntimeBinaryBytes {
-		copyErr = fmt.Errorf("techstack runtime exceeds size limit")
+	written, copyErr := io.Copy(io.MultiWriter(stage, hash), io.LimitReader(source, maxHomelabRuntimeBinaryBytes+1))
+	if copyErr == nil && written > maxHomelabRuntimeBinaryBytes {
+		copyErr = fmt.Errorf("homelab runtime exceeds size limit")
 	}
 	if copyErr == nil && hex.EncodeToString(hash.Sum(nil)) != expected {
-		copyErr = fmt.Errorf("techstack runtime checksum mismatch")
+		copyErr = fmt.Errorf("homelab runtime checksum mismatch")
 	}
 	if copyErr == nil {
 		copyErr = stage.Chmod(0755)
@@ -364,7 +364,7 @@ func convergeRuntimeExecutable(sourcePath, targetPath, expected string) (bool, e
 	}
 	defer os.Remove(stage)
 	if err := os.Rename(stage, targetPath); err != nil {
-		return false, fmt.Errorf("activate Techstack operations executable: %w", err)
+		return false, fmt.Errorf("activate Homelab Runtime operations executable: %w", err)
 	}
 	return true, nil
 }
@@ -376,8 +376,8 @@ func digestRuntimeExecutable(path string) (string, error) {
 	}
 	defer file.Close()
 	info, err := file.Stat()
-	if err != nil || !info.Mode().IsRegular() || info.Size() <= 0 || info.Size() > maxTechstackRuntimeBinaryBytes {
-		return "", fmt.Errorf("techstack runtime executable is not a bounded regular file")
+	if err != nil || !info.Mode().IsRegular() || info.Size() <= 0 || info.Size() > maxHomelabRuntimeBinaryBytes {
+		return "", fmt.Errorf("homelab runtime executable is not a bounded regular file")
 	}
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {

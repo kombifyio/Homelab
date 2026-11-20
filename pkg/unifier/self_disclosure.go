@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 const (

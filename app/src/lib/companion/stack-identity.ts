@@ -1,5 +1,5 @@
 /**
- * Maps Techstack Stack Identity into the embed launcher contract.
+ * Maps Homelab Stack Identity into the embed launcher contract.
  *
  * Open-core characters carry tone and animation metadata only; emoji is a
  * product-local launcher projection aligned with the Brand catalog.

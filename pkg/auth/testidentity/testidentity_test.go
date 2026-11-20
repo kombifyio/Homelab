@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/demoguard"
+	"github.com/kombifyio/homelab/pkg/demoguard"
 )
 
 func TestAdmitKeepsTestIdentitiesAndRealTenantsApart(t *testing.T) {

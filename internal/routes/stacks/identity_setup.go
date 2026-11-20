@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/orchestrator"
-	"github.com/kombifyio/techstack/pkg/specv2"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/orchestrator"
+	"github.com/kombifyio/homelab/pkg/specv2"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -210,7 +210,7 @@ type householdInvitationBody struct {
 }
 
 func (h wizardRunHandlers) getStackIdentity(e *httpx.Event) error {
-	request, stack, err := h.authorizeIdentityStack(e, "techstack.stacks.identity.read")
+	request, stack, err := h.authorizeIdentityStack(e, "homelab.stacks.identity.read")
 	if err != nil {
 		return err
 	}
@@ -231,7 +231,7 @@ func (h wizardRunHandlers) getStackIdentity(e *httpx.Event) error {
 }
 
 func (h wizardRunHandlers) issueOwnerActivation(e *httpx.Event) error {
-	request, _, err := h.authorizeIdentityStack(e, "techstack.stacks.identity.owner-activation")
+	request, _, err := h.authorizeIdentityStack(e, "homelab.stacks.identity.owner-activation")
 	if err != nil {
 		return err
 	}
@@ -252,7 +252,7 @@ func (h wizardRunHandlers) issueOwnerActivation(e *httpx.Event) error {
 }
 
 func (h wizardRunHandlers) createHouseholdInvitation(e *httpx.Event) error {
-	request, stack, err := h.authorizeIdentityStack(e, "techstack.stacks.identity.household-invite")
+	request, stack, err := h.authorizeIdentityStack(e, "homelab.stacks.identity.household-invite")
 	if err != nil {
 		return err
 	}

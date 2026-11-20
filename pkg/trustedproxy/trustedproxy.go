@@ -20,7 +20,7 @@ import (
 // proxy. Unset means loopback and private ranges, which is the topology of a
 // reverse proxy or platform router in front of one process; the direct peer of
 // an internet client is never in those ranges.
-const Env = "TECHSTACK_TRUSTED_PROXIES"
+const Env = "HOMELAB_TRUSTED_PROXIES"
 
 // Set is an immutable set of trusted proxy networks.
 type Set struct{ prefixes []netip.Prefix }

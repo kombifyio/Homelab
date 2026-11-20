@@ -33,13 +33,13 @@ if (Test-Path $frontendEmbedDir) { Remove-Item -Recurse -Force $frontendEmbedDir
 
 $previousCGOEnabled = $env:CGO_ENABLED
 $previousGoWork = $env:GOWORK
-$previousDesktopStatic = $env:TECHSTACK_DESKTOP_STATIC
-$previousViteDesktopStatic = $env:VITE_TECHSTACK_DESKTOP_STATIC
+$previousDesktopStatic = $env:HOMELAB_DESKTOP_STATIC
+$previousViteDesktopStatic = $env:VITE_HOMELAB_DESKTOP_STATIC
 try {
     $env:CGO_ENABLED = "0"
     $env:GOWORK = "off"
-    $env:TECHSTACK_DESKTOP_STATIC = "1"
-    $env:VITE_TECHSTACK_DESKTOP_STATIC = "1"
+    $env:HOMELAB_DESKTOP_STATIC = "1"
+    $env:VITE_HOMELAB_DESKTOP_STATIC = "1"
     Push-Location (Join-Path $root "app")
     try {
         pnpm run build
@@ -57,15 +57,15 @@ try {
         # Both targets are explicit so the pair is correct on any build host.
         $env:GOOS = "windows"
         $env:GOARCH = "amd64"
-        go build -buildvcs=false -tags techstack_static_ui -trimpath `
+        go build -buildvcs=false -tags homelab_static_ui -trimpath `
             -ldflags "-s -w -X main.version=$Version -X main.buildRevision=$SourceRevision" `
-            -o $WindowsOutputPath ./cmd/techstack
+            -o $WindowsOutputPath ./cmd/homelab
         if ($LASTEXITCODE -ne 0) { throw "Windows runtime build failed with exit code $LASTEXITCODE" }
 
         $env:GOOS = "linux"
-        go build -buildvcs=false -tags techstack_static_ui -trimpath `
+        go build -buildvcs=false -tags homelab_static_ui -trimpath `
             -ldflags "-s -w -X main.version=$Version -X main.buildRevision=$SourceRevision" `
-            -o $LinuxOutputPath ./cmd/techstack
+            -o $LinuxOutputPath ./cmd/homelab
         if ($LASTEXITCODE -ne 0) { throw "Linux runtime build failed with exit code $LASTEXITCODE" }
     } finally {
         $env:GOOS = $previousGOOS
@@ -75,8 +75,8 @@ try {
 } finally {
     $env:CGO_ENABLED = $previousCGOEnabled
     $env:GOWORK = $previousGoWork
-    $env:TECHSTACK_DESKTOP_STATIC = $previousDesktopStatic
-    $env:VITE_TECHSTACK_DESKTOP_STATIC = $previousViteDesktopStatic
+    $env:HOMELAB_DESKTOP_STATIC = $previousDesktopStatic
+    $env:VITE_HOMELAB_DESKTOP_STATIC = $previousViteDesktopStatic
     if (Test-Path $frontendEmbedDir) { Remove-Item -Recurse -Force $frontendEmbedDir }
     if (Test-Path $frontendBuildDir) { Remove-Item -Recurse -Force $frontendBuildDir }
 }

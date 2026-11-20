@@ -1,4 +1,4 @@
-// Package routes provides custom HTTP routes for kombifyTechstack API.
+// Package routes provides custom HTTP routes for kombifyHomelab API.
 // This file contains the RIL self-heal audit and recipe management endpoints.
 package routes
 
@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // RILHealEventResponse represents a self-heal event in the API response.
@@ -50,7 +50,7 @@ func (h rilHealHandler) listAudit(e *httpx.Event) error {
 		return err
 	}
 
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.ril.heal.audit.read")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.ril.heal.audit.read")
 	if tenantErr != nil {
 		return tenantErr
 	}

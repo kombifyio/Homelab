@@ -1,4 +1,4 @@
-// Package discovery provides network device discovery functionality for kombifyTechstack.
+// Package discovery provides network device discovery functionality for kombifyHomelab.
 //
 // # Usage
 //

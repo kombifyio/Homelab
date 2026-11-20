@@ -1,5 +1,5 @@
 /**
- * Import into the kombify Wallet from the files Techstack's own export writes
+ * Import into the kombify Wallet from the files Homelab's own export writes
  * (JSON, CSV) and from a Bitwarden JSON export. Parsing and mapping are pure;
  * the dialog creates the items in the browser, one at a time, and reports per
  * row. A parsed secret lives only in this module's return values and is
@@ -15,7 +15,7 @@ import {
 import { MAX_VALUE_BYTES } from "./transport.js";
 
 /**
- * The credential kinds and portable row of a Techstack export file. Declared
+ * The credential kinds and portable row of a Homelab export file. Declared
  * here, in the shape the export writes, so the kombify Wallet does not depend
  * on the self-hosted Wallet module to read one.
  */
@@ -39,7 +39,7 @@ export interface ExportableCredential {
   auto_generated?: boolean;
 }
 
-export type ImportFormat = "techstack" | "bitwarden" | "csv";
+export type ImportFormat = "homelab" | "bitwarden" | "csv";
 
 /** Which export a file is, from its content alone. */
 export function detectImportFormat(text: string): ImportFormat {
@@ -51,7 +51,7 @@ export function detectImportFormat(text: string): ImportFormat {
     } catch {
       /* fall through: reported by the format's own parser */
     }
-    return "techstack";
+    return "homelab";
   }
   return "csv";
 }
@@ -101,7 +101,7 @@ export function parseCsvRows(text: string): string[][] {
   return rows;
 }
 
-/** The CSV Techstack writes: Group,Title,Username,Password,URL,Notes,TOTP. */
+/** The CSV Homelab writes: Group,Title,Username,Password,URL,Notes,TOTP. */
 export function parseCsvCredentials(text: string): ExportableCredential[] {
   const [header, ...rows] = parseCsvRows(text);
   if (!header) return [];

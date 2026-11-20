@@ -3,7 +3,7 @@ package layout
 import "strings"
 
 // Household priority bands. Importance is household policy, owned by
-// Techstack; StackKits states only technical facts (boundary §15.4).
+// Homelab; StackKits states only technical facts (boundary §15.4).
 const (
 	BandImportant = "important"
 	BandStandard  = "standard"
@@ -11,7 +11,7 @@ const (
 )
 
 // DefaultPolicyProfile is the versioned default household policy.
-const DefaultPolicyProfile = "techstack.kombify.io/layout-policy/household-default@v1"
+const DefaultPolicyProfile = "homelab.kombify.io/layout-policy/household-default@v1"
 
 // defaultBands is the default importance of each use case: what a household
 // misses first when it is down. Passwords, the smart home and the home

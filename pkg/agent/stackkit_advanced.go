@@ -11,9 +11,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // maxStackKitChangeSetRecordBytes bounds the stored change-set record the
@@ -42,7 +42,7 @@ func stackKitAdvancedOperationArgs(release stackkitrelease.Release, workDir, spe
 		removeStackKitTempFiles(files)
 		return nil, nil, err
 	}
-	capabilityPath, err := writeStackKitPrivateFile(workDir, ".techstack-capability-*.json", command.AdvancedCapability)
+	capabilityPath, err := writeStackKitPrivateFile(workDir, ".homelab-capability-*.json", command.AdvancedCapability)
 	if err != nil {
 		return fail(fmt.Errorf("write Advanced capability: %w", err))
 	}
@@ -63,7 +63,7 @@ func stackKitAdvancedOperationArgs(release stackkitrelease.Release, workDir, spe
 		values["hostsCsv"] = strings.Join(command.OriginHosts, ",")
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_ORIGIN_CERTIFICATE_INSTALL:
 		// The certificate is public data; the key never leaves the node.
-		certificatePath, writeErr := writeStackKitPrivateFile(workDir, ".techstack-origin-certificate-*.pem", command.OriginCertificatePem)
+		certificatePath, writeErr := writeStackKitPrivateFile(workDir, ".homelab-origin-certificate-*.pem", command.OriginCertificatePem)
 		if writeErr != nil {
 			return fail(fmt.Errorf("write origin certificate: %w", writeErr))
 		}
@@ -71,7 +71,7 @@ func stackKitAdvancedOperationArgs(release stackkitrelease.Release, workDir, spe
 		values["certificateFile"] = relativeStackKitPath(workDir, certificatePath)
 	}
 	if len(command.CandidateSpecJson) > 0 {
-		candidatePath, writeErr := writeStackKitPrivateFile(workDir, ".techstack-candidate-*.json", command.CandidateSpecJson)
+		candidatePath, writeErr := writeStackKitPrivateFile(workDir, ".homelab-candidate-*.json", command.CandidateSpecJson)
 		if writeErr != nil {
 			return fail(fmt.Errorf("write Advanced candidate StackSpec: %w", writeErr))
 		}

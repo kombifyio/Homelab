@@ -22,13 +22,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/guardcompat"
-	"github.com/kombifyio/techstack/pkg/guardidentity"
-	"github.com/kombifyio/techstack/pkg/ril/nodeproof"
-	"github.com/kombifyio/techstack/pkg/runtimeconvergence"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardcompat"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
+	"github.com/kombifyio/homelab/pkg/ril/nodeproof"
+	"github.com/kombifyio/homelab/pkg/runtimeconvergence"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 const (
@@ -529,7 +529,7 @@ func (c *Client) postJSONExchange(ctx context.Context, endpoint string, payload 
 	}
 	req.Header.Set("Authorization", "Bearer "+c.cfg.AgentToken)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "kombify-techstack-guard/"+firstNonEmpty(c.cfg.AgentVersion, "unknown"))
+	req.Header.Set("User-Agent", "kombify-homelab-guard/"+firstNonEmpty(c.cfg.AgentVersion, "unknown"))
 	if tenantID := strings.TrimSpace(c.cfg.TenantID); tenantID != "" {
 		req.Header.Set("X-Kombify-Tenant-ID", tenantID)
 	}
@@ -725,7 +725,7 @@ func (c *Client) postJSONWith(ctx context.Context, endpoint string, payload any,
 		}
 		req.Header.Set("Authorization", "Bearer "+c.cfg.AgentToken)
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("User-Agent", "kombify-techstack-guard/"+firstNonEmpty(c.cfg.AgentVersion, "unknown"))
+		req.Header.Set("User-Agent", "kombify-homelab-guard/"+firstNonEmpty(c.cfg.AgentVersion, "unknown"))
 		if tenantID := strings.TrimSpace(c.cfg.TenantID); tenantID != "" {
 			req.Header.Set("X-Kombify-Tenant-ID", tenantID)
 		}

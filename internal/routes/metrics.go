@@ -1,13 +1,13 @@
-// Package routes provides custom HTTP routes for kombifyTechstack API.
+// Package routes provides custom HTTP routes for kombifyHomelab API.
 // metrics.go provides the Prometheus /metrics endpoint for observability.
 package routes
 
 import (
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/sessionreauth"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/ril/workflow"
+	"github.com/kombifyio/homelab/internal/routes/sessionreauth"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/ril/workflow"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -20,7 +20,7 @@ const (
 	monthlyRuntimeEnrollmentStatusEnrolled = "enrolled"
 )
 
-// Metrics holds all custom kombifyTechstack Prometheus metrics.
+// Metrics holds all custom kombifyHomelab Prometheus metrics.
 type Metrics struct {
 	// HTTP request metrics
 	HTTPRequestsTotal   *prometheus.CounterVec
@@ -74,13 +74,13 @@ type Metrics struct {
 	GRPCQueueDropped  *prometheus.CounterVec // Total items dropped (overflow) by queue name
 }
 
-// NewMetrics creates and registers all kombifyTechstack Prometheus metrics.
+// NewMetrics creates and registers all kombifyHomelab Prometheus metrics.
 func NewMetrics(reg prometheus.Registerer) *Metrics {
 	m := &Metrics{
 		// HTTP metrics
 		HTTPRequestsTotal: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: "techstack",
+				Namespace: "homelab",
 				Subsystem: "http",
 				Name:      "requests_total",
 				Help:      "Total number of HTTP requests processed.",
@@ -89,7 +89,7 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 		),
 		HTTPRequestDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Namespace: "techstack",
+				Namespace: "homelab",
 				Subsystem: "http",
 				Name:      "request_duration_seconds",
 				Help:      "HTTP request latency in seconds.",
@@ -101,7 +101,7 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 		// Jobs metrics
 		JobsTotal: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: "techstack",
+				Namespace: "homelab",
 				Subsystem: "jobs",
 				Name:      "total",
 				Help:      "Total number of jobs by type and final state.",
@@ -109,14 +109,14 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 			[]string{"type", "state"},
 		),
 		JobsActive: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "techstack",
+			Namespace: "homelab",
 			Subsystem: "jobs",
 			Name:      "active",
 			Help:      "Number of currently active (running) jobs.",
 		}),
 		JobsDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Namespace: "techstack",
+				Namespace: "homelab",
 				Subsystem: "jobs",
 				Name:      "duration_seconds",
 				Help:      "Job execution duration in seconds.",
@@ -125,14 +125,14 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 			[]string{"type"},
 		),
 		JobQueueSize: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "techstack",
+			Namespace: "homelab",
 			Subsystem: "jobs",
 			Name:      "queue_size",
 			Help:      "Number of jobs waiting in queue.",
 		}),
 		JobQueueLatency: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Namespace: "techstack",
+				Namespace: "homelab",
 				Subsystem: "jobs",
 				Name:      "queue_latency_seconds",
 				Help:      "Time spent waiting in queue before execution.",
@@ -143,14 +143,14 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 
 		// Agent metrics
 		AgentsConnected: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "techstack",
+			Namespace: "homelab",
 			Subsystem: "agents",
 			Name:      "connected",
 			Help:      "Number of currently connected agents.",
 		}),
 		AgentHeartbeats: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: "techstack",
+				Namespace: "homelab",
 				Subsystem: "agents",
 				Name:      "heartbeats_total",
 				Help:      "Total number of agent heartbeats received.",
@@ -159,7 +159,7 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 		),
 		AgentCommandsSent: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: "techstack",
+				Namespace: "homelab",
 				Subsystem: "agents",
 				Name:      "commands_sent_total",
 				Help:      "Total number of commands sent to agents.",
@@ -169,13 +169,13 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 
 		// Stack metrics
 		StacksTotal: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "techstack",
+			Namespace: "homelab",
 			Subsystem: "stacks",
 			Name:      "total",
 			Help:      "Total number of stacks.",
 		}),
 		StacksActive: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "techstack",
+			Namespace: "homelab",
 			Subsystem: "stacks",
 			Name:      "active",
 			Help:      "Number of active (provisioned) stacks.",
@@ -184,7 +184,7 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 		// OpenTofu metrics
 		TofuRunsTotal: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: "techstack",
+				Namespace: "homelab",
 				Subsystem: "tofu",
 				Name:      "runs_total",
 				Help:      "Total OpenTofu runs by operation and result.",
@@ -193,7 +193,7 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 		),
 		TofuRunsDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Namespace: "techstack",
+				Namespace: "homelab",
 				Subsystem: "tofu",
 				Name:      "run_duration_seconds",
 				Help:      "OpenTofu run duration in seconds.",
@@ -204,20 +204,20 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 
 		// Database metrics
 		DBConnectionsActive: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "techstack",
+			Namespace: "homelab",
 			Subsystem: "db",
 			Name:      "connections_active",
 			Help:      "Number of active database connections.",
 		}),
 		DBQueriesTotal: prometheus.NewCounter(prometheus.CounterOpts{
-			Namespace: "techstack",
+			Namespace: "homelab",
 			Subsystem: "db",
 			Name:      "queries_total",
 			Help:      "Total number of database queries executed.",
 		}),
 		MonthlyRuntimeEnrollments: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
-				Namespace: "techstack",
+				Namespace: "homelab",
 				Subsystem: "monthly_runtime",
 				Name:      "enrollments",
 				Help:      "Number of Monthly Runtime VM lease enrollment outbox items by status.",
@@ -226,7 +226,7 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 		),
 		SessionReprojectionsTotal: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: "techstack",
+				Namespace: "homelab",
 				Subsystem: "auth",
 				Name:      "session_reprojections_total",
 				Help:      "Signature-valid sessions whose tenant projection failed, by tenant and outcome (recovered server-side vs. reauth_required signalled to the client).",
@@ -235,14 +235,14 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 		),
 		WorkflowRunTransitions: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: "techstack", Subsystem: "ril_workflow", Name: "run_transitions_total",
+				Namespace: "homelab", Subsystem: "ril_workflow", Name: "run_transitions_total",
 				Help: "Durable RIL workflow run transitions by closed workflow type and state.",
 			},
 			[]string{"type", "from", "to"},
 		),
 		WorkflowRunDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Namespace: "techstack", Subsystem: "ril_workflow", Name: "run_duration_seconds",
+				Namespace: "homelab", Subsystem: "ril_workflow", Name: "run_duration_seconds",
 				Help:    "Terminal durable RIL workflow run duration in seconds.",
 				Buckets: []float64{0.1, 1, 5, 15, 30, 60, 300, 900, 3600, 21600, 86400},
 			},
@@ -250,14 +250,14 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 		),
 		WorkflowStepTransitions: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: "techstack", Subsystem: "ril_workflow", Name: "step_transitions_total",
+				Namespace: "homelab", Subsystem: "ril_workflow", Name: "step_transitions_total",
 				Help: "Durable RIL workflow step transitions by closed workflow and step definition.",
 			},
 			[]string{"type", "step", "from", "to"},
 		),
 		WorkflowStepDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Namespace: "techstack", Subsystem: "ril_workflow", Name: "step_duration_seconds",
+				Namespace: "homelab", Subsystem: "ril_workflow", Name: "step_duration_seconds",
 				Help:    "Terminal durable RIL workflow step attempt duration in seconds.",
 				Buckets: []float64{0.01, 0.1, 0.5, 1, 5, 15, 30, 60, 300, 900},
 			},
@@ -265,7 +265,7 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 		),
 		WorkflowTimers: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: "techstack", Subsystem: "ril_workflow", Name: "timers_total",
+				Namespace: "homelab", Subsystem: "ril_workflow", Name: "timers_total",
 				Help: "Durable RIL workflow timer sweep outcomes by timer kind.",
 			},
 			[]string{"kind", "outcome"},
@@ -274,7 +274,7 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 		// S7: gRPC Queue Backpressure metrics
 		GRPCQueueSize: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
-				Namespace: "techstack",
+				Namespace: "homelab",
 				Subsystem: "grpc_queue",
 				Name:      "size",
 				Help:      "Current number of items in the gRPC command queue.",
@@ -283,7 +283,7 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 		),
 		GRPCQueueCapacity: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
-				Namespace: "techstack",
+				Namespace: "homelab",
 				Subsystem: "grpc_queue",
 				Name:      "capacity",
 				Help:      "Maximum capacity of the gRPC command queue.",
@@ -292,7 +292,7 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 		),
 		GRPCQueueEnqueued: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: "techstack",
+				Namespace: "homelab",
 				Subsystem: "grpc_queue",
 				Name:      "enqueued_total",
 				Help:      "Total number of items enqueued to the gRPC command queue.",
@@ -301,7 +301,7 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 		),
 		GRPCQueueDequeued: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: "techstack",
+				Namespace: "homelab",
 				Subsystem: "grpc_queue",
 				Name:      "dequeued_total",
 				Help:      "Total number of items dequeued from the gRPC command queue.",
@@ -310,7 +310,7 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 		),
 		GRPCQueueRejected: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: "techstack",
+				Namespace: "homelab",
 				Subsystem: "grpc_queue",
 				Name:      "rejected_total",
 				Help:      "Total number of items rejected due to queue being full.",
@@ -319,7 +319,7 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 		),
 		GRPCQueueDropped: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: "techstack",
+				Namespace: "homelab",
 				Subsystem: "grpc_queue",
 				Name:      "dropped_total",
 				Help:      "Total number of items dropped due to overflow strategy.",
@@ -403,7 +403,7 @@ func RegisterMetricsRoutes(r *httpx.Router) *Metrics {
 	reg.MustRegister(collectors.NewGoCollector())
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 
-	// Create and register kombifyTechstack metrics
+	// Create and register kombifyHomelab metrics
 	metrics := NewMetrics(reg)
 
 	// Feed the session-recovery classifier's tenant-labeled occurrences into

@@ -4,18 +4,18 @@ package stacks
 
 import (
 	"bytes"
-	"github.com/kombifyio/techstack/pkg/config"
 	"context"
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"encoding/json"
 	"fmt"
+	"github.com/kombifyio/homelab/internal/routes/trust"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/specv2"
 	"net/http"
 	"net/http/httptest"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/identity"
-	"encoding/json"
-	"github.com/kombifyio/techstack/pkg/specv2"
 	"testing"
-	"github.com/kombifyio/techstack/internal/routes/trust"
 )
 
 func stackStoreRequestEvent(userID, orgID string) (*httpx.Event, *httptest.ResponseRecorder) {
@@ -208,4 +208,3 @@ func wizardRunJoinIntent(deploymentID string) specv2.WizardIntent {
 		},
 	}
 }
-

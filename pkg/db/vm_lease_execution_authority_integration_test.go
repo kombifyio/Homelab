@@ -30,8 +30,8 @@ func TestIntegrationVMLeaseExecutionAuthorityMigrationInventoriesExactCustodyAnd
 	defer cancel()
 
 	suffix := strings.ReplaceAll(uuid.NewString(), "-", "")
-	schemaName := "techstack_migration_019_" + suffix
-	ownerRole := "techstack_migration_019_owner_" + suffix
+	schemaName := "homelab_migration_019_" + suffix
+	ownerRole := "homelab_migration_019_owner_" + suffix
 	quotedSchema := quotePostgresTestIdentifier(schemaName)
 	quotedOwner := quotePostgresTestIdentifier(ownerRole)
 

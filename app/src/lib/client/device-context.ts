@@ -12,7 +12,7 @@ interface DocumentBinding {
 }
 
 interface DeviceWindow extends Window {
-  __kombifyTechstackDocument?: DocumentBinding;
+  __kombifyHomelabDocument?: DocumentBinding;
   chrome?: {
     webview?: {
       postMessage(message: unknown): void;
@@ -41,7 +41,7 @@ export function readDeviceContext(
     const finish = (context: DeviceContext | null) => {
       clearTimeout(timeout);
       bridge.removeEventListener("message", receive);
-      host.removeEventListener("kombify-techstack-device-context-ready", send);
+      host.removeEventListener("kombify-homelab-device-context-ready", send);
       host.removeEventListener("pagehide", cancel);
       signal.removeEventListener("abort", cancel);
       resolve(context);
@@ -52,7 +52,7 @@ export function readDeviceContext(
       const response = event.data;
       if (
         !response ||
-        response.type !== "kombify.techstack.device-context.result.v1" ||
+        response.type !== "kombify.homelab.device-context.result.v1" ||
         response.request_id !== requestId ||
         response.document_revision !== requestedBinding?.document_revision
       )
@@ -91,7 +91,7 @@ export function readDeviceContext(
       });
     };
     const send = () => {
-      const binding = host.__kombifyTechstackDocument;
+      const binding = host.__kombifyHomelabDocument;
       if (
         !binding ||
         !Number.isSafeInteger(binding.document_revision) ||
@@ -105,7 +105,7 @@ export function readDeviceContext(
       };
       try {
         bridge.postMessage({
-          type: "kombify.techstack.device-context.read.v1",
+          type: "kombify.homelab.device-context.read.v1",
           request_id: requestId,
           ...requestedBinding,
         });
@@ -115,7 +115,7 @@ export function readDeviceContext(
     };
     const timeout = setTimeout(cancel, 2500);
     bridge.addEventListener("message", receive);
-    host.addEventListener("kombify-techstack-device-context-ready", send);
+    host.addEventListener("kombify-homelab-device-context-ready", send);
     host.addEventListener("pagehide", cancel);
     signal.addEventListener("abort", cancel, { once: true });
     send();

@@ -14,8 +14,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/guardcompat"
-	"github.com/kombifyio/techstack/pkg/pairingtoken"
+	"github.com/kombifyio/homelab/pkg/guardcompat"
+	"github.com/kombifyio/homelab/pkg/pairingtoken"
 )
 
 // BootstrapLogPath keeps first-boot output on the node. Without it a node that
@@ -86,7 +86,7 @@ const (
 )
 
 // goldenImageGuardPath is where the Golden Image recipe installs the Guard.
-const goldenImageGuardPath = "/usr/local/bin/techstack"
+const goldenImageGuardPath = "/usr/local/bin/homelab"
 
 func (p HostPrepProfile) stackKitReady() bool {
 	return p == HostPrepProfileStackKitReadyUbuntu2404V1 || p == HostPrepProfileStackKitReadyUbuntu2604V1 ||
@@ -238,7 +238,7 @@ func RenderCloudInit(in CloudInitInput) ([]byte, error) {
 		shellQuote(origin+"/api/v1/workers/bootstrap/logs"),
 		shellQuote("X-Kombify-Log-Level: error"),
 		shellQuote("X-Kombify-Log-Phase: cloud-init"),
-		shellQuote("Cloud-init could not establish the execution channel or execute the Techstack installer."),
+		shellQuote("Cloud-init could not establish the execution channel or execute the Homelab Runtime installer."),
 	)
 	readinessCommand := "command -v curl >/dev/null && command -v systemctl >/dev/null || exit 42"
 	if in.HostPrepProfile.goldenImage() {

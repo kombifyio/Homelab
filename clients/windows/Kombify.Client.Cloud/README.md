@@ -9,7 +9,7 @@ The Standalone build neither references nor bundles this adapter. Build the Stan
 client from the included source with:
 
 ```powershell
-dotnet build clients/windows/Kombify.TechStack.Client -p:DesktopEdition=Local
+dotnet build clients/windows/Kombify.Homelab.Client -p:DesktopEdition=Local
 ```
 
 Cloud consumers require an approved native application registration, callback

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 	"log/slog"
 	"strings"
 	"time"
@@ -24,7 +24,7 @@ const deliveryChannelPayloadKey = "_delivery_channel"
 
 const activityEnvelopePayloadKey = "_activity_envelope"
 
-// ProductEvent is one durable product notification. TenantID is the Techstack
+// ProductEvent is one durable product notification. TenantID is the Homelab
 // tenant it belongs to: the engine resolves tenant_id centrally. It is never
 // an organizations.id UUID or sent as organization_id.
 type ProductEvent struct {
@@ -41,7 +41,7 @@ type ProductEvent struct {
 	GroupKey       string
 	Priority       string
 	// Actor names who the item is from when it is not the producing service
-	// itself. Techstack sets it only for a node: subject "node:<stack_id>".
+	// itself. Homelab sets it only for a node: subject "node:<stack_id>".
 	Actor *EventActor
 	// Detail is the structured detail of the Feed item (FeedDetail). The
 	// engine admits only the kinds a producer owns.

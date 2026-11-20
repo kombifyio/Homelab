@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/grpcserver"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/grpcserver"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 const maxWorkerRuntimeLogPayload = 128 << 10

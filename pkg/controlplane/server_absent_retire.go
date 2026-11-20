@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/runtimehealth"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/runtimehealth"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 )
 
 var (

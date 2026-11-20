@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "techstack.selfhost-runtime-contract-lock/v1",
+  "schemaVersion": "homelab.selfhost-runtime-contract-lock/v1",
   "contractRoot": "github.com/kombifyio/stackkits/contracts",
   "packages": [
     "runtimeinventory",

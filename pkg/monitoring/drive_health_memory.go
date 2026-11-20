@@ -6,8 +6,8 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/kombifyio/techstack/pkg/guardtelemetry"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/pkg/guardtelemetry"
 )
 
 // MemoryDriveHealthStore is for isolated local probes; production uses PostgreSQL.

@@ -6,12 +6,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
-	"github.com/kombifyio/techstack/pkg/remoteguard"
-	"github.com/kombifyio/techstack/pkg/specv2"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/remoteguard"
+	"github.com/kombifyio/homelab/pkg/specv2"
 )
 
 // stackConfigKeyRemoteCredentialItemID holds the kombify Wallet node access
@@ -104,7 +104,7 @@ func (h wizardRunHandlers) credentialsFromWalletItem(
 
 // requireWalletCreateRight is the rollout preflight for a deployment that
 // keeps credentials in the kombify Wallet: a rollout writes recovery material
-// and StackKit outputs there, so it refuses to start while Techstack may not
+// and StackKit outputs there, so it refuses to start while Homelab may not
 // save to the owner's Wallet. It answers the request and returns a non-nil
 // error when it refused.
 func (h crudRouteHandlers) requireWalletCreateRight(e *httpx.Event, ownerID string) error {
@@ -163,7 +163,7 @@ func (h crudRouteHandlers) saveOwnerRecoveryInKombifyWallet(ctx context.Context,
 	defer clear(value)
 	saved, err := h.kombifyWallet.Ensure(ctx, ownerID, kombifywallet.ItemSpec{
 		Type: kombifywallet.ItemTypeGenericSecret, DisplayName: ownerRecoveryDisplayName,
-		Description: "Argon2id hash of the recovery passphrase of a kombify stack. Techstack never stores the passphrase.",
+		Description: "Argon2id hash of the recovery passphrase of a kombify stack. Homelab Runtime never stores the passphrase.",
 		Scope:       scope, Value: value,
 	})
 	if err != nil {
@@ -192,7 +192,7 @@ func (h crudRouteHandlers) saveOwnerRecoveryInKombifyWallet(ctx context.Context,
 
 // requireWalletForCreate refuses to start a create that writes to the owner's
 // kombify Wallet (an owner bootstrap with recovery material) or that rolls out
-// by itself (a managed server) while Techstack may not save there.
+// by itself (a managed server) while Homelab may not save there.
 func (h crudRouteHandlers) requireWalletForCreate(e *httpx.Event, ownerID string, normalized normalizedCreateStackRequest) error {
 	if h.kombifyWallet == nil {
 		return nil

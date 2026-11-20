@@ -18,7 +18,7 @@ func TestScopedOperationsSignExactlyOneScope(t *testing.T) {
 		t.Fatal(err)
 	}
 	now := time.Date(2026, 11, 12, 19, 0, 0, 0, time.UTC)
-	issuer, err := New(Config{IssuerID: "techstack", PrivateKey: key, Recorder: &memoryRecorder{}, Now: func() time.Time { return now }})
+	issuer, err := New(Config{IssuerID: "homelab", PrivateKey: key, Recorder: &memoryRecorder{}, Now: func() time.Time { return now }})
 	if err != nil {
 		t.Fatal(err)
 	}

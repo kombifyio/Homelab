@@ -3,8 +3,8 @@ package routes
 import (
 	"net/http"
 
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/instance"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/instance"
 )
 
 // RegisterInstanceRoutes exposes the local instance identity at GET
@@ -12,7 +12,7 @@ import (
 //
 // The endpoint is intentionally unauthenticated: it returns only the
 // instance's stable ID, creation timestamp, hostname, and product version. It
-// is used by the operator UI and by tooling to confirm which TechStack
+// is used by the operator UI and by tooling to confirm which Homelab
 // deployment unit is being talked to. No tenant, owner, or workspace data is
 // exposed here.
 //

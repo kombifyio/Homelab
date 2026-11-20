@@ -10,15 +10,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/trust"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/identity"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
-	"github.com/kombifyio/techstack/pkg/kombifywallet/walletfake"
-	"github.com/kombifyio/techstack/pkg/orchestrator"
-	"github.com/kombifyio/techstack/pkg/specv2"
+	"github.com/kombifyio/homelab/internal/routes/trust"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/kombifywallet/walletfake"
+	"github.com/kombifyio/homelab/pkg/orchestrator"
+	"github.com/kombifyio/homelab/pkg/specv2"
 )
 
 const walletTestOwner = "auth0|user-1"
@@ -183,7 +183,7 @@ func TestStackWithAWalletItemNeverFallsBackToTheLegacyLabel(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	// The owner never shared this item with Techstack, so the Wallet refuses.
+	// The owner never shared this item with Homelab, so the Wallet refuses.
 	unshared := fake.Grant(walletTestOwner, kombifywallet.ItemTypeNodeAccess, "Box", "account", walletProfile(t, map[string]any{"host": "node.example.test", "user": "u", "privateKey": "K"}), "read")
 	stack := &controlplane.Stack{ID: "stack-v2", Config: map[string]any{
 		"server_remote_host": "node.example.test", "server_remote_user": "u", "server_remote_auth_method": "ssh-key",
@@ -244,7 +244,7 @@ func TestRemoteEnrollmentRetriesAWalletOutageButNotAMissingRight(t *testing.T) {
 }
 
 // A rollout saves recovery material in the owner's Wallet, so it does not start
-// until the owner allowed Techstack to save there.
+// until the owner allowed Homelab to save there.
 func TestDeployInKombifyModeRefusesToStartWithoutTheCreateRight(t *testing.T) {
 	ctx := t.Context()
 	store := controlplane.NewMemoryStore()
@@ -371,7 +371,7 @@ func TestStackConnectionNeverSendsAWalletItemToAHostItWasNotSavedFor(t *testing.
 }
 
 // Creating a stack with an owner bootstrap saves its recovery hash in the
-// owner's Wallet, so Techstack refuses before it persists anything while it may
+// owner's Wallet, so Homelab refuses before it persists anything while it may
 // not save there, and saves the hash once it may.
 func TestCreateStackWithAnOwnerBootstrapInKombifyModeNeedsTheCreateRight(t *testing.T) {
 	t.Setenv(ownerSpecBootstrapTokenSecretEnv, "0123456789abcdef0123456789abcdef")

@@ -1,4 +1,4 @@
-// Package config handles configuration loading for kombifyTechstack
+// Package config handles configuration loading for kombifyHomelab
 package config
 
 import (
@@ -16,40 +16,40 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const hostedRuntimeKeyEnv = "TECHSTACK_SAAS_BUILD_PROOF"
+const hostedRuntimeKeyEnv = "HOMELAB_SAAS_BUILD_PROOF"
 
 // hostedRuntimeKeySHA256 is intentionally empty in public/self-host builds.
 // Private Kombify SaaS builds set it via:
 //
-//	-X github.com/kombifyio/techstack/pkg/config.hostedRuntimeKeySHA256=<sha256>
+//	-X github.com/kombifyio/homelab/pkg/config.hostedRuntimeKeySHA256=<sha256>
 var hostedRuntimeKeySHA256 string
 
-// Config holds all configuration for kombifyTechstack
+// Config holds all configuration for kombifyHomelab
 type Config struct {
 	Edition             Edition               `yaml:"edition"`
 	DeploymentMode      DeploymentMode        `yaml:"deployment_mode"`
 	ProviderCatalog     ProviderCatalogConfig `yaml:"provider_catalog"`
-	EdgeAuthSecret      string                `yaml:"edge_auth_secret"`       // Primary Edge identity secret (TECHSTACK_EDGE_AUTH_SECRET).
-	EdgeAuthNextSecret  string                `yaml:"edge_auth_secret_next"`  // Rotation successor (TECHSTACK_EDGE_AUTH_SECRET_NEXT).
-	EdgeAuthKeyID       string                `yaml:"edge_auth_key_id"`       // Primary identity key ID (TECHSTACK_EDGE_AUTH_KEY_ID).
-	EdgeAuthNextKeyID   string                `yaml:"edge_auth_key_id_next"`  // Rotation identity key ID (TECHSTACK_EDGE_AUTH_KEY_ID_NEXT).
-	EdgeFlagsSecret     string                `yaml:"edge_flags_secret"`      // Request-decision secret (TECHSTACK_EDGE_FLAGS_SECRET).
-	EdgeFlagsNextSecret string                `yaml:"edge_flags_secret_next"` // Rotation decision secret (TECHSTACK_EDGE_FLAGS_SECRET_NEXT).
-	EdgeFlagsKeyID      string                `yaml:"edge_flags_key_id"`      // Primary decision key ID (TECHSTACK_EDGE_FLAGS_KEY_ID).
-	EdgeFlagsNextKeyID  string                `yaml:"edge_flags_key_id_next"` // Rotation decision key ID (TECHSTACK_EDGE_FLAGS_KEY_ID_NEXT).
+	EdgeAuthSecret      string                `yaml:"edge_auth_secret"`       // Primary Edge identity secret (HOMELAB_EDGE_AUTH_SECRET).
+	EdgeAuthNextSecret  string                `yaml:"edge_auth_secret_next"`  // Rotation successor (HOMELAB_EDGE_AUTH_SECRET_NEXT).
+	EdgeAuthKeyID       string                `yaml:"edge_auth_key_id"`       // Primary identity key ID (HOMELAB_EDGE_AUTH_KEY_ID).
+	EdgeAuthNextKeyID   string                `yaml:"edge_auth_key_id_next"`  // Rotation identity key ID (HOMELAB_EDGE_AUTH_KEY_ID_NEXT).
+	EdgeFlagsSecret     string                `yaml:"edge_flags_secret"`      // Request-decision secret (HOMELAB_EDGE_FLAGS_SECRET).
+	EdgeFlagsNextSecret string                `yaml:"edge_flags_secret_next"` // Rotation decision secret (HOMELAB_EDGE_FLAGS_SECRET_NEXT).
+	EdgeFlagsKeyID      string                `yaml:"edge_flags_key_id"`      // Primary decision key ID (HOMELAB_EDGE_FLAGS_KEY_ID).
+	EdgeFlagsNextKeyID  string                `yaml:"edge_flags_key_id_next"` // Rotation decision key ID (HOMELAB_EDGE_FLAGS_KEY_ID_NEXT).
 	Server              ServerConfig          `yaml:"server"`
 	Database            DatabaseConfig        `yaml:"database"`
 	Logging             LoggingConfig         `yaml:"logging"`
 	Monitoring          MonitoringConfig      `yaml:"monitoring"`
 	Drift               DriftConfig           `yaml:"drift"`
-	StackKitsDir        string                `yaml:"stackkits_dir"` // Path to StackKits directory (TECHSTACK_STACKKITS_DIR)
+	StackKitsDir        string                `yaml:"stackkits_dir"` // Path to StackKits directory (HOMELAB_STACKKITS_DIR)
 }
 
 // DriftConfig holds drift detection scheduler settings.
 type DriftConfig struct {
-	Enabled   bool   `yaml:"enabled"`   // Periodic Advanced drift checks, on by default (TECHSTACK_DRIFT_ENABLED=false disables)
-	Interval  string `yaml:"interval"`  // Check interval e.g. "6h", "1h", "30m" (TECHSTACK_DRIFT_INTERVAL)
-	Retention int    `yaml:"retention"` // Max drift results to keep per stack (TECHSTACK_DRIFT_RETENTION, default 50)
+	Enabled   bool   `yaml:"enabled"`   // Periodic Advanced drift checks, on by default (HOMELAB_DRIFT_ENABLED=false disables)
+	Interval  string `yaml:"interval"`  // Check interval e.g. "6h", "1h", "30m" (HOMELAB_DRIFT_INTERVAL)
+	Retention int    `yaml:"retention"` // Max drift results to keep per stack (HOMELAB_DRIFT_RETENTION, default 50)
 }
 
 // DriftIntervalDuration returns the drift check interval as a time.Duration.
@@ -73,7 +73,7 @@ type ServerConfig struct {
 	// Replicas is the number of control-plane replicas sharing the configured
 	// rate budget. The in-process limiter is per replica, so each replica
 	// enforces budget/replicas to keep the aggregate near the configured
-	// total. Set TECHSTACK_REPLICAS when scaling out.
+	// total. Set HOMELAB_REPLICAS when scaling out.
 	Replicas int    `yaml:"replicas"`
 	DataDir  string `yaml:"data_dir"` // Path to data directory (default: state; an existing legacy directory is kept)
 
@@ -81,7 +81,7 @@ type ServerConfig struct {
 	GRPCQueueMaxSize          int    `yaml:"grpc_queue_max_size"`          // Max commands in queue (default: 1000)
 	GRPCQueueOverflowStrategy string `yaml:"grpc_queue_overflow_strategy"` // "reject" or "drop-oldest" (default: reject)
 	GRPCQueueWarningThreshold int    `yaml:"grpc_queue_warning_threshold"` // Percentage for warning logs (default: 80)
-	RuntimeLogPath            string `yaml:"runtime_log_path"`             // JSONL runtime log spool path (TECHSTACK_RUNTIME_LOG_PATH)
+	RuntimeLogPath            string `yaml:"runtime_log_path"`             // JSONL runtime log spool path (HOMELAB_RUNTIME_LOG_PATH)
 	RuntimeLogMaxEntries      int    `yaml:"runtime_log_max_entries"`      // In-memory runtime log query buffer (default: 5000)
 }
 
@@ -98,11 +98,11 @@ type LoggingConfig struct {
 
 // MonitoringConfig holds monitoring storage and query backend settings.
 type MonitoringConfig struct {
-	TSDBDir                   string `yaml:"tsdb_dir"`                // Embedded TSDB data directory (TECHSTACK_TSDB_DIR)
-	QueryBackendURL           string `yaml:"query_backend_url"`       // Optional PromQL-compatible remote backend (TECHSTACK_MONITOR_QUERY_BACKEND_URL)
-	CollectorMode             string `yaml:"collector_mode"`          // Operator-visible collector topology (TECHSTACK_MONITOR_COLLECTOR_MODE)
-	AlertInterval             string `yaml:"alert_interval"`          // Alert evaluation interval, e.g. "30s" (TECHSTACK_ALERT_INTERVAL)
-	IngestFreshnessTTL        string `yaml:"ingest_freshness_ttl"`    // Maximum age of an ingest success (TECHSTACK_MONITOR_INGEST_FRESHNESS_TTL)
+	TSDBDir                   string `yaml:"tsdb_dir"`                // Embedded TSDB data directory (HOMELAB_TSDB_DIR)
+	QueryBackendURL           string `yaml:"query_backend_url"`       // Optional PromQL-compatible remote backend (HOMELAB_MONITOR_QUERY_BACKEND_URL)
+	CollectorMode             string `yaml:"collector_mode"`          // Operator-visible collector topology (HOMELAB_MONITOR_COLLECTOR_MODE)
+	AlertInterval             string `yaml:"alert_interval"`          // Alert evaluation interval, e.g. "30s" (HOMELAB_ALERT_INTERVAL)
+	IngestFreshnessTTL        string `yaml:"ingest_freshness_ttl"`    // Maximum age of an ingest success (HOMELAB_MONITOR_INGEST_FRESHNESS_TTL)
 	OTLPLaneRequirement       string `yaml:"otlp_lane_requirement"`   // required, optional, disabled
 	LegacyPushLaneRequirement string `yaml:"legacy_lane_requirement"` // required, optional, disabled
 }
@@ -127,11 +127,11 @@ func (c MonitoringConfig) IngestFreshnessTTLDuration() time.Duration {
 }
 
 // defaultCORSOrigins contains the secure default CORS origins for development.
-// In production, these should be explicitly configured via TECHSTACK_CORS_ORIGINS.
+// In production, these should be explicitly configured via HOMELAB_CORS_ORIGINS.
 var defaultCORSOrigins = []string{
 	"http://localhost:5173", // SvelteKit dev server
-	"http://localhost:5261", // kombifyTechstack UI (docker-compose/local)
-	"http://localhost:5260", // kombifyTechstack API
+	"http://localhost:5261", // kombifyHomelab UI (docker-compose/local)
+	"http://localhost:5260", // kombifyHomelab API
 	"http://127.0.0.1:5173",
 	"http://127.0.0.1:5261",
 	"http://127.0.0.1:5260",
@@ -165,7 +165,7 @@ func DefaultConfig() *Config {
 			RuntimeLogMaxEntries:      5000,     // bounded local runtime log query buffer
 		},
 		Database: DatabaseConfig{
-			Path: "/data/techstack.db",
+			Path: "/data/homelab.db",
 		},
 		Logging: LoggingConfig{
 			Level:  "info",
@@ -202,10 +202,10 @@ func Load(configPath string) (*Config, error) {
 	} else {
 		// Try default locations
 		for _, path := range []string{
-			"techstack.yaml",
-			"techstack.yml",
+			"homelab.yaml",
+			"homelab.yml",
 			"/etc/techstack/config.yaml",
-			filepath.Join(os.Getenv("HOME"), ".techstack", "config.yaml"),
+			filepath.Join(os.Getenv("HOME"), ".homelab", "config.yaml"),
 		} {
 			// #nosec G703 -- candidates are application-owned defaults, including the operator's home config.
 			if _, err := os.Stat(path); err == nil {
@@ -288,79 +288,79 @@ func (c *Config) loadFromEnv() error {
 	// Edge identity and request-decision keyrings. Decision keys may be
 	// dedicated; the middleware falls back to the identity key only when the
 	// decision key is intentionally absent.
-	c.EdgeAuthSecret = envStr("TECHSTACK_EDGE_AUTH_SECRET", c.EdgeAuthSecret)
-	c.EdgeAuthNextSecret = envStr("TECHSTACK_EDGE_AUTH_SECRET_NEXT", c.EdgeAuthNextSecret)
-	c.EdgeAuthKeyID = envStr("TECHSTACK_EDGE_AUTH_KEY_ID", c.EdgeAuthKeyID)
-	c.EdgeAuthNextKeyID = envStr("TECHSTACK_EDGE_AUTH_KEY_ID_NEXT", c.EdgeAuthNextKeyID)
-	c.EdgeFlagsSecret = envStr("TECHSTACK_EDGE_FLAGS_SECRET", c.EdgeFlagsSecret)
-	c.EdgeFlagsNextSecret = envStr("TECHSTACK_EDGE_FLAGS_SECRET_NEXT", c.EdgeFlagsNextSecret)
-	c.EdgeFlagsKeyID = envStr("TECHSTACK_EDGE_FLAGS_KEY_ID", c.EdgeFlagsKeyID)
-	c.EdgeFlagsNextKeyID = envStr("TECHSTACK_EDGE_FLAGS_KEY_ID_NEXT", c.EdgeFlagsNextKeyID)
+	c.EdgeAuthSecret = envStr("HOMELAB_EDGE_AUTH_SECRET", c.EdgeAuthSecret)
+	c.EdgeAuthNextSecret = envStr("HOMELAB_EDGE_AUTH_SECRET_NEXT", c.EdgeAuthNextSecret)
+	c.EdgeAuthKeyID = envStr("HOMELAB_EDGE_AUTH_KEY_ID", c.EdgeAuthKeyID)
+	c.EdgeAuthNextKeyID = envStr("HOMELAB_EDGE_AUTH_KEY_ID_NEXT", c.EdgeAuthNextKeyID)
+	c.EdgeFlagsSecret = envStr("HOMELAB_EDGE_FLAGS_SECRET", c.EdgeFlagsSecret)
+	c.EdgeFlagsNextSecret = envStr("HOMELAB_EDGE_FLAGS_SECRET_NEXT", c.EdgeFlagsNextSecret)
+	c.EdgeFlagsKeyID = envStr("HOMELAB_EDGE_FLAGS_KEY_ID", c.EdgeFlagsKeyID)
+	c.EdgeFlagsNextKeyID = envStr("HOMELAB_EDGE_FLAGS_KEY_ID_NEXT", c.EdgeFlagsNextKeyID)
 
 	// Server settings
-	c.Server.ListenAddr = envStr("TECHSTACK_LISTEN_ADDR", c.Server.ListenAddr)
-	c.Server.GRPCAddr = envStr("TECHSTACK_GRPC_ADDR", c.Server.GRPCAddr)
-	c.Server.Environment = envStr("TECHSTACK_ENV", c.Server.Environment)
-	if v := os.Getenv("TECHSTACK_CORS_ORIGINS"); v != "" {
+	c.Server.ListenAddr = envStr("HOMELAB_LISTEN_ADDR", c.Server.ListenAddr)
+	c.Server.GRPCAddr = envStr("HOMELAB_GRPC_ADDR", c.Server.GRPCAddr)
+	c.Server.Environment = envStr("HOMELAB_ENV", c.Server.Environment)
+	if v := os.Getenv("HOMELAB_CORS_ORIGINS"); v != "" {
 		c.Server.CORSOrigins = SplitOriginList(v)
 	} else if c.IsProduction() {
 		c.Server.CORSOrigins = nil
 	}
 
 	// Rate limiting settings
-	c.Server.RateLimitRPS = envFloat("TECHSTACK_RATE_LIMIT_RPS", c.Server.RateLimitRPS)
-	c.Server.RateLimitBurst = envInt("TECHSTACK_RATE_LIMIT_BURST", c.Server.RateLimitBurst)
-	c.Server.Replicas = envInt("TECHSTACK_REPLICAS", c.Server.Replicas)
+	c.Server.RateLimitRPS = envFloat("HOMELAB_RATE_LIMIT_RPS", c.Server.RateLimitRPS)
+	c.Server.RateLimitBurst = envInt("HOMELAB_RATE_LIMIT_BURST", c.Server.RateLimitBurst)
+	c.Server.Replicas = envInt("HOMELAB_REPLICAS", c.Server.Replicas)
 	if c.Server.Replicas < 1 {
 		c.Server.Replicas = 1
 	}
 
 	// gRPC Queue Backpressure settings (S7)
-	c.Server.GRPCQueueMaxSize = envInt("TECHSTACK_GRPC_QUEUE_MAX_SIZE", c.Server.GRPCQueueMaxSize)
-	c.Server.GRPCQueueOverflowStrategy = envStr("TECHSTACK_GRPC_QUEUE_OVERFLOW_STRATEGY", c.Server.GRPCQueueOverflowStrategy)
-	c.Server.GRPCQueueWarningThreshold = envInt("TECHSTACK_GRPC_QUEUE_WARNING_THRESHOLD", c.Server.GRPCQueueWarningThreshold)
-	c.Server.RuntimeLogMaxEntries = envInt("TECHSTACK_RUNTIME_LOG_MAX_ENTRIES", c.Server.RuntimeLogMaxEntries)
+	c.Server.GRPCQueueMaxSize = envInt("HOMELAB_GRPC_QUEUE_MAX_SIZE", c.Server.GRPCQueueMaxSize)
+	c.Server.GRPCQueueOverflowStrategy = envStr("HOMELAB_GRPC_QUEUE_OVERFLOW_STRATEGY", c.Server.GRPCQueueOverflowStrategy)
+	c.Server.GRPCQueueWarningThreshold = envInt("HOMELAB_GRPC_QUEUE_WARNING_THRESHOLD", c.Server.GRPCQueueWarningThreshold)
+	c.Server.RuntimeLogMaxEntries = envInt("HOMELAB_RUNTIME_LOG_MAX_ENTRIES", c.Server.RuntimeLogMaxEntries)
 
 	// Database settings
-	c.Database.Path = envStr("TECHSTACK_DB_PATH", c.Database.Path)
+	c.Database.Path = envStr("HOMELAB_DB_PATH", c.Database.Path)
 
 	// Logging settings
-	c.Logging.Level = envStr("TECHSTACK_LOG_LEVEL", c.Logging.Level)
-	c.Logging.Format = envStr("TECHSTACK_LOG_FORMAT", c.Logging.Format)
+	c.Logging.Level = envStr("HOMELAB_LOG_LEVEL", c.Logging.Level)
+	c.Logging.Format = envStr("HOMELAB_LOG_FORMAT", c.Logging.Format)
 
 	// Monitoring settings
-	if os.Getenv("TECHSTACK_TSDB_DIR") == "" && strings.TrimSpace(os.Getenv("TECHSTACK_DATA_DIR")) != "" {
+	if os.Getenv("HOMELAB_TSDB_DIR") == "" && strings.TrimSpace(os.Getenv("HOMELAB_DATA_DIR")) != "" {
 		// A legacy relative TSDB keeps being used; otherwise it lives in the
 		// state directory below the configured data root.
 		if _, err := os.Stat(c.Monitoring.TSDBDir); err != nil {
 			c.Monitoring.TSDBDir = filepath.Join(StateDirFromEnv(), "monitoring", "tsdb")
 		}
 	}
-	c.Monitoring.TSDBDir = envStr("TECHSTACK_TSDB_DIR", c.Monitoring.TSDBDir)
-	c.Monitoring.QueryBackendURL = envStr("TECHSTACK_MONITOR_QUERY_BACKEND_URL", c.Monitoring.QueryBackendURL)
-	c.Monitoring.CollectorMode = envStr("TECHSTACK_MONITOR_COLLECTOR_MODE", c.Monitoring.CollectorMode)
-	c.Monitoring.AlertInterval = envStr("TECHSTACK_ALERT_INTERVAL", c.Monitoring.AlertInterval)
-	c.Monitoring.IngestFreshnessTTL = envStr("TECHSTACK_MONITOR_INGEST_FRESHNESS_TTL", c.Monitoring.IngestFreshnessTTL)
-	c.Monitoring.OTLPLaneRequirement = envStr("TECHSTACK_MONITOR_OTLP_REQUIREMENT", c.Monitoring.OTLPLaneRequirement)
-	c.Monitoring.LegacyPushLaneRequirement = envStr("TECHSTACK_MONITOR_LEGACY_REQUIREMENT", c.Monitoring.LegacyPushLaneRequirement)
+	c.Monitoring.TSDBDir = envStr("HOMELAB_TSDB_DIR", c.Monitoring.TSDBDir)
+	c.Monitoring.QueryBackendURL = envStr("HOMELAB_MONITOR_QUERY_BACKEND_URL", c.Monitoring.QueryBackendURL)
+	c.Monitoring.CollectorMode = envStr("HOMELAB_MONITOR_COLLECTOR_MODE", c.Monitoring.CollectorMode)
+	c.Monitoring.AlertInterval = envStr("HOMELAB_ALERT_INTERVAL", c.Monitoring.AlertInterval)
+	c.Monitoring.IngestFreshnessTTL = envStr("HOMELAB_MONITOR_INGEST_FRESHNESS_TTL", c.Monitoring.IngestFreshnessTTL)
+	c.Monitoring.OTLPLaneRequirement = envStr("HOMELAB_MONITOR_OTLP_REQUIREMENT", c.Monitoring.OTLPLaneRequirement)
+	c.Monitoring.LegacyPushLaneRequirement = envStr("HOMELAB_MONITOR_LEGACY_REQUIREMENT", c.Monitoring.LegacyPushLaneRequirement)
 
 	// Simulation removed (cleanup plan 2026-04-27 phase 3.1).
 
 	// Server data directory
-	c.Server.DataDir = envStr("TECHSTACK_DATA_DIR", c.Server.DataDir)
-	c.Server.RuntimeLogPath = envStr("TECHSTACK_RUNTIME_LOG_PATH", c.Server.RuntimeLogPath)
+	c.Server.DataDir = envStr("HOMELAB_DATA_DIR", c.Server.DataDir)
+	c.Server.RuntimeLogPath = envStr("HOMELAB_RUNTIME_LOG_PATH", c.Server.RuntimeLogPath)
 	if c.Server.RuntimeLogPath == "" {
 		c.Server.RuntimeLogPath = filepath.Join(c.Server.DataDir, "runtime-logs.jsonl")
 	}
 	// StackKits directory
-	c.StackKitsDir = envStr("TECHSTACK_STACKKITS_DIR", c.StackKitsDir)
+	c.StackKitsDir = envStr("HOMELAB_STACKKITS_DIR", c.StackKitsDir)
 
 	// Drift detection scheduler settings
-	if value := os.Getenv("TECHSTACK_DRIFT_ENABLED"); value != "" {
+	if value := os.Getenv("HOMELAB_DRIFT_ENABLED"); value != "" {
 		c.Drift.Enabled = value == "true" || value == "1"
 	}
-	c.Drift.Interval = envStr("TECHSTACK_DRIFT_INTERVAL", c.Drift.Interval)
-	c.Drift.Retention = envInt("TECHSTACK_DRIFT_RETENTION", c.Drift.Retention)
+	c.Drift.Interval = envStr("HOMELAB_DRIFT_INTERVAL", c.Drift.Interval)
+	c.Drift.Retention = envInt("HOMELAB_DRIFT_RETENTION", c.Drift.Retention)
 
 	return nil
 }
@@ -469,7 +469,7 @@ func (c *Config) ValidateCORSOrigins() ([]string, []string) {
 
 	if hasWildcard {
 		if isStrict {
-			warnings = append(warnings, "CRITICAL: CORS wildcard (*) in production/local is insecure! Set TECHSTACK_CORS_ORIGINS to specific origins.")
+			warnings = append(warnings, "CRITICAL: CORS wildcard (*) in production/local is insecure! Set HOMELAB_CORS_ORIGINS to specific origins.")
 			// In production with wildcard, fall back to empty (most restrictive)
 			// This prevents cross-site attacks but may break legitimate requests
 			origins = []string{}
@@ -540,16 +540,16 @@ func (c *Config) ValidateLocalPosture() error {
 	if !c.IsLocal() {
 		return nil
 	}
-	if err := requireLoopbackListen("TECHSTACK_LISTEN_ADDR", c.Server.ListenAddr); err != nil {
+	if err := requireLoopbackListen("HOMELAB_LISTEN_ADDR", c.Server.ListenAddr); err != nil {
 		return err
 	}
-	return requireLoopbackListen("TECHSTACK_GRPC_ADDR", c.Server.GRPCAddr)
+	return requireLoopbackListen("HOMELAB_GRPC_ADDR", c.Server.GRPCAddr)
 }
 
 func requireLoopbackListen(name, addr string) error {
 	host, _, err := net.SplitHostPort(strings.TrimSpace(addr))
 	if err != nil {
-		return fmt.Errorf("TECHSTACK_ENV=local requires a loopback %s (host:port), got %q: %w", name, addr, err)
+		return fmt.Errorf("HOMELAB_ENV=local requires a loopback %s (host:port), got %q: %w", name, addr, err)
 	}
 	host = strings.Trim(host, "[]")
 	if strings.EqualFold(host, "localhost") {
@@ -557,7 +557,7 @@ func requireLoopbackListen(name, addr string) error {
 	}
 	ip := net.ParseIP(host)
 	if ip == nil || !ip.IsLoopback() {
-		return fmt.Errorf("TECHSTACK_ENV=local requires a loopback %s, got %q", name, addr)
+		return fmt.Errorf("HOMELAB_ENV=local requires a loopback %s, got %q", name, addr)
 	}
 	return nil
 }

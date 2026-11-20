@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/ril/actions"
-	"github.com/kombifyio/techstack/pkg/serviceauth"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/ril/actions"
+	"github.com/kombifyio/homelab/pkg/serviceauth"
 )
 
 // RILGatewayCardPath is a private owner-scoped read for Gateway's decision adapter.
@@ -23,7 +23,7 @@ const rilGatewayCardScope = "ril:decision-card:read"
 // card and owner/tenant selected by Gateway after verifying its caller.
 func RegisterRILGatewayCardRoute(r *httpx.Router, authority actions.Authority) {
 	r.POST(RILGatewayCardPath, func(e *httpx.Event) error {
-		cfg, err := serviceauth.Apply(servicecall.Config{ServiceName: "techstack", Enabled: true, RequireEd25519: true, AllowedCallers: []string{"gateway"}})
+		cfg, err := serviceauth.Apply(servicecall.Config{ServiceName: "homelab", Enabled: true, RequireEd25519: true, AllowedCallers: []string{"gateway"}})
 		if err != nil || authority == nil {
 			http.Error(e.Response, "authority unavailable", http.StatusServiceUnavailable)
 			return nil

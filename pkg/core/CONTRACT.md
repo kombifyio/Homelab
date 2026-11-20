@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Central domain types and interfaces that define the data model for the entire kombify-TechStack system. All other packages depend on these types.
+Central domain types and interfaces that define the data model for the entire kombify-Homelab system. All other packages depend on these types.
 
 ## Core Features
 

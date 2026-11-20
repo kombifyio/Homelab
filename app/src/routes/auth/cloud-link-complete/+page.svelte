@@ -42,7 +42,7 @@
 </script>
 
 <svelte:head>
-  <title>{tr("ui.authCloud-link-complete.kombifyCloudLinkKombifyTechstack")}</title>
+  <title>{tr("ui.authCloud-link-complete.kombifyCloudLinkKombifyHomelab")}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-background flex items-center justify-center">

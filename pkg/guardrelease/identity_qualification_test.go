@@ -14,7 +14,7 @@ import (
 // pin are all refused.
 func TestQualificationIdentityAdmitsOnlyItsOwnRun(t *testing.T) {
 	const (
-		workflow = "kombifyio/TechStack/.github/workflows/guard-qualification.yml@refs/heads/guard-qual-h"
+		workflow = "kombifyio/Homelab/.github/workflows/guard-qualification.yml@refs/heads/guard-qual-h"
 		commit   = "0123456789abcdef0123456789abcdef01234567"
 	)
 	pinned, err := QualificationIdentity(workflow, commit)
@@ -48,7 +48,7 @@ func TestQualificationIdentityAdmitsOnlyItsOwnRun(t *testing.T) {
 	}{
 		"the pinned run": {cert: good, ok: true},
 		"the release workflow": {cert: with(func(c *certificate.Summary) {
-			c.SubjectAlternativeName = "https://github.com/kombifyio/TechStack/.github/workflows/guard-release.yml@refs/heads/main"
+			c.SubjectAlternativeName = "https://github.com/kombifyio/Homelab/.github/workflows/guard-release.yml@refs/heads/main"
 			c.BuildSignerURI, c.SourceRepositoryRef = c.SubjectAlternativeName, "refs/heads/main"
 		})},
 		"another commit":       {cert: with(func(c *certificate.Summary) { c.SourceRepositoryDigest = "89abcdef0123456789abcdef0123456789abcdef" })},
@@ -63,10 +63,10 @@ func TestQualificationIdentityAdmitsOnlyItsOwnRun(t *testing.T) {
 		}
 	}
 	for name, bad := range map[string][2]string{
-		"another workflow": {"kombifyio/TechStack/.github/workflows/guard-release.yml@refs/heads/main", commit},
-		"a tag ref":        {"kombifyio/TechStack/.github/workflows/guard-qualification.yml@refs/tags/v1", commit},
+		"another workflow": {"kombifyio/Homelab/.github/workflows/guard-release.yml@refs/heads/main", commit},
+		"a tag ref":        {"kombifyio/Homelab/.github/workflows/guard-qualification.yml@refs/tags/v1", commit},
 		"a fork":           {"attacker/kombify-StackKits/.github/workflows/guard-qualification.yml@refs/heads/x", commit},
-		"no ref":           {"kombifyio/TechStack/.github/workflows/guard-qualification.yml", commit},
+		"no ref":           {"kombifyio/Homelab/.github/workflows/guard-qualification.yml", commit},
 		"a short commit":   {workflow, "0123456"},
 		"no commit":        {workflow, ""},
 	} {

@@ -13,12 +13,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/privatefs"
-	agentpkg "github.com/kombifyio/techstack/pkg/agent"
-	"github.com/kombifyio/techstack/pkg/agent/httpguard"
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/guardrelease"
-	"github.com/kombifyio/techstack/pkg/ril/nodeproof"
+	"github.com/kombifyio/homelab/internal/privatefs"
+	agentpkg "github.com/kombifyio/homelab/pkg/agent"
+	"github.com/kombifyio/homelab/pkg/agent/httpguard"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
+	"github.com/kombifyio/homelab/pkg/ril/nodeproof"
 )
 
 // Options configure the executor process.
@@ -68,14 +68,14 @@ func (o *Options) defaults() {
 func NewUpdaterFromOptions(opts Options) (*Updater, error) {
 	opts.defaults()
 	verifierOptions := guardrelease.Options{}
-	if path := strings.TrimSpace(opts.Getenv("TECHSTACK_GUARD_RELEASE_TRUSTED_ROOT")); path != "" {
+	if path := strings.TrimSpace(opts.Getenv("HOMELAB_GUARD_RELEASE_TRUSTED_ROOT")); path != "" {
 		raw, err := os.ReadFile(path) // #nosec G304 -- an operator-configured path in the executor's own environment.
 		if err != nil {
 			return nil, fmt.Errorf("read the configured release trusted root: %w", err)
 		}
 		verifierOptions.TrustedRootJSON = raw
 	}
-	issuer, san := strings.TrimSpace(opts.Getenv("TECHSTACK_GUARD_RELEASE_SIGNER_ISSUER")), strings.TrimSpace(opts.Getenv("TECHSTACK_GUARD_RELEASE_SIGNER_SAN_REGEXP"))
+	issuer, san := strings.TrimSpace(opts.Getenv("HOMELAB_GUARD_RELEASE_SIGNER_ISSUER")), strings.TrimSpace(opts.Getenv("HOMELAB_GUARD_RELEASE_SIGNER_SAN_REGEXP"))
 	if issuer != "" || san != "" {
 		verifierOptions.Identity = guardrelease.Identity{Issuer: issuer, SANRegexp: san}
 	}
@@ -84,13 +84,13 @@ func NewUpdaterFromOptions(opts Options) (*Updater, error) {
 		return nil, err
 	}
 	budget := DefaultTrialBudget
-	if parsed, err := parseDuration(opts.Getenv("TECHSTACK_GUARD_TRIAL_BUDGET")); err == nil && parsed > 0 {
+	if parsed, err := parseDuration(opts.Getenv("HOMELAB_GUARD_TRIAL_BUDGET")); err == nil && parsed > 0 {
 		budget = parsed
 	}
 	return NewUpdater(UpdaterConfig{
 		StateDir: opts.StateDir, HandoffDir: opts.HandoffDir, AgentPath: opts.AgentPath, OperationsPath: opts.OperationsPath, GuardOnly: opts.GuardOnly,
 		CurrentVersion: opts.Version, Verifier: verifier, Systemd: ExecSystemd{}, TrialBudget: budget, Log: opts.Log,
-		AllowUnsigned: envTrue(opts.Getenv("TECHSTACK_GUARD_ALLOW_UNSIGNED_UPDATES")),
+		AllowUnsigned: envTrue(opts.Getenv("HOMELAB_GUARD_ALLOW_UNSIGNED_UPDATES")),
 	})
 }
 
@@ -106,13 +106,13 @@ func ServeConnection(ctx context.Context, conn net.Conn, opts Options) error {
 		opts.Log.Warn("guard_trial_adoption_failed", "error", err.Error())
 	}
 	manifests := append([]string{}, httpguard.DefaultAccessManifestFiles()...)
-	for _, path := range strings.Split(opts.Getenv("TECHSTACK_ACCESS_MANIFEST"), ",") {
+	for _, path := range strings.Split(opts.Getenv("HOMELAB_ACCESS_MANIFEST"), ",") {
 		if path = strings.TrimSpace(path); path != "" {
 			manifests = append(manifests, path)
 		}
 	}
 	host, err := NewHost(HostConfig{
-		StackKit: agentpkg.NewStackKitExecutorFromConfig(opts.Getenv("TECHSTACK_STACKKIT_RELEASE_PIN"), opts.Getenv("TECHSTACK_STACKKIT_RELEASE_CACHE")), Updater: updater,
+		StackKit: agentpkg.NewStackKitExecutorFromConfig(opts.Getenv("HOMELAB_STACKKIT_RELEASE_PIN"), opts.Getenv("HOMELAB_STACKKIT_RELEASE_CACHE")), Updater: updater,
 		StateDir: opts.StateDir, HandoffDir: opts.HandoffDir, ManifestPaths: manifests,
 	})
 	if err != nil {

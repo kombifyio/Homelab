@@ -3,12 +3,12 @@
 set -euo pipefail
 
 public_port="${PORT:-5260}"
-data_dir="${TECHSTACK_DATA_DIR:-/data}"
+data_dir="${HOMELAB_DATA_DIR:-/data}"
 # An existing legacy state directory keeps being used; new installs get state/.
-if [[ -n "${TECHSTACK_STATE_DIR:-}" ]]; then
-  pb_data_dir="${TECHSTACK_STATE_DIR}"
-elif [[ -n "${TECHSTACK_PB_DATA_DIR:-}" ]]; then # pocketbase-migration-compat
-  pb_data_dir="${TECHSTACK_PB_DATA_DIR}" # pocketbase-migration-compat
+if [[ -n "${HOMELAB_STATE_DIR:-}" ]]; then
+  pb_data_dir="${HOMELAB_STATE_DIR}"
+elif [[ -n "${HOMELAB_PB_DATA_DIR:-}" ]]; then # pocketbase-migration-compat
+  pb_data_dir="${HOMELAB_PB_DATA_DIR}" # pocketbase-migration-compat
 elif [[ -d "${data_dir}/pb_data" ]]; then # pocketbase-migration-compat
   pb_data_dir="${data_dir}/pb_data" # pocketbase-migration-compat
 else
@@ -16,23 +16,23 @@ else
 fi
 stackkits_log_dir="${STACKKITS_LOG_DIR:-${pb_data_dir}/stackkits/logs}"
 
-if [[ "$(id -u)" == "0" && "${TECHSTACK_RUN_AS_ROOT:-}" != "1" ]]; then
+if [[ "$(id -u)" == "0" && "${HOMELAB_RUN_AS_ROOT:-}" != "1" ]]; then
   mkdir -p "${data_dir}" "${pb_data_dir}" "${stackkits_log_dir}"
-  chown techstack:techstack "${data_dir}" "${pb_data_dir}" "$(dirname "${stackkits_log_dir}")" "${stackkits_log_dir}"
-  if ! find "${data_dir}" -maxdepth "${TECHSTACK_DATA_CHOWN_MAX_DEPTH:-3}" -exec chown techstack:techstack {} +; then
+  chown homelab:homelab "${data_dir}" "${pb_data_dir}" "$(dirname "${stackkits_log_dir}")" "${stackkits_log_dir}"
+  if ! find "${data_dir}" -maxdepth "${HOMELAB_DATA_CHOWN_MAX_DEPTH:-3}" -exec chown homelab:homelab {} +; then
     echo "[unified] warning: data ownership refresh was incomplete; continuing startup" >&2
   fi
-  exec su-exec techstack "$0" "$@"
+  exec su-exec homelab "$0" "$@"
 fi
 
 # Private process commands use the same image without starting the HTTP app.
 # Render's dockerCommand can preserve ENTRYPOINT; unwrap only these exact commands.
-if [[ "${1:-}" == "/app/techstack" && ( "${2:-}" == "execution-serve" || "${2:-}" == "backup-worker" ) ]]; then
+if [[ "${1:-}" == "/app/homelab" && ( "${2:-}" == "execution-serve" || "${2:-}" == "backup-worker" ) ]]; then
   shift
 fi
 case "${1:-}" in
   execution-serve|backup-worker)
-    exec /app/techstack "$@"
+    exec /app/homelab "$@"
     ;;
 esac
 
@@ -42,9 +42,9 @@ esac
 # command also works when the platform preserves Docker ENTRYPOINT semantics.
 case "${1:-}" in
   provider-control-bootstrap|version)
-    exec /app/techstack "$@"
+    exec /app/homelab "$@"
     ;;
-  /app/techstack|/bin/sh|/bin/bash|sh|bash)
+  /app/homelab|/bin/sh|/bin/bash|sh|bash)
     exec "$@"
     ;;
 esac
@@ -65,8 +65,8 @@ fi
 # correct on any plan and when self-hosting, and leave an explicitly configured
 # GOMEMLIMIT untouched.
 if [[ -z "${GOMEMLIMIT:-}" ]]; then
-  cgroup_v2_path="${TECHSTACK_CGROUP_MEMORY_MAX:-/sys/fs/cgroup/memory.max}"
-  cgroup_v1_path="${TECHSTACK_CGROUP_MEMORY_LIMIT:-/sys/fs/cgroup/memory/memory.limit_in_bytes}"
+  cgroup_v2_path="${HOMELAB_CGROUP_MEMORY_MAX:-/sys/fs/cgroup/memory.max}"
+  cgroup_v1_path="${HOMELAB_CGROUP_MEMORY_LIMIT:-/sys/fs/cgroup/memory/memory.limit_in_bytes}"
   container_memory_bytes=""
   if [[ -r "${cgroup_v2_path}" ]]; then
     container_memory_bytes="$(cat "${cgroup_v2_path}" 2>/dev/null || true)"
@@ -79,7 +79,7 @@ if [[ -z "${GOMEMLIMIT:-}" ]]; then
      && (( container_memory_bytes < 137438953472 )); then
     # Leave headroom for the Go runtime's own off-heap memory and everything
     # else in the container. A soft limit above the hard limit protects nothing.
-    soft_limit=$(( container_memory_bytes * ${TECHSTACK_GOMEMLIMIT_PERCENT:-75} / 100 ))
+    soft_limit=$(( container_memory_bytes * ${HOMELAB_GOMEMLIMIT_PERCENT:-75} / 100 ))
     if (( soft_limit > 0 )); then
       export GOMEMLIMIT="${soft_limit}"
       echo "[unified] GOMEMLIMIT=${soft_limit} derived from cgroup limit ${container_memory_bytes}"
@@ -93,15 +93,15 @@ mkdir -p "${pb_data_dir}"
 
 export PORT="${public_port}"
 export HOST="0.0.0.0"
-export TECHSTACK_PORT="${public_port}"
+export HOMELAB_PORT="${public_port}"
 # The Go backend serves the embedded static SPA itself (ADR-033 OQ2 web
 # convergence); there is no Node SSR process anymore. The httpx backend binds
-# cfg.Server.ListenAddr (TECHSTACK_LISTEN_ADDR), so pin it to the public port.
-export TECHSTACK_LISTEN_ADDR="0.0.0.0:${public_port}"
+# cfg.Server.ListenAddr (HOMELAB_LISTEN_ADDR), so pin it to the public port.
+export HOMELAB_LISTEN_ADDR="0.0.0.0:${public_port}"
 
 # StackKits has no HTTP action service: every StackKits operation is a typed
 # command the enrolled node runs with the pinned CLI.
-/app/techstack serve "--http=0.0.0.0:${public_port}" "--dir=${pb_data_dir}" &
+/app/homelab serve "--http=0.0.0.0:${public_port}" "--dir=${pb_data_dir}" &
 backend_pid=$!
 
 pids=("${backend_pid}")

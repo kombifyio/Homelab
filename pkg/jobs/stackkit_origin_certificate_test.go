@@ -13,9 +13,9 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"github.com/kombifyio/techstack/internal/gocommon/edgeauth"
-	"github.com/kombifyio/techstack/pkg/identity"
-	"github.com/kombifyio/techstack/pkg/middleware"
+	"github.com/kombifyio/homelab/internal/gocommon/edgeauth"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/middleware"
 
 	"math/big"
 	"os"
@@ -26,10 +26,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/logger"
-	"github.com/kombifyio/techstack/pkg/originca"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/originca"
 )
 
 type memoryOriginStore struct {
@@ -184,7 +184,7 @@ func originBase() StackKitLifecycleRequest {
 	}
 }
 
-// The key exists on the node only. Everything Techstack hands to Cloudflare,
+// The key exists on the node only. Everything Homelab hands to Cloudflare,
 // persists in custody, sends to the node or returns in a result is a CSR, the
 // public certificate or an id.
 func TestOriginCertificateKeyNeverLeavesTheNode(t *testing.T) {
@@ -402,7 +402,7 @@ func TestPublicTLSRepairRedispatchesApplyAfterTheCertificateInstall(t *testing.T
 func TestJobPayloadAuthoritySurvivesRequestAndRejectsTransplant(t *testing.T) {
 	job := &Job{ID: "job-1", Type: JobTypeDeploy, TargetID: "stack-1", Payload: map[string]interface{}{"tenant_id": "tenant", "owner_id": "owner"}}
 	request := identity.NewContext(t.Context(), &identity.Identity{UserID: "owner", OrgID: "tenant"})
-	request = middleware.WithMembershipEntitlements(request, "techstack.inventory.operate", "techstack.inventory.provision")
+	request = middleware.WithMembershipEntitlements(request, "homelab.inventory.operate", "homelab.inventory.provision")
 	request = edgeauth.FlagsToContext(request, edgeauth.FlagSet{Flags: map[string]bool{"self.healing.enabled": true}})
 	CaptureJobAuthorization(request, job, "tenant", "owner")
 	data, err := json.Marshal(job)
@@ -419,7 +419,7 @@ func TestJobPayloadAuthoritySurvivesRequestAndRejectsTransplant(t *testing.T) {
 			t.Fatal("worker inherited request flags")
 		}
 		grants, source, ok := middleware.AuthorizedEntitlementsFromContext(ctx)
-		if !ok || source != middleware.EntitlementSourceJobPayload || !grants.Has("techstack.inventory.operate") || grants.Has("techstack.inventory.provision") {
+		if !ok || source != middleware.EntitlementSourceJobPayload || !grants.Has("homelab.inventory.operate") || grants.Has("homelab.inventory.provision") {
 			t.Fatal("job did not preserve its exact bounded operate grant")
 		}
 		if _, signed := middleware.SignedEntitlementsFromContext(ctx); signed {
@@ -441,10 +441,10 @@ func TestJobPayloadAuthoritySurvivesRequestAndRejectsTransplant(t *testing.T) {
 func TestJobAdmissionDiscardsInjectedAuthorityAndSupportsResultScope(t *testing.T) {
 	job := &Job{ID: "job-1", Type: JobTypeDeploy, TargetID: "stack-1", Result: map[string]interface{}{"tenant_id": "tenant", "owner_id": "owner"}}
 	ctx := identity.NewContext(t.Context(), &identity.Identity{UserID: "owner", OrgID: "tenant"})
-	ctx = middleware.WithMembershipEntitlements(ctx, "techstack.inventory.read")
+	ctx = middleware.WithMembershipEntitlements(ctx, "homelab.inventory.read")
 	CaptureJobAuthorization(ctx, job, "tenant", "owner")
 	grants, _, ok := middleware.AuthorizedEntitlementsFromContext(contextWithJobAuthorization(context.Background(), job))
-	if !ok || !grants.Has("techstack.inventory.read") || grants.Has("techstack.inventory.operate") {
+	if !ok || !grants.Has("homelab.inventory.read") || grants.Has("homelab.inventory.operate") {
 		t.Fatal("result-scoped job did not receive its exact read grant")
 	}
 	// Re-admission always replaces an imported reserved field, even when the

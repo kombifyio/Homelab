@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 
-	"github.com/kombifyio/techstack/pkg/db"
+	"github.com/kombifyio/homelab/pkg/db"
 )
 
 var errRequestReplay = errors.New("execution request was already admitted")

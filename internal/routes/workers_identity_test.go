@@ -10,13 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/guardidentity"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/middleware"
-	"github.com/kombifyio/techstack/pkg/pairingtoken"
-	"github.com/kombifyio/techstack/pkg/workerauth"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/middleware"
+	"github.com/kombifyio/homelab/pkg/pairingtoken"
+	"github.com/kombifyio/homelab/pkg/workerauth"
 )
 
 const guardTestHost = "http://example.com"
@@ -510,7 +510,7 @@ func TestGuardKeyRotationIsProvenByBothKeysAndKeepsOnlyTheNewKey(t *testing.T) {
 // platform service secret) cannot mint one: a token signed with the raw secret
 // is refused even for a worker that has a bound key (F-11).
 func TestGuardAccessTokenCannotBeMintedFromTheBaseSecret(t *testing.T) {
-	t.Setenv("TECHSTACK_WORKER_AGENT_TOKEN_SECRET", "base-worker-secret")
+	t.Setenv("HOMELAB_WORKER_AGENT_TOKEN_SECRET", "base-worker-secret")
 	g := newGuardHarness(t)
 	g.handler.credentialSecret = workerauth.SecretFromEnv()
 	key := newGuardKey(t)

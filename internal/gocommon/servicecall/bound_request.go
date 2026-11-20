@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/identity"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 )
 
 // RequireBoundServiceAuth admits only a machine service token whose signed

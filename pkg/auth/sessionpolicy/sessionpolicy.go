@@ -1,4 +1,4 @@
-// Package sessionpolicy owns TechStack browser-session policy.
+// Package sessionpolicy owns Homelab browser-session policy.
 //
 // Gateway LOGIN-STANDARD "One login per device": a browser session lives as
 // long as it is used. The signed session token lasts one idle window (one
@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/authsession"
+	"github.com/kombifyio/homelab/internal/gocommon/authsession"
 )
 
 const (
@@ -37,7 +37,7 @@ const (
 	originAudienceTag  = ":session-origin"
 )
 
-// BrowserSessionConfig returns the shared authsession config with TechStack's
+// BrowserSessionConfig returns the shared authsession config with Homelab's
 // product lifetime applied.
 func BrowserSessionConfig(audience string, secret []byte) authsession.Config {
 	return authsession.Config{
@@ -47,7 +47,7 @@ func BrowserSessionConfig(audience string, secret []byte) authsession.Config {
 	}
 }
 
-// Browser renews TechStack browser sessions and keeps their companion cookie
+// Browser renews Homelab browser sessions and keeps their companion cookie
 // in step with the session token.
 type Browser struct {
 	sessions   *authsession.Manager
@@ -66,7 +66,7 @@ func NewBrowser(cfg authsession.Config, sessions *authsession.Manager, cookieNam
 	if sessionCfg.Issuer == "" {
 		// The V2 session compatibility constructor supplies this legacy issuer;
 		// the origin manager below intentionally keeps the shared default.
-		sessionCfg.Issuer = "techstack"
+		sessionCfg.Issuer = "homelab"
 	}
 	originCfg := cfg
 	originCfg.Audience = cfg.Audience + originAudienceTag

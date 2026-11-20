@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // VerifiedEdgeEnvelope carries the original signed Gateway request. It is not

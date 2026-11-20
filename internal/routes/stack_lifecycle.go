@@ -11,18 +11,18 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/kombifyio/techstack/internal/providercatalog"
-	"github.com/kombifyio/techstack/internal/providercontrol"
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	jobruntime "github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/middleware"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
-	"github.com/kombifyio/techstack/pkg/vmleases"
+	"github.com/kombifyio/homelab/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/providercontrol"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	jobruntime "github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/middleware"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 )
 
 const (
@@ -197,7 +197,7 @@ func (h stackLifecycleRouteHandlers) managedRuntimeAuthorityPreflight(e *httpx.E
 				managedRuntimeDetailsRetryableKey:  true,
 			})
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.managed-runtimes.authority")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.managed-runtimes.authority")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -490,7 +490,7 @@ func (h stackLifecycleRouteHandlers) findManagedRuntimeStack(e *httpx.Event, own
 	if h.stacks == nil {
 		return managedRuntimeStackRef{}, httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Stack authority is temporarily unavailable", nil)
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.managed-runtime.create")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.managed-runtime.create")
 	if tenantErr != nil {
 		return managedRuntimeStackRef{}, tenantErr
 	}

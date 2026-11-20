@@ -7,15 +7,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 	"github.com/kombifyio/stackkits/pkg/hostdelivery"
 )
 
 // ErrBackupWalletUnavailable fails a managed backup delivery in Wallet mode
-// when the Wallet client or its delivering key is not configured. Techstack
+// when the Wallet client or its delivering key is not configured. Homelab
 // never falls back to sealing the credentials itself there.
 var ErrBackupWalletUnavailable = errors.New("managed backup delivery in kombify Wallet mode needs the Wallet client and its delivering key (" +
-	"TECHSTACK_WALLET_HOST_DELIVERY_PUBLIC_KEY, TECHSTACK_WALLET_HOST_DELIVERY_KEY_ID); Techstack does not seal backup credentials itself in Wallet mode")
+	"HOMELAB_WALLET_HOST_DELIVERY_PUBLIC_KEY, HOMELAB_WALLET_HOST_DELIVERY_KEY_ID); Homelab Runtime does not seal backup credentials itself in Wallet mode")
 
 // BackupWallet is the kombify Wallet as managed backup delivery sees it.
 type BackupWallet interface {

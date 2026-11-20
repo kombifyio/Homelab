@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-const receiptPath = ".techstack-public-export.json";
+const receiptPath = ".homelab-public-export.json";
 const root = resolve(process.argv[2] || ".");
 const receipt = JSON.parse(readFileSync(join(root, receiptPath), "utf8"));
 

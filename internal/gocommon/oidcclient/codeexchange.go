@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/internal/httpsecurity"
+	"github.com/kombifyio/homelab/internal/gocommon/internal/httpsecurity"
 )
 
 // Errors returned by code exchange.

@@ -3,10 +3,10 @@ package stacks
 import (
 	"context"
 	"errors"
-	"github.com/kombifyio/techstack/internal/routes/trust"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/internal/routes/trust"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
 	"strings"
 	"time"
 )

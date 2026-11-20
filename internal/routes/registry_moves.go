@@ -4,10 +4,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // registryServiceMove is the Placement Board's move of one application: the

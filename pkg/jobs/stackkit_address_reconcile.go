@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/kombifyme"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/kombifyme"
 )
 
 const ManagedAddressReconciliationResultField = "kombify_me_address_reconciliation"

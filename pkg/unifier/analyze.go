@@ -10,9 +10,9 @@ import (
 	"math"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 const serviceTypeMonitoring = "monitoring"
@@ -189,7 +189,7 @@ func (e *Engine) calculateWorkerRequirements(spec *core.KombinationSpec) (core.W
 		byWorkload[footprint.Workload] = append(byWorkload[footprint.Workload], footprint)
 	}
 	reservation := stackkitrelease.UseCaseResources{}
-	// Only unrelated discovered services use Techstack's generic estimates.
+	// Only unrelated discovered services use Homelab's generic estimates.
 	for _, svc := range spec.Services {
 		serviceProfile := svc.ComputeProfile
 		if serviceProfile == "" {

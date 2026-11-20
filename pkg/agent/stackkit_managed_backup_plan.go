@@ -6,8 +6,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // The signed historical CLI proves the old generation; retain its complete

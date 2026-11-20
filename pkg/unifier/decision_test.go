@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 func TestLoader_LoadInputEnvelopeBytes(t *testing.T) {

@@ -19,7 +19,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/kombifyio/techstack/internal/routes/auth"
+	"github.com/kombifyio/homelab/internal/routes/auth"
 	// #nosec G501 -- md5 derives the deterministic homelab id matching
 	// migration 044's backfill scheme ('hl-' || md5(md5(tenant)||md5(owner)));
 	// it is an identity projection, not cryptography.
@@ -36,21 +36,21 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/kombifyio/techstack/internal/layoutadvice"
-	productnotifications "github.com/kombifyio/techstack/internal/notifications"
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	"github.com/kombifyio/techstack/internal/routes/trust"
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/core"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
-	"github.com/kombifyio/techstack/pkg/orchestrator"
-	"github.com/kombifyio/techstack/pkg/specv2"
-	"github.com/kombifyio/techstack/pkg/unifier"
+	"github.com/kombifyio/homelab/internal/layoutadvice"
+	productnotifications "github.com/kombifyio/homelab/internal/notifications"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	"github.com/kombifyio/homelab/internal/routes/trust"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/orchestrator"
+	"github.com/kombifyio/homelab/pkg/specv2"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 const (
@@ -291,7 +291,7 @@ func (h wizardRunHandlers) createWizardRun(e *httpx.Event) error {
 	if authErr != nil {
 		return authErr
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "techstack.wizard.runs.create")
+	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "homelab.wizard.runs.create")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -408,7 +408,7 @@ func (h wizardRunHandlers) getActiveWizardRun(e *httpx.Event) error {
 	if authErr != nil {
 		return authErr
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "techstack.wizard.runs.read")
+	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "homelab.wizard.runs.read")
 	if tenantErr != nil {
 		return tenantErr
 	}

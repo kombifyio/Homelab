@@ -1,4 +1,4 @@
-// Package runtimeaction contains Techstack's frozen pre-StackAction adapter.
+// Package runtimeaction contains Homelab's frozen pre-StackAction adapter.
 // New product execution uses the generated stackaction contract and the pinned
 // StackKits CLI. These definitions retain only local persisted/job compatibility.
 package runtimeaction

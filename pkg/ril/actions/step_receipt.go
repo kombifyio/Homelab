@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	rilaction "github.com/kombifyio/techstack/pkg/ril/actioncontract"
+	rilaction "github.com/kombifyio/homelab/pkg/ril/actioncontract"
 )
 
 // StepReceiptReader reads the typed step receipt of one terminal card.

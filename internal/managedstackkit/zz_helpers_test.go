@@ -3,14 +3,14 @@ package managedstackkit
 // Helpers of retired unit tests that the remaining boundary tests of this package still use.
 
 import (
-	"github.com/kombifyio/techstack/pkg/backupstore"
-	"encoding/base64"
 	"context"
 	"crypto/ecdh"
 	"crypto/ed25519"
-	"github.com/kombifyio/stackkits/pkg/hostdelivery"
-	"encoding/json"
 	"crypto/rand"
+	"encoding/base64"
+	"encoding/json"
+	"github.com/kombifyio/homelab/pkg/backupstore"
+	"github.com/kombifyio/stackkits/pkg/hostdelivery"
 	"testing"
 	"time"
 )
@@ -99,4 +99,3 @@ func (n node) statement(t *testing.T, challenge string, issuedAt time.Time) []by
 	}
 	return encoded
 }
-

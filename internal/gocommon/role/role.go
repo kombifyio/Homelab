@@ -10,7 +10,7 @@
 // Canonical SSOT: platform/standards/PLATFORM-CONSOLIDATION-PLAN.md §K1.
 package role
 
-import "github.com/kombifyio/techstack/internal/gocommon/entitlements"
+import "github.com/kombifyio/homelab/internal/gocommon/entitlements"
 
 // Role represents a platform-level authorization role.
 // Stored in Auth0 project roles and propagated via the Cloudflare edge

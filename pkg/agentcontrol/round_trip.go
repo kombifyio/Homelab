@@ -11,7 +11,7 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 // Transports of a persisted round trip. The identity that authenticated the

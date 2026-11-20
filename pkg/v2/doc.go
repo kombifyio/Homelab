@@ -1,5 +1,5 @@
-// Package v2 contains Techstack's active browser session, identity, and
-// /api/v2 health surfaces. cmd/techstack wires it on every production start
+// Package v2 contains Homelab's active browser session, identity, and
+// /api/v2 health surfaces. cmd/homelab wires it on every production start
 // over the Postgres control-plane authority.
 //
 // The v2 package name is transitional and must not grow unrelated product

@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 const (
-	decisionAPIVersion = "techstack/decision-context/v1"
+	decisionAPIVersion = "homelab/decision-context/v1"
 	decisionKind       = "DecisionContext"
 
 	decisionChannelManual  = "manual"
@@ -69,7 +69,7 @@ func BuildDecisionTrace(spec *core.KombinationSpec, ctx *core.DecisionContext, r
 		SelectedStackKit: stackKit,
 		Foundation:       metadataValue(spec, "stackkit_foundation", stackKit),
 		Addons:           append([]string(nil), addons...),
-		// Every Techstack-managed deployment runs StackKits Advanced Mode.
+		// Every Homelab-managed deployment runs StackKits Advanced Mode.
 		DeploymentMode: deploymentModeAdvanced,
 		ComputeTier:    resolveComputeTier(spec, ctx),
 		// No PaaS unless the spec names one: the default core has none
@@ -603,7 +603,7 @@ func resolveStackKitProfile(spec *core.KombinationSpec, ctx *core.DecisionContex
 	return "guided-default"
 }
 
-// deploymentModeAdvanced is the only mode Techstack decides: Standard Mode
+// deploymentModeAdvanced is the only mode Homelab decides: Standard Mode
 // belongs to the standalone StackKits CLI and installer.
 const deploymentModeAdvanced = "advanced"
 

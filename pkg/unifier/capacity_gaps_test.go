@@ -3,7 +3,7 @@ package unifier
 import (
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 // Gap evaluation reads CPU, RAM and disk: an unreported node is named, and a

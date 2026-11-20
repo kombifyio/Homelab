@@ -94,7 +94,7 @@ type migrationCLIReport struct {
 	ManualActions []MigrationManualAction `json:"manualActions"`
 }
 
-// CompleteMigration invokes the exact admitted StackKits binary. Techstack
+// CompleteMigration invokes the exact admitted StackKits binary. Homelab
 // supplies explicit source and candidate documents but never translates v1
 // fields itself. The CLI's completed canonical output is read back from both
 // governed outputs, compared, and validated once more through that same CLI.

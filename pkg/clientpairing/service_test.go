@@ -43,13 +43,13 @@ func TestIssueMatchesCoreEnvelopeAndPersistsOnlyHash(t *testing.T) {
 		TenantID:             testTenant,
 		InstanceID:           testInstance,
 		IssuedBySubjectID:    "owner-1",
-		Endpoint:             "https://techstack.home.example" + RedeemPath,
+		Endpoint:             "https://homelab.home.example" + RedeemPath,
 		TLSFingerprintSHA256: testFingerprint,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if envelope.Version != Version || envelope.Endpoint != "https://techstack.home.example"+RedeemPath {
+	if envelope.Version != Version || envelope.Endpoint != "https://homelab.home.example"+RedeemPath {
 		t.Fatalf("envelope identity = %#v", envelope)
 	}
 	if envelope.IssuedAt != testNow || envelope.ExpiresAt.Sub(envelope.IssuedAt) != DefaultLifetime {
@@ -77,10 +77,10 @@ func TestIssueRejectsUnsafeEndpointAndLifetimeOverTenMinutes(t *testing.T) {
 	}
 	base := IssueRequest{
 		TenantID: testTenant, InstanceID: testInstance, IssuedBySubjectID: "owner-1",
-		Endpoint: "https://techstack.home.example" + RedeemPath, TLSFingerprintSHA256: testFingerprint,
+		Endpoint: "https://homelab.home.example" + RedeemPath, TLSFingerprintSHA256: testFingerprint,
 	}
 	unsafe := base
-	unsafe.Endpoint = "http://techstack.home.example" + RedeemPath
+	unsafe.Endpoint = "http://homelab.home.example" + RedeemPath
 	if _, err := service.Issue(context.Background(), unsafe); !errors.Is(err, ErrInvalidRequest) {
 		t.Fatalf("unsafe endpoint error = %v", err)
 	}
@@ -199,7 +199,7 @@ func issueTestEnvelope(t *testing.T, service *Service) Envelope {
 	t.Helper()
 	envelope, err := service.Issue(context.Background(), IssueRequest{
 		TenantID: testTenant, InstanceID: testInstance, IssuedBySubjectID: "owner-1",
-		Endpoint: "https://techstack.home.example" + RedeemPath, TLSFingerprintSHA256: testFingerprint,
+		Endpoint: "https://homelab.home.example" + RedeemPath, TLSFingerprintSHA256: testFingerprint,
 	})
 	if err != nil {
 		t.Fatal(err)

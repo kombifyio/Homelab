@@ -18,7 +18,7 @@
   import { selfHostedLoginHref } from "#lib/client/windows-onboarding.js";
   import Button from "#lib/components/ui/Button.svelte";
   import ThemeToggle from "#lib/components/ui/ThemeToggle.svelte";
-  import TechstackBrandLogo from "#lib/components/TechstackBrandLogo.svelte";
+  import HomelabBrandLogo from "#lib/components/HomelabBrandLogo.svelte";
 
   interface ProviderInfo {
     id: string;
@@ -81,7 +81,7 @@
   const localOwnerEnabled = $derived(
     authStore.deploymentMode !== "saas" || authStore.allowLocalLogin,
   );
-  const emergencyEmail = $derived(bg?.email || "breakglass@techstack.local");
+  const emergencyEmail = $derived(bg?.email || "breakglass@homelab.local");
   const windowsBrowserCloudLoginUrl = $derived(
     primaryCloudProvider?.auth_url
       ? buildWindowsBrowserCloudLoginUrl(primaryCloudProvider.auth_url)
@@ -266,7 +266,7 @@
 </script>
 
 <svelte:head>
-  <title>{tr("ui.login.signInKombifyTechstack")}</title>
+  <title>{tr("ui.login.signInKombifyHomelab")}</title>
 </svelte:head>
 
 <div
@@ -280,12 +280,12 @@
   <div class="w-full max-w-md space-y-6">
     <div class="space-y-2 text-center">
       <div class="flex h-14 w-full items-center justify-center px-4">
-        <TechstackBrandLogo
+        <HomelabBrandLogo
           sizes="256px"
           class="h-12 w-auto max-w-full object-contain"
         />
       </div>
-      <h1 class="text-3xl font-semibold">Techstack</h1>
+      <h1 class="text-3xl font-semibold">Homelab Runtime</h1>
       <p class="text-sm text-muted-foreground">
         {#if recovery}
           {tr("ui.login.emergencyRecoveryOnlyDayTo")}
@@ -328,7 +328,7 @@
           {tr("ui.login.tryAgain")}
         </Button>
         <p class="text-center text-xs leading-5 text-muted-foreground">
-          {tr("ui.login.techstackReconnectsThroughTheKombify")}
+          {tr("ui.login.homelabReconnectsThroughTheKombify")}
         </p>
       </div>
     {:else if recovery}
@@ -346,14 +346,14 @@
           {#if !bg.claimed && !bg.locked}
             <p class="text-sm leading-6 text-muted-foreground">
               {tr("ui.clientLocal.bootstrapGuidance", {
-                command: "techstack owner bootstrap",
+                command: "homelab owner bootstrap",
               })}
             </p>
             <a
               href={localOwnerHref}
               class="text-sm font-semibold text-primary underline"
             >
-              {tr("ui.clientLocal.localTechstackSetup")}
+              {tr("ui.clientLocal.localHomelabSetup")}
             </a>
           {/if}
           <form class="space-y-3" onsubmit={onEmergencyLogin}>

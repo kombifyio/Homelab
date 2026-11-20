@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 )
 
 func (s *PostgresStore) CreateJob(ctx context.Context, req UpsertJobRequest) (*Job, error) {

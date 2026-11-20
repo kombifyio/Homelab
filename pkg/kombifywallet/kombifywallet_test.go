@@ -14,9 +14,9 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
-	"github.com/kombifyio/techstack/pkg/kombifywallet/walletfake"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/kombifywallet/walletfake"
 )
 
 const owner = "auth0|synthetic-owner"
@@ -134,7 +134,7 @@ func TestNodeAccessDeliversTheProfileTheOwnerSaved(t *testing.T) {
 	}
 }
 
-// Techstack uses only what the owner shared with it.
+// Homelab uses only what the owner shared with it.
 func TestNodeAccessWithoutTheUseRightNamesTheMissingRight(t *testing.T) {
 	fake := walletfake.New(t)
 	client := fake.Client()
@@ -224,7 +224,7 @@ func TestEnsureConvergesOnOneItemAndVersionsOnlyAChangedValue(t *testing.T) {
 	}
 }
 
-func TestCanCreateRefusesUntilTheOwnerAllowsTechstackToSave(t *testing.T) {
+func TestCanCreateRefusesUntilTheOwnerAllowsHomelabToSave(t *testing.T) {
 	fake := walletfake.New(t)
 	client := fake.Client()
 

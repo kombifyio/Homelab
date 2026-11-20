@@ -10,7 +10,7 @@
 //
 // The digests are the lowercase hex values pkg/guardrelease.TreeDigest defines.
 // verify reads release-manifest.json, release-manifest.sigstore.json and, for
-// every artifact the manifest lists, techstack-<os>-<arch> with its
+// every artifact the manifest lists, homelab-<os>-<arch> with its
 // .sigstore.json bundle, and applies the pinned signer identity, the pinned
 // Sigstore trusted root and the manifest policy. A release that would be refused
 // by a Guard is refused before it is published.
@@ -29,7 +29,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardrelease"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
 )
 
 func main() {
@@ -188,7 +188,7 @@ func releaseArtifactIndex(dir string) (string, error) {
 		ReleaseVersion string  `json:"release_version"`
 		ManifestSHA256 string  `json:"manifest_sha256"`
 		Artifacts      []entry `json:"artifacts"`
-	}{Schema: "techstack.artifact-index/v1", ReleaseVersion: manifest.Version,
+	}{Schema: "homelab.artifact-index/v1", ReleaseVersion: manifest.Version,
 		ManifestSHA256: fmt.Sprintf("%x", sha256.Sum256(raw))}
 	for _, arch := range []string{"amd64", "arm64"} {
 		binary, ok := manifest.Artifact("linux", arch)
@@ -196,7 +196,7 @@ func releaseArtifactIndex(dir string) (string, error) {
 			return "", fmt.Errorf("signed binary for linux/%s is missing", arch)
 		}
 		index.Artifacts = append(index.Artifacts, entry{Kind: "guard_binary", OS: "linux", Arch: arch,
-			SHA256: binary.SHA256, Size: binary.Size, Filename: "techstack-linux-" + arch})
+			SHA256: binary.SHA256, Size: binary.Size, Filename: "homelab-linux-" + arch})
 		name := "stackkit-runtime-linux-" + arch + ".tar.gz"
 		file, err := os.Open(filepath.Join(dir, name))
 		if err != nil {
@@ -362,7 +362,7 @@ func verifyRelease(dir, expectedSource string, requireRuntime, refreshPublished,
 		}
 	}
 	for _, artifact := range manifest.Artifacts {
-		name := fmt.Sprintf("techstack-%s-%s", artifact.OS, artifact.Arch)
+		name := fmt.Sprintf("homelab-%s-%s", artifact.OS, artifact.Arch)
 		artifactBundle, err := read(name + ".sigstore.json")
 		if err != nil {
 			return err

@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 func (s *MemoryStore) UpsertServiceRuntime(_ context.Context, service ServiceRuntime) (*ServiceRuntime, error) {

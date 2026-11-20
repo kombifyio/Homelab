@@ -1,8 +1,8 @@
 /**
  * Workers API
  *
- * Functions for managing worker nodes in kombify-TechStack.
- * Workers are physical or virtual machines that run the kombify-TechStack agent.
+ * Functions for managing worker nodes in kombify-Homelab.
+ * Workers are physical or virtual machines that run the kombify-Homelab agent.
  */
 
 import { fetchApi } from "./client";
@@ -12,7 +12,7 @@ import { fetchApi } from "./client";
 // ============================================================================
 
 /**
- * Worker represents a registered node in the kombify-TechStack cluster.
+ * Worker represents a registered node in the kombify-Homelab cluster.
  */
 export interface Worker {
   id: string;
@@ -115,7 +115,7 @@ export async function approveWorker(workerId: string): Promise<void> {
 
 /**
  * The per-architecture SHA-256 pins of the Guard binary this control plane
- * serves, formatted for install.sh's TECHSTACK_BINARY_SHA256
+ * serves, formatted for install.sh's HOMELAB_BINARY_SHA256
  * ("amd64=<sha256>,arm64=<sha256>"). An empty string means no trusted digest
  * is known, and no enrollment command may be shown.
  */

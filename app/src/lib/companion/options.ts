@@ -1,5 +1,5 @@
 /**
- * What Techstack tells the Companion SDK.
+ * What Homelab tells the Companion SDK.
  *
  * Separated from the component that mounts it because *what* we ask for is a
  * contract with `@kombify/embed`, while *when* we mount is a lifecycle detail.
@@ -37,7 +37,7 @@ export function companionPageContext(
 ): CompanionSurfaceContext {
   return {
     version: 2,
-    surface: "techstack",
+    surface: "homelab",
     locale,
     scope: { kind: "none" },
     ...(view
@@ -45,7 +45,7 @@ export function companionPageContext(
           route: view.route,
           ...(view.subject ? { subject: view.subject } : {}),
           page: {
-            tool: "techstack",
+            tool: "homelab",
             title: view.title,
             ...(view.state ? { state: view.state } : {}),
             ...(view.facts ? { facts: view.facts } : {}),
@@ -83,12 +83,12 @@ export function companionMountOptions(
   context: CompanionHostContext,
 ): MountCompanionOptions {
   return {
-    surface: "techstack",
+    surface: "homelab",
     aiWorkload: "assistant",
     layout: "floating",
     launcher: "builtin",
     launcherDraggable: true,
-    // Switchable rather than fixed: Techstack users reach several harnesses
+    // Switchable rather than fixed: Homelab users reach several harnesses
     // from one shell, and the Gateway decides which of them they may see.
     harness: { mode: "switchable" },
     theme: context.appearance,

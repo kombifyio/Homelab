@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/privatefs"
-	"github.com/kombifyio/techstack/pkg/agent/hostidentity"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/pairingtoken"
+	"github.com/kombifyio/homelab/internal/privatefs"
+	"github.com/kombifyio/homelab/pkg/agent/hostidentity"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/pairingtoken"
 )
 
 // The Guard enrolls against the real routes over HTTP, survives a lost

@@ -207,7 +207,7 @@
   let systemUsers = $state<SystemUser[]>([
     {
       id: "superuser",
-      email: "superuser@techstack.local",
+      email: "superuser@homelab.local",
       password: "",
       role: tr("ui.wallet.localBackendSuperuser"),
       description: tr("ui.wallet.selfHostedCompatibilityAdminAccess"),
@@ -221,9 +221,9 @@
     },
     {
       id: "admin",
-      email: "admin@techstack.local",
+      email: "admin@homelab.local",
       password: "",
-      role: tr("ui.wallet.kombifyTechstackAdmin"),
+      role: tr("ui.wallet.kombifyHomelabAdmin"),
       description: tr("ui.wallet.applicationAdministratorWithFullHomelab"),
       securityLevel: "high",
       features: [
@@ -235,9 +235,9 @@
     },
     {
       id: "developer",
-      email: "developer@techstack.local",
+      email: "developer@homelab.local",
       password: "",
-      role: tr("ui.wallet.kombifyTechstackDeveloper"),
+      role: tr("ui.wallet.kombifyHomelabDeveloper"),
       description: tr("ui.wallet.developerAccessForTestingAnd"),
       securityLevel: "medium",
       features: [
@@ -365,7 +365,7 @@
         const currentPassword = await promptInApp({
           title: tr("ui.wallet.confirmCredentialReveal"),
           message:
-            tr("ui.wallet.enterYourCurrentLocalTechstack"),
+            tr("ui.wallet.enterYourCurrentLocalHomelab"),
           inputLabel: tr("ui.wallet.currentPassword"),
           inputType: "password",
           confirmText: tr("ui.wallet.reveal"),

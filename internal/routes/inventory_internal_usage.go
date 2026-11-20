@@ -4,19 +4,19 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 const (
 	// managedServersBudgetKey is the register/signed-budget key whose usage
-	// Techstack owns: the count of managed-server slots the subject holds.
+	// Homelab owns: the count of managed-server slots the subject holds.
 	managedServersBudgetKey  = "cloud.runtime.credits#managed_servers"
 	managedServersBudgetUnit = "server"
 )
 
 var usageBudgetsSurface = cloudReadSurface{
-	errorPrefix: "techstack.usage_budgets.", unavailableReason: "usage_budgets_unavailable",
-	title: "Budget usage unavailable", body: "Techstack could not report managed-server usage for this account safely.",
+	errorPrefix: "homelab.usage_budgets.", unavailableReason: "usage_budgets_unavailable",
+	title: "Budget usage unavailable", body: "Homelab Runtime could not report managed-server usage for this account safely.",
 }
 
 // ManagedServersHeldFunc counts the managed-server slots one owner holds in
@@ -24,7 +24,7 @@ var usageBudgetsSurface = cloudReadSurface{
 type ManagedServersHeldFunc func(ctx context.Context, tenantID, ownerSubjectID string) (int, error)
 
 // budgetUsage is one entry of the live usage read model Cloud aggregates into
-// GET /api/v1/usage/budgets. Techstack reports usage only: Limit, Period and
+// GET /api/v1/usage/budgets. Homelab reports usage only: Limit, Period and
 // ResetsAt stay null because a service call carries no Gateway-signed budget;
 // Cloud fills the limit from plan-entitlement-budgets.json.
 type budgetUsage struct {
@@ -50,13 +50,13 @@ func (h inventoryHandlers) serveUsageBudgets(e *httpx.Event, ctx context.Context
 	// An unknown count is never reported as zero held servers.
 	if h.managedServersHeld == nil {
 		_ = usageBudgetsSurface.deny(e, http.StatusServiceUnavailable, usageBudgetsSurface.unavailableReason, true,
-			"Retry after Techstack managed-runtime capacity is available.")
+			"Retry after Homelab Runtime managed-runtime capacity is available.")
 		return
 	}
 	held, err := h.managedServersHeld(ctx, scope.tenantID, scope.ownerID)
 	if err != nil {
 		_ = usageBudgetsSurface.deny(e, http.StatusServiceUnavailable, usageBudgetsSurface.unavailableReason, true,
-			"Retry shortly; Techstack could not read the managed-server count.")
+			"Retry shortly; Homelab Runtime could not read the managed-server count.")
 		return
 	}
 	_ = e.JSON(http.StatusOK, budgetUsageResponse{Budgets: []budgetUsage{{

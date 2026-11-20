@@ -16,8 +16,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 // Service type constants for consistency.
@@ -499,7 +499,7 @@ type serviceRequirement struct {
 // millicores for CPU.
 //
 // Released workload reservations and whole-host floors stay distinct. Only
-// unrelated discovered services use Techstack's generic estimates.
+// unrelated discovered services use Homelab's generic estimates.
 func estimateServiceRequirements(svc core.ServiceSpec) serviceRequirement {
 	req := serviceRequirement{
 		RequiresDocker: true,    // Most services need Docker

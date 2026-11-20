@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/kombifyio/techstack/internal/substrate"
+	"github.com/kombifyio/homelab/internal/substrate"
 	"net"
 	"net/url"
 	"time"

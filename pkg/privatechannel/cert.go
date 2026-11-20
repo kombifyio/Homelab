@@ -15,7 +15,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/privatefs"
+	"github.com/kombifyio/homelab/internal/privatefs"
 )
 
 const certificateFile = "tls.pem"
@@ -51,7 +51,7 @@ func LoadOrCreateCertificate(dir string) (tls.Certificate, string, error) {
 	now := time.Now().UTC()
 	template := &x509.Certificate{
 		SerialNumber: serial,
-		Subject:      pkix.Name{CommonName: "kombify Techstack private LAN bridge"},
+		Subject:      pkix.Name{CommonName: "kombify Homelab Runtime private LAN bridge"},
 		NotBefore:    now.Add(-time.Hour),
 		NotAfter:     now.AddDate(20, 0, 0),
 		KeyUsage:     x509.KeyUsageDigitalSignature,

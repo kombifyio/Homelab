@@ -2,7 +2,7 @@
 import { fetchApi } from "./client";
 import type { JobDetail } from "./jobs";
 
-/** Exactly one application moves; Techstack never moves a whole use case. */
+/** Exactly one application moves; Homelab never moves a whole use case. */
 export type ApplicationMoveRequest = {
   workloads: [string];
   engine: "native";

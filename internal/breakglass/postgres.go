@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/authlocal"
+	"github.com/kombifyio/homelab/internal/gocommon/authlocal"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 const (

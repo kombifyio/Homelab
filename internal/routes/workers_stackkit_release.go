@@ -8,17 +8,17 @@ import (
 	"sync"
 	"time"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/artifactdelivery"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/artifactdelivery"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
 )
 
 // A hosted control plane only admits the edge transfer of the runtime. A
 // self-hosted one without an artifact index has nothing in front of it, so it
 // serves this bundle itself, outside Render, as it serves its Guard binary
 // (servesOwnGuardBinary).
-const stackKitReleaseBundleEnv = "TECHSTACK_STACKKIT_RELEASE_BUNDLE"
+const stackKitReleaseBundleEnv = "HOMELAB_STACKKIT_RELEASE_BUNDLE"
 
 func (h workerRouteHandlers) agentStackKitRelease(e *httpx.Event) error {
 	if servesOwnGuardBinary() {
@@ -137,7 +137,7 @@ func (h workerRouteHandlers) serveSelfHostedStackKitRuntime(e *httpx.Event) erro
 	e.MarkResponseStreamed()
 	counter := &agentBinaryTransferCounter{ResponseWriter: e.Response}
 	started := time.Now()
-	http.ServeContent(counter, e.Request, "techstack-stackkit-runtime.tar.gz", artifact.modTime, file)
+	http.ServeContent(counter, e.Request, "homelab-stackkit-runtime.tar.gz", artifact.modTime, file)
 	h.binaryDownloadGuard.record(budgetKey, counter.written)
 	logAgentBinaryTransfer(e, artifact, counter, started, deadlineErr)
 	return nil

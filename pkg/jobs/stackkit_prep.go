@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
 )
 
 // StackKitCLIPrepRunner is the runtime preparation step of the pinned
@@ -75,7 +75,7 @@ func (r *StackKitCLIPrepRunner) PrepareStackKitRuntimeTarget(_ context.Context, 
 	//	host-preparation implementation; use external host
 	//	admission/conformance and the resolved execution channel
 	//
-	// Host readiness is Techstack's own concern and is covered by
+	// Host readiness is Homelab's own concern and is covered by
 	// SSHRuntimeTargetBootstrapper; running the CLI here only produced a
 	// guaranteed failure, so the step reports that it does not apply
 	// instead of inventing a success.

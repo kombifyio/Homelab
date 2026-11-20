@@ -4,10 +4,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/kombifyio/techstack/internal/homeassistant"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/ril/workflow"
-	"github.com/kombifyio/techstack/pkg/ril/workflows"
+	"github.com/kombifyio/homelab/internal/homeassistant"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/ril/workflow"
+	"github.com/kombifyio/homelab/pkg/ril/workflows"
 	"net/http"
 )
 
@@ -28,7 +28,7 @@ func (c HomeAssistantMigrationRoutes) scope(e *httpx.Event) (string, string, err
 	if err != nil {
 		return "", "", err
 	}
-	tenant, err := requireRegistryRouteTenant(e, owner, "techstack.home_assistant.migrate")
+	tenant, err := requireRegistryRouteTenant(e, owner, "homelab.home_assistant.migrate")
 	return owner, tenant, err
 }
 func (c HomeAssistantMigrationRoutes) start(e *httpx.Event) error {

@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kombifyio/techstack/internal/privatefs"
+	"github.com/kombifyio/homelab/internal/privatefs"
 )
 
 // WriteFileAtomic replaces path with data so a reader or a crash observes

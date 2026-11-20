@@ -9,9 +9,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
-	"github.com/kombifyio/techstack/pkg/guardtelemetry"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/pkg/guardtelemetry"
 )
 
 type PostgresDriveHealthStore struct{ db *sql.DB }

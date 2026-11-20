@@ -1,4 +1,4 @@
-// Package routes provides custom HTTP routes for kombifyTechstack API.
+// Package routes provides custom HTTP routes for kombifyHomelab API.
 //
 //nolint:goconst
 package routes
@@ -16,27 +16,27 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/notifications"
-	"github.com/kombifyio/techstack/internal/portinventory"
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/grpcserver"
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/guardidentity"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/logger"
-	"github.com/kombifyio/techstack/pkg/monitoring"
-	"github.com/kombifyio/techstack/pkg/nodehandoff"
-	"github.com/kombifyio/techstack/pkg/pairingtoken"
-	"github.com/kombifyio/techstack/pkg/runtimeconvergence"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
-	"github.com/kombifyio/techstack/pkg/usernotice"
-	"github.com/kombifyio/techstack/pkg/vmleases"
-	"github.com/kombifyio/techstack/pkg/workerauth"
+	"github.com/kombifyio/homelab/internal/notifications"
+	"github.com/kombifyio/homelab/internal/portinventory"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/grpcserver"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/monitoring"
+	"github.com/kombifyio/homelab/pkg/nodehandoff"
+	"github.com/kombifyio/homelab/pkg/pairingtoken"
+	"github.com/kombifyio/homelab/pkg/runtimeconvergence"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/pkg/usernotice"
+	"github.com/kombifyio/homelab/pkg/vmleases"
+	"github.com/kombifyio/homelab/pkg/workerauth"
 )
 
 // WorkerMetricWriter accepts worker-originated runtime samples.
@@ -86,7 +86,7 @@ type WorkerRouteConfig struct {
 	// UserNotices admits the opt-in user_notification class: user-authored
 	// smart-home notices a node reports. Nil refuses them as unavailable.
 	UserNotices usernotice.Sink
-	// StackKitsUpdates is Techstack's StackKits update management of a node.
+	// StackKitsUpdates is Homelab's StackKits update management of a node.
 	// Nil leaves updates unmanaged: no proposal and no automatic start.
 	StackKitsUpdates WorkerStackKitsUpdates
 	// ApplicationNotices records the application.vulnerability notice of a
@@ -153,7 +153,7 @@ func RegisterWorkerRoutesWithStore(r *httpx.Router, cfg WorkerRouteConfig) {
 	}
 	if workerauth.SharesServiceSecret() {
 		logger.Default().Warn("worker_auth_secret_shared_with_service_auth",
-			"guidance", "set TECHSTACK_WORKER_AGENT_TOKEN_SECRET and then "+workerauth.StrictSecretEnv+"=true so worker credentials stop sharing the service secret")
+			"guidance", "set HOMELAB_WORKER_AGENT_TOKEN_SECRET and then "+workerauth.StrictSecretEnv+"=true so worker credentials stop sharing the service secret")
 	}
 	h := workerRouteHandlers{
 		managedRuntimeLeases: cfg.ManagedRuntimeLeases,
@@ -284,7 +284,7 @@ func (h workerRouteHandlers) list(e *httpx.Event) error {
 
 func (h workerRouteHandlers) listFromStore(e *httpx.Event, ownerID string) error {
 	pagination := ksapi.ParsePagination(e.Request)
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.workers.list")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.workers.list")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -1303,7 +1303,7 @@ func (h workerRouteHandlers) approve(e *httpx.Event) error {
 		return authErr
 	}
 	id := e.Request.PathValue("id")
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.workers.approve")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.workers.approve")
 	if tenantErr != nil {
 		return tenantErr
 	}

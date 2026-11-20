@@ -10,7 +10,7 @@ $ErrorActionPreference = "Stop"
 $version = "16.9.0"
 $archiveSHA256 = "f6c6499661eb7064d2be60833e0e53621e42a880309ae5b82aa0f93eaed02df2"
 $archiveRelativePath = "io/zonky/test/postgres/embedded-postgres-binaries-windows-amd64/$version/embedded-postgres-binaries-windows-amd64-$version.jar"
-# Maven Central rate-blocks shared CI egress IPs with HTTP 403 (Techstack
+# Maven Central rate-blocks shared CI egress IPs with HTTP 403 (Homelab
 # 0.32.7), so Google's official Maven Central mirrors come first; the pinned
 # SHA-256 is checked for whichever source answers.
 $archiveSources = @(

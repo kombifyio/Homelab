@@ -24,7 +24,7 @@ func TestDefaultBuildRefusesAQualificationRunSigner(t *testing.T) {
 		t.Fatal(err)
 	}
 	cert := func(workflow, ref string) certificate.Summary {
-		signer := "https://github.com/kombifyio/TechStack/.github/workflows/" + workflow + "@" + ref
+		signer := "https://github.com/kombifyio/Homelab/.github/workflows/" + workflow + "@" + ref
 		return certificate.Summary{
 			SubjectAlternativeName: signer,
 			Extensions: certificate.Extensions{
@@ -44,11 +44,11 @@ func TestDefaultBuildRefusesAQualificationRunSigner(t *testing.T) {
 
 func TestNativeBuildBindsParentSlotAndFourSubjects(t *testing.T) {
 	b := &BuildProvenance{Schema: "guard.native-build/v1", SourceSHA: strings.Repeat("a", 40), SourceTree: strings.Repeat("b", 40),
-		ExecutorSHA: strings.Repeat("c", 40), ExecutorWorkflow: "kombifyio/TechStack/.github/workflows/guard-release.yml@refs/heads/main",
+		ExecutorSHA: strings.Repeat("c", 40), ExecutorWorkflow: "kombifyio/Homelab/.github/workflows/guard-release.yml@refs/heads/main",
 		ParentRunID: 10, ParentAttempt: 1, PlanDigest: "sha256:" + strings.Repeat("d", 64), PlanArtifactID: 123, PlanArchiveDigest: "sha256:" + strings.Repeat("e", 64),
 		PlanArtifactName: "delivery-plan-10-1", CompilerRef: strings.Repeat("f", 40), ChildRunID: 20, ChildAttempt: 1,
-		BindingName: fmt.Sprintf("delivery-dispatch-10-1-%x", sha256.Sum256([]byte(`["techstack-service","runtime-service","publish",0]`))), BindingDigest: "sha256:" + strings.Repeat("1", 64), Subjects: map[string]BuildSubject{}}
-	for _, name := range []string{"techstack-linux-amd64", "techstack-linux-arm64", "stackkit-runtime-linux-amd64.tar.gz", "stackkit-runtime-linux-arm64.tar.gz"} {
+		BindingName: fmt.Sprintf("delivery-dispatch-10-1-%x", sha256.Sum256([]byte(`["homelab-service","runtime-service","publish",0]`))), BindingDigest: "sha256:" + strings.Repeat("1", 64), Subjects: map[string]BuildSubject{}}
+	for _, name := range []string{"homelab-linux-amd64", "homelab-linux-arm64", "stackkit-runtime-linux-amd64.tar.gz", "stackkit-runtime-linux-arm64.tar.gz"} {
 		b.Subjects[name] = BuildSubject{SHA256: strings.Repeat("2", 64), Size: 123}
 	}
 	if err := b.Validate(); err != nil {
@@ -63,7 +63,7 @@ func TestNativeBuildBindsParentSlotAndFourSubjects(t *testing.T) {
 			t.Fatal("changed native build authority was accepted")
 		}
 	}
-	delete(b.Subjects, "techstack-linux-amd64")
+	delete(b.Subjects, "homelab-linux-amd64")
 	b.Subjects["foreign-file"] = BuildSubject{SHA256: strings.Repeat("2", 64), Size: 123}
 	if err := b.Validate(); err == nil {
 		t.Fatal("substituted build subject was accepted")

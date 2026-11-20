@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 // contractVectors is the frozen G01 vector file shared by the control-plane

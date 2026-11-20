@@ -1,7 +1,7 @@
 // Package specv2 projects wizard intent onto pinned StackKits Architecture v2
 // kit seeds. The kit-authoring contract (#KitAuthoringOverrideV2) only permits
 // metadata.name and network.domain.base at init time, so every other wizard
-// decision is applied Techstack-side on the materialized seed and re-validated
+// decision is applied Homelab-side on the materialized seed and re-validated
 // by the pinned `stackkit validate` — the CLI stays the acceptance authority.
 package specv2
 
@@ -13,7 +13,7 @@ import (
 )
 
 // WizardIntentSchema is the wire schema identifier for WizardIntent payloads.
-const WizardIntentSchema = "techstack.wizard-intent/v1"
+const WizardIntentSchema = "homelab.wizard-intent/v1"
 
 // Run kinds: the first run founds the homelab; every later run expands it
 // (ADR-0036, one flow with dynamic questions).
@@ -194,7 +194,7 @@ type PlannedPersonIntent struct {
 type ServerIntent struct {
 	// ExistingServerID selects an already enrolled, unassigned canonical Guard
 	// server: the first installation of a found run, or the new node of a join
-	// run. It is Techstack orchestration intent, never a field in the StackKits
+	// run. It is Homelab orchestration intent, never a field in the StackKits
 	// specification.
 	ExistingServerID string `json:"existing_server_id,omitempty"`
 	// Roles uses Architecture v2 vocabulary; empty defaults to the seed's
@@ -213,7 +213,7 @@ type ServerIntent struct {
 	// SiteRef places a joined server on one of the kit deployment's sites
 	// (a Modern two-site target has "home" and "cloud"). Empty keeps the
 	// controller's site. It must name a site the spec already declares;
-	// Techstack never creates sites, the kit seed owns them.
+	// Homelab never creates sites, the kit seed owns them.
 	SiteRef string `json:"site_ref,omitempty"`
 }
 

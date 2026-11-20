@@ -34,7 +34,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/usernotice"
+	"github.com/kombifyio/homelab/pkg/usernotice"
 )
 
 const (

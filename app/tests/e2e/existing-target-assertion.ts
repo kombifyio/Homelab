@@ -241,7 +241,7 @@ export async function assertExistingTargetExtension(options: {
     expect(recommendation.verification?.status).toBe("verified");
     const body = {
       intent: {
-        schema: "techstack.wizard-intent/v1",
+        schema: "homelab.wizard-intent/v1",
         run_kind: "expansion",
         name: "existing-target-extension",
         goals: selection.goals,
@@ -293,7 +293,7 @@ export async function assertExistingTargetExtension(options: {
       expect(result.wizard_extend_receipt?.group_job_ids).toBe(
         run.job_ids.join(","),
       );
-      if (process.env.TECHSTACK_RUNTIME_E2E_PLAN_OWNER === "1") {
+      if (process.env.HOMELAB_RUNTIME_E2E_PLAN_OWNER === "1") {
         const receipt = result.wizard_extend_receipt;
         expect(receipt.execution_binding_source).toBe("native-local-owner");
         expect(receipt.local_node_ref).toBe(receipt.node_ref);

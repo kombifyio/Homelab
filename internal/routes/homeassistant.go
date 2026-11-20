@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/homeassistant"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	"github.com/kombifyio/homelab/internal/homeassistant"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 // importHomeAssistant records a read-only link. The submitted credential is
@@ -20,7 +20,7 @@ func (h registryRouteHandlers) importHomeAssistant(e *httpx.Event) error {
 	if err != nil {
 		return err
 	}
-	tenant, err := h.requireRegistryMutationTenant(e, owner, "techstack.registry.services.import")
+	tenant, err := h.requireRegistryMutationTenant(e, owner, "homelab.registry.services.import")
 	if err != nil {
 		return err
 	}

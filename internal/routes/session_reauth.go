@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/authsession"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/internal/gocommon/authsession"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // sessionReauthSkew tolerates a session whose sign-in lies slightly in the

@@ -10,7 +10,7 @@
     windowsLocalClientReturnUrl,
   } from "#lib/client/windows-onboarding.js";
   import { authStore } from "#lib/stores/auth.svelte.js";
-  import TechstackBrandLogo from "#lib/components/TechstackBrandLogo.svelte";
+  import HomelabBrandLogo from "#lib/components/HomelabBrandLogo.svelte";
 
   let serverUrl = $state("");
   let showServerInput = $state(false);
@@ -46,7 +46,7 @@
 </script>
 
 <svelte:head>
-  <title>{tr("ui.clientOnboarding.windowsClientOnboardingKombifyTechstack")}</title>
+  <title>{tr("ui.clientOnboarding.windowsClientOnboardingKombifyHomelab")}</title>
 </svelte:head>
 
 <main class="min-h-screen bg-background text-foreground">
@@ -58,7 +58,7 @@
         href="/"
         class="flex h-10 w-64 items-center"
       >
-        <TechstackBrandLogo
+        <HomelabBrandLogo
           sizes="193px"
           class="h-9 w-auto max-w-full object-contain object-left"
         />
@@ -76,7 +76,7 @@
         <h1
           class="text-5xl font-semibold leading-tight tracking-normal text-foreground"
         >
-          {tr("ui.clientOnboarding.setUpKombifyTechstackOn")}
+          {tr("ui.clientOnboarding.setUpKombifyHomelabOn")}
         </h1>
         <p class="mt-5 text-lg leading-8 text-muted-foreground">
           {tr("ui.clientOnboarding.thisClientIsTheLocal")}
@@ -91,7 +91,7 @@
           </div>
           <h2 class="text-xl font-semibold text-foreground">{tr("ui.clientOnboarding.installLocally")}</h2>
           <p class="mt-3 min-h-20 text-sm leading-6 text-muted-foreground">
-            {tr("ui.clientOnboarding.noTechstackAccountRequiredTechstack")}
+            {tr("ui.clientOnboarding.noHomelabAccountRequiredHomelab")}
           </p>
           <button
             type="button"
@@ -143,7 +143,7 @@
               <input
                 class="h-10 min-w-0 flex-1 rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
                 bind:value={serverUrl}
-                placeholder="https://techstack.home"
+                placeholder="https://homelab.home"
               />
               <a
                 class:opacity-50={!normalizedServerUrl}

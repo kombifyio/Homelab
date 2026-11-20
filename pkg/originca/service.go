@@ -16,7 +16,7 @@ type Authority interface {
 // Renewal happens after two thirds of a certificate's lifetime.
 const renewalNumerator, renewalDenominator = 2, 3
 
-// Service joins the Cloudflare authority with Techstack custody. A nil
+// Service joins the Cloudflare authority with Homelab custody. A nil
 // authority (token missing) fails every issuance closed with authorityErr.
 type Service struct {
 	authority    Authority

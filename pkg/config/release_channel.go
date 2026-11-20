@@ -10,10 +10,10 @@ import (
 )
 
 // EnvReleaseChannel is the retired selector of a serving channel beside
-// production. Techstack has one channel (D-2026-11-11-07): a process that still
+// production. Homelab has one channel (D-2026-11-11-07): a process that still
 // names another one refuses to start (RejectRetiredReleaseChannel) instead of
 // running as production.
-const EnvReleaseChannel = "TECHSTACK_RELEASE_CHANNEL"
+const EnvReleaseChannel = "HOMELAB_RELEASE_CHANNEL"
 
 // StableReleaseChannel is the one channel this product serves, and the constant
 // value /api/v1/health and the client bootstrap keep reporting.
@@ -38,7 +38,7 @@ func ReleaseChannel() string { return StableReleaseChannel }
 // SecondaryChannel reports a deployment beside the one channel. There is none:
 // RejectRetiredReleaseChannel refuses one at boot, so this is false on every
 // admitted process. It remains for the boot paths that still branch on it
-// (cmd/techstack/startup.go and its admission wiring), and goes with them.
+// (cmd/homelab/startup.go and its admission wiring), and goes with them.
 func SecondaryChannel() bool { return false }
 
 // RunsSharedWork reports whether this deployment runs the work that is

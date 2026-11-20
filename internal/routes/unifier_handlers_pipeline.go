@@ -3,9 +3,9 @@ package routes
 import (
 	"net/http"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/unifier"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 func (api *UnifierAPI) handlePipeline(e *httpx.Event) error {

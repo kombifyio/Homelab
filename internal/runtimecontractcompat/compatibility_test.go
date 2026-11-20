@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	lockSchemaV1 = "techstack.selfhost-runtime-contract-lock/v1"
+	lockSchemaV1 = "homelab.selfhost-runtime-contract-lock/v1"
 	contractRoot = "github.com/kombifyio/stackkits/contracts"
 )
 

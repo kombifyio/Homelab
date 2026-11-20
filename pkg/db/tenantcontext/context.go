@@ -1,4 +1,4 @@
-// Package tenantcontext adapts Techstack's transaction scopes to the canonical
+// Package tenantcontext adapts Homelab's transaction scopes to the canonical
 // Common database verifier. It has no issuer, signing key or role authority.
 package tenantcontext
 
@@ -6,8 +6,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/identity"
-	"github.com/kombifyio/techstack/internal/gocommon/tenantdb"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
+	"github.com/kombifyio/homelab/internal/gocommon/tenantdb"
 )
 
 // ApplyTenant binds existing command, snapshot and aggregate transactions to

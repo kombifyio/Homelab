@@ -24,7 +24,7 @@ import {
  * catches stale data, error states, and regressions without making the deploy
  * gate depend on platform-specific visual baselines.
  *
- * Prerequisites: Docker services running (techstack, app, test-worker).
+ * Prerequisites: Docker services running (homelab, app, test-worker).
  * Run via: pnpm exec playwright test --config=playwright.integration.config.ts
  */
 
@@ -121,8 +121,8 @@ async function completeEasyWizard(page: Page) {
   await expect(page.getByTestId("easy-step-5")).toBeVisible();
   await page.getByTestId("owner-source-local").click();
   await page.locator("#owner-username").fill("owner");
-  await page.locator("#owner-email").fill("owner@techstack.local");
-  await page.locator("#owner-display-name").fill("TechStack Owner");
+  await page.locator("#owner-email").fill("owner@homelab.local");
+  await page.locator("#owner-display-name").fill("Homelab Runtime Owner");
   await page.locator("#recovery-passphrase").fill(RECOVERY_PASSPHRASE);
   await page.locator("#recovery-passphrase-confirm").fill(RECOVERY_PASSPHRASE);
   await page.locator("#recovery-passphrase-confirm").blur();
@@ -170,7 +170,7 @@ test.describe.serial("Integration Flow (Real Docker Backend)", () => {
     ).toHaveCount(0);
     await expect(
       sharedPage.getByRole("heading", {
-        name: /Techstack|Local Techstack setup/,
+        name: /Homelab|Local Homelab setup/,
       }),
     ).toBeVisible();
 
@@ -193,7 +193,7 @@ test.describe.serial("Integration Flow (Real Docker Backend)", () => {
     // -- Semantic: main heading --
     await expect(
       sharedPage.getByRole("heading", {
-        name: "kombify-TechStack",
+        name: "kombify-Homelab",
         exact: true,
       }),
     ).toBeVisible();
@@ -349,7 +349,7 @@ test.describe.serial("Integration Flow (Real Docker Backend)", () => {
       // -- Semantic: completion state --
       await expect(
         sharedPage
-          .getByText("Your kombify-TechStack is ready")
+          .getByText("Your kombify-Homelab is ready")
           .or(
             sharedPage.getByText(
               "The managed VM, StackKit rollout, verification, restore drill, and identity handoff are complete.",

@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 // CheckAuth verifies that the request is from any authenticated user.

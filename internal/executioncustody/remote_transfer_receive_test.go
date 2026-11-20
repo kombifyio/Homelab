@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
 	wire "github.com/kombifyio/stackkits/contracts/advancedcapability"
 
-	"github.com/kombifyio/techstack/internal/advancedissuer"
+	"github.com/kombifyio/homelab/internal/advancedissuer"
 )
 
 // The delegated issuer path must forward the receiving scope of one step in the
@@ -37,14 +37,14 @@ func TestRemoteIssueTransferReceiveForwardsExactScope(t *testing.T) {
 		} else {
 			other = raw
 		}
-		_, _ = w.Write([]byte(`{"ID":"cap-1","IssuerID":"techstack","Operations":["application-transfer.receive"]}`))
+		_, _ = w.Write([]byte(`{"ID":"cap-1","IssuerID":"homelab","Operations":["application-transfer.receive"]}`))
 	}))
 	defer server.Close()
 	_, key, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	client := &Remote{endpoint: server.URL, auth: servicecall.Config{ServiceName: "techstack-core", SigningKey: key, SigningKeyID: "caller-1", Scope: remoteScope, TokenTTL: time.Minute}, http: server.Client()}
+	client := &Remote{endpoint: server.URL, auth: servicecall.Config{ServiceName: "homelab-core", SigningKey: key, SigningKeyID: "caller-1", Scope: remoteScope, TokenTTL: time.Minute}, http: server.Client()}
 	issued, err := client.IssueTransferReceive(t.Context(), Request{TenantID: "tenant-1", DeploymentID: "destination-1", StackID: "destination-stack", OwnerRef: "owner/local/ffeeddccbbaa99887766554433221100", Operations: []string{wire.OperationApplicationTransferReceive}}, scope)
 	if err != nil {
 		t.Fatal(err)

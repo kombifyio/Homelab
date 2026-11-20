@@ -11,7 +11,7 @@ import type { LayoutRecommendationAcceptance } from "./layout";
 
 import { tr } from "#lib/i18n.svelte.js";
 /** Wire schema literal the backend's closed intent contract requires. */
-export const WIZARD_INTENT_SCHEMA = "techstack.wizard-intent/v1";
+export const WIZARD_INTENT_SCHEMA = "homelab.wizard-intent/v1";
 
 export interface WizardIntent {
   schema: typeof WIZARD_INTENT_SCHEMA;

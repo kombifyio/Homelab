@@ -17,13 +17,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/demoguard"
+	"github.com/kombifyio/homelab/pkg/demoguard"
 )
 
 const (
 	// EnvSubjects is a comma-separated list of test identity subjects (for
 	// example "auth0|..."). Subject ids are identifiers, not credentials.
-	EnvSubjects = "TECHSTACK_TEST_SUBJECTS"
+	EnvSubjects = "HOMELAB_TEST_SUBJECTS"
 	// EnvFixtureSubject is the shared fixture subject the release smoke signs
 	// in as; it is always a test identity.
 	EnvFixtureSubject = "TEST_RIL_PRO_USER_ID"

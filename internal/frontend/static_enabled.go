@@ -1,4 +1,4 @@
-//go:build techstack_static_ui
+//go:build homelab_static_ui
 
 package frontend
 

@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/unifier"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 const (

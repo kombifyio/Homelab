@@ -5,21 +5,21 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
 )
 
 // LeaseExecutionAuthority is the immutable execution lane selected before a
 // managed lease may cause its first provider side effect. Historical Simulate
-// custody and TechStack-native provider control are deliberately disjoint.
+// custody and Homelab-native provider control are deliberately disjoint.
 type LeaseExecutionAuthority string
 
 const (
 	// LeaseExecutionAuthorityLegacySimulate is a non-executable quarantine
 	// marker for exact historical provider custody. It never authorizes a call.
 	LeaseExecutionAuthorityLegacySimulate LeaseExecutionAuthority = "legacy_simulate"
-	// LeaseExecutionAuthorityTechStackProviderControl is the only authority
+	// LeaseExecutionAuthorityHomelabProviderControl is the only authority
 	// eligible for newly admitted managed-provider operations.
-	LeaseExecutionAuthorityTechStackProviderControl LeaseExecutionAuthority = "techstack_provider_control"
+	LeaseExecutionAuthorityHomelabProviderControl LeaseExecutionAuthority = "techstack_provider_control"
 )
 
 var (
@@ -39,7 +39,7 @@ func normalizeLeaseExecutionAuthority(authority LeaseExecutionAuthority) LeaseEx
 
 func validateLeaseExecutionAuthority(authority LeaseExecutionAuthority) error {
 	switch normalizeLeaseExecutionAuthority(authority) {
-	case LeaseExecutionAuthorityLegacySimulate, LeaseExecutionAuthorityTechStackProviderControl:
+	case LeaseExecutionAuthorityLegacySimulate, LeaseExecutionAuthorityHomelabProviderControl:
 		return nil
 	default:
 		return ErrLeaseExecutionAuthorityUnbound

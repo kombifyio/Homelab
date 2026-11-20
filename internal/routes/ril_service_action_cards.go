@@ -9,17 +9,17 @@ import (
 	"strings"
 	"time"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/orchestrator"
-	rilaction "github.com/kombifyio/techstack/pkg/ril/actioncontract"
-	"github.com/kombifyio/techstack/pkg/ril/actions"
-	"github.com/kombifyio/techstack/pkg/ril/primitives"
-	"github.com/kombifyio/techstack/pkg/runtimehealth"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/orchestrator"
+	rilaction "github.com/kombifyio/homelab/pkg/ril/actioncontract"
+	"github.com/kombifyio/homelab/pkg/ril/actions"
+	"github.com/kombifyio/homelab/pkg/ril/primitives"
+	"github.com/kombifyio/homelab/pkg/runtimehealth"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 // ServiceActionCards is the governed action-card path that every mutating
@@ -35,7 +35,7 @@ type ServiceActionCards struct {
 	// authority (the orchestrator), so a card names the node the managed
 	// command addresses.
 	Lifecycle ServiceActionLifecycle
-	// Background turns the admitted request's context into Techstack system
+	// Background turns the admitted request's context into Homelab system
 	// work for the execution that outlives the request (the Edge-signed
 	// database context of a request is never reused after it).
 	Background func(context.Context) context.Context
@@ -157,13 +157,13 @@ func (h *serviceRuntimeHandlers) replayServiceActionCard(e *httpx.Event, tenantI
 }
 
 // runServiceActionCard runs the admitted card through the launcher in the
-// background, as Techstack system work that outlives the request.
+// background, as Homelab system work that outlives the request.
 func (h *serviceRuntimeHandlers) runServiceActionCard(ctx context.Context, input actions.BeginExecution) {
 	h.actionCards.run(ctx, input)
 }
 
 // run executes the admitted card through the launcher in the background, as
-// Techstack system work that outlives the request. Every governed entry (the
+// Homelab system work that outlives the request. Every governed entry (the
 // managed service actions and the host actions) uses it.
 func (c *ServiceActionCards) run(ctx context.Context, input actions.BeginExecution) {
 	launcher := c.Launcher

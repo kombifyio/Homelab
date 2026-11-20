@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 // OperatorSelfDisclosure is one principal's persisted voluntary
@@ -43,11 +43,11 @@ type OperatorSelfDisclosureStore interface {
 const (
 	// OperatorSelfDisclosureSourceLink marks answers that arrived as URL state
 	// (the Cloud Finder hand-off or any other link) and that the operator
-	// confirmed in Techstack before they were stored.
+	// confirmed in Homelab before they were stored.
 	OperatorSelfDisclosureSourceLink = "link"
-	// OperatorSelfDisclosureSourceTechstack marks answers the operator typed
-	// in a Techstack surface.
-	OperatorSelfDisclosureSourceTechstack = "techstack"
+	// OperatorSelfDisclosureSourceHomelab marks answers the operator typed
+	// in a Homelab surface.
+	OperatorSelfDisclosureSourceHomelab = "homelab"
 	// OperatorSelfDisclosureSourceLegacyCloud marks rows the wizard stored
 	// straight from a link, before a confirmation was required. Such rows stay
 	// readable; nothing writes this source any more.
@@ -71,7 +71,7 @@ func normalizeOperatorSelfDisclosure(disclosure OperatorSelfDisclosure) (Operato
 		return out, fmt.Errorf("controlplane: owner subject id required")
 	}
 	switch out.Source {
-	case OperatorSelfDisclosureSourceLink, OperatorSelfDisclosureSourceTechstack:
+	case OperatorSelfDisclosureSourceLink, OperatorSelfDisclosureSourceHomelab:
 	default:
 		return out, fmt.Errorf("controlplane: self-disclosure source %q is not valid", out.Source)
 	}

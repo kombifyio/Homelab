@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/demoguard"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/demoguard"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // authorizeDemoAutomation is the single authentication/configuration boundary

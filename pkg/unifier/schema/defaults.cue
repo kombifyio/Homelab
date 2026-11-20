@@ -1,4 +1,4 @@
-// Package schema - Smart defaults for kombifyTechstack configurations
+// Package schema - Smart defaults for kombifyHomelab configurations
 package schema
 
 // #Provider defines supported infrastructure providers (duplicate for standalone loading)

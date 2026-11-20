@@ -105,7 +105,7 @@ async function generateEd25519(): Promise<SSHKeyPair> {
     offset += 4;
     pubKeyBlob.set(publicKeyBytes, offset);
 
-    const publicKeySSH = `ssh-ed25519 ${arrayBufferToBase64(pubKeyBlob.buffer as ArrayBuffer)} generated@techstack`;
+    const publicKeySSH = `ssh-ed25519 ${arrayBufferToBase64(pubKeyBlob.buffer as ArrayBuffer)} generated@homelab`;
 
     // Format private key as PEM (PKCS8)
     const privateKeyPEM = `-----BEGIN PRIVATE KEY-----\n${wrapPEMLines(arrayBufferToBase64(privateKeyPKCS8))}\n-----END PRIVATE KEY-----`;

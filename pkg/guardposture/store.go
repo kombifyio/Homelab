@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardpower"
+	"github.com/kombifyio/homelab/pkg/guardpower"
 )
 
 // Store persists posture. Implementations are tenant scoped: a read or write

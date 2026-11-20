@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
-	"github.com/kombifyio/techstack/pkg/ril/actions"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/pkg/ril/actions"
 )
 
 const maxDeliveryAttempts = 8
@@ -39,7 +39,7 @@ type PostgresOutbox struct {
 	remediation RemediationPolicy
 }
 
-// NewPostgresOutbox uses Techstack's DefaultRemediationPolicy.
+// NewPostgresOutbox uses Homelab's DefaultRemediationPolicy.
 func NewPostgresOutbox(db *sql.DB) *PostgresOutbox {
 	return NewPostgresOutboxWithPolicy(db, DefaultRemediationPolicy())
 }

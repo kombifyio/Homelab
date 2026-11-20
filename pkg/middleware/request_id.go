@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"github.com/kombifyio/techstack/pkg/httpx"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 const requestIDHeader = "X-Request-ID"

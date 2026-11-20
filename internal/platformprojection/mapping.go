@@ -6,7 +6,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/kombifyio/techstack/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 )
 
 // maxProjectedServiceNames bounds what travels: a surface shows a handful of

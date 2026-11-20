@@ -2,7 +2,7 @@
   /**
    * The Companion, mounted once for the whole app.
    *
-   * There is no Techstack panel to build. AI Platform serves the only panel
+   * There is no Homelab panel to build. AI Platform serves the only panel
    * renderer and hosts mount it through `mountCompanion()`
    * (internal/plans/AI-FLOATING-PANEL-V2-PLAN.md, decision 1) — so this component is a mount
    * point and a settings bridge, not a chat UI. It is deliberately small: every
@@ -12,11 +12,11 @@
    * the real Kubi (the Workbench-ported mascot, `createKubi`) with its idle /
    * thinking / listening states and the account's avatar and position
    * preferences. A host-owned launcher — what the Workbench still has — means a
-   * third mascot to keep in step. Techstack takes the shared one.
+   * third mascot to keep in step. Homelab takes the shared one.
    *
    * Transport is `token`, the same as the Workbench: the panel asks for the
    * user's own Auth0 access token for the Gateway audience. A same-origin
-   * relay signed with Techstack's service secret was the first attempt and it
+   * relay signed with Homelab's service secret was the first attempt and it
    * cannot work — the Gateway edge accepts service auth in place of a user JWT
    * on four paths only, none of them the Companion's, because `/v1/ai/*`
    * entitles against the real user. Probing production returned 401 on every

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/api"
+	"github.com/kombifyio/homelab/pkg/api"
 )
 
 // These helpers are the single envelope sink for httpx routes. They reuse the

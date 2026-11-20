@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/clientpairing"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/identity"
-	"github.com/kombifyio/techstack/pkg/outcome"
+	"github.com/kombifyio/homelab/pkg/clientpairing"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/outcome"
 )
 
 const (
@@ -28,7 +28,7 @@ func TestClientPairingIssueRedeemAndReplay(t *testing.T) {
 	config := clientPairingTestConfig(clientDeploymentModeSelfHosted)
 	RegisterClientPairingRoutes(router, config)
 
-	issueRequest := httptest.NewRequest(http.MethodPost, "https://techstack.home.example"+clientPairingIssuePath, nil)
+	issueRequest := httptest.NewRequest(http.MethodPost, "https://homelab.home.example"+clientPairingIssuePath, nil)
 	issueRequest = issueRequest.WithContext(identity.NewContext(context.Background(), &identity.Identity{
 		UserID: "owner-1", OrgID: clientPairingTestTenant, Roles: []string{"admin"},
 	}))
@@ -44,7 +44,7 @@ func TestClientPairingIssueRedeemAndReplay(t *testing.T) {
 	if err := json.NewDecoder(issueRecorder.Body).Decode(&envelope); err != nil {
 		t.Fatal(err)
 	}
-	if envelope.Version != "1" || envelope.Endpoint != "https://techstack.home.example"+clientpairing.RedeemPath || envelope.InstanceID != clientDiscoveryTestInstanceID {
+	if envelope.Version != "1" || envelope.Endpoint != "https://homelab.home.example"+clientpairing.RedeemPath || envelope.InstanceID != clientDiscoveryTestInstanceID {
 		t.Fatalf("envelope = %#v", envelope)
 	}
 	if envelope.ExpiresAt.Sub(envelope.IssuedAt) != clientpairing.DefaultLifetime {
@@ -182,7 +182,7 @@ func TestClientPairingIssueRequiresAdminAndConfiguredTenantBinding(t *testing.T)
 		t.Run(test.name, func(t *testing.T) {
 			router := httpx.NewRouter()
 			RegisterClientPairingRoutes(router, config)
-			req := httptest.NewRequest(http.MethodPost, "https://techstack.home.example"+clientPairingIssuePath, nil)
+			req := httptest.NewRequest(http.MethodPost, "https://homelab.home.example"+clientPairingIssuePath, nil)
 			if test.identity != nil {
 				req = req.WithContext(identity.NewContext(context.Background(), test.identity))
 			}
@@ -201,7 +201,7 @@ func TestClientPairingRedeemRejectsUnknownFields(t *testing.T) {
 	RegisterClientPairingRoutes(router, clientPairingTestConfig(clientDeploymentModeSelfHosted))
 	body := `{"version":"1","instance_id":"` + clientDiscoveryTestInstanceID + `","tls_fingerprint_sha256":"` + clientPairingTestFingerprint + `","one_time_code":"abcdefghijklmnop","session_token":"forbidden"}`
 	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "https://techstack.home.example"+clientpairing.RedeemPath, bytes.NewBufferString(body)))
+	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "https://homelab.home.example"+clientpairing.RedeemPath, bytes.NewBufferString(body)))
 	if recorder.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d body=%s", recorder.Code, recorder.Body.String())
 	}
@@ -211,11 +211,11 @@ func TestClientPairingRedeemRejectsUnknownFields(t *testing.T) {
 func clientPairingTestConfig(mode string) ClientPairingRouteConfig {
 	profile := ClientConnectionProfileConfig{
 		DeploymentMode: mode,
-		BaseURL:        "https://techstack.home.example",
+		BaseURL:        "https://homelab.home.example",
 		InstanceID:     clientDiscoveryTestInstanceID,
 		OIDCIssuer:     "https://id.home.example/oidc",
-		OIDCClientID:   "techstack-native-public",
-		OIDCAudience:   "https://techstack.home.example/api",
+		OIDCClientID:   "homelab-native-public",
+		OIDCAudience:   "https://homelab.home.example/api",
 		OIDCScopes:     []string{"openid", "profile", "offline_access"},
 		OIDCFlow:       clientFlowPKCE,
 	}
@@ -231,7 +231,7 @@ func clientPairingTestConfig(mode string) ClientPairingRouteConfig {
 
 func issueClientPairingForRouteTest(t *testing.T, router *httpx.Router) clientpairing.Envelope {
 	t.Helper()
-	req := httptest.NewRequest(http.MethodPost, "https://techstack.home.example"+clientPairingIssuePath, nil)
+	req := httptest.NewRequest(http.MethodPost, "https://homelab.home.example"+clientPairingIssuePath, nil)
 	req = req.WithContext(identity.NewContext(context.Background(), &identity.Identity{
 		UserID: "owner-1", OrgID: clientPairingTestTenant, Roles: []string{"admin"},
 	}))

@@ -3,9 +3,9 @@ package routes
 import (
 	"net/http"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
 )
 
 // The supported runtime has one canonical local owner and Auth0 cloud users.
@@ -27,7 +27,7 @@ func RegisterRuntimeSystemAccountRoutes(r *httpx.Router) {
 // its retired password and wallet mutation path.
 // RegisterSystemAccountRefusal answers the reset route of a deployment that
 // keeps credentials in the kombify Wallet. The system accounts are the
-// PocketBase operator accounts of one Techstack instance (superuser, admin,
+// PocketBase operator accounts of one Homelab instance (superuser, admin,
 // developer), not kombify accounts and not Wallet owners, so there is nothing
 // to reset there and nowhere to store a new password.
 func RegisterSystemAccountRefusal(r *httpx.Router) {
@@ -40,6 +40,6 @@ func refuseSystemAccountReset(e *httpx.Event) error {
 	}
 	return kombifywallet.SelfHostedOnly(
 		"System accounts are not available here",
-		"This deployment keeps credentials in the kombify Wallet. The system accounts are operator accounts of a Techstack instance, not kombify accounts, so nothing was reset.",
+		"This deployment keeps credentials in the kombify Wallet. The system accounts are operator accounts of a Homelab Runtime instance, not kombify accounts, so nothing was reset.",
 	).Write(e)
 }

@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 // Native application transfer (STACKKIT_OPERATION_APPLICATION_TRANSFER) moves
@@ -19,7 +19,7 @@ import (
 // export receipt, destination outcome) and never a secret: the archive is
 // age-encrypted to the receiving node's own identity and travels node to node.
 const (
-	ApplicationTransferRequestVersion = "techstack.application-transfer-step/v1"
+	ApplicationTransferRequestVersion = "homelab.application-transfer-step/v1"
 	// MaxApplicationTransferRequestBytes bounds the step request (documents
 	// included).
 	MaxApplicationTransferRequestBytes = 1 << 20

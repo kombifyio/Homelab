@@ -3,8 +3,8 @@ package routes
 import (
 	"net/http"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // The diagnostic reads an owner and the owner's agents use to answer "why is
@@ -12,7 +12,7 @@ import (
 // projections as the private Cloud monitoring reads (runtimeBackupsFor,
 // runtimeUpdatesFor) and authorize like every other inventory read: the
 // authenticated owner's own servers under the inventory read policy
-// (`techstack.inventory.read`). Nothing runs on a node to answer them.
+// (`homelab.inventory.read`). Nothing runs on a node to answer them.
 
 // GET /api/v1/inventory/backups
 func (h inventoryHandlers) httpInventoryBackups(e *httpx.Event) error {

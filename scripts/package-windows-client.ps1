@@ -40,7 +40,7 @@ $sourceRevision = (& git -C $root rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0 -or $sourceRevision -notmatch '^[0-9a-f]{40}$') {
     throw "Windows client packaging requires an exact Git source revision."
 }
-$publicProfile = Test-Path -LiteralPath (Join-Path $root ".techstack-public-export.json")
+$publicProfile = Test-Path -LiteralPath (Join-Path $root ".homelab-public-export.json")
 if ($DesktopEdition -eq "Local" -and $publicProfile -and [string]::IsNullOrWhiteSpace($GuardReleaseDirectory)) {
     throw "Public Local packaging requires the exact-source signed Guard publication."
 }
@@ -57,7 +57,7 @@ if (-not [string]::IsNullOrWhiteSpace($GuardReleaseDirectory)) {
 }
 # Pre-1.0 packaging produces the requested artifacts only. The optional
 # client checks remain independent diagnostics and are not release dependencies.
-$project = Join-Path $root "clients\windows\Kombify.TechStack.Client\Kombify.TechStack.Client.csproj"
+$project = Join-Path $root "clients\windows\Kombify.Homelab.Client\Kombify.Homelab.Client.csproj"
 $editionDir = if ($DesktopEdition -eq "Cloud") { "windows-client-cloud" } else { "windows-client" }
 if ($DesktopEdition -eq "Cloud" -and $OutputDir -eq "dist\windows-client") { $OutputDir = "dist\windows-client-cloud" }
 $publishDir = Join-Path $root "dist\$editionDir\native"
@@ -132,14 +132,14 @@ Copy-Item -Recurse -Force -Path (Join-Path $publishDir "*") -Destination $stageD
 
 if ($DesktopEdition -eq "Cloud") {
     & (Join-Path $PSScriptRoot "build-windows-cloud-updater.ps1") -Version $Version `
-        -OutputPath (Join-Path $stageDir "kombify-techstack-cloud-updater.exe")
+        -OutputPath (Join-Path $stageDir "kombify-homelab-cloud-updater.exe")
     if ($LASTEXITCODE -ne 0) { throw "Cloud update verifier packaging failed with exit code $LASTEXITCODE" }
     Copy-Item -LiteralPath (Join-Path $root "THIRD-PARTY-NOTICES.md") -Destination $stageDir
 }
 
 if ($DesktopEdition -eq "Local") {
-$runtimeDestination = Join-Path $stageDir "techstack.exe"
-$linuxRuntimeDestination = Join-Path $stageDir "techstack-linux-amd64"
+$runtimeDestination = Join-Path $stageDir "homelab.exe"
+$linuxRuntimeDestination = Join-Path $stageDir "homelab-linux-amd64"
 if ($hasRuntimeInputs.Count -eq 2) {
     $runtimeExePath = Resolve-Path $RuntimeExe
     $linuxRuntimeExePath = Resolve-Path $LinuxRuntimeExe
@@ -177,12 +177,12 @@ if ($LASTEXITCODE -ne 0) { throw "StackKits Linux bundle build failed with exit 
 if ($signedGuardDirectory -ne "") {
     $seedDestination = Join-Path $stageDir "guard-release"
     New-Item -ItemType Directory -Force -Path $seedDestination | Out-Null
-    foreach ($asset in @("release-manifest.json", "release-manifest.sigstore.json", "release-manifest-seed.json", "release-manifest-seed.sigstore.json", "techstack-linux-amd64", "techstack-linux-amd64.sigstore.json", "techstack-linux-arm64", "techstack-linux-arm64.sigstore.json", "stackkit-runtime-linux-amd64.tar.gz", "stackkit-runtime-linux-arm64.tar.gz")) {
+    foreach ($asset in @("release-manifest.json", "release-manifest.sigstore.json", "release-manifest-seed.json", "release-manifest-seed.sigstore.json", "homelab-linux-amd64", "homelab-linux-amd64.sigstore.json", "homelab-linux-arm64", "homelab-linux-arm64.sigstore.json", "stackkit-runtime-linux-amd64.tar.gz", "stackkit-runtime-linux-arm64.tar.gz")) {
         Copy-Item -Force -LiteralPath (Join-Path $signedGuardDirectory $asset) -Destination (Join-Path $seedDestination $asset)
     }
     # The consumer serves the producer's exact archive, never a Windows repack.
     Copy-Item -Force -LiteralPath (Join-Path $seedDestination "stackkit-runtime-linux-amd64.tar.gz") -Destination $bundleArgs.OutputPath
-    Copy-Item -Force -LiteralPath (Join-Path $seedDestination "techstack-linux-amd64") -Destination $linuxRuntimeDestination
+    Copy-Item -Force -LiteralPath (Join-Path $seedDestination "homelab-linux-amd64") -Destination $linuxRuntimeDestination
     $metadataDirectory = [IO.Path]::GetFullPath((Join-Path $stageDir "signed-runtime-metadata"))
     if (!$metadataDirectory.StartsWith($safeDistRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
         throw "Signed runtime metadata target escapes the workspace dist directory."
@@ -218,9 +218,9 @@ if ($companionSource) {
 Copy-Item -Force -Path (Join-Path $root "clients\windows\README.md") -Destination (Join-Path $stageDir "README.md")
 $stageAssetsDir = Join-Path $stageDir "Assets"
 New-Item -ItemType Directory -Force -Path $stageAssetsDir | Out-Null
-Copy-Item -Force -Path (Join-Path $root "clients\windows\Kombify.TechStack.Client\Assets\kombify-navy.ico") -Destination $stageAssetsDir
+Copy-Item -Force -Path (Join-Path $root "clients\windows\Kombify.Homelab.Client\Assets\kombify-navy.ico") -Destination $stageAssetsDir
 
-$zipName = if ($DesktopEdition -eq "Cloud") { "kombify-techstack-cloud-client_${Version}_Windows_x86_64.zip" } else { "kombify-techstack-client_${Version}_Windows_x86_64.zip" }
+$zipName = if ($DesktopEdition -eq "Cloud") { "kombify-homelab-cloud-client_${Version}_Windows_x86_64.zip" } else { "kombify-homelab-client_${Version}_Windows_x86_64.zip" }
 $zipPath = Join-Path $zipDir $zipName
 if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
 Compress-Archive -Path (Join-Path $stageDir "*") -DestinationPath $zipPath -Force
@@ -236,8 +236,8 @@ $suffix = if ($DesktopEdition -eq "Cloud") { "-Cloud" } else { "" }
 # Customer-visible edition name (D-2026-11-11-05). $DesktopEdition stays the engineering identifier
 # (feed, file names, install folder, upgrade codes, registry key); only display text uses this value.
 $desktopEditionName = if ($DesktopEdition -eq "Cloud") { "Connected" } else { "Standalone" }
-$msiPath = Join-Path $zipDir "kombify-Techstack$suffix-x64.msi"
-$setupPath = Join-Path $zipDir "kombify-Techstack$suffix-Setup.exe"
+$msiPath = Join-Path $zipDir "kombify-Homelab$suffix-x64.msi"
+$setupPath = Join-Path $zipDir "kombify-Homelab$suffix-Setup.exe"
 foreach ($installerArtifact in @($msiPath, $setupPath)) {
     if (!(Test-Path -LiteralPath $installerArtifact -PathType Leaf)) {
         throw "Missing WiX Windows release artifact: $installerArtifact"
@@ -253,7 +253,7 @@ $checksumPath = Join-Path $zipDir "SHA256SUMS.txt"
 $checksumLines | Set-Content -Encoding ASCII -Path $checksumPath
 $unsignedMarker = Join-Path $zipDir "UNSIGNED-WINDOWS-RELEASE.txt"
 @"
-kombify Techstack $desktopEditionName Windows release $Version
+kombify Homelab $desktopEditionName Windows release $Version
 
 The Windows MSI and Burn setup.exe in this release are intentionally
 unsigned on every release channel, including stable. No Authenticode

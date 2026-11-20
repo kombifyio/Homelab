@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 func (h wizardRunHandlers) resolveWalletSSHKey(ctx context.Context, tenantID, ownerID, label string) (string, error) {

@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/core"
-	"github.com/kombifyio/techstack/pkg/unifier"
+	"github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 // deployArtifacts carries the unified spec and generated rollout artifact paths.
@@ -21,7 +21,7 @@ type deployArtifacts struct {
 	platformNodes []PlatformNode
 }
 
-// deployGenerateArtifacts persists Techstack's review proposal, then delegates
+// deployGenerateArtifacts persists Homelab's review proposal, then delegates
 // final validation, resolution, and rendering to the pinned StackKits CLI.
 //
 //nolint:gocyclo // moved unchanged from deploy_handler.go

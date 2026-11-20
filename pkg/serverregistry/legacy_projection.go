@@ -3,7 +3,7 @@ package serverregistry
 import (
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/runtimehealth"
+	"github.com/kombifyio/homelab/pkg/runtimehealth"
 )
 
 // LegacyServerState projects the canonical orthogonal connection and health

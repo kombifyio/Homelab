@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/kombifyio/techstack/pkg/core"
-	"github.com/kombifyio/techstack/pkg/validator"
+	"github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/validator"
 )
 
 // AddonDetector handles automatic add-on detection based on spec characteristics.

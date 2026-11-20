@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 const ApplicationConnectorCapability = "stackkit.application-connector.v1"

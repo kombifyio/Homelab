@@ -16,7 +16,7 @@
 </script>
 
 <svelte:head>
-  <title>{tr("nav.notifications")} – Techstack</title>
+  <title>{tr("nav.notifications")} – Homelab Runtime</title>
 </svelte:head>
 
 <div class="min-h-0 p-4 md:p-6">

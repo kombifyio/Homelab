@@ -4,10 +4,10 @@ import { defineConfig, devices } from "@playwright/test";
 // that snapshot prints input values, passwords included.
 process.env.PLAYWRIGHT_NO_COPY_PROMPT ??= "1";
 
-const defaultProductURL = "https://techstack.kombify.io";
+const defaultProductURL = "https://homelab.kombify.io";
 const configuredProductURL =
-  process.env.TECHSTACK_RUNTIME_E2E_PRODUCT_URL ??
-  process.env.TECHSTACK_E2E_PRODUCT_URL;
+  process.env.HOMELAB_RUNTIME_E2E_PRODUCT_URL ??
+  process.env.HOMELAB_E2E_PRODUCT_URL;
 const configuredBaseURL = process.env.PLAYWRIGHT_BASE_URL;
 const baseURL = requireLiveProductURL(
   configuredProductURL ||

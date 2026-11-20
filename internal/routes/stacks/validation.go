@@ -1,4 +1,4 @@
-// Package stacks provides validation functions for kombifyTechstack stack configurations.
+// Package stacks provides validation functions for kombifyHomelab stack configurations.
 // This file contains YAML/JSON validation, node validation, and service validation.
 package stacks
 
@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/providercatalog"
 
 	"gopkg.in/yaml.v3"
 )

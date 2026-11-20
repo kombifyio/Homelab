@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardcompat"
+	"github.com/kombifyio/homelab/pkg/guardcompat"
 )
 
 // Worker identity states. A redeemed enrollment starts issued_unconfirmed and

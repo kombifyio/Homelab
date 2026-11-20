@@ -18,7 +18,7 @@ import (
 // (owner decision D2, 2026-10-19); acceptance revalidates against a fresh
 // snapshot first.
 const (
-	RecommendationAPIVersion = "techstack.kombify.io/recommendation/v1"
+	RecommendationAPIVersion = "homelab.kombify.io/recommendation/v1"
 
 	CardKindGovernedAction       = "governed-action"
 	CardKindLayoutRecommendation = "layout-recommendation"

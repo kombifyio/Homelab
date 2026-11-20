@@ -1,4 +1,4 @@
-// Package primitives is Techstack's exact copy of the executor-bound RIL
+// Package primitives is Homelab's exact copy of the executor-bound RIL
 // primitive set of the StackKits catalog (foundation/architecture_v2_catalog.cue,
 // support "executor-bound"). Every authority seam (card admission, Gateway
 // lease and receipt checks, the dispatcher and the node proof) binds a
@@ -11,8 +11,8 @@ package primitives
 import (
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	rilaction "github.com/kombifyio/techstack/pkg/ril/actioncontract"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	rilaction "github.com/kombifyio/homelab/pkg/ril/actioncontract"
 )
 
 // Input identifiers and their opaque-reference prefixes.
@@ -42,7 +42,7 @@ const (
 const EquipmentPolicyPrefix = "equipment:"
 
 // DecisionOperation is the one Decision intent operation of the action-card path.
-const DecisionOperation = "techstack.ril.execute"
+const DecisionOperation = "homelab.ril.execute"
 
 // Profile is the exact binding of one executor-bound primitive.
 type Profile struct {

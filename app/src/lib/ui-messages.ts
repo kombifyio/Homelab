@@ -7,8 +7,8 @@ export const uiMessages = {
     "setupReplay.body":
       "Review how this device connects, then revisit the introduction. Your settings draft stays here.",
     "setupReplay.edition": "Installer edition",
-    "setupReplay.localEdition": "Techstack Standalone",
-    "setupReplay.cloudEdition": "Techstack Connected",
+    "setupReplay.localEdition": "Homelab Runtime Standalone",
+    "setupReplay.cloudEdition": "Homelab Runtime Connected",
     "setupReplay.connection": "Connection",
     "setupReplay.address": "Address",
     "setupReplay.browser": "Web browser",
@@ -210,8 +210,8 @@ export const uiMessages = {
     "setupReplay.body":
       "Prüfe die Verbindung dieses Geräts und wiederhole danach die Einführung. Dein Einstellungsentwurf bleibt hier.",
     "setupReplay.edition": "Installer-Edition",
-    "setupReplay.localEdition": "Techstack Standalone",
-    "setupReplay.cloudEdition": "Techstack Connected",
+    "setupReplay.localEdition": "Homelab Runtime Standalone",
+    "setupReplay.cloudEdition": "Homelab Runtime Connected",
     "setupReplay.connection": "Verbindung",
     "setupReplay.address": "Adresse",
     "setupReplay.browser": "Webbrowser",

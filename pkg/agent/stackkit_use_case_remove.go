@@ -4,8 +4,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 func stackKitUseCaseRemoveArgs(workDir string, command *agentpb.StackKitCommand) ([]string, []string, error) {
@@ -16,7 +16,7 @@ func stackKitUseCaseRemoveArgs(workDir string, command *agentpb.StackKitCommand)
 	if err != nil {
 		return nil, nil, err
 	}
-	directory, err := os.MkdirTemp(workDir, ".techstack-remove-")
+	directory, err := os.MkdirTemp(workDir, ".homelab-remove-")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -29,7 +29,7 @@ func stackKitUseCaseRemoveArgs(workDir string, command *agentpb.StackKitCommand)
 }
 
 func attachUseCaseRemoveCandidate(command *agentpb.StackKitCommand, result *agentpb.StackKitResult, tempFiles []string) error {
-	if err := attachStackKitIntentCandidate(result, tempFiles, ".techstack-remove-"); err != nil {
+	if err := attachStackKitIntentCandidate(result, tempFiles, ".homelab-remove-"); err != nil {
 		return err
 	}
 	_, err := stackkitcommand.ParseUseCaseRemovalEvidence(command, result)

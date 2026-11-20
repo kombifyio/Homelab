@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/stdlib"
 
-	"github.com/kombifyio/techstack/pkg/db"
+	"github.com/kombifyio/homelab/pkg/db"
 )
 
 const (

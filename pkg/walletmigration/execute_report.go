@@ -8,7 +8,7 @@ import (
 )
 
 // ExecuteReportSchema identifies the execute report format.
-const ExecuteReportSchema = "techstack.wallet-migration-execute.v1"
+const ExecuteReportSchema = "homelab.wallet-migration-execute.v1"
 
 // ModeExecute is the mode of an execute report.
 const ModeExecute = "execute"
@@ -34,7 +34,7 @@ const (
 	OutcomeAmbiguous Outcome = "ambiguous"
 	// OutcomeQuarantined: the planner does not admit the row; it is untouched.
 	OutcomeQuarantined Outcome = "quarantined"
-	// OutcomeCreateRightMissing: the owner has not allowed Techstack to save
+	// OutcomeCreateRightMissing: the owner has not allowed Homelab to save
 	// credentials in the Wallet; the row is untouched.
 	OutcomeCreateRightMissing Outcome = "create_right_missing"
 	// OutcomeFailed: see the reason code.
@@ -182,7 +182,7 @@ func (r ExecuteReport) Complete() bool { return r.NotMoved() == 0 && r.Aborted =
 // WriteText renders the report for an operator terminal.
 func (r ExecuteReport) WriteText(w io.Writer) error {
 	var b strings.Builder
-	fmt.Fprintf(&b, "Techstack wallet migration (%s, %s)\n", r.Mode, r.GeneratedAt)
+	fmt.Fprintf(&b, "Homelab Runtime wallet migration (%s, %s)\n", r.Mode, r.GeneratedAt)
 	fmt.Fprintf(&b, "Tenants: %s  owners: %d\n\n", strings.Join(r.Tenants, ", "), r.Owners)
 	c := r.Rows
 	fmt.Fprintf(&b, "Rows: migrated %d  adopted %d  already migrated %d  skipped (changed) %d  ambiguous %d\n", c.Migrated, c.Adopted, c.AlreadyMigrated, c.SkippedChanged, c.Ambiguous)

@@ -1,4 +1,4 @@
-// Package rilactionexecution owns TechStack's durable execution coordination
+// Package rilactionexecution owns Homelab's durable execution coordination
 // around the provider-free StackKits RIL action handoff.
 package rilactionexecution
 
@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/ril/actioncontract"
+	"github.com/kombifyio/homelab/pkg/ril/actioncontract"
 )
 
 var (

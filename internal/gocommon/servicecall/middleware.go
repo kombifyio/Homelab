@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/identity"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 )
 
 // Middleware validates X-Kombify-Service-Auth, stores the verified Caller

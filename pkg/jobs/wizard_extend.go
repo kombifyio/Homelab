@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 const WizardExtendReceiptKey = "wizard_extend_receipt"
@@ -39,7 +39,7 @@ func WizardExtendJobID(req StackKitLifecycleRequest) string {
 	if req.WizardExtend == nil {
 		return ""
 	}
-	value := strings.Join([]string{"techstack.wizard-extend/v1", req.TenantID, req.OwnerID, req.StackID, req.WizardExtend.RunID, req.AgentID}, "\x00")
+	value := strings.Join([]string{"homelab.wizard-extend/v1", req.TenantID, req.OwnerID, req.StackID, req.WizardExtend.RunID, req.AgentID}, "\x00")
 	return fmt.Sprintf("wizard-extend-%x", sha256.Sum256([]byte(value)))
 }
 
@@ -86,7 +86,7 @@ func WizardExtendReceipt(req StackKitLifecycleRequest) map[string]any {
 		return nil
 	}
 	receipt := map[string]any{
-		"schema_version": "techstack.wizard-extend-receipt/v1",
+		"schema_version": "homelab.wizard-extend-receipt/v1",
 		"run_id":         req.WizardExtend.RunID, "request_digest": req.WizardExtend.RequestDigest,
 		"candidate_digest": req.WizardExtend.CandidateDigest, "release_version": req.WizardExtend.ReleaseVersion,
 		"archive_sha256": req.WizardExtend.ArchiveSHA256,

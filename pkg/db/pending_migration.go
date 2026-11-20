@@ -21,7 +21,7 @@ func RILQueueAdapterEvidence() map[string]any {
 // SubstrateAbsenceAdapterEvidence identifies the exact bounded pending-190
 // correction. The shipped migration patches the insert validator by exact text
 // match, but production created that function from a CRLF migration file, so
-// its stored body carries \r\n and no LF target matched (Techstack 0.48.3,
+// its stored body carries \r\n and no LF target matched (Homelab 0.48.3,
 // 2026-11-10: "failed-head admission patch target is not at the expected
 // version"). The correction folds the read definition to LF before patching.
 func SubstrateAbsenceAdapterEvidence() map[string]any {

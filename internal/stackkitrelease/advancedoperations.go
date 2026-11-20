@@ -5,7 +5,7 @@ package stackkitrelease
 // after the program name with {placeholder} words, requirements, result
 // payloads and the release status of each entry. StackKits owns it
 // (internal/advancedcatalog, docs/data/advanced-operations/latest.json) and
-// ships it inside every release archive. Techstack renders Advanced argv from
+// ships it inside every release archive. Homelab renders Advanced argv from
 // the catalog of the exact pinned release and never hand-writes those flags.
 
 import (
@@ -34,7 +34,7 @@ const (
 )
 
 // ErrAdvancedOperationsMissing reports a pinned release that does not carry
-// its Advanced operations catalog. Every Techstack-managed deployment runs
+// its Advanced operations catalog. Every Homelab-managed deployment runs
 // Advanced Mode, so such a release cannot serve a rollout: there is no
 // embedded or Standard fallback.
 var ErrAdvancedOperationsMissing = errors.New("the pinned StackKits release does not carry its Advanced operations catalog")

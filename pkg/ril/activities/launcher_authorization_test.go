@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"testing"
 
-	rilaction "github.com/kombifyio/techstack/pkg/ril/actioncontract"
-	"github.com/kombifyio/techstack/pkg/ril/actions"
-	"github.com/kombifyio/techstack/pkg/ril/workflow"
+	rilaction "github.com/kombifyio/homelab/pkg/ril/actioncontract"
+	"github.com/kombifyio/homelab/pkg/ril/actions"
+	"github.com/kombifyio/homelab/pkg/ril/workflow"
 )
 
 type launcherGateAuthority struct {

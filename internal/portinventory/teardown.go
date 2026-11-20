@@ -15,8 +15,8 @@ import (
 func normalizeTeardownRequest(request TeardownSnapshotRequest) (TeardownSnapshotRequest, error) {
 	request.TenantID = strings.TrimSpace(request.TenantID)
 	request.OwnerSubjectID = strings.TrimSpace(request.OwnerSubjectID)
-	request.TechstackID = strings.TrimSpace(request.TechstackID)
-	if request.TenantID == "" || request.OwnerSubjectID == "" || request.TechstackID == "" {
+	request.KitDeploymentID = strings.TrimSpace(request.KitDeploymentID)
+	if request.TenantID == "" || request.OwnerSubjectID == "" || request.KitDeploymentID == "" {
 		return TeardownSnapshotRequest{}, ErrInvalidRequest
 	}
 	return request, nil
@@ -29,7 +29,7 @@ func sealTeardownSnapshot(request TeardownSnapshotRequest, generations []Teardow
 	}
 	snapshot := TeardownSnapshot{
 		APIVersion: TeardownSnapshotAPIVersion, TenantID: request.TenantID,
-		OwnerSubjectID: request.OwnerSubjectID, TechstackID: request.TechstackID,
+		OwnerSubjectID: request.OwnerSubjectID, KitDeploymentID: request.KitDeploymentID,
 		Generations: cloneTeardownGenerations(generations),
 	}
 	if snapshot.Generations == nil {
@@ -52,9 +52,9 @@ func ValidateTeardownSnapshot(snapshot TeardownSnapshot) error {
 		return ErrTeardownSnapshotMismatch
 	}
 	request, err := normalizeTeardownRequest(TeardownSnapshotRequest{
-		TenantID: snapshot.TenantID, OwnerSubjectID: snapshot.OwnerSubjectID, TechstackID: snapshot.TechstackID,
+		TenantID: snapshot.TenantID, OwnerSubjectID: snapshot.OwnerSubjectID, KitDeploymentID: snapshot.KitDeploymentID,
 	})
-	if err != nil || request.TenantID != snapshot.TenantID || request.OwnerSubjectID != snapshot.OwnerSubjectID || request.TechstackID != snapshot.TechstackID {
+	if err != nil || request.TenantID != snapshot.TenantID || request.OwnerSubjectID != snapshot.OwnerSubjectID || request.KitDeploymentID != snapshot.KitDeploymentID {
 		return ErrTeardownSnapshotMismatch
 	}
 	normalized := snapshot
@@ -105,7 +105,7 @@ func normalizeTeardownGenerations(snapshot *TeardownSnapshot) error {
 	for index := range snapshot.Generations {
 		generation := &snapshot.Generations[index]
 		if err := normalizeGenerationRef(&generation.GenerationRef); err != nil ||
-			generation.TenantID != snapshot.TenantID || generation.StackID != snapshot.TechstackID ||
+			generation.TenantID != snapshot.TenantID || generation.StackID != snapshot.KitDeploymentID ||
 			!validSHA256Digest(generation.ClaimSetDigest) || len(generation.NodeRefs) == 0 {
 			return ErrTeardownSnapshotMismatch
 		}

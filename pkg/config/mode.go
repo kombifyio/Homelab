@@ -1,7 +1,7 @@
 // Package config — deployment mode configuration.
 package config
 
-// DeploymentMode determines whether kombifyTechstack runs as a self-hosted instance
+// DeploymentMode determines whether kombifyHomelab runs as a self-hosted instance
 // or as part of the kombify SaaS platform.
 type DeploymentMode string
 
@@ -22,7 +22,7 @@ const (
 	EditionSelfHostOSS Edition = "selfhost-oss"
 	// EditionPreview is the SaaS preview/staging lane.
 	EditionPreview Edition = "preview"
-	// EditionSaaSStandalone is the hosted TechStack SaaS service lane.
+	// EditionSaaSStandalone is the hosted Homelab SaaS service lane.
 	EditionSaaSStandalone Edition = "saas-standalone"
 	// EditionSaaSEmbedded is reserved for a Cloud-owned embedded boot lane.
 	EditionSaaSEmbedded Edition = "saas-embedded"
@@ -43,7 +43,7 @@ func (m DeploymentMode) IsSelfHosted() bool {
 	return m == ModeSelfHosted
 }
 
-// IsValid returns true if the edition is a recognized TechStack edition.
+// IsValid returns true if the edition is a recognized Homelab edition.
 func (e Edition) IsValid() bool {
 	switch e {
 	case EditionSelfHostOSS, EditionPreview, EditionSaaSStandalone, EditionSaaSEmbedded:

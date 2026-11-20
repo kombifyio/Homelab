@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
 )
 
 const controllerAddressPlannerFile = "stackkits-controller-address-planner.json"
-const controllerAddressPlannerSchema = "techstack.controller-address-planner/v1"
+const controllerAddressPlannerSchema = "homelab.controller-address-planner/v1"
 
 // The Windows bundle producer emits this next to the already packaged native
 // CLI, after verifying both platform archives. The target binding prevents a
@@ -47,7 +47,7 @@ func controllerAddressPlannerRelease(target stackkitrelease.Release) (stackkitre
 	if own, err := configuredPinnedStackKitRelease(); err == nil && own != nil && runsTargetArchive(*own, target) {
 		return *own, nil
 	}
-	dir := strings.TrimSpace(os.Getenv("TECHSTACK_STACKKITS_DIR"))
+	dir := strings.TrimSpace(os.Getenv("HOMELAB_STACKKITS_DIR"))
 	if !filepath.IsAbs(dir) {
 		return stackkitrelease.Release{}, fmt.Errorf("managed address planning requires an admitted controller bundle")
 	}
@@ -89,7 +89,7 @@ func admitControllerAddressPlanner(dir string, target stackkitrelease.Receipt) (
 	}
 	// Resolve uses the existing immutable artifact-pin verifier, including the
 	// native platform and exact executable digest. No PATH lookup or alternate
-	// executable from TECHSTACK_STACKKIT_CLI is accepted.
+	// executable from HOMELAB_STACKKIT_CLI is accepted.
 	pin.BinaryPath = filepath.Join(dir, "bin", "stackkit.exe")
 	return (stackkitrelease.Cache{}).Resolve(pin)
 }

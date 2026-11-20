@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	rilaction "github.com/kombifyio/techstack/pkg/ril/actioncontract"
 	"github.com/google/uuid"
+	rilaction "github.com/kombifyio/homelab/pkg/ril/actioncontract"
 	"github.com/kombifyio/stackkits/contracts/runtimelease"
 )
 
@@ -28,7 +28,7 @@ const (
 // owner-operated server's generation identity in the admission's resource
 // generation column. It identifies `server:<id>:<generation>`; it is never a
 // VM lease row.
-var ownerServerGenerationNamespace = uuid.NewSHA1(uuid.NameSpaceURL, []byte("https://kombify.io/techstack/ril-owner-server-generation/v1"))
+var ownerServerGenerationNamespace = uuid.NewSHA1(uuid.NameSpaceURL, []byte("https://kombify.io/homelab/ril-owner-server-generation/v1"))
 
 // LifecycleAuthority is a server's one admitted runtime authority. A leased
 // offering (substrate_vm, managed_vps) is admitted by its running, uncancelled,

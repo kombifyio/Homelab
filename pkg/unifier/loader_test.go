@@ -3,7 +3,7 @@ package unifier
 import (
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 func TestLoader_LoadBytes_Valid(t *testing.T) {
@@ -162,7 +162,7 @@ func TestPipelinePreValidateAcceptsWizardStackSpecServiceToggles(t *testing.T) {
 	loader := NewLoader()
 
 	input, err := loader.LoadInputBytes([]byte(`{
-  "name": "techstack",
+  "name": "homelab",
   "stackkit": "basement-kit",
   "mode": "simple",
   "runtime": "docker",

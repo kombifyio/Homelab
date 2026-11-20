@@ -9,15 +9,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/advancedissuer"
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/agentcontrol"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/auth/stackkitdecision"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/grpcserver"
-	"github.com/kombifyio/techstack/pkg/originca"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/advancedissuer"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/agentcontrol"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/auth/stackkitdecision"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/grpcserver"
+	"github.com/kombifyio/homelab/pkg/originca"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 	"github.com/kombifyio/stackkits/pkg/workloadremoval"
 	"google.golang.org/protobuf/proto"
 
@@ -393,7 +393,7 @@ type AdvancedIssuer interface {
 
 // localExecutionBinding is the Site/node/channel triple one kit's owner runs.
 //
-// Techstack sent the basement triple for every kit, so a cloud-kit rollout
+// Homelab sent the basement triple for every kit, so a cloud-kit rollout
 // named a binding its own plan does not contain and StackKits rejected it. The
 // values mirror each kit's authoring.standaloneOwner in the StackKits CUE
 // authority -- basement-kit/stackfile.cue:212-214 and
@@ -413,7 +413,7 @@ type localExecutionBinding struct {
 //
 // modern-homelab mirrors modern-homelab/stackfile.cue (standaloneOwner for
 // home-main, the cloud-edge node) and the StackKits modern-two-host fixture
-// (`local-<node>` channels). Advanced Mode is Techstack-only, so Techstack
+// (`local-<node>` channels). Advanced Mode is Homelab-only, so Homelab
 // dispatches each node's phases to the agent that owns the node.
 var localExecutionBindings = map[string][]localExecutionBinding{
 	"basement-kit": {{SiteRef: "home", NodeRef: "main", ExecutionChannelRef: "local-home-main"}},
@@ -915,7 +915,7 @@ func RestoreActivationRequestReceipt(req StackKitLifecycleRequest) map[string]in
 	if req.Operation != StackKitLifecycleBackupRestoreActivate || req.RestoreIdempotencyKeySHA256 == "" {
 		return nil
 	}
-	return map[string]interface{}{"schema_version": "techstack.restore-activation-request/v1", "tenant_id": req.TenantID, "owner_id": req.OwnerID, "techstack_id": req.StackID, "agent_id": req.AgentID, "stackkit_instance_id": req.StackKitInstanceID, "node_id": req.NodeID, "node_ref": req.NodeRef, "spec_path": req.SpecPath, "restore_result_id": req.RestoreResultID, "owner_approved": req.OwnerApproved, "key_sha256": req.RestoreIdempotencyKeySHA256, "request_digest": req.ServiceActionDigest}
+	return map[string]interface{}{"schema_version": "homelab.restore-activation-request/v1", "tenant_id": req.TenantID, "owner_id": req.OwnerID, "kit_deployment_id": req.StackID, "agent_id": req.AgentID, "stackkit_instance_id": req.StackKitInstanceID, "node_id": req.NodeID, "node_ref": req.NodeRef, "spec_path": req.SpecPath, "restore_result_id": req.RestoreResultID, "owner_approved": req.OwnerApproved, "key_sha256": req.RestoreIdempotencyKeySHA256, "request_digest": req.ServiceActionDigest}
 }
 
 func MatchesRestoreActivationRequestReceipt(result map[string]interface{}, req StackKitLifecycleRequest) bool {
@@ -943,8 +943,8 @@ func StackKitServiceActionReceipt(req StackKitLifecycleRequest) map[string]inter
 		return nil
 	}
 	return map[string]interface{}{
-		"schema_version":       "techstack.service-action-receipt/v1",
-		"techstack_id":         req.StackID,
+		"schema_version":       "homelab.service-action-receipt/v1",
+		"kit_deployment_id":    req.StackID,
 		"stackkit_instance_id": req.StackKitInstanceID,
 		"request_digest":       req.ServiceActionDigest,
 		"service_id":           req.ServiceID,
@@ -961,7 +961,7 @@ func MatchesStackKitServiceActionReceipt(result map[string]any, req StackKitLife
 		return false
 	}
 	want := StackKitServiceActionReceipt(req)
-	if actual := strings.TrimSpace(stringFromInterface(receipt["techstack_id"])); actual != "" && actual != req.StackID {
+	if actual := strings.TrimSpace(stringFromInterface(receipt["kit_deployment_id"])); actual != "" && actual != req.StackID {
 		return false
 	}
 	if actual := strings.TrimSpace(stringFromInterface(receipt["stackkit_instance_id"])); actual != "" && actual != req.StackKitInstanceID {
@@ -994,8 +994,8 @@ func StackKitLifecycleHandler(cfg StackKitLifecycleConfig) JobHandler {
 				if result[restoreActivationCheckpointKey] != nil {
 					return
 				}
-				result["schema_version"] = "techstack.stackkit-lifecycle-result/v1"
-				result["techstack_id"] = beforeReq.StackID
+				result["schema_version"] = "homelab.stackkit-lifecycle-result/v1"
+				result["kit_deployment_id"] = beforeReq.StackID
 				result["agent_id"] = beforeReq.AgentID
 				result["operation"] = beforeReq.Operation
 				result["success"] = false
@@ -1065,7 +1065,7 @@ func StackKitLifecycleHandler(cfg StackKitLifecycleConfig) JobHandler {
 		if req.Operation == StackKitLifecycleApplicationUpdate {
 			if err := requireApplicationUpdateRelease(*release); err != nil {
 				job.replaceResult(map[string]interface{}{
-					"schema_version": "techstack.stackkit-lifecycle-result/v1", "techstack_id": req.StackID, "operation": req.Operation,
+					"schema_version": "homelab.stackkit-lifecycle-result/v1", "kit_deployment_id": req.StackID, "operation": req.Operation,
 					"agent_id": req.AgentID, "success": false, "service_action_receipt": StackKitServiceActionReceipt(req),
 					ApplicationUpdateResultField: map[string]interface{}{"result": ApplicationUpdateRefused, "reason_code": "stackkits_release_too_old"},
 				})
@@ -1074,7 +1074,7 @@ func StackKitLifecycleHandler(cfg StackKitLifecycleConfig) JobHandler {
 			capability, err := issueApplicationUpdateCapability(ctx, cfg.AdvancedIssuer, req)
 			if err != nil {
 				job.replaceResult(map[string]interface{}{
-					"schema_version": "techstack.stackkit-lifecycle-result/v1", "techstack_id": req.StackID, "operation": req.Operation,
+					"schema_version": "homelab.stackkit-lifecycle-result/v1", "kit_deployment_id": req.StackID, "operation": req.Operation,
 					"agent_id": req.AgentID, "success": false, "service_action_receipt": StackKitServiceActionReceipt(req),
 					ApplicationUpdateResultField: map[string]interface{}{"result": ApplicationUpdateRefused, "reason_code": "application_update_capability_unavailable"},
 				})
@@ -1260,7 +1260,7 @@ func StackKitLifecycleHandler(cfg StackKitLifecycleConfig) JobHandler {
 			normalized[StackKitsTargetResultField] = record
 			if recordErr != nil && result.Success {
 				job.replaceResult(normalized)
-				return NewPermanentError(fmt.Errorf("the StackKits upgrade succeeded on the node, but Techstack could not record its target: %w", recordErr))
+				return NewPermanentError(fmt.Errorf("the StackKits upgrade succeeded on the node, but Homelab Runtime could not record its target: %w", recordErr))
 			}
 		}
 		if !result.Success {
@@ -1397,7 +1397,7 @@ func matchesRestoreActivationCheckpointIdentity(retained map[string]interface{},
 
 func unresolvedRestoreActivation(req StackKitLifecycleRequest, planHash string, checkpoint map[string]interface{}) map[string]interface{} {
 	result := map[string]interface{}{
-		"schema_version": "techstack.stackkit-lifecycle-result/v1", "techstack_id": req.StackID,
+		"schema_version": "homelab.stackkit-lifecycle-result/v1", "kit_deployment_id": req.StackID,
 		"stackkit_instance_id": req.StackKitInstanceID, "agent_id": req.AgentID,
 		"operation": req.Operation, "success": false,
 		"backup": map[string]interface{}{"mode": "recovery-required", "restore_result_id": req.RestoreResultID, "activation_operation_id": req.ActivationOperationID, "plan_hash": planHash},
@@ -1954,8 +1954,8 @@ func normalizeStackKitLifecycleResult(req StackKitLifecycleRequest, result *agen
 	}
 	status := stackKitLifecycleCommandDataStatus(commandResult)
 	normalized := map[string]interface{}{
-		"schema_version":       "techstack.stackkit-lifecycle-result/v1",
-		"techstack_id":         req.StackID,
+		"schema_version":       "homelab.stackkit-lifecycle-result/v1",
+		"kit_deployment_id":    req.StackID,
 		"stackkit_instance_id": req.StackKitInstanceID,
 		"operation":            req.Operation,
 		"agent_id":             req.AgentID,

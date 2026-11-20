@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 // MinWalletAIProviderRelease is the first StackKits release whose CLI binds an

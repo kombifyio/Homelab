@@ -13,12 +13,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/secrets"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/secrets"
 )
 
 // JobProgress represents a job progress update sent via SSE.
@@ -55,7 +55,7 @@ func RegisterJobsSSERoutes(r *httpx.Router, stores JobRouteStores) {
 			return authErr
 		}
 
-		tenantID, err := requireJobRouteTenant(e, ownerID, "techstack.jobs.list")
+		tenantID, err := requireJobRouteTenant(e, ownerID, "homelab.jobs.list")
 		if err != nil {
 			return err
 		}
@@ -74,7 +74,7 @@ func RegisterJobsSSERoutes(r *httpx.Router, stores JobRouteStores) {
 		}
 
 		jobID := e.Request.PathValue("id")
-		tenantID, err := requireJobRouteTenant(e, ownerID, "techstack.jobs.read")
+		tenantID, err := requireJobRouteTenant(e, ownerID, "homelab.jobs.read")
 		if err != nil {
 			return err
 		}
@@ -93,7 +93,7 @@ func RegisterJobsSSERoutes(r *httpx.Router, stores JobRouteStores) {
 		}
 
 		jobID := e.Request.PathValue("id")
-		tenantID, err := requireJobRouteTenant(e, ownerID, "techstack.jobs.stream")
+		tenantID, err := requireJobRouteTenant(e, ownerID, "homelab.jobs.stream")
 		if err != nil {
 			return err
 		}
@@ -108,7 +108,7 @@ func RegisterJobsSSERoutes(r *httpx.Router, stores JobRouteStores) {
 		}
 
 		jobID := e.Request.PathValue("id")
-		tenantID, err := requireJobRouteTenant(e, ownerID, "techstack.jobs.logs.read")
+		tenantID, err := requireJobRouteTenant(e, ownerID, "homelab.jobs.logs.read")
 		if err != nil {
 			return err
 		}

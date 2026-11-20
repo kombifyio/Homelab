@@ -22,8 +22,8 @@ export const zhHans: Record<string, string> = {
   "setupReplay.body":
     "查看此设备的连接方式，然后重新浏览介绍。设置草稿会保留在这里。",
   "setupReplay.edition": "安装版本",
-  "setupReplay.localEdition": "Techstack Standalone",
-  "setupReplay.cloudEdition": "Techstack Connected",
+  "setupReplay.localEdition": "Homelab Runtime Standalone",
+  "setupReplay.cloudEdition": "Homelab Runtime Connected",
   "setupReplay.connection": "连接",
   "setupReplay.address": "地址",
   "setupReplay.browser": "网页浏览器",
@@ -256,7 +256,7 @@ export const zhHans: Record<string, string> = {
     "只有在确定所选路径后，设置才会给出建议地址。",
   "wizard.access.address.custom": "使用我自己的域名",
   "wizard.access.address.customBody":
-    "为此 Techstack 保存域名请求。它本身不会更改 DNS。",
+    "为此 Homelab Runtime 保存域名请求。它本身不会更改 DNS。",
   "wizard.access.address.domainLabel": "基础域名",
   "wizard.access.address.domainPlaceholder": "home.example.com",
   "wizard.access.address.prerequisites": "地址生效前的条件",
@@ -599,7 +599,7 @@ export const zhHans: Record<string, string> = {
   "hostBaseline.existing": "现有监听端口",
   "hostBaseline.noListeners":
     "在观察范围内没有报告任何监听端口。已停止的应用和其他命名空间仍可能占用绑定。",
-  "hostBaseline.recheck": "执行之前，Techstack 和 StackKits 会再次检查所需的绑定。出现冲突时，需要进行受支持的配置更改、改用其他服务器，或经过审核的迁移；端口开放并不能证明可从公网访问。",
+  "hostBaseline.recheck": "执行之前，Homelab Runtime 和 StackKits 会再次检查所需的绑定。出现冲突时，需要进行受支持的配置更改、改用其他服务器，或经过审核的迁移；端口开放并不能证明可从公网访问。",
   "hostBaseline.refresh": "刷新清单",
   "hostBaseline.review": "查看所有端口和服务",
   "wizard.smartHome.applianceRetained":
@@ -629,7 +629,7 @@ export const zhHans: Record<string, string> = {
   "wizard.server.hypervisor.help":
     "使用你已连接的 Proxmox 及其现有的存储和网络。",
   "wizard.server.hypervisor.standard":
-    "Ubuntu LTS 在独立的虚拟机中运行你的 StackKits 核心。Techstack 会自动准备并连接客户机。",
+    "Ubuntu LTS 在独立的虚拟机中运行你的 StackKits 核心。Homelab Runtime 会自动准备并连接客户机。",
   "wizard.server.hypervisor.appliance":
     "Home Assistant OS 使用独立的 appliance 虚拟机。Ubuntu 客户机继续运行核心和其他服务。",
   "wizard.server.hypervisor.host": "已连接的 Proxmox 服务器",
@@ -666,7 +666,7 @@ export const zhHans: Record<string, string> = {
   "wizard.server.hypervisor.authorizeFailed":
     "无法启用客户机管理。请检查 Guard 的本地 Proxmox 配置，然后刷新。",
   "wizard.server.hypervisor.progress":
-    "Techstack 正在你已连接的 Proxmox 上准备 Ubuntu 客户机，然后注册它并运行所选的 StackKit。进度会随同一操作继续。",
+    "Homelab Runtime 正在你已连接的 Proxmox 上准备 Ubuntu 客户机，然后注册它并运行所选的 StackKit。进度会随同一操作继续。",
   "nav.dashboard": "仪表板",
   "nav.monitoring": "监控",
   "nav.services": "服务",
@@ -719,7 +719,7 @@ export const zhHans: Record<string, string> = {
   "onboarding.ui.introduction.skip": "跳过导览",
   "onboarding.ui.introduction.close": "关闭",
   "introduction.restart": "重新播放介绍",
-  "introduction.welcome.title": "欢迎使用你的 Techstack",
+  "introduction.welcome.title": "欢迎使用你的 Homelab",
   "introduction.welcome.body":
     "选择你想运行的内容，连接你自己的服务器，按照设置一直走到经过验证的服务。你的配置始终可以编辑。运行起来之后，健康状况、日志和后续操作会帮你照看好它。",
   "introduction.welcome.name_label": "先做第一件事：我们该怎么称呼这个地方？",
@@ -737,28 +737,28 @@ export const zhHans: Record<string, string> = {
   "introduction.account.title": "设置就在你的名字后面",
   "introduction.account.body":
     "主题、帮助和你的账户都在这里，也可以在这里重新播放这段介绍。你随时可以在这里个性化外观。",
-  "onboarding.techstack_platform.techstack_find_stackkit.title":
+  "onboarding.homelab_platform.homelab_find_stackkit.title":
     "挑选一个 StackKit",
-  "onboarding.techstack_platform.techstack_find_stackkit.body":
+  "onboarding.homelab_platform.homelab_find_stackkit.body":
     "StackKit 是一组现成的服务组合。浏览它们，挑选最接近你想运行内容的那个。",
-  "onboarding.techstack_platform.techstack_find_stackkit.cta": "浏览 StackKit",
-  "onboarding.techstack_platform.techstack_configure_intent.title":
+  "onboarding.homelab_platform.homelab_find_stackkit.cta": "浏览 StackKit",
+  "onboarding.homelab_platform.homelab_configure_intent.title":
     "说说它的用途",
-  "onboarding.techstack_platform.techstack_configure_intent.body":
+  "onboarding.homelab_platform.homelab_configure_intent.body":
     "回答几个关于你想托管什么的问题。kombify 会把答案转换成你可以检查的配置。",
-  "onboarding.techstack_platform.techstack_configure_intent.cta": "打开向导",
-  "onboarding.techstack_platform.techstack_deploy_stackkit.title":
+  "onboarding.homelab_platform.homelab_configure_intent.cta": "打开向导",
+  "onboarding.homelab_platform.homelab_deploy_stackkit.title":
     "部署你的 StackKit",
-  "onboarding.techstack_platform.techstack_deploy_stackkit.body": "确认方案，让 kombify 把 StackKit 部署到你的 Homelab。你的 Homelab 设置完成后，此步骤会自动打勾。",
-  "onboarding.techstack_platform.techstack_deploy_stackkit.cta": "继续设置",
-  "onboarding.techstack_platform.techstack_add_server.title": "添加服务器",
-  "onboarding.techstack_platform.techstack_add_server.body": "连接你自己的服务器，或让 kombify 为你运行一个。你的服务需要有地方安家。",
-  "onboarding.techstack_platform.techstack_add_server.cta": "添加服务器",
-  "onboarding.techstack_platform.techstack_deploy_service.title":
+  "onboarding.homelab_platform.homelab_deploy_stackkit.body": "确认方案，让 kombify 把 StackKit 部署到你的 Homelab。你的 Homelab 设置完成后，此步骤会自动打勾。",
+  "onboarding.homelab_platform.homelab_deploy_stackkit.cta": "继续设置",
+  "onboarding.homelab_platform.homelab_add_server.title": "添加服务器",
+  "onboarding.homelab_platform.homelab_add_server.body": "连接你自己的服务器，或让 kombify 为你运行一个。你的服务需要有地方安家。",
+  "onboarding.homelab_platform.homelab_add_server.cta": "添加服务器",
+  "onboarding.homelab_platform.homelab_deploy_service.title":
     "打开你的第一个服务",
-  "onboarding.techstack_platform.techstack_deploy_service.body":
+  "onboarding.homelab_platform.homelab_deploy_service.body":
     "服务运行起来后，你可以从服务列表中访问它。这就是这一切的意义所在。",
-  "onboarding.techstack_platform.techstack_deploy_service.cta": "前往服务",
+  "onboarding.homelab_platform.homelab_deploy_service.cta": "前往服务",
   "onboarding.denied.policy_selfhost_byos.title": "由 kombify 托管的服务器是 Cloud 功能",
   "onboarding.denied.policy_selfhost_byos.body": "此安装为自托管，因此 kombify 不会为其配置服务器。连接你自己的服务器，其余功能都一样。",
   "onboarding.denied.policy_selfhost_byos.next_step": "连接你已在运行的服务器。",
@@ -778,10 +778,10 @@ export const zhHans: Record<string, string> = {
   "common.tip": "提示",
   "common.moreInfo": "了解此选项的更多信息",
   "common.recommended": "推荐",
-  "wizard.title": "创建 Techstack",
+  "wizard.title": "创建 Homelab Runtime",
   "wizard.selfDisclosure.review.title": "使用此链接中的回答吗？",
   "wizard.selfDisclosure.review.body":
-    "你打开的链接包含以下关于你的回答。只有在你选择“使用这些回答”后，Techstack 才会将其保存到你的个人资料并用于推荐。目前尚未保存任何内容。",
+    "你打开的链接包含以下关于你的回答。只有在你选择“使用这些回答”后，Homelab Runtime 才会将其保存到你的个人资料并用于推荐。目前尚未保存任何内容。",
   "wizard.selfDisclosure.review.notes": "还有其他补充吗？（可选）",
   "wizard.selfDisclosure.review.notesHint":
     "硬件细节、特殊需求或你担心的事情，用你自己的话来说。",
@@ -921,7 +921,7 @@ export const zhHans: Record<string, string> = {
   "wizard.goals.everything.tip":
     "我们会按你的经验和硬件来选择。任何一项都可以取消。",
   "wizard.goals.tipText":
-    "如果你拿不准，只选一个目标就好。kombify-Techstack 始终是一个整体系统，之后可以添加更多服务。需要更多设置？试试下方的高级设置。",
+    "如果你拿不准，只选一个目标就好。kombify-Homelab 始终是一个整体系统，之后可以添加更多服务。需要更多设置？试试下方的高级设置。",
   "wizard.goals.advancedTitle": "高级使用场景",
   "wizard.goals.showMoreDetails": "显示更多详情",
   "wizard.goals.showLessDetails": "收起",
@@ -1253,7 +1253,7 @@ export const zhHans: Record<string, string> = {
   "wizard.login.recovery.hashing": "正在对恢复口令进行哈希处理...",
   "wizard.login.recovery.ready": "恢复口令已就绪。",
   "wizard.login.passkey.help":
-    "推出后由 Pocket ID 提供首个 Passkey 的交接；任何 Passkey 密钥都不会进入 Techstack。",
+    "推出后由 Pocket ID 提供首个 Passkey 的交接；任何 Passkey 密钥都不会进入 Homelab Runtime。",
   "wizard.login.password.title": "TinyAuth 网关凭据",
   "wizard.login.password.description": "为应用网关提供的可选应急保护",
   "wizard.login.password.help":
@@ -1361,7 +1361,7 @@ export const zhHans: Record<string, string> = {
     "网络错误：无法连接到 Discovery API。后端是否在运行？",
   "ui.api.scanPollingTimeout": "扫描轮询超时",
   "ui.api.serverSideAPIBaseURL":
-    "未配置服务器端 API 基础 URL。请设置 TECHSTACK_API_URL（运行时）或 VITE_API_URL（构建时）。",
+    "未配置服务器端 API 基础 URL。请设置 HOMELAB_API_URL（运行时）或 VITE_API_URL（构建时）。",
   "ui.argon2.addNumber": "请至少添加一个数字。",
   "ui.argon2.addSymbols": "添加空格或符号，让密码短语更难被猜到。",
   "ui.argon2.longer": "更长的密码短语更容易记住，也更安全。",
@@ -1374,16 +1374,16 @@ export const zhHans: Record<string, string> = {
   "ui.authCloud-link-complete.closeThisTabAndTry":
     "请关闭此标签页，然后在向导中重试。",
   "ui.authCloud-link-complete.kombifyCloudConnected": "kombify Cloud 已连接",
-  "ui.authCloud-link-complete.kombifyCloudLinkKombifyTechstack":
-    "kombify Cloud 链接 | Techstack",
+  "ui.authCloud-link-complete.kombifyCloudLinkKombifyHomelab":
+    "kombify Cloud 链接 | Homelab Runtime",
   "ui.authCloud-link-complete.thisWindowClosesAutomatically":
     "此窗口将自动关闭。",
   "ui.authCloud-link-complete.youCanCloseThisTab":
     "你可以关闭此标签页并返回向导。",
   "ui.authSso.noSsoTokenProvided": "未提供 SSO 令牌",
   "ui.authSso.ssoAuthenticationFailed": "SSO 身份验证失败",
-  "ui.authSso.ssoAuthenticationKombifyTechstack":
-    "SSO 身份验证 | Techstack",
+  "ui.authSso.ssoAuthenticationKombifyHomelab":
+    "SSO 身份验证 | Homelab Runtime",
   "ui.authSso.unableToVerifyYourCredentials": "无法验证你的凭据",
   "ui.authSso.yourKombifyCloudSessionCould":
     "无法恢复你的 kombify Cloud 会话。请重试。",
@@ -1397,7 +1397,7 @@ export const zhHans: Record<string, string> = {
   "ui.clientLocal.checkingLocalAuthState": "正在检查本地认证状态...",
   "ui.clientLocal.continueLocalSetup": "继续本地设置",
   "ui.clientLocal.createOrSignInAs":
-    "为这个自托管的 Techstack 创建本地所有者，或以本地所有者身份登录。设置完成后，将直接打开运维界面。",
+    "为这个自托管的 Homelab Runtime 创建本地所有者，或以本地所有者身份登录。设置完成后，将直接打开运维界面。",
   "ui.clientLocal.createTheFirstLocalAdmin":
     "为此设备创建第一个本地管理员。设置完成后，此 Windows 客户端将直接打开运维界面。",
   "ui.clientLocal.creatingLocalOwner": "正在创建本地所有者...",
@@ -1408,24 +1408,24 @@ export const zhHans: Record<string, string> = {
   "ui.clientLocal.localOwnerWasCreatedBut": "本地所有者已创建，但登录失败。",
   "ui.clientLocal.localSetupFailed": "本地设置失败。",
   "ui.clientLocal.localSignInFailed": "本地登录失败。",
-  "ui.clientLocal.localTechstackSetup": "本地 Techstack 设置。",
-  "ui.clientLocal.localTechstackSetupKombifyTechstack":
-    "本地 Techstack 设置 | Techstack",
+  "ui.clientLocal.localHomelabSetup": "本地 Homelab Runtime 设置。",
+  "ui.clientLocal.localHomelabSetupKombifyHomelab":
+    "本地 Homelab Runtime 设置 | Homelab Runtime",
   "ui.clientLocal.ownerName": "所有者名称：{name}",
   "ui.clientLocal.password": "密码",
   "ui.clientLocal.selfHostedLocalOwner": "自托管本地所有者",
   "ui.clientLocal.signInLocally": "本地登录",
   "ui.clientLocal.signingIn": "正在登录...",
   "ui.clientLocal.thisDeviceIsAlreadyConfigured":
-    "此设备已完成配置。请使用本地所有者账户登录以打开 Techstack。",
+    "此设备已完成配置。请使用本地所有者账户登录以打开 Homelab Runtime。",
   "ui.clientOnboarding.connectAnExistingSelfHosted": "连接现有的自托管服务器",
   "ui.clientOnboarding.connectServer": "连接服务器",
   "ui.clientOnboarding.installLocally": "本地安装",
   "ui.clientOnboarding.localWindowsInstallation": "Windows 本地安装",
-  "ui.clientOnboarding.noTechstackAccountRequiredTechstack":
-    "无需 Techstack 账户。Techstack 在此设备上运行，并为你的专用网络开启受令牌保护的注册通道。",
-  "ui.clientOnboarding.setUpKombifyTechstackOn":
-    "在此 Windows 设备上设置 Techstack。",
+  "ui.clientOnboarding.noHomelabAccountRequiredHomelab":
+    "无需 Homelab Runtime 账户。Homelab Runtime 在此设备上运行，并为你的专用网络开启受令牌保护的注册通道。",
+  "ui.clientOnboarding.setUpKombifyHomelabOn":
+    "在此 Windows 设备上设置 Homelab Runtime。",
   "ui.clientOnboarding.signInWithKombifyCloud": "使用 kombify Cloud 登录",
   "ui.clientOnboarding.signInWithYourKombify":
     "使用你的 kombify Cloud 账户登录，并连接此桌面客户端。",
@@ -1433,11 +1433,11 @@ export const zhHans: Record<string, string> = {
   "ui.clientOnboarding.thePrivateNetworkEnrollmentChannel":
     "无法启用专用网络注册通道。",
   "ui.clientOnboarding.thisClientIsTheLocal":
-    "此客户端是本地桌面入口，用于编排你自己的服务器和 StackKits。默认方式是在此设备上本地安装 Techstack。",
+    "此客户端是本地桌面入口，用于编排你自己的服务器和 StackKits。默认方式是在此设备上本地安装 Homelab Runtime。",
   "ui.clientOnboarding.useLocally": "本地使用",
   "ui.clientOnboarding.useYourOwnSelfHosted": "改用你自己的自托管服务器",
-  "ui.clientOnboarding.windowsClientOnboardingKombifyTechstack":
-    "Windows 客户端引导 | Techstack",
+  "ui.clientOnboarding.windowsClientOnboardingKombifyHomelab":
+    "Windows 客户端引导 | Homelab Runtime",
   "ui.cockpitSnapshot.monitoringCockpitCouldNotBe": "无法刷新监控驾驶舱。",
   "ui.common.copiedCheck": "✓ 已复制",
   "ui.common.copy": "复制",
@@ -1472,7 +1472,7 @@ export const zhHans: Record<string, string> = {
   "ui.configurationFlow.anUnexpectedErrorOccurredPlease":
     "发生了意外错误。请重试。如果问题持续，请联系支持并提供技术详情。",
   "ui.configurationFlow.authenticationRequired": "需要身份验证",
-  "ui.configurationFlow.cannotConnectToBackend": "无法连接到 Techstack",
+  "ui.configurationFlow.cannotConnectToBackend": "无法连接到 Homelab Runtime",
   "ui.configurationFlow.deploymentFailed": "无法创建你的 Homelab",
   "ui.configurationFlow.managedServerIsNotActive": "托管服务器未处于活动状态",
   "ui.configurationFlow.permissionDenied": "权限被拒绝",
@@ -1494,7 +1494,7 @@ export const zhHans: Record<string, string> = {
   "ui.configurationFlow.youMustBeLoggedIn": "请登录以创建你的 Homelab。",
   "ui.configurationFlow.youMustBeLoggedIn2":
     "你需要先登录才能创建 Homelab。请先登录。",
-  "ui.connectDevices.techstackClient": "Techstack 客户端",
+  "ui.connectDevices.homelabClient": "Homelab Runtime 客户端",
   "ui.creationCompletion.ownerSeedFor": "已为 {email} 准备好你的所有者账户。",
   "ui.creationController.theAdditionalNode": "额外的服务器",
   "ui.creationFailure.lease": "租约",
@@ -1644,9 +1644,9 @@ export const zhHans: Record<string, string> = {
   "ui.homelabDashboardPage.bothServiceSourcesReportedAn":
     "两个服务来源都报告了空清单：StackKit 清单中没有服务，Agent 发现也未找到正在运行的容器或单元。",
   "ui.homelabDashboardPage.confirmThatTheProviderResource":
-    "请确认提供商处的资源已被移除。Techstack 只会归档其过期的托管记录，不会删除提供商处的任何资源。",
-  "ui.homelabDashboardPage.custodyRecordUnchangedTheTechstack":
-    "托管记录未更改：Techstack 网关无法连接后端。服务恢复后，请对这条记录重试。",
+    "请确认提供商处的资源已被移除。Homelab Runtime 只会归档其过期的托管记录，不会删除提供商处的任何资源。",
+  "ui.homelabDashboardPage.custodyRecordUnchangedTheHomelab":
+    "托管记录未更改：Homelab Runtime 网关无法连接后端。服务恢复后，请对这条记录重试。",
   "ui.homelabDashboardPage.custodyResolutionFailed": "托管处理失败",
   "ui.homelabDashboardPage.decommissionFailed": "移除失败",
   "ui.homelabDashboardPage.deployStackkit": "查看并创建",
@@ -1796,9 +1796,9 @@ export const zhHans: Record<string, string> = {
   "ui.importExportModal.importing": "正在导入...",
   "ui.importExportModal.keepThisPasswordSafeWithout":
     "请妥善保管此密码！没有它，你将无法恢复你的凭据。",
-  "ui.importExportModal.kombifyTechstackJson": "kombify-Techstack JSON",
-  "ui.importExportModal.kombifyTechstackWalletExportJson":
-    "kombify-Techstack Wallet 导出（.json）",
+  "ui.importExportModal.kombifyHomelabJson": "kombify-Homelab JSON",
+  "ui.importExportModal.kombifyHomelabWalletExportJson":
+    "kombify-Homelab Wallet 导出（.json）",
   "ui.importExportModal.min8Characters": "至少 8 个字符",
   "ui.importExportModal.nativeFormatWithEncryptionSupport":
     "原生格式，支持加密。最适合备份和恢复。",
@@ -1853,11 +1853,11 @@ export const zhHans: Record<string, string> = {
   "ui.login.revealFailed": "显示失败。",
   "ui.login.revealing": "正在显示...",
   "ui.login.signInAsEmergencyAdmin": "以应急管理员身份登录",
-  "ui.login.signInKombifyTechstack": "登录 | Techstack",
+  "ui.login.signInKombifyHomelab": "登录 | Homelab Runtime",
   "ui.login.signInWithKombifyCloud": "使用 kombify Cloud 登录。",
-  "ui.login.signInWithTheLocal": "使用此 Techstack 的本地所有者账户登录。",
-  "ui.login.techstackReconnectsThroughTheKombify":
-    "Techstack 会通过包含此视图的 kombify Cloud 页面重新连接。它不会在此框架内再打开第二个登录页面。",
+  "ui.login.signInWithTheLocal": "使用此 Homelab Runtime 的本地所有者账户登录。",
+  "ui.login.homelabReconnectsThroughTheKombify":
+    "Homelab Runtime 会通过包含此视图的 kombify Cloud 页面重新连接。它不会在此框架内再打开第二个登录页面。",
   "ui.login.theBootstrapPasswordHasExpired":
     "引导密码已过期。请重启服务器以生成新的密码。",
   "ui.login.tooManyLoginAttemptsPlease": "登录尝试次数过多。请稍候再试。",
@@ -1865,7 +1865,7 @@ export const zhHans: Record<string, string> = {
   "ui.login.useTheStoredEmergencyPassword": "使用已保存的应急密码",
   "ui.login.youHaveBeenSignedOut": "你已退出登录。",
   "ui.loginExperience.kombifyCloudSignInCompleted":
-    "kombify Cloud 登录已完成，但 Techstack 无法创建浏览器会话。请重试或联系支持团队。",
+    "kombify Cloud 登录已完成，但 Homelab Runtime 无法创建浏览器会话。请重试或联系支持团队。",
   "ui.managed.sizeGB": "{size} GB",
   "ui.managed.sizeGiB": "{size} GiB",
   "ui.managedCreationFlow.addNode": "添加 Node",
@@ -1881,7 +1881,7 @@ export const zhHans: Record<string, string> = {
   "ui.managedCreationFlow.workerOrStorageForThis":
     "此 StackKit 的 Worker 或存储",
   "ui.managedRuntimeRecreatePanel.thisProvisionsAndBillsA":
-    "这将预配并计费一个新一代的托管服务器。Techstack 会通过常规创建流程重新建立注册、端点、Guard 证据和 StackKit 部署。",
+    "这将预配并计费一个新一代的托管服务器。Homelab Runtime 会通过常规创建流程重新建立注册、端点、Guard 证据和 StackKit 部署。",
   "ui.monitoring.acrossEpisodes.one": "共 {count} 次事件",
   "ui.monitoring.acrossEpisodes.other": "共 {count} 次事件",
   "ui.monitoring.availabilityHistoryIsUnavailableOn": "此安装不提供可用性历史记录。",
@@ -2067,7 +2067,7 @@ export const zhHans: Record<string, string> = {
   "ui.peoplePanel.noHouseholdMembersYetInvite":
     "还没有家庭成员。请在 Homelab 的身份设置中邀请他们。",
   "ui.peoplePanel.noKombifyClientIsLinked":
-    "尚未关联任何 kombify 客户端。安装 Techstack 客户端、Companion 或 Workbench 后即可在此看到。",
+    "尚未关联任何 kombify 客户端。安装 Homelab Runtime 客户端、Companion 或 Workbench 后即可在此看到。",
   "ui.peoplePanel.nobodyInThisFilter": "此筛选条件下没有人。",
   "ui.peoplePanel.ownerDevicesCanManageThe":
     "所有者设备可以管理 Homelab；家庭成员只能使用其中的应用。",
@@ -2123,7 +2123,7 @@ export const zhHans: Record<string, string> = {
   "ui.providerErrors.checkTheRuntimeLogsFor":
     "查看同一 Stack、任务、租约和提供商的运行时日志",
   "ui.providerErrors.checkTheServerLogsDocker":
-    "查看服务器日志：'docker compose logs techstack'",
+    "查看服务器日志：'docker compose logs homelab'",
   "ui.providerErrors.checkTheVMLeaseEnrollment":
     "查看 VM 租约的注册事件和 Sentry，以了解提供商错误",
   "ui.providerErrors.checkWhetherCentronOrIONOS":
@@ -2158,18 +2158,18 @@ export const zhHans: Record<string, string> = {
   "ui.providerErrors.ifProviderSupportIsRequired":
     "如需提供商支持，请附上详情中的错误代码",
   "ui.providerErrors.ifRunningTheBinaryOutside":
-    "如果在仓库之外运行该二进制文件：请将 TECHSTACK_STACKKITS_DIR 设置为已发布的 StackKits 检出目录",
+    "如果在仓库之外运行该二进制文件：请将 HOMELAB_STACKKITS_DIR 设置为已发布的 StackKits 检出目录",
   "ui.providerErrors.ifThisIsANew":
     "如果这是新的 Homelab，请创建 Kit，而不是添加 Node",
   "ui.providerErrors.ifThisIsANew2":
-    "如果这是新的部署，请重试向导，以便 Techstack 生成 stackkit/v2alpha1 规范",
+    "如果这是新的部署，请重试向导，以便 Homelab Runtime 生成 stackkit/v2alpha1 规范",
   "ui.providerErrors.joinRequiresAnArchitectureV2": "加入需要 v2 架构",
   "ui.providerErrors.joiningASecondController": "加入第二个控制器",
   "ui.providerErrors.kitDirectoryNotFound": "未找到 Kit 目录",
   "ui.providerErrors.kombifyMeRegistrationFailed": "kombify.me 注册失败",
   "ui.providerErrors.makeSureAStackKitWas": "请确保已选择或检测到某个 StackKit",
-  "ui.providerErrors.makeSureTheKombifyTechstack":
-    "请确保 Techstack 服务器正在运行",
+  "ui.providerErrors.makeSureTheKombifyHomelab":
+    "请确保 Homelab Runtime 服务器正在运行",
   "ui.providerErrors.managedRuntimeCouldNotBe": "无法准备托管运行时",
   "ui.providerErrors.managedRuntimeCouldNotBe2": "无法创建托管运行时",
   "ui.providerErrors.managedRuntimeIsNotReady": "托管运行时尚未就绪",
@@ -2206,7 +2206,7 @@ export const zhHans: Record<string, string> = {
   "ui.providerErrors.retryTheRolloutOnlyAfter":
     "仅在目标服务器上的 SSH、Docker 和 StackKits Runtime Action 都稳定后再重试部署",
   "ui.providerErrors.reviewTheLogsWithDocker":
-    "使用 'docker compose logs techstack' 查看日志",
+    "使用 'docker compose logs homelab' 查看日志",
   "ui.providerErrors.reviewTheServerLogs": "仍然不行？询问 kombify，或打开技术详情并发送给支持团队。",
   "ui.providerErrors.runtimeActionStackkitRollout":
     "Runtime Action stackkit_rollout",
@@ -2248,8 +2248,8 @@ export const zhHans: Record<string, string> = {
   "ui.providerErrors.theConfigurationCouldNotBe": "无法将配置保存到数据库。",
   "ui.providerErrors.theConfigurationCouldNotBe2":
     "无法将配置转换为有效的部署规范。",
-  "ui.providerErrors.theKombifyTechstackServerCould":
-    "无法连接到 Techstack 服务器。",
+  "ui.providerErrors.theKombifyHomelabServerCould":
+    "无法连接到 Homelab Runtime 服务器。",
   "ui.providerErrors.theManagedVMWasPrepared":
     "托管 VM 已准备就绪，但 StackKits 无法生成部署产物或 kombify.me 路由数据。",
   "ui.providerErrors.theRolloutDidNotReturn":
@@ -2258,10 +2258,10 @@ export const zhHans: Record<string, string> = {
     "所选服务的要求相互冲突。",
   "ui.providerErrors.theSubmittedConfigurationContainsInvalid":
     "提交的配置包含无效或缺失的值。",
-  "ui.providerErrors.theTeardownStoppedBecauseTechstack":
-    "拆除已停止，因为 Techstack 无法将请求匹配到权威的提供商租约。没有强制移除任何内容，因此提供商处的资源可能仍然存在。",
+  "ui.providerErrors.theTeardownStoppedBecauseHomelab":
+    "拆除已停止，因为 Homelab Runtime 无法将请求匹配到权威的提供商租约。没有强制移除任何内容，因此提供商处的资源可能仍然存在。",
   "ui.providerErrors.theVMIsReachableBut":
-    "VM 可以访问，但 Techstack 无法在托管运行时服务器上可靠地准备 Docker 或引导基线。",
+    "VM 可以访问，但 Homelab Runtime 无法在托管运行时服务器上可靠地准备 Docker 或引导基线。",
   "ui.providerErrors.theVMLeaseHasNot":
     "VM 租约未报告 SSH 主机或公网 IP。创建已停止，以免该操作无限期停留在预配状态。",
   "ui.providerErrors.theVMWasPreparedBut":
@@ -2273,8 +2273,8 @@ export const zhHans: Record<string, string> = {
   "ui.providerErrors.thisNodeCouldNotBe2": "无法添加此 Node",
   "ui.providerErrors.tooManyRecentCreateAnd": "近期的创建和删除操作过多",
   "ui.providerErrors.tooManyRecentCreateDelete": "近期的创建/删除操作过多",
-  "ui.providerErrors.tryRestartingTheKombifyTechstack":
-    "尝试重启 kombify-Techstack 服务器",
+  "ui.providerErrors.tryRestartingTheKombifyHomelab":
+    "尝试重启 kombify-Homelab 服务器",
   "ui.providerErrors.trySelectingFewerServices": "尝试选择更少的服务",
   "ui.providerErrors.unexpectedError": "意外错误",
   "ui.providerErrors.unifierProcessingError": "Unifier 处理错误",
@@ -2319,11 +2319,11 @@ export const zhHans: Record<string, string> = {
   "ui.requirements.hybridSetupCloudAndLocal":
     "混合设置：云服务器与本地服务器相互连接",
   "ui.requirements.linuxRecommendedInstallsThePersistent":
-    "Linux（推荐）— 通过 Core/API URL（/install.sh）安装持久的出站 Guard。如果在其他主机/VM 上运行，请将 localhost 替换为你的 kombify-Techstack 服务器可访问的 IP/域名。",
+    "Linux（推荐）— 通过 Core/API URL（/install.sh）安装持久的出站 Guard。如果在其他主机/VM 上运行，请将 localhost 替换为你的 kombify-Homelab 服务器可访问的 IP/域名。",
   "ui.requirements.manualInstallationAfterBinaryDownload":
     "手动安装（下载二进制文件后）",
-  "ui.requirements.techstackPreparesTheVMThen":
-    "Techstack 会先准备 VM，然后继续标准的 StackKits 安装。",
+  "ui.requirements.homelabPreparesTheVMThen":
+    "Homelab Runtime 会先准备 VM，然后继续标准的 StackKits 安装。",
   "ui.requirements.theInstallationCommandRunsOn":
     "安装命令在你自己的服务器或设备上运行",
   "ui.requirements.ubuntuGuestOnYourProxmox":
@@ -2401,9 +2401,9 @@ export const zhHans: Record<string, string> = {
   "ui.serverDetail.confirmProviderRemoval": "确认在提供商处移除 {name}",
   "ui.serverDetail.connectionState": "服务器连接：{state}",
   "ui.serverDetail.decommissionIntro":
-    "请求受控移除 {slot}。在确认其已不存在之前，Techstack 会保留提供商的托管记录。此操作有意仅在此处提供。",
+    "请求受控移除 {slot}。在确认其已不存在之前，Homelab Runtime 会保留提供商的托管记录。此操作有意仅在此处提供。",
   "ui.serverDetail.detachIntro":
-    "撤销 {slot} 对应的 Guard Agent，并将此关联从当前清单中移除。Techstack 会保留最终的审计回执，且不会调用任何提供商 API。",
+    "撤销 {slot} 对应的 Guard Agent，并将此关联从当前清单中移除。Homelab Runtime 会保留最终的审计回执，且不会调用任何提供商 API。",
   "ui.serverDetail.evidence": "证据：{sources}",
   "ui.serverDetail.healthSource": "来源：{source}。监控后端：{backend}。",
   "ui.serverDetail.jobAccepted": "此服务器已接受任务 {id}。",
@@ -2456,7 +2456,7 @@ export const zhHans: Record<string, string> = {
   "ui.stepUp.blockedLink": "打开登录确认",
   "ui.stepUp.checking": "正在检查…",
   "ui.stepUp.confirm": "确认登录",
-  "ui.stepUp.doneBody": "你可以关闭此窗口，返回 Techstack。",
+  "ui.stepUp.doneBody": "你可以关闭此窗口，返回 Homelab Runtime。",
   "ui.stepUp.doneTitle": "登录已确认",
   "ui.stepUp.notConfirmed":
     "尚未收到确认。请在另一个窗口中完成确认，或再试一次。",
@@ -2730,7 +2730,7 @@ export const zhHans: Record<string, string> = {
   "ui.settings.deleting": "正在删除...",
   "ui.settings.deletionFailed": "删除失败",
   "ui.settings.removeWithoutServer": "服务器已不存在，移除",
-  "ui.settings.serverGoneBody": "{servers} 已有数分钟没有响应。如果您已删除它，请在下方确认：Techstack 将终止其访问权限，并在没有它的情况下移除该堆栈。",
+  "ui.settings.serverGoneBody": "{servers} 已有数分钟没有响应。如果您已删除它，请在下方确认：Homelab Runtime 将终止其访问权限，并在没有它的情况下移除该堆栈。",
   "ui.settings.serverGoneTitle": "它的服务器没有响应",
   "ui.settings.failedToLoadDeployments": "无法加载 Homelab",
   "ui.settings.failedToLoadHomelabIdentity": "无法加载 Homelab 身份",
@@ -2827,8 +2827,8 @@ export const zhHans: Record<string, string> = {
   "ui.stackImportExportModal.whatWillBeExported": "将导出哪些内容？",
   "ui.stackImportExportModal.youWillBeRedirectedTo":
     "你很快将被重定向到设置页面。",
-  "ui.stacksCreating.creatingStackkitDeploymentKombifyTechstack":
-    "正在创建你的 Homelab | Techstack",
+  "ui.stacksCreating.creatingStackkitDeploymentKombifyHomelab":
+    "正在创建你的 Homelab | Homelab Runtime",
   "ui.stacksCreating.leanBackBody":
     "你的部分已经完成。我们正在为你准备一切，精彩马上就来。",
   "ui.stacksCreating.leanBackTitle": "放松一下，我们正在为你施展魔法",
@@ -2838,7 +2838,7 @@ export const zhHans: Record<string, string> = {
   "ui.stacksCreating.tips.codeEyebrow": "基础设施即代码",
   "ui.stacksCreating.tips.codeTitle": "你的技术栈即代码",
   "ui.stacksCreating.tips.growBody":
-    "随时为此技术栈添加新的服务器。Techstack 协调你的服务器，每台服务器仍可独立运行。",
+    "随时为此技术栈添加新的服务器。Homelab Runtime 协调你的服务器，每台服务器仍可独立运行。",
   "ui.stacksCreating.tips.growEyebrow": "扩展",
   "ui.stacksCreating.tips.growTitle": "成长空间",
   "ui.stacksCreating.tips.label": "小知识",
@@ -2947,7 +2947,7 @@ export const zhHans: Record<string, string> = {
   "ui.stacksCreatingCreation-controller.thePreviouslyVerifiedGuardHeartbeat":
     "你的服务器已停止报到。正在等待它重新报到。",
   "ui.stacksCreatingCreation-controller.theProvisioningJobHasBeen":
-    "配置作业已挂起超过 2 分钟且没有进展。这通常意味着编排器没有运行或已崩溃。\n\n请检查服务器日志：docker compose logs techstack\n尝试重启：docker compose restart techstack",
+    "配置作业已挂起超过 2 分钟且没有进展。这通常意味着编排器没有运行或已崩溃。\n\n请检查服务器日志：docker compose logs homelab\n尝试重启：docker compose restart homelab",
   "ui.stacksCreatingCreation-controller.theReservedNodeCouldNot":
     "无法检查已预留的服务器。服务器清单再次可用后，请在已保存的连接上重试 SSH 注册。",
   "ui.stacksCreatingCreation-controller.thisPageRequiresAJob":
@@ -2979,7 +2979,7 @@ export const zhHans: Record<string, string> = {
   "ui.stacksCreatingCreationCompletion.recovery": "恢复",
   "ui.stacksCreatingCreationCompletion.rolloutComplete": "设置完成",
   "ui.stacksCreatingCreationCompletion.selfHostedRollout": "自托管",
-  "ui.stacksCreatingCreationCompletion.techstackNowSeesThisNode":
+  "ui.stacksCreatingCreationCompletion.homelabNowSeesThisNode":
     "你的服务器已报到，运行正常，可以进行下一步。",
   "ui.stacksCreatingCreationCompletion.theFirstLoginGatewayAnd":
     "你的首次登录信息和恢复信息会在 Homelab 设置完成后提供（“查看并创建”）。",
@@ -3041,8 +3041,8 @@ export const zhHans: Record<string, string> = {
   "ui.stacksCreatingCreationInstallCommand.copy": "复制",
   "ui.stacksCreatingCreationInstallCommand.copyInstallationCommandToClipboard":
     "将安装命令复制到剪贴板",
-  "ui.stacksCreatingCreationInstallCommand.kombifyTechstackServerUrlReachable":
-    "Techstack 地址（你的服务器可访问）：",
+  "ui.stacksCreatingCreationInstallCommand.kombifyHomelabServerUrlReachable":
+    "Homelab Runtime 地址（你的服务器可访问）：",
   "ui.stacksCreatingCreationInstallCommand.openOneHourSimulateDemo":
     "打开一小时的 Simulate 演示预览",
   "ui.stacksCreatingCreationInstallCommand.previewLifetimeIsLimitedTo":
@@ -3132,7 +3132,7 @@ export const zhHans: Record<string, string> = {
     "运行该命令后，你的服务器会连接到你的 Homelab，并在报到后显示为已连接。",
   "ui.stacksCreatingCreationRunStatus.awaitingHeartbeat": "等待你的服务器",
   "ui.stacksCreatingCreationRunStatus.checkSshHostCredentialsAnd":
-    "检查 SSH 主机、凭据，以及服务器能否访问 Techstack。",
+    "检查 SSH 主机、凭据，以及服务器能否访问 Homelab Runtime。",
   "ui.stacksCreatingCreationRunStatus.connectMyNode": "连接我的服务器",
   "ui.stacksCreatingCreationRunStatus.connectingToYourNodeOver":
     "正在通过 SSH 连接你的服务器…",
@@ -3179,18 +3179,18 @@ export const zhHans: Record<string, string> = {
     "正在重试 SSH 连接…",
   "ui.stacksCreatingCreationRunStatus.runThisOneLinerOn":
     "在新增的服务器上运行此命令。服务器报到且运行正常后会显示为已连接。",
-  "ui.stacksCreatingCreationRunStatus.techstackUrlReachableFromThe":
-    "服务器可访问的 Techstack URL",
+  "ui.stacksCreatingCreationRunStatus.homelabUrlReachableFromThe":
+    "服务器可访问的 Homelab Runtime URL",
   "ui.stacksCreatingCreationRunStatus.theAdditionalManagedNodeIs":
     "额外的托管服务器会被添加到此 Homelab，注册回报后将显示在服务器仪表板中。",
   "ui.stacksCreatingCreationRunStatus.theAdditionalNodeIsRegistered":
     "额外的服务器已注册到此 Homelab，之后可以接收此 StackKit 部署中的服务。",
   "ui.stacksCreatingCreationRunStatus.theManagedRuntimeIsNot":
-    "托管运行时尚不能完全用于推出。待确认的信号可能是其地址、凭据或注册。Techstack 已安排下一次检查。",
+    "托管运行时尚不能完全用于推出。待确认的信号可能是其地址、凭据或注册。Homelab Runtime 已安排下一次检查。",
   "ui.stacksCreatingCreationRunStatus.theProviderOperationHasNot":
-    "提供商操作尚未将现有的托管运行时移交给 StackKit 推出。Techstack 已安排下一次确切租约检查。",
+    "提供商操作尚未将现有的托管运行时移交给 StackKit 推出。Homelab Runtime 已安排下一次确切租约检查。",
   "ui.stacksCreatingCreationRunStatus.theScheduledCheckIsOverdue":
-    "计划的检查已逾期。Techstack 会一并验证 Stack、源作业和确切租约，然后仅在现有 VM 上继续推出。",
+    "计划的检查已逾期。Homelab Runtime 会一并验证 Stack、源作业和确切租约，然后仅在现有 VM 上继续推出。",
   "ui.stacksCreatingCreationRunStatus.theSshDetailsArePlanning":
     "SSH 详情只是规划元数据。当前的 Guard 连接是出站 HTTPS，并通过下方的命令启动。",
   "ui.stacksCreatingCreationRunStatus.theseAccessPathsAreEnabled":
@@ -3241,7 +3241,7 @@ export const zhHans: Record<string, string> = {
   "ui.stacksId.noLeaseAttached": "未关联租约",
   "ui.stacksId.noStackkitDeploymentIdProvided": "未提供 Homelab ID",
   "ui.stacksId.offeringSpec": "{vcpus} vCPU · {memory} GB RAM",
-  "ui.stacksId.pageTitle": "{name} | Techstack",
+  "ui.stacksId.pageTitle": "{name} | Homelab Runtime",
   "ui.stacksId.query": "查询",
   "ui.stacksId.runtime": "运行时",
   "ui.stacksId.series": "系列",
@@ -3257,13 +3257,13 @@ export const zhHans: Record<string, string> = {
   "ui.stacksId.stop": "停止",
   "ui.stacksId.stopManagedServer": "停止托管服务器？",
   "ui.stacksId.storedCredentials": "已保存的凭据",
-  "ui.stacksId.techstackWillBeginProviderCleanup": "Techstack 将在提供商处删除此托管服务器及其数据。",
+  "ui.stacksId.homelabWillBeginProviderCleanup": "Homelab Runtime 将在提供商处删除此托管服务器及其数据。",
   "ui.stacksId.theFollowingServicesNeedCredentials": "以下服务需要配置凭据：",
   "ui.stacksId.theServerShutsDownAnd":
     "服务器将关闭，并保留其磁盘、地址和月度套餐。你可以随时重新启动。",
   "ui.stacksId.thisPermanentlyRemovesTheSelected": "这将永久移除所选凭据。",
   "ui.stacksId.username": "用户名",
-  "ui.stacksIdServersNew.addNodeKombifyTechstack": "添加服务器 | Techstack",
+  "ui.stacksIdServersNew.addNodeKombifyHomelab": "添加服务器 | Homelab Runtime",
   "ui.stacksIdServersServerId.activityHistory": "活动历史",
   "ui.stacksIdServersServerId.addressesDomains": "地址和域名",
   "ui.stacksIdServersServerId.agentId": "Agent ID",
@@ -3336,8 +3336,8 @@ export const zhHans: Record<string, string> = {
   "ui.stacksIdServersServerId.serverCleanupInProgress": "服务器清理进行中",
   "ui.stacksIdServersServerId.serverDetachFailed": "服务器分离失败。",
   "ui.stacksIdServersServerId.serverDetailSections": "服务器详情分区",
-  "ui.stacksIdServersServerId.serverDetailsKombifyTechstack":
-    "服务器详情 | Techstack",
+  "ui.stacksIdServersServerId.serverDetailsKombifyHomelab":
+    "服务器详情 | Homelab Runtime",
   "ui.stacksIdServersServerId.serverGenerationDecommissioned": "服务器世代已移除",
   "ui.stacksIdServersServerId.serverSettings": "服务器设置",
   "ui.stacksIdServersServerId.serviceEndpoints": "服务端点",
@@ -3352,10 +3352,10 @@ export const zhHans: Record<string, string> = {
     "这将通过其已注册的 StackKit Agent 更改所选服务器。",
   "ui.stacksIdServersServerId.thisIsConfiguredStackkitIntent": "这是已配置的 StackKit 意图；Guard 尚未报告与之匹配的安装证据。",
   "ui.stacksIdServersServerId.thisOnlyArchivesTheStale":
-    "这只会归档过期的 Techstack 托管记录，不会删除提供商侧的任何内容。",
+    "这只会归档过期的 Homelab Runtime 托管记录，不会删除提供商侧的任何内容。",
   "ui.stacksIdServersServerId.thisServerHasNoManaged": "此服务器没有托管的提供商租约。其记录的托管状态目前既不允许移除托管服务器，也不允许分离自有服务器。",
   "ui.stacksIdServersServerId.thisServerIsALegacy":
-    "此服务器是旧版或未绑定的托管记录。请确认提供商资源已被移除；Techstack 只会归档此记录，不会调用或删除任何提供商资源。",
+    "此服务器是旧版或未绑定的托管记录。请确认提供商资源已被移除；Homelab Runtime 只会归档此记录，不会调用或删除任何提供商资源。",
   "ui.stacksIdServersServerId.thisServerIsRegisteredThrough": "此服务器通过服务器清单注册；未附加托管运行时访问操作。",
   "ui.standardBundle.additionalComputeNodeForStackKit":
     "用于放置 StackKit 服务的额外计算 Node。",
@@ -3509,7 +3509,7 @@ export const zhHans: Record<string, string> = {
   "ui.taskStatus.generatingUnifiedSpec": "正在生成统一规范",
   "ui.taskStatus.identifyingServicesBestPractices": "正在确定服务和最佳实践",
   "ui.taskStatus.ifAptOrUnattendedUpgrades":
-    "如果 apt 或 unattended-upgrades 阻塞了软件包安装，Techstack 会保持已绑定的 VM 可见，并显示收集到的诊断信息。",
+    "如果 apt 或 unattended-upgrades 阻塞了软件包安装，Homelab Runtime 会保持已绑定的 VM 可见，并显示收集到的诊断信息。",
   "ui.taskStatus.installingAndCheckingDocker": "正在安装并检查 Docker",
   "ui.taskStatus.installingOrValidatingTheDocker":
     "正在安装或验证所选服务使用的 Docker 运行时。",
@@ -3521,9 +3521,9 @@ export const zhHans: Record<string, string> = {
   "ui.taskStatus.networkSettingsAreDerivedFrom":
     "网络设置由你的访问模式决定。仅本地使用内部 Docker 网络；远程访问会添加与通道相匹配的私有网状网络或托管边缘路由。",
   "ui.taskStatus.onceThisSucceedsTheNode":
-    "此步骤成功后，即使之后的准备或设置失败，你的服务器仍会在 Techstack 中保持可见。",
+    "此步骤成功后，即使之后的准备或设置失败，你的服务器仍会在 Homelab Runtime 中保持可见。",
   "ui.taskStatus.opentofuReadinessIsPartOf":
-    "OpenTofu 就绪属于 StackKits CLI 准备契约的一部分，而不是由 Techstack 负责的独立引导路径。",
+    "OpenTofu 就绪属于 StackKits CLI 准备契约的一部分，而不是由 Homelab Runtime 负责的独立引导路径。",
   "ui.taskStatus.persistingConfiguration": "正在持久化配置",
   "ui.taskStatus.persistingRolloutSpec": "正在持久化推出规范",
   "ui.taskStatus.preparingDocker": "正在准备 Docker",
@@ -3567,12 +3567,12 @@ export const zhHans: Record<string, string> = {
   "ui.taskStatus.stackkitsAreCuratedInfrastructureTemplates":
     "StackKits 是精选的基础设施模板。系统会选出以最小开销覆盖你所选功能的那一个。",
   "ui.taskStatus.startingTelemetryHandoff": "正在启动监控",
-  "ui.taskStatus.techstackConsumesStackKitArtifactsHere":
-    "Techstack 在此使用 StackKit 制品；应用这些制品仍由 StackKits 负责。",
-  "ui.taskStatus.techstackRecordsTheManagedTarget":
-    "在 StackKits 执行 Cloud Kit 推出之前，Techstack 会记录托管目标并准备编排交接。",
+  "ui.taskStatus.homelabConsumesStackKitArtifactsHere":
+    "Homelab Runtime 在此使用 StackKit 制品；应用这些制品仍由 StackKits 负责。",
+  "ui.taskStatus.homelabRecordsTheManagedTarget":
+    "在 StackKits 执行 Cloud Kit 推出之前，Homelab Runtime 会记录托管目标并准备编排交接。",
   "ui.taskStatus.terramateReadinessBelongsToStackKits":
-    "Terramate 就绪属于 StackKits 生命周期准备；Techstack 在初始托管 VPS 租约中不要求它。",
+    "Terramate 就绪属于 StackKits 生命周期准备；Homelab Runtime 在初始托管 VPS 租约中不要求它。",
   "ui.taskStatus.theDashboardCanShowManaged":
     "StackKits 一旦暴露托管服务，仪表板即可显示它们，同时后续验证继续进行。",
   "ui.taskStatus.theFirstRolloutRecordsThe":
@@ -3615,7 +3615,7 @@ export const zhHans: Record<string, string> = {
   "ui.taskStatus.yourChosenAuthMethodIs":
     "你选择的认证方式会应用于所有服务。多用户配置会自动获得基于组的权限。",
   "ui.taskUpdates.anUnexpectedErrorOccurred": "发生意外错误",
-  "ui.techstackBrandLogo.kombifyTechstack": "Techstack",
+  "ui.homelabBrandLogo.kombifyHomelab": "Homelab Runtime",
   "ui.terminal.title": "终端 · {name}",
   "ui.time.daysHours": "{days} 天 {hours} 小时",
   "ui.time.hours": "{count} 小时",
@@ -3676,8 +3676,8 @@ export const zhHans: Record<string, string> = {
   "ui.wallet.dismiss": "忽略",
   "ui.wallet.editItem": "编辑{label}",
   "ui.wallet.enterNewSecretValue": "输入新的机密值",
-  "ui.wallet.enterYourCurrentLocalTechstack":
-    "输入你当前的本地 Techstack 密码以显示此 Wallet 条目。",
+  "ui.wallet.enterYourCurrentLocalHomelab":
+    "输入你当前的本地 Homelab Runtime 密码以显示此 Wallet 条目。",
   "ui.wallet.expired": "已过期",
   "ui.wallet.expiredCredentials.one": "已过期的凭据：{count}",
   "ui.wallet.expiredCredentials.other": "已过期的凭据：{count}",
@@ -3695,8 +3695,8 @@ export const zhHans: Record<string, string> = {
     "人类用户、管理员身份和系统自有的登录界面都归在此处，作为运维访问层。",
   "ui.wallet.identity": "身份",
   "ui.wallet.importExport": "导入 / 导出",
-  "ui.wallet.kombifyTechstackAdmin": "kombify-Techstack 管理员",
-  "ui.wallet.kombifyTechstackDeveloper": "kombify-Techstack 开发者",
+  "ui.wallet.kombifyHomelabAdmin": "kombify-Homelab 管理员",
+  "ui.wallet.kombifyHomelabDeveloper": "kombify-Homelab 开发者",
   "ui.wallet.launchReadyToolsAndUrl":
     "随着 Wallet 成为中心起点，可直接启动的工具和基于 URL 的服务条目将显示在此处。",
   "ui.wallet.localBackendAdmin": "本地后端管理员",

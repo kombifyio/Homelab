@@ -10,13 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/layoutadvice"
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	kscore "github.com/kombifyio/techstack/pkg/core"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/ril/actions"
+	"github.com/kombifyio/homelab/internal/layoutadvice"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	kscore "github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/ril/actions"
 )
 
 // LayoutRecommendationRouteConfig wires the layout recommendation routes.
@@ -59,7 +59,7 @@ func (h layoutRecommendationHandlers) scope(e *httpx.Event) (layoutadvice.Scope,
 	if err != nil {
 		return layoutadvice.Scope{}, err
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.unifier.layout")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.unifier.layout")
 	if tenantErr != nil {
 		return layoutadvice.Scope{}, tenantErr
 	}

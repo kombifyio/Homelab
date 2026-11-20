@@ -9,14 +9,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // JobTypeWorkloadRelocation moves PaaS workloads (Coolify projects) from one
 // managed server to another. Each step runs the pinned StackKits CLI on the
-// node it concerns; Techstack orders them, carries the secret-free plan
+// node it concerns; Homelab orders them, carries the secret-free plan
 // between the nodes, and has the kombify Wallet deliver the move's transfer
 // secret to both.
 const JobTypeWorkloadRelocation JobType = "workload_relocation"
@@ -77,11 +77,11 @@ type WorkloadRelocationRequest struct {
 	Projects           []string               `json:"projects"`
 	ResourceUUIDs      []string               `json:"resource_uuids,omitempty"`
 	SourceAddress      string                 `json:"source_address"`
-	DomainSwitches   []string               `json:"domain_switches,omitempty"`
-	WalletItemID     string                 `json:"wallet_item_id"`
-	WalletItemRotate bool                   `json:"wallet_item_rotate,omitempty"`
-	OwnerApproved    bool                   `json:"owner_approved"`
-	TransferID       string                 `json:"transfer_id,omitempty"`
+	DomainSwitches     []string               `json:"domain_switches,omitempty"`
+	WalletItemID       string                 `json:"wallet_item_id"`
+	WalletItemRotate   bool                   `json:"wallet_item_rotate,omitempty"`
+	OwnerApproved      bool                   `json:"owner_approved"`
+	TransferID         string                 `json:"transfer_id,omitempty"`
 }
 
 func ValidateWorkloadRelocationSelection(projects, uuids []string) error {
@@ -354,7 +354,7 @@ func runWorkloadRelocation(ctx context.Context, cfg StackKitLifecycleConfig, job
 		"domain_switches": req.DomainSwitches, "wallet_item_id": req.WalletItemID,
 	}
 	summary := map[string]interface{}{
-		"schema_version": "techstack.workload-relocation-result/v1", WorkloadRelocationResultField: outcome,
+		"schema_version": "homelab.workload-relocation-result/v1", WorkloadRelocationResultField: outcome,
 		"relocation_request_sha256": job.Snapshot().Result["relocation_request_sha256"],
 	}
 	finish := func(err error) error {

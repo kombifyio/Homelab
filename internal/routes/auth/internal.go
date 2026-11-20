@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"os"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // RegisterInternalRoutes registers internal routes that are only accessible

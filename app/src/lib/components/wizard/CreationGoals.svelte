@@ -70,7 +70,7 @@
       id?: string;
       open: boolean;
     }) => void;
-    /** Hardware Techstack already knows, for the guided-setup recommendation. */
+    /** Hardware Homelab already knows, for the guided-setup recommendation. */
     hardware?: SetupHardwareHints;
     /**
      * The one use case the person came for: only its card, opened. A use case

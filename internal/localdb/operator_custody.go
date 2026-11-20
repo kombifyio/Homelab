@@ -13,8 +13,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/privatefs"
 	"github.com/jackc/pgx/v5"
+	"github.com/kombifyio/homelab/internal/privatefs"
 )
 
 const operatorRecordName = "operator.json"
@@ -80,7 +80,7 @@ func openOperatorCustody(base string, adoptIdentity string) (*operatorCustody, e
 		}
 		existing := len(entries) > 0
 		if existing && !validNativeIdentity(adoptIdentity) {
-			return nil, errors.New("existing native database has no private operator record; use techstack local-database adopt --identity <database@system_identifier> after verifying the installation")
+			return nil, errors.New("existing native database has no private operator record; use homelab local-database adopt --identity <database@system_identifier> after verifying the installation")
 		}
 		if !existing && adoptIdentity != "" {
 			return nil, errors.New("legacy adoption requires an existing native database")
@@ -232,7 +232,7 @@ func (c *operatorCustody) verifyIdentity(ctx context.Context, conn *pgx.Conn) er
 	if !validNativeIdentity(identity) || (c.record.PhysicalIdentity != "" && c.record.PhysicalIdentity != identity) {
 		return fmt.Errorf("native database differs from the private physical identity pin")
 	}
-	if expected := strings.TrimSpace(os.Getenv("TECHSTACK_EXPECTED_DATABASE_IDENTITY")); expected != "" && expected != identity {
+	if expected := strings.TrimSpace(os.Getenv("HOMELAB_EXPECTED_DATABASE_IDENTITY")); expected != "" && expected != identity {
 		return errors.New("native database differs from the configured physical identity; no role was changed")
 	}
 	c.record.PhysicalIdentity = identity

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 // StackKitReasonACMERateLimited is the StackKits outcome class for a public
@@ -26,7 +26,7 @@ const StackKitReasonUpgradeKitUnsupported = "upgrade_kit_unsupported"
 // stored_plan_regenerate_required: a new rollout on its own release is the one
 // action that works, and an approved StackKits update cannot take its
 // checkpoint before that (a Guard that converged to a newer CLI before
-// Techstack withheld it, #2746). It reports stored_plan_upgrade_required when
+// Homelab withheld it, #2746). It reports stored_plan_upgrade_required when
 // it is older than the Plan or cannot order the releases; CLIs released before
 // the regenerate code report stored_plan_upgrade_required in both directions,
 // and an earlier v0.55 CLI the strict contract refusal stored_plan_invalid.

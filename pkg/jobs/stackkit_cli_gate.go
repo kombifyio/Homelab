@@ -15,7 +15,7 @@ import (
 // concurrent managed rollouts in generate_iac OOM-killed the 2Gi Render
 // instance and orphaned every in-flight job, so generations queue per process.
 const (
-	stackKitCLIConcurrencyEnv     = "TECHSTACK_STACKKIT_CLI_CONCURRENCY"
+	stackKitCLIConcurrencyEnv     = "HOMELAB_STACKKIT_CLI_CONCURRENCY"
 	defaultStackKitCLIConcurrency = 1
 	maxStackKitCLIConcurrency     = 16
 )

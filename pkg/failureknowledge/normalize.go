@@ -2,7 +2,7 @@
 // into a class A failure occurrence (knowledge-search plan section 5.8): a
 // small set of allowlisted structured fields, a template in which every
 // variable token is replaced, and a signature that matches the same failure in
-// hosted and self-hosted Techstack. A field that is not on the allowlist is
+// hosted and self-hosted Homelab. A field that is not on the allowlist is
 // never emitted; unknown context stays empty and is never guessed.
 package failureknowledge
 
@@ -15,7 +15,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/kombifyio/techstack/pkg/secrets"
+	"github.com/kombifyio/homelab/pkg/secrets"
 )
 
 // NormalizerVersion is part of every signature. Any change to the template

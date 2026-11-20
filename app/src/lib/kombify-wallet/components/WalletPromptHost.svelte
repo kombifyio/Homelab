@@ -1,9 +1,9 @@
 <script lang="ts">
   /**
-   * Asks the owner for the one right a refused request needs: to let Techstack
+   * Asks the owner for the one right a refused request needs: to let Homelab
    * save credentials in their kombify Wallet (`wallet_create_right_missing`),
    * or to let it use one item (`wallet_right_missing`, right `use`). Hosted
-   * Techstack only. The refused action is not replayed; the owner starts it
+   * Homelab only. The refused action is not replayed; the owner starts it
    * again once allowed.
    */
   import { tr } from "#lib/i18n.svelte.js";
@@ -11,7 +11,7 @@
   import Modal from "#lib/components/Modal.svelte";
   import { authStore } from "#lib/stores/auth.svelte.js";
   import { setServiceAccess, setServiceCreator } from "../wallet-api.js";
-  import { TECHSTACK_SERVICE } from "../service-access.js";
+  import { HOMELAB_SERVICE } from "../service-access.js";
   import { walletErrorMessage } from "../wallet-text.js";
   import { walletPrompt } from "../denials.svelte.js";
   import "./wallet.css";
@@ -40,11 +40,11 @@
         request.kind === "use"
           ? await setServiceAccess(
               request.itemId,
-              TECHSTACK_SERVICE,
+              HOMELAB_SERVICE,
               "use",
               true,
             )
-          : await setServiceCreator(TECHSTACK_SERVICE, true);
+          : await setServiceCreator(HOMELAB_SERVICE, true);
       if (!allowed) failure = tr("kwallet.denied.generic");
     } catch (error) {
       failure = walletErrorMessage(error);

@@ -80,7 +80,7 @@
       return;
     }
 
-    // Handle encrypted kombify-TechStack JSON export
+    // Handle encrypted kombify-Homelab JSON export
     if (exportEncrypted) {
       if (!exportPassword) {
         exportError = tr("ui.importExportModal.passwordIsRequiredForEncrypted");
@@ -285,7 +285,7 @@
               class="mt-1 w-4 h-4 border-border bg-input text-primary focus:ring-primary"
             />
             <div class="flex-1">
-              <span class="text-foreground font-medium">{tr("ui.importExportModal.kombifyTechstackJson")}</span>
+              <span class="text-foreground font-medium">{tr("ui.importExportModal.kombifyHomelabJson")}</span>
               <p class="text-xs text-muted-foreground mt-0.5">
                 {tr("ui.importExportModal.nativeFormatWithEncryptionSupport")}
               </p>
@@ -475,7 +475,7 @@
             </svg>
             <p class="text-foreground mb-1">{tr("ui.importExportModal.clickToSelectFile")}</p>
             <p class="text-sm text-muted-foreground">
-              {tr("ui.importExportModal.kombifyTechstackWalletExportJson")}
+              {tr("ui.importExportModal.kombifyHomelabWalletExportJson")}
             </p>
           </label>
         </div>

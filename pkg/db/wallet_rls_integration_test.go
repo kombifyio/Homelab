@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 func TestIntegrationWalletMigrationEnforcesTenantIdentity(t *testing.T) {
@@ -50,7 +50,7 @@ func TestIntegrationWalletMigrationEnforcesTenantIdentity(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	runtimeConfig, err := pgx.ParseConfig(strings.TrimSpace(os.Getenv("TECHSTACK_TEST_POSTGRES_URL")))
+	runtimeConfig, err := pgx.ParseConfig(strings.TrimSpace(os.Getenv("HOMELAB_TEST_POSTGRES_URL")))
 	if err != nil {
 		t.Fatal("parse test PostgreSQL configuration")
 	}

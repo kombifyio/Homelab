@@ -13,7 +13,7 @@
   import { runStackKitLifecycleOperation } from "#lib/api/stacks.js";
   import { getJob, streamJobProgress } from "#lib/api/jobs.js";
 
-  // Techstack manages StackKits updates (D-2026-11-02-03): it proposes the
+  // Homelab manages StackKits updates (D-2026-11-02-03): it proposes the
   // pending release with highlights for this server's use cases and starts it
   // by the owner's setting. The Guard runs the governed upgrade, verifies it
   // and rolls it back when it fails.
@@ -78,7 +78,7 @@
     try {
       view = await getStackKitsUpdate(workerId);
       loadError = null;
-      // Follow the update Techstack started only while nothing else is
+      // Follow the update Homelab started only while nothing else is
       // tracked; an owner's later Approve job is not replaced by it.
       const jobId = started?.job_id;
       if (jobId && job === null) track(jobId);

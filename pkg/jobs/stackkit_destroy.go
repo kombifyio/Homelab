@@ -70,7 +70,7 @@ func destroyStackKitWorkspace(ctx context.Context, workDir, workload string, sco
 }
 
 // pinnedStackKitRemoveBinary resolves the executable for StackKits remove:
-// the Windows client's bundled pinned CLI (TECHSTACK_STACKKIT_CLI) or the
+// the Windows client's bundled pinned CLI (HOMELAB_STACKKIT_CLI) or the
 // admitted pinned release. A PATH lookup or source-built CLI is never used.
 func pinnedStackKitRemoveBinary() (string, error) {
 	if bundled := strings.TrimSpace(os.Getenv(stackKitCLIEnv)); bundled != "" {

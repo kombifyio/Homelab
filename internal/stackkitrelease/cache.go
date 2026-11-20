@@ -1,4 +1,4 @@
-// Package stackkitrelease binds Techstack to one exact published StackKits
+// Package stackkitrelease binds Homelab to one exact published StackKits
 // artifact. It never reads a StackKits source checkout.
 package stackkitrelease
 
@@ -17,13 +17,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardrelease"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
 )
 
 const (
-	CandidatePinSchemaVersion          = "techstack.stackkit-preview-candidate-pin/v1"
-	PinSchemaVersion                   = "techstack.stackkit-release-pin/v2"
-	legacyPinSchemaVersion             = "techstack.stackkit-release-pin/v1"
+	CandidatePinSchemaVersion          = "homelab.stackkit-preview-candidate-pin/v1"
+	PinSchemaVersion                   = "homelab.stackkit-release-pin/v2"
+	legacyPinSchemaVersion             = "homelab.stackkit-release-pin/v1"
 	ReceiptSchemaVersion               = "stackkit.release-receipt/v1"
 	IndexSchemaVersion                 = "stackkits-release-index/v1"
 	releaseReceiptName                 = "release-receipt.json"
@@ -50,7 +50,7 @@ var (
 	sha256Pattern       = regexp.MustCompile(`^[0-9a-f]{64}$`)
 )
 
-// Pin is Techstack's immutable deployment input.
+// Pin is Homelab's immutable deployment input.
 type Pin struct {
 	Candidate     *guardrelease.PreviewCandidateProvenance `json:"candidate,omitempty"`
 	SchemaVersion string                                   `json:"schemaVersion"`

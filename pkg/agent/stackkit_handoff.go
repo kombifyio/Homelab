@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // maxHandoffSourceBytes bounds a file the Agent reads for a step; a ResolvedPlan
@@ -31,7 +31,7 @@ func stackKitHandoffArgs(workDir string, command *agentpb.StackKitCommand) ([]st
 	var files []string
 	file := ""
 	if step.NeedsDocument {
-		path, err := writeStackKitPrivateFile(workDir, ".techstack-handoff-*.json", command.HandoffDocument)
+		path, err := writeStackKitPrivateFile(workDir, ".homelab-handoff-*.json", command.HandoffDocument)
 		if err != nil {
 			return nil, nil, fmt.Errorf("write federation hand-off document: %w", err)
 		}

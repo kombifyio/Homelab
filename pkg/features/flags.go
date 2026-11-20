@@ -1,4 +1,4 @@
-// Package features provides feature flag management for kombifyTechstack.
+// Package features provides feature flag management for kombifyHomelab.
 // Signed Gateway decisions are authoritative; offline editions use shipped defaults.
 // Consent is enforced separately from flag decisions.
 package features
@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/edgeauth"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/logger"
+	"github.com/kombifyio/homelab/internal/gocommon/edgeauth"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/logger"
 )
 
 // RiskLevel indicates the security risk level of a feature
@@ -164,7 +164,7 @@ var betaFeatures = map[string]FeatureDefinition{
 		Category:        CategoryBeta,
 	},
 	"monthly_runtime": {
-		Key:             serverruntime.FeatureTechStackMonthlyRuntime,
+		Key:             serverruntime.FeatureHomelabMonthlyRuntime,
 		Name:            "Monthly Runtime",
 		DefaultValue:    false,
 		RequiresConsent: false,
@@ -174,40 +174,40 @@ var betaFeatures = map[string]FeatureDefinition{
 		Category:        CategoryBeta,
 	},
 	"monthly_runtime_centron": {
-		Key:             serverruntime.FeatureTechStackMonthlyRuntimeCentron,
+		Key:             serverruntime.FeatureHomelabMonthlyRuntimeCentron,
 		Name:            "Monthly Runtime: Centron",
 		DefaultValue:    false,
 		RequiresConsent: false,
 		RequiresAdmin:   false,
 		RiskLevel:       RiskLevelMedium,
-		Description:     "Enables Centron as a TechStack Monthly Runtime provider.",
+		Description:     "Enables Centron as a Homelab Runtime Monthly Runtime provider.",
 		Category:        CategoryBeta,
 	},
 	"monthly_runtime_ionos": {
-		Key:             serverruntime.FeatureTechStackMonthlyRuntimeIONOS,
+		Key:             serverruntime.FeatureHomelabMonthlyRuntimeIONOS,
 		Name:            "Monthly Runtime: IONOS",
 		DefaultValue:    false,
 		RequiresConsent: false,
 		RequiresAdmin:   false,
 		RiskLevel:       RiskLevelMedium,
-		Description:     "Enables IONOS as a TechStack Monthly Runtime provider.",
+		Description:     "Enables IONOS as a Homelab Runtime Monthly Runtime provider.",
 		Category:        CategoryBeta,
 	},
 	"monthly_runtime_cloudkit": {
-		Key:             edgeFlagTechStackManagedRuntimeCloudKit,
+		Key:             edgeFlagHomelabManagedRuntimeCloudKit,
 		Name:            "Monthly Runtime: Cloud Kit",
 		DefaultValue:    false,
 		RequiresConsent: false,
 		RequiresAdmin:   false,
 		RiskLevel:       RiskLevelMedium,
-		Description:     "Enables Cloud Kit deployments on TechStack Monthly Runtime.",
+		Description:     "Enables Cloud Kit deployments on Homelab Runtime Monthly Runtime.",
 		Category:        CategoryBeta,
 	},
 	// Backup entitlements ride the signed edge chain like the monthly runtime
 	// keys (pkg/monthlyruntime/backup.go). Without a definition every check
 	// errored before reading that chain, so entitled accounts were denied.
 	"backup_config": {
-		Key:             edgeFlagTechStackBackupConfig,
+		Key:             edgeFlagHomelabBackupConfig,
 		Name:            "Backups: Configuration",
 		DefaultValue:    false,
 		RequiresConsent: false,
@@ -217,7 +217,7 @@ var betaFeatures = map[string]FeatureDefinition{
 		Category:        CategoryBeta,
 	},
 	"backup_content": {
-		Key:             edgeFlagTechStackBackupContent,
+		Key:             edgeFlagHomelabBackupContent,
 		Name:            "Backups: Content",
 		DefaultValue:    false,
 		RequiresConsent: false,
@@ -229,7 +229,7 @@ var betaFeatures = map[string]FeatureDefinition{
 	// The pinned release enforces local Photos/Documents audiences. Other
 	// explicit choices retain the structured use-case-access refusal.
 	"use_case_access": {
-		Key:             edgeFlagTechStackUseCaseAccess,
+		Key:             edgeFlagHomelabUseCaseAccess,
 		Name:            "Access per use case",
 		DefaultValue:    true,
 		RequiresConsent: false,
@@ -243,7 +243,7 @@ var betaFeatures = map[string]FeatureDefinition{
 	// owner_approved (platform-8f0n2.20). Off until the Gateway part and the
 	// confirmation cards are live; off behaves exactly as before.
 	"stackkit_decision_receipt": {
-		Key:             edgeFlagTechStackDecisionReceipt,
+		Key:             edgeFlagHomelabDecisionReceipt,
 		Name:            "Signed confirmation for destructive operations",
 		DefaultValue:    false,
 		RequiresConsent: false,
@@ -267,30 +267,30 @@ type ServiceConfig struct {
 }
 
 const (
-	edgeFlagTechStackManagedRuntime         = "techstack.managed.runtime"
-	edgeFlagTechStackManagedRuntimeCloudKit = "techstack.managed.runtime.cloudkit"
-	edgeFlagTechStackManagedRuntimeBaseKit  = "techstack.managed.runtime.basekit"
-	edgeFlagTechStackManagedRuntimeCentron  = "techstack.managed.runtime.centron"
-	edgeFlagTechStackManagedRuntimeIONOS    = "techstack.managed.runtime.ionos"
-	edgeFlagTechStackBackupConfig           = "techstack.backup.config"
-	edgeFlagTechStackBackupContent          = "techstack.backup.content"
-	edgeFlagTechStackUseCaseAccess          = "techstack.use-case-access"
-	edgeFlagTechStackDecisionReceipt        = "techstack.stackkit-decision-receipt"
+	edgeFlagHomelabManagedRuntime         = "homelab.managed.runtime"
+	edgeFlagHomelabManagedRuntimeCloudKit = "homelab.managed.runtime.cloudkit"
+	edgeFlagHomelabManagedRuntimeBaseKit  = "homelab.managed.runtime.basekit"
+	edgeFlagHomelabManagedRuntimeCentron  = "homelab.managed.runtime.centron"
+	edgeFlagHomelabManagedRuntimeIONOS    = "homelab.managed.runtime.ionos"
+	edgeFlagHomelabBackupConfig           = "homelab.backup.config"
+	edgeFlagHomelabBackupContent          = "homelab.backup.content"
+	edgeFlagHomelabUseCaseAccess          = "homelab.use-case-access"
+	edgeFlagHomelabDecisionReceipt        = "homelab.stackkit-decision-receipt"
 )
 
 var featureDefinitionAliases = map[string]string{
-	edgeFlagTechStackManagedRuntime:                     "monthly_runtime",
-	"techstack.monthly.runtime":                         "monthly_runtime",
-	edgeFlagTechStackManagedRuntimeCloudKit:             "monthly_runtime_cloudkit",
-	"techstack.monthly.runtime.cloudkit":                "monthly_runtime_cloudkit",
-	edgeFlagTechStackManagedRuntimeBaseKit:              "monthly_runtime_cloudkit",
-	"techstack.monthly.runtime.basekit":                 "monthly_runtime_cloudkit",
-	serverruntime.FeatureTechStackMonthlyRuntimeBaseKit: "monthly_runtime_cloudkit",
-	"monthly_runtime_basekit":                           "monthly_runtime_cloudkit",
-	edgeFlagTechStackManagedRuntimeCentron:              "monthly_runtime_centron",
-	"techstack.monthly.runtime.centron":                 "monthly_runtime_centron",
-	edgeFlagTechStackManagedRuntimeIONOS:                "monthly_runtime_ionos",
-	"techstack.monthly.runtime.ionos":                   "monthly_runtime_ionos",
+	edgeFlagHomelabManagedRuntime:                     "monthly_runtime",
+	"homelab.monthly.runtime":                         "monthly_runtime",
+	edgeFlagHomelabManagedRuntimeCloudKit:             "monthly_runtime_cloudkit",
+	"homelab.monthly.runtime.cloudkit":                "monthly_runtime_cloudkit",
+	edgeFlagHomelabManagedRuntimeBaseKit:              "monthly_runtime_cloudkit",
+	"homelab.monthly.runtime.basekit":                 "monthly_runtime_cloudkit",
+	serverruntime.FeatureHomelabMonthlyRuntimeBaseKit: "monthly_runtime_cloudkit",
+	"monthly_runtime_basekit":                         "monthly_runtime_cloudkit",
+	edgeFlagHomelabManagedRuntimeCentron:              "monthly_runtime_centron",
+	"homelab.monthly.runtime.centron":                 "monthly_runtime_centron",
+	edgeFlagHomelabManagedRuntimeIONOS:                "monthly_runtime_ionos",
+	"homelab.monthly.runtime.ionos":                   "monthly_runtime_ionos",
 }
 
 // NewService creates a new feature flag service
@@ -366,12 +366,12 @@ func (s *Service) flagDecision(ctx context.Context, def FeatureDefinition) (bool
 // under the canonical managed-runtime key (flagship.ts FLAG_KEY_ALIASES).
 func signedFlagKey(key string) string {
 	switch key {
-	case serverruntime.FeatureTechStackMonthlyRuntime:
-		return edgeFlagTechStackManagedRuntime
-	case serverruntime.FeatureTechStackMonthlyRuntimeCentron:
-		return edgeFlagTechStackManagedRuntimeCentron
-	case serverruntime.FeatureTechStackMonthlyRuntimeIONOS:
-		return edgeFlagTechStackManagedRuntimeIONOS
+	case serverruntime.FeatureHomelabMonthlyRuntime:
+		return edgeFlagHomelabManagedRuntime
+	case serverruntime.FeatureHomelabMonthlyRuntimeCentron:
+		return edgeFlagHomelabManagedRuntimeCentron
+	case serverruntime.FeatureHomelabMonthlyRuntimeIONOS:
+		return edgeFlagHomelabManagedRuntimeIONOS
 	default:
 		return strings.ReplaceAll(key, "_", ".")
 	}

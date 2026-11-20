@@ -10,18 +10,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/logger"
-	"github.com/kombifyio/techstack/pkg/orchestrator"
-	"github.com/kombifyio/techstack/pkg/runtimeconvergence"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/orchestrator"
+	"github.com/kombifyio/homelab/pkg/runtimeconvergence"
 )
 
-// WorkerStackKitsUpdates is Techstack's StackKits update management of a
+// WorkerStackKitsUpdates is Homelab's StackKits update management of a
 // node (D-2026-11-02-03): the proposal, the node's update setting and the
-// start of an update Techstack runs without a click.
+// start of an update Homelab runs without a click.
 type WorkerStackKitsUpdates interface {
 	StackKitsUpdate(ctx context.Context, tenantID, ownerID, workerID string) (orchestrator.StackKitsUpdateView, error)
 	SetStackKitsUpdateBehavior(ctx context.Context, tenantID, ownerID, workerID, behavior string) (orchestrator.StackKitsUpdateView, error)
@@ -57,7 +57,7 @@ func stackKitsUpdateFailure(e *httpx.Event, err error) error {
 // stackKitsUpdate shows the owner the node's update setting, the pending
 // release with its highlights and changelog link, and the last update.
 func (h workerRouteHandlers) stackKitsUpdate(e *httpx.Event) error {
-	ownerID, tenantID, workerID, err := h.ownedWorkerForStackKitsUpdate(e, "techstack.workers.stackkits_update.read")
+	ownerID, tenantID, workerID, err := h.ownedWorkerForStackKitsUpdate(e, "homelab.workers.stackkits_update.read")
 	if err != nil || ownerID == "" {
 		return err
 	}
@@ -75,7 +75,7 @@ type stackKitsUpdateBehaviorRequest struct {
 // setStackKitsUpdateBehavior stores the node's update setting: approve each
 // update (the default) or install updates automatically.
 func (h workerRouteHandlers) setStackKitsUpdateBehavior(e *httpx.Event) error {
-	ownerID, tenantID, workerID, err := h.ownedWorkerForStackKitsUpdate(e, "techstack.workers.stackkits_update.behavior")
+	ownerID, tenantID, workerID, err := h.ownedWorkerForStackKitsUpdate(e, "homelab.workers.stackkits_update.behavior")
 	if err != nil || ownerID == "" {
 		return err
 	}

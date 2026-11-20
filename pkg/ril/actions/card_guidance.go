@@ -28,7 +28,7 @@ func GuidanceForCard(card *GovernedCard) *UserGuidance {
 			Body:  "The server answered that it has no backup repository, so there is no snapshot or restore receipt to check.",
 			NextSteps: []string{
 				"Basement Kit and the home server of a Modern Homelab: on the server, run `stackkit backup configure`, take a first snapshot with `stackkit backup run` and keep it current with `stackkit backup schedule enable --owner-approve`.",
-				"Cloud Kit managed by kombify: enable the backup of the stack in Techstack; its managed backup schedule creates the repository and the first snapshot. Check again after that first run.",
+				"Cloud Kit managed by kombify: enable the backup of the stack in Homelab Runtime; its managed backup schedule creates the repository and the first snapshot. Check again after that first run.",
 			},
 		}
 	case has["stackkit-backup-source-unavailable"]:

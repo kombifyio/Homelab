@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/guardcompat"
+	"github.com/kombifyio/homelab/pkg/guardcompat"
 )
 
 type Profile struct {

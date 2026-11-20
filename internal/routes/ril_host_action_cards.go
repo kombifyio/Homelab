@@ -10,19 +10,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/agentcontrol"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/demoguard"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	rilaction "github.com/kombifyio/techstack/pkg/ril/actioncontract"
-	"github.com/kombifyio/techstack/pkg/ril/actions"
-	"github.com/kombifyio/techstack/pkg/ril/primitives"
-	"github.com/kombifyio/techstack/pkg/runtimehealth"
-	"github.com/kombifyio/techstack/pkg/servermaintenance"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/agentcontrol"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/demoguard"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	rilaction "github.com/kombifyio/homelab/pkg/ril/actioncontract"
+	"github.com/kombifyio/homelab/pkg/ril/actions"
+	"github.com/kombifyio/homelab/pkg/ril/primitives"
+	"github.com/kombifyio/homelab/pkg/runtimehealth"
+	"github.com/kombifyio/homelab/pkg/servermaintenance"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // HostOperationEligibility is the one answer to "may a Guard host operation
@@ -39,7 +39,7 @@ type HostOperationEligibility struct {
 	// control plane's own host; "" when unknown.
 	ControlPlaneMachineIDDigest string
 	// Entitlements gates host actions: the Edge-signed
-	// `techstack.servers.maintenance` grant of the request that creates the
+	// `homelab.servers.maintenance` grant of the request that creates the
 	// card, whichever entry (the owner's host route or /v1/ril/action-cards)
 	// creates it. Nil is the fail-closed hosted gate.
 	Entitlements EntitlementGate
@@ -124,11 +124,11 @@ func (h *serviceRuntimeHandlers) deriveHostTarget(ctx context.Context, card acti
 		return rilaction.TargetBinding{}, nil, err
 	}
 	return rilaction.TargetBinding{
-		Scope: rilaction.TargetScopeRuntimeInstance, SiteRef: server.ID, NodeRef: nodeRef,
-		RuntimeInstanceRef: server.WorkerID, ExecutionChannelRef: server.WorkerID,
-	}, []rilaction.Input{
-		primitives.Input(card.Profile.HostInput(), object),
-	}, nil
+			Scope: rilaction.TargetScopeRuntimeInstance, SiteRef: server.ID, NodeRef: nodeRef,
+			RuntimeInstanceRef: server.WorkerID, ExecutionChannelRef: server.WorkerID,
+		}, []rilaction.Input{
+			primitives.Input(card.Profile.HostInput(), object),
+		}, nil
 }
 
 // admitHostTarget validates a host card's target and input against fresh

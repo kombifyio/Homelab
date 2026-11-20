@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..")
-$programPath = Join-Path $root "clients\windows\Kombify.TechStack.Client\Program.cs"
+$programPath = Join-Path $root "clients\windows\Kombify.Homelab.Client\Program.cs"
 $storePath = Join-Path $root "clients\windows\Kombify.Client.Shell\WindowsCredentialStore.cs"
 $resetPath = Join-Path $root "scripts\reset-windows-client-state.ps1"
 $smokePath = Join-Path $root "scripts\windows-client-installed-smoke.ps1"

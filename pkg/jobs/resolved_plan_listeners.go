@@ -51,7 +51,7 @@ type resolvedPlanListenerSet struct {
 // canonical ResolvedPlan. It never falls back to routes, targetPort, URLs,
 // generated artifacts, provider data, or legacy OpenPorts.
 //
-// Techstack's current port projection is single-node because DeployHandler
+// Homelab's current port projection is single-node because DeployHandler
 // dispatches one runtime target. Unsupported and multi-node listener shapes
 // remain valid StackKits plans; callers can continue without this optional
 // projection after binding the plan hash.
@@ -78,7 +78,7 @@ func parseResolvedPlanListenerSet(document []byte) (resolvedPlanListenerSet, err
 	}
 	identity := resolvedPlanListenerSet{StackKitInstanceID: envelope.StackID, PlanHash: envelope.PlanHash}
 	if envelope.APIVersion != resolvedPlanAPIVersionV1 || envelope.Kind != "ResolvedPlan" {
-		return identity, errors.New("techstack does not project this canonical ResolvedPlan contract version")
+		return identity, errors.New("homelab does not project this canonical ResolvedPlan contract version")
 	}
 	if len(envelope.Network) == 0 || bytes.Equal(bytes.TrimSpace(envelope.Network), []byte("null")) {
 		return identity, errors.New("canonical ResolvedPlan has no network.runtimeListeners authority")

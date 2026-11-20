@@ -16,15 +16,15 @@ import (
 	"sync"
 	"time"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/artifactdelivery"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/guardidentity"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/logger"
-	"github.com/kombifyio/techstack/pkg/pairingtoken"
-	"github.com/kombifyio/techstack/pkg/workerauth"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/artifactdelivery"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/pairingtoken"
+	"github.com/kombifyio/homelab/pkg/workerauth"
 )
 
 const agentBinaryChecksumHeader = "X-Kombify-Artifact-SHA256"
@@ -216,7 +216,7 @@ func currentAgentBinaryArtifact() (agentBinaryArtifact, error) {
 			runningAgentBinaryArtifact, runningAgentBinaryErr = indexedGuardBinaryArtifact(managedRuntimeOSLinux, "amd64")
 			return
 		}
-		if path := strings.TrimSpace(os.Getenv("TECHSTACK_AGENT_BINARY_LINUX_AMD64")); path != "" {
+		if path := strings.TrimSpace(os.Getenv("HOMELAB_AGENT_BINARY_LINUX_AMD64")); path != "" {
 			runningAgentBinaryArtifact, runningAgentBinaryErr = agentBinaryArtifactForPath(path, managedRuntimeOSLinux, "amd64")
 			return
 		}
@@ -289,7 +289,7 @@ func agentBinaryArtifactForPath(path, artifactOS, artifactArch string) (agentBin
 
 // agentInstallPins returns, per Linux architecture, the SHA-256 of the exact
 // Guard binary agentBinary serves, so the enrollment command the dashboard
-// shows carries TECHSTACK_BINARY_SHA256 and install.sh refuses any other bytes
+// shows carries HOMELAB_BINARY_SHA256 and install.sh refuses any other bytes
 // (threat model F4). With a signed release an architecture is pinned only when
 // its file matches the signed manifest entry; an empty set means no trusted
 // digest is known and the dashboard must not offer a command.
@@ -418,7 +418,7 @@ func (h workerRouteHandlers) serveSelfHostedAgentBinary(e *httpx.Event) error {
 		forgetSelfHostedAgentBinaryArtifact(artifact.path)
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Agent binary is temporarily unavailable", nil)
 	}
-	filename := fmt.Sprintf("techstack-%s-%s", artifact.os, artifact.arch)
+	filename := fmt.Sprintf("homelab-%s-%s", artifact.os, artifact.arch)
 	e.Response.Header().Set("X-Content-Type-Options", "nosniff")
 	e.Response.Header().Set("Content-Type", "application/octet-stream")
 	e.Response.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
@@ -492,14 +492,14 @@ func forgetSelfHostedAgentBinaryArtifact(path string) {
 // selfHostedAgentBinaryArtifact describes the Guard binary a self-hosted
 // control plane serves. With a configured signed release it is only that
 // release's file, never a rebuild; without one it is the executable this
-// process runs (or TECHSTACK_AGENT_BINARY_LINUX_AMD64). A file's digest is
+// process runs (or HOMELAB_AGENT_BINARY_LINUX_AMD64). A file's digest is
 // computed once per path: release files and the executable are immutable for
 // the life of the process.
 func selfHostedAgentBinaryArtifact(goos, arch string) (agentBinaryArtifact, error) {
 	path, artifactOS, artifactArch := "", goos, arch
 	if dir := guardReleaseDir(); dir != "" {
 		path = filepath.Join(dir, signedGuardBinaryName(goos, arch))
-	} else if configured := strings.TrimSpace(os.Getenv("TECHSTACK_AGENT_BINARY_LINUX_AMD64")); configured != "" {
+	} else if configured := strings.TrimSpace(os.Getenv("HOMELAB_AGENT_BINARY_LINUX_AMD64")); configured != "" {
 		path, artifactOS, artifactArch = configured, managedRuntimeOSLinux, "amd64"
 	} else {
 		if runtime.GOOS != managedRuntimeOSLinux {

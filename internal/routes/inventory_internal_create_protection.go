@@ -5,14 +5,14 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/kombifyio/techstack/internal/providercontrol"
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/internal/providercontrol"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 var createProtectionSurface = cloudReadSurface{
-	errorPrefix: "techstack.create_protection.", unavailableReason: "create_protection_unavailable",
+	errorPrefix: "homelab.create_protection.", unavailableReason: "create_protection_unavailable",
 	title: "VM creation protection is unavailable", body: "The account's authoritative provider create state could not be read.",
 	queryKeys: []string{"provider_id", "region"},
 }
@@ -46,7 +46,7 @@ func (h inventoryHandlers) httpCreateProtection(e *httpx.Event) error {
 	if !ok {
 		return httpx.Unauthorized(e, "Authentication required")
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.create_protection.read")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.create_protection.read")
 	if tenantErr != nil {
 		return tenantErr
 	}

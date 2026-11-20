@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/guardcompat"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/guardcompat"
 )
 
 // AdmitMutatingDispatch is the control-plane side of mixed-version admission:

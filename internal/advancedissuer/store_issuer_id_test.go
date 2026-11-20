@@ -11,14 +11,14 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 
-	"github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/db"
+	"github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/db"
 
 	wire "github.com/kombifyio/stackkits/contracts/advancedcapability"
 )
 
 // Regression (platform-hm8lo): installations created before the StackKits
-// issuer pin stored "techstack.<uuid>" and signed with it, so StackKits denied
+// issuer pin stored "homelab.<uuid>" and signed with it, so StackKits denied
 // every Advanced operation (restore drill first) as
 // advanced_capability_untrusted_key.
 func TestLegacyInstallationSignsAsThePinnedIssuer(t *testing.T) {
@@ -39,7 +39,7 @@ func TestLegacyInstallationSignsAsThePinnedIssuer(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = database.Close() })
-	const legacyLabel = "techstack.0471fa19-6a43-41b9-8508-6289c48e8551"
+	const legacyLabel = "homelab.0471fa19-6a43-41b9-8508-6289c48e8551"
 	for range 2 {
 		mock.ExpectQuery("SELECT issuer_id, key_id, private_key_enc FROM advanced_issuer_keys").
 			WillReturnRows(sqlmock.NewRows([]string{"issuer_id", "key_id", "private_key_enc"}).
@@ -68,8 +68,8 @@ func TestLegacyInstallationSignsAsThePinnedIssuer(t *testing.T) {
 	if err := json.Unmarshal(issuer.TrustBundle(), &bundle); err != nil {
 		t.Fatal(err)
 	}
-	if issuer.IssuerID() != "techstack" || len(bundle.Keys) != 1 || bundle.Keys[0].IssuerID != "techstack" {
-		t.Fatalf("legacy installation signs as %q with bundle %+v, want the pinned issuer techstack", issuer.IssuerID(), bundle.Keys)
+	if issuer.IssuerID() != "homelab" || len(bundle.Keys) != 1 || bundle.Keys[0].IssuerID != "homelab" {
+		t.Fatalf("legacy installation signs as %q with bundle %+v, want the pinned issuer homelab", issuer.IssuerID(), bundle.Keys)
 	}
 	if bundle.Keys[0].KeyID != wire.KeyID(publicKey) {
 		t.Fatalf("bundle key %s, want the installation's unchanged key %s", bundle.Keys[0].KeyID, wire.KeyID(publicKey))

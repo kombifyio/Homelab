@@ -113,7 +113,7 @@ for (const usage of missingKeys.values())
 
 const clientDir = path.resolve(
   import.meta.dirname,
-  "../../clients/windows/Kombify.TechStack.Client",
+  "../../clients/windows/Kombify.Homelab.Client",
 );
 const readResx = (file) =>
   new Map(

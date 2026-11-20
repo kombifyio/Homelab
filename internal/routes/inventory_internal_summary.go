@@ -12,20 +12,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/denial"
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/serviceauth"
-	"github.com/kombifyio/techstack/pkg/specv2"
+	"github.com/kombifyio/homelab/internal/gocommon/denial"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/serviceauth"
+	"github.com/kombifyio/homelab/pkg/specv2"
 )
 
 const (
-	runtimeSummaryService     = "techstack"
+	runtimeSummaryService     = "homelab"
 	runtimeSummaryCallerCloud = "cloud"
-	runtimeSummaryErrorPrefix = "techstack.runtime_summary."
+	runtimeSummaryErrorPrefix = "homelab.runtime_summary."
 	runtimeSummaryPageSize    = 50
 )
 
@@ -54,7 +54,7 @@ type configuredUseCase struct {
 	Settings    map[string]any `json:"settings,omitempty"`
 	PlannedApps []plannedApp   `json:"planned_apps,omitempty"`
 	// Failure is present only for a failed or blocked use case whose cause
-	// Techstack recorded. It carries closed reason vocabulary and identifiers,
+	// Homelab recorded. It carries closed reason vocabulary and identifiers,
 	// never backend prose, hosts, paths or log lines.
 	Failure *useCaseFailure `json:"failure,omitempty"`
 }
@@ -433,7 +433,7 @@ func (h inventoryHandlers) latestConfiguredRun(e *httpx.Event, ctx context.Conte
 }
 
 // cloudReadSurface names one private Cloud servicecall read model and the
-// InternalErrorEnvelope (techstack-internal-v1.yaml) its denials carry.
+// InternalErrorEnvelope (homelab-internal-v1.yaml) its denials carry.
 type cloudReadSurface struct {
 	errorPrefix       string
 	unavailableReason string
@@ -465,7 +465,7 @@ func (s cloudReadSurface) queryAllowed(request *http.Request) bool {
 
 var runtimeSummarySurface = cloudReadSurface{
 	errorPrefix: runtimeSummaryErrorPrefix, unavailableReason: "runtime_summary_unavailable",
-	title: "Runtime summary unavailable", body: "Techstack could not resolve this runtime summary safely.",
+	title: "Runtime summary unavailable", body: "Homelab Runtime could not resolve this runtime summary safely.",
 }
 
 type internalErrorEnvelope struct {
@@ -498,7 +498,7 @@ func (h inventoryHandlers) serveCloudRead(
 ) error {
 	if !serviceauth.CanVerify(h.serviceAuthSecret) {
 		return surface.deny(e, http.StatusServiceUnavailable, surface.unavailableReason, true,
-			"Retry after Techstack service authentication is configured.")
+			"Retry after Homelab Runtime service authentication is configured.")
 	}
 	authCfg, err := serviceauth.Apply(servicecall.Config{
 		ServiceName:    runtimeSummaryService,
@@ -509,7 +509,7 @@ func (h inventoryHandlers) serveCloudRead(
 	})
 	if err != nil {
 		return surface.deny(e, http.StatusServiceUnavailable, surface.unavailableReason, true,
-			"Retry after Techstack service authentication is configured.")
+			"Retry after Homelab Runtime service authentication is configured.")
 	}
 	auth := servicecall.RequireServiceAuth(authCfg)
 	auth(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
@@ -518,12 +518,12 @@ func (h inventoryHandlers) serveCloudRead(
 		if caller == nil || caller.Service != runtimeSummaryCallerCloud || caller.OnBehalfOf == nil ||
 			strings.TrimSpace(caller.OnBehalfOf.Sub) == "" || strings.TrimSpace(caller.OnBehalfOf.OrgID) == "" {
 			_ = surface.deny(e, http.StatusForbidden, "tenant_context_required", false,
-				"Open Techstack from the authenticated Kombify Cloud organization and retry.")
+				"Open Homelab Runtime from the authenticated Kombify Cloud organization and retry.")
 			return
 		}
 		if !surface.queryAllowed(request) || request.ContentLength != 0 {
 			_ = surface.deny(e, http.StatusForbidden, "principal_injection_denied", false,
-				"Do not send principal or scope fields; Techstack derives them from the signed Cloud service identity.")
+				"Do not send principal or scope fields; Homelab Runtime derives them from the signed Cloud service identity.")
 			return
 		}
 		scope := inventoryScope{
@@ -538,7 +538,7 @@ func (h inventoryHandlers) serveCloudRead(
 				if errors.Is(err, ErrInventoryAccessDenied) {
 					status, reason, retryable = http.StatusForbidden, "inventory_access_denied", false
 				}
-				_ = surface.deny(e, status, reason, retryable, "Open Techstack in the same account and organization to refresh its access context.")
+				_ = surface.deny(e, status, reason, retryable, "Open Homelab Runtime in the same account and organization to refresh its access context.")
 				return
 			}
 			ctx = resolved
@@ -628,12 +628,12 @@ func (h inventoryHandlers) writeRuntimeSummaryError(e *httpx.Event, err error) {
 func (h inventoryHandlers) writeCloudReadError(e *httpx.Event, surface cloudReadSurface, err error) {
 	var inventoryErr *inventoryError
 	if errors.As(err, &inventoryErr) && inventoryErr.reasonCode == "inventory_access_denied" {
-		_ = surface.deny(e, http.StatusForbidden, "inventory_access_denied", false, "Refresh Techstack access for this account and organization before retrying.")
+		_ = surface.deny(e, http.StatusForbidden, "inventory_access_denied", false, "Refresh Homelab Runtime access for this account and organization before retrying.")
 		return
 	}
 	if errors.As(err, &inventoryErr) && inventoryErr.reasonCode == "tenant_context_missing" {
 		_ = surface.deny(e, http.StatusForbidden, "tenant_context_required", false,
-			"Open Techstack from the authenticated Kombify Cloud organization and retry.")
+			"Open Homelab Runtime from the authenticated Kombify Cloud organization and retry.")
 		return
 	}
 	// Every remaining branch of writeInventoryHTTPError writes through

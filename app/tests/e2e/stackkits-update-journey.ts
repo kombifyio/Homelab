@@ -1,6 +1,6 @@
 /**
  * StackKits update journey (kombify-StackKits-9r4e, -l38u; D-2026-11-02-03).
- * Techstack manages StackKits updates: the server's Guard section shows the
+ * Homelab manages StackKits updates: the server's Guard section shows the
  * update setting (default: ask) and, for a server behind the
  * published release, the proposal with highlights for its activated use cases
  * and the public changelog link. Nothing installs until Approve, unless the

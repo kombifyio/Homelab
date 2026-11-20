@@ -1,6 +1,6 @@
 // Package usernotice defines the opt-in `user_notification` agent-channel
 // class: one notice a Home Assistant automation author wrote, carried from a
-// node to Techstack and dispatched as a Feed item (Companion Feed contract v1
+// node to Homelab and dispatched as a Feed item (Companion Feed contract v1
 // section 2.5, STACKKITS-PRODUCT-BOUNDARY-STANDARD.md §14.9).
 //
 // The class is not telemetry. It carries only the text the author wrote, an
@@ -87,7 +87,7 @@ type Result struct {
 	Recipients  int
 }
 
-// Sink admits notices. The Techstack service implements it; the gRPC server
+// Sink admits notices. The Homelab service implements it; the gRPC server
 // and the HTTPS worker route call it after authenticating the agent.
 type Sink interface {
 	Report(ctx context.Context, node Node, notice Notice) (Result, error)

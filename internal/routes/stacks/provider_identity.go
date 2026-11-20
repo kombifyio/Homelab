@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/providercatalog"
 )
 
 // freshProviderIdentity collects provider selection only from the documented

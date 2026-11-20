@@ -17,11 +17,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/identity"
-	"github.com/kombifyio/techstack/internal/gocommon/tenantdb"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
+	"github.com/kombifyio/homelab/internal/gocommon/tenantdb"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 )
 
 // integrationDSN returns the DSN for an integration Postgres instance, or ""
@@ -29,14 +29,14 @@ import (
 // distinctly from DATABASE_URL so it does not accidentally point at a
 // production database.
 func integrationDSN() string {
-	return strings.TrimSpace(os.Getenv("TECHSTACK_TEST_POSTGRES_URL"))
+	return strings.TrimSpace(os.Getenv("HOMELAB_TEST_POSTGRES_URL"))
 }
 
 func openTestDB(t *testing.T) *DB {
 	t.Helper()
 	dsn := integrationDSN()
 	if dsn == "" {
-		t.Skip("TECHSTACK_TEST_POSTGRES_URL not set; skipping Postgres integration test")
+		t.Skip("HOMELAB_TEST_POSTGRES_URL not set; skipping Postgres integration test")
 	}
 	cfg := Config{
 		Backend:    StoreBackendPostgres,
@@ -96,7 +96,7 @@ func TestIntegrationMigrateIsIdempotent(t *testing.T) {
 // No signer, migration login, schema write or replacement DB enters this probe.
 // The hostile GUC cases are internal runtime failures, not public API inputs.
 func TestStageOnboardingRejectsRuntimeChosenGUC(t *testing.T) {
-	if os.Getenv("TECHSTACK_TEST_ONBOARDING_CONTEXT") != "1" {
+	if os.Getenv("HOMELAB_TEST_ONBOARDING_CONTEXT") != "1" {
 		t.Skip("managed Stage onboarding context probe not selected")
 	}
 	if integrationDSN() == "" {
@@ -160,7 +160,7 @@ func TestStageOnboardingRejectsRuntimeChosenGUC(t *testing.T) {
 // it is not positive product proof. Every attempt rolls back, including a
 // wrongly admitted INSERT. No issuer, key or schema authority enters here.
 func TestStagePersonalSettingsRejectRuntimeChosenGUC(t *testing.T) {
-	if os.Getenv("TECHSTACK_TEST_PERSONAL_SETTINGS_CONTEXT") != "1" {
+	if os.Getenv("HOMELAB_TEST_PERSONAL_SETTINGS_CONTEXT") != "1" {
 		t.Skip("managed Stage personal-settings context probe not selected")
 	}
 	if integrationDSN() == "" {
@@ -183,7 +183,7 @@ func TestStagePersonalSettingsRejectRuntimeChosenGUC(t *testing.T) {
 		{"feature_consents", "subject_id", `INSERT INTO feature_consents
 			(id,tenant_id,subject_id,feature_key) VALUES ($3,$1,$2,'stage_context_denial')`},
 		{"operator_self_disclosures", "owner_subject_id", `INSERT INTO operator_self_disclosures
-			(id,tenant_id,owner_subject_id,schema_version,source,disclosure_json) VALUES ($3,$1,$2,1,'techstack','{}')`},
+			(id,tenant_id,owner_subject_id,schema_version,source,disclosure_json) VALUES ($3,$1,$2,1,'homelab','{}')`},
 	} {
 		t.Run(table.name, func(t *testing.T) {
 			var active bool
@@ -234,10 +234,10 @@ func TestStagePersonalSettingsRejectRuntimeChosenGUC(t *testing.T) {
 // page reader. Uncommitted fixtures never reach the background worker, and the
 // complete transaction rolls back. It is not the positive scheduled journey.
 func TestStageBackupPendingPageSkipsExpiredAndAdvances(t *testing.T) {
-	if os.Getenv("TECHSTACK_TEST_BACKUP_WORKER_CONTEXT") != "1" {
+	if os.Getenv("HOMELAB_TEST_BACKUP_WORKER_CONTEXT") != "1" {
 		t.Skip("managed Stage backup worker probe not selected")
 	}
-	dsn := strings.TrimSpace(os.Getenv("TECHSTACK_TEST_BACKUP_WORKER_DATABASE_URL"))
+	dsn := strings.TrimSpace(os.Getenv("HOMELAB_TEST_BACKUP_WORKER_DATABASE_URL"))
 	if dsn == "" {
 		t.Fatal("the qualified managed Stage backup-worker DSN is required")
 	}
@@ -337,7 +337,7 @@ func TestStageBackupPendingPageSkipsExpiredAndAdvances(t *testing.T) {
 // boundary probe receives only the Stage application login and bounded signed
 // contexts from the development issuer, never migration or signing custody.
 func TestStageHouseholdInventoryReadDelegation(t *testing.T) {
-	if os.Getenv("TECHSTACK_TEST_HOUSEHOLD_CONTEXT") != "1" {
+	if os.Getenv("HOMELAB_TEST_HOUSEHOLD_CONTEXT") != "1" {
 		t.Skip("Stage household boundary probe not selected")
 	}
 	database := openTestDB(t)
@@ -500,14 +500,14 @@ func TestStageHouseholdInventoryReadDelegation(t *testing.T) {
 // creator, then probes as the real hosted application login and as a separate
 // non-application login standing in for techstack_runtime_system:
 //
-//	TECHSTACK_TEST_INVENTORY_CONTRACT=1
-//	TECHSTACK_TEST_APPLICATION_LOGIN_URL  Stage techstack_application DSN
-//	TECHSTACK_TEST_SYSTEM_LOGIN_URL       another Stage runtime login DSN
+//	HOMELAB_TEST_INVENTORY_CONTRACT=1
+//	HOMELAB_TEST_APPLICATION_LOGIN_URL  Stage techstack_application DSN
+//	HOMELAB_TEST_SYSTEM_LOGIN_URL       another Stage runtime login DSN
 //
 // Only user and password are taken from the two login DSNs; host, database and
 // TLS come from the scratch DSN. The context key is random per run.
 func TestManagedInventoryContractRefusesTokenlessContext(t *testing.T) {
-	if os.Getenv("TECHSTACK_TEST_INVENTORY_CONTRACT") != "1" {
+	if os.Getenv("HOMELAB_TEST_INVENTORY_CONTRACT") != "1" {
 		t.Skip("managed inventory contract probe not selected")
 	}
 	scratch := os.Getenv("MANAGED_PG_TEST_DATABASE_URL_LOOPBACK")
@@ -537,8 +537,8 @@ func TestManagedInventoryContractRefusesTokenlessContext(t *testing.T) {
 		return open(target.String()), source.User.Username()
 	}
 	creator := open(scratch)
-	app, appRole := login("TECHSTACK_TEST_APPLICATION_LOGIN_URL")
-	system, systemRole := login("TECHSTACK_TEST_SYSTEM_LOGIN_URL")
+	app, appRole := login("HOMELAB_TEST_APPLICATION_LOGIN_URL")
+	system, systemRole := login("HOMELAB_TEST_SYSTEM_LOGIN_URL")
 	if appRole != HostedApplicationRole || systemRole == appRole {
 		t.Fatal("the hosted application login and a distinct runtime login are required")
 	}

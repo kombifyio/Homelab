@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	"github.com/kombifyio/techstack/internal/routes/trust"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
-	"github.com/kombifyio/techstack/pkg/specv2"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	"github.com/kombifyio/homelab/internal/routes/trust"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/specv2"
 )
 
 type resumeRemoteEnrollmentRequest struct {
@@ -33,7 +33,7 @@ func (h wizardRunHandlers) resumeRemoteEnrollment(e *httpx.Event) error {
 	if authErr != nil {
 		return authErr
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "techstack.stacks.resume-remote-enrollment")
+	tenantID, tenantErr := tenantguard.TenantScope(tenantIDFromRequest(e), ownerID, "homelab.stacks.resume-remote-enrollment")
 	if tenantErr != nil {
 		return tenantErr
 	}

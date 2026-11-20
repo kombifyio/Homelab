@@ -26,7 +26,7 @@ import {
 import { logoTheme } from "#lib/stores/logo-theme.svelte.js";
 
 import { tr } from "#lib/i18n.svelte.js";
-export type TechStackServiceCardSource = {
+export type HomelabServiceCardSource = {
   id?: string;
   name?: string;
   display_name?: string;
@@ -76,7 +76,7 @@ export type TechStackServiceCardSource = {
  * canonical inventory (`/api/v1/inventory/services`), and the registry BFF
  * (`/api/v1/registry/services`) all emit `management_state` non-optionally.
  */
-export type CanonicalServiceCardSource = TechStackServiceCardSource & {
+export type CanonicalServiceCardSource = HomelabServiceCardSource & {
   management_state: RegistryManagementState;
 };
 
@@ -92,7 +92,7 @@ export type ServiceManagementState = RegistryManagementState | "unknown";
  * application while the card still looked correct.
  */
 export function serviceManagementState(
-  service: TechStackServiceCardSource,
+  service: HomelabServiceCardSource,
 ): ServiceManagementState {
   const value = (service.management_state ?? "").trim().toLowerCase();
   if (value === "managed" || value === "observed") return value;
@@ -104,7 +104,7 @@ export function serviceManagementState(
  * supposed to carry it. Use at boundaries fed by a canonical read model.
  */
 export function requireServiceManagementState(
-  service: TechStackServiceCardSource,
+  service: HomelabServiceCardSource,
   context = "service-card",
 ): RegistryManagementState {
   const state = serviceManagementState(service);
@@ -114,16 +114,16 @@ export function requireServiceManagementState(
   return state;
 }
 
-export function serviceCardName(service: TechStackServiceCardSource): string {
+export function serviceCardName(service: HomelabServiceCardSource): string {
   return service.display_name || service.name || tr("ui.services.service");
 }
 
-export function serviceTypeLabel(service: TechStackServiceCardSource): string {
+export function serviceTypeLabel(service: HomelabServiceCardSource): string {
   return (service.type || "service").replace(/[-_]/g, " ");
 }
 
 export function serviceTargetLabel(
-  service: TechStackServiceCardSource,
+  service: HomelabServiceCardSource,
 ): string | undefined {
   return (
     service.target_server ||
@@ -135,7 +135,7 @@ export function serviceTargetLabel(
   );
 }
 
-export function serviceCardMeta(service: TechStackServiceCardSource): string {
+export function serviceCardMeta(service: HomelabServiceCardSource): string {
   const parts = [serviceTypeLabel(service)];
   const target = serviceTargetLabel(service);
   if (target) parts.push(target);
@@ -144,7 +144,7 @@ export function serviceCardMeta(service: TechStackServiceCardSource): string {
 }
 
 export function serviceCardPlacement(
-  service: TechStackServiceCardSource,
+  service: HomelabServiceCardSource,
   hint?: string,
 ): ServicePlacement {
   const measured = parsePlacementClass(service.placement_class);
@@ -216,7 +216,7 @@ export function serviceCardPlacement(
  * observed health.
  */
 export function serviceHasActiveMigration(
-  service: TechStackServiceCardSource,
+  service: HomelabServiceCardSource,
 ): boolean {
   const operationState = (service.operation_state || "").trim().toLowerCase();
   if (
@@ -239,7 +239,7 @@ export function serviceHasActiveMigration(
 }
 
 export function serviceCardStatus(
-  service: TechStackServiceCardSource,
+  service: HomelabServiceCardSource,
 ): ServiceStatusKind {
   const state = (service.status || "").toLowerCase();
   // Ownership and runtime health are independent dimensions.  An observed
@@ -262,7 +262,7 @@ export function serviceCardStatus(
 }
 
 export function serviceCardStatusMessage(
-  service: TechStackServiceCardSource,
+  service: HomelabServiceCardSource,
 ): string | undefined {
   if (service.status === "archived") {
     return tr("ui.serviceCardAdapter.archivedSourceService");
@@ -442,7 +442,7 @@ export function serviceCardActions(
   return actions;
 }
 
-export function openServiceUrl(service: TechStackServiceCardSource): void {
+export function openServiceUrl(service: HomelabServiceCardSource): void {
   if (!service.url) return;
   try {
     const url = new URL(service.url);

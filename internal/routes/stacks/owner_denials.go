@@ -3,8 +3,8 @@ package stacks
 import (
 	"net/http"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // Owner-bootstrap denial identifiers. They ride in the same structured error

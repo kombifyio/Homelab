@@ -19,9 +19,9 @@ import (
 // Without it nothing changes: the native installation keeps its plain loopback
 // connections and runs no provider control or bound Advanced issuer.
 const (
-	EnvEmbeddedPostgresTLSCertFile     = "TECHSTACK_EMBEDDED_POSTGRES_TLS_CERT_FILE"
-	EnvEmbeddedPostgresTLSKeyFile      = "TECHSTACK_EMBEDDED_POSTGRES_TLS_KEY_FILE"
-	EnvEmbeddedPostgresTLSRootCertFile = "TECHSTACK_EMBEDDED_POSTGRES_TLS_ROOT_CERT_FILE"
+	EnvEmbeddedPostgresTLSCertFile     = "HOMELAB_EMBEDDED_POSTGRES_TLS_CERT_FILE"
+	EnvEmbeddedPostgresTLSKeyFile      = "HOMELAB_EMBEDDED_POSTGRES_TLS_KEY_FILE"
+	EnvEmbeddedPostgresTLSRootCertFile = "HOMELAB_EMBEDDED_POSTGRES_TLS_ROOT_CERT_FILE"
 )
 
 // The two execution authorities that hold their own login on a native

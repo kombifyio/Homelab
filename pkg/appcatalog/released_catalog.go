@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
 )
 
 var pinnedApplicationCatalog = sync.OnceValues(stackkitrelease.PinnedUseCaseCatalog)

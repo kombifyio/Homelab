@@ -10,10 +10,10 @@ import (
 	"slices"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/guardbinding"
-	"github.com/kombifyio/techstack/pkg/guardexec"
-	"github.com/kombifyio/techstack/pkg/guardposture"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardexec"
+	"github.com/kombifyio/homelab/pkg/guardposture"
 )
 
 // LocalRepairer runs one typed host-security repair under a local repair

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/walletsync"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/jobs"
+	"github.com/kombifyio/homelab/internal/walletsync"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/jobs"
 )
 
 // enqueueWithSync enqueues a job and sets up progress synchronization.

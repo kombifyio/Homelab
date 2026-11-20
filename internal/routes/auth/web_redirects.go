@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // Root-path auth redirects (ADR-033 OQ2 web convergence).
@@ -20,7 +20,7 @@ import (
 
 const (
 	webLoggedOutPath         = "/login?manual=1&logged_out=1"
-	defaultSessionCookieName = "techstack_session"
+	defaultSessionCookieName = "homelab_session"
 )
 
 // handleWebAuthCallbackRedirect redirects the browser-facing /auth/callback
@@ -61,7 +61,7 @@ func handleWebAuthLogoutRedirect(sessionCookieName string, mode config.Deploymen
 }
 
 // handleCloudLogoutRedirect hands SaaS logout to Auth0 Universal Login
-// (`/oidc/logout`). Standalone Techstack sessions are minted by that IdP, not
+// (`/oidc/logout`). Standalone Homelab sessions are minted by that IdP, not
 // by the Cloud portal confirmation page; sending operators there left the
 // Auth0 SSO cookie alive and silently signed them back in. Request query
 // parameters are never used as redirect authority.

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/jobs"
 )
 
 // ErrPublicTLSRepairNotNeeded means the stack carries no degraded public TLS

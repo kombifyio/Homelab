@@ -7,13 +7,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/systemdb"
-	"github.com/kombifyio/techstack/pkg/agentcontrol"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/db"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/kombifyio/homelab/internal/systemdb"
+	"github.com/kombifyio/homelab/pkg/agentcontrol"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/db"
 )
 
 // Exact reviewed Cloud source prerequisite; update only with its owned migration.
@@ -21,21 +21,21 @@ import (
 // sequence revoke and exact function grantees); kombify-stg-pg records this one.
 const householdCloudMigrationSHA256 = "d8dc0585d02d3996bd9230b7e25808996a39d577c0d7f8aa1a7fe581c9a3b174"
 
-const cloudDSNEnv = "TECHSTACK_HOUSEHOLD_CLOUD_DATABASE_URL"
-const workerDSNEnv = "TECHSTACK_HOUSEHOLD_WORKER_DATABASE_URL"
+const cloudDSNEnv = "HOMELAB_HOUSEHOLD_CLOUD_DATABASE_URL"
+const workerDSNEnv = "HOMELAB_HOUSEHOLD_WORKER_DATABASE_URL"
 
 // SystemRuntime is composed in the existing private Execution process on
 // Stage. Its app-facing relay holds neither of these database credentials.
 type SystemRuntime struct {
-	Worker           *SystemWorker
-	cloud, techstack *sql.DB
+	Worker         *SystemWorker
+	cloud, homelab *sql.DB
 }
 
 func (r *SystemRuntime) Close() {
 	if r != nil {
 		r.Worker.Close()
 		r.cloud.Close()
-		r.techstack.Close()
+		r.homelab.Close()
 	}
 }
 
@@ -64,7 +64,7 @@ func refusedAt(stage string, err error, fixed bool) error {
 }
 
 func OpenSystemWorkerFromEnv(ctx context.Context, inExecution bool) (*SystemRuntime, error) {
-	mode := strings.TrimSpace(os.Getenv("TECHSTACK_HOUSEHOLD_WORKER_MODE"))
+	mode := strings.TrimSpace(os.Getenv("HOMELAB_HOUSEHOLD_WORKER_MODE"))
 	if (inExecution && mode != "execution") || (!inExecution && mode != "standalone") {
 		return nil, errors.New("household worker requires its explicit private process profile")
 	}
@@ -75,20 +75,20 @@ func OpenSystemWorkerFromEnv(ctx context.Context, inExecution bool) (*SystemRunt
 		return nil, errors.New("household worker requires finite verify-only custody")
 	}
 	if !inExecution {
-		for _, name := range []string{"DATABASE_URL", "TECHSTACK_ADVANCED_ISSUER_DATABASE_URL", "TECHSTACK_PROVIDER_CONTROL_RUNTIME_DATABASE_URL", "TECHSTACK_ADVANCED_ISSUER_KEY", "TECHSTACK_DB_CONTEXT_KEY", "SERVICE_AUTH_SECRET", "SERVICE_AUTH_SECRET_NEXT"} {
+		for _, name := range []string{"DATABASE_URL", "HOMELAB_ADVANCED_ISSUER_DATABASE_URL", "HOMELAB_PROVIDER_CONTROL_RUNTIME_DATABASE_URL", "HOMELAB_ADVANCED_ISSUER_KEY", "HOMELAB_DB_CONTEXT_KEY", "SERVICE_AUTH_SECRET", "SERVICE_AUTH_SECRET_NEXT"} {
 			if strings.TrimSpace(os.Getenv(name)) != "" {
 				return nil, errors.New("standalone household process received unrelated custody")
 			}
 		}
 	}
-	cloud, err := openHouseholdDatabase(ctx, cloudDSNEnv, "TECHSTACK_HOUSEHOLD_CLOUD_EXPECTED_DATABASE_IDENTITY", "kombify", CloudHouseholdSystemRole)
+	cloud, err := openHouseholdDatabase(ctx, cloudDSNEnv, "HOMELAB_HOUSEHOLD_CLOUD_EXPECTED_DATABASE_IDENTITY", "kombify", CloudHouseholdSystemRole)
 	if err != nil {
 		return nil, refusedAt("cloud-database", err, true)
 	}
 	tech, err := openHouseholdDatabase(ctx, workerDSNEnv, db.EnvExpectedDatabaseIdentity, "kombify_runtime", controlplane.HouseholdSystemRole)
 	if err != nil {
 		cloud.Close()
-		return nil, refusedAt("techstack-database", err, true)
+		return nil, refusedAt("homelab-database", err, true)
 	}
 	refuse := func(err error) (*SystemRuntime, error) { cloud.Close(); tech.Close(); return nil, err }
 	var migrated bool
@@ -102,16 +102,16 @@ func OpenSystemWorkerFromEnv(ctx context.Context, inExecution bool) (*SystemRunt
 	// own floor, before its grants are asserted; never apply SQL.
 	pin, pinned, err := db.ExpectedDatabaseIdentityFromEnv()
 	if err != nil || !pinned || (&db.DB{DB: tech}).VerifyMigrationsAtFloor(ctx, pin, db.HouseholdWorkerSchemaFloor) != nil {
-		return refuse(&StartupRefusal{Stage: "techstack-migrations", Reason: "household Techstack migration verification failed"})
+		return refuse(&StartupRefusal{Stage: "homelab-migrations", Reason: "household Homelab Runtime migration verification failed"})
 	}
 	if err := verifyHouseholdPrivileges(ctx, tech, false); err != nil {
-		return refuse(refusedAt("techstack-privileges", err, true))
+		return refuse(refusedAt("homelab-privileges", err, true))
 	}
-	relay, err := agentcontrol.NewHouseholdRelayClient(os.Getenv("TECHSTACK_HOUSEHOLD_RELAY_ORIGIN"), os.Getenv("TECHSTACK_HOUSEHOLD_RELAY_SIGNING_KEY"))
+	relay, err := agentcontrol.NewHouseholdRelayClient(os.Getenv("HOMELAB_HOUSEHOLD_RELAY_ORIGIN"), os.Getenv("HOMELAB_HOUSEHOLD_RELAY_SIGNING_KEY"))
 	if err != nil {
 		return refuse(refusedAt("relay-client", err, false))
 	}
-	delivery, err := NewActivationDelivery(os.Getenv("TECHSTACK_HOUSEHOLD_NOTIFICATIONS_ORIGIN"), os.Getenv("TECHSTACK_HOUSEHOLD_NOTIFICATIONS_SIGNING_KEY"))
+	delivery, err := NewActivationDelivery(os.Getenv("HOMELAB_HOUSEHOLD_NOTIFICATIONS_ORIGIN"), os.Getenv("HOMELAB_HOUSEHOLD_NOTIFICATIONS_SIGNING_KEY"))
 	if err != nil {
 		return refuse(refusedAt("notifications-client", err, false))
 	}
@@ -119,7 +119,7 @@ func OpenSystemWorkerFromEnv(ctx context.Context, inExecution bool) (*SystemRunt
 	if err != nil {
 		return refuse(refusedAt("worker", err, false))
 	}
-	return &SystemRuntime{Worker: worker, cloud: cloud, techstack: tech}, nil
+	return &SystemRuntime{Worker: worker, cloud: cloud, homelab: tech}, nil
 }
 
 func openHouseholdDatabase(ctx context.Context, dsnEnv, pinEnv, database, role string) (*sql.DB, error) {

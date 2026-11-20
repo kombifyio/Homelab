@@ -95,7 +95,7 @@ export const guardMessagesHi: Record<keyof typeof guardMessages.en, string> = {
   "guard.fact.bound.revoked":
     "इस सर्वर को रद्द कर दिया गया है और अब यह बंधा हुआ नहीं है।",
   "guard.fact.bound.revokedNext":
-    "इसे अपने Techstack से बाँधने के लिए सर्वर को फिर से पेयर करें।",
+    "इसे अपने Homelab Runtime से बाँधने के लिए सर्वर को फिर से पेयर करें।",
   "guard.fact.bound.stale":
     "पिछली रिपोर्ट इतनी पुरानी है कि यह पुष्टि नहीं हो सकती कि यह सर्वर अपनी पहचान कैसे साबित करता है।",
   "guard.fact.bound.unknown":
@@ -107,7 +107,7 @@ export const guardMessagesHi: Record<keyof typeof guardMessages.en, string> = {
     "Guard ने अपने प्रमाणित कनेक्शन पर एक कमांड का उत्तर दिया।",
   "guard.fact.connected.degraded": "कनेक्शन की गुणवत्ता घटी हुई है।",
   "guard.fact.connected.offline":
-    "Guard रिपोर्ट नहीं कर रहा। सर्वर ऑफ़लाइन है या Techstack तक नहीं पहुँच पा रहा।",
+    "Guard रिपोर्ट नहीं कर रहा। सर्वर ऑफ़लाइन है या Homelab Runtime तक नहीं पहुँच पा रहा।",
   "guard.fact.connected.revoked": "कनेक्शन रद्द कर दिया गया।",
   "guard.fact.connected.stale":
     "Guard ने हाल में इतनी ताज़ा रिपोर्ट नहीं दी कि उसे जुड़ा हुआ माना जाए।",
@@ -118,9 +118,9 @@ export const guardMessagesHi: Record<keyof typeof guardMessages.en, string> = {
   "guard.fact.connected.unknown":
     "इस सर्वर के लिए कोई कनेक्शन स्थिति रिपोर्ट नहीं हुई।",
   "guard.fact.connected.reconnectNext":
-    "जाँचें कि सर्वर चालू है और Techstack तक पहुँच सकता है।",
+    "जाँचें कि सर्वर चालू है और Homelab Runtime तक पहुँच सकता है।",
   "guard.fact.connected.awaitingRoundTrip":
-    "Guard रिपोर्ट कर रहा है, लेकिन उसने अपने वर्तमान क्रेडेंशियल से Techstack की किसी कमांड का अभी तक उत्तर नहीं दिया है।",
+    "Guard रिपोर्ट कर रहा है, लेकिन उसने अपने वर्तमान क्रेडेंशियल से Homelab Runtime की किसी कमांड का अभी तक उत्तर नहीं दिया है।",
   "guard.fact.connected.roundTripStale":
     "Guard रिपोर्ट कर रहा है, लेकिन उसकी पिछली उत्तर दी गई कमांड बहुत पुरानी है या पिछले क्रेडेंशियल से दी गई थी।",
   "guard.fact.connected.roundTripNext":
@@ -467,7 +467,7 @@ export const guardMessagesHi: Record<keyof typeof guardMessages.en, string> = {
     "Guard एक चेकपॉइंट सहेजता है, अपडेट चलाता है और विफल होने पर उसे वापस ले लेता है।",
   "guard.updates.running": "{version} पर अपडेट हो रहा है: {progress}%",
   "guard.updates.started.automatic":
-    "यह सर्वर अपडेट अपने आप इंस्टॉल करता है, इसलिए Techstack ने यह अपडेट शुरू किया।",
+    "यह सर्वर अपडेट अपने आप इंस्टॉल करता है, इसलिए Homelab Runtime ने यह अपडेट शुरू किया।",
   "guard.updates.started.security":
     "kombify यह सुरक्षा पैच आपकी मंज़ूरी का इंतज़ार किए बिना इंस्टॉल करता है।",
   "guard.updates.security.badge": "सुरक्षा पैच",

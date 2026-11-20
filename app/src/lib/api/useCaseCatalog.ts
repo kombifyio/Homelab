@@ -2,7 +2,7 @@
  * StackKits use-case catalog client.
  *
  * The authority is StackKits (foundation/use_case_catalog.cue), projected onto
- * a release asset that the image pins and verifies. Techstack reads it and
+ * a release asset that the image pins and verifies. Homelab reads it and
  * never authors a second answer to "what is this use case built from".
  */
 import {
@@ -13,7 +13,7 @@ import {
 import { fetchApi } from "./client";
 
 // The catalog vocabulary lives in the shared UI package, so Cloud and
-// Techstack read the same release catalog the same way.
+// Homelab read the same release catalog the same way.
 export {
   catalogViewsFromResponse,
   installsService,

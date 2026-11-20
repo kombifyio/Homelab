@@ -1,7 +1,7 @@
 /**
  * Operation of an app StackKits runs as an own application (adopted with
  * Stack it): status, logs, backup, and the reviewed mutations. Every mutation
- * is a dry run first; the owner approves exactly that review, and Techstack
+ * is a dry run first; the owner approves exactly that review, and Homelab
  * issues the own-application.lifecycle capability for it. A tag update is
  * never checked by kombify and says so. Messages come from structured
  * outcome and reason codes only.

@@ -1,4 +1,4 @@
-// Package routes provides custom HTTP routes for kombifyTechstack API.
+// Package routes provides custom HTTP routes for kombifyHomelab API.
 // This file contains drift detection API endpoints for Sprint 6.
 package routes
 
@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/orchestrator"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/orchestrator"
 )
 
 // DriftStatusResponse represents the drift status for a StackKit deployment.
@@ -111,7 +111,7 @@ func RegisterDriftRoutesWithStores(r *httpx.Router, orch *orchestrator.Orchestra
 }
 
 func (h driftRouteHandlers) check(e *httpx.Event) error {
-	stack, tenantID, ownerID, ok, err := h.canonicalStack(e, "techstack.drift.check")
+	stack, tenantID, ownerID, ok, err := h.canonicalStack(e, "homelab.drift.check")
 	if err != nil || !ok {
 		return err
 	}
@@ -143,7 +143,7 @@ func (h driftRouteHandlers) check(e *httpx.Event) error {
 }
 
 func (h driftRouteHandlers) status(e *httpx.Event) error {
-	stack, tenantID, ownerID, ok, err := h.canonicalStack(e, "techstack.drift.read")
+	stack, tenantID, ownerID, ok, err := h.canonicalStack(e, "homelab.drift.read")
 	if err != nil || !ok {
 		return err
 	}
@@ -155,7 +155,7 @@ func (h driftRouteHandlers) status(e *httpx.Event) error {
 }
 
 func (h driftRouteHandlers) details(e *httpx.Event) error {
-	stack, tenantID, ownerID, ok, err := h.canonicalStack(e, "techstack.drift.read")
+	stack, tenantID, ownerID, ok, err := h.canonicalStack(e, "homelab.drift.read")
 	if err != nil {
 		return err
 	}
@@ -173,7 +173,7 @@ func (h driftRouteHandlers) details(e *httpx.Event) error {
 }
 
 func (h driftRouteHandlers) resolve(e *httpx.Event) error {
-	stack, tenantID, ownerID, ok, err := h.canonicalStack(e, "techstack.drift.resolve")
+	stack, tenantID, ownerID, ok, err := h.canonicalStack(e, "homelab.drift.resolve")
 	if err != nil || !ok {
 		return err
 	}
@@ -203,7 +203,7 @@ func (h driftRouteHandlers) listResults(e *httpx.Event) error {
 	if err != nil || !ok {
 		return err
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.drift.read")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.drift.read")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -232,7 +232,7 @@ func (h driftRouteHandlers) getResult(e *httpx.Event) error {
 	if err != nil || !ok {
 		return err
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.drift.read")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.drift.read")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -258,7 +258,7 @@ func (h driftRouteHandlers) deleteResult(e *httpx.Event) error {
 	if err != nil || !ok {
 		return err
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.drift.delete")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.drift.delete")
 	if tenantErr != nil {
 		return tenantErr
 	}

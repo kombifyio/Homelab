@@ -1,8 +1,29 @@
 {
   "schemaVersion": "stackkits.release-notes/v1",
-  "version": "v0.58.0",
+  "version": "v0.59.2",
   "changelogUrl": "https://stackkit.cc/changelog",
   "releases": [
+    {
+      "version": "v0.59.2",
+      "date": "2026-11-20",
+      "entries": []
+    },
+    {
+      "version": "v0.59.1",
+      "date": "2026-11-19",
+      "entries": []
+    },
+    {
+      "version": "v0.59.0",
+      "date": "2026-11-19",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "contracts",
+          "text": "the StackKits root exports and contracts name Homelab instead of Techstack"
+        }
+      ]
+    },
     {
       "version": "v0.58.0",
       "date": "2026-11-19",
@@ -1289,38 +1310,6 @@
           "kind": "fixed",
           "scope": "coolify",
           "text": "workloads fail fast when the Marketplace fails; released Vault lanes leave main"
-        }
-      ]
-    },
-    {
-      "version": "v0.55.5",
-      "date": "2026-11-01",
-      "entries": []
-    },
-    {
-      "version": "v0.55.4",
-      "date": "2026-11-01",
-      "entries": [
-        {
-          "kind": "fixed",
-          "scope": "upgrade",
-          "text": "an upgrade stopped at prepared is released by explicit recovery without replaying the prior Apply"
-        }
-      ]
-    },
-    {
-      "version": "v0.55.3",
-      "date": "2026-11-01",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "paas",
-          "text": "Coolify restore activation, removal and drift; Files on Runtipi"
-        },
-        {
-          "kind": "fixed",
-          "scope": "upgrade",
-          "text": "forward recovery can finish with a newer verified release when the signed target cannot"
         }
       ]
     }

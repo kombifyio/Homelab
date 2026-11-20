@@ -1,6 +1,6 @@
 <script lang="ts">
   /**
-   * Import credentials from a Techstack export (JSON or CSV) or a Bitwarden
+   * Import credentials from a Homelab export (JSON or CSV) or a Bitwarden
    * JSON export into the kombify Wallet. Every row becomes a Wallet item
    * created from this browser (the value is encrypted here); the outcome is
    * reported per row. The file and the parsed secrets are dropped when the

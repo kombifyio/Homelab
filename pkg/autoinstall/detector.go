@@ -8,8 +8,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/fulllocal"
-	"github.com/kombifyio/techstack/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/logger"
 )
 
 // ErrRemoteInstallDisabled reports Full Local admission before a download or

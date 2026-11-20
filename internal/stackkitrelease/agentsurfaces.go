@@ -9,7 +9,7 @@ import (
 )
 
 // AgentSurfaceCatalog retains the producer's declared non-secret surface facts.
-// Techstack neither renders node client configurations nor grants availability.
+// Homelab neither renders node client configurations nor grants availability.
 type AgentSurfaceCatalog struct {
 	Source   SDKMetadataSource
 	Surfaces map[string]json.RawMessage

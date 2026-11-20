@@ -1,5 +1,5 @@
 // Package sso provides JWT verification for SSO tokens from kombify Cloud Portal.
-// Tokens are HMAC-signed (HS256) with the Techstack-only portal SSO secret.
+// Tokens are HMAC-signed (HS256) with the Homelab-only portal SSO secret.
 package sso
 
 import (
@@ -55,11 +55,11 @@ type StackIdentity struct {
 
 // Config holds the configuration for SSO token verification.
 type Config struct {
-	// Secret is the HMAC secret Cloud signs Techstack launch tokens with
-	// (TECHSTACK_SSO_JWT_SECRET).
+	// Secret is the HMAC secret Cloud signs Homelab launch tokens with
+	// (HOMELAB_SSO_JWT_SECRET).
 	Secret string
 
-	// NextSecret is the optional rotation slot (TECHSTACK_SSO_JWT_SECRET_NEXT);
+	// NextSecret is the optional rotation slot (HOMELAB_SSO_JWT_SECRET_NEXT);
 	// a token signed with either secret verifies.
 	NextSecret string
 

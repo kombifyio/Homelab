@@ -1,12 +1,12 @@
-// Package routes provides custom HTTP routes for kombifyTechstack API.
+// Package routes provides custom HTTP routes for kombifyHomelab API.
 package routes
 
 import (
 	"net/http"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/features"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/features"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // featureResponseTypeKey is the shared JSON key for type fields in route

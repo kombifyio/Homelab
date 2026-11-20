@@ -2,7 +2,7 @@ import { readDeviceContext } from "./device-context.js";
 import type { WalletItem } from "#lib/wallet/types.js";
 
 interface WalletWindow extends Window {
-  __kombifyTechstackDocument?: {
+  __kombifyHomelabDocument?: {
     document_revision: number;
     document_token: string;
   };
@@ -46,7 +46,7 @@ export async function revealNativeLocalWallet(
     )
       return { available: false };
     const bridge = host.chrome?.webview;
-    const binding = host.__kombifyTechstackDocument;
+    const binding = host.__kombifyHomelabDocument;
     if (!bridge || !binding || cancellation.signal.aborted)
       return { available: true, result: null };
     const document = host.location.href;
@@ -68,7 +68,7 @@ export async function revealNativeLocalWallet(
       const cancel = () => {
         try {
           bridge.postMessage({
-            type: "kombify.techstack.wallet.cancel.v1",
+            type: "kombify.homelab.wallet.cancel.v1",
             request_id: requestId,
             ...binding,
             item_id: id,
@@ -83,14 +83,14 @@ export async function revealNativeLocalWallet(
         if (
           host.location.href !== document ||
           cancellation.signal.aborted ||
-          host.__kombifyTechstackDocument?.document_token !==
+          host.__kombifyHomelabDocument?.document_token !==
             binding.document_token
         )
           return cancel();
         const response = event.data;
         if (
           !response ||
-          response.type !== "kombify.techstack.wallet.reveal.result.v1" ||
+          response.type !== "kombify.homelab.wallet.reveal.result.v1" ||
           response.request_id !== requestId ||
           response.document_revision !== binding.document_revision ||
           response.document_token !== binding.document_token
@@ -115,7 +115,7 @@ export async function revealNativeLocalWallet(
       cancellation.signal.addEventListener("abort", cancel, { once: true });
       try {
         bridge.postMessage({
-          type: "kombify.techstack.wallet.reveal.v1",
+          type: "kombify.homelab.wallet.reveal.v1",
           request_id: requestId,
           ...binding,
           item_id: id,

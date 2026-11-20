@@ -19,18 +19,18 @@ export type SystemCardShape = "square" | "app";
 
 /**
  * Appearance (owner rule 2026-10-09): the lasting default is the account's,
- * set in kombify Cloud Settings. A switch inside Techstack holds for this
+ * set in kombify Cloud Settings. A switch inside Homelab holds for this
  * browser session only, and an embedding host always decides. The retired
- * `techstack-theme` device choice outranked the host and is removed on init.
+ * `homelab-theme` device choice outranked the host and is removed on init.
  */
-const LEGACY_DEVICE_THEME_KEY = "techstack-theme";
-const SESSION_THEME_KEY = "techstack-theme-session";
+const LEGACY_DEVICE_THEME_KEY = "homelab-theme";
+const SESSION_THEME_KEY = "homelab-theme-session";
 /** The last account default read; only a first-paint hint for app.html. */
-const ACCOUNT_THEME_CACHE_KEY = "techstack-account-theme";
-const CARD_SHAPE_STORAGE_KEY = "techstack-system-card-shape";
-const FINISH_STORAGE_KEY = "techstack-finish";
+const ACCOUNT_THEME_CACHE_KEY = "homelab-account-theme";
+const CARD_SHAPE_STORAGE_KEY = "homelab-system-card-shape";
+const FINISH_STORAGE_KEY = "homelab-finish";
 /** How the rail's hover preview meets the rail (axis `navFlyout`), device-only. */
-const NAV_FLYOUT_STORAGE_KEY = "techstack-nav-flyout";
+const NAV_FLYOUT_STORAGE_KEY = "homelab-nav-flyout";
 
 /**
  * When embedded in the kombify Cloud portal, the portal passes its own theme as
@@ -136,7 +136,7 @@ function applySystemCardShape(systemCardShape: SystemCardShape) {
  *
  *   1. host design context: a portal `{type:'theme', finish}` push or the
  *      `?finish=` embed param (that embedding only, never persisted)
- *   2. the device's explicit choice (`techstack-finish` in localStorage)
+ *   2. the device's explicit choice (`homelab-finish` in localStorage)
  *   3. the account default (`companionV2.panelAppearance.finish`, fetched
  *      fail-soft from the Gateway after first paint)
  *   4. the `kombify` baseline

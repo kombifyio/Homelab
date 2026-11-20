@@ -15,10 +15,10 @@ import (
 	"strings"
 	"time"
 
-	pgkdb "github.com/kombifyio/techstack/pkg/db"
+	pgkdb "github.com/kombifyio/homelab/pkg/db"
 )
 
-// PostgresAgentEnrollmentStore reads agent enrollment rows from the Techstack
+// PostgresAgentEnrollmentStore reads agent enrollment rows from the Homelab
 // runtime database (kombify-runtime-db in SaaS; any self-host Postgres).
 type PostgresAgentEnrollmentStore struct {
 	db *pgkdb.DB

@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/db"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/db"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 var fullHealthRevisionPattern = regexp.MustCompile(`^[0-9a-f]{40}$`)
@@ -130,7 +130,7 @@ func RegisterHealthRoutesWithDeps(r *httpx.Router, version string, buildRevision
 		payload := map[string]any{
 			"status":          "healthy",
 			"version":         version,
-			"service":         "kombify-techstack",
+			"service":         "kombify-homelab",
 			"timestamp":       now,
 			"time":            now, // backwards compat
 			"edition":         string(edition),
@@ -235,7 +235,7 @@ func RegisterInfoRoutes(r *httpx.Router, database *db.DB, version string, buildR
 		edition, mode := normalizeRuntimeIdentity(edition, mode)
 
 		payload := map[string]any{
-			"service":          "techstack",
+			"service":          "homelab",
 			"version":          version,
 			"go_version":       runtime.Version(),
 			"uptime_secs":      time.Since(startTime).Seconds(),

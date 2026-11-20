@@ -17,8 +17,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/ril/primitives"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/ril/primitives"
 )
 
 func canonValue(t *testing.T, v any) []byte {
@@ -146,7 +146,7 @@ func proofFixtureWith(t *testing.T, primitiveID string, adopted bool) (context.C
 	unsigned["signature"] = map[string]any{"alg": "ES256", "kid": "test-key", "value": parts[2]}
 	rc := canonValue(t, unsigned)
 	rh := hash(rc)
-	l := lease{SchemaVersion: "kombify.ril-execution-lease.v1", Iss: "kombify-gateway", Aud: "stackkits", Purpose: "ril-execution", LeaseID: "lease", OperationID: "op", DecisionID: "decision", ReceiptDigest: rh, EffectDigest: eh, TenantID: "tenant", OwnerSubject: "owner", Requester: principal{Kind: "service", ID: "requester"}, Executor: "techstack", CardID: "card", CardRevision: 1, ServerID: "server", StackID: "stack", PrimitiveID: profile.ID, Scope: profile.GrantScope, LifecycleRevision: 3, Iat: now.Unix(), Nbf: now.Unix(), Exp: now.Unix() + 90}
+	l := lease{SchemaVersion: "kombify.ril-execution-lease.v1", Iss: "kombify-gateway", Aud: "stackkits", Purpose: "ril-execution", LeaseID: "lease", OperationID: "op", DecisionID: "decision", ReceiptDigest: rh, EffectDigest: eh, TenantID: "tenant", OwnerSubject: "owner", Requester: principal{Kind: "service", ID: "requester"}, Executor: "homelab", CardID: "card", CardRevision: 1, ServerID: "server", StackID: "stack", PrimitiveID: profile.ID, Scope: profile.GrantScope, LifecycleRevision: 3, Iat: now.Unix(), Nbf: now.Unix(), Exp: now.Unix() + 90}
 	lt := signed(t, key, "kombify.ril-execution-lease.v1", l)
 	c := claim{SchemaVersion: "kombify.ril-execution-claim.v1", Iss: "kombify-gateway", Aud: "stackkits", Purpose: "ril-execution-claim", DecisionID: "decision", LeaseID: "lease", ExecutionID: "exec", Fence: "fence", EffectDigest: eh, ReceiptDigest: rh, LeaseDigest: hash([]byte(lt)), TenantID: "tenant", OwnerSubject: "owner", ServerID: "server", StackID: "stack", LifecycleRevision: 3, RuntimeLeaseExpiresAt: now.Unix() + 60, Iat: now.Unix(), Exp: now.Unix() + 20}
 	ct := signed(t, key, "kombify.ril-execution-claim.v1", c)

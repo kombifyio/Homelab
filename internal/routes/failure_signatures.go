@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/failureknowledge"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/failureknowledge"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // RegisterFailureSignatureRoutes exposes the tenant's own class A failure
@@ -26,7 +26,7 @@ func RegisterFailureSignatureRoutes(r *httpx.Router, store controlplane.FailureO
 		if authErr != nil {
 			return authErr
 		}
-		tenantID, err := requireJobRouteTenant(e, ownerID, "techstack.failures.read")
+		tenantID, err := requireJobRouteTenant(e, ownerID, "homelab.failures.read")
 		if err != nil {
 			return err
 		}
@@ -64,7 +64,7 @@ func RegisterFailureOutcomeRoutes(r *httpx.Router, store controlplane.FailureOut
 		if authErr != nil {
 			return authErr
 		}
-		tenantID, err := requireJobRouteTenant(e, ownerID, "techstack.failures.write")
+		tenantID, err := requireJobRouteTenant(e, ownerID, "homelab.failures.write")
 		if err != nil {
 			return err
 		}
@@ -109,7 +109,7 @@ func RegisterFailureOutcomeRoutes(r *httpx.Router, store controlplane.FailureOut
 		if authErr != nil {
 			return authErr
 		}
-		tenantID, err := requireJobRouteTenant(e, ownerID, "techstack.failures.read")
+		tenantID, err := requireJobRouteTenant(e, ownerID, "homelab.failures.read")
 		if err != nil {
 			return err
 		}

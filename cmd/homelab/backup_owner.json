@@ -1,0 +1,4 @@
+{
+  "schema": "homelab.backup-owner/v1",
+  "stable": "in-process"
+}

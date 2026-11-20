@@ -16,7 +16,7 @@ import {
 } from "#lib/components/open-core/index.js";
 export type { StackIdentity };
 
-const STORAGE_KEY = "techstack.stack-identity";
+const STORAGE_KEY = "homelab.stack-identity";
 
 const { subscribe, set } = writable<StackIdentity | null>(null);
 
@@ -117,7 +117,7 @@ let syncInFlight: Promise<StackIdentitySettingsResponse | null> | null = null;
  * Cloud's record through the Gateway with the user's token, let the backend
  * apply the rules to the homelab row, and push the local copy when it says
  * so. A stale If-Match (both sides changed meanwhile) re-reads once. Without
- * a Gateway token Techstack is the only authority and nothing happens.
+ * a Gateway token Homelab is the only authority and nothing happens.
  */
 export function syncStackIdentityWithCloud(): Promise<StackIdentitySettingsResponse | null> {
   if (!browser) return Promise.resolve(null);

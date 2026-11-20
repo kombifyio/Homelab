@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/kombifyio/techstack/internal/systemdb"
+	"github.com/kombifyio/homelab/internal/systemdb"
 )
 
 const HouseholdSystemRole = "techstack_household_worker"

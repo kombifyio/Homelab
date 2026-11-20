@@ -9,9 +9,9 @@ import (
 	"io"
 	"os"
 
+	"github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/backupstore"
 	"github.com/kombifyio/stackkits/contracts/runtimeexecutor"
-	"github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/backupstore"
 )
 
 type LocalOwnerConfig struct {

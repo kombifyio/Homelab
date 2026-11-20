@@ -153,22 +153,22 @@ describe("resolveLoginExperience", () => {
   it("keeps the current workflow path for SaaS re-auth redirects", () => {
     expect(
       buildCloudAuthRedirectURL("/api/v2/auth/login", {
-        origin: "https://techstack.kombify.io",
-        returnTo: "/stacks/creating?job_id=job-1&techstack_id=techstack-1",
+        origin: "https://homelab.kombify.io",
+        returnTo: "/stacks/creating?job_id=job-1&kit_deployment_id=homelab-1",
       }),
     ).toBe(
-      "https://techstack.kombify.io/api/v2/auth/login?return_to=%2Fstacks%2Fcreating%3Fjob_id%3Djob-1%26techstack_id%3Dtechstack-1",
+      "https://homelab.kombify.io/api/v2/auth/login?return_to=%2Fstacks%2Fcreating%3Fjob_id%3Djob-1%26kit_deployment_id%3Dhomelab-1",
     );
   });
 
   it("preserves an explicit login-page return target", () => {
     expect(
       buildCloudAuthRedirectURL("/api/v2/auth/login?return_to=%2Fstacks", {
-        origin: "https://techstack.kombify.io",
+        origin: "https://homelab.kombify.io",
         returnTo: "/stacks/creating?job_id=job-1",
       }),
     ).toBe(
-      "https://techstack.kombify.io/api/v2/auth/login?return_to=%2Fstacks",
+      "https://homelab.kombify.io/api/v2/auth/login?return_to=%2Fstacks",
     );
   });
 
@@ -195,7 +195,7 @@ describe("resolveLoginExperience", () => {
         embedded: true,
         hostNavigation: true,
       }),
-      "https://techstack.local",
+      "https://homelab.local",
     );
 
     expect(continuation.pathname).toBe("/auth/sso");
@@ -206,10 +206,10 @@ describe("resolveLoginExperience", () => {
 
   it("explains Auth0 callback session minting failures without leaking internals", () => {
     expect(formatLoginError("callback_session_failed")).toBe(
-      "kombify Cloud sign-in completed, but Techstack could not create a browser session. Try again or contact support.",
+      "kombify Cloud sign-in completed, but Homelab Runtime could not create a browser session. Try again or contact support.",
     );
     expect(formatLoginError("session_mint_failed")).toBe(
-      "kombify Cloud sign-in completed, but Techstack could not create a browser session. Try again or contact support.",
+      "kombify Cloud sign-in completed, but Homelab Runtime could not create a browser session. Try again or contact support.",
     );
   });
 

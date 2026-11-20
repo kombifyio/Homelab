@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/edgeauth"
+	"github.com/kombifyio/homelab/internal/gocommon/edgeauth"
 )
 
 // Config selects a common wire layout and signing material. Secret alone

@@ -12,14 +12,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/identity"
-	"github.com/kombifyio/techstack/internal/providercatalog"
-	"github.com/kombifyio/techstack/internal/providercontrol"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/runtimeaction"
-	"github.com/kombifyio/techstack/pkg/core"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
-	"github.com/kombifyio/techstack/pkg/specv2"
-	"github.com/kombifyio/techstack/pkg/unifier"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
+	"github.com/kombifyio/homelab/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/providercontrol"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/runtimeaction"
+	"github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/pkg/specv2"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 var oneLinerSimulationPreviewTimeout = 5 * time.Second
@@ -31,11 +31,11 @@ const autoDeployGuardWaitStartedAtField = "auto_deploy_guard_wait_started_at"
 const ProvisionIdempotencyReceiptResultField = "provision_idempotency"
 
 // ProvisionHandler creates a job handler for preparing StackKits rollouts.
-// It structurally parses the incoming proposal, persists Techstack's internal
+// It structurally parses the incoming proposal, persists Homelab's internal
 // intent, and stores the reviewable stack-spec.yaml handoff for StackKits.
 //
 // Important: This handler works WITHOUT requiring servers to be connected first.
-// kombifyTechstack can run as SaaS - servers/workers are added later.
+// kombifyHomelab can run as SaaS - servers/workers are added later.
 // The Unifier prepares a review proposal. The pinned StackKits CLI remains the
 // only final validation, resolution, and generation authority.
 //
@@ -305,7 +305,7 @@ func provisionRunOneLinerSimulationPreview(ctx context.Context, cfg *ProvisionCo
 	q.UpdateProgress(job.ID, 82, "Preparing temporary Simulate demo preview...")
 	provisionReleaseOneLinerInstallCommand(job)
 	if cfg == nil || cfg.RuntimeActions.SimulationGate == nil {
-		recordOneLinerSimulationPreviewUnavailable(job, "not_configured", "Simulate preview is not configured. Configure TECHSTACK_SIMULATE_ACTIONS_URL or TECHSTACK_KOMBISIM_URL and SERVICE_AUTH_SECRET to show the one-hour demo preview.")
+		recordOneLinerSimulationPreviewUnavailable(job, "not_configured", "Simulate preview is not configured. Configure HOMELAB_SIMULATE_ACTIONS_URL or HOMELAB_KOMBISIM_URL and SERVICE_AUTH_SECRET to show the one-hour demo preview.")
 		return nil
 	}
 

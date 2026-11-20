@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/agent/collectors"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/agent/collectors"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 // MetricsPusher runs the metric collectors on their own intervals and ships

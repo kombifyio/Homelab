@@ -27,5 +27,5 @@ tarball carries its own license file keeps that file. The
 field; its upstream source repository carries the same dual-license text as
 this tree's `LICENSE`, which applies to it. The absence of a tarball license
 file does not change these terms. Check the lockfile and
-`.techstack-public-export.json` for the exact tarball integrity and source
+`.homelab-public-export.json` for the exact tarball integrity and source
 commit of this release.

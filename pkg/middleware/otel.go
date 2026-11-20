@@ -15,8 +15,8 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/logger"
 )
 
 // OTelMiddleware extracts trace context from incoming headers and creates
@@ -26,7 +26,7 @@ func OTelMiddleware(e *httpx.Event) error {
 	ctx := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
 
 	spanName := fmt.Sprintf("%s %s", r.Method, r.URL.Path)
-	ctx, span := otel.Tracer("kombify-techstack").Start(ctx, spanName,
+	ctx, span := otel.Tracer("kombify-homelab").Start(ctx, spanName,
 		trace.WithSpanKind(trace.SpanKindServer),
 		trace.WithAttributes(
 			semconv.HTTPMethod(r.Method),

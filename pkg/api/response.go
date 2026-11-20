@@ -1,4 +1,4 @@
-// Package api defines shared HTTP envelope contracts for kombify Techstack.
+// Package api defines shared HTTP envelope contracts for kombify Homelab.
 package api
 
 // ErrorCode represents a standardized API error code

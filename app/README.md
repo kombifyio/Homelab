@@ -1,6 +1,6 @@
-# kombify-TechStack App
+# kombify-Homelab App
 
-SvelteKit operator UI for the TechStack control plane.
+SvelteKit operator UI for the Homelab Runtime control plane.
 
 ## Scope
 
@@ -39,13 +39,13 @@ pnpm test:unit
 
 The app builds as a static SPA (`adapter-static`, output `build-static/`) and
 is embedded into the Go binary (`internal/frontend/dist`,
-`-tags techstack_static_ui`), which serves it in every deployment (ADR-033
+`-tags homelab_static_ui`), which serves it in every deployment (ADR-033
 OQ2). There is no Node SSR process.
 
 - local dev server (vite): `http://localhost:5261`
 - dev backend proxy target: `http://localhost:5260` (vite `server.proxy`,
-  override with `TECHSTACK_DEV_API_PROXY`)
-- production origin: `https://techstack.kombify.io`
+  override with `HOMELAB_DEV_API_PROXY`)
+- production origin: `https://homelab.kombify.io`
 
 Frontend build-time variables use `VITE_*`. Runtime-varying public config
 (telemetry, edition) is fetched once at startup from

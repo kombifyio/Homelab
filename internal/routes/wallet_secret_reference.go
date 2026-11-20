@@ -8,17 +8,17 @@ import (
 	"slices"
 	"strings"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
 )
 
 // WalletSecretReferences resolves the Wallet item a request names to the
-// secret it holds, inside Techstack, so a caller (an agent above all) hands
+// secret it holds, inside Homelab, so a caller (an agent above all) hands
 // over a reference and never the secret itself (API-FIRST 13.6). On a
 // deployment that reads the kombify Wallet the reference is a Wallet item id
-// the owner assigned to Techstack; on one that keeps the built-in wallet it is
+// the owner assigned to Homelab; on one that keeps the built-in wallet it is
 // the id of an item the owner saved there. The secret lives for the one call
 // that needs it and is never answered or logged.
 type WalletSecretReferences struct {

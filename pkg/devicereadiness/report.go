@@ -3,7 +3,7 @@ package devicereadiness
 import (
 	"time"
 
-	"github.com/kombifyio/techstack/internal/substrate"
+	"github.com/kombifyio/homelab/internal/substrate"
 )
 
 // Check is one question asked of the device, answered from measured facts.

@@ -242,7 +242,7 @@
   let deployments = $state<StackDashboardItem[]>([]);
   // The owner-scoped homelab is the only dashboard identity. Its kit
   // deployments remain internal facts used to aggregate node evidence; they
-  // are never a second Techstack selector.
+  // are never a second Homelab selector.
   let homelab = $state<HomelabView | null>(null);
   // A transient homelab read failure must not turn a populated dashboard into
   // the first-run empty state. This becomes true for both a resolved homelab
@@ -282,7 +282,7 @@
             icon: Plus,
             onSelect: () => void goto(addServerHref()),
             testId: "add-server-button",
-            anchor: "techstack-add-server",
+            anchor: "homelab-add-server",
           }
         : undefined,
   }));
@@ -1111,7 +1111,7 @@
     return {
       status: "degraded",
       reasonCode: "operations_unavailable",
-      capability: "techstack.server.operations",
+      capability: "homelab.server.operations",
       retryable: true,
       userGuidance: {
         title: tr("ui.homelabDashboardPage.operationsDataIsNotAvailable2"),
@@ -1714,7 +1714,7 @@
       const parsed = parseApiError(err);
       decommissionError =
         parsed.code === "upstream_unavailable"
-          ? tr("ui.homelabDashboardPage.custodyRecordUnchangedTheTechstack")
+          ? tr("ui.homelabDashboardPage.custodyRecordUnchangedTheHomelab")
           : parsed.message || tr("ui.homelabDashboardPage.custodyResolutionFailed");
     } finally {
       resolvingCustodyLeaseId = null;
@@ -2397,7 +2397,7 @@
         <Button
           variant="primary"
           testId="add-server-button"
-          anchor="techstack-add-server"
+          anchor="homelab-add-server"
           onclick={() => goto(addServerHref())}
         >
           <Plus class="h-4 w-4" />
@@ -2967,7 +2967,7 @@
           <Button
             variant="primary"
             onclick={() => goto("/stacks/new")}
-            anchor="techstack-wizard-entry"
+            anchor="homelab-wizard-entry"
           >
             {tr("ui.homelab.getStarted")}
           </Button>

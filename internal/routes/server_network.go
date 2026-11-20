@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 )
 
 const (
@@ -46,7 +46,7 @@ type serverNetworkResponse struct {
 // networkRead serves the server's current network facts, the recorded home
 // network move and the state of its rebind.
 func (h serverRuntimeHandlers) networkRead(e *httpx.Event) error {
-	server, worker, err := h.networkServer(e, "techstack.servers.network.read", false)
+	server, worker, err := h.networkServer(e, "homelab.servers.network.read", false)
 	if err != nil || server == nil {
 		return err
 	}
@@ -122,7 +122,7 @@ type networkRebindResponse struct {
 // CLI changes (LAN address, signed LAN DNS record, regenerated workspace) is
 // re-detected on the node; the request carries no input.
 func (h serverRuntimeHandlers) networkRebind(e *httpx.Event) error {
-	server, worker, err := h.networkServer(e, "techstack.servers.network.rebind", true)
+	server, worker, err := h.networkServer(e, "homelab.servers.network.rebind", true)
 	if err != nil || server == nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func (h serverRuntimeHandlers) networkRebind(e *httpx.Event) error {
 		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "This server is not part of a stack yet", map[string]any{"reason": networkReasonNotReady})
 	}
 	if !entitlementGateOrHosted(h.network.Entitlements).SignedGrant(e.Request.Context(), ServerMaintenanceEntitlement) {
-		return writeEntitlementDenial(e, "techstack.servers.network.rebind", ServerMaintenanceEntitlement)
+		return writeEntitlementDenial(e, "homelab.servers.network.rebind", ServerMaintenanceEntitlement)
 	}
 	if existing := h.liveRebind(e, server.TenantID, mapOf(worker.Resources[workerNetworkRebindKey])); existing != nil {
 		status, jobID := stringFromAny(existing["status"]), stringFromAny(existing["job_id"])

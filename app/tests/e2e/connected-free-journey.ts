@@ -32,7 +32,7 @@ import { expect } from "@playwright/test";
 
 type Json = Record<string, any>;
 
-export const CONNECTED_FREE_SCHEMA = "techstack.connected-free/v1";
+export const CONNECTED_FREE_SCHEMA = "homelab.connected-free/v1";
 export const CONNECTED_FREE_STEPS = [
   "existing-runtime-connect",
   "cloud-enrollment",

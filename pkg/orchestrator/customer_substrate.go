@@ -3,10 +3,10 @@ package orchestrator
 import (
 	"context"
 	"fmt"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/internal/substrate"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/internal/substrate"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
 )
 
 // ProvisionCustomerGuest performs the existing pinned StackKit rollout after

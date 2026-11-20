@@ -1,5 +1,5 @@
 /**
- * Techstack's create protection for the signed-in account, per managed provider
+ * Homelab's create protection for the signed-in account, per managed provider
  * and region. Admission enforces the pause on its own; this read lets the
  * creation flow say why creation is paused and hold only the create action,
  * while reading, stopping and deleting existing servers stay available.
@@ -21,7 +21,7 @@ export function managedCreationScope(
 ): ManagedCreationScope | null {
   if (config.serverProvisioning.mode !== "kombify-cloud" || !config.providerId)
     return null;
-  // centron has one pool; Techstack resolves its region like the create does.
+  // centron has one pool; Homelab resolves its region like the create does.
   const region =
     config.providerId === "ionos" ? (config.ionosDatacenter ?? "") : "";
   return { providerId: config.providerId, region };

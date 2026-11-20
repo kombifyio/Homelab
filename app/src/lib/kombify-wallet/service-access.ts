@@ -4,7 +4,7 @@
  * product the owner assigns an item to uses it without the owner present; it
  * never gets the owner's other items. Each right is granted on its own.
  *
- * Techstack asks for two things: the `use` right on the items it consumes
+ * Homelab asks for two things: the `use` right on the items it consumes
  * (a server access profile, a stack credential) and the right to create items
  * in the owner's Wallet (credentials it provisions).
  */
@@ -14,7 +14,7 @@ export type WalletRight = (typeof WALLET_RIGHTS)[number];
 
 /** The kombify product services the Wallet admits. */
 export const WALLET_SERVICES = [
-  "techstack",
+  "homelab",
   "paperwork",
   "ai",
   "simulate",
@@ -23,7 +23,7 @@ export const WALLET_SERVICES = [
 export type WalletService = (typeof WALLET_SERVICES)[number];
 
 /** The service this app acts for. */
-export const TECHSTACK_SERVICE: WalletService = "techstack";
+export const HOMELAB_SERVICE: WalletService = "homelab";
 
 export function isWalletService(value: unknown): value is WalletService {
   return (
@@ -58,13 +58,13 @@ export function serviceGrantsFrom(body: unknown): ServiceRightsGrant[] | null {
   return out;
 }
 
-/** Whether Techstack holds the `use` right according to a grants answer. */
-export function techstackMayUse(
+/** Whether Homelab holds the `use` right according to a grants answer. */
+export function homelabMayUse(
   grants: readonly ServiceRightsGrant[],
 ): boolean {
   return grants.some(
     (grant) =>
-      grant.serviceId === TECHSTACK_SERVICE && grant.rights.includes("use"),
+      grant.serviceId === HOMELAB_SERVICE && grant.rights.includes("use"),
   );
 }
 

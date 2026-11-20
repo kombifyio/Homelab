@@ -2,7 +2,7 @@
  * kombify Connect device read route (`GET /v1/connect/devices`, contract
  * section 9.1). The Gateway serves it with the user's own Auth0 token, the
  * same audience the Companion uses, so it is called directly and not through
- * the Techstack data plane.
+ * the Homelab data plane.
  *
  * The route is still being rolled out. Every outcome is typed so the
  * dashboard can say which one it got instead of drawing an empty list:
@@ -18,7 +18,7 @@ export type ConnectAppId =
   | "workbench-desktop"
   | "workbench-mobile"
   | "companion"
-  | "techstack-windows"
+  | "homelab-windows"
   | "speechkit-desktop";
 export type ConnectPlatform = "windows" | "macos" | "linux" | "android" | "ios";
 
@@ -57,7 +57,7 @@ export type ConnectDeviceListResult =
 
 const DEFAULT_GATEWAY_ORIGIN = "https://api.kombify.io";
 
-/** The Gateway origin this build talks to, from the Techstack data-plane base. */
+/** The Gateway origin this build talks to, from the Homelab data-plane base. */
 export function connectGatewayOrigin(): string {
   const base = (import.meta.env.VITE_GATEWAY_API_BASE as string | undefined)
     ?.trim()
@@ -210,8 +210,8 @@ export async function listConnectDevices(
 }
 
 const APP_LABELS: Record<string, string> = {
-  get ["techstack-windows"]() {
-    return tr("ui.connectDevices.techstackClient");
+  get ["homelab-windows"]() {
+    return tr("ui.connectDevices.homelabClient");
   },
   companion: "Companion",
   ["workbench-desktop"]: "Workbench",

@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/portinventory"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/jobs"
+	"github.com/kombifyio/homelab/internal/portinventory"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/jobs"
 )
 
 // Reason codes of a refused offline removal. They are the contract callers
@@ -243,7 +243,7 @@ func (o *Orchestrator) precheckOfflineRemoval(ctx context.Context, stack *orches
 		return nil
 	}
 	snapshot, err := o.cfg.PortInventory.SnapshotForTeardown(ctx, portinventory.TeardownSnapshotRequest{
-		TenantID: stack.tenantID, OwnerSubjectID: stack.ownerID, TechstackID: stack.id,
+		TenantID: stack.tenantID, OwnerSubjectID: stack.ownerID, KitDeploymentID: stack.id,
 	})
 	if err == nil {
 		err = portinventory.ValidateTeardownSnapshot(snapshot)

@@ -14,7 +14,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/kombifyio/techstack/pkg/appcatalog"
+	"github.com/kombifyio/homelab/pkg/appcatalog"
 )
 
 const (

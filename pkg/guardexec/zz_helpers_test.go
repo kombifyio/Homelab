@@ -4,11 +4,11 @@ package guardexec
 
 import (
 	"context"
-	"path/filepath"
-	"github.com/kombifyio/techstack/pkg/guardrelease"
-	"encoding/hex"
-	"os"
 	"crypto/sha256"
+	"encoding/hex"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -61,7 +61,7 @@ func newHost(t *testing.T, allowUnsigned bool, mutate func(*UpdaterConfig)) *hos
 			t.Fatal(err)
 		}
 	}
-	for _, name := range []string{"techstack", "techstack-stackkit-operations"} {
+	for _, name := range []string{"homelab", "homelab-stackkit-operations"} {
 		if err := os.WriteFile(filepath.Join(h.bin, name), []byte("guard-0.50.0"), 0o755); err != nil {
 			t.Fatal(err)
 		}
@@ -70,7 +70,7 @@ func newHost(t *testing.T, allowUnsigned bool, mutate func(*UpdaterConfig)) *hos
 		t.Fatal(err)
 	}
 	cfg := UpdaterConfig{
-		StateDir: h.state, HandoffDir: h.handoff, AgentPath: filepath.Join(h.bin, "techstack"), OperationsPath: filepath.Join(h.bin, "techstack-stackkit-operations"),
+		StateDir: h.state, HandoffDir: h.handoff, AgentPath: filepath.Join(h.bin, "homelab"), OperationsPath: filepath.Join(h.bin, "homelab-stackkit-operations"),
 		CurrentVersion: "0.50.0", GOOS: "linux", GOARCH: "amd64", AllowUnsigned: allowUnsigned, Systemd: h.systemd,
 		TrialBudget: 150 * time.Millisecond, TrialPoll: 10 * time.Millisecond,
 	}
@@ -95,7 +95,7 @@ func (h *host) offer(t *testing.T, content, version string) StageParams {
 
 func (h *host) installed(t *testing.T) string {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join(h.bin, "techstack"))
+	raw, err := os.ReadFile(filepath.Join(h.bin, "homelab"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,4 +126,3 @@ func digestHex(content string) string {
 	sum := sha256.Sum256([]byte(content))
 	return hex.EncodeToString(sum[:])
 }
-

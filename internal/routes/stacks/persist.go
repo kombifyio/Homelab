@@ -12,17 +12,17 @@ import (
 
 	"github.com/google/uuid"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/specv2"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/specv2"
 )
 
 type persistedStack struct {
 	Id string
 	// Name is the actually-persisted stack name. It may differ from the
-	// requested name when a duplicate was auto-resolved (e.g. "techstack" ->
-	// "techstack-2"). Callers MUST use this for downstream specs/responses.
+	// requested name when a duplicate was auto-resolved (e.g. "homelab" ->
+	// "homelab-2"). Callers MUST use this for downstream specs/responses.
 	Name string
 	// IdempotentReplay is true when X-Idempotency-Key resolved a stack that was
 	// already persisted by an earlier delivery of the same create request.

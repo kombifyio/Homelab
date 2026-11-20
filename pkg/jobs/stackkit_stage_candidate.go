@@ -9,11 +9,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/guardrelease"
-	"github.com/kombifyio/techstack/pkg/releasechannel"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/guardrelease"
+	"github.com/kombifyio/homelab/pkg/releasechannel"
 )
 
 type stageCandidateRelease struct {

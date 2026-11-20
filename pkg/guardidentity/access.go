@@ -17,7 +17,7 @@ const (
 	TokenType = "DPoP"
 
 	accessTokenPrefix = "tsga"
-	accessTokenDomain = "kombify-techstack/guard-access-token/v1"
+	accessTokenDomain = "kombify-homelab/guard-access-token/v1"
 )
 
 // AccessClaims binds one access token to a worker, a key and the credential

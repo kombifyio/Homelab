@@ -20,10 +20,10 @@ func openIsolatedGuardTestDB(t *testing.T) *DB {
 	t.Helper()
 	dsn := integrationDSN()
 	if dsn == "" {
-		t.Skip("TECHSTACK_TEST_POSTGRES_URL not set; skipping Postgres integration test")
+		t.Skip("HOMELAB_TEST_POSTGRES_URL not set; skipping Postgres integration test")
 	}
 
-	schema := "techstack_guard_" + strings.ReplaceAll(uuid.NewString(), "-", "")
+	schema := "homelab_guard_" + strings.ReplaceAll(uuid.NewString(), "-", "")
 	adminConfig, err := pgx.ParseConfig(dsn)
 	if err != nil {
 		t.Fatalf("parse integration DSN: %v", err)

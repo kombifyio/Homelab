@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/providercatalog"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/pkg/vmleases"
+	"github.com/kombifyio/homelab/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 )
 
 var (
@@ -74,7 +74,7 @@ func (s *Service) PrepareRecreate(ctx context.Context, req RecreateRequest) (*Re
 	if !IsMonthlyRuntimeMetadata(lease.Metadata) {
 		return nil, ErrInvalidLease
 	}
-	if record.ExecutionAuthority != vmleases.LeaseExecutionAuthorityTechStackProviderControl {
+	if record.ExecutionAuthority != vmleases.LeaseExecutionAuthorityHomelabProviderControl {
 		return nil, ErrExecutionAuthorityInactive
 	}
 	if lease.RecreatePolicy != vmlease.RecreatePolicyManual {

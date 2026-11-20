@@ -14,8 +14,8 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"github.com/kombifyio/techstack/pkg/fulllocal"
-	"github.com/kombifyio/techstack/pkg/secrets"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/secrets"
 )
 
 // A session is one executor's connection to one unenrolled device.

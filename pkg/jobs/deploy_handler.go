@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/core"
-	"github.com/kombifyio/techstack/pkg/runtimeidentity"
-	"github.com/kombifyio/techstack/pkg/unifier"
+	"github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/runtimeidentity"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 // DeployHandler creates a job handler for "rollout" / deployment.
@@ -309,7 +309,7 @@ func collectManagedRuntimeEnrollmentDiagnostics(
 	rollout.collectRuntimeDiagnostics(ctx, nil, RuntimeActionRequest{
 		StackID: job.TargetID, TenantID: tenantID,
 		RuntimeTarget: stackKitsRuntimeActionTargetFromManagedRuntimeTarget(target),
-		TechStackEnrollment: &TechStackEnrollment{
+		HomelabEnrollment: &HomelabEnrollment{
 			TenantID: tenantID, StackID: job.TargetID, LeaseID: leaseID,
 			ServerID: runtimeidentity.LeaseServerID(leaseID), RuntimeAgentID: runtimeidentity.LeaseRuntimeAgentID(tenantID, leaseID),
 		},

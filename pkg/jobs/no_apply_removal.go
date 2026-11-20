@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/portinventory"
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/internal/portinventory"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 const (
@@ -27,7 +27,7 @@ const (
 	// is either inert, never started, or failed at a position before Apply.
 	NoApplyRemovalBasisJobHistory = "job_history_no_apply"
 
-	noApplyRemovalEvidenceVersion = "techstack.no-apply-stack-removal/v1"
+	noApplyRemovalEvidenceVersion = "homelab.no-apply-stack-removal/v1"
 
 	// NoApplyJobScanLimit bounds the job history read to prove that no Apply
 	// ran. A history that fills it cannot be proven complete and is refused.
@@ -53,15 +53,15 @@ type NoApplyJobRecord struct {
 // NoApplyRemovalEvidence authorizes a destroy to proceed without node-side
 // execution because the job history proves that StackKits Apply never ran.
 type NoApplyRemovalEvidence struct {
-	SchemaVersion  string             `json:"schema_version"`
-	TechstackID    string             `json:"techstack_id"`
-	TenantID       string             `json:"tenant_id"`
-	OwnerID        string             `json:"owner_id"`
-	Basis          string             `json:"basis"`
-	ProvenAt       time.Time          `json:"proven_at"`
-	SnapshotDigest string             `json:"snapshot_digest"`
-	JobsExamined   int                `json:"jobs_examined"`
-	Jobs           []NoApplyJobRecord `json:"jobs"`
+	SchemaVersion   string             `json:"schema_version"`
+	KitDeploymentID string             `json:"kit_deployment_id"`
+	TenantID        string             `json:"tenant_id"`
+	OwnerID         string             `json:"owner_id"`
+	Basis           string             `json:"basis"`
+	ProvenAt        time.Time          `json:"proven_at"`
+	SnapshotDigest  string             `json:"snapshot_digest"`
+	JobsExamined    int                `json:"jobs_examined"`
+	Jobs            []NoApplyJobRecord `json:"jobs"`
 }
 
 // inertNoApplyJobTypes never run StackKits Apply on a node.
@@ -98,7 +98,7 @@ var preApplyTypedOperations = map[string]struct{}{
 // closed: a job whose position cannot be shown to precede Apply, a job still in
 // flight, a history that fills the scan limit, or any recorded Apply output
 // refuses the removal with the reason.
-func NewNoApplyRemovalEvidence(techstackID, tenantID, ownerID string, snapshot portinventory.TeardownSnapshot, history []controlplane.Job, now time.Time) (NoApplyRemovalEvidence, error) {
+func NewNoApplyRemovalEvidence(kitDeploymentID, tenantID, ownerID string, snapshot portinventory.TeardownSnapshot, history []controlplane.Job, now time.Time) (NoApplyRemovalEvidence, error) {
 	if len(history) >= NoApplyJobScanLimit {
 		return NoApplyRemovalEvidence{}, fmt.Errorf("the job history of the stack is too long to prove that no Apply ran (%d jobs read)", len(history))
 	}
@@ -112,8 +112,8 @@ func NewNoApplyRemovalEvidence(techstackID, tenantID, ownerID string, snapshot p
 	}
 	sort.Slice(records, func(i, j int) bool { return records[i].JobID < records[j].JobID })
 	evidence := NoApplyRemovalEvidence{
-		SchemaVersion: noApplyRemovalEvidenceVersion,
-		TechstackID:   strings.TrimSpace(techstackID), TenantID: strings.TrimSpace(tenantID), OwnerID: strings.TrimSpace(ownerID),
+		SchemaVersion:   noApplyRemovalEvidenceVersion,
+		KitDeploymentID: strings.TrimSpace(kitDeploymentID), TenantID: strings.TrimSpace(tenantID), OwnerID: strings.TrimSpace(ownerID),
 		Basis: NoApplyRemovalBasisJobHistory, ProvenAt: now.UTC(), SnapshotDigest: snapshot.SnapshotDigest,
 		JobsExamined: len(history), Jobs: records,
 	}
@@ -212,7 +212,7 @@ func recordedTypedFailureOperation(result map[string]any) (string, bool) {
 
 // Validate checks the evidence is well-formed.
 func (evidence NoApplyRemovalEvidence) Validate() error {
-	for _, value := range []string{evidence.TechstackID, evidence.TenantID, evidence.OwnerID, evidence.SnapshotDigest} {
+	for _, value := range []string{evidence.KitDeploymentID, evidence.TenantID, evidence.OwnerID, evidence.SnapshotDigest} {
 		if value == "" || value != strings.TrimSpace(value) {
 			return errors.New("no-Apply removal evidence identity is incomplete")
 		}
@@ -262,7 +262,7 @@ func boundNoApplyRemovalEvidence(job *Job, snapshot portinventory.TeardownSnapsh
 	if err != nil {
 		return NoApplyRemovalEvidence{}, false, err
 	}
-	if evidence.TechstackID != job.TargetID || evidence.TenantID != payloadString(job.Payload, tenantIDField) ||
+	if evidence.KitDeploymentID != job.TargetID || evidence.TenantID != payloadString(job.Payload, tenantIDField) ||
 		evidence.OwnerID != payloadString(job.Payload, "owner_id") || evidence.SnapshotDigest != snapshot.SnapshotDigest {
 		return NoApplyRemovalEvidence{}, false, errors.New("no-Apply removal evidence does not match the destroy job")
 	}

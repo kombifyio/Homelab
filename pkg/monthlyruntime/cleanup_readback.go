@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/pkg/vmleases"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 )
 
 // ErrCleanupReadbackUnavailable means the native provider-control ledger is
@@ -101,7 +101,7 @@ func (s *Service) CleanupStatus(ctx context.Context, tenantID, userID string, le
 	// A canceled native lease is intentionally native-inactive, but its
 	// provider-control custody remains the only valid cleanup authority. Only
 	// a different or absent authority is rejected here.
-	if record.ExecutionAuthority != vmleases.LeaseExecutionAuthorityTechStackProviderControl {
+	if record.ExecutionAuthority != vmleases.LeaseExecutionAuthorityHomelabProviderControl {
 		return nil, ErrExecutionAuthorityInactive
 	}
 	return s.cleanupStatusForRecord(ctx, tenantID, lease)

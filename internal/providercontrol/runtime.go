@@ -47,7 +47,7 @@ type RuntimeConfig struct {
 }
 
 // Runtime owns the durable ledger, adapter registry, application service, and
-// bounded reconciler used by TechStack provider control.
+// bounded reconciler used by Homelab provider control.
 type Runtime struct {
 	registry    *Registry
 	ledger      *PostgresLedger

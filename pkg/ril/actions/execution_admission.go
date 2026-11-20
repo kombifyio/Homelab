@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/ril/actioncontract"
-	"github.com/kombifyio/techstack/pkg/ril/primitives"
+	"github.com/kombifyio/homelab/pkg/ril/actioncontract"
+	"github.com/kombifyio/homelab/pkg/ril/primitives"
 )
 
-const executionAdmissionVersion = "techstack.ril-execution-admission/v2"
+const executionAdmissionVersion = "homelab.ril-execution-admission/v2"
 
-// ExecutionAdmission is Techstack's internal immutable binding between an
+// ExecutionAdmission is Homelab's internal immutable binding between an
 // approved action and the current Runtime Inventory and lifecycle authority
 // heads (LifecycleAuthority). It is never serialized into the provider-free
 // RIL request or public evidence.

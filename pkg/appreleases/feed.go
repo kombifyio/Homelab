@@ -5,7 +5,7 @@
 // track, whether the catalog admitted (tested) each one, and the known
 // advisories of the upstream project.
 //
-// The feed is an observation, not a release. Techstack uses it only after
+// The feed is an observation, not a release. Homelab uses it only after
 // the published digest receipt names exactly the bytes it read and only while
 // the feed is younger than MaxFeedAge. Anything else is "not verified", never
 // "up to date" or "no known vulnerabilities".
@@ -24,8 +24,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/appcatalog"
-	"github.com/kombifyio/techstack/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/appcatalog"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
 )
 
 const (

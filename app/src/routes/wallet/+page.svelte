@@ -1,7 +1,7 @@
 <script lang="ts">
   /**
    * The Wallet page. Which Wallet backs it is decided by the deployment
-   * (`wallet_source` of `GET /api/v1/auth/mode`): hosted Techstack uses the
+   * (`wallet_source` of `GET /api/v1/auth/mode`): hosted Homelab uses the
    * central kombify Wallet natively; a self-hosted install keeps its built-in
    * Wallet exactly as it was. Nothing is shown until the mode is known, so the
    * wrong Wallet is never asked for its items.

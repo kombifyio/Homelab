@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/walletservice"
+	"github.com/kombifyio/homelab/internal/gocommon/walletservice"
 
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
 )
 
 // RecordedItemKey is the wallet_items metadata key that records the kombify
@@ -70,7 +70,7 @@ type Options struct {
 type Executor struct {
 	Store  Store
 	Wallet Wallet
-	// Decrypt opens an enc:v1 value with TECHSTACK_ENCRYPTION_KEY.
+	// Decrypt opens an enc:v1 value with HOMELAB_ENCRYPTION_KEY.
 	Decrypt func(string) (string, error)
 	Now     func() time.Time
 }
@@ -182,7 +182,7 @@ func (r *run) tenant(ctx context.Context, tenant string, planned planResult, tar
 	}
 }
 
-// createRightFor checks once per owner that Techstack may save to the owner's
+// createRightFor checks once per owner that Homelab may save to the owner's
 // Wallet. Only a definite answer is kept; an outage is asked again.
 func (r *run) createRightFor(ctx context.Context, owner string) error {
 	if err, known := r.createRight[owner]; known {

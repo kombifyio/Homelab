@@ -1,7 +1,7 @@
 // Package guardreach is the control-plane side of kombify Guard reach: for a
 // Guard whose host key is bound it makes the installation reachable at its
 // kombify.me address (kombify-Me relay binding) and lists the server as a
-// Connect resource (Gateway techstack-node), and it revokes both everywhere
+// Connect resource (Gateway homelab-node), and it revokes both everywhere
 // when the Guard is detached, retired or revoked from either side.
 //
 // The control plane keeps execution authority: nothing here executes on a
@@ -204,7 +204,7 @@ var (
 	connectStackIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`)
 )
 
-// ConnectTenant maps a Techstack tenant to the tenant id Gateway derives for
+// ConnectTenant maps a Homelab tenant to the tenant id Gateway derives for
 // the same owner: the Auth0 organization id when the Gateway JWT carries one
 // (org_*), otherwise usr:<subject>. Any other tenant (for example the shared
 // demo tenant) has no Connect namespace, so the mapping fails closed
@@ -224,7 +224,7 @@ func ConnectTenant(tenantID, ownerSubject string) (string, error) {
 }
 
 // gatewayStackID is the stack id Connect stores; Gateway accepts a narrower
-// alphabet than Techstack stack names, so anything else is replaced by a
+// alphabet than Homelab stack names, so anything else is replaced by a
 // stable digest instead of being sent and refused.
 func gatewayStackID(stackID, serverID string) string {
 	stackID = strings.TrimSpace(stackID)

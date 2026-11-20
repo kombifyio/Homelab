@@ -10,16 +10,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
-	"github.com/kombifyio/techstack/pkg/serviceauth"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/pkg/serviceauth"
 
-	"github.com/kombifyio/techstack/internal/household"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/logger"
+	"github.com/kombifyio/homelab/internal/household"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/logger"
 )
 
-// The household routes are the private Cloud to Techstack surface of the
+// The household routes are the private Cloud to Homelab surface of the
 // Companion Feed household: the owner-approved projection of a Cloud household
 // member to the owner's homelab, and the Kombify Connect D10 link between a
 // Cloud subject and a Pocket ID identity. They sit behind the same Cloud
@@ -53,8 +53,8 @@ type HouseholdRouteConfig struct {
 }
 
 var householdSurface = cloudReadSurface{
-	errorPrefix: "techstack.household.", unavailableReason: "household_unavailable",
-	title: "Household unavailable", body: "Techstack could not process this household request safely.",
+	errorPrefix: "homelab.household.", unavailableReason: "household_unavailable",
+	title: "Household unavailable", body: "Homelab Runtime could not process this household request safely.",
 }
 
 type householdHandlers struct {
@@ -85,7 +85,7 @@ func RegisterHouseholdInternalRoutes(r *httpx.Router, cfg HouseholdRouteConfig) 
 func (h householdHandlers) serve(e *httpx.Event, scope string, fn func(e *httpx.Event, caller *servicecall.Caller)) error {
 	if !serviceauth.CanVerify(h.secret) || h.svc == nil {
 		return householdSurface.deny(e, http.StatusServiceUnavailable, householdSurface.unavailableReason, true,
-			"Retry after Techstack service authentication is configured.")
+			"Retry after Homelab Runtime service authentication is configured.")
 	}
 	authCfg, err := serviceauth.Apply(servicecall.Config{
 		ServiceName: runtimeSummaryService, Secret: h.secret, SecretNext: h.next,
@@ -93,7 +93,7 @@ func (h householdHandlers) serve(e *httpx.Event, scope string, fn func(e *httpx.
 	})
 	if err != nil {
 		return householdSurface.deny(e, http.StatusServiceUnavailable, householdSurface.unavailableReason, true,
-			"Retry after Techstack service authentication is configured.")
+			"Retry after Homelab Runtime service authentication is configured.")
 	}
 	auth := servicecall.RequireServiceAuth(authCfg)
 	auth(servicecall.RequireScope(scope)(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
@@ -208,7 +208,7 @@ func (h householdHandlers) projection(e *httpx.Event) error {
 			"status", string(result.Status), "failed", err != nil,
 			"caller_gone", e.Request.Context().Err() != nil, "duration_ms", time.Since(started).Milliseconds())
 		if errors.Is(err, household.ErrNodeUnreachable) || errors.Is(err, household.ErrAmbiguousAccount) {
-			// The node cannot take the command now. Techstack keeps no queue;
+			// The node cannot take the command now. Homelab keeps no queue;
 			// Cloud holds the pending projection and re-sends it. The cause is
 			// logged (bounded, no member data) so a stopped identity stack or a
 			// refused command can be told apart from a disconnected agent.
@@ -368,7 +368,7 @@ func (h householdHandlers) writeError(e *httpx.Event, err error) {
 	case errors.Is(err, household.ErrOwnerMember):
 		_ = householdSurface.deny(e, http.StatusBadRequest, "owner_not_member", false, "The homelab owner is not a projected household member.")
 	case errors.Is(err, household.ErrOwnerNotAuthorized), errors.Is(err, ErrInventoryAccessDenied):
-		_ = householdSurface.deny(e, http.StatusForbidden, "owner_access_denied", false, "Open Techstack in the same account and organization to refresh its access context.")
+		_ = householdSurface.deny(e, http.StatusForbidden, "owner_access_denied", false, "Open Homelab Runtime in the same account and organization to refresh its access context.")
 	case errors.Is(err, household.ErrNoReference):
 		_ = householdSurface.deny(e, http.StatusNotFound, "no_invitation", false, "The person has no household invitation on this homelab.")
 	case errors.Is(err, household.ErrAmbiguousStack):

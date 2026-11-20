@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/orchestrator"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/orchestrator"
 )
 
 // startHomelabIdentityJoin joins one kit deployment of the caller's homelab
@@ -23,7 +23,7 @@ func (h crudRouteHandlers) startHomelabIdentityJoin(e *httpx.Event) error {
 	if err != nil {
 		return err
 	}
-	tenant, err := tenantguard.TenantScope(tenantIDFromRequest(e), owner, "techstack.homelab.identity-join")
+	tenant, err := tenantguard.TenantScope(tenantIDFromRequest(e), owner, "homelab.homelab.identity-join")
 	if err != nil {
 		return err
 	}

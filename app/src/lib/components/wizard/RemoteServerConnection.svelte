@@ -27,7 +27,7 @@
   let connectionRevision = 0;
   const remote = $derived(config.serverProvisioning.remote);
   const remoteUsesPasswordAuth = $derived(remote.authMethod === "password");
-  // Hosted Techstack keeps the SSH credential in the person's kombify Wallet.
+  // Hosted Homelab keeps the SSH credential in the person's kombify Wallet.
   const creation = useCreationContext();
   const useWallet = $derived(creation.auth.walletSource === "kombify");
   $effect(() => {

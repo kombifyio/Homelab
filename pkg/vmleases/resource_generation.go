@@ -9,8 +9,8 @@ import (
 	"maps"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
 )
 
 const (
@@ -23,7 +23,7 @@ const (
 	// generation. Once claimed, that generation cannot be replaced underneath
 	// an in-flight decommission.
 	MetadataKeyDecommissionClaimDigest = "resource_decommission_claim_digest"
-	resourceGenerationDigestVersion    = "techstack.vmlease.resource-generation/v1"
+	resourceGenerationDigestVersion    = "homelab.vmlease.resource-generation/v1"
 )
 
 var (

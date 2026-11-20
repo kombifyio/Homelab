@@ -1,5 +1,5 @@
 /* ============================================================
-   kombify Techstack — style entry point
+   kombify Homelab Runtime — style entry point
    ============================================================
    Import order is load-bearing (mirrors kombify-Brand/cmo):
 
@@ -18,7 +18,7 @@
    5. design/index.css      — material + role recipes, loaded LAST of the
                               packages so the recipes resolve against the
                               package tokens; every rule keys off data-kx
-   6. techstack-bindings.css — permanent product layer: geometry,
+   6. homelab-bindings.css — permanent product layer: geometry,
                               product-owned vocabulary, bits-ui attribute
                               styles, animations, scrollbar (no material
                               values). The transitional compat stylesheet
@@ -31,14 +31,14 @@
 @import "tailwindcss";
 
 /* Brand owns the shared server- and service-card source; Tailwind scans the
-   published package so Techstack renders the exact UI-Lab standard. */
+   published package so Homelab Runtime renders the exact UI-Lab standard. */
 @source "../node_modules/@kombiverselabs/ui/dist";
 @import "tw-animate-css";
 
 @import "@kombiverselabs/ui/styles.css";
 @import "@kombiverselabs/design/index.css";
 
-@import "./techstack-bindings.css";
+@import "./homelab-bindings.css";
 
 /*
  * A security fix on the shared ServiceCard update strip takes the danger tone

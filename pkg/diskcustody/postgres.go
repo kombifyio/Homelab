@@ -17,9 +17,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"github.com/kombifyio/techstack/pkg/db"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/unifier"
+	"github.com/kombifyio/homelab/pkg/db"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 const (

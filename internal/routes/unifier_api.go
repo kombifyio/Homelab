@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	kscore "github.com/kombifyio/techstack/pkg/core"
-	"github.com/kombifyio/techstack/pkg/features"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/unifier"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	kscore "github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/features"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 const maxUnifierRequestBodyBytes int64 = 2 << 20 // 2 MiB

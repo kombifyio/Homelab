@@ -10,13 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/v2/auth/session"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/v2/auth/session"
 )
 
-// portalTestToken signs a Cloud-shaped Techstack launch token; overrides
+// portalTestToken signs a Cloud-shaped Homelab launch token; overrides
 // replace or (with a nil value) remove claims.
 func portalTestToken(t *testing.T, secret string, overrides jwt.MapClaims) string {
 	t.Helper()
@@ -70,7 +70,7 @@ func runPortalVerify(t *testing.T, handler func(*httpx.Event) error, token strin
 
 func portalSessionCookie(recorder *httptest.ResponseRecorder) *http.Cookie {
 	for _, cookie := range recorder.Result().Cookies() {
-		if cookie.Name == "techstack_session" && cookie.Value != "" {
+		if cookie.Name == "homelab_session" && cookie.Value != "" {
 			return cookie
 		}
 	}
@@ -86,12 +86,12 @@ func newPortalTestSession(t *testing.T) PortalSession {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return PortalSession{Manager: manager, CookieName: "techstack_session", AuthStore: &portalVerifyAuthStore{}}
+	return PortalSession{Manager: manager, CookieName: "homelab_session", AuthStore: &portalVerifyAuthStore{}}
 }
 
 func TestHandlePortalVerifyFailsClosedWithoutCanonicalIdentityStore(t *testing.T) {
 	const secret = "portal-verify-test-secret"
-	t.Setenv("TECHSTACK_SSO_JWT_SECRET", secret)
+	t.Setenv("HOMELAB_SSO_JWT_SECRET", secret)
 	ps := newPortalTestSession(t)
 	ps.AuthStore = nil
 
@@ -109,7 +109,7 @@ func TestHandlePortalVerifyFailsClosedWithoutCanonicalIdentityStore(t *testing.T
 
 func TestHandlePortalVerifyRejectsMissingTenantBeforeSessionProjection(t *testing.T) {
 	const secret = "portal-verify-missing-tenant-secret"
-	t.Setenv("TECHSTACK_SSO_JWT_SECRET", secret)
+	t.Setenv("HOMELAB_SSO_JWT_SECRET", secret)
 	ps := newPortalTestSession(t)
 	store := ps.AuthStore.(*portalVerifyAuthStore)
 
@@ -130,7 +130,7 @@ func TestHandlePortalVerifyUsesPayloadTenantForSessionAndMembership(t *testing.T
 		secret          = "portal-verify-tenant-test-secret"
 		canonicalTenant = "org_portal_customer"
 	)
-	t.Setenv("TECHSTACK_SSO_JWT_SECRET", secret)
+	t.Setenv("HOMELAB_SSO_JWT_SECRET", secret)
 	ps := newPortalTestSession(t)
 	store := ps.AuthStore.(*portalVerifyAuthStore)
 
@@ -158,16 +158,16 @@ func TestHandlePortalVerifyUsesPayloadTenantForSessionAndMembership(t *testing.T
 	}
 }
 
-// Only Cloud's Techstack-only secret (or its rotation slot) signs a portal
+// Only Cloud's Homelab-only secret (or its rotation slot) signs a portal
 // session; the SSO_JWT_SECRET that Simulate and kombify.me also hold does not.
-func TestHandlePortalVerifyAcceptsOnlyTheTechstackSecret(t *testing.T) {
+func TestHandlePortalVerifyAcceptsOnlyTheHomelabSecret(t *testing.T) {
 	const (
-		techstackSecret = "techstack-portal-secret-0123456789abcdef"
-		rotationSecret  = "techstack-portal-secret-next-0123456789ab"
-		sharedSecret    = "shared-sso-secret-held-by-other-services"
+		homelabSecret  = "homelab-portal-secret-0123456789abcdef"
+		rotationSecret = "homelab-portal-secret-next-0123456789ab"
+		sharedSecret   = "shared-sso-secret-held-by-other-services"
 	)
-	t.Setenv("TECHSTACK_SSO_JWT_SECRET", techstackSecret)
-	t.Setenv("TECHSTACK_SSO_JWT_SECRET_NEXT", rotationSecret)
+	t.Setenv("HOMELAB_SSO_JWT_SECRET", homelabSecret)
+	t.Setenv("HOMELAB_SSO_JWT_SECRET_NEXT", rotationSecret)
 	t.Setenv("SSO_JWT_SECRET", sharedSecret)
 	t.Setenv("KOMBIFY_SSO_SECRET", sharedSecret)
 	handler := handleRuntimePortalVerify(newPortalTestSession(t))
@@ -178,7 +178,7 @@ func TestHandlePortalVerifyAcceptsOnlyTheTechstackSecret(t *testing.T) {
 	}{
 		{sharedSecret, http.StatusUnauthorized},
 		{rotationSecret, http.StatusOK},
-		{techstackSecret, http.StatusOK},
+		{homelabSecret, http.StatusOK},
 	} {
 		recorder := runPortalVerify(t, handler, portalTestToken(t, tc.secret, jwt.MapClaims{"jti": "jti-" + tc.secret}))
 		if recorder.Code != tc.want || (tc.want != http.StatusOK) != (portalSessionCookie(recorder) == nil) {
@@ -192,7 +192,7 @@ func TestHandlePortalVerifyAcceptsOnlyTheTechstackSecret(t *testing.T) {
 // (Cloud's embed re-sends its cached token after an in-frame reload).
 func TestHandlePortalVerifyTokenIsSingleUse(t *testing.T) {
 	const secret = "portal-verify-single-use-secret"
-	t.Setenv("TECHSTACK_SSO_JWT_SECRET", secret)
+	t.Setenv("HOMELAB_SSO_JWT_SECRET", secret)
 	handler := handleRuntimePortalVerify(newPortalTestSession(t))
 	token := portalTestToken(t, secret, nil)
 

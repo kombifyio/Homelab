@@ -9,11 +9,11 @@ import (
 	"io"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 // The homelab identity agent link (HOMELAB-IDENTITY-ACCESS-TARGET section 7,
-// Gateway ADR 0042 "Agent node envelope contract"). Techstack hands the node
+// Gateway ADR 0042 "Agent node envelope contract"). Homelab hands the node
 // the Gateway's agent envelope verification key of the server's Connect
 // registration and the D10 references; the pinned StackKits CLI
 // (`stackkit identity agent-link install|remove`) decides whether the request

@@ -1,4 +1,4 @@
-// Package routes provides custom HTTP routes for kombifyTechstack API.
+// Package routes provides custom HTTP routes for kombifyHomelab API.
 package routes
 
 import (
@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/grpcserver"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/grpcserver"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // AgentResponse represents an agent in the API response.
@@ -120,7 +120,7 @@ func (h agentRouteHandler) visibleAgent(e *httpx.Event, capability string) (*grp
 }
 
 func (h agentRouteHandler) listAgents(e *httpx.Event) error {
-	tenantID, enforce, err := agentTenantScope(e, "techstack.agents.list")
+	tenantID, enforce, err := agentTenantScope(e, "homelab.agents.list")
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func (h agentRouteHandler) listAgents(e *httpx.Event) error {
 }
 
 func (h agentRouteHandler) getAgent(e *httpx.Event) error {
-	server, agentID, err := h.visibleAgent(e, "techstack.agents.read")
+	server, agentID, err := h.visibleAgent(e, "homelab.agents.read")
 	if err != nil {
 		return err
 	}
@@ -157,7 +157,7 @@ func (h agentRouteHandler) sendCommand(e *httpx.Event) error {
 	if err != nil {
 		return err
 	}
-	server, agentID, err := h.visibleAgent(e, "techstack.agents.command")
+	server, agentID, err := h.visibleAgent(e, "homelab.agents.command")
 	if err != nil {
 		return err
 	}
@@ -200,7 +200,7 @@ func (h agentRouteHandler) sendCommand(e *httpx.Event) error {
 }
 
 func (h agentRouteHandler) removeAgent(e *httpx.Event) error {
-	server, agentID, err := h.visibleAgent(e, "techstack.agents.remove")
+	server, agentID, err := h.visibleAgent(e, "homelab.agents.remove")
 	if err != nil {
 		return err
 	}
@@ -211,7 +211,7 @@ func (h agentRouteHandler) removeAgent(e *httpx.Event) error {
 }
 
 func (h agentRouteHandler) getAgentLogs(e *httpx.Event) error {
-	server, agentID, err := h.visibleAgent(e, "techstack.agents.logs")
+	server, agentID, err := h.visibleAgent(e, "homelab.agents.logs")
 	if err != nil {
 		return err
 	}
@@ -224,7 +224,7 @@ func (h agentRouteHandler) getAgentLogs(e *httpx.Event) error {
 }
 
 func (h agentRouteHandler) streamAgentLogs(e *httpx.Event) error {
-	server, agentID, err := h.visibleAgent(e, "techstack.agents.logs.stream")
+	server, agentID, err := h.visibleAgent(e, "homelab.agents.logs.stream")
 	if err != nil {
 		return err
 	}
@@ -259,7 +259,7 @@ func (h agentRouteHandler) getRuntimeLogs(e *httpx.Event) error {
 	if err != nil {
 		return err
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.runtime-logs.read")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.runtime-logs.read")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -273,7 +273,7 @@ func (h agentRouteHandler) streamRuntimeLogs(e *httpx.Event) error {
 	if authErr != nil {
 		return authErr
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.runtime-logs.stream")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.runtime-logs.stream")
 	if tenantErr != nil {
 		return tenantErr
 	}

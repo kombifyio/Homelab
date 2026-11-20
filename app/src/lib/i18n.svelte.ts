@@ -1,5 +1,5 @@
 /**
- * kombify-TechStack i18n Reactive Store (Svelte 5 Runes)
+ * kombify-Homelab i18n Reactive Store (Svelte 5 Runes)
  *
  * This file contains the reactive state for i18n using Svelte 5 runes.
  * Import from this file in components, use i18n.ts for non-reactive contexts.

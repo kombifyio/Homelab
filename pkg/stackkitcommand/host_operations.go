@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 // Guard host operations: typed, read-only inspection of a node's processes and
@@ -56,10 +56,10 @@ var protectedHostUnits = []string{
 	"multipathd", "rescue", "emergency", "modprobe", "kmod",
 }
 
-var protectedHostUnitPrefixes = []string{"techstack", "kombify", "stackkit", "systemd", "pve"}
+var protectedHostUnitPrefixes = []string{"homelab", "kombify", "stackkit", "systemd", "pve"}
 
 // protectedHostContainerPrefixes name containers of the platform's own agents.
-var protectedHostContainerPrefixes = []string{"techstack", "kombify", "stackkit"}
+var protectedHostContainerPrefixes = []string{"homelab", "kombify", "stackkit"}
 
 // IsManagedContainer reports a container that StackKits owns, from its labels
 // as docker reports them. The kits label their containers in several ways

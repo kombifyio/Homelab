@@ -5,9 +5,9 @@ package unifier
 import (
 	"fmt"
 
-	"github.com/kombifyio/techstack/pkg/core"
-	"github.com/kombifyio/techstack/pkg/placement"
-	"github.com/kombifyio/techstack/pkg/validator"
+	"github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/placement"
+	"github.com/kombifyio/homelab/pkg/validator"
 )
 
 // Unify merges user spec with system policies and resolves all computed values.

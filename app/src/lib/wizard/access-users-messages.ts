@@ -76,7 +76,7 @@ export const accessUsersMessages = {
       "Setup proposes an address only after the selected route is known.",
     "wizard.access.address.custom": "Use my own domain",
     "wizard.access.address.customBody":
-      "Save a domain request for this Techstack. It does not change DNS by itself.",
+      "Save a domain request for this Homelab Runtime. It does not change DNS by itself.",
     "wizard.access.address.domainLabel": "Base domain",
     "wizard.access.address.domainPlaceholder": "home.example.com",
     "wizard.access.address.prerequisites": "Before the address can work",
@@ -193,7 +193,7 @@ export const accessUsersMessages = {
       "Das Setup schlägt erst eine Adresse vor, wenn der gewählte Zugangsweg feststeht.",
     "wizard.access.address.custom": "Eigene Domain verwenden",
     "wizard.access.address.customBody":
-      "Speichere einen Domain-Wunsch für diesen Techstack. DNS wird dadurch nicht automatisch geändert.",
+      "Speichere einen Domain-Wunsch für diesen Homelab Runtime. DNS wird dadurch nicht automatisch geändert.",
     "wizard.access.address.domainLabel": "Basis-Domain",
     "wizard.access.address.domainPlaceholder": "home.example.com",
     "wizard.access.address.prerequisites": "Damit die Adresse funktioniert",

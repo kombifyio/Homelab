@@ -37,13 +37,13 @@ var (
 type ExecutionAuthority string
 
 const (
-	// ExecutionAuthorityTechstackProviderControl is the only executable
+	// ExecutionAuthorityHomelabProviderControl is the only executable
 	// authority admitted by this package.
-	ExecutionAuthorityTechstackProviderControl ExecutionAuthority = "techstack_provider_control"
+	ExecutionAuthorityHomelabProviderControl ExecutionAuthority = "techstack_provider_control"
 )
 
 // ExecutionProfile contains opaque, server-side references and immutable
-// hashes selected by TechStack. It must never contain raw provider credentials.
+// hashes selected by Homelab. It must never contain raw provider credentials.
 type ExecutionProfile struct {
 	ProviderID             string
 	AdapterID              string
@@ -107,14 +107,14 @@ type ProfileRequest struct {
 	Operation            providerexecutor.Operation
 }
 
-// ExecutionProfileResolver resolves TechStack-owned adapter and credential
+// ExecutionProfileResolver resolves Homelab-owned adapter and credential
 // custody references. Implementations may use tenant configuration or a secret
 // broker, but must return references and hashes rather than credentials.
 type ExecutionProfileResolver interface {
 	ResolveExecutionProfile(context.Context, ProfileRequest) (ExecutionProfile, error)
 }
 
-// DesiredSpecRevision is the immutable TechStack custody record for the
+// DesiredSpecRevision is the immutable Homelab custody record for the
 // provider-neutral desired input used by plan, provision, and reconcile.
 // Payload must be valid JSON and must not contain raw provider credentials.
 type DesiredSpecRevision struct {
@@ -128,7 +128,7 @@ type DesiredSpecRevision struct {
 }
 
 // StartRequest authorizes one provider operation. The resource-graph hash is
-// derived from Targets while LedgerRevision is supplied by TechStack's
+// derived from Targets while LedgerRevision is supplied by Homelab's
 // authoritative ledger. RequestedAt must remain stable across retries.
 type StartRequest struct {
 	TenantID             string
@@ -154,7 +154,7 @@ type OperationRecord struct {
 	// durable custody. It is intentionally separate from the neutral receipt's
 	// terminal Reason, which cannot exist on a pending accepted head.
 	AutomationReasonCode string `json:"automation_reason_code,omitempty"`
-	// RuntimeServerGeneration is TechStack's immutable private pin to the
+	// RuntimeServerGeneration is Homelab's immutable private pin to the
 	// numeric RuntimeServer generation which admitted this operation. The
 	// shared providerexecutor wire continues to carry the independent UUID
 	// ResourceGenerationID owned by Lease Authority.
@@ -163,7 +163,7 @@ type OperationRecord struct {
 	Head                    providerexecutor.Receipt `json:"head"`
 }
 
-// OperationAutomationState is TechStack's derived scheduling projection. It
+// OperationAutomationState is Homelab's derived scheduling projection. It
 // is deliberately not a providerexecutor receipt phase.
 type OperationAutomationState string
 
@@ -207,7 +207,7 @@ const (
 
 // ProvisionDispatchMode is the immutable operation-level safety rule for the
 // single provision accepted-to-resources-bound transition. It is persisted by
-// TechStack, not inferred from an adapter after an operation has started.
+// Homelab, not inferred from an adapter after an operation has started.
 type ProvisionDispatchMode string
 
 const (
@@ -217,12 +217,12 @@ const (
 	ProvisionDispatchNativeIdempotency ProvisionDispatchMode = "native_idempotency"
 	// ProvisionDispatchProviderCorrelation permits crash recovery through authoritative unique correlation.
 	ProvisionDispatchProviderCorrelation ProvisionDispatchMode = "provider_correlation"
-	// ProvisionDispatchAtMostOnceManualReconcile permits exactly one TechStack
+	// ProvisionDispatchAtMostOnceManualReconcile permits exactly one Homelab
 	// dispatch and requires manual reconciliation after an ambiguous boundary.
 	ProvisionDispatchAtMostOnceManualReconcile ProvisionDispatchMode = "at_most_once_dispatch_manual_reconcile"
 )
 
-// ExecutePermit is an in-memory capability created only when TechStack
+// ExecutePermit is an in-memory capability created only when Homelab
 // atomically inserts a provision dispatch guard and its first head claim. Its
 // fields are deliberately private and it must never be serialized or stored.
 type ExecutePermit struct {
@@ -268,7 +268,7 @@ type PreparedProvisionRequest interface {
 }
 
 // CrashRecoveryMode identifies how an adapter prevents duplicate resources
-// when TechStack crashes after provider acceptance and before local commit.
+// when Homelab crashes after provider acceptance and before local commit.
 type CrashRecoveryMode string
 
 const (
@@ -290,7 +290,7 @@ type CrashRecoveryCapability struct {
 }
 
 // AdapterInvocation wraps the shared transport-neutral request with the
-// TechStack-owned provider invocation identity. The key changes for every
+// Homelab-owned provider invocation identity. The key changes for every
 // receipt head while remaining stable across crash recovery for that head.
 type AdapterInvocation struct {
 	Request       providerexecutor.ExecutionRequest

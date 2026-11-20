@@ -8,22 +8,22 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/stackrouting"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/stackrouting"
 )
 
-// Domain handover (kombify-Cloud -> Techstack control-plane).
+// Domain handover (kombify-Cloud -> Homelab control-plane).
 //
 // kombify-Cloud buys a managed .com and hands it to the user's stack by calling this
-// endpoint with a short-lived HS256 SERVICE JWT (iss=kombify-cloud, aud=kombify-techstack,
+// endpoint with a short-lived HS256 SERVICE JWT (iss=kombify-cloud, aud=kombify-homelab,
 // scope stack:domain.attach, claims sub=owner, org_id=tenant). This compatibility
 // endpoint delegates to the same desired-routing application service as the public API.
 // It never edits immutable intent, auto-selects a target, fabricates a rollout job, or
 // allocates a provider VM. StackKits consumes the overlay during a later exact rollout.
 const (
 	cloudServiceIssuer     = "kombify-cloud"
-	cloudServiceAudience   = "kombify-techstack"
+	cloudServiceAudience   = "kombify-homelab"
 	stackDomainAttachScope = "stack:domain.attach"
 	routingStatusKey       = "status"
 	routingServerIDKey     = "server_id"

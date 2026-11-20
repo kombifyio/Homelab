@@ -2,7 +2,7 @@
 // one managed Cloud Kit lane from job outcome flags and owner-scoped cleanup
 // readback. The release is advertised by the control-plane catalog; the
 // producer commit identifies the test source. Neither proves the installed
-// StackKits release or served Techstack revision. StackKits imports it with
+// StackKits release or served Homelab revision. StackKits imports it with
 // scripts/compat/import-managed-evidence.mjs and grades its public-vps row.
 //
 // Each lifecycle phase maps to the product proof that the managed job records:
@@ -241,7 +241,7 @@ export function managedLifecycleReceipt(input: ManagedLifecycleReceiptInput) {
     lifecycle: input.lifecycle,
     producerCommit: input.testSourceCommit,
     producerCommitRole: "test-source",
-    servedTechstackRevision: null,
+    servedHomelabRevision: null,
     substrate: "managed-vps",
     network: "public",
     provider: input.providerId,

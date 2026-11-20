@@ -65,14 +65,14 @@ func ServiceID(stackID, serverID, serviceKey, instance string) string {
 
 // ApplicationID groups the components of one StackKit application on one
 // concrete server without exposing provider or container identities.
-func ApplicationID(techstackID, serverID, applicationKey string) string {
-	techstackID = strings.TrimSpace(techstackID)
+func ApplicationID(kitDeploymentID, serverID, applicationKey string) string {
+	kitDeploymentID = strings.TrimSpace(kitDeploymentID)
 	serverID = strings.TrimSpace(serverID)
 	applicationKey = strings.ToLower(strings.TrimSpace(applicationKey))
-	if techstackID == "" || serverID == "" || applicationKey == "" {
+	if kitDeploymentID == "" || serverID == "" || applicationKey == "" {
 		return ""
 	}
-	return "application_" + stableID("application", techstackID, serverID, applicationKey)
+	return "application_" + stableID("application", kitDeploymentID, serverID, applicationKey)
 }
 
 func stableID(values ...string) string {

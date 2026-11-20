@@ -8,7 +8,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 
-	"github.com/kombifyio/techstack/pkg/db"
+	"github.com/kombifyio/homelab/pkg/db"
 )
 
 func TestLoadRegistryFromDBFiltersAndBuildsProviders(t *testing.T) {

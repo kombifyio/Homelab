@@ -8,11 +8,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/dataprofile"
-	commonedgeauth "github.com/kombifyio/techstack/internal/gocommon/edgeauth"
+	"github.com/kombifyio/homelab/internal/gocommon/dataprofile"
+	commonedgeauth "github.com/kombifyio/homelab/internal/gocommon/edgeauth"
 
-	"github.com/kombifyio/techstack/pkg/fulllocal"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/fulllocal"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // Data protection profile of a hosted request (workspace
@@ -21,19 +21,19 @@ import (
 // it as the x-kombify-profile header set, bound to the identity envelope of
 // the same request (kombify-Gateway data-profile.ts, EDGE_PROFILE_SECRET).
 //
-// TECHSTACK_DATA_PROFILE_MODE stages the rollout:
+// HOMELAB_DATA_PROFILE_MODE stages the rollout:
 //   - off (default): profile headers are dropped and nothing is read.
 //   - observe: a present profile is verified and attached to the request
 //     context; a missing or invalid one is logged and the request continues
 //     without a profile.
-//   - enforce: a Techstack request without a valid profile is refused with
+//   - enforce: a Homelab request without a valid profile is refused with
 //     the data_profile_unresolvable denial. The Gateway must sign every
-//     Techstack request first (DATA_PROFILE_SERVICES) or this locks users out.
+//     Homelab request first (DATA_PROFILE_SERVICES) or this locks users out.
 //
 // A self-hosted edition never reads these headers; its profile is the boot
 // profile (pkg/fulllocal).
 const (
-	dataProfileModeEnv     = "TECHSTACK_DATA_PROFILE_MODE"
+	dataProfileModeEnv     = "HOMELAB_DATA_PROFILE_MODE"
 	dataProfileModeOff     = "off"
 	dataProfileModeObserve = "observe"
 	dataProfileModeEnforce = "enforce"
@@ -49,7 +49,7 @@ func dataProfileMode() string {
 }
 
 // DataProfileVerificationActive reports whether hosted requests have their
-// Gateway profile verified (TECHSTACK_DATA_PROFILE_MODE observe or enforce).
+// Gateway profile verified (HOMELAB_DATA_PROFILE_MODE observe or enforce).
 func DataProfileVerificationActive() bool {
 	return dataProfileMode() != dataProfileModeOff
 }
@@ -84,8 +84,8 @@ func attachDataProfile(e *httpx.Event, cfg EdgeIdentityConfig) bool {
 		return true
 	}
 	service := strings.TrimSpace(e.Request.Header.Get(headerEdgeService))
-	if service != techStackDecisionAudience {
-		// Only the Techstack route is opted in at the Gateway; the other
+	if service != homelabDecisionAudience {
+		// Only the Homelab route is opted in at the Gateway; the other
 		// services sharing this origin carry no profile yet.
 		stripProfileHeaders(e.Request)
 		return true
@@ -94,8 +94,8 @@ func attachDataProfile(e *httpx.Event, cfg EdgeIdentityConfig) bool {
 	profile := dataprofile.Profile{}
 	if hasAnyProfileHeader(e.Request) {
 		profile, _, err = commonedgeauth.VerifyProfileHeaders(e.Request, commonedgeauth.ProfileVerifyConfig{
-			ExpectedAudience:     techStackDecisionAudience,
-			ExpectedPublicPrefix: techStackDecisionPublicPrefix,
+			ExpectedAudience:     homelabDecisionAudience,
+			ExpectedPublicPrefix: homelabDecisionPublicPrefix,
 			SignatureWindow:      cfg.EdgeSignatureWindow,
 			IdentityConfig: commonedgeauth.Config{
 				EdgeAuthSecret:     firstNonEmpty(cfg.EdgeAuthSecret, os.Getenv("EDGE_AUTH_SECRET")),
@@ -111,7 +111,7 @@ func attachDataProfile(e *httpx.Event, cfg EdgeIdentityConfig) bool {
 	}
 	stripProfileHeaders(e.Request)
 	if err == nil {
-		// Techstack stores its own data: it reads the scope "cloud" of the account profile
+		// Homelab stores its own data: it reads the scope "cloud" of the account profile
 		// (wire v2 carries the AI processing scope separately; D-2026-11-18-12).
 		e.Request = e.Request.WithContext(dataprofile.WithProfile(e.Request.Context(), profile.CloudScope()))
 		return true

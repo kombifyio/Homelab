@@ -13,18 +13,18 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/executionchannel"
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/demoguard"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
-	"github.com/kombifyio/techstack/pkg/middleware"
-	"github.com/kombifyio/techstack/pkg/serverregistry"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/kombifyio/homelab/internal/executionchannel"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/demoguard"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/middleware"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -136,7 +136,7 @@ func RegisterServerTerminalRoutes(r *httpx.Router, cfg ServerTerminalRouteConfig
 }
 
 func (h *serverTerminalHandlers) access(e *httpx.Event) error {
-	server, ownerID, err := h.ownedServer(e, "techstack.servers.access")
+	server, ownerID, err := h.ownedServer(e, "homelab.servers.access")
 	if err != nil || server == nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func (h *serverTerminalHandlers) access(e *httpx.Event) error {
 }
 
 func (h *serverTerminalHandlers) createSession(e *httpx.Event) error {
-	server, ownerID, err := h.ownedServer(e, "techstack.servers.terminal")
+	server, ownerID, err := h.ownedServer(e, "homelab.servers.terminal")
 	if err != nil || server == nil {
 		return err
 	}
@@ -159,8 +159,8 @@ func (h *serverTerminalHandlers) createSession(e *httpx.Event) error {
 			return httpx.BadRequest(e, "Invalid terminal session request", nil)
 		}
 	}
-	timestamp := firstNonEmptyWallet(request.ReauthTimestamp, e.Request.Header.Get("X-Kombify-Reauth-Timestamp"), e.Request.Header.Get("X-TechStack-Reauth-Timestamp"))
-	signature := firstNonEmptyWallet(request.ReauthSignature, e.Request.Header.Get("X-Kombify-Reauth-Signature"), e.Request.Header.Get("X-TechStack-Reauth-Signature"))
+	timestamp := firstNonEmptyWallet(request.ReauthTimestamp, e.Request.Header.Get("X-Kombify-Reauth-Timestamp"), e.Request.Header.Get("X-Homelab-Reauth-Timestamp"))
+	signature := firstNonEmptyWallet(request.ReauthSignature, e.Request.Header.Get("X-Kombify-Reauth-Signature"), e.Request.Header.Get("X-Homelab-Reauth-Signature"))
 	if !h.validReauth(e.Request.Context(), ownerID, server.ID, timestamp, signature) {
 		h.audit(e.Request.Context(), *server, ownerID, "server_terminal_denied", "warning", map[string]any{"error_class": "reauth_required"})
 		return stepUpRequired(e, "Fresh server-terminal re-authentication required", serverAccessStepUpReason)
@@ -198,7 +198,7 @@ func (h *serverTerminalHandlers) createSession(e *httpx.Event) error {
 }
 
 func (h *serverTerminalHandlers) authorizeUserKey(e *httpx.Event) error {
-	server, ownerID, err := h.ownedServer(e, "techstack.servers.access.authorize-key")
+	server, ownerID, err := h.ownedServer(e, "homelab.servers.access.authorize-key")
 	if err != nil || server == nil {
 		return err
 	}
@@ -216,8 +216,8 @@ func (h *serverTerminalHandlers) authorizeUserKey(e *httpx.Event) error {
 	if bindErr := e.BindBody(&request); bindErr != nil || !request.Confirm || strings.TrimSpace(request.WalletItemID) == "" {
 		return httpx.BadRequest(e, "A confirmed Wallet SSH key is required", nil)
 	}
-	timestamp := firstNonEmptyWallet(request.ReauthTimestamp, e.Request.Header.Get("X-Kombify-Reauth-Timestamp"), e.Request.Header.Get("X-TechStack-Reauth-Timestamp"))
-	signature := firstNonEmptyWallet(request.ReauthSignature, e.Request.Header.Get("X-Kombify-Reauth-Signature"), e.Request.Header.Get("X-TechStack-Reauth-Signature"))
+	timestamp := firstNonEmptyWallet(request.ReauthTimestamp, e.Request.Header.Get("X-Kombify-Reauth-Timestamp"), e.Request.Header.Get("X-Homelab-Reauth-Timestamp"))
+	signature := firstNonEmptyWallet(request.ReauthSignature, e.Request.Header.Get("X-Kombify-Reauth-Signature"), e.Request.Header.Get("X-Homelab-Reauth-Signature"))
 	if !h.validReauth(e.Request.Context(), ownerID, server.ID, timestamp, signature) {
 		h.audit(e.Request.Context(), *server, ownerID, "server_ssh_key_denied", "warning", map[string]any{"error_class": "reauth_required"})
 		return stepUpRequired(e, "Fresh server-access re-authentication required", serverAccessStepUpReason)
@@ -354,7 +354,7 @@ func terminalStreamURL(request *http.Request, sessionID string) string {
 	proto := strings.ToLower(firstNonEmptyString(strings.TrimSpace(request.Header.Get("X-Forwarded-Proto")), defaultProto))
 	// The page that opens the stream is the authority on its own scheme. A
 	// proxy chain that drops X-Forwarded-Proto would otherwise hand an https
-	// page (for instance Techstack framed in the kombify Cloud dashboard) a
+	// page (for instance Homelab framed in the kombify Cloud dashboard) a
 	// ws:// URL, which the browser blocks as mixed content.
 	if origin, err := url.Parse(strings.TrimSpace(request.Header.Get("Origin"))); err == nil &&
 		strings.EqualFold(origin.Host, host) && (origin.Scheme == "https" || origin.Scheme == "http") {

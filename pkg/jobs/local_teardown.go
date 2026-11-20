@@ -10,17 +10,17 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/portinventory"
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/secrets"
+	"github.com/kombifyio/homelab/internal/portinventory"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/secrets"
 	"github.com/kombifyio/stackkits/pkg/workloadremoval"
 )
 
 const (
 	LocalStackKitTeardownAuthorityResultField = "local_stackkit_teardown_authority"
 	LocalStackKitRemovalEvidenceResultField   = "local_stackkit_removal_evidence"
-	localStackKitTeardownAuthorityVersion     = "techstack.local-stackkit-teardown-authority/v2"
+	localStackKitTeardownAuthorityVersion     = "homelab.local-stackkit-teardown-authority/v2"
 
 	// RuntimeListenerPlanHashResultField names the result field in which a rollout records the
 	// resolved plan hash of the port-claim generation it reserved.
@@ -29,7 +29,7 @@ const (
 
 // LocalStackKitTeardownAuthority is the durable, secret-free correlation
 // between one completed StackKits Apply and the workload removals required
-// before Techstack may release host-port claims for that exact plan.
+// before Homelab may release host-port claims for that exact plan.
 //
 // PlanHash is the plan the Apply reports for the node it ran on; the removal evidence
 // is bound to it. ResolvedPlanHash is the plan hash of the port-claim generation the same
@@ -38,7 +38,7 @@ const (
 // counterpart. When a rollout recorded no generation hash, the generation must carry PlanHash.
 type LocalStackKitTeardownAuthority struct {
 	SchemaVersion        string                                 `json:"schema_version"`
-	TechstackID          string                                 `json:"techstack_id"`
+	KitDeploymentID      string                                 `json:"kit_deployment_id"`
 	StackKitInstanceID   string                                 `json:"stackkit_instance_id"`
 	TenantID             string                                 `json:"tenant_id"`
 	OwnerID              string                                 `json:"owner_id"`
@@ -77,10 +77,10 @@ type LocalStackKitTeardownNodeBinding struct {
 	AgentID  string
 }
 
-func BuildLocalStackKitTeardownAuthority(techstackID, stackKitInstanceID, tenantID, ownerID string, runtimeSummary map[string]any, snapshot portinventory.TeardownSnapshot, bindings []LocalStackKitTeardownNodeBinding) (LocalStackKitTeardownAuthority, error) {
-	techstackID, stackKitInstanceID = strings.TrimSpace(techstackID), strings.TrimSpace(stackKitInstanceID)
+func BuildLocalStackKitTeardownAuthority(kitDeploymentID, stackKitInstanceID, tenantID, ownerID string, runtimeSummary map[string]any, snapshot portinventory.TeardownSnapshot, bindings []LocalStackKitTeardownNodeBinding) (LocalStackKitTeardownAuthority, error) {
+	kitDeploymentID, stackKitInstanceID = strings.TrimSpace(kitDeploymentID), strings.TrimSpace(stackKitInstanceID)
 	tenantID, ownerID = strings.TrimSpace(tenantID), strings.TrimSpace(ownerID)
-	if err := portinventory.ValidateTeardownSnapshot(snapshot); err != nil || snapshot.TechstackID != techstackID || snapshot.TenantID != tenantID || snapshot.OwnerSubjectID != ownerID {
+	if err := portinventory.ValidateTeardownSnapshot(snapshot); err != nil || snapshot.KitDeploymentID != kitDeploymentID || snapshot.TenantID != tenantID || snapshot.OwnerSubjectID != ownerID {
 		return LocalStackKitTeardownAuthority{}, errors.New("local StackKits teardown snapshot does not match the stack authority")
 	}
 	outputs := mapFromInterface(runtimeSummary[metadataKeyStackKitOutputs])
@@ -91,8 +91,8 @@ func BuildLocalStackKitTeardownAuthority(techstackID, stackKitInstanceID, tenant
 		return LocalStackKitTeardownAuthority{}, err
 	}
 	authority := LocalStackKitTeardownAuthority{
-		SchemaVersion: localStackKitTeardownAuthorityVersion,
-		TechstackID:   techstackID, StackKitInstanceID: stackKitInstanceID,
+		SchemaVersion:   localStackKitTeardownAuthorityVersion,
+		KitDeploymentID: kitDeploymentID, StackKitInstanceID: stackKitInstanceID,
 		TenantID: tenantID, OwnerID: ownerID,
 		StackKit:             stackKit,
 		PlanHash:             strings.TrimSpace(stringFromInterface(apply["planHash"])),
@@ -129,7 +129,7 @@ func DecodeLocalStackKitTeardownAuthority(value any) (LocalStackKitTeardownAutho
 
 func (authority LocalStackKitTeardownAuthority) Validate() error {
 	for _, value := range []string{
-		authority.TechstackID, authority.StackKitInstanceID, authority.TenantID,
+		authority.KitDeploymentID, authority.StackKitInstanceID, authority.TenantID,
 		authority.OwnerID, authority.StackKit,
 	} {
 		if value == "" || value != strings.TrimSpace(value) {
@@ -278,7 +278,7 @@ func appliedWorkloadArtifacts(value any) ([]string, error) {
 // appliedWorkloadPlacements reads the placements of one applied workload. StackKits
 // reports an execution channel only for nodes behind an external host binding
 // (the field is omitted otherwise), so a node the stack's own agent applied locally
-// carries none. Its channel is then the one Techstack named when it dispatched the
+// carries none. Its channel is then the one Homelab named when it dispatched the
 // Apply: the kit's exact local execution binding, accepted only when the placement's
 // Site and node are exactly that binding's. A channel the output does name is kept as
 // reported, and a placement that matches no binding stays refused.
@@ -325,7 +325,7 @@ func removeLocalStackKitWorkloads(ctx context.Context, cfg *ProvisionConfig, job
 	if _, err := boundLocalStackKitTeardownAuthority(job, snapshot); err != nil {
 		return err
 	}
-	release, err := TargetStackKitReleaseForStack(ctx, snapshot.TenantID, snapshot.TechstackID)
+	release, err := TargetStackKitReleaseForStack(ctx, snapshot.TenantID, snapshot.KitDeploymentID)
 	if err != nil {
 		return fmt.Errorf("resolve pinned StackKits release for local teardown: %w", err)
 	}
@@ -364,7 +364,7 @@ func removeLocalStackKitWorkloadsWithRelease(ctx context.Context, cfg *Provision
 		for _, workload := range localTeardownRemovalOrder(authority.StackKit, server.Workloads) {
 			commandIndex++
 			request, err := NormalizeStackKitLifecycleRequest(StackKitLifecycleRequest{
-				StackID: authority.TechstackID, StackKitInstanceID: authority.StackKitInstanceID,
+				StackID: authority.KitDeploymentID, StackKitInstanceID: authority.StackKitInstanceID,
 				TenantID: authority.TenantID, OwnerID: authority.OwnerID, AgentID: server.AgentID,
 				Operation: StackKitLifecycleRemove, OwnerApproved: true, StackKit: authority.StackKit,
 				NodeRef: workload.NodeRef, WorkloadRef: workload.WorkloadRef, SpecPath: authority.SpecPath,
@@ -478,7 +478,7 @@ func boundLocalStackKitTeardownAuthority(job *Job, snapshot portinventory.Teardo
 	if err != nil {
 		return LocalStackKitTeardownAuthority{}, err
 	}
-	if authority.TechstackID != job.TargetID || authority.TenantID != payloadString(job.Payload, tenantIDField) ||
+	if authority.KitDeploymentID != job.TargetID || authority.TenantID != payloadString(job.Payload, tenantIDField) ||
 		authority.OwnerID != payloadString(job.Payload, "owner_id") {
 		return LocalStackKitTeardownAuthority{}, errors.New("local StackKits teardown authority does not match the destroy job")
 	}

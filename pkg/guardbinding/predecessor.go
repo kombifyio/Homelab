@@ -35,7 +35,7 @@ const (
 	// cover, or a statement that does not name this Guard's binding.
 	CodePredecessorScope = "predecessor_recovery_scope"
 
-	predecessorSignatureDomain = "techstack.guard.predecessor-recovery/v1\x00"
+	predecessorSignatureDomain = "homelab.guard.predecessor-recovery/v1\x00"
 )
 
 // PredecessorCommand names one prior command and the worker it was offered to.

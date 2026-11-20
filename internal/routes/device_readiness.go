@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/devicereadiness"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/devicereadiness"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // Device readiness over HTTP, for the case where the control plane itself is
@@ -23,7 +23,7 @@ import (
 // They are also deliberately not registered on a hosted control plane. A
 // service somewhere else cannot reach a machine in someone's home, and a shared
 // service that lent devices a route out would be an open relay rather than a
-// repair. The same capability reaches those devices through `techstack device`
+// repair. The same capability reaches those devices through `homelab device`
 // on the operator's own computer.
 
 // DeviceReadinessRouteConfig decides whether the routes exist at all.
@@ -45,8 +45,8 @@ type DeviceReadinessRouteConfig struct {
 // Capabilities gated here. Both are cost-free but neither is harmless: one runs
 // commands on a machine, the other lends it a way onto the network.
 const (
-	CapabilityDevicePrepare = "techstack.device.prepare"
-	CapabilityDeviceEgress  = "techstack.device.egress"
+	CapabilityDevicePrepare = "homelab.device.prepare"
+	CapabilityDeviceEgress  = "homelab.device.egress"
 )
 
 type deviceReadinessHandlers struct {

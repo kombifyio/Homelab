@@ -1,6 +1,6 @@
-// Package unifier implements the CUE-based Unifier Engine for kombifyTechstack.
+// Package unifier implements the CUE-based Unifier Engine for kombifyHomelab.
 //
-// The Unifier is the core of kombifyTechstack's Spec-Driven Architecture.
+// The Unifier is the core of kombifyHomelab's Spec-Driven Architecture.
 // It validates user specs (kombination.yaml) against CUE schemas,
 // resolves dependencies, enforces policies, and generates OpenTofu configurations.
 //

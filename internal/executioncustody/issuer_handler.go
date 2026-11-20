@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
 	"github.com/google/uuid"
 )
 

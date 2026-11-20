@@ -1,5 +1,5 @@
 /**
- * kombify-TechStack Task Update Pipeline
+ * kombify-Homelab Task Update Pipeline
  *
  * Translates backend job-progress and job-failure payloads into task-list
  * transitions. Split out of tasks.ts so the dispatch rules live next to each

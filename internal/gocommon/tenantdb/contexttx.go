@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/kombifyio/techstack/internal/gocommon/identity"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 )
 
 // TxQuerier is the part of *sql.Tx that ApplyContextToken needs.

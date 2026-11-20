@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/core"
-	"github.com/kombifyio/techstack/pkg/stackrouting"
-	"github.com/kombifyio/techstack/pkg/unifier"
+	"github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/stackrouting"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 const (

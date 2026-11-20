@@ -1,4 +1,4 @@
-// Package agent provides Guard-side command execution for kombify Techstack.
+// Package agent provides Guard-side command execution for kombify Homelab.
 // The live diagnostic surface is health_check and get_logs. StackKits
 // lifecycle runs through the typed StackKit executor. Direct tofu/terramate
 // executors are retired.
@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/secrets"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/secrets"
 )
 
 const (
@@ -67,7 +67,7 @@ func NewCommandExecutor(config ExecutorConfig) (*CommandExecutor, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to get home directory: %w", err)
 		}
-		workDir = filepath.Join(homeDir, ".techstack", "deployments")
+		workDir = filepath.Join(homeDir, ".homelab", "deployments")
 	}
 	if err := os.MkdirAll(workDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create work directory %s: %w", workDir, err)

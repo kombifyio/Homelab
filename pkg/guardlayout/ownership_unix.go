@@ -9,7 +9,7 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/kombifyio/techstack/internal/privatefs"
+	"github.com/kombifyio/homelab/internal/privatefs"
 )
 
 func ownershipIDs(info fs.FileInfo) (int, int, error) {

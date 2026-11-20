@@ -19,7 +19,7 @@ const upgradeTransactionAPIVersion = "stackkit.upgrade-transaction/v1"
 // holds no upgrade transaction; it never infers an outcome from stderr. A
 // committed transaction counts as updated only when the command itself
 // succeeded: the CLI can commit the release and still fail afterwards (for
-// example while it records application evidence), and Techstack then records
+// example while it records application evidence), and Homelab then records
 // the target as failed.
 func upgradeOutcome(commandResult map[string]interface{}, commandSucceeded bool) map[string]interface{} {
 	transaction := findUpgradeTransaction(commandResult, 0)

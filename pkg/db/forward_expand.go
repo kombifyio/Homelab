@@ -10,7 +10,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/migrationclass"
+	"github.com/kombifyio/homelab/internal/gocommon/migrationclass"
 )
 
 // verifyForwardExpandPosture is deliberately fixed and read-only. The merge

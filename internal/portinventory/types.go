@@ -11,7 +11,7 @@ import (
 const (
 	ErrorCodeAllocationConflict = "port_allocation_conflict"
 	ReasonCodeHostPortReserved  = "host_port_reserved"
-	TeardownSnapshotAPIVersion  = "techstack.port-teardown-snapshot/v2"
+	TeardownSnapshotAPIVersion  = "homelab.port-teardown-snapshot/v2"
 )
 
 var (
@@ -168,13 +168,13 @@ type Snapshot struct {
 	Claims           []Claim           `json:"claims"`
 }
 
-// TeardownSnapshotRequest identifies one Owner-authorized Techstack
+// TeardownSnapshotRequest identifies one Owner-authorized Homelab
 // deployment. The authority resolves every non-released port generation; no
 // caller-supplied server or plan identity can narrow the batch.
 type TeardownSnapshotRequest struct {
-	TenantID       string `json:"tenant_id"`
-	OwnerSubjectID string `json:"owner_subject_id"`
-	TechstackID    string `json:"techstack_id"`
+	TenantID        string `json:"tenant_id"`
+	OwnerSubjectID  string `json:"owner_subject_id"`
+	KitDeploymentID string `json:"kit_deployment_id"`
 }
 
 // TeardownGeneration binds one exact claim generation to the claim set which
@@ -190,12 +190,12 @@ type TeardownGeneration struct {
 // job enters process-local execution. Release re-reads every member and
 // compares this digest-bound identity in one transaction.
 type TeardownSnapshot struct {
-	APIVersion     string               `json:"api_version"`
-	TenantID       string               `json:"tenant_id"`
-	OwnerSubjectID string               `json:"owner_subject_id"`
-	TechstackID    string               `json:"techstack_id"`
-	Generations    []TeardownGeneration `json:"generations"`
-	SnapshotDigest string               `json:"snapshot_digest"`
+	APIVersion      string               `json:"api_version"`
+	TenantID        string               `json:"tenant_id"`
+	OwnerSubjectID  string               `json:"owner_subject_id"`
+	KitDeploymentID string               `json:"kit_deployment_id"`
+	Generations     []TeardownGeneration `json:"generations"`
+	SnapshotDigest  string               `json:"snapshot_digest"`
 }
 
 type UserGuidance struct {

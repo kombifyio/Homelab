@@ -59,10 +59,10 @@ public static class DeviceSignInProduct
 {
     public const string Workbench = "workbench";
     public const string Paperwork = "paperwork";
-    public const string Techstack = "techstack";
+    public const string Homelab = "homelab";
     public const string Companion = "companion";
 
-    internal static bool Valid(string? product) => product is Workbench or Paperwork or Techstack or Companion;
+    internal static bool Valid(string? product) => product is Workbench or Paperwork or Homelab or Companion;
 }
 
 /// <summary>Reads and writes the shared state (contract §1 and §2).</summary>
@@ -332,27 +332,27 @@ public sealed record DeviceSignInSilentRequest(string RedirectUri, string State)
 /// The one place that sets a silent sign-in's loopback redirect and state (§4) and reads the
 /// loopback request that answers it. It carries no relay: the kombify HTTPS relay
 /// (kombify-Gateway) serves programs whose own authorization request has a loopback redirect,
-/// and neither client here is one of them (coordinator 62ca, 2026-11-15). Techstack's sign-in
+/// and neither client here is one of them (coordinator 62ca, 2026-11-15). Homelab's sign-in
 /// runs through its own server's HTTPS callback; the program names its loopback and state and the
 /// server's handoff returns there (StackKits #3407). Paperwork's system-browser path is off.
 /// </summary>
 public static class DeviceSignInSilentRoute
 {
     public const string CallbackPath = "/oauth/callback";
-    public const string TechstackWindows = "techstack-windows";
+    public const string HomelabWindows = "homelab-windows";
     public const string PaperworkWindows = "paperwork-windows";
 
     /// <summary>
     /// The loopback range of each client (contract table, kombify-workspace #5294; coordinator 62ca,
     /// 2026-11-15): <c>paperwork-windows</c> 63700-63704 (its interactive sign-in today and its silent
-    /// path later), <c>techstack-windows</c> 63720-63724 (reserved). The Companion has 63710-63714 and
-    /// Workbench 63684-63688. Techstack's existing login through its own server keeps 63690-63694,
+    /// path later), <c>homelab-windows</c> 63720-63724 (reserved). The Companion has 63710-63714 and
+    /// Workbench 63684-63688. Homelab's existing login through its own server keeps 63690-63694,
     /// which is not a range of this table. The relay refuses both clients until those paths exist.
     /// </summary>
     public static (int First, int Last)? Ports(string client) => client switch
     {
         PaperworkWindows => (63700, 63704),
-        TechstackWindows => (63720, 63724),
+        HomelabWindows => (63720, 63724),
         _ => null,
     };
 
@@ -371,13 +371,13 @@ public static class DeviceSignInSilentRoute
 
     /// <summary>
     /// The attempt state <c>&lt;client&gt;.&lt;port&gt;.&lt;43 random base64url characters&gt;</c>, the one
-    /// format of every loopback return. Format only: the caller owns the port's range. Techstack's
+    /// format of every loopback return. Format only: the caller owns the port's range. Homelab's
     /// login through its own server uses it with its 63690-63694 (StackKits #3407 checks the
     /// format and the range on <c>native/start</c> and <c>native/redeem</c>).
     /// </summary>
     public static string State(string client, int port)
     {
-        if (client is not (TechstackWindows or PaperworkWindows))
+        if (client is not (HomelabWindows or PaperworkWindows))
             throw new ArgumentException("Unknown client.", nameof(client));
         var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
             .TrimEnd('=').Replace('+', '-').Replace('/', '_');

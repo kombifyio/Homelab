@@ -14,15 +14,15 @@ import (
 
 const (
 	// EnvDemoTenantID names the tenant (org) the public demo account belongs to.
-	EnvDemoTenantID = "TECHSTACK_DEMO_TENANT_ID"
+	EnvDemoTenantID = "HOMELAB_DEMO_TENANT_ID"
 	// EnvDemoUserIDs is a comma-separated list of subject ids that belong to the
 	// public demo account (Cloud subject and/or Auth0 sub forms).
-	EnvDemoUserIDs = "TECHSTACK_DEMO_USER_IDS"
+	EnvDemoUserIDs = "HOMELAB_DEMO_USER_IDS"
 	// EnvDemoProtectedLeaseIDs is a comma-separated list of lease ids that must
 	// never be decommissioned through user-facing routes. Only dedicated
 	// provider-created demo VPS leases belong here; personal development VPS
 	// subscriptions are never demo anchors.
-	EnvDemoProtectedLeaseIDs = "TECHSTACK_DEMO_PROTECTED_LEASE_IDS"
+	EnvDemoProtectedLeaseIDs = "HOMELAB_DEMO_PROTECTED_LEASE_IDS"
 	// MetadataKeySlot is the lease metadata key that classifies a demo-tenant
 	// lease. The nightly reset works from an allowlist: only a lease whose slot
 	// is SlotResettable can be decommissioned by it. Every other lease, marked

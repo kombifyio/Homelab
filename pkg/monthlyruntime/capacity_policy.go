@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/edgeauth"
-	"github.com/kombifyio/techstack/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/gocommon/edgeauth"
+	"github.com/kombifyio/homelab/internal/providercatalog"
 )
 
 const (
@@ -17,8 +17,8 @@ const (
 	// managed_servers member authorizes the origin hard-accounting ceiling.
 	CapacityBudgetCloudRuntimeCredits = "cloud.runtime.credits"
 	CapacityBudgetFieldManagedServers = "managed_servers"
-	capacityDecisionAudience          = "techstack"
-	capacityDecisionPublicPrefix      = "/v1/techstack"
+	capacityDecisionAudience          = "homelab"
+	capacityDecisionPublicPrefix      = "/v1/homelab"
 
 	CapacityDecisionSourceSignedRuntimeBudget = "edge_v2_entitlement+signed_budget:cloud.runtime.credits#managed_servers"
 	CapacityDecisionSourceSelfHostManifest    = "static_release_manifest:selfhost-oss"

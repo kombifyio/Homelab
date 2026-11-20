@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/agent/httpguard"
-	"github.com/kombifyio/techstack/pkg/availability"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	kscore "github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/pkg/agent/httpguard"
+	"github.com/kombifyio/homelab/pkg/availability"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	kscore "github.com/kombifyio/homelab/pkg/core"
 )
 
 // Provenance of a worker's availability class.

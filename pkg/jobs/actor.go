@@ -3,7 +3,7 @@ package jobs
 import (
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/identity"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 )
 
 const jobPayloadActorKey = "actor"

@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/substrate"
+	"github.com/kombifyio/homelab/internal/substrate"
 )
 
 // Accelerator passthrough is the hypervisor half of a use case that needs a
@@ -429,7 +429,7 @@ const thunderboltRule = `ACTION=="add", SUBSYSTEM=="thunderbolt", ATTR{unique_id
 // vfioModprobe reserves the GPU for vfio-pci before any host driver can take
 // it. The soft dependencies are what keep nouveau and the HDMI audio driver
 // from winning the race at boot.
-const vfioModprobe = `# Written by Kombify Techstack device readiness.
+const vfioModprobe = `# Written by Kombify Homelab Runtime device readiness.
 # Remove this file, run "update-initramfs -u -k all" and restart to undo.
 options vfio-pci ids=$VFIO_IDS disable_vga=1
 softdep nouveau pre: vfio-pci
@@ -438,7 +438,7 @@ softdep snd_hda_intel pre: vfio-pci
 blacklist nouveau
 `
 
-const vfioModulesLoad = `# Written by Kombify Techstack device readiness.
+const vfioModulesLoad = `# Written by Kombify Homelab Runtime device readiness.
 vfio
 vfio_iommu_type1
 vfio_pci
@@ -452,7 +452,7 @@ const vfioRebindPath = "/usr/local/libexec/kombify-vfio-rebind"
 // address is checked again here, because the helper outlives this fix and can
 // be run by hand.
 const vfioRebind = `#!/bin/sh
-# Written by Kombify Techstack device readiness: move PCI functions to vfio-pci.
+# Written by Kombify Homelab Runtime device readiness: move PCI functions to vfio-pci.
 set -eu
 modprobe vfio-pci
 IFS=,

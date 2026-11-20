@@ -12,7 +12,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/privatefs"
+	"github.com/kombifyio/homelab/internal/privatefs"
 )
 
 const PurposeKeysFile = "ril-purpose-keys.json"

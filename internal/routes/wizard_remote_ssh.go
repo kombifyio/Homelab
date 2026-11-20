@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/discovery"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/discovery"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
 )
 
 type wizardRemoteSSHTester interface {
@@ -54,7 +54,7 @@ func (h wizardRouteHandlers) testRemoteSSH(e *httpx.Event) error {
 		return httpx.BadRequest(e, validationErr.Error())
 	}
 
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.wizard.remote.test-ssh")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.wizard.remote.test-ssh")
 	if tenantErr != nil {
 		return tenantErr
 	}

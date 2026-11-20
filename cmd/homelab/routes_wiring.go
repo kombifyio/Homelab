@@ -1,0 +1,1707 @@
+package main
+
+import (
+	"context"
+	"crypto/sha256"
+	"crypto/subtle"
+	"database/sql"
+	"errors"
+	"fmt"
+	"net"
+	"net/http"
+	"net/url"
+	"os"
+	"strings"
+	"sync"
+	"time"
+
+	commonauthlocal "github.com/kombifyio/homelab/internal/gocommon/authlocal"
+	"github.com/kombifyio/homelab/internal/gocommon/authsession"
+
+	"github.com/kombifyio/homelab/internal/breakglass"
+	"github.com/kombifyio/homelab/internal/executionchannel"
+	"github.com/kombifyio/homelab/internal/executioncustody"
+	"github.com/kombifyio/homelab/internal/layoutadvice"
+	"github.com/kombifyio/homelab/internal/managedstackkit"
+	productnotifications "github.com/kombifyio/homelab/internal/notifications"
+	"github.com/kombifyio/homelab/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/providercontrol"
+	"github.com/kombifyio/homelab/internal/rilactionexecution"
+	"github.com/kombifyio/homelab/internal/routes"
+	"github.com/kombifyio/homelab/internal/routes/auth"
+	stackroutes "github.com/kombifyio/homelab/internal/routes/stacks"
+	"github.com/kombifyio/homelab/internal/routes/trust"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/agentcontrol"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	storageauth "github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/backupstore"
+	"github.com/kombifyio/homelab/pkg/clientpairing"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/db"
+	"github.com/kombifyio/homelab/pkg/discovery"
+	"github.com/kombifyio/homelab/pkg/diskcustody"
+	"github.com/kombifyio/homelab/pkg/features"
+	"github.com/kombifyio/homelab/pkg/grpcserver"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/pkg/ril/actions"
+	"github.com/kombifyio/homelab/pkg/ril/activities"
+	"github.com/kombifyio/homelab/pkg/ril/primitives"
+	"github.com/kombifyio/homelab/pkg/servermaintenance"
+	"github.com/kombifyio/homelab/pkg/specv2"
+	"github.com/kombifyio/homelab/pkg/stackrouting"
+	"github.com/kombifyio/homelab/pkg/unifier"
+	v2 "github.com/kombifyio/homelab/pkg/v2"
+	"github.com/kombifyio/homelab/pkg/v2/auth/providers"
+	"github.com/kombifyio/homelab/pkg/vmleases"
+)
+
+// Provider-control is a hosted extension. The neutral route wiring keeps the
+// local inventory, StackKits, and auth surfaces intact while the private
+// extension installs provider-only routes and error classification.
+var (
+	isProviderMutationActivationBlocked     = func(error) bool { return false }
+	isProviderNativeDecommissionUnavailable = func(error) bool { return false }
+	isProviderDecommissionPending           = func(*jobs.ManagedLeaseDecommissionResult, error) bool { return false }
+	providerDecommissionRefusal             = func(error) *monthlyruntime.DecommissionRefusedError { return nil }
+	registerProviderIncidentRoutes          = func(*httpx.Router, *sql.DB) {}
+)
+
+// managedLeaseRecoveryIntent hands decommission directly to the canonical
+// provider-control application. A successful admission means either provider
+// absence is already proven or a generation-bound provider operation is
+// durable and discoverable by the provider-control reconciler. A generic wait
+// or a closed mutation gate is not an admission receipt.
+type managedLeaseRecoveryIntent struct {
+	decommissioner jobs.ManagedLeaseDecommissioner
+}
+
+type managedLeaseDecommissionReadiness interface {
+	ManagedLeaseDecommissionReady(context.Context) error
+}
+
+func (r managedLeaseRecoveryIntent) EnqueueProviderReconciliation(ctx context.Context, req monthlyruntime.ReconciliationRequest) error {
+	if !r.DurableReconciliationReady() {
+		return monthlyruntime.ErrReconciliationUnavailable
+	}
+	if strings.TrimSpace(req.TenantID) == "" ||
+		strings.TrimSpace(req.OwnerID) == "" || strings.TrimSpace(req.LeaseID) == "" ||
+		strings.TrimSpace(req.ResourceGenerationDigest) == "" {
+		return fmt.Errorf("managed lease recovery intent requires exact tenant, owner, lease, and generation")
+	}
+	result, err := r.decommissioner.DecommissionManagedLeases(ctx, jobs.ManagedLeaseDecommissionRequest{
+		StackID: strings.TrimSpace(req.StackID), TenantID: strings.TrimSpace(req.TenantID),
+		OwnerID: strings.TrimSpace(req.OwnerID), LeaseID: strings.TrimSpace(req.LeaseID),
+		ResourceGenerationDigest: strings.TrimSpace(req.ResourceGenerationDigest),
+	})
+	if err == nil {
+		if result == nil {
+			return errors.New("managed lease decommission returned no provider result")
+		}
+		for _, proof := range result.Proofs {
+			if strings.TrimSpace(proof.TenantID) == strings.TrimSpace(req.TenantID) &&
+				(strings.TrimSpace(req.StackID) == "" || strings.TrimSpace(proof.StackID) == strings.TrimSpace(req.StackID)) &&
+				strings.TrimSpace(proof.LeaseID) == strings.TrimSpace(req.LeaseID) &&
+				strings.TrimSpace(proof.ResourceGenerationDigest) == strings.TrimSpace(req.ResourceGenerationDigest) &&
+				(proof.ObservedState == jobs.ManagedLeaseDecommissionObservedDecommissioned ||
+					proof.ObservedState == jobs.ManagedLeaseDecommissionObservedNotFound) {
+				return nil
+			}
+		}
+		return errors.New("managed lease decommission returned no exact terminal provider-absence proof")
+	}
+	if isProviderDecommissionPending(result, err) {
+		return nil
+	}
+	if refusal := providerDecommissionRefusal(err); refusal != nil {
+		return refusal
+	}
+	if isProviderMutationActivationBlocked(err) ||
+		isProviderNativeDecommissionUnavailable(err) {
+		return fmt.Errorf("%w: %v", monthlyruntime.ErrReconciliationUnavailable, err)
+	}
+	return err
+}
+
+// managedAddressDeregistrar removes a released runtime's managed kombify.me
+// addresses through the shared lifecycle helper and returns lease metadata
+// evidence of their absence.
+type managedAddressDeregistrar struct{}
+
+func (managedAddressDeregistrar) DeregisterRuntimeAddresses(ctx context.Context, tenantID, ownerID, stackID, origin string) (map[string]string, error) {
+	evidence, err := jobs.DeregisterManagedAddresses(ctx, jobs.ManagedAddressDeregistration{
+		TenantID: tenantID, OwnerID: ownerID, StackID: stackID, TargetOrigin: origin,
+	})
+	if err != nil {
+		return nil, err
+	}
+	metadata := map[string]string{}
+	if status, _ := evidence["status"].(string); status != "" {
+		metadata["kombify_me_addresses"] = status
+	}
+	if verifiedAt, _ := evidence["verified_at"].(string); verifiedAt != "" {
+		metadata["kombify_me_addresses_verified_at"] = verifiedAt
+	}
+	return metadata, nil
+}
+
+func (r managedLeaseRecoveryIntent) DurableReconciliationReady() bool {
+	_, ok := r.decommissioner.(managedLeaseDecommissionReadiness)
+	return r.decommissioner != nil && ok
+}
+
+func coreHealthDependencies(cfg *config.Config, grpcSrv *grpcserver.Server, database *db.DB) *routes.HealthDependencies {
+	deps := &routes.HealthDependencies{
+		Edition:        cfg.Edition,
+		DeploymentMode: cfg.DeploymentMode,
+		DB:             database,
+		BackupOwner:    scheduledBackupOwner(cfg),
+	}
+	// Production may deliberately disable the separate gRPC listener when the
+	// supported HTTPS Guard transport is in use. Only a listener that was
+	// actually configured and started is a critical readiness dependency.
+	if grpcSrv != nil {
+		deps.GRPCRunning = func() bool { return true }
+	}
+	return deps
+}
+
+func registerCoreRoutes(router *httpx.Router, deps routeDeps, managedLeases jobs.ManagedLeaseManager) *routes.Metrics {
+	cfg := deps.startup.cfg
+	grpcSrv := deps.grpc.server
+	var database *db.DB
+	if deps.v2 != nil {
+		database = deps.v2.db
+	}
+	healthDeps := coreHealthDependencies(cfg, grpcSrv, database)
+	if deps.secondaryExecution != nil {
+		healthDeps.ExecutionScope = deps.secondaryExecution.Snapshot
+	}
+	routes.RegisterHealthRoutesWithDeps(router, deps.version, deps.revision, deps.started, healthDeps)
+	routes.RegisterInfoRoutes(router, database, deps.version, deps.revision, deps.started, cfg.Edition, cfg.DeploymentMode, cfg.Server.Environment)
+	routes.RegisterInstanceRoutes(router, deps.startup.identity, deps.version)
+	clientProfile := homelabClientConnectionProfileConfig(cfg, deps.startup.identity)
+	routes.RegisterClientConnectionProfileRoute(router, clientProfile)
+	routes.RegisterClientPairingRoutes(router, homelabClientPairingRouteConfig(clientProfile, deps.v2))
+	routes.RegisterEnrollmentRoutes(router, deps.startup.enrollmentResolver)
+	routes.RegisterOpenAPIRoutes(router)
+	routes.RegisterCapabilitiesRoutes(router, deps.version)
+	routes.RegisterClientBootstrapRoutes(router, deps.version, cfg.Edition, cfg.DeploymentMode)
+	routes.RegisterDataProfileRoutes(router, cfg.DeploymentMode)
+	routes.RegisterDocsRedirectRoutes(router)
+	stores := stackControlPlaneStores(deps.v2)
+	stackroutes.ConfigureControlPlaneStores(stores)
+	jobStores := routes.JobRouteStores{
+		Stacks: stores.Stacks,
+		Jobs:   stores.Jobs,
+	}
+	stackKitCommander := stackKitCommanderForDeployment(cfg.DeploymentMode, cfg.Server.Environment, deps.typedControl, grpcSrv)
+	deps.orch.ConfigureManagedStackKitInventory(managedStackKitInventoryBuilder(deps))
+	deps.orch.ConfigureFederationFabric(federationFabric())
+	deps.orch.ConfigureStackKitCommander(stackKitCommander)
+	var notificationOutbox productnotifications.ProductEventEnqueuer
+	if deps.monitor != nil {
+		notificationOutbox = deps.monitor.notifyOutbox
+	}
+	stackroutes.RegisterRuntimeRoutesWithModeAndFeatures(router, runtimeAuthStore(deps), deps.orch, cfg.DeploymentMode, deps.featureSvc, managedLeases, notificationOutbox)
+	routes.RegisterDriftRoutesWithStores(router, deps.orch, routes.DriftRouteStores{
+		Stacks: stores.Stacks,
+		Drift:  stores.Drift,
+	})
+	routes.RegisterJobsSSERoutes(router, jobStores)
+	if store := controlPlanePostgresStore(deps.v2); store != nil {
+		routes.RegisterFailureSignatureRoutes(router, store)
+		routes.RegisterFailureOutcomeRoutes(router, store)
+	}
+	routes.RegisterDiscoveryRoutes(router, routes.NewDiscoveryHandlerForLAN(!cfg.DeploymentMode.IsSaaS()).WithWallet(walletSecretReferences(deps)))
+	if deps.v2 != nil && deps.v2.db != nil {
+		routes.RegisterSubstrateRoutes(router, deps.v2.db.DB)
+		registerSubstrateAppliances(router, deps, managedLeases)
+	}
+	metrics := routes.RegisterMetricsRoutes(router)
+	routes.RegisterAgentRoutesWithRuntimeLogs(router, grpcSrv, deps.grpc.runtimeLogs)
+	routes.RegisterActivityRoutes(router, activityControlPlaneStore(deps.v2))
+	routes.RegisterMonitoringRoutes(router, deps.monitor.queryBackend, deps.monitor.status, grpcSrv)
+	routes.RegisterDomainMonitoringRoutes(router, deps.monitor.domainMonitor)
+	deps.monitor.driveHealth = bootDriveHealth(deps)
+	routes.RegisterDriveHealthRoutes(router, deps.monitor.driveHealth, defaultTenantForOnboarding(deps.v2))
+	routes.RegisterAlertRoutes(router, deps.monitor.alertEngine)
+	routes.RegisterRegistryRoutesWithStores(router, routes.RegistryRouteStores{
+		Services:                serviceRuntimeControlPlaneStore(deps.v2),
+		AllowLocalHomeAssistant: cfg.DeploymentMode.IsSelfHosted(),
+		Stacks:                  stores.Stacks,
+		Workers:                 workerControlPlaneStore(deps.v2),
+		Registry:                registryControlPlaneStore(deps.v2),
+		Jobs:                    stores.Jobs,
+		// Canonical serverregistry state backs Node placement in Registry Services.
+		Servers: serverRuntimeControlPlaneStore(deps.v2),
+		Wallet:  walletSecretReferences(deps),
+	})
+	if deps.wallet != nil {
+		routes.RegisterSystemAccountRefusal(router)
+	} else {
+		routes.RegisterRuntimeSystemAccountRoutes(router)
+	}
+	registerLocalHomeAssistantMigrations(router, cfg, deps, managedLeases)
+	var walletLocalReauth routes.WalletLocalReauth
+	if cfg.DeploymentMode.IsSelfHosted() {
+		localAuth, err := newLocalAuthService(deps)
+		if err != nil {
+			deps.log.Error("wallet_local_reauth_unavailable", "error", err)
+		} else {
+			walletLocalReauth = newWalletLocalReauth(cfg.DeploymentMode, localAuth)
+		}
+	}
+	if deps.wallet != nil {
+		// The kombify Wallet owns credentials: the legacy wallet_items routes fail closed.
+		routes.RegisterWalletRefusal(router)
+	} else {
+		routes.RegisterWalletRoutesWithConfig(router, routes.WalletRouteConfig{
+			Store:        walletControlPlaneStore(deps.v2),
+			Activity:     activityControlPlaneStore(deps.v2),
+			LocalReauth:  walletLocalReauth,
+			DeviceReauth: newWalletLocalDeviceReauth(deps),
+		})
+	}
+	memoryAvailability, _ := managedLeases.(interface{ IONOSStandardMemoryAvailable(context.Context) error })
+	if err := routes.RegisterUnifierRoutes(router, workerControlPlaneStore(deps.v2), deps.featureSvc, memoryAvailability); err != nil {
+		fmt.Printf("⚠️  Unifier routes failed: %v\n", err)
+	}
+	trustWorkerStore := workerControlPlaneStore(deps.v2)
+	routes.RegisterTrustRoutesWithStores(router, routes.TrustRouteStores{
+		Stacks:  stores.Stacks,
+		Workers: trustWorkerStore,
+		Jobs:    stores.Jobs,
+	})
+	routes.RegisterRuntimeAuthRoutesWithConfig(router, cfg.DeploymentMode, cfg.Edition, routes.AuthRouteConfig{
+		Runtime:               runtimeAuthStore(deps),
+		PortalSession:         portalSession(deps.v2, cfg.IsProduction()),
+		LocalSetupProvisioner: localSetupProvisioner(deps),
+		LocalOwnerStore:       optionalLocalOwnerStore(deps),
+		WalletSource:          deps.walletSource,
+	})
+	registerLocalDeviceSessionRoute(router, deps)
+	routes.RegisterInternalRoutes(router, cfg.DeploymentMode)
+	routes.RegisterNotificationsRoutes(router)
+	registerHouseholdRoutes(router, deps)
+	registerDataSubjectRoute(router, deps)
+	if deps.v2 != nil && deps.v2.db != nil {
+		registerProviderIncidentRoutes(router, deps.v2.db.DB)
+	}
+	return metrics
+}
+
+func runtimeAuthStore(deps routeDeps) auth.RuntimeStore {
+	if deps.v2 == nil || deps.v2.db == nil || deps.v2.db.DB == nil || deps.startup == nil {
+		return auth.RuntimeStore{}
+	}
+	store := controlplane.NewPostgresStore(deps.v2.db.DB)
+	return auth.RuntimeStore{
+		Persistence: store, Identities: store,
+		TenantID: deps.v2.defaultTenant, InstanceID: deps.startup.identity.ID,
+	}
+}
+
+func bootstrapCanonicalAuth(ctx context.Context, deps routeDeps) error {
+	runtime := runtimeAuthStore(deps)
+	if err := runtime.Validate(); err != nil {
+		return err
+	}
+	if err := runtime.Persistence.EnsureAuthInstance(ctx, runtime.TenantID, runtime.InstanceID); err != nil {
+		return fmt.Errorf("bind canonical auth instance: %w", err)
+	}
+	if deps.startup.cfg.DeploymentMode.IsSaaS() {
+		return nil
+	}
+	local, err := newLocalAuthService(deps)
+	if err != nil {
+		return fmt.Errorf("initialize canonical local auth: %w", err)
+	}
+	status, err := local.CurrentStatus(ctx)
+	if err != nil {
+		return fmt.Errorf("read canonical local auth: %w", err)
+	}
+	if !status.Initialized {
+		if _, err := local.Bootstrap(ctx); err != nil {
+			return fmt.Errorf("bootstrap canonical local auth: %w", err)
+		}
+	}
+	if status.Claimed {
+		subject := "breakglass:" + commonauthlocal.BreakGlassRecordID
+		if _, err := runtime.Persistence.GetCloudProfile(ctx, runtime.TenantID, runtime.InstanceID, subject); errors.Is(err, controlplane.ErrNotFound) {
+			owner, err := breakglassAuthStore(deps).Get(ctx)
+			if err != nil {
+				return fmt.Errorf("read claimed canonical owner: %w", err)
+			}
+			if owner == nil || !owner.Claimed {
+				return fmt.Errorf("canonical owner claim changed during profile projection")
+			}
+			if err := runtime.ProjectLocalOwner(ctx, "", owner.Email); err != nil {
+				return fmt.Errorf("project claimed canonical owner: %w", err)
+			}
+		} else if err != nil {
+			return fmt.Errorf("read canonical owner profile: %w", err)
+		}
+	}
+	return nil
+}
+
+// stackKitCommanderForDeployment keeps command dispatch on the transport the
+// enrolled runtime actually polls. Hosted managed runtimes use the authenticated
+// HTTPS Guard channel even when the process also exposes a gRPC server for
+// other clients. A local Windows controller also uses HTTPS because its Guard
+// enrollment is exposed through the private-LAN bridge while gRPC deliberately
+// remains loopback-only. Other self-hosted installations retain their mTLS
+// gRPC preference.
+func stackKitCommanderForDeployment(mode config.DeploymentMode, environment string, https jobs.StackKitCommandSender, grpc jobs.StackKitCommandSender) jobs.StackKitCommandSender {
+	if mode.IsSaaS() || strings.EqualFold(strings.TrimSpace(environment), "local") || grpc == nil {
+		return https
+	}
+	return grpc
+}
+
+// portalSession builds the embedded-SSO session settings from the V2 boot so
+// portal-verify can issue the homelab_session cookie the request path needs.
+func portalSession(boot *v2Boot, secure bool) auth.PortalSession {
+	if boot == nil || boot.session == nil {
+		return auth.PortalSession{}
+	}
+	var authStore controlplane.AuthStore
+	if boot.db != nil && boot.db.DB != nil {
+		authStore = controlplane.NewPostgresStore(boot.db.DB)
+	}
+	return auth.PortalSession{
+		Manager:    boot.session,
+		Browser:    boot.browserSessions,
+		CookieName: boot.cookieName,
+		Secure:     secure,
+		AuthStore:  authStore,
+	}
+}
+
+func stackControlPlaneStores(boot *v2Boot) stackroutes.ControlPlaneStores {
+	if boot == nil || boot.db == nil || boot.db.DB == nil {
+		return stackroutes.ControlPlaneStores{}
+	}
+	store := controlPlanePostgresStore(boot)
+	return stackroutes.ControlPlaneStores{
+		Stacks:     store,
+		Jobs:       store,
+		Wallet:     store,
+		Activity:   store,
+		Drift:      store,
+		Servers:    store,
+		Routing:    stackrouting.NewPostgresStore(boot.db.DB),
+		Homelabs:   store,
+		WizardRuns: store,
+		Services:   store,
+		Onboarding: store,
+	}
+}
+
+func controlPlanePostgresStore(boot *v2Boot) *controlplane.PostgresStore {
+	if boot == nil || boot.db == nil || boot.db.DB == nil {
+		return nil
+	}
+	if boot.serverEventProjector != nil {
+		return controlplane.NewPostgresStore(boot.db.DB, controlplane.WithServerEventProjector(boot.serverEventProjector))
+	}
+	return controlplane.NewPostgresStore(boot.db.DB)
+}
+
+// walletSecretReferences resolves the Wallet item a request names in place of
+// a secret: the kombify Wallet when the deployment reads it, otherwise the
+// built-in wallet.
+func walletSecretReferences(deps routeDeps) routes.WalletSecretReferences {
+	return routes.WalletSecretReferences{Kombify: deps.wallet, Legacy: walletControlPlaneStore(deps.v2)}
+}
+
+func walletControlPlaneStore(boot *v2Boot) controlplane.WalletStore {
+	if boot == nil || boot.db == nil || boot.db.DB == nil {
+		return nil
+	}
+	return controlPlanePostgresStore(boot)
+}
+
+func activityControlPlaneStore(boot *v2Boot) controlplane.ActivityStore {
+	if boot == nil || boot.db == nil || boot.db.DB == nil {
+		return nil
+	}
+	return controlPlanePostgresStore(boot)
+}
+
+func workerControlPlaneStore(boot *v2Boot) controlplane.WorkerStore {
+	if boot == nil || boot.db == nil || boot.db.DB == nil {
+		return nil
+	}
+	return controlPlanePostgresStore(boot)
+}
+
+func clientPairingStore(boot *v2Boot) clientpairing.Store {
+	if boot == nil || boot.db == nil || boot.db.DB == nil {
+		return nil
+	}
+	return clientpairing.NewPostgresStore(boot.db.DB)
+}
+
+func registryControlPlaneStore(boot *v2Boot) controlplane.RegistryStore {
+	if boot == nil || boot.db == nil || boot.db.DB == nil {
+		return nil
+	}
+	return controlPlanePostgresStore(boot)
+}
+
+func rilControlPlaneStore(boot *v2Boot) controlplane.RILStore {
+	if boot == nil || boot.db == nil || boot.db.DB == nil {
+		return nil
+	}
+	return controlPlanePostgresStore(boot)
+}
+
+type serverRuntimeControlPlaneAuthority interface {
+	controlplane.ServerRuntimeStore
+	controlplane.SelfOwnedServerDetacher
+	controlplane.ServerMaintenanceStore
+	controlplane.ServerEventStore
+}
+
+// hostOperationsRouteConfig wires the Guard host operation routes. Without a
+// typed command channel it returns nil and the routes stay unregistered.
+func hostOperationsRouteConfig(deps routeDeps, workers controlplane.WorkerStore, stacks controlplane.StackStore, actionCards *routes.ServiceActionCards) *routes.ServerHostOperationsRouteConfig {
+	dispatcher := jobs.NewHostOperationsDispatcher(deps.orch.StackKitCommander())
+	if dispatcher == nil || workers == nil {
+		return nil
+	}
+	return &routes.ServerHostOperationsRouteConfig{
+		Dispatcher: dispatcher, Workers: workers,
+		Entitlements:                routes.EntitlementGateForDeployment(deps.startup.cfg.DeploymentMode.IsSaaS()),
+		ControlPlaneMachineIDDigest: servermaintenance.LocalMachineIDDigest(""),
+		ActionCards:                 actionCards, Stacks: stacks,
+	}
+}
+
+func serverRuntimeControlPlaneStore(boot *v2Boot) serverRuntimeControlPlaneAuthority {
+	if boot == nil || boot.db == nil || boot.db.DB == nil {
+		return nil
+	}
+	return controlPlanePostgresStore(boot)
+}
+
+// serverAgentCapabilities reports what a server's agent advertised. An mTLS
+// agent registers its capabilities with the gRPC server; an HTTPS agent
+// restates host maintenance support with every heartbeat, which lands in the
+// server metadata. The hub still refuses a host command at dispatch when the
+// polling agent does not advertise the capability.
+func serverAgentCapabilities(boot *grpcBoot) func(controlplane.ServerRuntime) []string {
+	return func(server controlplane.ServerRuntime) []string {
+		var capabilities []string
+		if boot != nil && boot.server != nil {
+			if agent, ok := boot.server.GetAgent(server.WorkerID); ok && agent != nil {
+				capabilities = append(capabilities, agent.Capabilities...)
+			}
+		}
+		if capable, _ := server.Metadata[servermaintenance.MetadataHostMaintenance].(bool); capable {
+			capabilities = append(capabilities, servermaintenance.AgentCapability)
+		}
+		return capabilities
+	}
+}
+
+func currentMTLSStackKitCapabilities(boot *grpcBoot) func(controlplane.ServerRuntime) ([]string, bool) {
+	return func(server controlplane.ServerRuntime) ([]string, bool) {
+		if boot == nil || boot.server == nil {
+			return nil, false
+		}
+		agent, present := boot.server.GetAgent(server.WorkerID)
+		if !present || agent == nil {
+			return nil, false
+		}
+		// A current transport with an incompatible identity or empty ABI may
+		// not fall back to a previous HTTPS observation.
+		if agent.ID != server.WorkerID || agent.Tenant != server.TenantID {
+			return nil, true
+		}
+		return append([]string(nil), agent.Capabilities...), true
+	}
+}
+
+// currentMTLSIdentity is the certificate serial of the worker's current mTLS
+// session in its tenant, empty without one.
+func currentMTLSIdentity(boot *grpcBoot) func(tenantID, workerID string) string {
+	return func(tenantID, workerID string) string {
+		if boot == nil || boot.server == nil {
+			return ""
+		}
+		agent, present := boot.server.GetAgent(workerID)
+		if !present || agent == nil || agent.ID != workerID || agent.Tenant != tenantID {
+			return ""
+		}
+		return agent.CertSerial
+	}
+}
+
+func serviceRuntimeControlPlaneStore(boot *v2Boot) controlplane.ServiceRuntimeStore {
+	if boot == nil || boot.db == nil || boot.db.DB == nil {
+		return nil
+	}
+	return controlPlanePostgresStore(boot)
+}
+
+// publicOriginHost is the bare host of this deployment's public origin, which
+// is what a probed device is asked to reach. A device that can reach everything
+// except us is still a device that cannot enroll.
+func publicOriginHost() string {
+	origin := strings.TrimSpace(config.PublicOriginFromEnv())
+	if origin == "" {
+		return ""
+	}
+	parsed, err := url.Parse(origin)
+	if err != nil || parsed.Host == "" {
+		return ""
+	}
+	return parsed.Hostname()
+}
+
+func registerRuntimeInventoryRoutes(router *httpx.Router, deps routeDeps, state runtimeRouteState, inventoryPolicy routes.InventoryPolicy, actionCards *routes.ServiceActionCards) *routes.ManagedRuntimeExpansion {
+	var metricWriter routes.WorkerMetricWriter
+	if deps.monitor != nil && deps.monitor.tsdb != nil {
+		metricWriter = deps.monitor.tsdb
+	}
+	stackStores := stackControlPlaneStores(deps.v2)
+	deps.orch.ConfigureApplicationConnectorRefreshAuthorization(applicationConnectorRefreshAuthorization(deps.v2.authStore, inventoryPolicy, deps.startup.cfg.DeploymentMode.IsSaaS()))
+	managedExpansion := routes.RegisterStackLifecycleRoutesWithStores(router, state.leaseSvc, nil, deps.featureSvc, routes.StackLifecycleStores{
+		Stacks:         stackStores.Stacks,
+		Workers:        workerControlPlaneStore(deps.v2),
+		Jobs:           stackStores.Jobs,
+		ManagedLeases:  state.runtimeActions.LeaseManager,
+		Decommissioner: state.runtimeActions.LeaseDecommissioner,
+	})
+	workerStore := workerControlPlaneStore(deps.v2)
+	if workerStore == nil {
+		panic("registerRuntimeInventoryRoutes: DATABASE_URL required — PocketBase worker fallback removed (PB retirement)")
+	}
+	deps.log.Info("worker_routes_registered", "backend", "postgres")
+	serverRuntimeStore := serverRuntimeControlPlaneStore(deps.v2)
+	if serverRuntimeStore == nil {
+		panic("registerRuntimeInventoryRoutes: DATABASE_URL required for canonical server registry")
+	}
+	serviceRuntimeStore := serviceRuntimeControlPlaneStore(deps.v2)
+	if serviceRuntimeStore == nil {
+		panic("registerRuntimeInventoryRoutes: DATABASE_URL required for canonical service registry")
+	}
+	maintenanceAuthority := bootMaintenanceOriginGateway(deps.log)
+	maintenanceEntitlements := routes.EntitlementGateForDeployment(deps.startup.cfg.DeploymentMode.IsSaaS())
+	edgeConfig := deps.startup.cfg
+	maintenanceKeys := make(map[string]string)
+	keyID, nextKeyID := strings.TrimSpace(edgeConfig.EdgeAuthKeyID), strings.TrimSpace(edgeConfig.EdgeAuthNextKeyID)
+	if keyID == "" {
+		keyID = strings.TrimSpace(os.Getenv("EDGE_AUTH_KEY_ID"))
+	}
+	if nextKeyID == "" {
+		nextKeyID = strings.TrimSpace(os.Getenv("EDGE_AUTH_KEY_ID_NEXT"))
+	}
+	if keyID == "" {
+		keyID = "primary"
+	}
+	if nextKeyID == "" {
+		nextKeyID = "next"
+	}
+	primarySecret, nextSecret := edgeConfig.EdgeAuthSecret, edgeConfig.EdgeAuthNextSecret
+	if primarySecret == "" {
+		primarySecret = os.Getenv("EDGE_AUTH_SECRET")
+	}
+	if nextSecret == "" {
+		nextSecret = os.Getenv("EDGE_AUTH_SECRET_NEXT")
+	}
+	if primarySecret != "" {
+		maintenanceKeys[keyID] = primarySecret
+	}
+	if nextSecret != "" && nextKeyID != keyID {
+		maintenanceKeys[nextKeyID] = nextSecret
+	}
+	// A server retired because the owner confirmed it gone loses its agent connection
+	// the way a detached one does. Without the gRPC listener (SaaS serves Guards
+	// over HTTPS) there is no stream to end and the Guard is refused at its next
+	// call; a method value of the nil server would panic and take the process down
+	// (stable 0.42.19, 2026-10-22, from a stack destroy).
+	var agentDisconnect func(string) error
+	if deps.grpc.server != nil {
+		agentDisconnect = deps.grpc.server.RemoveAgent
+	}
+	deps.orch.ConfigureOfflineServerDisconnect(agentDisconnect)
+	maintenanceRoutes := routes.RegisterServerRuntimeRoutes(router, routes.ServerRuntimeRouteConfig{
+		Store: serverRuntimeStore, PortInventory: deps.portInventory, Detacher: serverRuntimeStore,
+		Policy: inventoryPolicy, AgentDisconnect: agentDisconnect,
+		WalletWithdraw: serverWalletWithdrawer(deps.wallet),
+		Reach:          serverReachReader(deps),
+		Posture:        serverPosture(deps), Workers: workerStore, RoundTrips: serverRoundTripReader(deps.typedControl), PostureEntitlements: routes.EntitlementGateForDeployment(deps.startup.cfg.DeploymentMode.IsSaaS()),
+		BindingRepair: routes.NewBindingRepairAuthority(trust.RouteStores{
+			Stacks: stackStores.Stacks, Workers: workerStore, Jobs: stackStores.Jobs,
+		}),
+		CurrentMTLSCapabilities: currentMTLSStackKitCapabilities(deps.grpc),
+		CurrentMTLSIdentity:     currentMTLSIdentity(deps.grpc),
+		Network: &routes.ServerNetworkRouteConfig{
+			Rebinder: deps.orch, Workers: workerStore, Jobs: stackStores.Jobs,
+			Entitlements: routes.EntitlementGateForDeployment(deps.startup.cfg.DeploymentMode.IsSaaS()),
+		},
+		// The dispatcher runs the Guard host operations (processes, containers,
+		// bounded container and service actions) on agents that advertise
+		// stackkit.host-inspect.v1 or stackkit.host-operate.v1; without a
+		// commander the routes are not registered.
+		HostOperations: hostOperationsRouteConfig(deps, workerStore, stackStores.Stacks, actionCards),
+		// The dispatcher runs `stackkit host` on agents that advertise
+		// stackkit.host-maintenance.v1; without a commander it is nil and
+		// maintenance stays inert.
+		Maintenance: &routes.ServerMaintenanceRouteConfig{
+			Dispatcher: jobs.HostMaintenanceDispatcherFor(deps.orch.StackKitCommander()),
+			Jobs:       serverRuntimeStore, Services: serviceRuntimeStore, Events: serverRuntimeStore,
+			Entitlements:                routes.EntitlementGateForDeployment(deps.startup.cfg.DeploymentMode.IsSaaS()),
+			AgentCapabilities:           serverAgentCapabilities(deps.grpc),
+			ControlPlaneMachineIDDigest: servermaintenance.LocalMachineIDDigest(""),
+			OriginAuthority:             maintenanceAuthority,
+		},
+	})
+	// Device readiness reaches machines that are not enrolled yet, which only
+	// a control plane inside the operator's own network can do. On a hosted
+	// deployment the routes are not registered at all, and the same capability
+	// reaches those machines through `homelab device` instead.
+	routes.RegisterDeviceReadinessRoutes(router, routes.DeviceReadinessRouteConfig{
+		LocalDeployment:  deps.startup.cfg.DeploymentMode != "saas",
+		ControlPlaneHost: publicOriginHost(),
+		Wallet:           walletSecretReferences(deps),
+		Entitled: func(ctx context.Context, ownerID, capability string) (bool, error) {
+			if deps.featureSvc == nil {
+				return false, fmt.Errorf("no entitlement source")
+			}
+			return deps.featureSvc.IsEnabled(ctx, capability, ownerID)
+		},
+	})
+	// Availability is a projection over the same store's transition timeline;
+	// it registers only when that store can serve a windowed read, so a
+	// deployment without it loses the route rather than serving a blank one.
+	if transitionWindows, ok := serverRuntimeStore.(interface {
+		ListServerTransitionsSince(context.Context, string, string, time.Time, int) ([]controlplane.ServerStateTransition, error)
+	}); ok {
+		routes.RegisterAvailabilityRoutes(router, routes.AvailabilityRouteConfig{
+			Store: serverRuntimeStore, Transitions: transitionWindows,
+		})
+	}
+	routes.RegisterServiceRuntimeRoutes(router, routes.ServiceRuntimeRouteConfig{
+		Metrics: deps.monitor.queryBackend,
+		Policy:  inventoryPolicy,
+		Store:   serviceRuntimeStore, Stacks: stackStores.Stacks, Servers: serverRuntimeStore, Jobs: stackStores.Jobs, Orchestrator: deps.orch,
+		ActionCards: actionCards,
+	})
+	inventoryReadStore, ok := serverRuntimeStore.(controlplane.InventoryReadStore)
+	if !ok {
+		panic("registerRuntimeInventoryRoutes: canonical server store lacks authorization-scoped inventory reads")
+	}
+	ownerStackSpecs, _ := stackStores.Stacks.(controlplane.OwnerStackSpecReader)
+	routes.RegisterInventoryRoutes(router, routes.InventoryRouteConfig{
+		ReadStore:             inventoryReadStore,
+		PortInventory:         deps.portInventory,
+		Policy:                inventoryPolicy,
+		Version:               deps.version,
+		ServiceAuthSecret:     os.Getenv("SERVICE_AUTH_SECRET"),
+		ServiceAuthNext:       os.Getenv("SERVICE_AUTH_SECRET_NEXT"),
+		RuntimeSummaryContext: runtimeSummaryAuthorizationContext(deps.v2.authStore),
+		ManagedServersHeld:    managedServersHeldCounter(deps.providerControlDB, deps.providerResolution),
+		CreateProtection: func(ctx context.Context, tenant, provider, region string) (providercontrol.CreateProtection, error) {
+			runtime, ok := deps.providerResolution.(interface {
+				ReadCreateProtection(context.Context, string, string, string) (providercontrol.CreateProtection, error)
+			})
+			if !ok || runtime == nil {
+				return providercontrol.CreateProtection{}, providercontrol.ErrProfileUnavailable
+			}
+			return runtime.ReadCreateProtection(ctx, tenant, provider, region)
+		},
+		Posture:           serverPosture(deps),
+		Homelabs:          stackStores.Homelabs,
+		WizardRuns:        stackStores.WizardRuns,
+		Jobs:              stackStores.Jobs,
+		OwnerStackSpecs:   ownerStackSpecs,
+		MaintenanceOrigin: routes.MaintenanceOriginConfig{Keys: maintenanceKeys, Authority: maintenanceAuthority, Entitlements: maintenanceEntitlements},
+		MaintenanceAction: maintenanceRoutes.Action,
+		MaintenanceImpact: maintenanceRoutes.Impact,
+	})
+	var stackKitOperations routes.WorkerStackKitOperations
+	if deps.v2 == nil || deps.v2.db == nil || deps.v2.db.DB == nil {
+		deps.log.Warn("managed_stackkit_operations_unavailable", "reason", "database_not_configured")
+	} else {
+		custody, custodyErr := backupstore.NewPostgresCustodyStore(deps.v2.db.DB, storageauth.GetEncryptor())
+		if custodyErr != nil {
+			deps.log.Warn("managed_stackkit_operations_unavailable", "reason", "encrypted_custody_not_configured", "error", custodyErr)
+		} else {
+			operations, operationsErr := managedstackkit.NewOperations(custody)
+			if operationsErr != nil {
+				deps.log.Warn("managed_stackkit_operations_unavailable", "reason", "operations_not_configured", "error", operationsErr)
+			} else {
+				stackKitOperations = operations
+			}
+		}
+	}
+	stackKitOperations = localHomeAssistantOperations(deps.startup.cfg, deps, stackKitOperations)
+	routes.SetAgentBinaryVersion(version)
+	var bindingSigner routes.WorkerBindingSignerFactory
+	if remote, ok := deps.providerActions.LeaseManager.(*executioncustody.Remote); ok {
+		bindingSigner = func(ctx context.Context, tenant, worker string) (routes.WorkerBindingSigner, error) {
+			return remote.WorkerBindingSigner(ctx, tenant, worker)
+		}
+	}
+	routes.RegisterWorkerRoutesWithStore(router, routes.WorkerRouteConfig{
+		BindingSigner:        bindingSigner,
+		MetricWriter:         metricWriter,
+		ManagedRuntimeLeases: state.leaseSvc,
+		Store:                workerStore,
+		Servers:              serverRuntimeStore,
+		Registry:             registryControlPlaneStore(deps.v2),
+		RIL:                  rilControlPlaneStore(deps.v2),
+		AgentIdentityIssuer:  workerAgentIdentityIssuer(deps),
+		TypedControl:         deps.typedControl,
+		StackKitOperations:   stackKitOperations,
+		RuntimeLogs:          workerRuntimeLogs(deps),
+		PortObservations:     deps.portInventory,
+		Reach:                workerReach(deps),
+		Posture:              workerPosture(deps),
+		Telemetry:            workerTelemetry(deps, metricWriter),
+		Entitlements:         routes.EntitlementGateForDeployment(deps.startup.cfg.DeploymentMode.IsSaaS()),
+		NetworkRebinder:      deps.orch,
+		ConnectorReconciler:  deps.orch,
+		UserNotices:          userNoticeSink(deps),
+		StackKitsUpdates:     deps.orch,
+		ApplicationNotices:   applicationNotices(deps),
+		SystemContext:        deps.v2.systemContext,
+	})
+	routes.RegisterStackOperationsRoutesWithStores(router, deps.monitor.queryBackend, deps.monitor.status, deps.monitor.alertEngine, deps.grpc.server, routes.StackOperationsRouteStores{
+		Stacks:   stackStores.Stacks,
+		Servers:  serverRuntimeStore,
+		Services: serviceRuntimeStore,
+		Workers:  workerControlPlaneStore(deps.v2),
+		Registry: registryControlPlaneStore(deps.v2),
+		Jobs:     stackStores.Jobs,
+		Activity: stackStores.Activity,
+	}, state.leaseSvc)
+	return managedExpansion
+}
+
+// applicationNotices returns untyped nil without the product notification
+// outbox, so the worker routes send no application.vulnerability notice.
+func applicationNotices(deps routeDeps) productnotifications.ProductEventEnqueuer {
+	if deps.monitor == nil || deps.monitor.notifyOutbox == nil {
+		return nil
+	}
+	return deps.monitor.notifyOutbox
+}
+
+// workerRuntimeLogs returns untyped nil when no runtime log store is available.
+func workerRuntimeLogs(deps routeDeps) routes.WorkerRuntimeLogWriter {
+	if deps.grpc.runtimeLogs == nil {
+		return nil
+	}
+	return deps.grpc.runtimeLogs
+}
+
+// workerReach and serverReachReader return untyped nil unless reach is
+// enabled, so a disabled edition never holds a non-nil interface around a nil
+// service.
+func workerReach(deps routeDeps) routes.WorkerReach {
+	if deps.guardReach == nil {
+		return nil
+	}
+	return deps.guardReach
+}
+
+// workerPosture and serverPosture return untyped nil when posture is off.
+func workerPosture(deps routeDeps) routes.WorkerPosture {
+	if deps.guardPosture == nil {
+		return nil
+	}
+	return deps.guardPosture
+}
+
+func serverPosture(deps routeDeps) routes.ServerPosture {
+	if deps.guardPosture == nil {
+		return nil
+	}
+	return deps.guardPosture
+}
+
+func serverReachReader(deps routeDeps) routes.ServerReachReader {
+	if deps.guardReach == nil {
+		return nil
+	}
+	return deps.guardReach
+}
+
+// serverRoundTripReader serves the persisted Guard command/result round trips
+// the Connected readiness fact requires; without a typed hub there are none.
+func serverRoundTripReader(hub *agentcontrol.Hub) routes.ServerRoundTripReader {
+	if hub == nil {
+		return nil
+	}
+	return hub
+}
+
+func workerAgentIdentityIssuer(deps routeDeps) routes.WorkerAgentIdentityIssuer {
+	if deps.grpc == nil {
+		return nil
+	}
+	return deps.grpc.identityIssuer
+}
+
+func registerVMLeaseRoutes(router *httpx.Router, deps routeDeps) (runtimeRouteState, error) {
+	leaseStore, storeBackend := vmLeaseStore(deps.v2)
+	// Simulate is not a managed-provider execution lane. Historical
+	// legacy_simulate bindings are inventory-only quarantine records; no
+	// enrollment or legacy provider client is wired here.
+	// Native mutation stays fail-closed until provider-control admission can
+	// atomically bind techstack_provider_control.
+	deps.log.Info("vm_lease_legacy_simulate_execution_disabled")
+
+	allowedProviders := map[string]bool{}
+	providerSource := "blocked:no_active_catalog"
+	if deps.startup.cfg.ProviderCatalog.Mode == config.ProviderCatalogSelfHostedStatic {
+		allowedProviders = map[string]bool{}
+		for _, providerID := range providercatalog.ManagedProviderIDs() {
+			allowedProviders[providerID] = true
+		}
+		providerSource = string(config.ProviderCatalogSelfHostedStatic)
+	} else if deps.v2 != nil && deps.v2.db != nil && deps.v2.db.DB != nil {
+		catalogProviders, catalogErr := vmleases.LoadHomelabLeasingProviderSet(context.Background(), deps.v2.db.DB)
+		if catalogErr != nil {
+			deps.log.Warn("vm_lease_provider_catalog_unavailable", "error", catalogErr)
+		} else if len(catalogProviders) == 0 {
+			deps.log.Warn("vm_lease_provider_catalog_empty")
+		} else {
+			allowedProviders = catalogProviders
+			providerSource = "provider_catalog"
+		}
+	}
+
+	leaseSvc := vmleases.NewService(leaseStore, vmleases.ServiceConfig{
+		AllowedProviders: allowedProviders,
+	})
+	deps.orch.ConfigureManagedRuntimeLeases(leaseSvc)
+
+	// Provider-control admission is staged directly through the canonical manager.
+	// The composed native actions remain fail-closed at their immutable
+	// activation gate until contracts, runtime-role separation, and adapter
+	// certification are complete.
+	baseActions := deps.providerActions
+	// Host-key pins live in the runtime database so every instance (and the
+	// next one after a deploy without a data disk) verifies the same pins.
+	baseActions.HostKeyPins = diskcustody.HostKeyPins{DB: deps.v2.db.DB}
+	runtimeActions, diagnostics := jobs.RuntimeActionsFromEnv(baseActions)
+	for _, runner := range diagnostics.Configured {
+		deps.log.Info("runtime_action_configured", "runner", runner)
+	}
+	for _, warning := range diagnostics.Warnings {
+		deps.log.Warn("runtime_action_config_warning", "warning", warning)
+	}
+	deps.orch.ConfigureRuntimeActions(runtimeActions)
+	routes.RegisterVMLeaseRoutes(router, vmleases.NewHandler(leaseSvc, vmleases.HandlerConfig{
+		ServiceAuthSecret: os.Getenv("SERVICE_AUTH_SECRET"),
+		ServiceAuthNext:   os.Getenv("SERVICE_AUTH_SECRET_NEXT"),
+	}))
+	deps.log.Info("vm_lease_routes_registered", "store", storeBackend, "provider_source", providerSource)
+	return runtimeRouteState{leaseSvc: leaseSvc, runtimeActions: runtimeActions}, nil
+}
+
+func vmLeaseStore(boot *v2Boot) (vmleases.Store, string) {
+	if boot == nil || boot.db == nil || boot.db.DB == nil {
+		panic("vmLeaseStore: DATABASE_URL required — PocketBase fallback removed (PB retirement)")
+	}
+	return vmleases.NewPostgresStore(boot.db.DB), "postgres"
+}
+
+// registerRILRoutes wires the governed action-card path and returns it as the
+// entry the managed service actions restart and update use.
+func registerRILRoutes(router *httpx.Router, deps routeDeps, inventoryPolicy routes.InventoryPolicy) *routes.ServiceActionCards {
+	if deps.workflowEngine == nil {
+		panic("registerRILRoutes: workflow engine required")
+	}
+	authority := actions.NewPostgresAuthority(deps.v2.db.DB)
+	authority.ConfigureRILDecisionGateway(bootMaintenanceOriginGateway(deps.log))
+	// The StackKits decision receipt path files with the same Gateway client,
+	// service identity and key; without that custody it stays refused.
+	if ledger := bootMaintenanceOriginGateway(deps.log); ledger != nil {
+		jobs.SetStackKitDecisionLedger(ledger)
+	}
+	ledger := controlplane.NewPostgresStore(deps.v2.db.DB)
+	if deps.grpc.server != nil {
+		deps.grpc.server.SetRILHealStore(ledger)
+	}
+	targets, ok := workerControlPlaneStore(deps.v2).(controlplane.WorkerStackKitsTargetRecorder)
+	if !ok {
+		panic("registerRILRoutes: canonical worker store cannot record StackKits targets")
+	}
+	dispatcher, err := rilactionexecution.NewStackKitDispatcher(rilactionexecution.StackKitDispatcherConfig{
+		Sender: deps.orch.StackKitCommander(), Authority: rilactionexecution.PostgresDispatchAuthority{DB: deps.v2.db.DB},
+		ProofGateway: bootMaintenanceOriginGateway(deps.log), Lifecycle: deps.orch, StackKitsTargets: targets,
+	})
+	if err != nil {
+		panic(fmt.Sprintf("registerRILRoutes: %v", err))
+	}
+	executor, err := rilactionexecution.New(rilactionexecution.Config{Ledger: ledger, Dispatcher: dispatcher})
+	if err != nil {
+		panic(fmt.Sprintf("registerRILRoutes: %v", err))
+	}
+	if err := (activities.GovernedActionActivities{Authority: authority, Executor: executor}).Register(deps.workflowEngine); err != nil {
+		panic(fmt.Sprintf("registerRILRoutes: %v", err))
+	}
+	operational := &stackroutes.GovernedOperationBackend{Authority: authority, Store: ledger, Orch: deps.orch}
+	if err := (activities.GovernedOperationActivities{Backend: operational}).Register(deps.workflowEngine); err != nil {
+		panic(fmt.Sprintf("registerRILRoutes: %v", err))
+	}
+	launcher := &activities.RemediationLauncher{Engine: deps.workflowEngine, Authority: authority}
+	cards := &routes.ServiceActionCards{Authority: authority, Launcher: launcher, Lifecycle: deps.orch, Background: deps.v2.systemContext}
+	// An executor-bound card is admitted against the exact release capability
+	// of its primitive and against fresh inventory, on both entries.
+	inventory := controlPlanePostgresStore(deps.v2)
+	deriveTarget, admitTarget := routes.NewRILExecutorBoundInventory(routes.ServiceRuntimeRouteConfig{
+		Store: inventory, Stacks: inventory, Servers: inventory, Jobs: inventory, ActionCards: cards,
+		HostEligibility: &routes.HostOperationEligibility{
+			Workers: workerControlPlaneStore(deps.v2), ControlPlaneMachineIDDigest: servermaintenance.LocalMachineIDDigest(""),
+			Entitlements: routes.EntitlementGateForDeployment(deps.startup.cfg.DeploymentMode.IsSaaS()),
+		},
+	})
+	authority.ConfigureExecutorBoundAdmission(actions.ExecutorBoundAdmission{
+		ContractHash: func(ctx context.Context, tenant, stack, primitiveID string) (string, error) {
+			release, err := jobs.TargetStackKitReleaseForStack(ctx, tenant, stack)
+			if err != nil {
+				return "", err
+			}
+			if release == nil || !release.RILPrimitiveSupported(primitiveID) {
+				return "", fmt.Errorf("exact StackKits release lacks the authenticated %s primitive capability", primitiveID)
+			}
+			if profile, _ := primitives.Lookup(primitiveID); profile.GuardOperation == agentpb.StackKitOperation_STACKKIT_OPERATION_VERIFY && !release.VerifyExpectedPlanSupported() {
+				return "", fmt.Errorf("exact StackKits release lacks the qualified plan verifier")
+			}
+			return release.RILPrimitiveHash(primitiveID), nil
+		},
+		Derive: deriveTarget,
+		Target: admitTarget,
+	})
+	routes.RegisterGovernedActionRoutes(router, routes.GovernedActionRouteConfig{Authority: authority, Workflow: launcher, Policy: inventoryPolicy, Servers: ledger, DecisionAuthority: bootMaintenanceOriginGateway(deps.log), Background: deps.v2.systemContext})
+	routes.RegisterRILGatewayCardRoute(router, authority)
+	routes.RegisterRILHostIdentityRoute(router, deps.v2.db.DB)
+	routes.RegisterWorkflowAuditRoutes(router, deps.workflowEngine, authority)
+	routes.RegisterRILHealRoutes(router, ledger)
+	return cards
+}
+
+func registerNetworkRoutes(router *httpx.Router, deps routeDeps) {
+	stores := stackControlPlaneStores(deps.v2)
+	routes.RegisterTunnelRoutes(router, deps.tunnel, trust.RouteStores{
+		Stacks: stores.Stacks, Workers: workerControlPlaneStore(deps.v2), Jobs: stores.Jobs,
+	})
+	routes.RegisterKombifyMeRoutes(router)
+	routes.RegisterAutoInstallRoutes(router, deps.log, deps.startup.cfg.Edition)
+}
+
+func initFeatureService(deps routeDeps) (*features.Service, error) {
+	featureStore := featureStateStore(deps)
+	return features.NewService(featureStore, features.ServiceConfig{
+		Edition: deps.startup.cfg.Edition,
+	})
+}
+
+// sharedFeatureService returns the one feature service of this boot, creating
+// it on first use. It needs a pointer receiver: the service is process-wide
+// (it holds the shipped catalog and consent store), so the route
+// build and the backup admission must read the same instance from the same
+// deps value. A nil result means the service could not start; callers fail
+// closed.
+func (deps *routeDeps) sharedFeatureService() *features.Service {
+	if deps.featureSvc != nil {
+		return deps.featureSvc
+	}
+	featureSvc, err := initFeatureService(*deps)
+	if err != nil {
+		if deps.log != nil {
+			deps.log.Error("feature_routes_init_failed", "error", err)
+		}
+		return nil
+	}
+	deps.featureSvc = featureSvc
+	return featureSvc
+}
+
+// registerWizardRoutes wires the native v2 wizard surfaces: the read-only
+// projection preview (package routes) and the persisting wizard-run facade
+// (package stacks). The validator stays nil (both fail closed with a precise
+// reason) when the pinned-release admission is missing or rejects.
+func registerWizardRoutes(router *httpx.Router, deps routeDeps, featureSvc *features.Service, managedLeases jobs.ManagedLeaseManager, managedExpansion *routes.ManagedRuntimeExpansion) {
+	stores := stackControlPlaneStores(deps.v2)
+	cfg := routes.WizardRouteConfig{
+		Seeds:           specv2.NewTemplateSeedSourceFromEnv(),
+		RemoteSSHTester: routes.NewDiscoveryRemoteSSHAdapter(discovery.New()),
+		Wallet:          stores.Wallet,
+		KombifyWallet:   deps.wallet,
+	}
+	var migrator specv2.SpecMigrator
+	validator, err := specv2.NewCLIValidatorFromEnv()
+	if err != nil {
+		fmt.Printf("⚠️  Wizard validator admission failed (previews will 503): %v\n", err)
+	} else if validator != nil {
+		cfg.Validator = validator
+		cfg.Projector = specv2.NewReleaseProjector(validator)
+		cfg.ReleaseVersion = validator.ReleaseVersion
+		migrator = validator
+	}
+	routes.RegisterWizardRoutes(router, cfg)
+	multiNodeJoin := newMultiNodeJoinGate()
+	layoutAdvice := newLayoutAdvice(deps, stores, cfg.Projector, validator, multiNodeJoin)
+	routes.RegisterLayoutRecommendationRoutes(router, routes.LayoutRecommendationRouteConfig{Service: layoutAdvice})
+
+	var notificationOutbox productnotifications.ProductEventEnqueuer
+	if deps.monitor != nil {
+		notificationOutbox = deps.monitor.notifyOutbox
+	}
+	wizardRunConfig := stackroutes.WizardRunRouteConfig{
+		AuthRuntime:      runtimeAuthStore(deps),
+		Orch:             deps.orch,
+		DeploymentMode:   deps.startup.cfg.DeploymentMode,
+		Features:         featureSvc,
+		Seeds:            cfg.Seeds,
+		Projector:        cfg.Projector,
+		Validator:        cfg.Validator,
+		Migrator:         migrator,
+		ReleaseVersion:   cfg.ReleaseVersion,
+		ManagedLeases:    managedLeases,
+		ManagedExpansion: adaptWizardManagedRuntimeExpansion(managedExpansion),
+		ExistingServers: routes.NewWizardExistingServers(routes.StackOperationsRouteStores{
+			Stacks: stores.Stacks, Servers: stores.Servers, Workers: workerControlPlaneStore(deps.v2),
+		}),
+		MultiNodeJoin:      multiNodeJoin,
+		GuestProvisioner:   wizardCustomerGuestProvisioner(deps, managedLeases),
+		NotificationOutbox: notificationOutbox,
+		Trust: trust.RouteStores{
+			Stacks:  stores.Stacks,
+			Workers: workerControlPlaneStore(deps.v2),
+			Jobs:    stores.Jobs,
+		},
+		Wallet:        stores.Wallet,
+		KombifyWallet: deps.wallet,
+		LayoutAdvice:  layoutAdvice,
+	}
+	stackroutes.RegisterWizardRunRoutes(router, wizardRunConfig)
+	// The durable remote_enrollment job type runs through the queue; the
+	// executor keeps the wizard's wallet and pairing custody as the single
+	// credential path for both the HTTP and the queue lane.
+	if deps.orch != nil {
+		deps.orch.ConfigureRemoteEnrollment(stackroutes.NewRemoteEnrollmentExecutor(wizardRunConfig))
+	}
+
+	// The onboarding journey rides along here because it reads the same
+	// wizard-era facts (Homelab intent, StackKit Deployments, Nodes, services) and answers
+	// the same entitlement question as the create path.
+	stackroutes.RegisterOnboardingRoutes(router, stackroutes.OnboardingRouteConfig{
+		DeploymentMode:    deps.startup.cfg.DeploymentMode,
+		Features:          featureSvc,
+		DefaultTenantID:   defaultTenantForOnboarding(deps.v2),
+		ServiceAuthSecret: os.Getenv("SERVICE_AUTH_SECRET"),
+		ServiceAuthNext:   os.Getenv("SERVICE_AUTH_SECRET_NEXT"),
+	})
+}
+
+// newLayoutAdvice builds the layout recommendation service: the Unifier's
+// Layout Planner over the canonical servers, verified by the pinned StackKits
+// feasibility operation and recorded on the RIL action-card authority. It is
+// nil without the Postgres control plane, and the routes then answer 503.
+// newMultiNodeJoinGate reads multi-node join from the released kit metadata
+// the catalog routes read. Without it no enrolled server joins a deployment.
+func newMultiNodeJoinGate() layoutadvice.MultiNodeJoin {
+	loader, err := unifier.NewStackKitLoader()
+	if err != nil || loader == nil {
+		fmt.Printf("⚠️  Joining enrolled servers disabled: %v\n", err)
+		return nil
+	}
+	return loader
+}
+
+func newLayoutAdvice(deps routeDeps, stores stackroutes.ControlPlaneStores, projector specv2.Projector, validator *specv2.CLIValidator, multiNodeJoin layoutadvice.MultiNodeJoin) *layoutadvice.Service {
+	servers := serverRuntimeControlPlaneStore(deps.v2)
+	if deps.v2 == nil || deps.v2.db == nil || deps.v2.db.DB == nil || stores.Stacks == nil || servers == nil {
+		return nil
+	}
+	workers, err := routes.NewLayoutWorkerInventory(workerControlPlaneStore(deps.v2))
+	if err != nil {
+		fmt.Printf("⚠️  Layout recommendations disabled: %v\n", err)
+		return nil
+	}
+	service := &layoutadvice.Service{
+		Stacks: stores.Stacks, Servers: servers, Workers: workers,
+		Catalog: stackkitrelease.ResolveUseCaseCatalog, Projector: projector,
+		Records: actions.NewPostgresAuthority(deps.v2.db.DB), Jobs: stores.Jobs,
+		MultiNodeJoin: multiNodeJoin,
+	}
+	if validator != nil {
+		service.Checker = validator
+	}
+	return service
+}
+
+func adaptWizardManagedRuntimeExpansion(expansion *routes.ManagedRuntimeExpansion) stackroutes.WizardManagedRuntimeExpansion {
+	if expansion == nil {
+		return nil
+	}
+	return stackroutes.WizardManagedRuntimeExpansionFunc(func(e *httpx.Event, request stackroutes.WizardManagedRuntimeExpansionRequest) (*stackroutes.WizardManagedRuntimeExpansionResult, error) {
+		result, err := expansion.Execute(e, routes.ManagedRuntimeExpansionRequest{
+			StackID: request.StackID, IdempotencyKey: request.IdempotencyKey,
+			RuntimeSlotKey: request.RuntimeSlotKey, NodeRole: request.NodeRole,
+			RuntimeOfferingID: request.RuntimeOfferingID, ProviderID: request.ProviderID,
+			ProviderRegion: request.ProviderRegion, IONOSDatacenter: request.IONOSDatacenter,
+			StackKit: request.StackKit, Services: append([]string(nil), request.Services...),
+		})
+		if result == nil {
+			return nil, err
+		}
+		return &stackroutes.WizardManagedRuntimeExpansionResult{
+			StackID: result.KitDeploymentID, JobID: result.JobID,
+			RuntimeSlotKey: result.RuntimeSlotKey, RuntimeSlotID: result.RuntimeSlotID,
+			LeaseID: result.LeaseID, RuntimeServerID: result.RuntimeServerID,
+			ResourceGenerationID: result.ResourceGenerationID, OperationID: result.OperationID,
+			ProviderID: result.ProviderID, ProviderRegion: result.ProviderRegion,
+			IONOSDatacenter: result.IONOSDatacenter, NodeRole: result.NodeRole,
+			RuntimeOfferingID: result.RuntimeOfferingID, EnrollmentStatus: result.EnrollmentStatus,
+			RuntimePhase: result.RuntimePhase, IdempotentReplay: result.IdempotentReplay,
+			Message: result.Message, Warnings: append([]string(nil), result.Warnings...),
+		}, err
+	})
+}
+
+func defaultTenantForOnboarding(boot *v2Boot) string {
+	if boot == nil {
+		return ""
+	}
+	return strings.TrimSpace(boot.defaultTenant)
+}
+
+func registerFeatureRoutes(router *httpx.Router, deps routeDeps, state runtimeRouteState) {
+	featureSvc := deps.featureSvc
+	if featureSvc == nil {
+		var err error
+		featureSvc, err = initFeatureService(deps)
+		if err != nil {
+			fmt.Printf("⚠️  Feature flags init failed: %v\n", err)
+			return
+		}
+	}
+	if featureSvc == nil {
+		return
+	}
+	routes.RegisterFeatureFlagRoutes(router, featureSvc)
+	registerWizardRoutes(router, deps, featureSvc, state.runtimeActions.LeaseManager, state.managedRuntimeExpansion)
+	recoveryIntent := managedLeaseRecoveryIntent{
+		decommissioner: state.runtimeActions.LeaseDecommissioner,
+	}
+	monthlyRuntimeSvc := &monthlyruntime.Service{
+		Leases: state.leaseSvc,
+		Runtime: &monthlyruntime.NativeRuntimeClient{
+			Servers: serverRuntimeControlPlaneStore(deps.v2),
+		},
+		Features:        featureSvc,
+		CleanupReadback: deps.providerCleanupReadback,
+		BackupStores:    backupStoreReadback(deps),
+		Reconcile:       recoveryIntent,
+		Addresses:       managedAddressDeregistrar{},
+	}
+	routes.RegisterMonthlyRuntimeRoutes(router, monthlyRuntimeSvc, state.managedRuntimeExpansion)
+	deps.governedDecommission.bind(monthlyRuntimeSvc)
+	state.runtimeActions.RuntimeTargetResolver = monthlyRuntimeTargetResolver(
+		monthlyRuntimeSvc,
+		serverRuntimeControlPlaneStore(deps.v2),
+		deps.log,
+	)
+	if remote, ok := deps.providerResolution.(*executioncustody.Remote); ok {
+		state.runtimeActions.RuntimeTargetResolver = remote
+	}
+	serverStore := serverRuntimeControlPlaneStore(deps.v2)
+	bindManagedDay2(monthlyRuntimeSvc, &executionchannel.Channel{
+		Servers: serverStore, Targets: state.runtimeActions.RuntimeTargetResolver,
+	})
+	if remote, ok := deps.providerResolution.(*executioncustody.Remote); ok {
+		monthlyRuntimeSvc.SSHAccess = remote
+		monthlyRuntimeSvc.Reconnector = remote
+	}
+	activityStore, _ := any(serverStore).(controlplane.ActivityStore)
+	routes.RegisterServerTerminalRoutes(router, routes.ServerTerminalRouteConfig{
+		Servers: serverStore, Targets: state.runtimeActions.RuntimeTargetResolver,
+		Wallet: walletControlPlaneStore(deps.v2), Activity: activityStore, KombifyWallet: deps.wallet,
+	})
+	deps.orch.ConfigureRuntimeActions(state.runtimeActions)
+	deps.log.Info("monthly_runtime_routes_registered", "runtime_authority", "techstack_provider_control")
+
+	// Create-stack ceiling check counts against the same lease authority the
+	// lifecycle routes use (late-bound: CRUD routes register earlier).
+	stackroutes.ConfigureManagedRuntimeLeaseLister(state.leaseSvc)
+
+	if deps.startup.cfg.DeploymentMode.IsSaaS() {
+		stackStores := stackControlPlaneStores(deps.v2)
+		demoStores := routes.StackLifecycleStores{
+			Stacks:   stackStores.Stacks,
+			Workers:  workerControlPlaneStore(deps.v2),
+			Jobs:     stackStores.Jobs,
+			Registry: serverRuntimeControlPlaneStore(deps.v2),
+		}
+		routes.RegisterDemoResetRoutes(router, state.leaseSvc, recoveryIntent, demoStores)
+	}
+	// Shares the demo-automation secret gate, so it is wired wherever that gate
+	// is configured and stays fail-closed everywhere else.
+	routes.RegisterRuntimeDiagnosticsRoutes(router)
+}
+
+func featureStateStore(deps routeDeps) features.Store {
+	if deps.v2 == nil || deps.v2.db == nil || deps.v2.db.DB == nil {
+		panic("featureStateStore: DATABASE_URL required — PocketBase fallback removed (PB retirement)")
+	}
+	return features.NewPostgresStore(deps.v2.db.DB)
+}
+
+func monthlyRuntimeTargetResolver(
+	svc *monthlyruntime.Service,
+	servers controlplane.ServerRuntimeStore,
+	log *logger.Logger,
+) jobs.ManagedRuntimeTargetResolver {
+	if staticResolver := jobs.NewStaticManagedRuntimeTargetResolverFromEnv(); staticResolver != nil {
+		log.Warn("monthly_runtime_static_target_resolver_enabled")
+		return staticResolver
+	}
+	return jobs.NewMonthlyRuntimeTargetResolver(svc, servers)
+}
+
+func registerV2Routes(router *httpx.Router, deps routeDeps) {
+	if deps.v2 == nil || deps.v2.server == nil {
+		return
+	}
+	if deps.v2.session != nil {
+		mergeLocalAuthHandlers(deps)
+	}
+	v2.RegisterHTTPX(router, deps.v2.server)
+}
+
+func mergeLocalAuthHandlers(deps routeDeps) {
+	if !config.RunsSharedWork() {
+		// Local auth's bootstrap writes break-glass state, which is shared.
+		deps.v2.server.MergeAuthHandlers(v2.AuthHandlers{Methods: secondaryAuthMethodsHandler(deps.v2.registry)})
+		return
+	}
+	localSvc, err := newLocalAuthService(deps)
+	if err != nil {
+		deps.log.Error("v2_local_auth_invalid", "error", err)
+		return
+	}
+	if _, err := localSvc.Bootstrap(context.Background()); err != nil {
+		deps.log.Error("v2_local_auth_bootstrap_failed", "error", err)
+		return
+	}
+	handlers := localAuthHandlers(localSvc, deps.v2.registry, deps.log)
+	deps.v2.server.MergeAuthHandlers(v2.AuthHandlers{
+		Methods:         handlers.MethodsHandler(),
+		LocalLogin:      deps.v2.browserSessions.WrapLogin(localOwnerLoginHandler(deps, handlers.LoginHandler())),
+		LocalLogout:     deps.v2.browserSessions.WrapLogin(handlers.LogoutHandler()),
+		BreakGlassClaim: deps.v2.browserSessions.WrapLogin(handlers.ClaimHandler()),
+		BreakGlassReveal: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			http.Error(w, "Use the host-local homelab owner bootstrap command", http.StatusForbidden)
+		}),
+	})
+	deps.log.Info("v2_local_auth_enabled", "breakglass_locked", os.Getenv("HOMELAB_BREAKGLASS_LOCKED") == "true")
+}
+
+func newLocalAuthService(deps routeDeps) (*commonauthlocal.Service, error) {
+	if deps.v2 == nil || deps.v2.db == nil || deps.v2.db.DB == nil {
+		return nil, fmt.Errorf("local auth requires DATABASE_URL")
+	}
+	tenantID := strings.TrimSpace(deps.v2.defaultTenant)
+	if tenantID == "" {
+		tenantID = v2DefaultTenantIDFromEnv()
+	}
+	return commonauthlocal.New(commonauthlocal.Config{
+		Store:               breakglassAuthStore(deps),
+		Sessions:            deps.v2.session,
+		DefaultTenantID:     tenantID,
+		BootstrapEmail:      "breakglass@homelab.local",
+		SessionCookieName:   deps.v2.cookieName,
+		SessionCookieSecure: deps.startup.cfg.IsProduction(),
+		ClaimLocked:         strings.EqualFold(strings.TrimSpace(os.Getenv("HOMELAB_BREAKGLASS_LOCKED")), "true"),
+	})
+}
+
+func localSetupProvisioner(deps routeDeps) routes.LocalSetupProvisioner {
+	if deps.v2 == nil || deps.v2.session == nil || deps.v2.db == nil || deps.v2.db.DB == nil {
+		return nil
+	}
+	localSvc, err := newLocalAuthService(deps)
+	if err != nil {
+		return nil
+	}
+	return localSetupProvisionerWithService(localSvc)
+}
+
+func localSetupProvisionerWithService(localSvc *commonauthlocal.Service) routes.LocalSetupProvisioner {
+	return func(ctx context.Context, req routes.LocalOwnerSetup) error {
+		status, err := localSvc.CurrentStatus(ctx)
+		if err != nil {
+			return err
+		}
+		if status.Claimed {
+			_, err := localSvc.Authenticate(ctx, req.Email, req.Password)
+			return err
+		}
+		return localSvc.Claim(ctx, commonauthlocal.ClaimRequest{
+			CurrentPassword: req.CurrentPassword,
+			NewEmail:        req.Email,
+			NewPassword:     req.Password,
+		})
+	}
+}
+
+func breakglassAuthStore(deps routeDeps) commonauthlocal.Store {
+	if deps.v2 == nil || deps.v2.db == nil || deps.v2.db.DB == nil {
+		panic("breakglassAuthStore: DATABASE_URL required — PocketBase fallback removed (PB retirement)")
+	}
+	tenantID := strings.TrimSpace(deps.v2.defaultTenant)
+	if tenantID == "" {
+		tenantID = v2DefaultTenantIDFromEnv()
+	}
+	return breakglass.NewPostgres(controlplane.NewPostgresStore(deps.v2.db.DB), tenantID)
+}
+
+func optionalLocalOwnerStore(deps routeDeps) commonauthlocal.Store {
+	if deps.v2 == nil || deps.v2.db == nil || deps.v2.db.DB == nil {
+		return nil
+	}
+	return breakglassAuthStore(deps)
+}
+
+// localOwnerLoginHandler delegates local owner login entirely to the
+// commonauthlocal break-glass handler. The legacy PocketBase users-collection
+// authentication path was removed during the PB retirement — local auth is now
+// a single authority (go-common/authlocal), so no PB record lookup happens here.
+func localOwnerLoginHandler(_ routeDeps, breakglass http.Handler) http.Handler {
+	return breakglass
+}
+
+func localAuthHandlers(localSvc *commonauthlocal.Service, registry *providers.Registry, log *logger.Logger) *commonauthlocal.Handlers {
+	if registry == nil {
+		return commonauthlocal.NewHandlers(localSvc, nil, commonauthlocal.WithLoginRedirectPath("/api/v2/auth/login?provider="))
+	}
+	sharedRegistry, err := registry.ToOIDCClientRegistry()
+	if err != nil {
+		log.Error("v2_local_auth_provider_registry_invalid", "error", err)
+		return commonauthlocal.NewHandlers(localSvc, nil, commonauthlocal.WithLoginRedirectPath("/api/v2/auth/login?provider="))
+	}
+	return commonauthlocal.NewHandlers(localSvc, sharedRegistry, commonauthlocal.WithLoginRedirectPath("/api/v2/auth/login?provider="))
+}
+
+const (
+	localDeviceSessionPath   = "/api/v1/auth/device-session"
+	localDeviceTokenEnv      = "HOMELAB_LOCAL_DEVICE_TOKEN"
+	localDeviceSessionHeader = "X-Homelab-Device-Token"
+	localDeviceProvider      = "windows-device"
+	localDeviceEmail         = "windows-device@local.invalid"
+)
+
+func registerLocalDeviceSessionRoute(router *httpx.Router, deps routeDeps) {
+	registerLocalDeviceSessionRouteWithStore(router, deps, nil)
+}
+
+func registerLocalDeviceSessionRouteWithStore(router *httpx.Router, deps routeDeps, store commonauthlocal.Store) {
+	registerLocalDeviceProofRoutes(router, deps, store)
+	router.POST(localDeviceSessionPath, func(e *httpx.Event) error {
+		// Positive gate: the route exists only in the local posture on a
+		// self-hosted deployment with a provisioned device token. Everything
+		// else — production, development, staging, SaaS, missing token — 404s.
+		expectedToken := strings.TrimSpace(os.Getenv(localDeviceTokenEnv))
+		if !localDeviceSessionAvailable(deps, expectedToken) {
+			return httpx.NotFound(e, "Local device session is not available")
+		}
+		if !localDeviceSessionLoopback(e.Request) {
+			return httpx.Forbidden(e, "Local device session requires a loopback request")
+		}
+		if !localDeviceSessionAttempts.allow() {
+			return httpx.Error(e, http.StatusTooManyRequests, ksapi.ErrCodeRateLimited, "Too many failed device token attempts", nil)
+		}
+		if !localDeviceTokenMatches(e.Request.Header.Get(localDeviceSessionHeader), expectedToken) {
+			localDeviceSessionAttempts.fail()
+			return httpx.Unauthorized(e, "Invalid local device token")
+		}
+		localDeviceSessionAttempts.reset()
+		return issueLocalDeviceSession(e, deps, store, expectedToken, nil)
+	})
+}
+
+func localDeviceSessionAvailable(deps routeDeps, expectedToken string) bool {
+	return deps.v2 != nil && deps.v2.session != nil && deps.startup != nil &&
+		deps.startup.cfg != nil && deps.startup.cfg.IsLocal() &&
+		deps.startup.cfg.DeploymentMode.IsSelfHosted() && expectedToken != ""
+}
+
+func issueLocalDeviceSession(e *httpx.Event, deps routeDeps, store commonauthlocal.Store, expectedToken string, proof *localDeviceChallenge) error {
+	localStore := store
+	if localStore == nil && deps.v2.db != nil && deps.v2.db.DB != nil {
+		localStore = breakglassAuthStore(deps)
+	}
+	deviceID := sha256.Sum256([]byte(expectedToken))
+	claims := authsession.Claims{
+		Subject:  fmt.Sprintf("device:%x", deviceID),
+		TenantID: localDeviceSessionTenant(deps),
+		Email:    localDeviceEmail,
+		Provider: localDeviceProvider,
+		Role:     "admin",
+	}
+	if localStore != nil {
+		rec, err := localStore.Get(e.Request.Context())
+		if err != nil {
+			return httpx.InternalError(e, "Local owner lookup failed")
+		}
+		if rec != nil && rec.Claimed {
+			if strings.TrimSpace(rec.Email) == "" {
+				return httpx.InternalError(e, "Local owner lookup failed")
+			}
+			claims.Subject = "breakglass:" + commonauthlocal.BreakGlassRecordID
+			claims.Email = strings.TrimSpace(rec.Email)
+			claims.Provider = commonauthlocal.DefaultProviderID
+		}
+	}
+	if claims.Provider == localDeviceProvider && deps.v2.authStore != nil {
+		if err := projectLocalDeviceOperator(e.Request.Context(), deps.v2.authStore, claims); err != nil {
+			return httpx.InternalError(e, "Local device operator could not be projected")
+		}
+	}
+	token, err := deps.v2.session.Issue(claims)
+	if err != nil {
+		return httpx.InternalError(e, "Local device session could not be issued")
+	}
+	authsession.SetSessionCookie(e.Response, localDeviceSessionCookieName(deps), token, false)
+	deps.v2.browserSessions.StampLogin(e.Response.Header())
+	if proof != nil {
+		cookies := e.Response.Header().Values("Set-Cookie")
+		if len(cookies) != 2 {
+			e.Response.Header().Del("Set-Cookie")
+			return httpx.InternalError(e, "Local device session could not be issued")
+		}
+		e.Response.Header().Set(localDeviceProofHeader, localDeviceMAC(expectedToken,
+			localDeviceProofMessage("response", proof.origin, proof.clientNonce, proof.serverNonce,
+				"200", localDeviceCanonicalCookies(cookies))))
+	}
+	return httpx.Success(e, http.StatusOK, map[string]any{
+		"ok":       true,
+		"email":    claims.Email,
+		"provider": claims.Provider,
+		"source":   "windows-device",
+	})
+}
+
+// The account-free device uses the same persisted membership authority as
+// every authenticated request. Claimed owners retain their own projection.
+func projectLocalDeviceOperator(ctx context.Context, store controlplane.AuthStore, claims authsession.Claims) error {
+	if _, err := store.UpsertUser(ctx, controlplane.User{
+		ID: claims.Subject, PrimaryEmail: claims.Email, DisplayName: "This device", Status: "active",
+	}); err != nil {
+		return err
+	}
+	_, err := store.UpsertMembership(ctx, controlplane.Membership{
+		ID: claims.TenantID + ":" + claims.Subject, TenantID: claims.TenantID, UserID: claims.Subject,
+		RoleKey: "admin", ProviderKey: "local", SubjectID: claims.Subject, Status: "active",
+	})
+	return err
+}
+
+func localDeviceSessionTenant(deps routeDeps) string {
+	if deps.v2 != nil && strings.TrimSpace(deps.v2.defaultTenant) != "" {
+		return strings.TrimSpace(deps.v2.defaultTenant)
+	}
+	return "default"
+}
+
+func localDeviceSessionCookieName(deps routeDeps) string {
+	if deps.v2 != nil && strings.TrimSpace(deps.v2.cookieName) != "" {
+		return strings.TrimSpace(deps.v2.cookieName)
+	}
+	return authsession.DefaultSessionCookieName
+}
+
+// localDeviceSessionDamper applies brute-force damping to the device-token
+// check: after localDeviceSessionMaxFailures consecutive failures the route
+// answers 429 until the cooldown elapses. A correct token resets the damper.
+type localDeviceSessionDamper struct {
+	mu           sync.Mutex
+	failures     int
+	blockedUntil time.Time
+}
+
+const (
+	localDeviceSessionMaxFailures = 5
+	localDeviceSessionCooldown    = time.Minute
+)
+
+var localDeviceSessionAttempts = &localDeviceSessionDamper{}
+
+func (d *localDeviceSessionDamper) allow() bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return !time.Now().Before(d.blockedUntil)
+}
+
+func (d *localDeviceSessionDamper) fail() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.failures++
+	if d.failures >= localDeviceSessionMaxFailures {
+		d.blockedUntil = time.Now().Add(localDeviceSessionCooldown)
+		d.failures = 0
+	}
+}
+
+func (d *localDeviceSessionDamper) reset() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.failures = 0
+	d.blockedUntil = time.Time{}
+}
+
+func localDeviceTokenMatches(provided, expected string) bool {
+	provided = strings.TrimSpace(provided)
+	expected = strings.TrimSpace(expected)
+	if provided == "" || expected == "" || len(provided) != len(expected) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(provided), []byte(expected)) == 1
+}
+
+func localDeviceSessionLoopback(r *http.Request) bool {
+	if r == nil {
+		return false
+	}
+	host, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr))
+	if err != nil {
+		host = strings.TrimSpace(r.RemoteAddr)
+	}
+	host = strings.Trim(host, "[]")
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
+// Reads the same stored grants as the browser path for the exact signed OBO.
+// Never bootstraps membership, rebinds a tenant or derives access from a tier.
+// managedServersHeldCounter backs the Cloud budget-usage read with the same
+// reservation count managed-runtime admission enforces. Without provider
+// control there is no count, and the route answers 503 instead of zero.
+func managedServersHeldCounter(database *sql.DB, authorities ...any) routes.ManagedServersHeldFunc {
+	for _, authority := range authorities {
+		if remote, ok := authority.(*executioncustody.Remote); ok {
+			return remote.HeldManagedServers
+		}
+	}
+	if database == nil {
+		return nil
+	}
+	return func(ctx context.Context, tenantID, ownerSubjectID string) (int, error) {
+		return providercontrol.HeldManagedRuntimeCapacity(ctx, database, tenantID, ownerSubjectID)
+	}
+}
+
+func runtimeSummaryAuthorizationContext(store controlplane.AuthStore) func(context.Context, string, string) (context.Context, string, error) {
+	return func(ctx context.Context, tenantID, subjectID string) (context.Context, string, error) {
+		if store == nil {
+			return nil, "", fmt.Errorf("runtime summary membership store unavailable")
+		}
+		personal := tenantID == canonicalOwnerTenantID(subjectID)
+		// denied records why a signed Cloud principal holds no membership here,
+		// without identifiers: the stage is what makes a 403 diagnosable.
+		denied := func(cause string) (context.Context, string, error) {
+			logger.Default().Warn("runtime_summary_membership_denied", "cause", cause, "personal_tenant", personal)
+			return nil, "", routes.ErrInventoryAccessDenied
+		}
+		membership, err := store.GetMembership(ctx, tenantID, subjectID)
+		if errors.Is(err, controlplane.ErrNotFound) && personal {
+			// Cloud signs the personal tenant for an identity without an
+			// organization claim, while the browser session resolves the same
+			// identity to its preferred membership (v2CloudTenantResolver). Follow
+			// that rung so both reads land in the same tenant. Only the signed
+			// subject's own active memberships are considered.
+			membership, err = preferredMembershipFromStore(ctx, store, subjectID), nil
+			if membership == nil {
+				return denied("no_membership")
+			}
+		}
+		if errors.Is(err, controlplane.ErrNotFound) {
+			return denied("no_membership_in_signed_tenant")
+		}
+		if err != nil {
+			return nil, "", err
+		}
+		resolvedTenant := strings.TrimSpace(membership.TenantID)
+		if membership.UserID != subjectID || resolvedTenant == "" {
+			return denied("membership_mismatch")
+		}
+		if !strings.EqualFold(strings.TrimSpace(membership.Status), "active") {
+			return denied("membership_inactive")
+		}
+		if resolvedTenant != tenantID && !personal {
+			return denied("tenant_mismatch")
+		}
+		return contextWithMembershipAuthorization(ctx, membership), resolvedTenant, nil
+	}
+}
+
+// The connector read consumer reuses current inventory policy and stored
+// membership grants; it never borrows Guard or completed-setup approval.
+func applicationConnectorRefreshAuthorization(store controlplane.AuthStore, policy routes.InventoryPolicy, hosted bool) func(context.Context, string, string, string) error {
+	return func(ctx context.Context, tenantID, ownerID, serverID string) error {
+		if policy == nil {
+			return routes.ErrInventoryAccessDenied
+		}
+		authorized := ctx
+		if hosted {
+			if store == nil {
+				return routes.ErrInventoryAccessDenied
+			}
+			membership, err := store.GetMembership(ctx, tenantID, ownerID)
+			if err != nil || membership == nil || membership.TenantID != tenantID || membership.UserID != ownerID || !strings.EqualFold(membership.Status, "active") {
+				return routes.ErrInventoryAccessDenied
+			}
+			// A retained request grant cannot hide a current membership downgrade.
+			grants := stringSliceFromAny(membership.Metadata["entitlements"])
+			hasRead := false
+			for _, grant := range grants {
+				if grant == routes.InventoryEntitlementRead || grant == routes.InventoryEntitlementAdmin {
+					hasRead = true
+				}
+			}
+			if !hasRead {
+				return routes.ErrInventoryAccessDenied
+			}
+			authorized = contextWithMembershipAuthorization(ctx, membership)
+		}
+		decision, err := policy.AuthorizeInventory(authorized, routes.InventoryAuthorization{TenantID: tenantID, SubjectID: ownerID, ResourceType: controlplane.InventoryReadTargetServer, ResourceID: serverID, Action: routes.InventoryActionRead})
+		if err != nil {
+			return err
+		}
+		if decision.ReadScope.TenantID() != tenantID || (decision.ReadScope.IsOwnerScoped() && decision.ReadScope.OwnerSubjectID() != ownerID) || !decision.ReadScope.AuthorizesTarget(controlplane.InventoryReadTargetServer, serverID) {
+			return routes.ErrInventoryAccessDenied
+		}
+		return nil
+	}
+}
+
+// serverWalletWithdrawer is the Wallet's withdraw of a detached server, or
+// nil without a configured kombify Wallet.
+func serverWalletWithdrawer(wallet *kombifywallet.Client) routes.ServerWalletWithdrawer {
+	if !wallet.Enabled() {
+		return nil
+	}
+	return wallet
+}

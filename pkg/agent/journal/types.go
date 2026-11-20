@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardcompat"
+	"github.com/kombifyio/homelab/pkg/guardcompat"
 )
 
 // SchemaVersion is the on-disk format this build reads and writes. A journal

@@ -9,13 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/guardbootstrap"
-	"github.com/kombifyio/techstack/internal/providercatalog"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/serverruntime"
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/identity"
-	"github.com/kombifyio/techstack/pkg/vmleases"
+	"github.com/kombifyio/homelab/internal/guardbootstrap"
+	"github.com/kombifyio/homelab/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 )
 
 const (
@@ -36,11 +36,11 @@ var decommissionRuntimeRetryDelays = []time.Duration{
 const (
 	ManagedRuntimeEntitlementDeniedMessage = "Managed monthly runtime is not enabled for this account"
 	ManagedRuntimeEntitlementErrorCode     = "managed_runtime_feature_disabled"
-	ManagedRuntimeCapability               = FeatureTechStackManagedRuntime
-	FeatureTechStackManagedRuntime         = "techstack.managed.runtime"
-	FeatureTechStackManagedRuntimeCloudKit = "techstack.managed.runtime.cloudkit"
-	FeatureTechStackManagedRuntimeCentron  = "techstack.managed.runtime.centron"
-	FeatureTechStackManagedRuntimeIONOS    = "techstack.managed.runtime.ionos"
+	ManagedRuntimeCapability               = FeatureHomelabManagedRuntime
+	FeatureHomelabManagedRuntime           = "homelab.managed.runtime"
+	FeatureHomelabManagedRuntimeCloudKit   = "homelab.managed.runtime.cloudkit"
+	FeatureHomelabManagedRuntimeCentron    = "homelab.managed.runtime.centron"
+	FeatureHomelabManagedRuntimeIONOS      = "homelab.managed.runtime.ionos"
 	EntitlementReasonCheckerUnavailable    = "feature_checker_unavailable"
 	EntitlementReasonFeatureDisabled       = "required_feature_disabled"
 	EntitlementReasonFeatureCheckFailed    = "feature_check_failed"
@@ -53,7 +53,7 @@ var (
 	ErrInvalidLease                     = errors.New("monthlyruntime: lease is not a monthly runtime lease")
 	ErrEnrollmentPending                = errors.New("monthlyruntime: lease is not enrolled")
 	ErrRuntimeClient                    = errors.New("monthlyruntime: managed runtime client not configured")
-	ErrExecutionAuthorityInactive       = errors.New("monthlyruntime: lease is not active under TechStack provider control")
+	ErrExecutionAuthorityInactive       = errors.New("monthlyruntime: lease is not active under Homelab Runtime provider control")
 	ErrCustodyResolutionConfirmation    = errors.New("monthlyruntime: custody resolution requires explicit provider-cleanup confirmation")
 	ErrCustodyResolutionProviderManaged = errors.New("monthlyruntime: provider-managed custody must be decommissioned through provider control")
 	// ErrDecommissionJournalUnavailable prevents a confirmed provider teardown
@@ -166,13 +166,13 @@ type Service struct {
 
 func RequiredFeatureKeysForProvider(providerID string) []string {
 	featureKeys := []string{
-		FeatureTechStackManagedRuntime,
-		FeatureTechStackManagedRuntimeCloudKit,
+		FeatureHomelabManagedRuntime,
+		FeatureHomelabManagedRuntimeCloudKit,
 	}
 	if providerID == ProviderIONOS {
-		featureKeys = append(featureKeys, FeatureTechStackManagedRuntimeIONOS)
+		featureKeys = append(featureKeys, FeatureHomelabManagedRuntimeIONOS)
 	} else {
-		featureKeys = append(featureKeys, FeatureTechStackManagedRuntimeCentron)
+		featureKeys = append(featureKeys, FeatureHomelabManagedRuntimeCentron)
 	}
 	return featureKeys
 }
@@ -361,7 +361,7 @@ func (s *Service) ResolveCustody(ctx context.Context, req CustodyResolutionReque
 	if strings.TrimSpace(lease.Metadata["custody_resolution_status"]) == "resolved" {
 		return custodyResolutionResponse(tenantID, *lease), nil
 	}
-	if record.ExecutionAuthority == vmleases.LeaseExecutionAuthorityTechStackProviderControl {
+	if record.ExecutionAuthority == vmleases.LeaseExecutionAuthorityHomelabProviderControl {
 		return nil, ErrCustodyResolutionProviderManaged
 	}
 	legacyCustody := record.AuthorityState == vmleases.LeaseAuthorityStateUnbound ||
@@ -486,7 +486,7 @@ func (s *Service) prepareAction(ctx context.Context, req ActionRequest) (*prepar
 //
 // Runtime may be the native Runtime Inventory projection in production or a
 // bounded legacy client in tests/self-hosted compatibility paths. Provider
-// mutations never depend on that client: Techstack provider control remains the
+// mutations never depend on that client: Homelab provider control remains the
 // sole executable authority.
 //
 // Native ordinary and forced decommission enqueue generation-bound provider
@@ -565,7 +565,7 @@ func (s *Service) loadAuthorizedActionLease(ctx context.Context, req ActionReque
 }
 
 func nativeInactiveDecommissionContinuation(record vmleases.LeaseInventoryRecord, req ActionRequest) bool {
-	return record.ExecutionAuthority == vmleases.LeaseExecutionAuthorityTechStackProviderControl &&
+	return record.ExecutionAuthority == vmleases.LeaseExecutionAuthorityHomelabProviderControl &&
 		record.AuthorityState == vmleases.LeaseAuthorityStateNativeInactive &&
 		req.Action == serverruntime.RuntimeActionDecommission &&
 		req.Internal &&
@@ -574,7 +574,7 @@ func nativeInactiveDecommissionContinuation(record vmleases.LeaseInventoryRecord
 }
 
 func ownerProviderControlDecommission(record vmleases.LeaseInventoryRecord, req ActionRequest) bool {
-	return record.ExecutionAuthority == vmleases.LeaseExecutionAuthorityTechStackProviderControl &&
+	return record.ExecutionAuthority == vmleases.LeaseExecutionAuthorityHomelabProviderControl &&
 		req.Action == serverruntime.RuntimeActionDecommission
 }
 

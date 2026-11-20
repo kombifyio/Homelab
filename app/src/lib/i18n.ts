@@ -1,6 +1,6 @@
 import { connectMessages } from "./connect-messages";
 /**
- * kombify-TechStack Internationalization (i18n)
+ * kombify-Homelab Internationalization (i18n)
  *
  * Simple translation system with English as default language.
  * Locale resolution: explicit choice stored on this device, then the browser
@@ -232,7 +232,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "hostBaseline.noListeners":
       "No listeners were reported in the observed scope. Stopped applications and other namespaces may still reserve bindings.",
     "hostBaseline.recheck":
-      "Before execution, Techstack and StackKits check the required bindings again. A conflict needs a supported configuration change, another server, or a reviewed migration; an open port does not prove public reachability.",
+      "Before execution, Homelab Runtime and StackKits check the required bindings again. A conflict needs a supported configuration change, another server, or a reviewed migration; an open port does not prove public reachability.",
     "hostBaseline.refresh": "Refresh inventory",
     "hostBaseline.review": "Review all ports and services",
 
@@ -266,7 +266,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "wizard.server.hypervisor.help":
       "Uses your connected Proxmox and its existing storage and network.",
     "wizard.server.hypervisor.standard":
-      "Ubuntu LTS runs your StackKits core in a separate VM. Techstack prepares and connects the guest automatically.",
+      "Ubuntu LTS runs your StackKits core in a separate VM. Homelab Runtime prepares and connects the guest automatically.",
     "wizard.server.hypervisor.appliance":
       "Home Assistant OS uses a separate appliance VM. The Ubuntu guest continues to run the core and other services.",
     "wizard.server.hypervisor.host": "Connected Proxmox server",
@@ -303,7 +303,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "wizard.server.hypervisor.authorizeFailed":
       "Guest management could not be enabled. Check the Guard's local Proxmox configuration and refresh.",
     "wizard.server.hypervisor.progress":
-      "Techstack is preparing the Ubuntu guest on your connected Proxmox, then enrolling it and running the selected StackKit. Progress resumes with the same operation.",
+      "Homelab Runtime is preparing the Ubuntu guest on your connected Proxmox, then enrolling it and running the selected StackKit. Progress resumes with the same operation.",
     // Navigation
     "nav.dashboard": "Dashboard",
     "nav.monitoring": "Monitoring",
@@ -360,7 +360,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboarding.ui.introduction.skip": "Skip the tour",
     "onboarding.ui.introduction.close": "Close",
     "introduction.restart": "Replay the introduction",
-    "introduction.welcome.title": "Welcome to your Techstack",
+    "introduction.welcome.title": "Welcome to your Homelab",
     "introduction.welcome.body":
       "Choose what you want to run, connect your own server and follow the setup to a verified service. Your configuration stays editable. Health, logs and next actions help you look after it once it is running.",
     "introduction.welcome.name_label":
@@ -379,33 +379,33 @@ export const translations: Record<Locale, Record<string, string>> = {
     "introduction.account.title": "Settings sit behind your name",
     "introduction.account.body":
       "Theme, help and your account live here — and this is where you replay this introduction. You can personalize the appearance here whenever you like.",
-    "onboarding.techstack_platform.techstack_find_stackkit.title":
+    "onboarding.homelab_platform.homelab_find_stackkit.title":
       "Pick a StackKit",
-    "onboarding.techstack_platform.techstack_find_stackkit.body":
+    "onboarding.homelab_platform.homelab_find_stackkit.body":
       "A StackKit is a ready-made set of services. Browse them and pick the one closest to what you want to run.",
-    "onboarding.techstack_platform.techstack_find_stackkit.cta":
+    "onboarding.homelab_platform.homelab_find_stackkit.cta":
       "Browse StackKits",
-    "onboarding.techstack_platform.techstack_configure_intent.title":
+    "onboarding.homelab_platform.homelab_configure_intent.title":
       "Say what it is for",
-    "onboarding.techstack_platform.techstack_configure_intent.body":
+    "onboarding.homelab_platform.homelab_configure_intent.body":
       "Answer a few questions about what you want to host. kombify turns the answers into a configuration you can review.",
-    "onboarding.techstack_platform.techstack_configure_intent.cta":
+    "onboarding.homelab_platform.homelab_configure_intent.cta":
       "Open the wizard",
-    "onboarding.techstack_platform.techstack_deploy_stackkit.title":
+    "onboarding.homelab_platform.homelab_deploy_stackkit.title":
       "Deploy your StackKit",
-    "onboarding.techstack_platform.techstack_deploy_stackkit.body":
+    "onboarding.homelab_platform.homelab_deploy_stackkit.body":
       "Confirm the plan and let kombify deploy the StackKit to your Homelab. This step ticks itself off once your Homelab is set up.",
-    "onboarding.techstack_platform.techstack_deploy_stackkit.cta":
+    "onboarding.homelab_platform.homelab_deploy_stackkit.cta":
       "Continue setup",
-    "onboarding.techstack_platform.techstack_add_server.title": "Add a server",
-    "onboarding.techstack_platform.techstack_add_server.body":
+    "onboarding.homelab_platform.homelab_add_server.title": "Add a server",
+    "onboarding.homelab_platform.homelab_add_server.body":
       "Connect a server you own, or let kombify run one for you. Your services need somewhere to live.",
-    "onboarding.techstack_platform.techstack_add_server.cta": "Add a server",
-    "onboarding.techstack_platform.techstack_deploy_service.title":
+    "onboarding.homelab_platform.homelab_add_server.cta": "Add a server",
+    "onboarding.homelab_platform.homelab_deploy_service.title":
       "Open your first service",
-    "onboarding.techstack_platform.techstack_deploy_service.body":
+    "onboarding.homelab_platform.homelab_deploy_service.body":
       "Once a service is running you can reach it from the services list. That is the point of all of this.",
-    "onboarding.techstack_platform.techstack_deploy_service.cta":
+    "onboarding.homelab_platform.homelab_deploy_service.cta":
       "Go to services",
     "onboarding.denied.policy_selfhost_byos.title":
       "kombify-managed servers are a Cloud feature",
@@ -436,10 +436,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "common.recommended": "recommended",
 
     // Wizard
-    "wizard.title": "Create Techstack",
+    "wizard.title": "Create Homelab Runtime",
     "wizard.selfDisclosure.review.title": "Use the answers from this link?",
     "wizard.selfDisclosure.review.body":
-      "The link you opened carries these answers about you. Techstack saves them to your profile and uses them for your recommendations only when you choose “Use these answers”. Nothing is saved yet.",
+      "The link you opened carries these answers about you. Homelab Runtime saves them to your profile and uses them for your recommendations only when you choose “Use these answers”. Nothing is saved yet.",
     "wizard.selfDisclosure.review.notes": "Anything else? (optional)",
     "wizard.selfDisclosure.review.notesHint":
       "Hardware details, special wishes or what worries you, in your own words.",
@@ -591,7 +591,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "wizard.goals.everything.tip":
       "We pick what suits your experience and hardware. You can untick anything.",
     "wizard.goals.tipText":
-      "If you're unsure, pick just one goal. kombify-Techstack stays a single system and you can add more services later. Need more settings? Try advanced settings below.",
+      "If you're unsure, pick just one goal. kombify-Homelab stays a single system and you can add more services later. Need more settings? Try advanced settings below.",
     "wizard.goals.advancedTitle": "Advanced use cases",
     "wizard.goals.showMoreDetails": "Show more details",
     "wizard.goals.showLessDetails": "Show less",
@@ -971,7 +971,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "wizard.login.passkey.description":
       "Password-free owner login with a device passkey",
     "wizard.login.passkey.help":
-      "Pocket ID exposes the first-passkey handoff after rollout; no passkey secret enters Techstack.",
+      "Pocket ID exposes the first-passkey handoff after rollout; no passkey secret enters Homelab.",
     "wizard.login.password.title": "TinyAuth gateway credential",
     "wizard.login.password.description":
       "Optional break-glass protection for the application gateway",
@@ -1220,7 +1220,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "hostBaseline.noListeners":
       "Im erfassten Bereich wurden keine Listener gemeldet. Gestoppte Anwendungen und andere Namespaces können weiterhin Bindungen beanspruchen.",
     "hostBaseline.recheck":
-      "Vor der Ausführung prüfen Techstack und StackKits die benötigten Bindungen erneut. Bei Konflikten braucht es eine unterstützte Konfigurationsänderung, einen anderen Server oder eine geprüfte Migration. Ein offener Port bestätigt keine öffentliche Erreichbarkeit.",
+      "Vor der Ausführung prüfen Homelab Runtime und StackKits die benötigten Bindungen erneut. Bei Konflikten braucht es eine unterstützte Konfigurationsänderung, einen anderen Server oder eine geprüfte Migration. Ein offener Port bestätigt keine öffentliche Erreichbarkeit.",
     "hostBaseline.refresh": "Bestand aktualisieren",
     "hostBaseline.review": "Alle Ports und Dienste prüfen",
 
@@ -1254,7 +1254,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "wizard.server.hypervisor.help":
       "Nutzt dein verbundenes Proxmox mit vorhandenem Speicher und Netzwerk.",
     "wizard.server.hypervisor.standard":
-      "Ubuntu LTS betreibt den StackKits-Core in einer eigenen VM. Techstack bereitet den Gast vor und verbindet ihn automatisch.",
+      "Ubuntu LTS betreibt den StackKits-Core in einer eigenen VM. Homelab Runtime bereitet den Gast vor und verbindet ihn automatisch.",
     "wizard.server.hypervisor.appliance":
       "Home Assistant OS bekommt eine separate Appliance-VM. Der Ubuntu-Gast betreibt weiterhin den Core und weitere Dienste.",
     "wizard.server.hypervisor.host": "Verbundener Proxmox-Server",
@@ -1291,7 +1291,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "wizard.server.hypervisor.authorizeFailed":
       "Die Gastverwaltung konnte nicht aktiviert werden. Prüfe die lokale Proxmox-Konfiguration des Guards und aktualisiere die Liste.",
     "wizard.server.hypervisor.progress":
-      "Techstack bereitet den Ubuntu-Gast auf deinem verbundenen Proxmox vor, verbindet ihn und führt das gewählte StackKit aus. Die Fortsetzung verwendet denselben Vorgang.",
+      "Homelab Runtime bereitet den Ubuntu-Gast auf deinem verbundenen Proxmox vor, verbindet ihn und führt das gewählte StackKit aus. Die Fortsetzung verwendet denselben Vorgang.",
     // Navigation
     "nav.dashboard": "Dashboard",
     "nav.monitoring": "Monitoring",
@@ -1347,9 +1347,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboarding.ui.introduction.skip": "Tour überspringen",
     "onboarding.ui.introduction.close": "Schließen",
     "introduction.restart": "Einführung wiederholen",
-    "introduction.welcome.title": "Willkommen in deinem Techstack",
+    "introduction.welcome.title": "Willkommen in deinem Homelab",
     "introduction.welcome.body":
-      "Techstack ist die Leitstelle für dein Homelab. Es orchestriert deine eigenen Server, rollt fertige StackKits darauf aus und hält jeden laufenden Dienst — mit Zustand, Logs und Kosten — auf einem Bildschirm. Hardware und Daten bleiben bei dir; Techstack macht die Verkabelung.",
+      "Homelab Runtime ist die Leitstelle für dein Homelab. Es orchestriert deine eigenen Server, rollt fertige StackKits darauf aus und hält jeden laufenden Dienst — mit Zustand, Logs und Kosten — auf einem Bildschirm. Hardware und Daten bleiben bei dir; Homelab Runtime macht die Verkabelung.",
     "introduction.welcome.name_label":
       "Das Wichtigste zuerst: Wie sollen wir diesen Ort nennen?",
     "introduction.welcome.name_hint":
@@ -1367,35 +1367,35 @@ export const translations: Record<Locale, Record<string, string>> = {
     "introduction.account.title": "Einstellungen liegen hinter deinem Namen",
     "introduction.account.body":
       "Design, Hilfe und dein Konto liegen hier — und hier startest du diese Einführung erneut. Das Aussehen kannst du hier jederzeit anpassen.",
-    "onboarding.techstack_platform.techstack_find_stackkit.title":
+    "onboarding.homelab_platform.homelab_find_stackkit.title":
       "StackKit auswählen",
-    "onboarding.techstack_platform.techstack_find_stackkit.body":
+    "onboarding.homelab_platform.homelab_find_stackkit.body":
       "Ein StackKit ist ein fertiges Bündel von Diensten. Sieh dir die Auswahl an und nimm das, was deinem Vorhaben am nächsten kommt.",
-    "onboarding.techstack_platform.techstack_find_stackkit.cta":
+    "onboarding.homelab_platform.homelab_find_stackkit.cta":
       "StackKits ansehen",
-    "onboarding.techstack_platform.techstack_configure_intent.title":
+    "onboarding.homelab_platform.homelab_configure_intent.title":
       "Sag, wofür es sein soll",
-    "onboarding.techstack_platform.techstack_configure_intent.body":
+    "onboarding.homelab_platform.homelab_configure_intent.body":
       "Beantworte ein paar Fragen zu deinem Vorhaben. kombify macht daraus eine Konfiguration, die du prüfen kannst.",
-    "onboarding.techstack_platform.techstack_configure_intent.cta":
+    "onboarding.homelab_platform.homelab_configure_intent.cta":
       "Assistent öffnen",
-    "onboarding.techstack_platform.techstack_deploy_stackkit.title":
+    "onboarding.homelab_platform.homelab_deploy_stackkit.title":
       "Bereitstellung fortsetzen",
-    "onboarding.techstack_platform.techstack_deploy_stackkit.body":
+    "onboarding.homelab_platform.homelab_deploy_stackkit.body":
       "Bestätige den Plan und lass kombify das StackKit in dein Homelab ausrollen. Dieser Schritt hakt sich selbst ab, sobald dein Homelab eingerichtet ist.",
-    "onboarding.techstack_platform.techstack_deploy_stackkit.cta":
+    "onboarding.homelab_platform.homelab_deploy_stackkit.cta":
       "Einrichtung fortsetzen",
-    "onboarding.techstack_platform.techstack_add_server.title":
+    "onboarding.homelab_platform.homelab_add_server.title":
       "Server hinzufügen",
-    "onboarding.techstack_platform.techstack_add_server.body":
+    "onboarding.homelab_platform.homelab_add_server.body":
       "Verbinde einen eigenen Server oder lass kombify einen betreiben. Deine Dienste brauchen einen Ort.",
-    "onboarding.techstack_platform.techstack_add_server.cta":
+    "onboarding.homelab_platform.homelab_add_server.cta":
       "Server hinzufügen",
-    "onboarding.techstack_platform.techstack_deploy_service.title":
+    "onboarding.homelab_platform.homelab_deploy_service.title":
       "Ersten Dienst öffnen",
-    "onboarding.techstack_platform.techstack_deploy_service.body":
+    "onboarding.homelab_platform.homelab_deploy_service.body":
       "Sobald ein Dienst läuft, erreichst du ihn über die Dienstliste. Darum geht es am Ende.",
-    "onboarding.techstack_platform.techstack_deploy_service.cta":
+    "onboarding.homelab_platform.homelab_deploy_service.cta":
       "Zu den Diensten",
     "onboarding.denied.policy_selfhost_byos.title":
       "Von kombify betriebene Server gibt es nur in der Cloud",
@@ -1426,11 +1426,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "common.recommended": "empfohlen",
 
     // Wizard
-    "wizard.title": "Techstack erstellen",
+    "wizard.title": "Homelab Runtime erstellen",
     "wizard.selfDisclosure.review.title":
       "Die Angaben aus diesem Link übernehmen?",
     "wizard.selfDisclosure.review.body":
-      "Der Link, den du geöffnet hast, enthält diese Angaben über dich. Techstack speichert sie in deinem Profil und nutzt sie für deine Empfehlungen nur, wenn du „Angaben übernehmen“ wählst. Noch ist nichts gespeichert.",
+      "Der Link, den du geöffnet hast, enthält diese Angaben über dich. Homelab Runtime speichert sie in deinem Profil und nutzt sie für deine Empfehlungen nur, wenn du „Angaben übernehmen“ wählst. Noch ist nichts gespeichert.",
     "wizard.selfDisclosure.review.notes": "Sonst noch etwas? (optional)",
     "wizard.selfDisclosure.review.notesHint":
       "Hardware-Details, besondere Wünsche oder was dir Sorgen macht, in deinen eigenen Worten.",
@@ -1585,7 +1585,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "wizard.goals.everything.tip":
       "Wir wählen, was zu deiner Erfahrung und deiner Hardware passt. Abwählen geht jederzeit.",
     "wizard.goals.tipText":
-      "Wenn du unsicher bist, wähle nur ein Ziel. kombify-Techstack bleibt ein einzelnes System und du kannst später weitere Dienste hinzufügen. Mehr Einstellungen? Probiere die erweiterten Einstellungen unten.",
+      "Wenn du unsicher bist, wähle nur ein Ziel. kombify-Homelab bleibt ein einzelnes System und du kannst später weitere Dienste hinzufügen. Mehr Einstellungen? Probiere die erweiterten Einstellungen unten.",
     "wizard.goals.advancedTitle": "Erweiterte Use Cases",
     "wizard.goals.showMoreDetails": "Mehr Details anzeigen",
     "wizard.goals.showLessDetails": "Weniger anzeigen",
@@ -1971,7 +1971,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "wizard.login.passkey.description":
       "Passwortloser Owner-Login mit einem Geräte-Passkey",
     "wizard.login.passkey.help":
-      "Pocket ID zeigt nach dem Rollout die Einrichtung des ersten Passkeys; kein Passkey-Geheimnis gelangt in Techstack.",
+      "Pocket ID zeigt nach dem Rollout die Einrichtung des ersten Passkeys; kein Passkey-Geheimnis gelangt in Homelab.",
     "wizard.login.password.title": "TinyAuth-Gateway-Zugang",
     "wizard.login.password.description":
       "Optionaler Break-Glass-Schutz für das Anwendungs-Gateway",
@@ -2189,7 +2189,7 @@ const localeInfos: LocaleInfo[] = [
   { code: "ar", name: "العربية", dir: "rtl" },
 ];
 
-const LOCALE_STORAGE_KEY = "techstack-locale";
+const LOCALE_STORAGE_KEY = "homelab-locale";
 
 export function isLocale(value: unknown): value is Locale {
   return localeInfos.some((info) => info.code === value);

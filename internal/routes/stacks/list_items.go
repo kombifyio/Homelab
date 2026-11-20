@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 //nolint:goconst // Response keys intentionally mirror the stacks API schema.

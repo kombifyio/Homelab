@@ -177,7 +177,9 @@ func TestCommandAuthorityGenerationAdmitsGenerationZeroOnlyWithBoundHostKey(t *t
 		return Worker{ID: "w", TenantID: "t", Capabilities: map[string]any{"identity_binding": binding}, Resources: resources}
 	}
 	identity := func(state string) func() (*WorkerIdentity, error) {
-		return func() (*WorkerIdentity, error) { return &WorkerIdentity{TenantID: "t", WorkerID: "w", State: state}, nil }
+		return func() (*WorkerIdentity, error) {
+			return &WorkerIdentity{TenantID: "t", WorkerID: "w", State: state}, nil
+		}
 	}
 	foreign := func() (*WorkerIdentity, error) {
 		return &WorkerIdentity{TenantID: "other", WorkerID: "w", State: WorkerIdentityBound}, nil

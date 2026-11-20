@@ -1,7 +1,7 @@
-// Package stackkitsupdate is Techstack's StackKits update management
+// Package stackkitsupdate is Homelab's StackKits update management
 // (D-2026-11-02-03, GUARD-RELIABILITY-SECURITY-TARGET.md §4.5): it proposes a
 // node's pending StackKits release with highlights from the release notes and
-// decides when Techstack starts the governed upgrade without a click. The
+// decides when Homelab starts the governed upgrade without a click. The
 // Guard never decides; it runs the upgrade, verifies it and rolls it back.
 package stackkitsupdate
 
@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/controlplane"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
 // UseCase is a use case activated on a node and every name a release note
@@ -85,7 +85,7 @@ type Security struct {
 	// AffectedApps are the apps the security notes name.
 	AffectedApps []string `json:"affected_apps"`
 	// AffectsNode is true when a security note names an app activated on this
-	// node or all nodes: Techstack then starts the update without approval.
+	// node or all nodes: Homelab then starts the update without approval.
 	AffectsNode bool     `json:"affects_node"`
 	Changes     []Change `json:"changes"`
 }
@@ -159,7 +159,7 @@ func Propose(notes stackkitrelease.ReleaseNotes, activated []UseCase, installed,
 	return proposal
 }
 
-// Start says why Techstack starts a node's pending update without a click.
+// Start says why Homelab starts a node's pending update without a click.
 type Start string
 
 const (
@@ -172,7 +172,7 @@ const (
 	StartSecurity Start = controlplane.StackKitsUpdateTriggerSecurity
 )
 
-// Decide whether Techstack starts the pending update itself. A release is
+// Decide whether Homelab starts the pending update itself. A release is
 // started at most once this way and never after the owner already ran it:
 // a failed update waits for the owner's Approve.
 func Decide(behavior string, proposal Proposal, attempt *controlplane.WorkerStackKitsUpdateAttempt, target *controlplane.WorkerStackKitsTarget) Start {

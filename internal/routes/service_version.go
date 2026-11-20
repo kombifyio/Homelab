@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/appcatalog"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/serviceregistry"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/appcatalog"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/serviceregistry"
 )
 
 const (
@@ -110,7 +110,7 @@ func (h *serviceRuntimeHandlers) serviceVersionFor(ctx context.Context, service 
 // service changes version only with its stack's StackKits release, so its
 // update is the governed stack upgrade (`update` action): it is offered when
 // the server's Guard runs an older StackKits release than the published one
-// Techstack withholds from it. Current and latest are then both StackKits
+// Homelab withholds from it. Current and latest are then both StackKits
 // releases (source `stackkit`), never an image tag compared with a CLI
 // release. The withheld release must be exactly the published release the
 // `update` action installs (pinned); while the Guard still reports another

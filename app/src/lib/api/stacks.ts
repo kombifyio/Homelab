@@ -1,5 +1,5 @@
 /**
- * kombify-TechStack API - StackKit deployment compatibility module
+ * kombify-Homelab API - StackKit deployment compatibility module
  *
  * The backend still exposes the legacy `/stacks` routes. Canonical consumers
  * use StackKit deployment names here; legacy names remain aliases at this one
@@ -130,7 +130,7 @@ async function postYamlSpec<T>(
 
 export interface KitDeployment {
   id: string;
-  /** Canonical Techstack identity for this StackKit rollout. */
+  /** Canonical Homelab identity for this StackKit rollout. */
   kit_deployment_id: string;
   /** Owner-scoped Homelab umbrella containing this rollout. */
   homelab_id?: string;
@@ -259,8 +259,8 @@ export function stackKitBackupResultMatchesScope(
 ): boolean {
   const result = backupRecord(jobResult);
   return (
-    result?.schema_version === "techstack.stackkit-lifecycle-result/v1" &&
-    result.techstack_id === stackId &&
+    result?.schema_version === "homelab.stackkit-lifecycle-result/v1" &&
+    result.kit_deployment_id === stackId &&
     result.agent_id === agentId &&
     result.operation === operation
   );
@@ -376,12 +376,12 @@ export function stackKitRestoreRequestDigest(
     backupRecord(jobResult)?.restore_activation_request,
   );
   if (
-    receipt?.schema_version !== "techstack.restore-activation-request/v1" ||
+    receipt?.schema_version !== "homelab.restore-activation-request/v1" ||
     receipt.owner_id !== actorId ||
     (tenantId && receipt.tenant_id !== tenantId) ||
     typeof receipt.tenant_id !== "string" ||
     !receipt.tenant_id ||
-    receipt.techstack_id !== binding.stackId ||
+    receipt.kit_deployment_id !== binding.stackId ||
     receipt.agent_id !== binding.agentId ||
     receipt.restore_result_id !== binding.restoreResultId ||
     receipt.node_id !== binding.nodeId ||
@@ -985,7 +985,7 @@ export interface StackRuntimeLifecyclePhase {
 }
 
 export interface StackRuntimeLifecycle {
-  version: "techstack.runtime-lifecycle/v1" | string;
+  version: "homelab.runtime-lifecycle/v1" | string;
   current_phase?: string;
   last_safe_checkpoint?: string;
   phases: StackRuntimeLifecyclePhase[];
@@ -1563,7 +1563,7 @@ export async function getMonthlyRuntimeOfferings(): Promise<
   );
 }
 
-/** Techstack's create protection for one provider and region of the account. */
+/** Homelab's create protection for one provider and region of the account. */
 export interface ManagedCreationPause {
   provider_id: string;
   region: string;

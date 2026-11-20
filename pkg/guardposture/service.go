@@ -15,7 +15,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/kombifyio/techstack/pkg/guardbinding"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
 )
 
 // RepairTarget addresses one repair command to a Guard.

@@ -32,7 +32,7 @@ func ensureDataDirCompatible(dataPath string) error {
 	}
 	have := strings.TrimSpace(string(raw))
 	if have != strings.SplitN(want, ".", 2)[0] {
-		return fmt.Errorf("local database in %s was written by PostgreSQL %s but this build bundles %s; nothing was changed, install the newer kombify Techstack client again or restore a copy of the state directory", dataPath, have, want)
+		return fmt.Errorf("local database in %s was written by PostgreSQL %s but this build bundles %s; nothing was changed, install the newer kombify Homelab Runtime client again or restore a copy of the state directory", dataPath, have, want)
 	}
 	return nil
 }

@@ -34,7 +34,7 @@ export function shouldAutoStartCloudLogin(options: {
 }): boolean {
   // Auth0 Universal Login is intentionally not frameable. Embedded callers
   // authenticate through the portal postMessage bridge and must never turn a
-  // missing Techstack cookie into an Auth0 navigation inside the iframe.
+  // missing Homelab cookie into an Auth0 navigation inside the iframe.
   if (options.embedded) {
     return false;
   }
@@ -90,7 +90,7 @@ export function buildV2ProviderLogoutPath(options: {
   deploymentMode: DeploymentMode;
   nextPath: string;
 }): string {
-  // The shared V2 handler clears only the Techstack browser cookie. SaaS must
+  // The shared V2 handler clears only the Homelab browser cookie. SaaS must
   // then traverse Auth0 Universal Login logout so the next visit cannot silently
   // reuse the upstream SSO session.
   const next =
@@ -120,12 +120,12 @@ export function sanitizeAuthReturnTo(raw: string | null | undefined): string {
 
   let parsed: URL;
   try {
-    parsed = new URL(value, "https://techstack.local");
+    parsed = new URL(value, "https://homelab.local");
   } catch {
     return fallback;
   }
 
-  if (parsed.origin !== "https://techstack.local") {
+  if (parsed.origin !== "https://homelab.local") {
     return fallback;
   }
 

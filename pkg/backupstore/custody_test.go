@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/kombifyio/techstack/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/auth"
 )
 
 func TestCustodyRequiresEncryptionKey(t *testing.T) {

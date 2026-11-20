@@ -9,9 +9,9 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"github.com/kombifyio/techstack/internal/guardbootstrap"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/internal/guardbootstrap"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
 )
 
 // PrepareManagedRuntimeTarget observes the existing first-boot baseline on the

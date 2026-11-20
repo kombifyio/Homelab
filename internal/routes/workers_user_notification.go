@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/usernotice"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/usernotice"
 )
 
 const workerUserNotificationBodyLimit int64 = 8 << 10

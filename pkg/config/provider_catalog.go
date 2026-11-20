@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const providerCatalogModeEnv = "TECHSTACK_PROVIDER_CATALOG_MODE"
+const providerCatalogModeEnv = "HOMELAB_PROVIDER_CATALOG_MODE"
 
 // ProviderCatalogMode selects the authority for managed-runtime provider
 // availability. Hosted lanes always use the control-plane catalog.

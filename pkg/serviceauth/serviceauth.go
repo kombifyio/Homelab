@@ -1,5 +1,5 @@
 // Package serviceauth applies the per-caller Ed25519 service identity
-// (AUTHENTICATION.md §8) to every servicecall.Config Techstack
+// (AUTHENTICATION.md §8) to every servicecall.Config Homelab
 // builds, so one environment decides how the whole process signs and verifies.
 //
 // The keys come from SERVICE_AUTH_ED25519_PRIVATE_KEY (this process as a
@@ -17,7 +17,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
 )
 
 type loaded struct {

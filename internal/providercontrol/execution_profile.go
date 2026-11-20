@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/providercatalog"
 	"github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 )
 

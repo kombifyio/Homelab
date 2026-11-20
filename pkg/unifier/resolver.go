@@ -4,7 +4,7 @@ package unifier
 import (
 	"fmt"
 
-	"github.com/kombifyio/techstack/pkg/core"
+	"github.com/kombifyio/homelab/pkg/core"
 )
 
 // Common StackKit identifiers used throughout the resolver.

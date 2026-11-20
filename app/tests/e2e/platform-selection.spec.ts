@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { authenticateRuntimeUser, authorizedFetch, captureGatewayApiSession } from "./runtime-auth";
 
-const productBase = (process.env.TECHSTACK_RUNTIME_E2E_PRODUCT_URL ?? process.env.PLAYWRIGHT_BASE_URL ?? "https://techstack.kombify.io").replace(/\/+$/, "");
+const productBase = (process.env.HOMELAB_RUNTIME_E2E_PRODUCT_URL ?? process.env.PLAYWRIGHT_BASE_URL ?? "https://homelab.kombify.io").replace(/\/+$/, "");
 
 test("new Marketplace intent hosts Files on Coolify with its required TLS policy", async ({ page }) => {
   await authenticateRuntimeUser("cloud", page, { productBase, apiBase: productBase });
@@ -12,7 +12,7 @@ test("new Marketplace intent hosts Files on Coolify with its required TLS policy
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ intent: {
-      schema: "techstack.wizard-intent/v1", run_kind: "first-run",
+      schema: "homelab.wizard-intent/v1", run_kind: "first-run",
       name: "platform-selection", goals: ["marketplace", "files"],
       kit_assignment: { mode: "found", kit_slug: "basement-kit" },
     } }),

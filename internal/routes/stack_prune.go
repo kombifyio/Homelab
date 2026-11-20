@@ -14,11 +14,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/routes/tenantguard"
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/monthlyruntime"
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
 )
 
 const (
@@ -79,7 +79,7 @@ func (h stackLifecycleRouteHandlers) pruneOrphanStacks(e *httpx.Event) error {
 	if err != nil {
 		return err
 	}
-	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "techstack.stacks.prune")
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.stacks.prune")
 	if tenantErr != nil {
 		return tenantErr
 	}
@@ -322,7 +322,7 @@ func stackPrunePlanDigest(tenantID, ownerID, targetID string, candidates []stack
 		OwnerID    string            `json:"owner_id"`
 		TargetID   string            `json:"target_id,omitempty"`
 		Candidates []digestCandidate `json:"candidates"`
-	}{Schema: "techstack.orphan-projection-cleanup/v1", TenantID: tenantID, OwnerID: ownerID, TargetID: targetID, Candidates: make([]digestCandidate, 0, len(candidates))}
+	}{Schema: "homelab.orphan-projection-cleanup/v1", TenantID: tenantID, OwnerID: ownerID, TargetID: targetID, Candidates: make([]digestCandidate, 0, len(candidates))}
 	for _, candidate := range candidates {
 		payload.Candidates = append(payload.Candidates, digestCandidate{
 			ResourceType: candidate.ResourceType, ID: candidate.ID, Name: candidate.Name, Class: candidate.Class, Reason: candidate.Reason, Revision: candidate.revision,

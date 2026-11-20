@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/portinventory"
-	"github.com/kombifyio/techstack/internal/providercontrol"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/jobs"
-	"github.com/kombifyio/techstack/pkg/releasechannel"
+	"github.com/kombifyio/homelab/internal/portinventory"
+	"github.com/kombifyio/homelab/internal/providercontrol"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/releasechannel"
 )
 
 const (
@@ -256,7 +256,7 @@ func (o *Orchestrator) rehydrateDueProviderDecommissionJob(
 	if rawSnapshot, exists := persisted.Result[jobs.PortTeardownSnapshotResultField]; exists {
 		portSnapshot, decodeErr := portinventory.DecodeTeardownSnapshot(rawSnapshot)
 		if decodeErr != nil || portSnapshot.TenantID != tenantID ||
-			portSnapshot.OwnerSubjectID != stack.ownerID || portSnapshot.TechstackID != stack.id {
+			portSnapshot.OwnerSubjectID != stack.ownerID || portSnapshot.KitDeploymentID != stack.id {
 			return fmt.Errorf("rehydrate provider-decommission job %s: invalid port teardown snapshot", persisted.ID)
 		}
 		result[jobs.PortTeardownSnapshotResultField] = portSnapshot

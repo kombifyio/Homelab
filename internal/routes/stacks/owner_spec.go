@@ -17,18 +17,18 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	tsauth "github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
-	"github.com/kombifyio/techstack/pkg/logger"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	tsauth "github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/logger"
 )
 
 const (
-	ownerSpecBootstrapTokenSecretEnv = "TECHSTACK_BOOTSTRAP_TOKEN_SECRET" // #nosec G101 -- environment variable name, not a secret value.
+	ownerSpecBootstrapTokenSecretEnv = "HOMELAB_BOOTSTRAP_TOKEN_SECRET" // #nosec G101 -- environment variable name, not a secret value.
 	ownerSpecBootstrapTokenTTL       = 15 * time.Minute
-	ownerSpecBootstrapTokenIssuer    = "techstack.owner-spec"
+	ownerSpecBootstrapTokenIssuer    = "homelab.owner-spec"
 	ownerSpecBootstrapTokenAudience  = "stackkit-admin-bootstrap"
 	ownerSpecReadScope               = "read:owner-spec"
 	ownerSpecAuditReasonKey          = "reason"
@@ -364,7 +364,7 @@ func ownerSpecBootstrapTokenSecret() []byte {
 	ownerSpecProcessSecretOnce.Do(func() {
 		ownerSpecProcessSecret = make([]byte, 32)
 		if _, err := rand.Read(ownerSpecProcessSecret); err != nil {
-			ownerSpecProcessSecret = []byte("techstack-owner-spec-dev-fallback")
+			ownerSpecProcessSecret = []byte("homelab-owner-spec-dev-fallback")
 		}
 	})
 	return ownerSpecProcessSecret

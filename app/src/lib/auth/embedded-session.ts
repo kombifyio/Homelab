@@ -107,7 +107,7 @@ async function refreshEmbeddedCloudSessionOnce(
   }
 
   // Prime the user's Auth0 token used by the data plane through the Cloudflare
-  // gateway (api.kombify.io/v1/techstack/*), so the edge can sign entitlement
+  // gateway (api.kombify.io/v1/homelab/*), so the edge can sign entitlement
   // flags. Best-effort: silent acquisition is expected to succeed (same-site
   // *.kombify.io). On failure the data plane fails closed per request rather
   // than downgrading to anonymous here.

@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/homelab/pkg/releasechannel"
 	"github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
-	"github.com/kombifyio/techstack/pkg/releasechannel"
 )
 
 const (
@@ -503,7 +503,7 @@ func (l *PostgresLedger) ListRunnableOperations(ctx context.Context, tenantID st
 			) AS runnable
 			ORDER BY updated_at ASC, operation_id ASC
 			LIMIT $4
-		`, tenantID, operationEnvelopeVersion, ExecutionAuthorityTechstackProviderControl, limit)
+		`, tenantID, operationEnvelopeVersion, ExecutionAuthorityHomelabProviderControl, limit)
 		if queryErr != nil {
 			return fmt.Errorf("providercontrol: list runnable operations: %w", queryErr)
 		}
@@ -2072,7 +2072,7 @@ func validateStoredOperationProjection(
 	operationID string,
 	record OperationRecord,
 ) error {
-	if err := requireExecutionAuthority(record, ExecutionAuthorityTechstackProviderControl); err != nil {
+	if err := requireExecutionAuthority(record, ExecutionAuthorityHomelabProviderControl); err != nil {
 		return err
 	}
 	if err := validateExecutionProfileSnapshot(record.ExecutionProfile, record.Command); err != nil {

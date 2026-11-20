@@ -3,13 +3,13 @@ package agent
 import (
 	"fmt"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 // ownApplicationLifecycleAvailable reports a pinned release whose catalog
-// dispatches every own-application.* operation Techstack sends.
+// dispatches every own-application.* operation Homelab sends.
 func ownApplicationLifecycleAvailable(catalog stackkitrelease.AdvancedOperationsCatalog) bool {
 	for _, operation := range stackkitcommand.OwnApplicationOperations() {
 		if catalog.Dispatchable(operation) != nil {
@@ -28,7 +28,7 @@ func writeCommandCapability(workDir string, command *agentpb.StackKitCommand) (s
 	if len(command.AdvancedCapability) > stackkitcommand.MaxAdvancedCapabilityBytes {
 		return "", nil, fmt.Errorf("StackKit capability exceeds %d bytes", stackkitcommand.MaxAdvancedCapabilityBytes)
 	}
-	path, err := writeStackKitPrivateFile(workDir, ".techstack-capability-*.json", command.AdvancedCapability)
+	path, err := writeStackKitPrivateFile(workDir, ".homelab-capability-*.json", command.AdvancedCapability)
 	if err != nil {
 		return "", nil, fmt.Errorf("write StackKit capability: %w", err)
 	}

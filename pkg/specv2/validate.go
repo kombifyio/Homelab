@@ -13,20 +13,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
 	"gopkg.in/yaml.v3"
 )
 
 const (
 	// StackKitCLIEnv names the development-only CLI override; production
 	// resolves the binary through the pinned-release admission instead.
-	StackKitCLIEnv = "TECHSTACK_STACKKIT_CLI"
+	StackKitCLIEnv = "HOMELAB_STACKKIT_CLI"
 	// CompatibilityManifestEnv points at the SHA-verified compatibility
 	// manifest published beside the exact StackKits release artifact.
-	CompatibilityManifestEnv = "TECHSTACK_STACKKIT_COMPATIBILITY_MANIFEST"
+	CompatibilityManifestEnv = "HOMELAB_STACKKIT_COMPATIBILITY_MANIFEST"
 
-	releasePinEnv   = "TECHSTACK_STACKKIT_RELEASE_PIN"
-	releaseCacheEnv = "TECHSTACK_STACKKIT_RELEASE_CACHE"
+	releasePinEnv   = "HOMELAB_STACKKIT_RELEASE_PIN"
+	releaseCacheEnv = "HOMELAB_STACKKIT_RELEASE_CACHE"
 
 	defaultValidateTimeout = 2 * time.Minute
 	validateOutputTail     = 4000
@@ -41,11 +41,11 @@ const (
 	// keeps as network.domain.base until its rollout binds an install zone.
 	platformAddressBase = "kombify.me"
 	// authoringInstallZone stands in for that zone in the scratch init only.
-	authoringInstallZone = "techstack-authoring." + platformAddressBase
+	authoringInstallZone = "homelab-authoring." + platformAddressBase
 )
 
 // SpecValidator is the acceptance authority for projected specs: the pinned
-// StackKits CLI's own `validate`, never a Techstack reimplementation.
+// StackKits CLI's own `validate`, never a Homelab reimplementation.
 type SpecValidator interface {
 	ValidateSpec(ctx context.Context, spec map[string]any) error
 }
@@ -345,7 +345,7 @@ func (v *CLIValidator) AuthorGoals(ctx context.Context, kitSlug, name, domainBas
 	}
 	runCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	// Init itself may select use cases; the kit-authoring overlay Techstack
+	// Init itself may select use cases; the kit-authoring overlay Homelab
 	// applies later is still only metadata.name and network.domain.base.
 	// --owner-source=local matches the image-authored seeds.
 	//

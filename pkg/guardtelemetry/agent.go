@@ -14,7 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/drivehealth"
+	"github.com/kombifyio/homelab/pkg/drivehealth"
 )
 
 const (

@@ -10,7 +10,7 @@ import (
 
 // deriveDomain separates derived pairing secrets from every other use of the
 // same seed. Changing it invalidates every previously derived token.
-const deriveDomain = "kombify-techstack/pairing-token-derivation/v1"
+const deriveDomain = "kombify-homelab/pairing-token-derivation/v1"
 
 // minimumSeedBytes rejects a seed that is too short to carry 256 bits of
 // entropy. A derived token is only as unguessable as its seed, so a missing or

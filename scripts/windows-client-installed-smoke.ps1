@@ -9,7 +9,7 @@ param(
     [ValidateRange(1024, 65525)]
     [int]$LocalPort = 5260,
     # portable: stage installer into an isolated user directory.
-    # setup: the shipped kombify-Techstack-Setup.exe (WiX/Burn chaining the
+    # setup: the shipped kombify-Homelab-Setup.exe (WiX/Burn chaining the
     # per-machine MSI) into its product location, then its uninstaller.
     [ValidateSet("portable", "setup")]
     [string]$Installer = "portable",
@@ -57,7 +57,7 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
     $Version = (& node (Join-Path $root "scripts/release-version.mjs") resolve $ExpectedRevision).Trim()
     if ($LASTEXITCODE -ne 0) { throw "Could not resolve the artifact version." }
 }
-$setupInstallDir = Join-Path $env:ProgramFiles "kombify\techstack"
+$setupInstallDir = Join-Path $env:ProgramFiles "kombify\homelab"
 if ($Installer -eq "setup") {
     if (![string]::IsNullOrWhiteSpace($InstallDir)) {
         throw "The shipped installer owns its install location; -InstallDir applies only to -Installer portable."
@@ -66,10 +66,10 @@ if ($Installer -eq "setup") {
         throw "The shipped installer uses the product's default local port 5260."
     }
     if (Test-Path -LiteralPath $setupInstallDir) {
-        throw "Refusing the setup smoke: kombify Techstack is already installed at $setupInstallDir."
+        throw "Refusing the setup smoke: kombify Homelab Runtime is already installed at $setupInstallDir."
     }
 } elseif ([string]::IsNullOrWhiteSpace($InstallDir)) {
-    $InstallDir = Join-Path $env:LOCALAPPDATA "Programs\kombify\techstack-smoke-$smokeId"
+    $InstallDir = Join-Path $env:LOCALAPPDATA "Programs\kombify\homelab-smoke-$smokeId"
 }
 if ([string]::IsNullOrWhiteSpace($StateDir)) {
     $StateDir = Join-Path $env:LOCALAPPDATA "kombify\techstack-client-smoke-$smokeId"
@@ -119,7 +119,7 @@ function Assert-NoReparsePointInBoundary([string]$Path, [string]$Root) {
 $allowedStateRoot = Get-NormalizedPath (Join-Path $env:LOCALAPPDATA "kombify")
 $allowedInstallRoot = Get-NormalizedPath (Join-Path $env:LOCALAPPDATA "Programs\kombify")
 $defaultProductState = Get-NormalizedPath (Join-Path $allowedStateRoot "techstack-client")
-$defaultProductInstall = Get-NormalizedPath (Join-Path $allowedInstallRoot "techstack")
+$defaultProductInstall = Get-NormalizedPath (Join-Path $allowedInstallRoot "homelab")
 $requestedState = Get-NormalizedPath $StateDir
 if (!(Test-StrictChildPath $requestedState $allowedStateRoot)) {
     throw "Refusing installed smoke state outside $allowedStateRoot`: $requestedState"
@@ -144,12 +144,12 @@ if ($Installer -eq "setup") {
     $InstallDir = $requestedInstall
 }
 $previousEnvironment = [ordered]@{
-    TECHSTACK_CLIENT_STATE_DIR = [Environment]::GetEnvironmentVariable('TECHSTACK_CLIENT_STATE_DIR')
+    HOMELAB_CLIENT_STATE_DIR = [Environment]::GetEnvironmentVariable('HOMELAB_CLIENT_STATE_DIR')
     WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = [Environment]::GetEnvironmentVariable('WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS')
-    TECHSTACK_SMOKE_BASE_URL = [Environment]::GetEnvironmentVariable('TECHSTACK_SMOKE_BASE_URL')
-    TECHSTACK_SMOKE_CDP_URL = [Environment]::GetEnvironmentVariable('TECHSTACK_SMOKE_CDP_URL')
-    TECHSTACK_SMOKE_MARKER_NAME = [Environment]::GetEnvironmentVariable('TECHSTACK_SMOKE_MARKER_NAME')
-    TECHSTACK_SMOKE_MARKER_CREATE = [Environment]::GetEnvironmentVariable('TECHSTACK_SMOKE_MARKER_CREATE')
+    HOMELAB_SMOKE_BASE_URL = [Environment]::GetEnvironmentVariable('HOMELAB_SMOKE_BASE_URL')
+    HOMELAB_SMOKE_CDP_URL = [Environment]::GetEnvironmentVariable('HOMELAB_SMOKE_CDP_URL')
+    HOMELAB_SMOKE_MARKER_NAME = [Environment]::GetEnvironmentVariable('HOMELAB_SMOKE_MARKER_NAME')
+    HOMELAB_SMOKE_MARKER_CREATE = [Environment]::GetEnvironmentVariable('HOMELAB_SMOKE_MARKER_CREATE')
 }
 
 $localOrigin = "http://127.0.0.1:$LocalPort"
@@ -162,11 +162,11 @@ $resetScript = Join-Path $root "scripts\reset-windows-client-state.ps1"
 $packageScript = Join-Path $root "scripts\package-windows-client.ps1"
 $installScript = Join-Path $root "dist\windows-client\stage\install-windows-client.ps1"
 if ([string]::IsNullOrWhiteSpace($SetupPath)) {
-    $SetupPath = Join-Path $root "dist\windows-client\kombify-Techstack-Setup.exe"
+    $SetupPath = Join-Path $root "dist\windows-client\kombify-Homelab-Setup.exe"
 }
-$clientExe = Join-Path $InstallDir "kombify-techstack-client.exe"
-$runtimeExe = Join-Path $InstallDir "techstack.exe"
-$firewallGroup = "kombify-techstack-smoke-$smokeId"
+$clientExe = Join-Path $InstallDir "kombify-homelab-client.exe"
+$runtimeExe = Join-Path $InstallDir "homelab.exe"
+$firewallGroup = "kombify-homelab-smoke-$smokeId"
 $updateRequested = $UpdateProof -ne "none"
 if ($PackageOnly -and ($Installer -ne 'setup' -or !$SkipPackage -or $KeepInstall -or $KeepState -or
     $BlockOutbound -or $updateRequested -or $B2ContextPath -or $B2HostPath)) {
@@ -189,14 +189,14 @@ if ($updateRequested) {
         [version]$UpdateVersion -le [version]$Version) { throw "The update must be a newer numeric public release." }
     $UpdateSetupPath = (Resolve-Path -LiteralPath $UpdateSetupPath).Path
 }
-$publicUpdateFeed = "https://github.com/kombifyio/TechStack/releases/latest/download/kombify-techstack-windows-update.json"
+$publicUpdateFeed = "https://github.com/kombifyio/Homelab/releases/latest/download/kombify-homelab-windows-update.json"
 $clientConfigPath = Join-Path $StateDir "client.json"
 $updatesDir = Join-Path $StateDir "updates"
 $pendingPath = Join-Path $updatesDir "pending.json"
 $updateObservations = $null
 $reenableFirewallProfiles = @()
 if ([string]::IsNullOrWhiteSpace($DiagnosticsDir)) {
-    $DiagnosticsDir = Join-Path ([IO.Path]::GetTempPath()) "kombify-techstack-smoke-$smokeId"
+    $DiagnosticsDir = Join-Path ([IO.Path]::GetTempPath()) "kombify-homelab-smoke-$smokeId"
 }
 New-Item -ItemType Directory -Force -Path $DiagnosticsDir | Out-Null
 
@@ -241,8 +241,8 @@ function Get-SmokeProcesses {
         $stateExecutable = $exe -and $exe.StartsWith($statePrefix, [StringComparison]::OrdinalIgnoreCase)
         $stateCommand = $cmd -and $cmd.IndexOf($statePrefix, [StringComparison]::OrdinalIgnoreCase) -ge 0
 
-        ($name -eq "kombify-techstack-client.exe" -and $installedExecutable) -or
-        ($name -eq "techstack.exe" -and $installedExecutable) -or
+        ($name -eq "kombify-homelab-client.exe" -and $installedExecutable) -or
+        ($name -eq "homelab.exe" -and $installedExecutable) -or
         ($name -eq "msedgewebview2.exe" -and $stateCommand) -or
         ($name -eq "postgres.exe" -and $stateExecutable) -or
         ($name -eq "cmd.exe" -and $stateCommand -and $cmd.IndexOf("postgres.exe", [StringComparison]::OrdinalIgnoreCase) -ge 0)
@@ -278,7 +278,7 @@ function Wait-Endpoint {
     param(
         [string]$Url,
         # The local runtime only binds its HTTP listener AFTER embedded Postgres
-        # is ready (TECHSTACK_EMBEDDED_POSTGRES_START_TIMEOUT_SECONDS=120),
+        # is ready (HOMELAB_EMBEDDED_POSTGRES_START_TIMEOUT_SECONDS=120),
         # then control-plane migrations and the
         # PocketBase data-layer bootstrap. The readiness poll must therefore
         # exceed the embedded-Postgres start budget with init headroom, or a slow
@@ -460,7 +460,7 @@ function Invoke-LocalUiSmoke {
         [switch]$CreateMarker
     )
 
-    $env:TECHSTACK_SMOKE_MARKER_CREATE = if ($CreateMarker) { "1" } else { "0" }
+    $env:HOMELAB_SMOKE_MARKER_CREATE = if ($CreateMarker) { "1" } else { "0" }
     Wait-Endpoint "http://127.0.0.1:$webViewDebugPort/json/version" | Out-Null
     Assert-WebViewDebugOwner -ClientProcessId $ClientProcessId
     $script = @'
@@ -469,8 +469,8 @@ const { chromium, expect } = require("@playwright/test");
 (async () => {
   // Attach to the installed shell's actual WebView and its native session.
   // No test-created browser context, cookie, or manual sign-in is involved.
-  const browser = await chromium.connectOverCDP(process.env.TECHSTACK_SMOKE_CDP_URL);
-  const baseURL = process.env.TECHSTACK_SMOKE_BASE_URL || "http://127.0.0.1:5260";
+  const browser = await chromium.connectOverCDP(process.env.HOMELAB_SMOKE_CDP_URL);
+  const baseURL = process.env.HOMELAB_SMOKE_BASE_URL || "http://127.0.0.1:5260";
   const context = browser.contexts()[0];
   const page = context.pages()[0] || await context.waitForEvent("page");
   await expect(page).toHaveURL(url => url.origin === baseURL &&
@@ -506,7 +506,7 @@ const { chromium, expect } = require("@playwright/test");
     const marker = items.find(item => item.name === name && item.has_secret === true);
     if (!marker) throw new Error("retained encrypted wallet item is missing");
     return marker.id;
-  }, { name: process.env.TECHSTACK_SMOKE_MARKER_NAME, create: process.env.TECHSTACK_SMOKE_MARKER_CREATE === "1" });
+  }, { name: process.env.HOMELAB_SMOKE_MARKER_NAME, create: process.env.HOMELAB_SMOKE_MARKER_CREATE === "1" });
   await context.route("**/*", route => {
     const url = new URL(route.request().url());
     return url.origin === baseURL ? route.continue() : route.abort("internetdisconnected");
@@ -580,7 +580,7 @@ function Invoke-ShippedSetup {
     if ($Action -eq "uninstall") { $arguments = @("/uninstall") + $arguments }
     $setup = Start-Process -FilePath $SetupPath -ArgumentList $arguments -Wait -PassThru
     if ($setup.ExitCode -notin @(0, 3010)) {
-        throw "kombify-Techstack-Setup.exe $Action failed with exit code $($setup.ExitCode)."
+        throw "kombify-Homelab-Setup.exe $Action failed with exit code $($setup.ExitCode)."
     }
 }
 
@@ -589,7 +589,7 @@ function Assert-PrivateLANEnrollmentFirewall {
     if ((Get-InstalledShellVersion) -ne $ExpectedShellVersion) {
         throw 'Enrollment firewall assertion requires the exact installed candidate shell.'
     }
-    $rules = @(Get-NetFirewallRule -DisplayName 'kombify Techstack private LAN enrollment' -ErrorAction Stop)
+    $rules = @(Get-NetFirewallRule -DisplayName 'kombify Homelab Runtime private LAN enrollment' -ErrorAction Stop)
     if ($rules.Count -ne 1) { throw 'Expected exactly one installed LAN enrollment firewall rule.' }
     $rule = $rules[0]
     $port = $rule | Get-NetFirewallPortFilter
@@ -622,7 +622,7 @@ function Enable-OutboundBlock {
     # embedded PostgreSQL stay reachable, every other destination is refused.
     $remote = @("0.0.0.0-126.255.255.255", "128.0.0.0-255.255.255.255", "::2-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
     foreach ($program in @($clientExe, $runtimeExe) + $webView) {
-        New-NetFirewallRule -DisplayName "kombify Techstack smoke offline $(Split-Path -Leaf $program)" `
+        New-NetFirewallRule -DisplayName "kombify Homelab Runtime smoke offline $(Split-Path -Leaf $program)" `
             -Group $firewallGroup -Direction Outbound -Action Block -Profile Any `
             -Program $program -RemoteAddress $remote | Out-Null
     }
@@ -654,7 +654,7 @@ function Assert-PublicUpdateFeed {
     $manifest = Invoke-RestMethod -Uri $publicUpdateFeed -TimeoutSec 30
     $digest = (Get-FileHash -Algorithm SHA256 -LiteralPath $UpdateSetupPath).Hash.ToLowerInvariant()
     if ($manifest.version -ne $UpdateVersion -or $manifest.channel -ne 'stable' -or
-        $manifest.package_url -ne "https://github.com/kombifyio/TechStack/releases/download/v$UpdateVersion/kombify-Techstack-Setup.exe" -or
+        $manifest.package_url -ne "https://github.com/kombifyio/Homelab/releases/download/v$UpdateVersion/kombify-Homelab-Setup.exe" -or
         $manifest.package_sha256 -ne $digest -or $manifest.package_size -ne (Get-Item -LiteralPath $UpdateSetupPath).Length) {
         throw "The public feed drifted from pinned update v$UpdateVersion; no other release is admitted."
     }
@@ -765,7 +765,7 @@ function Wait-InstalledRollback {
 
 function Get-InstalledClientProcess {
     $installPrefix = (Get-NormalizedPath $InstallDir) + [IO.Path]::DirectorySeparatorChar
-    return Get-CimInstance Win32_Process -Filter "Name = 'kombify-techstack-client.exe'" |
+    return Get-CimInstance Win32_Process -Filter "Name = 'kombify-homelab-client.exe'" |
         Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith($installPrefix, [StringComparison]::OrdinalIgnoreCase) } |
         Select-Object -First 1
 }
@@ -834,8 +834,8 @@ try {
         New-Item -ItemType Directory -Force -Path $StateDir | Out-Null
         Set-SmokeClientConfig @{ mode = 'local'; updateManifestUrl = $publicUpdateFeed; updateChannel = 'stable'; autoUpdate = $false }
         $updateObservations = [ordered]@{
-            schema = 'techstack.installed-update-observations/v2'
-            result = 'PENDING'; mode = $UpdateProof; repository = 'kombifyio/TechStack'
+            schema = 'homelab.installed-update-observations/v2'
+            result = 'PENDING'; mode = $UpdateProof; repository = 'kombifyio/Homelab'
             binding = if ($B2ContextPath) { Get-Content -Raw -LiteralPath $B2ContextPath | ConvertFrom-Json -AsHashtable } else { $null }
             host = if ($B2HostPath) { Get-Content -Raw -LiteralPath $B2HostPath | ConvertFrom-Json -AsHashtable } else { $null }
             statePath = $StateDir; smokeId = $smokeId; initialStateAbsent = $stateInitiallyAbsent
@@ -869,16 +869,16 @@ try {
         Enable-OutboundBlock
     }
 
-    $env:TECHSTACK_CLIENT_STATE_DIR = $StateDir
-    $env:TECHSTACK_SMOKE_BASE_URL = $localOrigin
-    $env:TECHSTACK_SMOKE_CDP_URL = "http://127.0.0.1:$webViewDebugPort"
-    $env:TECHSTACK_SMOKE_MARKER_NAME = "installed-smoke-$smokeId"
+    $env:HOMELAB_CLIENT_STATE_DIR = $StateDir
+    $env:HOMELAB_SMOKE_BASE_URL = $localOrigin
+    $env:HOMELAB_SMOKE_CDP_URL = "http://127.0.0.1:$webViewDebugPort"
+    $env:HOMELAB_SMOKE_MARKER_NAME = "installed-smoke-$smokeId"
     $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = "--remote-debugging-address=127.0.0.1 --remote-debugging-port=$webViewDebugPort"
     $process = Start-Process -FilePath $clientExe -WindowStyle Hidden -PassThru
     Write-Host "[windows-client-installed-smoke] started client pid=$($process.Id)"
     Wait-Endpoint "$localOrigin/api/v1/auth/mode" -TimeoutSeconds 240 | Out-Null
     Assert-InstalledRuntime
-    $runtimeLog = Join-Path $StateDir "runtime\techstack-runtime.log"
+    $runtimeLog = Join-Path $StateDir "runtime\homelab-runtime.log"
     Wait-LogLine -Path $runtimeLog -Pattern "local device session restored"
 
     foreach ($forbiddenSecretFile in @("device-token.txt", "session-secret.txt")) {
@@ -956,7 +956,7 @@ try {
 
     Stop-SmokeProcesses -InstallDir $InstallDir -StateDir $StateDir
     if ($updateRequested) { Wait-SmokeRuntimeStopped }
-    Move-Item -LiteralPath $runtimeLog -Destination (Join-Path $StateDir "runtime\techstack-runtime-first-start.log")
+    Move-Item -LiteralPath $runtimeLog -Destination (Join-Path $StateDir "runtime\homelab-runtime-first-start.log")
     if ($UpdateProof -eq 'rollback') {
         $process = Wait-InstalledRollback
         $restartVersion = $Version
@@ -1037,7 +1037,7 @@ try {
         Invoke-ShippedSetup -Action uninstall
         $installed = $false
         if ((Test-Path -LiteralPath $clientExe) -or (Test-Path -LiteralPath $runtimeExe)) {
-            throw "The shipped uninstaller left Techstack binaries in $InstallDir"
+            throw "The shipped uninstaller left Homelab Runtime binaries in $InstallDir"
         }
         if (!(Test-Path -LiteralPath (Join-Path $StateDir "runtime\postgres\data\PG_VERSION"))) {
             throw "Uninstall removed the retained local PostgreSQL data."
@@ -1145,7 +1145,7 @@ try {
         $cleanup.portsFree = @(Get-NetTCPConnection -State Listen -ErrorAction Stop | Where-Object LocalPort -In @($LocalPort, $localGrpcPort, $webViewDebugPort)).Count -eq 0
         $cleanup.binariesAbsent = !(Test-Path -LiteralPath $clientExe) -and !(Test-Path -LiteralPath $runtimeExe)
         $cleanup.enrollmentFirewallAbsent = $Installer -ne 'setup' -or $KeepInstall -or
-            @(Get-NetFirewallRule -DisplayName 'kombify Techstack private LAN enrollment' -ErrorAction SilentlyContinue).Count -eq 0
+            @(Get-NetFirewallRule -DisplayName 'kombify Homelab Runtime private LAN enrollment', 'kombify Techstack private LAN enrollment' -ErrorAction SilentlyContinue).Count -eq 0
         $cleanup.firewallRulesAbsent = @(Get-NetFirewallRule -ErrorAction Stop | Where-Object Group -EQ $firewallGroup).Count -eq 0
         $cleanup.firewallProfilesRestored = @($script:reenableFirewallProfiles | ForEach-Object {
             Get-NetFirewallProfile -Name $_ | Where-Object Enabled

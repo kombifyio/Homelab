@@ -2,7 +2,7 @@
  * The Wallet's fresh owner proof. Revealing a value and signing an SSH
  * certificate need a second factor from the last few minutes; the Gateway
  * refuses without one (`403 wallet_step_up_required`). The dialog then sends
- * the owner through Techstack's own Auth0 sign-in (`startGatewayStepUp`:
+ * the owner through Homelab's own Auth0 sign-in (`startGatewayStepUp`:
  * multi-factor `acr_values`, `max_age=0`, `prompt=login`) and the Wallet page
  * reopens the same action on return, so it runs again with the refreshed
  * token. The Gateway still decides every release.

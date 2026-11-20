@@ -4,7 +4,7 @@
 # hosted installed-client smoke so both package identical templates.
 set -euo pipefail
 umask 077
-work_root="$(mktemp -d /tmp/techstack-spec-templates.XXXXXXXX)"
+work_root="$(mktemp -d /tmp/homelab-spec-templates.XXXXXXXX)"
 trap 'rm -rf -- "$work_root"' EXIT
 release_dir="$work_root/release"
 # The private Dockerfile supplies the pin in Delivery. The curated public
@@ -52,7 +52,7 @@ for kit in basement-kit cloud-kit modern-homelab; do
   mkdir -p "$template_dir" "$custody_dir"
   ( cd "$template_dir" && STACKKIT_NETWORK_ENV=home STACKKIT_CUSTODY_DIR="$custody_dir" "$release_dir/stackkit" --no-log init "$kit" \
       --non-interactive \
-      --name techstack-spec-template \
+      --name homelab-spec-template \
       --owner-source=local \
       --owner-email owner@smoke.stackkit.cc \
       --owner-username owner \

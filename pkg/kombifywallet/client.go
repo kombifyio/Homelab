@@ -5,7 +5,7 @@ import (
 	"errors"
 	"regexp"
 
-	"github.com/kombifyio/techstack/internal/gocommon/walletservice"
+	"github.com/kombifyio/homelab/internal/gocommon/walletservice"
 )
 
 // itemIDPattern is the Wallet item id grammar. Legacy wallet ids (uuids,
@@ -19,7 +19,7 @@ var projectIDPattern = regexp.MustCompile(`^[A-Za-z0-9._-]{1,64}$`)
 // IsItemID reports whether value is a kombify Wallet item id.
 func IsItemID(value string) bool { return itemIDPattern.MatchString(value) }
 
-// ProjectScope is the Wallet scope of a stack (kit deployment): Techstack's
+// ProjectScope is the Wallet scope of a stack (kit deployment): Homelab's
 // stack is the item's project. ok is false for a stack id the Wallet's scope
 // grammar does not admit.
 func ProjectScope(stackID string) (scope string, ok bool) {
@@ -31,7 +31,7 @@ func ProjectScope(stackID string) (scope string, ok bool) {
 
 var errNotConfigured = errors.New("kombify wallet client is not configured")
 
-// Client is Techstack's handle on the kombify Wallet. A nil *Client means the
+// Client is Homelab's handle on the kombify Wallet. A nil *Client means the
 // deployment reads the legacy wallet; every caller branches on that.
 type Client struct {
 	wallet *walletservice.Client

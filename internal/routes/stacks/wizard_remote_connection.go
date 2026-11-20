@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kombifyio/techstack/pkg/auth"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
-	"github.com/kombifyio/techstack/pkg/remoteguard"
-	"github.com/kombifyio/techstack/pkg/specv2"
+	"github.com/kombifyio/homelab/pkg/auth"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/remoteguard"
+	"github.com/kombifyio/homelab/pkg/specv2"
 )
 
 const remoteSSHCredentialServiceID = "remote-ssh"

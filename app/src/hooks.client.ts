@@ -33,7 +33,7 @@ export const init = async () => {
     beforeSend: errorBudget({}, (event: any) => scrubSentryEvent(event)),
   });
 
-  Sentry.setTag("service", "kombify-techstack-frontend");
+  Sentry.setTag("service", "kombify-homelab-frontend");
 };
 
 export const handleError = Sentry.handleErrorWithSentry();

@@ -1,5 +1,5 @@
 {
-  "schema": "techstack.database-forward-batch/v1",
+  "schema": "homelab.database-forward-batch/v1",
   "migrations": [
     {
       "version": "161_application_loop_table_grants.sql",

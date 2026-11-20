@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	ksapi "github.com/kombifyio/techstack/pkg/api"
-	"github.com/kombifyio/techstack/pkg/httpx"
+	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/httpx"
 )
 
 // RequireAllowed rejects file delivery on Render before an artifact is opened,

@@ -9,7 +9,7 @@ import (
 // kombify-public-assets, prefix brand/app-icons/) by cmd/appcatalog-sync:
 // homarr-labs dashboard-icons (Apache-2.0) first, Simple Icons (CC0-1.0) as
 // the fallback. Nothing is hot-linked from a third party and nothing is served
-// by the Techstack web service. Without a mirrored logo the entry carries none
+// by the Homelab web service. Without a mirrored logo the entry carries none
 // and the client draws a monogram.
 const (
 	defaultIconBaseURL       = "https://assets.kombify.io/brand/app-icons/"

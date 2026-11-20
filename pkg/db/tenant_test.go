@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/kombifyio/techstack/internal/gocommon/identity"
-	"github.com/kombifyio/techstack/internal/gocommon/tenantdb"
-	"github.com/kombifyio/techstack/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
+	"github.com/kombifyio/homelab/internal/gocommon/tenantdb"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 )
 
 func TestWithTenantEmptyTenant(t *testing.T) {

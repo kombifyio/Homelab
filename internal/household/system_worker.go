@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/agentcontrol"
-	"github.com/kombifyio/techstack/pkg/api/agentpb"
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/logger"
-	"github.com/kombifyio/techstack/pkg/orchestrator"
+	"github.com/kombifyio/homelab/pkg/agentcontrol"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/orchestrator"
 )
 
 // SystemWorker composes actual stores and the existing typed dispatcher. The
@@ -24,7 +24,7 @@ type SystemWorker struct {
 	orch    *orchestrator.Orchestrator
 }
 
-func NewSystemWorker(ctx context.Context, cloud, techstack *sql.DB, relay *agentcontrol.HouseholdRelayClient, deliver ActivationDelivery) (*SystemWorker, error) {
+func NewSystemWorker(ctx context.Context, cloud, homelab *sql.DB, relay *agentcontrol.HouseholdRelayClient, deliver ActivationDelivery) (*SystemWorker, error) {
 	if relay == nil || deliver == nil {
 		return nil, errors.New("household relay and dispatch custody required")
 	}
@@ -32,11 +32,11 @@ func NewSystemWorker(ctx context.Context, cloud, techstack *sql.DB, relay *agent
 	if err != nil {
 		return nil, err
 	}
-	store, err := controlplane.NewHouseholdSystemStore(ctx, techstack)
+	store, err := controlplane.NewHouseholdSystemStore(ctx, homelab)
 	if err != nil {
 		return nil, err
 	}
-	hub := agentcontrol.NewHub(techstack)
+	hub := agentcontrol.NewHub(homelab)
 	hub.ConfigureHouseholdRelay(relay)
 	cfg := orchestrator.DefaultConfig()
 	cfg.Workers = 1

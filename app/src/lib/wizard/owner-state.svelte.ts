@@ -194,7 +194,7 @@ export class OwnerStepState {
     config.owner.username = "";
     config.owner.email = "";
     config.owner.displayName = "";
-    config.owner.recoveryMaterialRef ||= "techstack://recovery/stacks/homelab";
+    config.owner.recoveryMaterialRef ||= "homelab://recovery/stacks/homelab";
     this.resetRecoveryHash();
     config.auth.requirePassword = false;
     config.auth.requireMfa = false;

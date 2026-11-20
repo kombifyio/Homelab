@@ -184,7 +184,7 @@ func validResourceQuantities(values ...float64) bool {
 }
 
 // ServiceFootprints recognizes released application/module identities, leaving
-// unrelated discovered applications to Techstack's generic sizing policy.
+// unrelated discovered applications to Homelab's generic sizing policy.
 // matchWorkload permits a service name to be an explicit workload identity.
 // Generic service types such as "media" are not use-case selections.
 func (catalog UseCaseCatalog) ServiceFootprints(identity, profile string, matchWorkload bool) ([]WorkloadFootprint, bool, error) {

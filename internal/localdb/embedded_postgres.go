@@ -17,21 +17,21 @@ import (
 )
 
 const (
-	EnvEmbeddedPostgres                 = "TECHSTACK_EMBEDDED_POSTGRES"
-	EnvEmbeddedPostgresDir              = "TECHSTACK_EMBEDDED_POSTGRES_DIR"
-	EnvEmbeddedPostgresPort             = "TECHSTACK_EMBEDDED_POSTGRES_PORT"
-	EnvEmbeddedPostgresStartTimeoutSecs = "TECHSTACK_EMBEDDED_POSTGRES_START_TIMEOUT_SECONDS"
-	EnvEmbeddedPostgresRepositoryURL    = "TECHSTACK_EMBEDDED_POSTGRES_BINARY_REPOSITORY_URL"
-	EnvEmbeddedPostgresBinariesPath     = "TECHSTACK_EMBEDDED_POSTGRES_BINARIES_PATH"
-	EnvEmbeddedPostgresBundleDir        = "TECHSTACK_EMBEDDED_POSTGRES_BUNDLE_DIR"
+	EnvEmbeddedPostgres                 = "HOMELAB_EMBEDDED_POSTGRES"
+	EnvEmbeddedPostgresDir              = "HOMELAB_EMBEDDED_POSTGRES_DIR"
+	EnvEmbeddedPostgresPort             = "HOMELAB_EMBEDDED_POSTGRES_PORT"
+	EnvEmbeddedPostgresStartTimeoutSecs = "HOMELAB_EMBEDDED_POSTGRES_START_TIMEOUT_SECONDS"
+	EnvEmbeddedPostgresRepositoryURL    = "HOMELAB_EMBEDDED_POSTGRES_BINARY_REPOSITORY_URL"
+	EnvEmbeddedPostgresBinariesPath     = "HOMELAB_EMBEDDED_POSTGRES_BINARIES_PATH"
+	EnvEmbeddedPostgresBundleDir        = "HOMELAB_EMBEDDED_POSTGRES_BUNDLE_DIR"
 )
 
 const (
-	embeddedUsername = "techstack"
+	embeddedUsername = "homelab"
 	// The old public password is admitted only by an explicit, physically
 	// pinned legacy transition. Fresh and ordinary starts never use it.
-	embeddedPassword = "techstack-local"
-	embeddedDatabase = "techstack"
+	embeddedPassword = "homelab-local"
+	embeddedDatabase = "homelab"
 )
 
 type EmbeddedPostgres struct {

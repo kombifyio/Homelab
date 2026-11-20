@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
 	"golang.org/x/crypto/ssh"
 )
 

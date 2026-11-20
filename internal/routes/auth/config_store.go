@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/authlocal"
+	"github.com/kombifyio/homelab/internal/gocommon/authlocal"
 )
 
 // LocalOwnerLookup is the canonical local owner store (authlocal / breakglass).

@@ -19,20 +19,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
 	"github.com/google/uuid"
 	wire "github.com/kombifyio/stackkits/contracts/advancedcapability"
 
-	"github.com/kombifyio/techstack/internal/advancedissuer"
+	"github.com/kombifyio/homelab/internal/advancedissuer"
 )
 
 const (
-	EnvRemoteURL              = "TECHSTACK_ADVANCED_ISSUER_URL"
-	EnvRemoteCallerPrivateKey = "TECHSTACK_ADVANCED_ISSUER_CALLER_PRIVATE_KEY"
-	EnvRemoteCallerKeyID      = "TECHSTACK_ADVANCED_ISSUER_CALLER_KEY_ID"
-	EnvRemoteCallerID         = "TECHSTACK_ADVANCED_ISSUER_CALLER_ID"
-	EnvRemoteExpectedKeyID    = "TECHSTACK_ADVANCED_ISSUER_EXPECTED_KEY_ID"
-	RemoteAudience            = "techstack-execution"
+	EnvRemoteURL              = "HOMELAB_ADVANCED_ISSUER_URL"
+	EnvRemoteCallerPrivateKey = "HOMELAB_ADVANCED_ISSUER_CALLER_PRIVATE_KEY"
+	EnvRemoteCallerKeyID      = "HOMELAB_ADVANCED_ISSUER_CALLER_KEY_ID"
+	EnvRemoteCallerID         = "HOMELAB_ADVANCED_ISSUER_CALLER_ID"
+	EnvRemoteExpectedKeyID    = "HOMELAB_ADVANCED_ISSUER_EXPECTED_KEY_ID"
+	RemoteAudience            = "homelab-execution"
 	remoteScope               = "execution.invoke"
 	remotePath                = "/internal/execution/v1/"
 	remoteBodyLimit           = 64 << 10
@@ -62,13 +62,13 @@ func CheckRemoteCustody() error {
 	if raw := ""; raw != "" && json.Unmarshal([]byte(raw), &bundle) != nil {
 		return errors.New("remote Execution requires a valid scoped company bundle")
 	}
-	for _, name := range []string{EnvIssuerKey, EnvKeyCustodyDatabaseURL, "TECHSTACK_ENCRYPTION_KEY", "TECHSTACK_PROVIDER_CONTROL_RUNTIME_DATABASE_URL", "TECHSTACK_MIGRATION_DATABASE_URL", "TECHSTACK_MANAGED_TEST_ADMIN_DATABASE_URL"} {
+	for _, name := range []string{EnvIssuerKey, EnvKeyCustodyDatabaseURL, "HOMELAB_ENCRYPTION_KEY", "HOMELAB_PROVIDER_CONTROL_RUNTIME_DATABASE_URL", "HOMELAB_MIGRATION_DATABASE_URL", "HOMELAB_MANAGED_TEST_ADMIN_DATABASE_URL"} {
 		if os.Getenv(name) != "" || bundle[name] != "" {
 			return fmt.Errorf("remote advanced issuer forbids installation custody in caller: %s", name)
 		}
 	}
 	// Every provider adapter's credential custody object is
-	// TECHSTACK_<PROVIDER>_PROVIDER_BUNDLE (AdapterDescriptor.CredentialEnvironment),
+	// HOMELAB_<PROVIDER>_PROVIDER_BUNDLE (AdapterDescriptor.CredentialEnvironment),
 	// so the pattern covers every provider without naming one.
 	for _, entry := range os.Environ() {
 		name, value, _ := strings.Cut(entry, "=")
@@ -84,7 +84,7 @@ func CheckRemoteCustody() error {
 	return nil
 }
 
-var providerBundleEnvironment = regexp.MustCompile(`^TECHSTACK_[A-Z0-9]+_PROVIDER_BUNDLE$`)
+var providerBundleEnvironment = regexp.MustCompile(`^HOMELAB_[A-Z0-9]+_PROVIDER_BUNDLE$`)
 
 func OpenRemote(ctx context.Context) (*Remote, error) {
 	if err := CheckRemoteCustody(); err != nil {

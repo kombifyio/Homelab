@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/kombifyio/techstack/pkg/guardlayout"
+	"github.com/kombifyio/homelab/pkg/guardlayout"
 )
 
 // Layout states, reported next to the update states.

@@ -8,20 +8,20 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/kombifyio/techstack/internal/gocommon/servicecall"
+	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
 
-	"github.com/kombifyio/techstack/pkg/controlplane"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/logger"
-	"github.com/kombifyio/techstack/pkg/orchestrator"
-	"github.com/kombifyio/techstack/pkg/stackkitcommand"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/orchestrator"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
-// The home graph route is the Cloud to Techstack half of the home graph sync
+// The home graph route is the Cloud to Homelab half of the home graph sync
 // (HOME-GRAPH-TARGET.md, D-2026-11-09-03): Cloud stores the household's graph
-// and Techstack keeps the latest one per owner and space, projects it through
+// and Homelab keeps the latest one per owner and space, projects it through
 // the node's Home Assistant connector (application_home_graph_sync) and reports
-// the sync state back. Techstack never holds the connector credential.
+// the sync state back. Homelab never holds the connector credential.
 const (
 	householdHomeGraphPath = "/api/v1/internal/household/home-graph"
 

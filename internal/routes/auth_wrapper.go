@@ -1,12 +1,12 @@
-// Package routes provides REST API routes for kombifyTechstack.
+// Package routes provides REST API routes for kombifyHomelab.
 // Auth routes have been refactored into the auth/ subpackage.
 package routes
 
 import (
-	"github.com/kombifyio/techstack/internal/routes/auth"
-	"github.com/kombifyio/techstack/pkg/config"
-	"github.com/kombifyio/techstack/pkg/httpx"
-	"github.com/kombifyio/techstack/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/internal/routes/auth"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/kombifywallet"
 )
 
 type LocalOwnerSetup = auth.LocalOwnerSetup
