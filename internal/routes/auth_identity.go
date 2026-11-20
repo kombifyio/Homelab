@@ -2,8 +2,8 @@ package routes
 
 import (
 	"net/http"
-	"strings"
 
+	"github.com/kombifyio/techstack/internal/routes/tenantguard"
 	"github.com/kombifyio/techstack/pkg/api"
 	"github.com/kombifyio/techstack/pkg/httpx"
 	"github.com/kombifyio/techstack/pkg/identity"
@@ -14,57 +14,39 @@ func authenticatedUserID(e *httpx.Event) (string, bool) {
 	return userID, ok
 }
 
+// authenticatedUser returns the signed-in subject, whether it is the instance
+// owner, and whether a subject exists at all.
 func authenticatedUser(e *httpx.Event) (string, bool, bool) {
 	if e == nil {
 		return "", false, false
 	}
 	if e.Auth != nil && e.Auth.Id != "" {
-		return e.Auth.Id, principalIsAdmin(e.Auth), true
+		return e.Auth.Id, identityIsInstanceOwner(e.Auth.Identity), true
 	}
 	if e.Request != nil {
 		if id := identity.FromContext(e.Request.Context()); id != nil && id.IsAuthenticated() {
-			return id.UserID, identityHasAdminRole(id), true
+			return id.UserID, identityIsInstanceOwner(id), true
 		}
 	}
 	return "", false, false
 }
 
-func principalIsAdmin(p *httpx.Principal) bool {
-	if p == nil {
+// identityIsInstanceOwner reports owner rights over one self-hosted
+// installation: the local owner holds the "admin" membership of their own
+// installation. The hosted product has no instance owner. A kombify platform
+// role (admin, super_admin, global_admin, developer, manager) is not owner
+// authority there: a signed-in person of the hosted product sees and does what
+// their own subscription and their own data allow, whatever role the platform
+// holds for them.
+func identityIsInstanceOwner(id *identity.Identity) bool {
+	if id == nil || tenantguard.Active() {
 		return false
 	}
-	if p.IsSuperuser() {
-		return true
-	}
-	role := strings.TrimSpace(p.GetString("role"))
-	return isAdminRole(role)
+	return id.HasRole("admin")
 }
 
-func identityHasAdminRole(id *identity.Identity) bool {
-	if id == nil {
-		return false
-	}
-	return id.HasRole("admin") || id.HasRole("super_admin") || id.HasRole("global_admin")
-}
-
-func isAdminRole(role string) bool {
-	switch strings.ToLower(strings.TrimSpace(role)) {
-	case "admin", "super_admin", "global_admin":
-		return true
-	default:
-		return false
-	}
-}
-
-func signedEdgeAdmin(e *httpx.Event) bool {
-	if e == nil || e.Request == nil {
-		return false
-	}
-	return identityHasAdminRole(identity.FromContext(e.Request.Context()))
-}
-
-func requireAdmin(e *httpx.Event) error {
-	ok, err := requireAdminAccess(e)
+func requireInstanceOwner(e *httpx.Event) error {
+	ok, err := requireInstanceOwnerAccess(e)
 	if err != nil {
 		return err
 	}
@@ -74,12 +56,9 @@ func requireAdmin(e *httpx.Event) error {
 	return nil
 }
 
-func requireAdminAccess(e *httpx.Event) (bool, error) {
-	if e != nil && e.Auth != nil && e.Auth.IsSuperuser() {
+func requireInstanceOwnerAccess(e *httpx.Event) (bool, error) {
+	if e != nil && e.Request != nil && identityIsInstanceOwner(identity.FromContext(e.Request.Context())) {
 		return true, nil
 	}
-	if signedEdgeAdmin(e) {
-		return true, nil
-	}
-	return false, httpx.Reject(e, http.StatusForbidden, api.ErrCodeForbidden, "Admin access required", nil)
+	return false, httpx.Reject(e, http.StatusForbidden, api.ErrCodeForbidden, "Instance owner access required", nil)
 }

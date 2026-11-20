@@ -30,7 +30,6 @@
       user?.authSubject,
       user?.organizationId,
       user?.role,
-      user?.isStaff ? "staff" : "customer",
     ].join("|");
 
     if (user?.authSubject && identityKey !== lastIdentityKey) {

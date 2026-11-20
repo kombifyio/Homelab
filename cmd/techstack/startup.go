@@ -20,7 +20,6 @@ import (
 	"github.com/kombifyio/techstack/internal/gocommon/authsession"
 	commonobservability "github.com/kombifyio/techstack/internal/gocommon/observability"
 	"github.com/kombifyio/techstack/internal/gocommon/oidcclient"
-	commonrole "github.com/kombifyio/techstack/internal/gocommon/role"
 
 	"github.com/kombifyio/techstack/internal/frontend"
 	"github.com/kombifyio/techstack/internal/notifications"
@@ -1557,7 +1556,7 @@ func enrichV2SessionIdentityFromMembership(ctx context.Context, store controlpla
 	// default tenant so standalone resolves the same data as embedded.
 	if saasMode && strings.TrimSpace(v2SessionTenantID(claims)) == "" {
 		if membership := preferredOrgMembershipForIdentity(ctx, store, id); membership != nil {
-			appendIdentityRole(id, membership.RoleKey)
+			appendMembershipRole(id, membership)
 			return membership, nil
 		}
 	}
@@ -1606,7 +1605,7 @@ func enrichIdentityFromMembership(ctx context.Context, store controlplane.AuthSt
 		if membership == nil || !activeMembership(membership) {
 			continue
 		}
-		appendIdentityRole(id, membership.RoleKey)
+		appendMembershipRole(id, membership)
 		return membership, nil
 	}
 	return nil, nil
@@ -1640,6 +1639,19 @@ func hydrateIdentityTenantFromMembership(id *identity.Identity, membership *cont
 	if tenantID := strings.TrimSpace(membership.TenantID); tenantID != "" {
 		id.OrgID = tenantID
 	}
+}
+
+// appendMembershipRole is the one place a stored membership role enters the
+// identity. A membership that came from kombify Cloud sign-in never contributes
+// a role, whatever its stored role_key says: a kombify platform role must not
+// count as owner or administrator, and rows written before Cloud sign-in
+// stopped storing it may still carry one. Only the local owner membership of a
+// self-hosted installation (provider "local") brings its role.
+func appendMembershipRole(id *identity.Identity, membership *controlplane.Membership) {
+	if membership == nil || strings.EqualFold(strings.TrimSpace(membership.ProviderKey), "cloud") {
+		return
+	}
+	appendIdentityRole(id, membership.RoleKey)
 }
 
 func appendIdentityRole(id *identity.Identity, role string) {
@@ -1757,9 +1769,9 @@ func v2CloudUserUpsert(authStore controlplane.AuthStore, saasMode bool, entitlem
 		}); err != nil {
 			return fmt.Errorf("upsert cloud user: %w", err)
 		}
-		membershipMetadata := map[string]any{
-			"platform_roles": v2CloudPlatformRoles(claims),
-		}
+		// A kombify platform role is no membership role: every Cloud sign-in is a
+		// plain member of its tenant and the role claim is not stored.
+		membershipMetadata := map[string]any{}
 		// The membership fallback grants come from Administration's committed projection, never from
 		// a token claim. An unreadable projection persists none (fail closed); the next login retries.
 		if saasMode && entitlements != nil {
@@ -1771,12 +1783,11 @@ func v2CloudUserUpsert(authStore controlplane.AuthStore, saasMode bool, entitlem
 				membershipMetadata["entitlements"] = granted
 			}
 		}
-		roleKey := v2CloudMembershipRoleKey(claims)
 		if _, err := authStore.UpsertMembership(ctx, controlplane.Membership{
 			ID:          tenantID + ":" + subject,
 			TenantID:    tenantID,
 			UserID:      subject,
-			RoleKey:     roleKey,
+			RoleKey:     "member",
 			ProviderKey: "cloud",
 			SubjectID:   subject,
 			Metadata:    membershipMetadata,
@@ -1837,28 +1848,6 @@ func stringSliceFromAny(value any) []string {
 	default:
 		return nil
 	}
-}
-
-func v2CloudMembershipRoleKey(claims *oidcclient.Claims) string {
-	roles := v2CloudPlatformRoles(claims)
-	if len(roles) == 0 || roles[0] == "" || roles[0] == commonrole.User.String() {
-		return "member"
-	}
-	return roles[0]
-}
-
-func v2CloudPlatformRoles(claims *oidcclient.Claims) []string {
-	if claims == nil {
-		return nil
-	}
-	roles := commonrole.ExtractAllRolesFromClaims(claims.Raw, "")
-	out := make([]string, 0, len(roles))
-	for _, role := range roles {
-		if s := strings.TrimSpace(role.String()); s != "" {
-			out = append(out, s)
-		}
-	}
-	return out
 }
 
 func bindCSRF(router *httpx.Router, cfg *config.Config) {

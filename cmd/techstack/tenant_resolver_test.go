@@ -287,3 +287,21 @@ func mustSessionManager(t *testing.T) *authsession.Manager {
 	}
 	return mgr
 }
+
+// A Cloud membership never contributes a role, even a stored platform role
+// that predates the sign-in change; the local owner membership does.
+func TestAppendMembershipRoleIgnoresCloudMemberships(t *testing.T) {
+	for _, role := range []string{"admin", "owner", "global_admin", "member"} {
+		id := &identity.Identity{UserID: "auth0|user-1"}
+		appendMembershipRole(id, &controlplane.Membership{RoleKey: role, ProviderKey: "cloud"})
+		appendMembershipRole(id, &controlplane.Membership{RoleKey: role, ProviderKey: "Cloud"})
+		if len(id.Roles) != 0 {
+			t.Fatalf("cloud membership role %q entered the identity: %v", role, id.Roles)
+		}
+	}
+	owner := &identity.Identity{UserID: "breakglass:local-owner"}
+	appendMembershipRole(owner, &controlplane.Membership{RoleKey: "admin", ProviderKey: "local"})
+	if !owner.HasRole("admin") {
+		t.Fatalf("local owner membership lost its admin role: %v", owner.Roles)
+	}
+}

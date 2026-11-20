@@ -148,6 +148,10 @@
     {
       "version": "197_ionos_memory_cube_s_execution_profile.sql",
       "sha256": "24cb8a5acb3ccb871dc506ec85cea17304777c35d41411b61669f2b826e1c825"
+    },
+    {
+      "version": "198_platform_roles_removed.sql",
+      "sha256": "4e98dde8e2847bcc8b42bf953239076ae8644bf46664ad44cd7b0f575cd11a26"
     }
   ],
   "database_target": "core",

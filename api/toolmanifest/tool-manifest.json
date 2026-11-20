@@ -1216,8 +1216,8 @@
     },
     {
       "name": "clear_discovery_cache",
-      "title": "Clear discovery cache (admin only)",
-      "description": "Clear discovery cache (admin only)",
+      "title": "Clear discovery cache (self-hosted owner only)",
+      "description": "Clear discovery cache (self-hosted owner only)",
       "requiredCapability": "techstack.inventory.operate",
       "operationId": "clearDiscoveryCache",
       "http": {
@@ -3630,88 +3630,6 @@
             "type": "string"
           }
         },
-        "type": "object"
-      },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      }
-    },
-    {
-      "name": "discover_provider_provision",
-      "title": "Discover a parked provider provision",
-      "description": "First step of operator resolution for a provision whose outcome is unknown. Reads the provider (read-only) and appends the immutable discovery evidence; it never creates or retries anything at the provider. A replay re-verifies the same observation. The answer names the confirmation string the second step requires. Administrator-only: a non-administrator caller is refused with 403, and the operation must belong to the caller's tenant.",
-      "requiredCapability": "techstack.inventory.write",
-      "operationId": "discoverProviderProvision",
-      "http": {
-        "method": "POST",
-        "path": "/api/v1/provider-operations/{operationId}/provision-discovery"
-      },
-      "inputSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "body": {
-            "additionalProperties": false,
-            "type": "object"
-          },
-          "operation_id": {
-            "description": "Provider operation id (non-empty, at most 256 characters, no whitespace or control characters).",
-            "maxLength": 256,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "operation_id"
-        ],
-        "type": "object"
-      },
-      "outputSchema": {
-        "properties": {
-          "candidate_count": {
-            "minimum": 0,
-            "type": "integer"
-          },
-          "created": {
-            "description": "True when this call appended the observation.",
-            "type": "boolean"
-          },
-          "expected_outcome": {
-            "enum": [
-              "no_candidate_observed",
-              "adopted_exact_candidate",
-              "multiple_candidates_quarantined"
-            ],
-            "type": "string"
-          },
-          "observation_digest": {
-            "type": "string"
-          },
-          "observation_id": {
-            "type": "string"
-          },
-          "operation_id": {
-            "type": "string"
-          },
-          "required_confirmation": {
-            "description": "Exact string the resolution step must send: adopt-provision:<operationId>.",
-            "type": "string"
-          },
-          "resolution_revision": {
-            "format": "int64",
-            "minimum": 0,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "operation_id",
-          "observation_id",
-          "candidate_count",
-          "expected_outcome",
-          "required_confirmation"
-        ],
         "type": "object"
       },
       "annotations": {
@@ -6240,8 +6158,8 @@
     },
     {
       "name": "get_discovery_stats",
-      "title": "Get discovery statistics (admin only)",
-      "description": "Get discovery statistics (admin only)",
+      "title": "Get discovery statistics (self-hosted owner only)",
+      "description": "Get discovery statistics (self-hosted owner only)",
       "requiredCapability": "techstack.inventory.read",
       "operationId": "getDiscoveryStats",
       "http": {
@@ -20231,7 +20149,7 @@
     {
       "name": "probe_discovered_device",
       "title": "Probe a discovered device",
-      "description": "Logs in to the device over SSH with the login held in the Wallet item `ssh_wallet_item_id` (a kombify Wallet node access item assigned to Techstack and bound to this IP or to no host, or an SSH key or password item of the built-in wallet whose URL names this IP) and reads its system facts. The login is resolved inside Techstack for this probe only and never answered. This contract accepts no password or private key. Non-admin callers may only probe IPs from their own discovery results; admins may probe arbitrary IPs. Local control planes only (409 `lan_executor_required` on a hosted one).",
+      "description": "Logs in to the device over SSH with the login held in the Wallet item `ssh_wallet_item_id` (a kombify Wallet node access item assigned to Techstack and bound to this IP or to no host, or an SSH key or password item of the built-in wallet whose URL names this IP) and reads its system facts. The login is resolved inside Techstack for this probe only and never answered. This contract accepts no password or private key. Callers other than the owner of a self-hosted installation may only probe IPs from their own discovery results; the owner may probe arbitrary IPs. Local control planes only (409 `lan_executor_required` on a hosted one).",
       "requiredCapability": "techstack.inventory.write",
       "operationId": "probeDevice",
       "http": {
@@ -23287,77 +23205,6 @@
         "destructiveHint": true,
         "idempotentHint": false,
         "openWorldHint": false
-      }
-    },
-    {
-      "name": "resolve_provider_provision",
-      "title": "Resolve a parked provider provision",
-      "description": "Second step of operator resolution. With the exact confirmation from the discovery step it appends one decision against the persisted observation: no candidate, adopt the single exact candidate, or quarantine several. The decision is local custody state and never starts or retries provider creation. Replays return the original decision. Administrator-only; a stale or mismatching observation answers 409.",
-      "requiredCapability": "techstack.inventory.write",
-      "operationId": "resolveProviderProvision",
-      "http": {
-        "method": "POST",
-        "path": "/api/v1/provider-operations/{operationId}/provision-resolution"
-      },
-      "inputSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "confirmation": {
-            "description": "Must equal required_confirmation from the discovery step (adopt-provision:<operationId>).",
-            "type": "string"
-          },
-          "operation_id": {
-            "description": "Provider operation id (non-empty, at most 256 characters, no whitespace or control characters).",
-            "maxLength": 256,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "operation_id",
-          "confirmation"
-        ],
-        "type": "object"
-      },
-      "outputSchema": {
-        "properties": {
-          "created": {
-            "description": "True when this call appended the decision.",
-            "type": "boolean"
-          },
-          "decision_digest": {
-            "type": "string"
-          },
-          "operation_id": {
-            "type": "string"
-          },
-          "operation_phase": {
-            "type": "string"
-          },
-          "outcome": {
-            "enum": [
-              "no_candidate_observed",
-              "adopted_exact_candidate",
-              "multiple_candidates_quarantined"
-            ],
-            "type": "string"
-          },
-          "resource_count": {
-            "minimum": 0,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "operation_id",
-          "outcome"
-        ],
-        "type": "object"
-      },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
       }
     },
     {
@@ -27286,7 +27133,7 @@
     {
       "name": "test_discovered_device_ssh",
       "title": "Test SSH to a discovered device",
-      "description": "Opens one SSH connection with the login held in the Wallet item `ssh_wallet_item_id` (its key when it holds one, otherwise its password; a built-in wallet item must name this IP as its URL), resolved inside Techstack and never answered; nothing is stored. This contract accepts no password. A failed connection answers 200 with `success: false`. Non-admin callers may only test IPs from their own discovery results; admins may test arbitrary IPs. Local control planes only.",
+      "description": "Opens one SSH connection with the login held in the Wallet item `ssh_wallet_item_id` (its key when it holds one, otherwise its password; a built-in wallet item must name this IP as its URL), resolved inside Techstack and never answered; nothing is stored. This contract accepts no password. A failed connection answers 200 with `success: false`. Callers other than the owner of a self-hosted installation may only test IPs from their own discovery results; the owner may test arbitrary IPs. Local control planes only.",
       "requiredCapability": "techstack.inventory.write",
       "operationId": "testSSH",
       "http": {

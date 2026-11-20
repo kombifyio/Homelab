@@ -51,7 +51,6 @@ export interface CloudUser {
   given_name?: string;
   family_name?: string;
   roles: string[];
-  is_admin: boolean;
 }
 
 export interface V2WhoAmIResponse {
@@ -83,7 +82,6 @@ export interface PortalVerifyResponse {
     sub: string;
     email: string;
     name: string;
-    is_admin: boolean;
   };
   stack_identity?: StackIdentity;
 }

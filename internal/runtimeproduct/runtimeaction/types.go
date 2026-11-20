@@ -122,7 +122,6 @@ type PreviewPolicy struct {
 	Audience          string `json:"audience,omitempty"`
 	Visibility        string `json:"visibility,omitempty"`
 	TTLSeconds        int    `json:"ttl_seconds,omitempty"`
-	StaffOnly         bool   `json:"staff_only,omitempty"`
 	PublicBetaPreview bool   `json:"public_beta_preview,omitempty"`
 }
 

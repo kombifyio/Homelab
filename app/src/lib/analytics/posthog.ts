@@ -3,7 +3,6 @@ export interface AnalyticsUser {
   organizationId?: string | null;
   role?: string | null;
   authMethod?: string | null;
-  isStaff?: boolean | null;
 }
 
 export interface PostHogConfig {
@@ -50,7 +49,6 @@ export interface TechstackCloudUserLike {
   organizationId?: string | null;
   tenantId?: string | null;
   roles?: string[] | null;
-  is_admin?: boolean | null;
 }
 
 export interface TechstackCreationEventInput {
@@ -263,7 +261,6 @@ export function buildCapturePayload(input: {
     path: sanitizePath(input.config.location?.pathname),
     role: input.user?.role ?? undefined,
     auth_method: input.user?.authMethod ?? undefined,
-    is_staff: input.user?.isStaff === true,
   };
 
   if (organizationId) {
@@ -329,7 +326,6 @@ export function toTechstackAnalyticsUser(
       normalizeAnalyticsIdentityValue(user.tenantId),
     role: user.roles?.find((role) => role.trim()) ?? undefined,
     authMethod: "auth0",
-    isStaff: user.is_admin === true,
   };
 }
 

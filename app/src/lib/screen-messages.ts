@@ -1535,11 +1535,6 @@ export const screenMessages = {
     "ui.settings.account": "Account",
     "ui.settings.appearance": "Appearance",
     "ui.settings.appearanceMode": "Appearance mode",
-    "ui.settings.applyExactPlan": "Apply exact plan",
-    "ui.settings.applying": "Applying...",
-    "ui.settings.cleanUpTestResidue": "Clean up test residue",
-    "ui.settings.cleanupFailed": "Cleanup failed",
-    "ui.settings.cleanupReviewFailed": "Cleanup review failed",
     "ui.settings.companion": "Companion",
     "companion.settings.sections.companion": "Companion",
     "companion.settings.sections.kubi": "Kubi",
@@ -1644,18 +1639,7 @@ export const screenMessages = {
     "ui.settings.noDeploymentsToDelete": "No homelabs to remove.",
     "ui.settings.noHomelabIdentityConfigured":
       "No Homelab identity configured.",
-    "ui.settings.noVerifiedTestResidueRemains":
-      "No verified test residue remains.",
-    "ui.settings.noVerifiedTestResidueWas":
-      "No verified test residue was found.",
     "ui.settings.overlap": "Overlap",
-    "ui.settings.pruneQualifies":
-      "Only authenticated-owner {owner} and strict {strict} projections qualify. Active Managed Runtimes, provider resources, recent servers, demo data, and normal Homelab data remain unchanged.",
-    "ui.settings.reviewCleanup": "Review cleanup",
-    "ui.settings.reviewVerifiedTestResidue": "Review verified test residue",
-    "ui.settings.reviewing": "Reviewing...",
-    "ui.settings.reviewsExactOwnerScopedE2e":
-      "Reviews exact owner-scoped E2E and failed runtime projections. Provider resources, active leases, recent servers, and normal Homelab data remain unchanged.",
     "ui.settings.savedOnDevice": "Saved on this device for your account.",
     "ui.settings.settings": "Settings",
     "ui.settings.signedIn": "Signed in",
@@ -1668,8 +1652,6 @@ export const screenMessages = {
       "This shuts down the managed server, deletes it and its data at the provider and removes the homelab entry. It cannot be undone.",
     "ui.settings.thisEntryIsNotVerified":
       "This entry is not verified test residue and cannot be removed by projection cleanup.",
-    "ui.settings.thisExactPlanIsBound":
-      "This exact plan is bound to the digest below. No servers or provider resources are removed.",
     "ui.settings.typeToConfirm": "Type {slot} to confirm",
     "ui.shortcuts.closeDialogDeselect": "Close dialog/deselect",
     "ui.shortcuts.focusSearchInput": "Focus search input",
@@ -4380,11 +4362,6 @@ export const screenMessages = {
     "ui.settings.account": "Konto",
     "ui.settings.appearance": "Darstellung",
     "ui.settings.appearanceMode": "Darstellungsmodus",
-    "ui.settings.applyExactPlan": "Genauen Plan anwenden",
-    "ui.settings.applying": "Wird angewendet...",
-    "ui.settings.cleanUpTestResidue": "Testrückstände bereinigen",
-    "ui.settings.cleanupFailed": "Bereinigung fehlgeschlagen",
-    "ui.settings.cleanupReviewFailed": "Prüfung der Bereinigung fehlgeschlagen",
     "ui.settings.companion": "Companion",
     "companion.settings.sections.companion": "Companion",
     "companion.settings.sections.kubi": "Kubi",
@@ -4490,19 +4467,7 @@ export const screenMessages = {
     "ui.settings.noDeploymentsToDelete": "Keine Homelabs zum Entfernen.",
     "ui.settings.noHomelabIdentityConfigured":
       "Keine Homelab-Identität konfiguriert.",
-    "ui.settings.noVerifiedTestResidueRemains":
-      "Es sind keine verifizierten Testrückstände mehr vorhanden.",
-    "ui.settings.noVerifiedTestResidueWas":
-      "Es wurden keine verifizierten Testrückstände gefunden.",
     "ui.settings.overlap": "Überlappung",
-    "ui.settings.pruneQualifies":
-      "Nur Projektionen mit authentifiziertem Eigentümer {owner} und strikter Übereinstimmung {strict} kommen infrage. Aktive Managed Runtimes, Provider-Ressourcen, neue Server, Demodaten und normale Homelab-Daten bleiben unverändert.",
-    "ui.settings.reviewCleanup": "Bereinigung prüfen",
-    "ui.settings.reviewVerifiedTestResidue":
-      "Verifizierte Testrückstände prüfen",
-    "ui.settings.reviewing": "Wird geprüft...",
-    "ui.settings.reviewsExactOwnerScopedE2e":
-      "Prüft exakt dem Eigentümer zugeordnete E2E- und fehlgeschlagene Runtime-Projektionen. Provider-Ressourcen, aktive Leases, neue Server und normale Homelab-Daten bleiben unverändert.",
     "ui.settings.savedOnDevice": "Auf diesem Gerät für dein Konto gespeichert.",
     "ui.settings.settings": "Einstellungen",
     "ui.settings.signedIn": "Angemeldet",
@@ -4515,8 +4480,6 @@ export const screenMessages = {
       "Dadurch wird der verwaltete Server heruntergefahren, samt Daten beim Anbieter gelöscht und der Homelab-Eintrag entfernt. Das lässt sich nicht rückgängig machen.",
     "ui.settings.thisEntryIsNotVerified":
       "Dieser Eintrag ist kein verifizierter Testrückstand und kann nicht durch die Projektionsbereinigung entfernt werden.",
-    "ui.settings.thisExactPlanIsBound":
-      "Dieser genaue Plan ist an den unten stehenden Digest gebunden. Es werden keine Server oder Ressourcen beim Anbieter entfernt.",
     "ui.settings.typeToConfirm": "Zur Bestätigung {slot} eingeben",
     "ui.shortcuts.closeDialogDeselect": "Dialog schließen/Auswahl aufheben",
     "ui.shortcuts.focusSearchInput": "Suchfeld fokussieren",

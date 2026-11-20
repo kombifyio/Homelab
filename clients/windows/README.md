@@ -273,8 +273,13 @@ installer carries one.
   the native dialog, and a folder is written only when it is the one just picked
   or one the Companion itself reported. Only a link of the latest snapshot opens
   in the system browser.
-- **Carried installer.** No Companion version or digest is written in source: the
-  client follows the Companion's releases. The release job `delivery-windows.yml`
+- **Carried installer.** No Companion version is typed and no digest is written in
+  source: the client follows the Companion's releases. A new release reaches the
+  next release slot by itself: kombify-AI-Platform's `companion-desktop-msi.yml`
+  (job `carry`) writes the derived record
+  `techstack/.kombify/carried-companion-release.json` from it through a
+  `fix(companion)` pull request labelled `merge-batch`, which makes Techstack a
+  changed product for the slot; no build reads that record and nobody edits it. The release job `delivery-windows.yml`
   runs `scripts/read-companion-installer.ps1`, which resolves the newest
   published `companion-desktop-v<semver>` release of the private
   kombify-AI-Platform repository (highest version, no draft, tag present) with a

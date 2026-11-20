@@ -45,7 +45,8 @@ func TestEvaluateManagedRuntimeEntitlement(t *testing.T) {
 		{name: "disabled", ctx: context.Background(), providerID: ProviderCentron, checker: &managedRuntimeEntitlementChecker{}, wantDenied: true, wantReason: EntitlementReasonFeatureDisabled},
 		{name: "unknown provider", ctx: context.Background(), providerID: "personal-ionos", checker: &managedRuntimeEntitlementChecker{enabled: true}, wantDenied: true, wantReason: EntitlementReasonProviderUnsupported, wantNoCall: true},
 		{name: "noncanonical provider", ctx: context.Background(), providerID: "IONOS", checker: &managedRuntimeEntitlementChecker{enabled: true}, wantDenied: true, wantReason: EntitlementReasonProviderUnsupported, wantNoCall: true},
-		{name: "platform admin", ctx: adminContext, providerID: ProviderCentron, wantNoCall: true},
+		{name: "platform role without subscription", ctx: adminContext, providerID: ProviderCentron, checker: &managedRuntimeEntitlementChecker{}, wantDenied: true, wantReason: EntitlementReasonFeatureDisabled},
+		{name: "platform role with subscription", ctx: adminContext, providerID: ProviderIONOS, checker: &managedRuntimeEntitlementChecker{enabled: true}},
 	}
 
 	for _, test := range tests {

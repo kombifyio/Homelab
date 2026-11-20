@@ -2856,11 +2856,6 @@ export const hi: Record<string, string> = {
   "ui.settings.account": "खाता",
   "ui.settings.appearance": "दिखावट",
   "ui.settings.appearanceMode": "दिखावट मोड",
-  "ui.settings.applyExactPlan": "सटीक योजना लागू करें",
-  "ui.settings.applying": "लागू किया जा रहा है...",
-  "ui.settings.cleanUpTestResidue": "परीक्षण के अवशेष साफ़ करें",
-  "ui.settings.cleanupFailed": "क्लीनअप विफल रहा",
-  "ui.settings.cleanupReviewFailed": "क्लीनअप की समीक्षा विफल रही",
   "ui.settings.companion": "Companion",
   "companion.settings.sections.companion": "Companion",
   "companion.settings.sections.kubi": "Kubi",
@@ -2961,17 +2956,7 @@ export const hi: Record<string, string> = {
   "ui.settings.noDeploymentsToDelete": "हटाने के लिए कोई Homelab नहीं है।",
   "ui.settings.noHomelabIdentityConfigured":
     "कोई Homelab पहचान कॉन्फ़िगर नहीं है।",
-  "ui.settings.noVerifiedTestResidueRemains":
-    "कोई सत्यापित परीक्षण अवशेष शेष नहीं है।",
-  "ui.settings.noVerifiedTestResidueWas":
-    "कोई सत्यापित परीक्षण अवशेष नहीं मिला।",
   "ui.settings.overlap": "ओवरलैप",
-  "ui.settings.pruneQualifies": "केवल प्रमाणित मालिक {owner} और सख्त {strict} प्रोजेक्शन ही पात्र हैं। सक्रिय प्रबंधित रनटाइम, प्रदाता संसाधन, हाल के सर्वर, डेमो डेटा और सामान्य Homelab डेटा अपरिवर्तित रहते हैं।",
-  "ui.settings.reviewCleanup": "क्लीनअप की समीक्षा करें",
-  "ui.settings.reviewVerifiedTestResidue":
-    "सत्यापित परीक्षण अवशेषों की समीक्षा करें",
-  "ui.settings.reviewing": "समीक्षा हो रही है...",
-  "ui.settings.reviewsExactOwnerScopedE2e": "यह मालिक-स्कोप वाले सटीक E2E और विफल रनटाइम प्रोजेक्शन की समीक्षा करता है। प्रदाता संसाधन, सक्रिय लीज़, हाल के सर्वर और सामान्य Homelab डेटा अपरिवर्तित रहते हैं।",
   "ui.settings.savedOnDevice": "आपके खाते के लिए इस डिवाइस पर सहेजा गया।",
   "ui.settings.settings": "सेटिंग्स",
   "ui.settings.signedIn": "साइन इन किया हुआ",
@@ -2982,7 +2967,6 @@ export const hi: Record<string, string> = {
   "ui.settings.thisDecommissionsTheManagedRuntime": "यह प्रबंधित सर्वर को बंद करता है, प्रदाता पर उसे उसके डेटा सहित हटा देता है और Homelab प्रविष्टि हटाता है। इसे पूर्ववत नहीं किया जा सकता।",
   "ui.settings.thisEntryIsNotVerified":
     "यह प्रविष्टि सत्यापित परीक्षण अवशेष नहीं है और प्रोजेक्शन क्लीनअप से हटाई नहीं जा सकती।",
-  "ui.settings.thisExactPlanIsBound": "यह सटीक योजना नीचे दिए गए डाइजेस्ट से बंधी है। कोई सर्वर या प्रदाता संसाधन नहीं हटाया जाता।",
   "ui.settings.typeToConfirm": "पुष्टि के लिए {slot} टाइप करें",
   "ui.shortcuts.closeDialogDeselect": "डायलॉग बंद करें/चयन हटाएँ",
   "ui.shortcuts.focusSearchInput": "सर्च इनपुट पर फ़ोकस करें",

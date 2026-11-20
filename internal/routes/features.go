@@ -37,12 +37,12 @@ type featureRouteHandlers struct {
 }
 
 func (h featureRouteHandlers) listFeatures(e *httpx.Event) error {
-	userID, isAdmin, ok := authenticatedUser(e)
+	userID, isInstanceOwner, ok := authenticatedUser(e)
 	if !ok {
 		return httpx.Unauthorized(e, "")
 	}
 
-	flagsByCategory, err := h.svc.GetFlagsByCategory(e.Request.Context(), userID, isAdmin)
+	flagsByCategory, err := h.svc.GetFlagsByCategory(e.Request.Context(), userID, isInstanceOwner)
 	if err != nil {
 		return httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to load features", nil)
 	}

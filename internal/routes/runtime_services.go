@@ -322,7 +322,7 @@ func (h *serviceRuntimeHandlers) getApplication(e *httpx.Event) error {
 }
 
 func (h *serviceRuntimeHandlers) applicationReadModel(e *httpx.Event) ([]serviceApplicationResponse, error) {
-	ownerID, isAdmin, ok := authenticatedUser(e)
+	ownerID, isInstanceOwner, ok := authenticatedUser(e)
 	if !ok {
 		return nil, httpx.RejectUnauthorized(e, "Authentication required")
 	}
@@ -332,7 +332,7 @@ func (h *serviceRuntimeHandlers) applicationReadModel(e *httpx.Event) ([]service
 	}
 	stackID := strings.TrimSpace(e.Request.URL.Query().Get("kit_deployment_id"))
 	serverID := strings.TrimSpace(e.Request.URL.Query().Get("server_id"))
-	ownedStacks, err := h.ownedStackIDs(e, tenantID, ownerID, isAdmin)
+	ownedStacks, err := h.ownedStackIDs(e, tenantID, ownerID, isInstanceOwner)
 	if err != nil {
 		return nil, err
 	}
@@ -522,7 +522,7 @@ func (h *serviceRuntimeHandlers) serviceRequest(
 	scope string,
 	decode func(*httpx.Event) (string, string, serviceActionRequest, bool, error),
 ) error {
-	ownerID, isAdmin, ok := authenticatedUser(e)
+	ownerID, isInstanceOwner, ok := authenticatedUser(e)
 	if !ok {
 		return httpx.Unauthorized(e, "Authentication required")
 	}
@@ -545,7 +545,7 @@ func (h *serviceRuntimeHandlers) serviceRequest(
 		return httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to load service", nil)
 	}
 	stack, err := h.stacks.GetStack(e.Request.Context(), tenantID, service.StackID)
-	if errors.Is(err, controlplane.ErrNotFound) || (err == nil && !isAdmin && stack.OwnerSubjectID != ownerID) {
+	if errors.Is(err, controlplane.ErrNotFound) || (err == nil && !isInstanceOwner && stack.OwnerSubjectID != ownerID) {
 		return httpx.NotFound(e, "Service not found")
 	}
 	if err != nil {
@@ -913,7 +913,7 @@ func (h *serviceRuntimeHandlers) activeServiceActionJob(ctx context.Context, ten
 }
 
 func (h *serviceRuntimeHandlers) logs(e *httpx.Event) error {
-	ownerID, isAdmin, ok := authenticatedUser(e)
+	ownerID, isInstanceOwner, ok := authenticatedUser(e)
 	if !ok {
 		return httpx.Unauthorized(e, "Authentication required")
 	}
@@ -948,7 +948,7 @@ func (h *serviceRuntimeHandlers) logs(e *httpx.Event) error {
 		return httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to load service", nil)
 	}
 	stack, err := h.stacks.GetStack(e.Request.Context(), tenantID, service.StackID)
-	if errors.Is(err, controlplane.ErrNotFound) || (err == nil && !isAdmin && stack.OwnerSubjectID != ownerID) {
+	if errors.Is(err, controlplane.ErrNotFound) || (err == nil && !isInstanceOwner && stack.OwnerSubjectID != ownerID) {
 		return httpx.NotFound(e, "Service not found")
 	}
 	if err != nil {
@@ -1031,7 +1031,7 @@ func containsString(values []string, want string) bool {
 }
 
 func (h *serviceRuntimeHandlers) list(e *httpx.Event) error {
-	ownerID, isAdmin, ok := authenticatedUser(e)
+	ownerID, isInstanceOwner, ok := authenticatedUser(e)
 	if !ok {
 		return httpx.Unauthorized(e, "Authentication required")
 	}
@@ -1041,7 +1041,7 @@ func (h *serviceRuntimeHandlers) list(e *httpx.Event) error {
 	}
 	stackID := strings.TrimSpace(e.Request.URL.Query().Get("kit_deployment_id"))
 	serverID := strings.TrimSpace(e.Request.URL.Query().Get("server_id"))
-	ownedStacks, err := h.ownedStackIDs(e, tenantID, ownerID, isAdmin)
+	ownedStacks, err := h.ownedStackIDs(e, tenantID, ownerID, isInstanceOwner)
 	if err != nil {
 		return err
 	}
@@ -1095,7 +1095,7 @@ func (r serviceRuntimeResponse) withoutElapsedCounters() serviceRuntimeResponse 
 }
 
 func (h *serviceRuntimeHandlers) get(e *httpx.Event) error {
-	ownerID, isAdmin, ok := authenticatedUser(e)
+	ownerID, isInstanceOwner, ok := authenticatedUser(e)
 	if !ok {
 		return httpx.Unauthorized(e, "Authentication required")
 	}
@@ -1116,7 +1116,7 @@ func (h *serviceRuntimeHandlers) get(e *httpx.Event) error {
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Service inventory is unavailable", nil)
 	}
 	stack, err := h.stacks.GetStack(e.Request.Context(), tenantID, service.StackID)
-	if errors.Is(err, controlplane.ErrNotFound) || (err == nil && !isAdmin && stack.OwnerSubjectID != ownerID) {
+	if errors.Is(err, controlplane.ErrNotFound) || (err == nil && !isInstanceOwner && stack.OwnerSubjectID != ownerID) {
 		return httpx.NotFound(e, "Service not found")
 	}
 	if err != nil {
@@ -1136,7 +1136,7 @@ func (h *serviceRuntimeHandlers) get(e *httpx.Event) error {
 	return httpx.ConditionalSuccess(e, item, item.withoutElapsedCounters())
 }
 
-func (h *serviceRuntimeHandlers) ownedStackIDs(e *httpx.Event, tenantID, ownerID string, isAdmin bool) (map[string]bool, error) {
+func (h *serviceRuntimeHandlers) ownedStackIDs(e *httpx.Event, tenantID, ownerID string, isInstanceOwner bool) (map[string]bool, error) {
 	stacks, err := h.stacks.ListStacksByTenant(e.Request.Context(), tenantID)
 	if err != nil {
 		httpx.RecordDependencyFailure(e, "services.owned_stacks", err)
@@ -1144,7 +1144,7 @@ func (h *serviceRuntimeHandlers) ownedStackIDs(e *httpx.Event, tenantID, ownerID
 	}
 	result := make(map[string]bool, len(stacks))
 	for _, stack := range stacks {
-		if isAdmin || stack.OwnerSubjectID == ownerID {
+		if isInstanceOwner || stack.OwnerSubjectID == ownerID {
 			result[stack.ID] = true
 		}
 	}

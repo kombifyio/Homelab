@@ -155,7 +155,6 @@ type Node struct {
 // NodeUpsert registers or refreshes one server for its owner.
 type NodeUpsert struct {
 	OwnerSubject, ConnectTenantID string
-	Roles                         []string
 	HostProof                     string
 	KeyThumbprint                 string
 	DisplayName, StackID          string
@@ -175,10 +174,9 @@ type nodeBody struct {
 	AgentEnvelope *AgentEnvelopeKey `json:"agent_envelope"`
 }
 
-// obo is the owner on a Connect registration token. Roles stay off the token:
-// Gateway reads the subject's current Auth0 roles, and a whitespace-only list
-// must not be issued either.
-func (g *Gateway) obo(owner, connectTenant string, _ []string) *servicecall.OnBehalfOf {
+// obo is the owner on a Connect registration token. Only the owner subject and
+// the Connect tenant travel; no role does.
+func (g *Gateway) obo(owner, connectTenant string) *servicecall.OnBehalfOf {
 	return &servicecall.OnBehalfOf{Sub: owner, OrgID: connectTenant}
 }
 
@@ -197,7 +195,7 @@ func (g *Gateway) PutNode(ctx context.Context, in NodeUpsert) (*Node, error) {
 		return nil, err
 	}
 	var parsed nodeBody
-	status, err := g.do(ctx, gatewayWriteScope, http.MethodPut, gatewayNodesPath, body, g.obo(in.OwnerSubject, in.ConnectTenantID, in.Roles), &parsed)
+	status, err := g.do(ctx, gatewayWriteScope, http.MethodPut, gatewayNodesPath, body, g.obo(in.OwnerSubject, in.ConnectTenantID), &parsed)
 	if err != nil {
 		return nil, err
 	}
@@ -215,13 +213,13 @@ func (g *Gateway) PutNode(ctx context.Context, in NodeUpsert) (*Node, error) {
 // RevokeNode detaches one server. Revoking a revoked node answers with
 // RevokedNow false, and a server Gateway never registered is reported as
 // (nil, nil): there is nothing to revoke.
-func (g *Gateway) RevokeNode(ctx context.Context, owner, connectTenant string, roles []string, serverID, reason string) (*Node, error) {
+func (g *Gateway) RevokeNode(ctx context.Context, owner, connectTenant, serverID, reason string) (*Node, error) {
 	body, err := json.Marshal(map[string]string{"server_id": serverID, "reason": reason})
 	if err != nil {
 		return nil, err
 	}
 	var parsed nodeBody
-	if _, err := g.do(ctx, gatewayWriteScope, http.MethodPost, gatewayRevokePath, body, g.obo(owner, connectTenant, roles), &parsed); err != nil {
+	if _, err := g.do(ctx, gatewayWriteScope, http.MethodPost, gatewayRevokePath, body, g.obo(owner, connectTenant), &parsed); err != nil {
 		var denial *GatewayError
 		if errors.As(err, &denial) && denial.Status == http.StatusNotFound && denial.ReasonCode == "node_not_found" {
 			return nil, nil

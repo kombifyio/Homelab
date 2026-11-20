@@ -102,15 +102,15 @@ func TestHostedAlertRoutesHideFleetStatesFromCustomers(t *testing.T) {
 	router := httpx.NewRouter()
 	RegisterAlertRoutes(router, engine)
 	customer := &identity.Identity{UserID: "auth0|owner-1", OrgID: "tenant-1"}
-	staff := &identity.Identity{UserID: "auth0|staff-1", OrgID: "tenant-1", Roles: []string{"admin"}}
+	platformRole := &identity.Identity{UserID: "auth0|owner-1", OrgID: "tenant-1", Roles: []string{"admin", "global_admin"}}
 
 	for _, target := range []string{"/api/v1/monitor/alerts", "/api/v1/monitor/alerts/rules"} {
 		own := hostedCall(router, http.MethodGet, target, customer).Body.String()
 		if strings.Contains(own, "FleetCPUHot") || !strings.Contains(own, "TenantOneRule") {
 			t.Fatalf("customer %s = %s, want only the rule labelled with their tenant", target, own)
 		}
-		if fleet := hostedCall(router, http.MethodGet, target, staff).Body.String(); !strings.Contains(fleet, "FleetCPUHot") {
-			t.Fatalf("staff %s = %s, want the fleet view", target, fleet)
+		if staffView := hostedCall(router, http.MethodGet, target, platformRole).Body.String(); strings.Contains(staffView, "FleetCPUHot") || !strings.Contains(staffView, "TenantOneRule") {
+			t.Fatalf("platform-role caller %s = %s, want only the rule labelled with their tenant", target, staffView)
 		}
 		if rec := hostedCall(router, http.MethodGet, target, &identity.Identity{UserID: "auth0|owner-1"}); rec.Code != http.StatusForbidden {
 			t.Fatalf("tenant-less %s = %d, want 403", target, rec.Code)

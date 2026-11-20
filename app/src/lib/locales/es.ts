@@ -2928,11 +2928,6 @@ export const es: Record<string, string> = {
   "ui.settings.account": "Cuenta",
   "ui.settings.appearance": "Apariencia",
   "ui.settings.appearanceMode": "Modo de apariencia",
-  "ui.settings.applyExactPlan": "Aplicar el plan exacto",
-  "ui.settings.applying": "Aplicando...",
-  "ui.settings.cleanUpTestResidue": "Limpiar residuos de pruebas",
-  "ui.settings.cleanupFailed": "Error en la limpieza",
-  "ui.settings.cleanupReviewFailed": "Error al revisar la limpieza",
   "ui.settings.companion": "Companion",
   "companion.settings.sections.companion": "Companion",
   "companion.settings.sections.kubi": "Kubi",
@@ -3036,17 +3031,7 @@ export const es: Record<string, string> = {
   "ui.settings.noDeploymentsToDelete": "No hay homelabs que quitar.",
   "ui.settings.noHomelabIdentityConfigured":
     "No hay ninguna identidad de Homelab configurada.",
-  "ui.settings.noVerifiedTestResidueRemains":
-    "No queda ningún residuo de pruebas verificado.",
-  "ui.settings.noVerifiedTestResidueWas":
-    "No se ha encontrado ningún residuo de pruebas verificado.",
   "ui.settings.overlap": "Superposición",
-  "ui.settings.pruneQualifies": "Solo cumplen los requisitos las proyecciones con propietario autenticado {owner} y coincidencia estricta {strict}. Los runtimes gestionados activos, los recursos del proveedor, los servidores recientes, los datos de demostración y los datos normales del Homelab no cambian.",
-  "ui.settings.reviewCleanup": "Revisar la limpieza",
-  "ui.settings.reviewVerifiedTestResidue":
-    "Revisar los residuos de pruebas verificados",
-  "ui.settings.reviewing": "Revisando...",
-  "ui.settings.reviewsExactOwnerScopedE2e": "Revisa las proyecciones E2E exactas del propietario y las proyecciones de runtime fallidas. Los recursos del proveedor, los arrendamientos activos, los servidores recientes y los datos normales del Homelab no cambian.",
   "ui.settings.savedOnDevice": "Guardado en este dispositivo para tu cuenta.",
   "ui.settings.settings": "Ajustes",
   "ui.settings.signedIn": "Sesión iniciada",
@@ -3057,7 +3042,6 @@ export const es: Record<string, string> = {
   "ui.settings.thisDecommissionsTheManagedRuntime": "Esto apaga el servidor administrado, lo elimina junto con sus datos en el proveedor y quita la entrada del homelab. No se puede deshacer.",
   "ui.settings.thisEntryIsNotVerified":
     "Esta entrada no es un residuo de pruebas verificado y no se puede eliminar con la limpieza de proyecciones.",
-  "ui.settings.thisExactPlanIsBound": "Este plan exacto está vinculado al digest de abajo. No se quita ningún servidor ni recurso del proveedor.",
   "ui.settings.typeToConfirm": "Escribe {slot} para confirmar",
   "ui.shortcuts.closeDialogDeselect": "Cerrar diálogo/deseleccionar",
   "ui.shortcuts.focusSearchInput": "Enfocar el campo de búsqueda",

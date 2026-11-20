@@ -71,7 +71,6 @@ var (
 	isProviderDecommissionPending           = func(*jobs.ManagedLeaseDecommissionResult, error) bool { return false }
 	providerDecommissionRefusal             = func(error) *monthlyruntime.DecommissionRefusedError { return nil }
 	registerProviderIncidentRoutes          = func(*httpx.Router, *sql.DB) {}
-	registerProviderResolutionRoutes        = func(*httpx.Router, any, routes.InventoryPolicy) {}
 )
 
 // managedLeaseRecoveryIntent hands decommission directly to the canonical
@@ -570,7 +569,6 @@ func publicOriginHost() string {
 }
 
 func registerRuntimeInventoryRoutes(router *httpx.Router, deps routeDeps, state runtimeRouteState, inventoryPolicy routes.InventoryPolicy, actionCards *routes.ServiceActionCards) *routes.ManagedRuntimeExpansion {
-	registerProviderResolutionRoutes(router, deps.providerResolution, inventoryPolicy)
 	var metricWriter routes.WorkerMetricWriter
 	if deps.monitor != nil && deps.monitor.tsdb != nil {
 		metricWriter = deps.monitor.tsdb

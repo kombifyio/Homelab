@@ -392,8 +392,8 @@ var _ workflow.Observer = (*Metrics)(nil)
 // It creates a new registry to avoid polluting the default global registry.
 //
 // SECURITY: This endpoint returns instance-wide metrics without tenant filtering.
-// In SaaS mode, it MUST be restricted to infrastructure-only access (e.g. Prometheus
-// scraper auth via Edge/reverse proxy signed as an admin identity). It must NOT be
+// It is answered to the owner of a self-hosted installation only; the hosted
+// product has no instance owner, so no caller is admitted there. It must NOT be
 // exposed to tenant-facing API routes.
 func RegisterMetricsRoutes(r *httpx.Router) *Metrics {
 	// Create a new registry (don't use global to avoid conflicts)
@@ -442,5 +442,5 @@ func RegisterMetricsRoutes(r *httpx.Router) *Metrics {
 }
 
 func requireMetricsAccess(e *httpx.Event) error {
-	return requireAdmin(e)
+	return requireInstanceOwner(e)
 }

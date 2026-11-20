@@ -2788,11 +2788,6 @@ export const ar: Record<string, string> = {
   "ui.settings.account": "الحساب",
   "ui.settings.appearance": "المظهر",
   "ui.settings.appearanceMode": "وضع المظهر",
-  "ui.settings.applyExactPlan": "تطبيق الخطة بالضبط",
-  "ui.settings.applying": "جارٍ التطبيق...",
-  "ui.settings.cleanUpTestResidue": "تنظيف مخلفات الاختبار",
-  "ui.settings.cleanupFailed": "فشل التنظيف",
-  "ui.settings.cleanupReviewFailed": "فشلت مراجعة التنظيف",
   "ui.settings.companion": "Companion",
   "companion.settings.sections.companion": "Companion",
   "companion.settings.sections.kubi": "Kubi",
@@ -2892,17 +2887,7 @@ export const ar: Record<string, string> = {
   "ui.settings.navigationPreviewShape": "شكل معاينة التنقل",
   "ui.settings.noDeploymentsToDelete": "لا توجد Homelab للإزالة.",
   "ui.settings.noHomelabIdentityConfigured": "لم يتم إعداد أي هوية Homelab.",
-  "ui.settings.noVerifiedTestResidueRemains":
-    "لا تتبقى أي مخلفات اختبار تم التحقق منها.",
-  "ui.settings.noVerifiedTestResidueWas":
-    "لم يتم العثور على أي مخلفات اختبار تم التحقق منها.",
   "ui.settings.overlap": "تراكب",
-  "ui.settings.pruneQualifies": "لا يستوفي الشروط سوى الإسقاطات ذات المالك المصادق عليه {owner} والمطابقة الصارمة {strict}. تبقى بيئات التشغيل المُدارة النشطة وموارد المزوّد والخوادم الحديثة وبيانات العرض التجريبي وبيانات Homelab العادية دون تغيير.",
-  "ui.settings.reviewCleanup": "مراجعة التنظيف",
-  "ui.settings.reviewVerifiedTestResidue":
-    "مراجعة مخلفات الاختبار التي تم التحقق منها",
-  "ui.settings.reviewing": "جارٍ المراجعة...",
-  "ui.settings.reviewsExactOwnerScopedE2e": "يراجع إسقاطات E2E المحددة بدقة بنطاق المالك وإسقاطات بيئة التشغيل الفاشلة. تبقى موارد المزوّد وعقود الإيجار النشطة والخوادم الحديثة وبيانات Homelab العادية دون تغيير.",
   "ui.settings.savedOnDevice": "تم الحفظ على هذا الجهاز لحسابك.",
   "ui.settings.settings": "الإعدادات",
   "ui.settings.signedIn": "تم تسجيل الدخول",
@@ -2913,7 +2898,6 @@ export const ar: Record<string, string> = {
   "ui.settings.thisDecommissionsTheManagedRuntime": "يؤدي هذا إلى إيقاف الخادم المُدار وحذفه مع بياناته لدى المزوّد وإزالة إدخال Homelab. لا يمكن التراجع عن ذلك.",
   "ui.settings.thisEntryIsNotVerified":
     "هذا الإدخال ليس من مخلفات الاختبار التي تم التحقق منها ولا يمكن إزالته عبر تنظيف الإسقاطات.",
-  "ui.settings.thisExactPlanIsBound": "ترتبط هذه الخطة بالضبط بالملخّص الموضح أدناه. لن تتم إزالة أي خادم أو مورد لدى المزوّد.",
   "ui.settings.typeToConfirm": "اكتب {slot} للتأكيد",
   "ui.shortcuts.closeDialogDeselect": "إغلاق الحوار/إلغاء التحديد",
   "ui.shortcuts.focusSearchInput": "التركيز على حقل البحث",

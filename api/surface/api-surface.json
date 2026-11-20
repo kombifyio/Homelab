@@ -3,7 +3,7 @@
   "product": "techstack",
   "source": {
     "path": "api/openapi/techstack-v1.yaml",
-    "sha256": "b62281e9013b5c95c5eca35616d45533f0f5e61be855d9841005e25900e27b66"
+    "sha256": "974949fe17130799205f93c8713dd35f5c40cf418c646776a35d5946dbf13349"
   },
   "envelope": "data",
   "cli": {
@@ -2296,7 +2296,7 @@
       "operationId": "clearDiscoveryCache",
       "method": "DELETE",
       "path": "/api/v1/discovery/cache",
-      "summary": "Clear discovery cache (admin only)",
+      "summary": "Clear discovery cache (self-hosted owner only)",
       "tags": [
         "Discovery"
       ],
@@ -2325,7 +2325,7 @@
       },
       "mcp": {
         "toolName": "clear_discovery_cache",
-        "title": "Clear discovery cache (admin only)",
+        "title": "Clear discovery cache (self-hosted owner only)",
         "requiredCapability": "techstack.inventory.operate",
         "annotations": {
           "readOnlyHint": false,
@@ -2477,7 +2477,7 @@
       "method": "POST",
       "path": "/api/v1/discovery/probe",
       "summary": "Deep probe a caller-owned device",
-      "description": "Logs in to the device over SSH with the login held in the Wallet item `ssh_wallet_item_id` (a kombify Wallet node access item assigned to Techstack and bound to this IP or to no host, or an SSH key or password item of the built-in wallet whose URL names this IP) and reads its system facts. The login is resolved inside Techstack for this probe only and never answered. This contract accepts no password or private key. Non-admin callers may only probe IPs from their own discovery results; admins may probe arbitrary IPs. Local control planes only (409 `lan_executor_required` on a hosted one).",
+      "description": "Logs in to the device over SSH with the login held in the Wallet item `ssh_wallet_item_id` (a kombify Wallet node access item assigned to Techstack and bound to this IP or to no host, or an SSH key or password item of the built-in wallet whose URL names this IP) and reads its system facts. The login is resolved inside Techstack for this probe only and never answered. This contract accepts no password or private key. Callers other than the owner of a self-hosted installation may only probe IPs from their own discovery results; the owner may probe arbitrary IPs. Local control planes only (409 `lan_executor_required` on a hosted one).",
       "tags": [
         "Discovery"
       ],
@@ -2983,7 +2983,7 @@
       "operationId": "getDiscoveryStats",
       "method": "GET",
       "path": "/api/v1/discovery/stats",
-      "summary": "Get discovery statistics (admin only)",
+      "summary": "Get discovery statistics (self-hosted owner only)",
       "tags": [
         "Discovery"
       ],
@@ -2995,7 +2995,7 @@
       },
       "mcp": {
         "toolName": "get_discovery_stats",
-        "title": "Get discovery statistics (admin only)",
+        "title": "Get discovery statistics (self-hosted owner only)",
         "requiredCapability": "techstack.inventory.read",
         "annotations": {
           "readOnlyHint": true,
@@ -3011,7 +3011,7 @@
       "method": "POST",
       "path": "/api/v1/discovery/test-ssh",
       "summary": "Test SSH connectivity to a device",
-      "description": "Opens one SSH connection with the login held in the Wallet item `ssh_wallet_item_id` (its key when it holds one, otherwise its password; a built-in wallet item must name this IP as its URL), resolved inside Techstack and never answered; nothing is stored. This contract accepts no password. A failed connection answers 200 with `success: false`. Non-admin callers may only test IPs from their own discovery results; admins may test arbitrary IPs. Local control planes only.",
+      "description": "Opens one SSH connection with the login held in the Wallet item `ssh_wallet_item_id` (its key when it holds one, otherwise its password; a built-in wallet item must name this IP as its URL), resolved inside Techstack and never answered; nothing is stored. This contract accepts no password. A failed connection answers 200 with `success: false`. Callers other than the owner of a self-hosted installation may only test IPs from their own discovery results; the owner may test arbitrary IPs. Local control planes only.",
       "tags": [
         "Discovery"
       ],
@@ -8695,7 +8695,7 @@
       "operationId": "getMetricsV1",
       "method": "GET",
       "path": "/api/v1/metrics",
-      "summary": "Prometheus-compatible instance metrics (API path alias, admin/infra only)",
+      "summary": "Prometheus-compatible instance metrics (API path alias, self-hosted owner only)",
       "tags": [
         "Metrics"
       ],
@@ -14227,212 +14227,6 @@
           "destructiveHint": false,
           "idempotentHint": true,
           "openWorldHint": false
-        }
-      }
-    },
-    {
-      "operationId": "discoverProviderProvision",
-      "method": "POST",
-      "path": "/api/v1/provider-operations/{operationId}/provision-discovery",
-      "summary": "Observe what the provider holds for one parked provision operation",
-      "description": "First step of operator resolution for a provision whose outcome is unknown. Reads the provider (read-only) and appends the immutable discovery evidence; it never creates or retries anything at the provider. A replay re-verifies the same observation. The answer names the confirmation string the second step requires. Administrator-only: a non-administrator caller is refused with 403, and the operation must belong to the caller's tenant.",
-      "tags": [
-        "Servers"
-      ],
-      "mutating": true,
-      "arguments": [
-        {
-          "name": "operation_id",
-          "in": "path",
-          "wireName": "operationId",
-          "required": true,
-          "description": "Provider operation id (non-empty, at most 256 characters, no whitespace or control characters).",
-          "schema": {
-            "maxLength": 256,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        {
-          "name": "body",
-          "in": "body",
-          "schema": {
-            "additionalProperties": false,
-            "type": "object"
-          }
-        }
-      ],
-      "body": {
-        "contentType": "application/json",
-        "mode": "json"
-      },
-      "output": {
-        "contentType": "application/json",
-        "envelope": "data",
-        "schema": {
-          "properties": {
-            "candidate_count": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "created": {
-              "description": "True when this call appended the observation.",
-              "type": "boolean"
-            },
-            "expected_outcome": {
-              "enum": [
-                "no_candidate_observed",
-                "adopted_exact_candidate",
-                "multiple_candidates_quarantined"
-              ],
-              "type": "string"
-            },
-            "observation_digest": {
-              "type": "string"
-            },
-            "observation_id": {
-              "type": "string"
-            },
-            "operation_id": {
-              "type": "string"
-            },
-            "required_confirmation": {
-              "description": "Exact string the resolution step must send: adopt-provision:<operationId>.",
-              "type": "string"
-            },
-            "resolution_revision": {
-              "format": "int64",
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          "required": [
-            "operation_id",
-            "observation_id",
-            "candidate_count",
-            "expected_outcome",
-            "required_confirmation"
-          ],
-          "type": "object"
-        }
-      },
-      "cli": {
-        "command": [
-          "provider-operations",
-          "provision-discovery"
-        ],
-        "args": [
-          "operation_id"
-        ]
-      },
-      "mcp": {
-        "toolName": "discover_provider_provision",
-        "title": "Discover a parked provider provision",
-        "requiredCapability": "techstack.inventory.write",
-        "annotations": {
-          "readOnlyHint": false,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
-        }
-      }
-    },
-    {
-      "operationId": "resolveProviderProvision",
-      "method": "POST",
-      "path": "/api/v1/provider-operations/{operationId}/provision-resolution",
-      "summary": "Record the operator decision for one parked provision operation",
-      "description": "Second step of operator resolution. With the exact confirmation from the discovery step it appends one decision against the persisted observation: no candidate, adopt the single exact candidate, or quarantine several. The decision is local custody state and never starts or retries provider creation. Replays return the original decision. Administrator-only; a stale or mismatching observation answers 409.",
-      "tags": [
-        "Servers"
-      ],
-      "mutating": true,
-      "arguments": [
-        {
-          "name": "operation_id",
-          "in": "path",
-          "wireName": "operationId",
-          "required": true,
-          "description": "Provider operation id (non-empty, at most 256 characters, no whitespace or control characters).",
-          "schema": {
-            "maxLength": 256,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        {
-          "name": "confirmation",
-          "in": "body",
-          "wireName": "confirmation",
-          "required": true,
-          "description": "Must equal required_confirmation from the discovery step (adopt-provision:<operationId>).",
-          "schema": {
-            "description": "Must equal required_confirmation from the discovery step (adopt-provision:<operationId>).",
-            "type": "string"
-          }
-        }
-      ],
-      "body": {
-        "contentType": "application/json",
-        "required": true,
-        "mode": "properties"
-      },
-      "output": {
-        "contentType": "application/json",
-        "envelope": "data",
-        "schema": {
-          "properties": {
-            "created": {
-              "description": "True when this call appended the decision.",
-              "type": "boolean"
-            },
-            "decision_digest": {
-              "type": "string"
-            },
-            "operation_id": {
-              "type": "string"
-            },
-            "operation_phase": {
-              "type": "string"
-            },
-            "outcome": {
-              "enum": [
-                "no_candidate_observed",
-                "adopted_exact_candidate",
-                "multiple_candidates_quarantined"
-              ],
-              "type": "string"
-            },
-            "resource_count": {
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          "required": [
-            "operation_id",
-            "outcome"
-          ],
-          "type": "object"
-        }
-      },
-      "cli": {
-        "command": [
-          "provider-operations",
-          "provision-resolution"
-        ],
-        "args": [
-          "operation_id"
-        ]
-      },
-      "mcp": {
-        "toolName": "resolve_provider_provision",
-        "title": "Resolve a parked provider provision",
-        "requiredCapability": "techstack.inventory.write",
-        "annotations": {
-          "readOnlyHint": false,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
         }
       }
     },
@@ -39028,7 +38822,7 @@
       "operationId": "getMetrics",
       "method": "GET",
       "path": "/metrics",
-      "summary": "Prometheus-compatible instance metrics (admin/infra only)",
+      "summary": "Prometheus-compatible instance metrics (self-hosted owner only)",
       "tags": [
         "Metrics"
       ],

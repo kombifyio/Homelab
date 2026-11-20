@@ -1,8 +1,334 @@
 {
   "schemaVersion": "stackkits.release-notes/v1",
-  "version": "v0.57.19",
+  "version": "v0.58.0",
   "changelogUrl": "https://stackkit.cc/changelog",
   "releases": [
+    {
+      "version": "v0.58.0",
+      "date": "2026-11-19",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "",
+          "text": "add reviewed own application lifecycle on Direct Compose"
+        },
+        {
+          "kind": "added",
+          "scope": "android",
+          "text": "extend existing rack wake admission to Paperwork PR capture"
+        },
+        {
+          "kind": "added",
+          "scope": "appliance",
+          "text": "assemble a mini-PC installer with first-boot pairing"
+        },
+        {
+          "kind": "added",
+          "scope": "catalog",
+          "text": "export application pins and verified upstream release sources"
+        },
+        {
+          "kind": "added",
+          "scope": "cli",
+          "text": "stackkit connect binds a server that runs the public package to a kombify account"
+        },
+        {
+          "kind": "added",
+          "scope": "connect",
+          "text": "pair an own server through a hidden terminal prompt"
+        },
+        {
+          "kind": "added",
+          "scope": "decision-receipt",
+          "text": "verify and spend the platform's signed decision receipt against node custody"
+        },
+        {
+          "kind": "added",
+          "scope": "dev",
+          "text": "add optional pinned headless Workbench host"
+        },
+        {
+          "kind": "added",
+          "scope": "golden-image",
+          "text": "bake per kit release on rack-kvm and ship a Proxmox template"
+        },
+        {
+          "kind": "added",
+          "scope": "guard",
+          "text": "publish authenticated StackKits update metadata"
+        },
+        {
+          "kind": "added",
+          "scope": "guard",
+          "text": "restore the G10 IONOS image qualification lane"
+        },
+        {
+          "kind": "added",
+          "scope": "home-graph",
+          "text": "carry confirmed HA adoption onto current main"
+        },
+        {
+          "kind": "added",
+          "scope": "home-graph",
+          "text": "publish a private voice routing snapshot on the node"
+        },
+        {
+          "kind": "added",
+          "scope": "homegraph",
+          "text": "complete existing Home Assistant adoption and CLI reference"
+        },
+        {
+          "kind": "added",
+          "scope": "homegraph",
+          "text": "node command to import the Loxone structure file read-only"
+        },
+        {
+          "kind": "added",
+          "scope": "installer",
+          "text": "serve install.ps1 from private R2"
+        },
+        {
+          "kind": "added",
+          "scope": "installer",
+          "text": "take defaults and localize the questions that remain"
+        },
+        {
+          "kind": "added",
+          "scope": "install",
+          "text": "install the recommended release, computed from the slot's recorded lanes"
+        },
+        {
+          "kind": "added",
+          "scope": "marketplace",
+          "text": "Coolify 4.7.5, least-privilege rolled API token, owner-only Pocket ID sign-in"
+        },
+        {
+          "kind": "added",
+          "scope": "marketplace",
+          "text": "update Coolify as one application with database and custody rollback ( P4)"
+        },
+        {
+          "kind": "added",
+          "scope": "mcp",
+          "text": "local operation descriptions say when to use the tool (AP16.3)"
+        },
+        {
+          "kind": "added",
+          "scope": "mcp",
+          "text": "stackkit-mcp tool descriptions say when to use the tool; registry listing file (AP16.3)"
+        },
+        {
+          "kind": "added",
+          "scope": "os-compat",
+          "text": "the KVM matrix runs once per published release and records every cell"
+        },
+        {
+          "kind": "added",
+          "scope": "own-application",
+          "text": "a person's own Compose project under sign-in, routing and backup"
+        },
+        {
+          "kind": "added",
+          "scope": "own-app",
+          "text": "published ports without outbound through an ingress-only firewall; restore unit review nits"
+        },
+        {
+          "kind": "added",
+          "scope": "own-app",
+          "text": "Stack it adopts any existing single container as an own application"
+        },
+        {
+          "kind": "added",
+          "scope": "own-app",
+          "text": "start, restart, tag update with rollback and catalog operations for own applications; Stack it row codes"
+        },
+        {
+          "kind": "added",
+          "scope": "photos",
+          "text": "add standalone Ente deployment"
+        },
+        {
+          "kind": "added",
+          "scope": "privacy",
+          "text": "report qualified Techstack processor effects"
+        },
+        {
+          "kind": "added",
+          "scope": "security",
+          "text": "cut over StackKits authority producers and consumers"
+        },
+        {
+          "kind": "added",
+          "scope": "stackkits",
+          "text": "optional outbound Internet for own applications, only behind a managed host rule set"
+        },
+        {
+          "kind": "added",
+          "scope": "stackkit",
+          "text": "sync the kombify home graph to Home Assistant on the node"
+        },
+        {
+          "kind": "added",
+          "scope": "transfer",
+          "text": "carry portable application configuration into the receiving candidate"
+        },
+        {
+          "kind": "added",
+          "scope": "use-cases",
+          "text": "admit the application release update on a Techstack-managed node under an exact application-release.update capability"
+        },
+        {
+          "kind": "added",
+          "scope": "use-cases",
+          "text": "release override of the entry image for every catalog application"
+        },
+        {
+          "kind": "added",
+          "scope": "use-cases",
+          "text": "update one application to an untested in-track release with --apply and automatic rollback"
+        },
+        {
+          "kind": "added",
+          "scope": "watch",
+          "text": "daily application releases and advisories feed"
+        },
+        {
+          "kind": "added",
+          "scope": "watch",
+          "text": "release notes, paired affected ranges, Docker Hub reuse and repair path"
+        },
+        {
+          "kind": "fixed",
+          "scope": "access",
+          "text": "repair the local application audience round after review"
+        },
+        {
+          "kind": "fixed",
+          "scope": "",
+          "text": "bound hosted StackKits release publication"
+        },
+        {
+          "kind": "fixed",
+          "scope": "core",
+          "text": "confine Home router diagnostics to container loopback"
+        },
+        {
+          "kind": "fixed",
+          "scope": "",
+          "text": "derive public kit support from version-bound package proof"
+        },
+        {
+          "kind": "fixed",
+          "scope": "dev",
+          "text": "repair the Techstack and StackKits website local loops"
+        },
+        {
+          "kind": "fixed",
+          "scope": "dev",
+          "text": "show runnable local product checks"
+        },
+        {
+          "kind": "fixed",
+          "scope": "dev",
+          "text": "watch all StackKits CLI input trees"
+        },
+        {
+          "kind": "fixed",
+          "scope": "golden-image",
+          "text": "the bake takes Guard releases, which are published as prereleases"
+        },
+        {
+          "kind": "fixed",
+          "scope": "guard-release",
+          "text": "scheduled refresh without signed binaries exits 0 with a notice"
+        },
+        {
+          "kind": "fixed",
+          "scope": "",
+          "text": "guide second-device access and default public connect origin"
+        },
+        {
+          "kind": "fixed",
+          "scope": "host-security",
+          "text": "the fail2ban sshd jail loads on Debian 12"
+        },
+        {
+          "kind": "fixed",
+          "scope": "installer-smoke",
+          "text": "assert the current guided non-TTY contract"
+        },
+        {
+          "kind": "fixed",
+          "scope": "install",
+          "text": "one public path source; init, Apply hint and proof agree; compat rows need current-release evidence"
+        },
+        {
+          "kind": "fixed",
+          "scope": "integration",
+          "text": "remove the integration-lane hold model"
+        },
+        {
+          "kind": "fixed",
+          "scope": "mcp",
+          "text": "pass the owner email through stackkit_init and the install plan"
+        },
+        {
+          "kind": "fixed",
+          "scope": "own-app",
+          "text": "outbound own applications come back after a host reboot, fail closed"
+        },
+        {
+          "kind": "fixed",
+          "scope": "runtime",
+          "text": "preserve rollout bootstrap and pair Debian 12 Engine with Compose"
+        },
+        {
+          "kind": "fixed",
+          "scope": "scaffold",
+          "text": "isolate additional module smoke routes"
+        },
+        {
+          "kind": "fixed",
+          "scope": "security",
+          "text": "build OSV with the supported repository Go compiler"
+        },
+        {
+          "kind": "fixed",
+          "scope": "",
+          "text": "select Techstack release artifacts by changed inputs"
+        },
+        {
+          "kind": "fixed",
+          "scope": "slot",
+          "text": "the package-run importer downloads the dash-keyed artifact"
+        },
+        {
+          "kind": "fixed",
+          "scope": "slot",
+          "text": "the public package slot reads the newest published release without gh"
+        },
+        {
+          "kind": "fixed",
+          "scope": "stackkits",
+          "text": "green the three red repository gates on main"
+        },
+        {
+          "kind": "fixed",
+          "scope": "stackkits",
+          "text": "validate append-only slot package ledger imports"
+        },
+        {
+          "kind": "fixed",
+          "scope": "test",
+          "text": "copy the contract bundle into the bundlegen drift test's export"
+        },
+        {
+          "kind": "fixed",
+          "scope": "workbench",
+          "text": "align host renderer contract identity"
+        }
+      ]
+    },
     {
       "version": "v0.57.19",
       "date": "2026-11-19",
@@ -995,17 +1321,6 @@
           "kind": "fixed",
           "scope": "upgrade",
           "text": "forward recovery can finish with a newer verified release when the signed target cannot"
-        }
-      ]
-    },
-    {
-      "version": "v0.55.2",
-      "date": "2026-11-01",
-      "entries": [
-        {
-          "kind": "fixed",
-          "scope": "upgrade",
-          "text": "an upgrade interrupted after target Apply recovers: claimant proof and owner-approved forward completion"
         }
       ]
     }

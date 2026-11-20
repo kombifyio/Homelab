@@ -4,7 +4,7 @@
   "source": {
     "product": "techstack",
     "path": "api/openapi/techstack-v1.yaml",
-    "sha256": "b62281e9013b5c95c5eca35616d45533f0f5e61be855d9841005e25900e27b66"
+    "sha256": "974949fe17130799205f93c8713dd35f5c40cf418c646776a35d5946dbf13349"
   },
   "tools": [
     {
@@ -893,8 +893,8 @@
       "serverKey": "techstack",
       "toolName": "clear_discovery_cache",
       "alias": "techstack.clear_discovery_cache",
-      "title": "Clear discovery cache (admin only)",
-      "description": "Clear discovery cache (admin only)",
+      "title": "Clear discovery cache (self-hosted owner only)",
+      "description": "Clear discovery cache (self-hosted owner only)",
       "inputSchema": {
         "additionalProperties": false,
         "properties": {},
@@ -2996,66 +2996,6 @@
       "liveEnabled": true
     },
     {
-      "toolId": "techstack.discover_provider_provision",
-      "connectorFamily": "techstack",
-      "serverKey": "techstack",
-      "toolName": "discover_provider_provision",
-      "alias": "techstack.discover_provider_provision",
-      "title": "Discover a parked provider provision",
-      "description": "First step of operator resolution for a provision whose outcome is unknown. Reads the provider (read-only) and appends the immutable discovery evidence; it never creates or retries anything at the provider. A replay re-verifies the same observation. The answer names the confirmation string the second step requires. Administrator-only: a non-administrator caller is refused with 403, and the operation must belong to the caller's tenant.",
-      "inputSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "body": {
-            "additionalProperties": false,
-            "type": "object"
-          },
-          "operation_id": {
-            "description": "Provider operation id (non-empty, at most 256 characters, no whitespace or control characters).",
-            "maxLength": 256,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "operation_id"
-        ],
-        "type": "object"
-      },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "featureKey": "mcp.customer.techstack.inventory.write",
-      "entitlementKey": "techstack.inventory.write",
-      "fgaObject": "tool:techstack/discover_provider_provision",
-      "auditEvent": "mcp.customer.techstack.inventory.discover_provider_provision",
-      "operationIds": [
-        "techstack.discoverProviderProvision"
-      ],
-      "risk": "high",
-      "approvalPolicy": "none",
-      "actionClass": "external_write",
-      "quotaKey": "mcp.usage.techstack.inventory.write",
-      "upstream": {
-        "kind": "product-native",
-        "ref": "techstack"
-      },
-      "portalVisibilityGroup": "customer-build-preview",
-      "requiredScopes": [
-        "mcp:connect"
-      ],
-      "capabilityBundle": "techstack.inventory.write",
-      "requiredCapabilities": [
-        "techstack.inventory.write"
-      ],
-      "costBearing": false,
-      "upstreamKind": "product-native",
-      "liveEnabled": true
-    },
-    {
       "toolId": "techstack.dismiss_notification",
       "connectorFamily": "techstack",
       "serverKey": "techstack",
@@ -4163,8 +4103,8 @@
       "serverKey": "techstack",
       "toolName": "get_discovery_stats",
       "alias": "techstack.get_discovery_stats",
-      "title": "Get discovery statistics (admin only)",
-      "description": "Get discovery statistics (admin only)",
+      "title": "Get discovery statistics (self-hosted owner only)",
+      "description": "Get discovery statistics (self-hosted owner only)",
       "inputSchema": {
         "additionalProperties": false,
         "properties": {},
@@ -9980,7 +9920,7 @@
       "toolName": "probe_discovered_device",
       "alias": "techstack.probe_discovered_device",
       "title": "Probe a discovered device",
-      "description": "Logs in to the device over SSH with the login held in the Wallet item `ssh_wallet_item_id` (a kombify Wallet node access item assigned to Techstack and bound to this IP or to no host, or an SSH key or password item of the built-in wallet whose URL names this IP) and reads its system facts. The login is resolved inside Techstack for this probe only and never answered. This contract accepts no password or private key. Non-admin callers may only probe IPs from their own discovery results; admins may probe arbitrary IPs. Local control planes only (409 `lan_executor_required` on a hosted one).",
+      "description": "Logs in to the device over SSH with the login held in the Wallet item `ssh_wallet_item_id` (a kombify Wallet node access item assigned to Techstack and bound to this IP or to no host, or an SSH key or password item of the built-in wallet whose URL names this IP) and reads its system facts. The login is resolved inside Techstack for this probe only and never answered. This contract accepts no password or private key. Callers other than the owner of a self-hosted installation may only probe IPs from their own discovery results; the owner may probe arbitrary IPs. Local control planes only (409 `lan_executor_required` on a hosted one).",
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
@@ -11791,67 +11731,6 @@
       "costBearing": false,
       "upstreamKind": "product-native",
       "liveEnabled": false
-    },
-    {
-      "toolId": "techstack.resolve_provider_provision",
-      "connectorFamily": "techstack",
-      "serverKey": "techstack",
-      "toolName": "resolve_provider_provision",
-      "alias": "techstack.resolve_provider_provision",
-      "title": "Resolve a parked provider provision",
-      "description": "Second step of operator resolution. With the exact confirmation from the discovery step it appends one decision against the persisted observation: no candidate, adopt the single exact candidate, or quarantine several. The decision is local custody state and never starts or retries provider creation. Replays return the original decision. Administrator-only; a stale or mismatching observation answers 409.",
-      "inputSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "confirmation": {
-            "description": "Must equal required_confirmation from the discovery step (adopt-provision:<operationId>).",
-            "type": "string"
-          },
-          "operation_id": {
-            "description": "Provider operation id (non-empty, at most 256 characters, no whitespace or control characters).",
-            "maxLength": 256,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "operation_id",
-          "confirmation"
-        ],
-        "type": "object"
-      },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "featureKey": "mcp.customer.techstack.inventory.write",
-      "entitlementKey": "techstack.inventory.write",
-      "fgaObject": "tool:techstack/resolve_provider_provision",
-      "auditEvent": "mcp.customer.techstack.inventory.resolve_provider_provision",
-      "operationIds": [
-        "techstack.resolveProviderProvision"
-      ],
-      "risk": "high",
-      "approvalPolicy": "none",
-      "actionClass": "external_write",
-      "quotaKey": "mcp.usage.techstack.inventory.write",
-      "upstream": {
-        "kind": "product-native",
-        "ref": "techstack"
-      },
-      "portalVisibilityGroup": "customer-build-preview",
-      "requiredScopes": [
-        "mcp:connect"
-      ],
-      "capabilityBundle": "techstack.inventory.write",
-      "requiredCapabilities": [
-        "techstack.inventory.write"
-      ],
-      "costBearing": false,
-      "upstreamKind": "product-native",
-      "liveEnabled": true
     },
     {
       "toolId": "techstack.resolve_stacked_original",
@@ -14533,7 +14412,7 @@
       "toolName": "test_discovered_device_ssh",
       "alias": "techstack.test_discovered_device_ssh",
       "title": "Test SSH to a discovered device",
-      "description": "Opens one SSH connection with the login held in the Wallet item `ssh_wallet_item_id` (its key when it holds one, otherwise its password; a built-in wallet item must name this IP as its URL), resolved inside Techstack and never answered; nothing is stored. This contract accepts no password. A failed connection answers 200 with `success: false`. Non-admin callers may only test IPs from their own discovery results; admins may test arbitrary IPs. Local control planes only.",
+      "description": "Opens one SSH connection with the login held in the Wallet item `ssh_wallet_item_id` (its key when it holds one, otherwise its password; a built-in wallet item must name this IP as its URL), resolved inside Techstack and never answered; nothing is stored. This contract accepts no password. A failed connection answers 200 with `success: false`. Callers other than the owner of a self-hosted installation may only test IPs from their own discovery results; the owner may test arbitrary IPs. Local control planes only.",
       "inputSchema": {
         "additionalProperties": false,
         "properties": {

@@ -119,8 +119,6 @@ export interface AuthState {
   isAuthenticated: boolean;
   /** A platform read the guard needs got no definite answer (fault, not signed out). */
   sessionCheckUnconfirmed: boolean;
-  /** Whether user is an admin */
-  isAdmin: boolean;
   /** Loading state */
   loading: boolean;
   /** Error message */
@@ -172,10 +170,6 @@ class AuthStore {
   // Derived state
   get isAuthenticated(): boolean {
     return this.v2SessionActive && this.cloudUser !== null;
-  }
-
-  get isAdmin(): boolean {
-    return Boolean(this.cloudUser?.is_admin);
   }
 
   get currentUser(): CloudUser | null {
@@ -724,7 +718,6 @@ class AuthStore {
       cloudUser: this.cloudUser,
       isAuthenticated: this.isAuthenticated,
       sessionCheckUnconfirmed: this.v2SessionUnconfirmed,
-      isAdmin: this.isAdmin,
       loading: this.loading,
       error: this.error,
     };
@@ -761,13 +754,6 @@ export function sessionCheckUnconfirmed(): boolean {
   return authStore.v2SessionUnconfirmed;
 }
 
-/**
- * Check if user is admin
- */
-export function isAdmin(): boolean {
-  return authStore.isAdmin;
-}
-
 function v2WhoAmIToCloudUser(user: V2WhoAmIResponse): CloudUser {
   const roles = user.role ? [user.role] : [];
   return {
@@ -780,7 +766,6 @@ function v2WhoAmIToCloudUser(user: V2WhoAmIResponse): CloudUser {
     provider: user.provider,
     role: user.role,
     roles,
-    is_admin: roles.includes("admin") || roles.includes("owner"),
   };
 }
 
@@ -788,16 +773,13 @@ function portalCloudUserToCloudUser(user: {
   sub: string;
   email: string;
   name: string;
-  is_admin: boolean;
 }): CloudUser {
-  const roles = user.is_admin ? ["admin"] : [];
   return {
     sub: user.sub,
     email: user.email,
     email_verified: true,
     name: user.name || user.email || user.sub,
-    roles,
-    is_admin: user.is_admin,
+    roles: [],
   };
 }
 

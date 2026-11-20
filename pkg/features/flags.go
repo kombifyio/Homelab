@@ -49,7 +49,7 @@ type FlagState struct {
 	Key             string    `json:"key"`
 	Name            string    `json:"name"`
 	Enabled         bool      `json:"enabled"`
-	Locked          bool      `json:"locked"` // true if requires admin and user is not admin
+	Locked          bool      `json:"locked"` // true if the feature needs the self-hosted instance owner and the caller is not that owner
 	RequiresConsent bool      `json:"requires_consent"`
 	HasConsent      bool      `json:"has_consent"`
 	RiskLevel       RiskLevel `json:"risk_level"`
@@ -405,7 +405,7 @@ func (s *Service) resolveFeature(featureKey string) (string, FeatureDefinition, 
 }
 
 // GetAllFlags lists effective decisions with a single batch consent read.
-func (s *Service) GetAllFlags(ctx context.Context, userID string, isAdmin bool) (map[string]FlagState, error) {
+func (s *Service) GetAllFlags(ctx context.Context, userID string, isInstanceOwner bool) (map[string]FlagState, error) {
 	result := make(map[string]FlagState)
 
 	// Collect all feature keys that need consent checking
@@ -443,7 +443,7 @@ func (s *Service) GetAllFlags(ctx context.Context, userID string, isAdmin bool) 
 			Key:             key,
 			Name:            def.Name,
 			Enabled:         enabled,
-			Locked:          lockedByEdge || (def.RequiresAdmin && !isAdmin),
+			Locked:          lockedByEdge || (def.RequiresAdmin && !isInstanceOwner),
 			RequiresConsent: def.RequiresConsent,
 			HasConsent:      hasConsent,
 			RiskLevel:       def.RiskLevel,
@@ -456,8 +456,8 @@ func (s *Service) GetAllFlags(ctx context.Context, userID string, isAdmin bool) 
 }
 
 // GetFlagsByCategory returns flags grouped by category
-func (s *Service) GetFlagsByCategory(ctx context.Context, userID string, isAdmin bool) (map[Category][]FlagState, error) {
-	allFlags, err := s.GetAllFlags(ctx, userID, isAdmin)
+func (s *Service) GetFlagsByCategory(ctx context.Context, userID string, isInstanceOwner bool) (map[Category][]FlagState, error) {
+	allFlags, err := s.GetAllFlags(ctx, userID, isInstanceOwner)
 	if err != nil {
 		return nil, err
 	}

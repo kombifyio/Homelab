@@ -59,7 +59,6 @@ const (
 	placementManaged          = "managed"
 	placementBYO              = "byo"
 	placementLocal            = "local"
-	ownerRolesMax             = 8
 	connectTenantPersonalPref = "usr:"
 )
 
@@ -75,11 +74,7 @@ type Row struct {
 	// ConnectTenantID is the tenant id Gateway derives for this owner; empty
 	// when the tenant has no Connect namespace (the server then is not listed).
 	ConnectTenantID string
-	// OwnerRoles is the staff-role subset captured when the owner paired the
-	// server. The Connect registration token does not carry it. Gateway admits
-	// the subject from current Auth0 roles.
-	OwnerRoles []string
-	Desired    Desired
+	Desired         Desired
 
 	KeyThumbprint   string
 	CredentialEpoch int64
@@ -207,7 +202,6 @@ var (
 	ErrTenantUnmappable = errors.New("guardreach: tenant has no Connect namespace")
 
 	connectStackIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`)
-	staffRoles            = map[string]struct{}{"global_admin": {}, "admin": {}, "developer": {}, "manager": {}}
 )
 
 // ConnectTenant maps a Techstack tenant to the tenant id Gateway derives for
@@ -227,29 +221,6 @@ func ConnectTenant(tenantID, ownerSubject string) (string, error) {
 		return tenantID, nil
 	}
 	return "", ErrTenantUnmappable
-}
-
-// StaffRoles keeps the staff subset stored on the row and drops everything
-// else. The Connect token does not send this list. Gateway's cohort gate
-// reads the subject's current Auth0 roles.
-func StaffRoles(roles []string) []string {
-	out := make([]string, 0, len(roles))
-	seen := map[string]struct{}{}
-	for _, role := range roles {
-		role = strings.ToLower(strings.TrimSpace(role))
-		if _, ok := staffRoles[role]; !ok {
-			continue
-		}
-		if _, dup := seen[role]; dup {
-			continue
-		}
-		seen[role] = struct{}{}
-		out = append(out, role)
-		if len(out) == ownerRolesMax {
-			break
-		}
-	}
-	return out
 }
 
 // gatewayStackID is the stack id Connect stores; Gateway accepts a narrower

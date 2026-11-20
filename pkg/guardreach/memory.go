@@ -51,7 +51,7 @@ func (s *MemoryStore) Enroll(_ context.Context, e Enrollment) error {
 		s.rows[key] = Row{
 			TenantID: tenantID, WorkerID: workerID, ServerID: serverID, StackID: strings.TrimSpace(e.StackID),
 			OwnerSubjectID: owner, DisplayName: strings.TrimSpace(e.DisplayName), Placement: normalizePlacement(e.Placement),
-			ConnectTenantID: connectTenant, OwnerRoles: StaffRoles(e.OwnerRoles), Desired: DesiredActive,
+			ConnectTenantID: connectTenant, Desired: DesiredActive,
 			Me: Target{State: TargetPending}, Connect: Target{State: TargetPending},
 			NextAttemptAt: now, CreatedAt: now, UpdatedAt: now,
 		}
@@ -68,9 +68,6 @@ func (s *MemoryStore) Enroll(_ context.Context, e Enrollment) error {
 		row.DisplayName = name
 	}
 	row.Placement = normalizePlacement(e.Placement)
-	if roles := StaffRoles(e.OwnerRoles); len(roles) > 0 {
-		row.OwnerRoles = roles
-	}
 	if observed && !s.observed[key] {
 		row.ConnectTenantID = connectTenant
 	}
@@ -185,7 +182,6 @@ func (s *MemoryStore) AdvanceCursor(_ context.Context, name string, position int
 }
 
 func cloneRow(row Row) *Row {
-	row.OwnerRoles = append([]string(nil), row.OwnerRoles...)
 	return &row
 }
 

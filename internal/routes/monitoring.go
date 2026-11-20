@@ -624,15 +624,15 @@ func RegisterAlertRoutes(r *httpx.Router, engine *monitoring.AlertEngine) {
 // alertStatesForCaller narrows the alert engine's states to what the caller may
 // read. The engine evaluates one rule set over the whole fleet, so a state
 // carries a value measured on some tenant's host. Self-hosted serves everything
-// to the single tenant. Hosted serves the fleet view to platform staff only; a
-// customer sees just the states whose rule is labelled with their own tenant,
-// and none when no rule is, never a fleet-wide value.
+// to the single tenant. Hosted shows every caller, whatever platform role they
+// hold, just the states whose rule is labelled with their own tenant, and none
+// when no rule is, never a fleet-wide value.
 func alertStatesForCaller(e *httpx.Event, states []monitoring.AlertState, capability string) ([]monitoring.AlertState, error) {
 	ownerID, err := requireAuth(e)
 	if err != nil {
 		return nil, err
 	}
-	if !tenantguard.Active() || platformStaffCaller(e) {
+	if !tenantguard.Active() {
 		return states, nil
 	}
 	tenantID, err := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, capability)
@@ -646,12 +646,6 @@ func alertStatesForCaller(e *httpx.Event, states []monitoring.AlertState, capabi
 		}
 	}
 	return scoped, nil
-}
-
-// platformStaffCaller reports whether the caller is platform staff: the same
-// signed-admin check that guards the instance-wide /metrics endpoint.
-func platformStaffCaller(e *httpx.Event) bool {
-	return e != nil && ((e.Auth != nil && e.Auth.IsSuperuser()) || signedEdgeAdmin(e))
 }
 
 // parseTimeParam parses a time parameter as RFC3339, Unix timestamp, or relative duration.

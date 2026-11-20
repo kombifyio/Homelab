@@ -69,7 +69,7 @@ type Event struct {
 	// Auth is the authenticated principal for the request, or nil when
 	// unauthenticated. It is the drop-in replacement for core.RequestEvent.Auth
 	// (*core.Record) and exposes the same method surface the routes use:
-	// .Id, .IsSuperuser(), .GetString(key). It is populated from the
+	// .Id, .GetString(key). It is populated from the
 	// Postgres-era identity (identity.FromContext) by the edge-identity and
 	// v2-session middleware.
 	Auth *Principal
@@ -316,8 +316,7 @@ func (e *Event) BindJSON(dst any) error {
 //
 //	e.Auth != nil
 //	e.Auth.Id
-//	e.Auth.IsSuperuser()
-//	e.Auth.GetString("role" | "org_id" | "email" | "username" | ...)
+//	e.Auth.GetString("org_id" | "email" | "username" | ...)
 //
 // It wraps identity.Identity (the Postgres-era principal populated by the edge
 // and v2-session middleware) plus an arbitrary attribute bag for fields that do
@@ -330,9 +329,6 @@ type Principal struct {
 
 	// Identity is the underlying edge-injected identity, or nil.
 	Identity *identity.Identity
-
-	// superuser marks platform-admin principals.
-	superuser bool
 
 	// attrs holds additional string claims addressable via GetString
 	// (e.g. "username", "name", "displayName") that are not first-class on
@@ -348,23 +344,8 @@ func NewPrincipal(id *identity.Identity) *Principal {
 		return nil
 	}
 	return &Principal{
-		Id:        id.UserID,
-		Identity:  id,
-		superuser: id.HasRole("admin") || id.HasRole("superuser"),
-	}
-}
-
-// IsSuperuser reports whether the principal has platform-admin authority.
-// Mirrors core.Record.IsSuperuser().
-func (p *Principal) IsSuperuser() bool {
-	return p != nil && p.superuser
-}
-
-// SetSuperuser overrides the superuser flag (used by auth middleware that
-// applies its own admin-role policy via pbRecordHasAdminRole-equivalent logic).
-func (p *Principal) SetSuperuser(v bool) {
-	if p != nil {
-		p.superuser = v
+		Id:       id.UserID,
+		Identity: id,
 	}
 }
 
@@ -390,10 +371,6 @@ func (p *Principal) GetString(key string) string {
 		if p.Identity != nil {
 			return p.Identity.Tier
 		}
-	case "role":
-		if p.Identity != nil && len(p.Identity.Roles) > 0 {
-			return p.Identity.Roles[0]
-		}
 	}
 	if p.attrs != nil {
 		return p.attrs[key]
@@ -410,11 +387,6 @@ func (p *Principal) Set(key, value string) {
 		p.attrs = make(map[string]string, 4)
 	}
 	p.attrs[key] = value
-}
-
-// HasRole reports whether the principal carries the given role (case-insensitive).
-func (p *Principal) HasRole(role string) bool {
-	return p != nil && p.Identity != nil && p.Identity.HasRole(role)
 }
 
 // authFromContext derives a Principal from the request context identity.
