@@ -40,10 +40,9 @@ type PortalVerifyResponse struct {
 
 // CloudUserInfo contains cloud user information from the SSO token.
 type CloudUserInfo struct {
-	Sub     string `json:"sub"`
-	Email   string `json:"email"`
-	Name    string `json:"name"`
-	IsAdmin bool   `json:"is_admin"`
+	Sub   string `json:"sub"`
+	Email string `json:"email"`
+	Name  string `json:"name"`
 }
 
 // PortalSession carries the V2 browser-session manager and cookie settings
@@ -154,8 +153,7 @@ func handleRuntimePortalVerify(ps PortalSession) func(e *httpx.Event) error {
 			return httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal,
 				"Failed to establish browser session", nil)
 		}
-		membership, err := provisionSSOControlPlaneUser(e.Request.Context(), ps, payload)
-		if err != nil {
+		if err := provisionSSOControlPlaneUser(e.Request.Context(), ps, payload); err != nil {
 			slog.Error("Portal SSO: canonical identity projection failed", "error", err)
 			return httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal,
 				"Failed to establish canonical identity", nil)
@@ -176,10 +174,9 @@ func handleRuntimePortalVerify(ps PortalSession) func(e *httpx.Event) error {
 		// Build response
 		response := PortalVerifyResponse{
 			CloudUser: CloudUserInfo{
-				Sub:     payload.Sub,
-				Email:   payload.Email,
-				Name:    payload.Name,
-				IsAdmin: canonicalMembershipIsAdmin(membership),
+				Sub:   payload.Sub,
+				Email: payload.Email,
+				Name:  payload.Name,
 			},
 			StackIdentity: launchStackIdentity(payload.StackIdentity),
 		}
@@ -254,20 +251,20 @@ func mintPortalSessionToken(ps PortalSession, payload *sso.SSOTokenPayload) (str
 // provisionSSOControlPlaneUser upserts the canonical control-plane
 // tenant/user/membership before a browser session is issued. PocketBase records
 // are compatibility projections and cannot substitute for this authority.
-func provisionSSOControlPlaneUser(ctx context.Context, ps PortalSession, payload *sso.SSOTokenPayload) (*controlplane.Membership, error) {
+func provisionSSOControlPlaneUser(ctx context.Context, ps PortalSession, payload *sso.SSOTokenPayload) error {
 	sub := strings.TrimSpace(payload.Sub)
 	if ps.AuthStore == nil {
-		return nil, errors.New("control-plane auth store is not configured")
+		return errors.New("control-plane auth store is not configured")
 	}
 	if sub == "" {
-		return nil, errors.New("SSO subject is required")
+		return errors.New("SSO subject is required")
 	}
 	tenant, err := portalTenantID(payload)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if _, err := ps.AuthStore.UpsertTenant(ctx, controlplane.Tenant{ID: tenant}); err != nil {
-		return nil, fmt.Errorf("upsert tenant: %w", err)
+		return fmt.Errorf("upsert tenant: %w", err)
 	}
 	if _, err := ps.AuthStore.UpsertUser(ctx, controlplane.User{
 		ID:           sub,
@@ -275,32 +272,19 @@ func provisionSSOControlPlaneUser(ctx context.Context, ps PortalSession, payload
 		DisplayName:  strings.TrimSpace(payload.Name),
 		Metadata:     map[string]any{"email_verified": true},
 	}); err != nil {
-		return nil, fmt.Errorf("upsert user: %w", err)
+		return fmt.Errorf("upsert user: %w", err)
 	}
-	membership, err := ps.AuthStore.UpsertMembership(ctx, controlplane.Membership{
+	if _, err := ps.AuthStore.UpsertMembership(ctx, controlplane.Membership{
 		ID:          tenant + ":" + sub,
 		TenantID:    tenant,
 		UserID:      sub,
 		RoleKey:     "member",
 		ProviderKey: ssoProviderKey,
 		SubjectID:   sub,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("upsert membership: %w", err)
+	}); err != nil {
+		return fmt.Errorf("upsert membership: %w", err)
 	}
-	return membership, nil
-}
-
-func canonicalMembershipIsAdmin(membership *controlplane.Membership) bool {
-	if membership == nil {
-		return false
-	}
-	switch strings.ToLower(strings.TrimSpace(membership.RoleKey)) {
-	case "owner", "admin", "super_admin", "global_admin":
-		return true
-	default:
-		return false
-	}
+	return nil
 }
 
 // portalTenantID validates the signed Cloud tenant against the only supported

@@ -67,7 +67,7 @@ func RegisterClientPairingRoutes(r *httpx.Router, cfg ClientPairingRouteConfig) 
 
 func clientPairingIssueHandler(cfg ClientPairingRouteConfig) httpx.HandlerFunc {
 	return func(e *httpx.Event) error {
-		userID, isAdmin, authenticated := authenticatedUser(e)
+		userID, isInstanceOwner, authenticated := authenticatedUser(e)
 		if !authenticated {
 			return writeClientPairingError(e.Response, http.StatusUnauthorized,
 				"client_pairing_unauthorized", "authentication_required", false,
@@ -75,7 +75,7 @@ func clientPairingIssueHandler(cfg ClientPairingRouteConfig) httpx.HandlerFunc {
 				"Only a signed-in instance administrator can create a client pairing code.",
 				"Sign in with the owner or administrator account and try again.")
 		}
-		if !isAdmin {
+		if !isInstanceOwner {
 			return writeClientPairingError(e.Response, http.StatusForbidden,
 				"client_pairing_forbidden", "admin_role_required", false,
 				"Administrator access required",

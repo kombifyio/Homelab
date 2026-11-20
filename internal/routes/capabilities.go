@@ -195,6 +195,6 @@ func capabilities() []Capability {
 		{Name: "verify_portal_sso", Description: "Verify SSO token from kombify portal", Endpoint: "/api/v1/auth/portal-verify", Method: "POST", Auth: false, Idempotent: true, Tags: []string{"auth"}},
 
 		// Metrics
-		{Name: "prometheus_metrics", Description: "Prometheus-formatted instance metrics (admin/infra only)", Endpoint: "/metrics", Method: "GET", Auth: true, Idempotent: true, Tags: []string{"metrics"}},
+		{Name: "prometheus_metrics", Description: "Prometheus-formatted instance metrics (self-hosted owner only)", Endpoint: "/metrics", Method: "GET", Auth: true, Idempotent: true, Tags: []string{"metrics"}},
 	}
 }

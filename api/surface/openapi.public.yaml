@@ -94,7 +94,7 @@ tags:
   - name: Auth
     description: Authentication mode and SSO configuration
   - name: Metrics
-    description: Prometheus-compatible instance metrics for admin/infra scrapers
+    description: Prometheus-compatible instance metrics for the owner of a self-hosted installation
   - name: Internal
     description: Internal SaaS-only APIs, including servicecall-protected executor contracts
 security:
@@ -4397,7 +4397,7 @@ paths:
       tags: [Discovery]
       summary: Deep probe a caller-owned device
       description: >-
-        Logs in to the device over SSH with the login held in the Wallet item `ssh_wallet_item_id` (a kombify Wallet node access item assigned to Techstack and bound to this IP or to no host, or an SSH key or password item of the built-in wallet whose URL names this IP) and reads its system facts. The login is resolved inside Techstack for this probe only and never answered. This contract accepts no password or private key. Non-admin callers may only probe IPs from their own discovery results; admins may probe arbitrary IPs. Local control planes only (409 `lan_executor_required` on a hosted one).
+        Logs in to the device over SSH with the login held in the Wallet item `ssh_wallet_item_id` (a kombify Wallet node access item assigned to Techstack and bound to this IP or to no host, or an SSH key or password item of the built-in wallet whose URL names this IP) and reads its system facts. The login is resolved inside Techstack for this probe only and never answered. This contract accepts no password or private key. Callers other than the owner of a self-hosted installation may only probe IPs from their own discovery results; the owner may probe arbitrary IPs. Local control planes only (409 `lan_executor_required` on a hosted one).
       requestBody:
         required: true
         content:
@@ -4423,7 +4423,7 @@ paths:
       tags: [Discovery]
       summary: Test SSH connectivity to a device
       description: >-
-        Opens one SSH connection with the login held in the Wallet item `ssh_wallet_item_id` (its key when it holds one, otherwise its password; a built-in wallet item must name this IP as its URL), resolved inside Techstack and never answered; nothing is stored. This contract accepts no password. A failed connection answers 200 with `success: false`. Non-admin callers may only test IPs from their own discovery results; admins may test arbitrary IPs. Local control planes only.
+        Opens one SSH connection with the login held in the Wallet item `ssh_wallet_item_id` (its key when it holds one, otherwise its password; a built-in wallet item must name this IP as its URL), resolved inside Techstack and never answered; nothing is stored. This contract accepts no password. A failed connection answers 200 with `success: false`. Callers other than the owner of a self-hosted installation may only test IPs from their own discovery results; the owner may test arbitrary IPs. Local control planes only.
       requestBody:
         required: true
         content:
@@ -4455,7 +4455,7 @@ paths:
     delete:
       operationId: clearDiscoveryCache
       tags: [Discovery]
-      summary: Clear discovery cache (admin only)
+      summary: Clear discovery cache (self-hosted owner only)
       responses:
         "200":
           description: Cache cleared
@@ -4474,7 +4474,7 @@ paths:
     get:
       operationId: getDiscoveryStats
       tags: [Discovery]
-      summary: Get discovery statistics (admin only)
+      summary: Get discovery statistics (self-hosted owner only)
       responses:
         "200":
           description: Discovery stats
@@ -5617,7 +5617,7 @@ paths:
     get:
       operationId: getMetrics
       tags: [Metrics]
-      summary: Prometheus-compatible instance metrics (admin/infra only)
+      summary: Prometheus-compatible instance metrics (self-hosted owner only)
       responses:
         "200":
           description: Prometheus/OpenMetrics-compatible text metrics
@@ -5626,12 +5626,12 @@ paths:
               schema:
                 type: string
         "403":
-          description: Admin or infrastructure scraper access required
+          description: Self-hosted installation owner access required
   /api/v1/metrics:
     get:
       operationId: getMetricsV1
       tags: [Metrics]
-      summary: Prometheus-compatible instance metrics (API path alias, admin/infra only)
+      summary: Prometheus-compatible instance metrics (API path alias, self-hosted owner only)
       responses:
         "200":
           description: Prometheus/OpenMetrics-compatible text metrics
@@ -5640,7 +5640,7 @@ paths:
               schema:
                 type: string
         "403":
-          description: Admin or infrastructure scraper access required
+          description: Self-hosted installation owner access required
   /api/v1/monthly-runtimes/offerings:
     get:
       operationId: listMonthlyRuntimeOfferings
@@ -9072,111 +9072,6 @@ paths:
         "409": {$ref: "#/components/responses/Conflict"}
         "502":
           description: The device could not be reached, or could not be checked again after the fixes
-  /api/v1/provider-operations/{operationId}/provision-discovery:
-    post:
-      operationId: discoverProviderProvision
-      tags: [Servers]
-      summary: Observe what the provider holds for one parked provision operation
-      description: >-
-        First step of operator resolution for a provision whose outcome is unknown. Reads the provider (read-only) and appends the immutable discovery evidence; it never creates or retries anything at the provider. A replay re-verifies the same observation. The answer names the confirmation string the second step requires. Administrator-only: a non-administrator caller is refused with 403, and the operation must belong to the caller's tenant.
-      parameters:
-        - name: operationId
-          in: path
-          required: true
-          description: Provider operation id (non-empty, at most 256 characters, no whitespace or control characters).
-          schema: {type: string, minLength: 1, maxLength: 256}
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-      responses:
-        "200":
-          description: Discovery observation
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [data]
-                properties:
-                  data:
-                    type: object
-                    required: [operation_id, observation_id, candidate_count, expected_outcome, required_confirmation]
-                    properties:
-                      operation_id: {type: string}
-                      observation_id: {type: string}
-                      observation_digest: {type: string}
-                      resolution_revision: {type: integer, format: int64, minimum: 0}
-                      candidate_count: {type: integer, minimum: 0}
-                      expected_outcome:
-                        type: string
-                        enum: [no_candidate_observed, adopted_exact_candidate, multiple_candidates_quarantined]
-                      required_confirmation: {type: string, description: "Exact string the resolution step must send: adopt-provision:<operationId>."}
-                      created: {type: boolean, description: True when this call appended the observation.}
-                  meta: {$ref: "#/components/schemas/ResponseMeta"}
-        "400": {$ref: "#/components/responses/BadRequest"}
-        "401": {$ref: "#/components/responses/Unauthorized"}
-        "403": {$ref: "#/components/responses/Forbidden"}
-        "404": {$ref: "#/components/responses/NotFound"}
-        "409": {$ref: "#/components/responses/Conflict"}
-        "422": {$ref: "#/components/responses/ValidationError"}
-        "503": {$ref: "#/components/responses/ServiceUnavailable"}
-  /api/v1/provider-operations/{operationId}/provision-resolution:
-    post:
-      operationId: resolveProviderProvision
-      tags: [Servers]
-      summary: Record the operator decision for one parked provision operation
-      description: >-
-        Second step of operator resolution. With the exact confirmation from the discovery step it appends one decision against the persisted observation: no candidate, adopt the single exact candidate, or quarantine several. The decision is local custody state and never starts or retries provider creation. Replays return the original decision. Administrator-only; a stale or mismatching observation answers 409.
-      parameters:
-        - name: operationId
-          in: path
-          required: true
-          description: Provider operation id (non-empty, at most 256 characters, no whitespace or control characters).
-          schema: {type: string, minLength: 1, maxLength: 256}
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              required: [confirmation]
-              properties:
-                confirmation:
-                  type: string
-                  description: "Must equal required_confirmation from the discovery step (adopt-provision:<operationId>)."
-      responses:
-        "200":
-          description: Recorded decision
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [data]
-                properties:
-                  data:
-                    type: object
-                    required: [operation_id, outcome]
-                    properties:
-                      operation_id: {type: string}
-                      outcome:
-                        type: string
-                        enum: [no_candidate_observed, adopted_exact_candidate, multiple_candidates_quarantined]
-                      operation_phase: {type: string}
-                      resource_count: {type: integer, minimum: 0}
-                      decision_digest: {type: string}
-                      created: {type: boolean, description: True when this call appended the decision.}
-                  meta: {$ref: "#/components/schemas/ResponseMeta"}
-        "400": {$ref: "#/components/responses/BadRequest"}
-        "401": {$ref: "#/components/responses/Unauthorized"}
-        "403": {$ref: "#/components/responses/Forbidden"}
-        "404": {$ref: "#/components/responses/NotFound"}
-        "409": {$ref: "#/components/responses/Conflict"}
-        "422": {$ref: "#/components/responses/ValidationError"}
-        "503": {$ref: "#/components/responses/ServiceUnavailable"}
   /api/v1/substrates/{id}/appliances:
     post:
       operationId: createSubstrateAppliance

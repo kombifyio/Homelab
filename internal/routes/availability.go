@@ -61,7 +61,7 @@ func RegisterAvailabilityRoutes(r *httpx.Router, cfg AvailabilityRouteConfig) {
 }
 
 func (h availabilityHandlers) report(e *httpx.Event) error {
-	ownerID, isAdmin, ok := authenticatedUser(e)
+	ownerID, isInstanceOwner, ok := authenticatedUser(e)
 	if !ok {
 		return httpx.Unauthorized(e, "Authentication required")
 	}
@@ -105,7 +105,7 @@ func (h availabilityHandlers) report(e *httpx.Event) error {
 	qualifiers := make([]string, 0, len(servers))
 	for i := range servers {
 		server := servers[i]
-		if !serverRuntimeOwnedBy(server, ownerID) && !isAdmin {
+		if !serverRuntimeOwnedBy(server, ownerID) && !isInstanceOwner {
 			continue
 		}
 		if serverFilter != "" && server.ID != serverFilter {

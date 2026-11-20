@@ -73,7 +73,7 @@ func (g *Gateway) maintenanceOrigin(ctx context.Context, operation string, proof
 	httpClient := *g.http
 	httpClient.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	client.http = &httpClient
-	if _, err := client.do(ctx, "mcp-maintenance:"+operation, http.MethodPost, maintenanceOriginPath, body, g.obo(owner, tenant, nil), &raw); err != nil {
+	if _, err := client.do(ctx, "mcp-maintenance:"+operation, http.MethodPost, maintenanceOriginPath, body, g.obo(owner, tenant), &raw); err != nil {
 		return err
 	}
 	result, err := decodeMaintenanceOriginResult(raw)

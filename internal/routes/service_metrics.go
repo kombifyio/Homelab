@@ -17,7 +17,7 @@ import (
 // A service lookup supplies the server/container selectors; a caller cannot
 // replace either selector or choose a different tenant through this endpoint.
 func (h *serviceRuntimeHandlers) serviceMetrics(e *httpx.Event) error {
-	ownerID, isAdmin, ok := authenticatedUser(e)
+	ownerID, isInstanceOwner, ok := authenticatedUser(e)
 	if !ok {
 		return httpx.Unauthorized(e, "Authentication required")
 	}
@@ -35,7 +35,7 @@ func (h *serviceRuntimeHandlers) serviceMetrics(e *httpx.Event) error {
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Service inventory is unavailable", nil)
 	}
 	stack, err := h.stacks.GetStack(e.Request.Context(), tenantID, service.StackID)
-	if errors.Is(err, controlplane.ErrNotFound) || (err == nil && !isAdmin && stack.OwnerSubjectID != ownerID) {
+	if errors.Is(err, controlplane.ErrNotFound) || (err == nil && !isInstanceOwner && stack.OwnerSubjectID != ownerID) {
 		return httpx.NotFound(e, "Service not found")
 	}
 	if err != nil {

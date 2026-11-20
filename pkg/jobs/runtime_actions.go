@@ -27,9 +27,6 @@ const (
 	defaultSimulationGatePath      = runtimeaction.PathSimulateUpdate
 	runtimeActionServiceName       = "techstack"
 	runtimeActionHTTPTimeout       = 14*time.Minute + 30*time.Second
-	// Same literal Simulate admits. Attached only when this process already
-	// saw a global_admin or developer edge identity.
-	simulateStaffScope = "simulate:staff"
 )
 
 type HTTPRuntimeActionRunnerConfig struct {
@@ -54,12 +51,11 @@ func (e *RuntimeActionResponseError) Error() string {
 }
 
 type HTTPRuntimeActionRunner struct {
-	baseURL     string
-	path        string
-	action      string
-	target      string
-	client      *servicecall.Client
-	staffClient *servicecall.Client
+	baseURL string
+	path    string
+	action  string
+	target  string
+	client  *servicecall.Client
 }
 
 type RuntimeActionsEnvDiagnostics struct {
@@ -104,19 +100,12 @@ func NewHTTPRuntimeActionRunner(cfg HTTPRuntimeActionRunnerConfig) (*HTTPRuntime
 	if err != nil {
 		return nil, err
 	}
-	staffCfg := authCfg
-	staffCfg.Scope = simulateStaffScope
-	staffClient, err := servicecall.NewClient(staffCfg)
-	if err != nil {
-		return nil, err
-	}
 	return &HTTPRuntimeActionRunner{
-		baseURL:     baseURL,
-		path:        path,
-		action:      action,
-		target:      target,
-		client:      client.WithHTTPClient(httpClient),
-		staffClient: staffClient.WithHTTPClient(httpClient),
+		baseURL: baseURL,
+		path:    path,
+		action:  action,
+		target:  target,
+		client:  client.WithHTTPClient(httpClient),
 	}, nil
 }
 
@@ -130,19 +119,6 @@ func runtimeActionHTTPClient(configured *http.Client) *http.Client {
 func (r *HTTPRuntimeActionRunner) Run(ctx context.Context, req RuntimeActionRequest) error {
 	_, err := r.RunWithResult(ctx, req)
 	return err
-}
-
-// clientFor uses the staff-scoped client only when the edge identity already
-// has global_admin or developer. Other calls keep the unscoped client.
-func (r *HTTPRuntimeActionRunner) clientFor(ctx context.Context) *servicecall.Client {
-	if r == nil {
-		return nil
-	}
-	id := identity.FromContext(ctx)
-	if r.staffClient != nil && id != nil && (id.HasRole("global_admin") || id.HasRole("developer")) {
-		return r.staffClient
-	}
-	return r.client
 }
 
 func (r *HTTPRuntimeActionRunner) RuntimeActionDescriptor() RuntimeActionDescriptor {
@@ -178,7 +154,7 @@ func (r *HTTPRuntimeActionRunner) RunWithResult(ctx context.Context, req Runtime
 		PreviewPolicy:       normalizePreviewPolicy(req.PreviewPolicy),
 		TechStackEnrollment: normalizeTechStackEnrollment(req.TechStackEnrollment),
 	}
-	resp, err := r.clientFor(ctx).PostJSON(ctx, r.baseURL+r.path, payload, servicecall.OnBehalfOfIdentity(identity.FromContext(ctx)))
+	resp, err := r.client.PostJSON(ctx, r.baseURL+r.path, payload, servicecall.OnBehalfOfIdentity(identity.FromContext(ctx)))
 	if err != nil {
 		return nil, fmt.Errorf("runtime action %s request failed: %w", r.action, err)
 	}
@@ -259,10 +235,9 @@ func normalizePreviewPolicy(in *PreviewPolicy) *PreviewPolicy {
 		Audience:          strings.TrimSpace(in.Audience),
 		Visibility:        strings.TrimSpace(in.Visibility),
 		TTLSeconds:        in.TTLSeconds,
-		StaffOnly:         in.StaffOnly,
 		PublicBetaPreview: in.PublicBetaPreview,
 	}
-	if !out.Required && out.Runtime == "" && out.Audience == "" && out.Visibility == "" && out.TTLSeconds == 0 && !out.StaffOnly && !out.PublicBetaPreview {
+	if !out.Required && out.Runtime == "" && out.Audience == "" && out.Visibility == "" && out.TTLSeconds == 0 && !out.PublicBetaPreview {
 		return nil
 	}
 	return out

@@ -26,7 +26,6 @@
     planOrphanCleanup,
     type KitDeployment,
     type OfflineStackServer,
-    type StackPruneResponse,
   } from "#lib/api/stacks.js";
   import { authStore } from "#lib/stores/auth.svelte.js";
   import { requestIntroductionStart } from "#lib/onboarding/introduction.js";
@@ -105,15 +104,6 @@
   ]);
   const hrefForTab = (slug: string) => settingsTabHref(slug as SettingsTabSlug);
 
-  // The QA clean-up tool is for kombify staff. The session carries one role
-  // signal for that: `admin`. `is_admin` is not used on purpose, because the
-  // v2 session also sets it for the homelab `owner`. The portal-SSO session
-  // still maps an owner to `admin`, so there owners see the tool too; the
-  // backend scopes it to the owner's own tenant either way.
-  const isStaff = $derived(
-    authStore.cloudUser?.roles?.includes("admin") === true,
-  );
-
   let replaySetup = $state(false);
   function continueSetupReplay() {
     replaySetup = false;
@@ -147,12 +137,6 @@
   let stackIdentityEditable = $state(false);
   let stackIdentityError = $state("");
   let stackIdentityValue = $state<StackIdentity | null>(null);
-
-  let showOrphanPruneConfirm = $state(false);
-  let pruningOrphans = $state(false);
-  let orphanPruneError = $state<string | null>(null);
-  let orphanPruneSuccess = $state(false);
-  let orphanPrunePlan = $state<StackPruneResponse | null>(null);
 
   // Deployment deletion lives here, not on the dashboard: it is a deliberate,
   // confirmed action rather than a control the operator meets on every visit.
@@ -217,54 +201,6 @@
     } catch (err) {
       stackIdentityError =
         err instanceof Error ? err.message : tr("ui.settings.failedToSaveHomelabIdentity");
-    }
-  }
-
-  async function openOrphanPruneConfirm() {
-    if (!isStaff) return;
-    pruningOrphans = true;
-    orphanPruneError = null;
-    orphanPruneSuccess = false;
-    orphanPrunePlan = null;
-    try {
-      orphanPrunePlan = await planOrphanCleanup();
-      showOrphanPruneConfirm = true;
-    } catch (err) {
-      const parsed = parseApiError(err);
-      orphanPruneError = parsed.message || tr("ui.settings.cleanupReviewFailed");
-    } finally {
-      pruningOrphans = false;
-    }
-  }
-
-  function cancelOrphanPrune() {
-    if (pruningOrphans) return;
-    showOrphanPruneConfirm = false;
-    orphanPrunePlan = null;
-  }
-
-  async function confirmOrphanPrune() {
-    pruningOrphans = true;
-    orphanPruneError = null;
-
-    try {
-      const plan = orphanPrunePlan;
-      if (!plan || plan.candidates.length === 0) {
-        showOrphanPruneConfirm = false;
-        orphanPruneSuccess = true;
-        return;
-      }
-      await applyOrphanCleanup(plan.digest);
-      orphanPruneSuccess = true;
-      showOrphanPruneConfirm = false;
-      orphanPrunePlan = null;
-      // SvelteKit 3 deprecates invalidateAll in favour of refreshAll.
-      await goto("/dashboard", { refreshAll: true });
-    } catch (err) {
-      const parsed = parseApiError(err);
-      orphanPruneError = parsed.message || tr("ui.settings.cleanupFailed");
-    } finally {
-      pruningOrphans = false;
     }
   }
 
@@ -711,44 +647,8 @@
       title={tr("ui.settings.dangerZone")}
       tone="danger"
     >
-      {#if isStaff}
-        <div
-          class="rounded-lg border border-destructive/30 bg-destructive/5 p-4"
-          data-testid="settings-prune-orphans-card"
-        >
-          <div
-            class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
-          >
-            <div class="min-w-0">
-              <h3 class="font-medium text-foreground">{tr("ui.settings.cleanUpTestResidue")}</h3>
-              <p class="mt-1 text-sm text-muted-foreground">
-                {tr("ui.settings.reviewsExactOwnerScopedE2e")}
-              </p>
-            </div>
-            <Button
-              variant="secondary"
-              class="shrink-0"
-              testId="settings-prune-orphans-button"
-              onclick={openOrphanPruneConfirm}
-              disabled={pruningOrphans}
-            >
-              {pruningOrphans ? tr("ui.settings.reviewing") : tr("ui.settings.reviewCleanup")}
-            </Button>
-          </div>
-
-          {#if orphanPruneError}
-            <ErrorCallout class="mt-3" message={orphanPruneError} />
-          {/if}
-          {#if orphanPruneSuccess}
-            <p class="mt-3 text-sm text-success">
-              {tr("ui.settings.noVerifiedTestResidueRemains")}
-            </p>
-          {/if}
-        </div>
-      {/if}
-
       <div
-        class="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 p-4"
+        class="rounded-lg border border-destructive/30 bg-destructive/5 p-4"
         data-testid="settings-delete-deployment-card"
       >
         <div class="min-w-0">
@@ -891,66 +791,6 @@
             ? tr("ui.settings.removeWithoutServer")
             : tr("settings.remove")}
       </Button>
-    {/snippet}
-  </Modal>
-{/if}
-
-{#if showOrphanPruneConfirm && isStaff}
-  <Modal
-    title={tr("ui.settings.reviewVerifiedTestResidue")}
-    description={tr("ui.settings.thisExactPlanIsBound")}
-    onClose={cancelOrphanPrune}
-    maxWidth="md"
-    testId="settings-prune-orphans-modal"
-  >
-    <div class="mb-4 rounded-lg border border-border bg-muted/40 p-3">
-      <p class="text-sm text-foreground">
-        {tr("ui.settings.pruneQualifies", { owner: "e2e-*", strict: "runtime-cloud-<provider>-<timestamp>" })}
-      </p>
-    </div>
-
-    {#if orphanPrunePlan?.candidates.length}
-      <ul class="space-y-2" data-testid="settings-prune-orphans-plan">
-        {#each orphanPrunePlan.candidates as candidate (candidate.resource_type + candidate.id)}
-          <li class="rounded-lg border border-border bg-card p-3">
-            <p class="font-medium text-foreground">{candidate.name}</p>
-            <p class="mt-1 break-all text-xs text-muted-foreground">
-              {candidate.resource_type} · {candidate.id} · {candidate.class}
-            </p>
-          </li>
-        {/each}
-      </ul>
-    {:else}
-      <p
-        class="text-sm text-success"
-        data-testid="settings-prune-orphans-empty"
-      >
-        {tr("ui.settings.noVerifiedTestResidueWas")}
-      </p>
-    {/if}
-
-    {#if orphanPruneError}
-      <ErrorCallout class="mt-4" message={orphanPruneError} />
-    {/if}
-
-    {#snippet footer()}
-      <Button
-        variant="secondary"
-        onclick={cancelOrphanPrune}
-        disabled={pruningOrphans}
-      >
-        {orphanPrunePlan?.candidates.length ? tr("ui.importExportModal.cancel") : tr("ui.groupedTaskList.done")}
-      </Button>
-      {#if orphanPrunePlan?.candidates.length}
-        <Button
-          variant="primary"
-          testId="settings-prune-orphans-confirm"
-          onclick={confirmOrphanPrune}
-          disabled={pruningOrphans}
-        >
-          {pruningOrphans ? tr("ui.settings.applying") : tr("ui.settings.applyExactPlan")}
-        </Button>
-      {/if}
     {/snippet}
   </Modal>
 {/if}

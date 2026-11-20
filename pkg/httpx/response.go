@@ -57,7 +57,7 @@ func Error(e *Event, status int, code api.ErrorCode, message string, details any
 // whenever the write succeeds, so such a helper reported success after already
 // writing a 403 - and a caller written as `if err != nil { return err }` did
 // not stop. That reached production on GET /metrics and GET /api/v1/metrics
-// through requireAdmin, which discards the boolean that was the real signal.
+// through the admin guard, which discards the boolean that was the real signal.
 //
 // Terminal handlers that simply `return httpx.Error(...)` are unaffected and
 // keep using Error. renderError skips events whose response is already

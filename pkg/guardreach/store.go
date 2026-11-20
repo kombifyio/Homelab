@@ -19,7 +19,7 @@ type Key struct{ TenantID, WorkerID string }
 
 // Enrollment is what the control plane knows when a Guard server is paired or
 // its key is confirmed. It creates the row (desired active); an existing row
-// only refreshes display fields and, when supplied, the owner roles.
+// only refreshes display fields.
 type Enrollment struct {
 	TenantID       string
 	WorkerID       string
@@ -28,7 +28,6 @@ type Enrollment struct {
 	OwnerSubjectID string
 	DisplayName    string
 	Placement      string
-	OwnerRoles     []string
 	// ConnectTenantID is the tenant Gateway derived for the owner's own
 	// session (its org id, else usr:<subject>), supplied only where the owner's
 	// Gateway-fronted request is present. It is authoritative; without it the
@@ -66,7 +65,7 @@ func NewPostgresStore(db *sql.DB) (*PostgresStore, error) {
 }
 
 const rowColumns = `tenant_id, worker_id, server_id, stack_id, owner_subject_id, display_name, placement,
-	connect_tenant_id, owner_roles, desired_state, key_thumbprint, credential_epoch, binding_generation,
+	connect_tenant_id, desired_state, key_thumbprint, credential_epoch, binding_generation,
 	me_state, me_generation, me_address, me_reason, me_updated_at,
 	connect_state, connect_generation, connect_node_id, connect_reason, connect_updated_at, connect_retry_at,
 	relay_state, relay_reason, relay_generation, relay_reported_at,
@@ -80,11 +79,10 @@ type rowScanner interface{ Scan(dest ...any) error }
 func scanRow(scanner rowScanner) (*Row, error) {
 	var r Row
 	var desired, meState, connectState, agentLinkState string
-	var roles string
 	var meAt, connectAt, connectRetry, relayAt, publicAt, agentLinkAt, agentLinkRetry sql.NullTime
 	if err := scanner.Scan(
 		&r.TenantID, &r.WorkerID, &r.ServerID, &r.StackID, &r.OwnerSubjectID, &r.DisplayName, &r.Placement,
-		&r.ConnectTenantID, &roles, &desired, &r.KeyThumbprint, &r.CredentialEpoch, &r.Generation,
+		&r.ConnectTenantID, &desired, &r.KeyThumbprint, &r.CredentialEpoch, &r.Generation,
 		&meState, &r.Me.Generation, &r.Me.Ref, &r.Me.ReasonCode, &meAt,
 		&connectState, &r.Connect.Generation, &r.Connect.Ref, &r.Connect.ReasonCode, &connectAt, &connectRetry,
 		&r.Relay.State, &r.Relay.ReasonCode, &r.Relay.Generation, &relayAt,
@@ -94,9 +92,6 @@ func scanRow(scanner rowScanner) (*Row, error) {
 		&agentLinkAt, &agentLinkRetry, &r.AgentLinkPinned,
 	); err != nil {
 		return nil, err
-	}
-	if roles != "" {
-		r.OwnerRoles = strings.Split(roles, ",")
 	}
 	r.Desired, r.Me.State, r.Connect.State = Desired(desired), TargetState(meState), TargetState(connectState)
 	if meAt.Valid {
@@ -176,13 +171,12 @@ func (s *PostgresStore) Enroll(ctx context.Context, e Enrollment) error {
 			connectTenant = ""
 		}
 	}
-	roles := StaffRoles(e.OwnerRoles)
 	return s.withTenant(ctx, tenantID, func(tx *sql.Tx) error {
 		_, execErr := tx.ExecContext(ctx, `
 			INSERT INTO guard_reach_states (
 				tenant_id, worker_id, server_id, stack_id, owner_subject_id, display_name,
-				placement, connect_tenant_id, owner_roles, connect_tenant_observed
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+				placement, connect_tenant_id, connect_tenant_observed
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 			ON CONFLICT (tenant_id, worker_id) DO UPDATE SET
 				stack_id = CASE WHEN EXCLUDED.stack_id <> '' THEN EXCLUDED.stack_id ELSE guard_reach_states.stack_id END,
 				display_name = CASE WHEN EXCLUDED.display_name <> '' THEN EXCLUDED.display_name ELSE guard_reach_states.display_name END,
@@ -190,12 +184,11 @@ func (s *PostgresStore) Enroll(ctx context.Context, e Enrollment) error {
 				connect_tenant_id = CASE
 					WHEN EXCLUDED.connect_tenant_observed AND NOT guard_reach_states.connect_tenant_observed THEN EXCLUDED.connect_tenant_id
 					ELSE guard_reach_states.connect_tenant_id END,
-				connect_tenant_observed = guard_reach_states.connect_tenant_observed OR EXCLUDED.connect_tenant_observed,
-				owner_roles = CASE WHEN EXCLUDED.owner_roles <> '' THEN EXCLUDED.owner_roles ELSE guard_reach_states.owner_roles END
+				connect_tenant_observed = guard_reach_states.connect_tenant_observed OR EXCLUDED.connect_tenant_observed
 			WHERE guard_reach_states.server_id = EXCLUDED.server_id
 			  AND guard_reach_states.owner_subject_id = EXCLUDED.owner_subject_id
 		`, tenantID, workerID, serverID, strings.TrimSpace(e.StackID), owner, strings.TrimSpace(e.DisplayName),
-			normalizePlacement(e.Placement), connectTenant, strings.Join(roles, ","), observed)
+			normalizePlacement(e.Placement), connectTenant, observed)
 		return execErr
 	})
 }
@@ -264,23 +257,23 @@ func (s *PostgresStore) Update(ctx context.Context, tenantID, workerID string, f
 		_, execErr := tx.ExecContext(ctx, `
 			UPDATE guard_reach_states SET
 				desired_state = $3, key_thumbprint = $4, credential_epoch = $5, binding_generation = $6,
-				connect_tenant_id = $7, owner_roles = $25,
+				connect_tenant_id = $7,
 				me_state = $8, me_generation = $9, me_address = $10, me_reason = $11, me_updated_at = $12,
 				connect_state = $13, connect_generation = $14, connect_node_id = $15, connect_reason = $16, connect_updated_at = $17,
-				connect_retry_at = $26,
+				connect_retry_at = $25,
 				relay_state = $18, relay_reason = $19, relay_generation = $20, relay_reported_at = $21,
-				attempts = $22, next_attempt_at = $23, last_error = $24, revoke_reason = $27,
-				public_enabled = $28, public_service = $29, public_scheme = $30, public_port = $31,
-				public_enabled_by = $32, public_enabled_at = $33,
-				agent_envelope_key = $34, agent_link_state = $35, agent_link_generation = $36, agent_link_digest = $37,
-				agent_link_reason = $38, agent_link_updated_at = $39, agent_link_retry_at = $40, agent_link_pinned = $41
+				attempts = $22, next_attempt_at = $23, last_error = $24, revoke_reason = $26,
+				public_enabled = $27, public_service = $28, public_scheme = $29, public_port = $30,
+				public_enabled_by = $31, public_enabled_at = $32,
+				agent_envelope_key = $33, agent_link_state = $34, agent_link_generation = $35, agent_link_digest = $36,
+				agent_link_reason = $37, agent_link_updated_at = $38, agent_link_retry_at = $39, agent_link_pinned = $40
 			WHERE tenant_id = $1 AND worker_id = $2
 		`, tenantID, workerID, string(row.Desired), row.KeyThumbprint, row.CredentialEpoch, row.Generation,
 			row.ConnectTenantID,
 			string(row.Me.State), row.Me.Generation, row.Me.Ref, clampReason(row.Me.ReasonCode), row.Me.UpdatedAt,
 			string(row.Connect.State), row.Connect.Generation, row.Connect.Ref, clampReason(row.Connect.ReasonCode), row.Connect.UpdatedAt,
 			row.Relay.State, clampReason(row.Relay.ReasonCode), row.Relay.Generation, row.Relay.ReportedAt,
-			row.Attempts, row.NextAttemptAt.UTC(), clampReason(row.LastError), strings.Join(row.OwnerRoles, ","),
+			row.Attempts, row.NextAttemptAt.UTC(), clampReason(row.LastError),
 			row.Connect.RetryAt, row.RevokeReason,
 			row.Public.Enabled, row.Public.Service, row.Public.Scheme, row.Public.Port, row.Public.EnabledBy, row.Public.EnabledAt,
 			row.AgentKey, string(row.AgentLink.State), row.AgentLink.Generation, row.AgentLink.Ref,

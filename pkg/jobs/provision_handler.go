@@ -321,10 +321,9 @@ func provisionRunOneLinerSimulationPreview(ctx context.Context, cfg *ProvisionCo
 		PreviewPolicy: &PreviewPolicy{
 			Required:          false,
 			Runtime:           "provider-backed",
-			Audience:          "staff",
+			Audience:          "owner",
 			Visibility:        "private",
 			TTLSeconds:        3600,
-			StaffOnly:         true,
 			PublicBetaPreview: true,
 		},
 	}
@@ -401,8 +400,7 @@ func provisionSimulationPreviewContext(ctx context.Context, job *Job, spec *core
 		return ctx
 	}
 	actor := jobActorFromPayload(job.Payload)
-	roles := compactStrings(actor.Roles)
-	if len(roles) == 0 {
+	if actor.UserID == "" && actor.TenantID == "" && actor.Email == "" {
 		return ctx
 	}
 	userID := firstNonEmpty(actor.UserID, managedRuntimeOwnerID(job, spec))
@@ -411,7 +409,6 @@ func provisionSimulationPreviewContext(ctx context.Context, job *Job, spec *core
 		UserID: userID,
 		OrgID:  tenantID,
 		Email:  actor.Email,
-		Roles:  roles,
 	})
 }
 

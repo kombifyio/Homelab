@@ -33,7 +33,7 @@ const (
 // enrollGuardReach records a key-bound Guard server for reach. It is best
 // effort by design: a reach failure must never block or fail Guard enrollment
 // or execution, so errors are logged and dropped.
-func (h workerRouteHandlers) enrollGuardReach(ctx context.Context, authCtx runtimeAgentAuthContext, ownerRoles []string) {
+func (h workerRouteHandlers) enrollGuardReach(ctx context.Context, authCtx runtimeAgentAuthContext) {
 	if h.reach == nil || authCtx.Worker == nil {
 		return
 	}
@@ -44,23 +44,21 @@ func (h workerRouteHandlers) enrollGuardReach(ctx context.Context, authCtx runti
 	if err := h.reach.Enroll(ctx, guardreach.Enrollment{
 		TenantID: authCtx.TenantID, WorkerID: authCtx.RuntimeAgentID, ServerID: authCtx.ServerID,
 		StackID: authCtx.StackID, OwnerSubjectID: authCtx.OwnerID, DisplayName: authCtx.Worker.Hostname,
-		Placement: placement, OwnerRoles: ownerRoles,
+		Placement: placement,
 	}); err != nil {
 		slog.Warn("guard_reach_enroll_failed", "runtime_agent_id", authCtx.RuntimeAgentID, "error", err.Error())
 	}
 }
 
-// enrollGuardReachFromConnect records the server the owner just paired, with
-// the owner's staff roles as Gateway's staff cohort gate needs them. The owner
-// session is only present here, so this is where the roles are captured.
+// enrollGuardReachFromConnect records the server the owner just paired. The
+// owner session is only present here, so this is where the owner's Connect
+// tenant is captured.
 func (h workerRouteHandlers) enrollGuardReachFromConnect(e *httpx.Event, enrollment workerEnrollmentContext) {
 	if h.reach == nil || strings.TrimSpace(enrollment.OwnerID) == "" {
 		return
 	}
-	var roles []string
 	connectTenant := ""
 	if id := identity.FromContext(e.Request.Context()); id != nil {
-		roles = id.Roles
 		// Gateway scopes Connect by the owner's org id, else usr:<subject>; the
 		// request that arrived through Gateway carries exactly that org id.
 		if connectTenant = strings.TrimSpace(id.OrgID); connectTenant == "" && strings.TrimSpace(id.UserID) != "" {
@@ -74,7 +72,7 @@ func (h workerRouteHandlers) enrollGuardReachFromConnect(e *httpx.Event, enrollm
 	if err := h.reach.Enroll(e.Request.Context(), guardreach.Enrollment{
 		TenantID: enrollment.TenantID, WorkerID: firstNonEmpty(enrollment.RuntimeAgentID, enrollment.WorkerID),
 		ServerID: enrollment.ServerID, StackID: enrollment.StackID, OwnerSubjectID: enrollment.OwnerID,
-		Placement: placement, OwnerRoles: roles, ConnectTenantID: connectTenant,
+		Placement: placement, ConnectTenantID: connectTenant,
 	}); err != nil {
 		slog.Warn("guard_reach_enroll_failed", "runtime_agent_id", enrollment.RuntimeAgentID, "error", err.Error())
 	}
@@ -105,7 +103,7 @@ func (h workerRouteHandlers) workerReach(e *httpx.Event) error {
 	document, err := h.reach.Exchange(e.Request.Context(), authCtx.TenantID, authCtx.RuntimeAgentID, request)
 	if err == nil && document.State == guardreach.StateNotEnrolled {
 		// A Guard paired before reach existed: record it once, then answer.
-		h.enrollGuardReach(e.Request.Context(), authCtx, nil)
+		h.enrollGuardReach(e.Request.Context(), authCtx)
 		document, err = h.reach.Exchange(e.Request.Context(), authCtx.TenantID, authCtx.RuntimeAgentID, request)
 	}
 	if err != nil {

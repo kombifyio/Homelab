@@ -87,9 +87,9 @@ func requireAuth(e *httpx.Event) (string, error) {
 }
 
 func authenticatedDiscoveryUser(e *httpx.Event) (string, bool, bool, error) {
-	ownerID, isAdmin, ok := authenticatedUser(e)
+	ownerID, isInstanceOwner, ok := authenticatedUser(e)
 	if ok {
-		return ownerID, isAdmin, true, nil
+		return ownerID, isInstanceOwner, true, nil
 	}
 	return "", false, false, httpx.RejectUnauthorized(e, "Authentication required")
 }
@@ -100,11 +100,11 @@ func authenticatedDiscoveryOwner(e *httpx.Event) (string, bool, error) {
 }
 
 func requireDiscoveryAdminAccess(e *httpx.Event) (bool, error) {
-	_, isAdmin, ok, err := authenticatedDiscoveryUser(e)
+	_, isInstanceOwner, ok, err := authenticatedDiscoveryUser(e)
 	if err != nil || !ok {
 		return false, err
 	}
-	if isAdmin {
+	if isInstanceOwner {
 		return true, nil
 	}
 	return false, httpx.RejectForbidden(e, "Admin access required")
@@ -334,7 +334,7 @@ func (h *DiscoveryHandler) getDevice(e *httpx.Event) error {
 }
 
 func (h *DiscoveryHandler) probeDevice(e *httpx.Event) error {
-	ownerID, isAdmin, ok, err := authenticatedDiscoveryUser(e)
+	ownerID, isInstanceOwner, ok, err := authenticatedDiscoveryUser(e)
 	if err != nil || !ok {
 		return err
 	}
@@ -349,7 +349,7 @@ func (h *DiscoveryHandler) probeDevice(e *httpx.Event) error {
 	if validationErr := validateDiscoveryProbeRequest(req); validationErr != nil {
 		return httpx.BadRequest(e, validationErr.Error())
 	}
-	if accessOK, accessErr := h.requireDeviceIPAccess(e, ownerID, isAdmin, req.IP); accessErr != nil || !accessOK {
+	if accessOK, accessErr := h.requireDeviceIPAccess(e, ownerID, isInstanceOwner, req.IP); accessErr != nil || !accessOK {
 		return accessErr
 	}
 	if strings.TrimSpace(body.SSHWalletItemID) != "" {
@@ -373,7 +373,7 @@ func (h *DiscoveryHandler) probeDevice(e *httpx.Event) error {
 }
 
 func (h *DiscoveryHandler) testSSH(e *httpx.Event) error {
-	ownerID, isAdmin, ok, err := authenticatedDiscoveryUser(e)
+	ownerID, isInstanceOwner, ok, err := authenticatedDiscoveryUser(e)
 	if err != nil || !ok {
 		return err
 	}
@@ -387,7 +387,7 @@ func (h *DiscoveryHandler) testSSH(e *httpx.Event) error {
 	if validationErr := validateDiscoveryTestSSHRequest(req); validationErr != nil {
 		return httpx.BadRequest(e, validationErr.Error())
 	}
-	if accessOK, accessErr := h.requireDeviceIPAccess(e, ownerID, isAdmin, req.IP); accessErr != nil || !accessOK {
+	if accessOK, accessErr := h.requireDeviceIPAccess(e, ownerID, isInstanceOwner, req.IP); accessErr != nil || !accessOK {
 		return accessErr
 	}
 
@@ -427,8 +427,8 @@ func (h *DiscoveryHandler) stats(e *httpx.Event) error {
 	return httpx.Success(e, http.StatusOK, stats)
 }
 
-func (h *DiscoveryHandler) requireDeviceIPAccess(e *httpx.Event, ownerID string, isAdmin bool, ip string) (bool, error) {
-	if isAdmin {
+func (h *DiscoveryHandler) requireDeviceIPAccess(e *httpx.Event, ownerID string, isInstanceOwner bool, ip string) (bool, error) {
+	if isInstanceOwner {
 		return true, nil
 	}
 	device, ok := h.discovery.GetDeviceByIP(ip)

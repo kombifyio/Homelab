@@ -209,7 +209,7 @@ func ownApplicationRefusal(e *httpx.Event, status int, message, reason string) e
 
 func (h *serviceRuntimeHandlers) ownApplicationTarget(e *httpx.Event) (ownApplicationTarget, error) {
 	var t ownApplicationTarget
-	owner, isAdmin, ok := authenticatedUser(e)
+	owner, isInstanceOwner, ok := authenticatedUser(e)
 	if !ok {
 		return t, httpx.RejectUnauthorized(e, "Authentication required")
 	}
@@ -222,7 +222,7 @@ func (h *serviceRuntimeHandlers) ownApplicationTarget(e *httpx.Event) (ownApplic
 		return t, httpx.Reject(e, http.StatusNotFound, ksapi.ErrCodeNotFound, "Service not found", nil)
 	}
 	stack, err := h.stacks.GetStack(e.Request.Context(), tenant, service.StackID)
-	if err != nil || (!isAdmin && stack.OwnerSubjectID != owner) {
+	if err != nil || (!isInstanceOwner && stack.OwnerSubjectID != owner) {
 		return t, httpx.Reject(e, http.StatusNotFound, ksapi.ErrCodeNotFound, "Service not found", nil)
 	}
 	name := h.ownApplicationNameFor(e.Request.Context(), *service)

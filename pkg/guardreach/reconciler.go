@@ -38,7 +38,7 @@ const (
 // Connect is the Gateway registration surface the control plane drives.
 type Connect interface {
 	PutNode(ctx context.Context, in NodeUpsert) (*Node, error)
-	RevokeNode(ctx context.Context, owner, connectTenant string, roles []string, serverID, reason string) (*Node, error)
+	RevokeNode(ctx context.Context, owner, connectTenant, serverID, reason string) (*Node, error)
 	Revocations(ctx context.Context, after int64, limit int) (*RevocationPage, error)
 }
 
@@ -514,7 +514,7 @@ func (s *Service) revoke(ctx context.Context, snapshot Row) error {
 	if current.Connect.State != TargetRevoked {
 		if current.ConnectTenantID == "" {
 			current.Connect = Target{State: TargetRevoked, Generation: current.Generation, UpdatedAt: &now}
-		} else if _, err := s.cfg.Connect.RevokeNode(ctx, current.OwnerSubjectID, current.ConnectTenantID, current.OwnerRoles, current.ServerID, current.RevokeReason); err != nil {
+		} else if _, err := s.cfg.Connect.RevokeNode(ctx, current.OwnerSubjectID, current.ConnectTenantID, current.ServerID, current.RevokeReason); err != nil {
 			reason, _ := connectReason(err)
 			current.Connect.State, current.Connect.ReasonCode = TargetFailed, reason
 			failure = ReasonRevokeIncomplete
@@ -687,7 +687,7 @@ func (s *Service) registerConnect(ctx context.Context, tenantID, workerID, proof
 	callCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 	node, putErr := s.cfg.Connect.PutNode(callCtx, NodeUpsert{
-		OwnerSubject: row.OwnerSubjectID, ConnectTenantID: row.ConnectTenantID, Roles: row.OwnerRoles,
+		OwnerSubject: row.OwnerSubjectID, ConnectTenantID: row.ConnectTenantID,
 		HostProof: proof, KeyThumbprint: row.KeyThumbprint, DisplayName: connectDisplayName(row),
 		StackID: gatewayStackID(row.StackID, row.ServerID), Placement: normalizePlacement(row.Placement),
 		MCPHost: s.mcpHostOf(row),
@@ -727,7 +727,7 @@ func (s *Service) registerConnect(ctx context.Context, tenantID, workerID, proof
 		return err
 	}
 	if revokeNow {
-		_, revokeErr := s.cfg.Connect.RevokeNode(ctx, row.OwnerSubjectID, row.ConnectTenantID, row.OwnerRoles, row.ServerID, defaultRevokeReason)
+		_, revokeErr := s.cfg.Connect.RevokeNode(ctx, row.OwnerSubjectID, row.ConnectTenantID, row.ServerID, defaultRevokeReason)
 		return revokeErr
 	}
 	return nil

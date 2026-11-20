@@ -6,11 +6,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/kombifyio/techstack/internal/routes/tenantguard"
 	"github.com/kombifyio/techstack/pkg/httpx"
 	"github.com/kombifyio/techstack/pkg/identity"
 )
 
-func TestRequireMetricsAccessAcceptsSignedEdgeAdmin(t *testing.T) {
+func TestRequireMetricsAccessAcceptsSelfHostedOwner(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	req = req.WithContext(identity.NewContext(context.Background(), &identity.Identity{
 		UserID: "api-key:metrics-scraper",
@@ -22,11 +23,11 @@ func TestRequireMetricsAccessAcceptsSignedEdgeAdmin(t *testing.T) {
 	}
 
 	if err := requireMetricsAccess(e); err != nil {
-		t.Fatalf("requireMetricsAccess returned error for signed edge admin: %v", err)
+		t.Fatalf("requireMetricsAccess returned error for the self-hosted owner: %v", err)
 	}
 }
 
-func TestRequireMetricsAccessRejectsSignedEdgeNonAdmin(t *testing.T) {
+func TestRequireMetricsAccessRejectsNonOwner(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	req = req.WithContext(identity.NewContext(context.Background(), &identity.Identity{
@@ -46,5 +47,27 @@ func TestRequireMetricsAccessRejectsSignedEdgeNonAdmin(t *testing.T) {
 	}
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("requireMetricsAccess status = %d, want %d", rec.Code, http.StatusForbidden)
+	}
+}
+
+// The hosted product has no instance owner: a platform role does not open the
+// instance-wide metrics.
+func TestRequireMetricsAccessRefusesPlatformRolesWhenHosted(t *testing.T) {
+	tenantguard.Configure(true)
+	t.Cleanup(func() { tenantguard.Configure(false) })
+	for _, role := range []string{"admin", "super_admin", "global_admin", "developer", "manager"} {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+		req = req.WithContext(identity.NewContext(context.Background(), &identity.Identity{
+			UserID: "auth0|platform-" + role,
+			Roles:  []string{role},
+		}))
+		e := &httpx.Event{Request: req, Response: rec}
+		if err := requireMetricsAccess(e); err == nil {
+			t.Fatalf("platform role %q must not open /metrics in the hosted product", role)
+		}
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("platform role %q status = %d, want %d", role, rec.Code, http.StatusForbidden)
+		}
 	}
 }

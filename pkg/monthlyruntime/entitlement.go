@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/kombifyio/techstack/internal/providercatalog"
-	"github.com/kombifyio/techstack/pkg/identity"
 )
 
 // ManagedRuntimeEntitlementDecision is the single account/provider
@@ -30,8 +29,8 @@ func (d ManagedRuntimeEntitlementDecision) Details() map[string]any {
 }
 
 // EvaluateManagedRuntimeEntitlement fails closed before persistence, queueing,
-// admission, or provider dispatch. The local E2E and authenticated platform
-// administrator exceptions are product policy here, not route-specific forks.
+// admission, or provider dispatch. The local E2E exception is product policy
+// here, not a route-specific fork; no platform role skips the subscription.
 func EvaluateManagedRuntimeEntitlement(
 	ctx context.Context,
 	checker FeatureChecker,
@@ -42,7 +41,7 @@ func EvaluateManagedRuntimeEntitlement(
 	if err != nil {
 		return deniedManagedRuntimeEntitlement(providerID, EntitlementReasonProviderUnsupported, nil, nil)
 	}
-	if LocalManagedRuntimeE2EAllowed() || managedRuntimeAdministrator(ctx) {
+	if LocalManagedRuntimeE2EAllowed() {
 		return ManagedRuntimeEntitlementDecision{ProviderID: canonicalProviderID}
 	}
 	requiredFeatures := RequiredFeatureKeysForProvider(canonicalProviderID)
@@ -67,14 +66,6 @@ func deniedManagedRuntimeEntitlement(providerID, reasonCode string, requiredFeat
 		ProviderID: providerID, ReasonCode: reasonCode,
 		RequiredFeatures: requiredFeatures, MissingFeatures: missingFeatures,
 	}
-}
-
-func managedRuntimeAdministrator(ctx context.Context) bool {
-	principal := identity.FromContext(ctx)
-	if principal == nil || !principal.IsAuthenticated() {
-		return false
-	}
-	return principal.HasRole("admin") || principal.HasRole("super_admin") || principal.HasRole("global_admin")
 }
 
 // LocalManagedRuntimeE2EAllowed is the one narrow self-host development

@@ -2198,11 +2198,6 @@ export const frPending: Record<string, string> = {
   "ui.settings.account": "Compte",
   "ui.settings.appearance": "Apparence",
   "ui.settings.appearanceMode": "Mode d’apparence",
-  "ui.settings.applyExactPlan": "Appliquer le plan exact",
-  "ui.settings.applying": "Application…",
-  "ui.settings.cleanUpTestResidue": "Nettoyer les résidus de test",
-  "ui.settings.cleanupFailed": "Échec du nettoyage",
-  "ui.settings.cleanupReviewFailed": "Échec de l’examen du nettoyage",
   "ui.settings.companion": "Companion",
   "companion.settings.sections.companion": "Companion",
   "companion.settings.sections.kubi": "Kubi",
@@ -2307,19 +2302,7 @@ export const frPending: Record<string, string> = {
   "ui.settings.noDeploymentsToDelete": "Aucun Homelab à retirer.",
   "ui.settings.noHomelabIdentityConfigured":
     "Aucune identité Homelab configurée.",
-  "ui.settings.noVerifiedTestResidueRemains":
-    "Aucun résidu de test vérifié ne subsiste.",
-  "ui.settings.noVerifiedTestResidueWas":
-    "Aucun résidu de test vérifié trouvé.",
   "ui.settings.overlap": "Chevauchement",
-  "ui.settings.pruneQualifies":
-    "Seules les projections {owner} du propriétaire authentifié et les projections {strict} strictes sont admissibles. Les environnements d’exécution gérés actifs, les ressources fournisseur, les serveurs récents, les données de démonstration et les données Homelab normales restent inchangés.",
-  "ui.settings.reviewCleanup": "Vérifier le nettoyage",
-  "ui.settings.reviewVerifiedTestResidue":
-    "Vérifier les résidus de test confirmés",
-  "ui.settings.reviewing": "Vérification…",
-  "ui.settings.reviewsExactOwnerScopedE2e":
-    "Examine les projections E2E exactes du propriétaire et les projections d’exécution en échec. Les ressources fournisseur, les locations actives, les serveurs récents et les données Homelab normales restent inchangés.",
   "ui.settings.savedOnDevice": "Enregistré sur cet appareil pour votre compte.",
   "ui.settings.settings": "Paramètres",
   "ui.settings.signedIn": "Connecté",
@@ -2332,8 +2315,6 @@ export const frPending: Record<string, string> = {
     "Cette action arrête le serveur géré, le supprime avec ses données chez le fournisseur et retire l’entrée du Homelab. Elle est irréversible.",
   "ui.settings.thisEntryIsNotVerified":
     "Cette entrée n’est pas un résidu de test vérifié et ne peut pas être retirée par le nettoyage des projections.",
-  "ui.settings.thisExactPlanIsBound":
-    "Ce plan exact est lié à l’empreinte ci-dessous. Aucun serveur ni aucune ressource fournisseur ne sont supprimés.",
   "ui.settings.typeToConfirm": "Saisissez {slot} pour confirmer",
   "ui.shortcuts.closeDialogDeselect":
     "Fermer la boîte de dialogue / désélectionner",

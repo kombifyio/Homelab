@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/kombifyio/techstack/internal/gocommon/tenantdb"
+	"github.com/kombifyio/techstack/internal/routes/tenantguard"
 	"github.com/kombifyio/techstack/pkg/httpx"
 	"github.com/kombifyio/techstack/pkg/identity"
 )
@@ -49,10 +50,10 @@ func TestRequireAuthRejectsMissingIdentity(t *testing.T) {
 	}
 }
 
-func TestAuthenticatedUserDetectsSignedEdgeAdminRole(t *testing.T) {
+func TestAuthenticatedUserDetectsSelfHostedOwnerRole(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/v1/features", nil)
 	req = req.WithContext(identity.NewContext(context.Background(), &identity.Identity{
-		UserID: "api-key:techstack-admin",
+		UserID: "breakglass:local-owner",
 		Roles:  []string{"operator", "admin"},
 	}))
 	e := &httpx.Event{
@@ -60,41 +61,48 @@ func TestAuthenticatedUserDetectsSignedEdgeAdminRole(t *testing.T) {
 		Response: httptest.NewRecorder(),
 	}
 
-	got, isAdmin, ok := authenticatedUser(e)
+	got, isOwner, ok := authenticatedUser(e)
 	if !ok {
-		t.Fatal("authenticatedUser rejected edge identity")
+		t.Fatal("authenticatedUser rejected identity")
 	}
-	if got != "api-key:techstack-admin" {
-		t.Fatalf("authenticatedUser returned %q, want edge identity user ID", got)
+	if got != "breakglass:local-owner" {
+		t.Fatalf("authenticatedUser returned %q, want identity user ID", got)
 	}
-	if !isAdmin {
-		t.Fatal("authenticatedUser did not detect signed edge admin role")
+	if !isOwner {
+		t.Fatal("authenticatedUser did not detect the self-hosted owner")
 	}
 }
 
-func TestAuthenticatedUserDetectsSignedEdgeGlobalAdminRole(t *testing.T) {
-	req := httptest.NewRequest("GET", "/api/v1/features", nil)
-	req = req.WithContext(identity.NewContext(context.Background(), &identity.Identity{
-		UserID: "api-key:techstack-global-admin",
-		Roles:  []string{"global_admin"},
-	}))
-	e := &httpx.Event{
-		Request:  req,
-		Response: httptest.NewRecorder(),
-	}
+// A kombify platform role is never owner authority: not on a self-hosted
+// installation beyond its own local "admin" membership, and not at all in the
+// hosted product.
+func TestAuthenticatedUserIgnoresPlatformRoles(t *testing.T) {
+	platformRoles := []string{"super_admin", "global_admin", "developer", "manager"}
+	for _, hosted := range []bool{false, true} {
+		tenantguard.Configure(hosted)
+		t.Cleanup(func() { tenantguard.Configure(false) })
+		roleSets := [][]string{platformRoles}
+		if hosted {
+			roleSets = append(roleSets, []string{"admin"}, []string{"admin", "global_admin"})
+		}
+		for _, roles := range roleSets {
+			req := httptest.NewRequest("GET", "/api/v1/features", nil)
+			req = req.WithContext(identity.NewContext(context.Background(), &identity.Identity{
+				UserID: "auth0|platform-user",
+				Roles:  roles,
+			}))
+			e := &httpx.Event{Request: req, Response: httptest.NewRecorder()}
 
-	got, isAdmin, ok := authenticatedUser(e)
-	if !ok {
-		t.Fatal("authenticatedUser rejected edge identity")
-	}
-	if got != "api-key:techstack-global-admin" {
-		t.Fatalf("authenticatedUser returned %q, want edge identity user ID", got)
-	}
-	if !isAdmin {
-		t.Fatal("authenticatedUser did not detect signed edge global_admin role")
+			_, isOwner, ok := authenticatedUser(e)
+			if !ok {
+				t.Fatal("authenticatedUser rejected identity")
+			}
+			if isOwner {
+				t.Fatalf("hosted=%v roles=%v counted as instance owner", hosted, roles)
+			}
+		}
 	}
 }
-
 
 // A lease read or write whose Edge-signed database context names another
 // subject or organization than the tenant it asks for is the caller's missing

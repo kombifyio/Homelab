@@ -47,7 +47,7 @@ func requireHostOwner(re *httpx.Event) error {
 	if _, err := requireAuth(re); err != nil {
 		return err
 	}
-	return requireAdmin(re)
+	return requireInstanceOwner(re)
 }
 
 func refuseHostedAutoInstall(re *httpx.Event) error {

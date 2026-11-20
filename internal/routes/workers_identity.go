@@ -448,7 +448,7 @@ func (h workerRouteHandlers) workerIdentityToken(e *httpx.Event) error {
 	}
 	// A confirmed host key is what reach needs; it runs beside enrollment and
 	// never gates it.
-	h.enrollGuardReach(ctx, authCtx, nil)
+	h.enrollGuardReach(ctx, authCtx)
 	token, expires, issueErr := guardidentity.IssueAccessToken(h.guardAccessSecret(), guardidentity.AccessClaims{
 		TenantID: authCtx.TenantID, WorkerID: authCtx.RuntimeAgentID, JKT: proof.Thumbprint,
 		Cred: guardidentity.CredentialFingerprint(workerCredentialHashOf(*authCtx.Worker)),
