@@ -212,6 +212,14 @@ func (c *Channel) ReenrollGuard(ctx context.Context, req GuardReenrollRequest) (
 	started, _ := time.Parse(time.RFC3339, record.StartedAt)
 
 	host, fingerprint, err := c.ResolveTarget(ctx, *server, server.OwnerSubjectID)
+	if errors.Is(err, monthlyruntime.ErrExecutionAuthorityInactive) {
+		// The lease is outside its provider-control validity (expired,
+		// cancelled or unbound), so target resolution refuses before any
+		// custody is read. The node's channel custody is not the cause and
+		// nothing ran on the host.
+		record.State, record.Reason = GuardReenrollStateFailed, "lease_not_active"
+		return c.finishReenrollment(ctx, *server, record, fmt.Errorf("%w: the lease is not active under provider control", ErrGuardReenrollRefused))
+	}
 	if err != nil {
 		// No host-key pin or channel credential is held for this lease: the
 		// control plane has no admitted route to the node.

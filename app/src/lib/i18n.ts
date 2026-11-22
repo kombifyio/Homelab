@@ -35,6 +35,7 @@ import { marketplaceMessages } from "./wizard/marketplace-messages";
 import { useCaseConfigureMessages } from "./wizard/use-case-configure-messages";
 import { useCaseRemoveMessages } from "./wizard/use-case-remove-messages";
 import { applicationMoveMessages } from "./services/application-move-messages";
+import { placementClassMessages } from "./services/placement-class-messages";
 import { ownApplicationMessages } from "./services/own-application-messages";
 import { useCaseRunMessages } from "./wizard/use-case-run-messages";
 import { builderHandoffMessages } from "./wizard/builder-handoff-messages";
@@ -84,6 +85,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     ...useCaseRunMessages.en,
     ...useCaseRemoveMessages.en,
     ...applicationMoveMessages.en,
+    ...placementClassMessages.en,
     ...ownApplicationMessages.en,
     ...useCaseConfigureMessages.en,
     ...layoutMessages.en,
@@ -1069,6 +1071,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     ...useCaseRunMessages.de,
     ...useCaseRemoveMessages.de,
     ...applicationMoveMessages.de,
+    ...placementClassMessages.de,
     ...ownApplicationMessages.de,
     ...useCaseConfigureMessages.de,
     ...layoutMessages.de,
@@ -2070,6 +2073,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     ...useCaseRunMessages.es,
     ...useCaseRemoveMessages.es,
     ...applicationMoveMessages.es,
+    ...placementClassMessages.es,
     ...ownApplicationMessages.es,
     ...useCaseConfigureMessages.es,
     ...layoutMessages.es,
@@ -2103,6 +2107,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     ...useCaseRunMessages["zh-Hans"],
     ...useCaseRemoveMessages["zh-Hans"],
     ...applicationMoveMessages["zh-Hans"],
+    ...placementClassMessages["zh-Hans"],
     ...ownApplicationMessages["zh-Hans"],
     ...useCaseConfigureMessages["zh-Hans"],
     ...layoutMessages["zh-Hans"],
@@ -2136,6 +2141,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     ...useCaseRunMessages.hi,
     ...useCaseRemoveMessages.hi,
     ...applicationMoveMessages.hi,
+    ...placementClassMessages.hi,
     ...ownApplicationMessages.hi,
     ...useCaseConfigureMessages.hi,
     ...layoutMessages.hi,
@@ -2169,6 +2175,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     ...useCaseRunMessages.ar,
     ...useCaseRemoveMessages.ar,
     ...applicationMoveMessages.ar,
+    ...placementClassMessages.ar,
     ...ownApplicationMessages.ar,
     ...useCaseConfigureMessages.ar,
     ...layoutMessages.ar,

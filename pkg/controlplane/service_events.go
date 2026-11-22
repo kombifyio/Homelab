@@ -569,7 +569,7 @@ func applyServicePlacement(next *ServiceRuntime, patch ServiceRuntime, event Ser
 		next.ServerID = firstNonEmpty(strings.TrimSpace(patch.ServerID), next.ServerID)
 		placement = serviceregistry.NormalizePlacement(next.ServerID, placement)
 	case serviceregistry.TargetKindManagedWorkload:
-		next.ServerID = ""
+		next.ServerID = strings.TrimSpace(patch.ServerID)
 		if placement.ObservedAt == nil {
 			observedAt := event.ObservedAt.UTC()
 			placement.ObservedAt = &observedAt

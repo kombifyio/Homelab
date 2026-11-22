@@ -156,6 +156,10 @@
     {
       "version": "199_homelab_forward_names.sql",
       "sha256": "3c0002c6cde971990141d6362d261a24c075ca7d42d4dc3f8954e239dbe57e4f"
+    },
+    {
+      "version": "200_managed_workload_placement.additive.sql",
+      "sha256": "a0ecf82aff341e3cfb97d464292b12599a525fc3599f8c0f60f59311c3f15144"
     }
   ],
   "database_target": "core",
