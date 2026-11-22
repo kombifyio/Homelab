@@ -1,8 +1,19 @@
 {
   "schemaVersion": "stackkits.release-notes/v1",
-  "version": "v0.60.1",
+  "version": "v0.61.0",
   "changelogUrl": "https://stackkit.cc/changelog",
   "releases": [
+    {
+      "version": "v0.61.0",
+      "date": "2026-11-22",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "contracts",
+          "text": "add managed_app_fit CUE schema and serviceregistry placement tests"
+        }
+      ]
+    },
     {
       "version": "v0.60.1",
       "date": "2026-11-22",
@@ -1769,22 +1780,6 @@
           "kind": "fixed",
           "scope": "techstack",
           "text": "let agents acting for the person pass fresh-MFA step-ups per §5e"
-        }
-      ]
-    },
-    {
-      "version": "v0.55.11",
-      "date": "2026-11-02",
-      "entries": [
-        {
-          "kind": "fixed",
-          "scope": "localowner",
-          "text": "the legacy replacement lists household custody through the transaction walk"
-        },
-        {
-          "kind": "fixed",
-          "scope": "techstack",
-          "text": "Techstack manages StackKits updates, the Guard never moves the CLI under a stored plan"
         }
       ]
     }
