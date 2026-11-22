@@ -655,8 +655,8 @@ const runtimeTargetEnrolledAgentConvergenceScript = `converge_enrolled_agent() {
   admit_ufw_nftables
   admit_docker_firewall || return 1
   admit_guard_host_writes || return 1
-  enrollment_file="/etc/techstack/agent-enrollment.json"
-  state_enrollment="/var/lib/techstack/guard/agent-enrollment.json"
+  enrollment_file="/etc/homelab/agent-enrollment.json"
+  state_enrollment="/var/lib/homelab/guard/agent-enrollment.json"
   # Match hostidentity.LocateEnrollment: the newer protected copy wins.
   if $SUDO test -f "$state_enrollment" && { ! $SUDO test -f "$enrollment_file" || $SUDO test "$state_enrollment" -nt "$enrollment_file"; }; then
     enrollment_file="$state_enrollment"
@@ -675,13 +675,13 @@ const runtimeTargetEnrolledAgentConvergenceScript = `converge_enrolled_agent() {
     log "phase=agent_convergence status=failed reason=enrollment_empty"
     return 1
   fi
-  if ! $SUDO systemctl is-enabled --quiet techstack-agent.service; then
+  if ! $SUDO systemctl is-enabled --quiet homelab-agent.service; then
     log "phase=agent_convergence status=failed reason=service_not_enabled"
     return 1
   fi
   # The Guard may be trialling an authenticated update and restarting now.
   for i in $(seq 1 30); do
-    if $SUDO systemctl is-active --quiet techstack-agent.service; then
+    if $SUDO systemctl is-active --quiet homelab-agent.service; then
       log "phase=agent_convergence status=delegated reason=authenticated_guard_runtime"
       return 0
     fi
@@ -785,7 +785,7 @@ guard_sandbox_ready() {
     guard_namespace_can_write "$pid" /home/kombify/.ssh/.kombify-guard-write-probe
 }
 admit_guard_host_writes() {
-  unit=/etc/systemd/system/techstack-agent.service
+  unit=/etc/systemd/system/homelab-agent.service
   if ! $SUDO test -f "$unit"; then
     log "phase=guard_sandbox status=not_applicable"
     return 0
@@ -799,7 +799,7 @@ admit_guard_host_writes() {
   fi
   $SUDO mkdir -p /root/.docker /opt/stackkit/.stackkit /etc/ssh/sshd_config.d
   $SUDO mkdir -p -m 0700 /home/kombify/.ssh
-  pid="$($SUDO systemctl show -p MainPID --value techstack-agent.service 2>/dev/null || true)"
+  pid="$($SUDO systemctl show -p MainPID --value homelab-agent.service 2>/dev/null || true)"
   if guard_sandbox_ready "$pid" && ! $SUDO grep -q '^NoNewPrivileges=yes' "$unit"; then
     log "phase=guard_sandbox status=ready"
     return 0
@@ -817,15 +817,15 @@ admit_guard_host_writes() {
   else
     $SUDO sed -i "/^ProtectSystem=/a $desired" "$unit"
   fi
-  desired_ro='ReadOnlyPaths=/etc/techstack -/root/my-homelab'
+  desired_ro='ReadOnlyPaths=/etc/homelab -/root/my-homelab'
   if $SUDO grep -q '^ReadOnlyPaths=' "$unit"; then
     $SUDO sed -i "s|^ReadOnlyPaths=.*|$desired_ro|" "$unit"
   fi
   $SUDO systemctl daemon-reload
-  $SUDO systemctl restart techstack-agent.service
+  $SUDO systemctl restart homelab-agent.service
   for i in $(seq 1 20); do
-    if $SUDO systemctl is-active --quiet techstack-agent.service; then
-      pid="$($SUDO systemctl show -p MainPID --value techstack-agent.service 2>/dev/null || true)"
+    if $SUDO systemctl is-active --quiet homelab-agent.service; then
+      pid="$($SUDO systemctl show -p MainPID --value homelab-agent.service 2>/dev/null || true)"
       if guard_sandbox_ready "$pid"; then
         log "phase=guard_sandbox status=repaired"
         return 0

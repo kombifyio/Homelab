@@ -97,7 +97,12 @@ const CHORD_GROUP: Readonly<Record<string, CompanionGroupId>> = {
 
 function groupOf(key: string): CompanionGroupId | null {
   if (key === "startWithWindows") return "companion";
-  if (key === "showKubi" || key === "voiceAnimation") return "kubi";
+  if (
+    key === "showKubi" ||
+    key === "apps.showCompanion" ||
+    key === "voiceAnimation"
+  )
+    return "kubi";
   if (
     key === "dictation.shortcut" ||
     key === "dictation.behavior" ||
@@ -123,6 +128,8 @@ function labelOf(key: string, l: CompanionSettingsLabels): string | undefined {
       return l.rows.startWithWindows;
     case "showKubi":
       return l.rows.showKubi;
+    case "apps.showCompanion":
+      return l.rows.appsShowCompanion;
     case "voiceAnimation":
       return l.rows.voiceAnimation;
     case "dictation.shortcut":

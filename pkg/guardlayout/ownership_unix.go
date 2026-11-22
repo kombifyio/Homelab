@@ -21,7 +21,7 @@ func ownershipIDs(info fs.FileInfo) (int, int, error) {
 }
 
 func lockLayoutState(opts *Options) (func(), error) {
-	root, err := privatefs.Open(opts.path(executorStateDir))
+	root, err := privatefs.Open(opts.path(ExecutorStateDir))
 	if err != nil {
 		return nil, err
 	}

@@ -29,17 +29,28 @@ import type {
 } from "@kombiverselabs/embed";
 import type { CompanionLauncherStackIdentity } from "#lib/companion/stack-identity.js";
 import type { ViewContextBody } from "#lib/view-context.js";
+import type { AiSetup } from "#lib/ai/ai-setup.js";
+
+/**
+ * SurfaceContextV2 with the content-free `aiSetup` block (FLOATING-PANEL-V2-CONTRACT §7) that
+ * says which AI the person had set, for support. The SDK's own type adopts it with its next release.
+ */
+export type CompanionPageContext = CompanionSurfaceContext & {
+  aiSetup?: AiSetup;
+};
 
 /** A page hint only: it never widens the person's authorization or scope. */
 export function companionPageContext(
   view: ViewContextBody | null,
   locale: string,
-): CompanionSurfaceContext {
+  aiSetup?: AiSetup,
+): CompanionPageContext {
   return {
     version: 2,
     surface: "homelab",
     locale,
     scope: { kind: "none" },
+    ...(aiSetup ? { aiSetup } : {}),
     ...(view
       ? {
           route: view.route,

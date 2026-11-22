@@ -20,6 +20,7 @@
       content="kombify Homelab Runtime is the app of kombify (kombify.io) to plan, deploy and keep your homelab and servers running."
     />
     <link rel="canonical" href="https://homelab.kombify.io/" />
+    <link rel="icon" type="image/webp" href="/brand/homelab-rosette-128.webp" />
     <script>
       // Shared client contracts check own properties during module evaluation.
       if (typeof Object.hasOwn !== "function") {
@@ -102,9 +103,34 @@
         /* localStorage unavailable: keep the dark-first default above. */
       }
     </script>
+    <style>
+      #homelab-initial-loading {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: var(--background, #f3f5f6);
+      }
+      html[data-appearance="dark"] #homelab-initial-loading {
+        background: var(--background, #0c0f11);
+      }
+      #homelab-initial-loading img {
+        display: none;
+        width: min(20rem, 80vw);
+        height: auto;
+      }
+      html[data-appearance="light"] #homelab-initial-loading .light,
+      html[data-appearance="dark"] #homelab-initial-loading .dark {
+        display: block;
+      }
+    </style>
     %sveltekit.head%
   </head>
   <body class="theme-homelab" data-sveltekit-preload-data="hover">
+    <div id="homelab-initial-loading" role="status">
+      <img class="light" src="/brand/homelab-tool-lockup-96.webp?v=b29d3daa" alt="Homelab Runtime" />
+      <img class="dark" src="/brand/homelab-tool-lockup-96-dark.webp?v=b29d3daa" alt="Homelab Runtime" />
+    </div>
     <div style="display: contents">%sveltekit.body%</div>
   </body>
 </html>

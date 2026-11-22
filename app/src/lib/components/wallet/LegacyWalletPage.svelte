@@ -48,7 +48,6 @@
     WALLET_REVEAL_STEP_UP_REASON,
   } from "#lib/auth/step-up.js";
   import { authStore } from "#lib/stores/auth.svelte.js";
-  import { showInlineTabs } from "#lib/stores/deploymentMode.js";
   import Modal from "#lib/components/Modal.svelte";
   import CredentialForm from "#lib/components/CredentialForm.svelte";
   import ImportExportModal from "#lib/components/ImportExportModal.svelte";
@@ -919,9 +918,7 @@
 </script>
 
 <div
-  class="mx-auto flex w-full max-w-7xl flex-col gap-6 {$showInlineTabs
-    ? 'h-full min-h-0'
-    : 'px-4 py-6 md:px-6 md:py-8'}"
+  class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-6 md:py-8"
 >
   <div class="flex flex-col gap-3">
     <div
@@ -958,9 +955,7 @@
   </div>
 
   <section
-    class="rounded-3xl border border-border/60 bg-card/35 p-5 shadow-sm shadow-black/10 backdrop-blur-sm md:p-6 {$showInlineTabs
-      ? 'flex-1 min-h-0 overflow-y-auto'
-      : 'min-h-[42rem]'}"
+    class="rounded-3xl border border-border/60 bg-card/35 p-5 shadow-sm shadow-black/10 backdrop-blur-sm md:p-6 min-h-[42rem]"
     data-wallet-canvas
   >
     <!-- Import/Export Modal -->

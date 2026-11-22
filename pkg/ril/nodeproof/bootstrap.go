@@ -20,7 +20,7 @@ const purposeKeysOrigin = "https://api.kombify.io/.well-known/kombify-ril-purpos
 
 // RequireHostedProfile rechecks the root-owned current applied-profile
 // authority. Callers must invoke it immediately at their actual network dial.
-func RequireHostedProfile() error { return admitHostedProfile("/var/lib/techstack-guard-executor") }
+func RequireHostedProfile() error { return admitHostedProfile("/var/lib/homelab-guard-executor") }
 
 // RefreshPurposeKeys is invoked by the privileged installer/refresh unit, never
 // by a command. The immutable Gateway origin and TLS authenticate the public

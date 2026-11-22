@@ -97,8 +97,8 @@ func HostSecurityWorkspace() string {
 // this agent can run it: the process is root, NoNewPrivileges is off (apt and
 // the reboot guard need setuid helpers and systemd-run), and the pinned
 // StackKits release ships the host commands. The installer's
-// techstack-agent.service runs the HTTPS agent as root with
-// NoNewPrivileges=no; the hardened packaging/techstack-agent.service runs as
+// homelab-agent.service runs the HTTPS agent as root with
+// NoNewPrivileges=no; the hardened packaging/homelab-agent.service runs as
 // User=homelab with NoNewPrivileges=yes and therefore never advertises it.
 func (executor *StackKitExecutor) HostMaintenanceCapabilities() []string {
 	// The Guard host operations run in the Guard itself and need no release.

@@ -86,7 +86,7 @@ func installHostedRILBootstrap(ctx context.Context, server, enrollmentPath strin
 	if tenant == "" || serverID == "" {
 		return fmt.Errorf("hosted enrollment lacks RIL identity")
 	}
-	root, err := privatefs.Open("/var/lib/techstack-guard-executor")
+	root, err := privatefs.Open("/var/lib/homelab-guard-executor")
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func installHostedRILBootstrap(ctx context.Context, server, enrollmentPath strin
 	if err = nodeproof.PinLocalIdentity(root, nodeproof.Identity{TenantID: tenant, ServerID: serverID, OwnerID: owner, StackID: stack}); err != nil {
 		return err
 	}
-	etc, err := privatefs.Open("/etc/techstack")
+	etc, err := privatefs.Open("/etc/homelab")
 	if err != nil {
 		return err
 	}
@@ -102,14 +102,14 @@ func installHostedRILBootstrap(ctx context.Context, server, enrollmentPath strin
 	if err = privatefs.Replace(etc, "ril-hosted-enrollment", []byte("kombify.ril-hosted-enrollment.v1\n"), 0o600); err != nil {
 		return err
 	}
-	return nodeproof.RefreshPurposeKeys(ctx, "/etc/techstack")
+	return nodeproof.RefreshPurposeKeys(ctx, "/etc/homelab")
 }
 
 // A re-enrollment into a non-hosted authority removes only our own marker and
 // invalidates the old RIL identity; a Full Local node starts no refresh traffic.
 func clearHostedRILBootstrap() error {
-	if _, err := os.Stat("/etc/techstack/ril-hosted-enrollment"); err == nil {
-		root, err := privatefs.Open("/etc/techstack")
+	if _, err := os.Stat("/etc/homelab/ril-hosted-enrollment"); err == nil {
+		root, err := privatefs.Open("/etc/homelab")
 		if err != nil {
 			return err
 		}
@@ -120,8 +120,8 @@ func clearHostedRILBootstrap() error {
 	} else if !os.IsNotExist(err) {
 		return err
 	}
-	if _, err := os.Stat("/var/lib/techstack-guard-executor/ril-local-identity.json"); err == nil {
-		root, err := privatefs.Open("/var/lib/techstack-guard-executor")
+	if _, err := os.Stat("/var/lib/homelab-guard-executor/ril-local-identity.json"); err == nil {
+		root, err := privatefs.Open("/var/lib/homelab-guard-executor")
 		if err != nil {
 			return err
 		}

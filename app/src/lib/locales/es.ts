@@ -2939,6 +2939,7 @@ export const es: Record<string, string> = {
   "companion.settings.rows.enabled": "Companion en este equipo",
   "companion.settings.rows.startWithWindows": "Iniciar con Windows",
   "companion.settings.rows.showKubi": "Mostrar a Kubi",
+  "companion.settings.rows.appsShowCompanion": "Mostrar también el Companion en la app mientras Kubi está en el escritorio",
   "companion.settings.rows.voiceAnimation": "Animación de voz",
   "companion.settings.rows.shortcut": "Atajo",
   "companion.settings.rows.dictationBehavior": "Modo del atajo",

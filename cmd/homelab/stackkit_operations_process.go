@@ -24,7 +24,7 @@ import (
 
 const (
 	stackKitOperationsExecutableName = "homelab-stackkit-operations"
-	stackKitOperationsEnrollmentPath = "/etc/techstack/agent-enrollment.json"
+	stackKitOperationsEnrollmentPath = "/etc/homelab/agent-enrollment.json"
 	stackKitOperationsRequestSchema  = "stackkit.standard-execution-request/v1"
 	stackKitOperationsResponseSchema = "stackkit.standard-execution-result/v1"
 	stackKitOperationsChannelRef     = "host-channel-cloud-main"

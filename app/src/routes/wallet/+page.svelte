@@ -8,7 +8,6 @@
    */
   import { tr } from "#lib/i18n.svelte.js";
   import { authStore } from "#lib/stores/auth.svelte.js";
-  import { showInlineTabs } from "#lib/stores/deploymentMode.js";
   import KombifyWalletPage from "#lib/kombify-wallet/components/KombifyWalletPage.svelte";
   import LegacyWalletPage from "#lib/components/wallet/LegacyWalletPage.svelte";
 </script>
@@ -20,7 +19,7 @@
     </p>
   </div>
 {:else if authStore.walletSource === "kombify"}
-  <KombifyWalletPage inlineTabs={$showInlineTabs} />
+  <KombifyWalletPage />
 {:else}
   <LegacyWalletPage />
 {/if}

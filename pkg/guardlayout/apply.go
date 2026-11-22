@@ -23,11 +23,9 @@ import (
 const (
 	DefaultBinaryPath     = "/usr/local/bin/homelab"
 	DefaultOperationsPath = "/usr/local/libexec/homelab-stackkit-operations"
-	DefaultSocketPath     = "/run/techstack-guard-executor.sock"
+	DefaultSocketPath     = "/run/homelab-guard-executor.sock"
 	DefaultUser           = "kombify-guard"
 	systemdDir            = "/etc/systemd/system"
-	stateRoot             = "/var/lib/techstack"
-	executorStateDir      = "/var/lib/techstack-guard-executor"
 	enrollmentFile        = EnrollmentFile
 	layoutTrialFile       = "layout-trial.json"
 )
@@ -274,7 +272,7 @@ func Apply(ctx context.Context, opts Options) (Result, error) {
 	// The root caller must publish the existing non-secret handoff marker
 	// before starting its supervisor. Create a missing projection directory
 	// only after verification; do not re-own an existing daemon directory.
-	if err := os.MkdirAll(opts.path(stateRoot+"/guard-handoff"), 0o700); err != nil {
+	if err := os.MkdirAll(opts.path(HandoffDir), 0o700); err != nil {
 		rollbackErr := rollbackLayoutLocked(ctx, &opts)
 		if rollbackErr == nil {
 			rollbackErr = finishLayoutTrialLocked(&opts, trialID)
@@ -338,7 +336,7 @@ func discardPreparedTrial(opts *Options, id string) error {
 	if trial.ID != id || trial.Phase != "prepared" {
 		return errors.New("layout preparation authority changed")
 	}
-	root, err := privatefs.Open(opts.path(executorStateDir))
+	root, err := privatefs.Open(opts.path(ExecutorStateDir))
 	if err != nil {
 		return err
 	}
@@ -361,7 +359,7 @@ func ensureUser(ctx context.Context, opts *Options) error {
 	if _, _, err := opts.Lookup(opts.GuardUser); err == nil {
 		return nil
 	}
-	home := stateRoot + "/guard"
+	home := GuardStateDir
 	shell := "/usr/sbin/nologin"
 	if _, err := os.Stat(opts.path(shell)); err != nil {
 		shell = "/sbin/nologin"
@@ -376,7 +374,7 @@ func ensureUser(ctx context.Context, opts *Options) error {
 // Custody is transferred only after the executor answers and the supervisor
 // has stopped the daemon that could still write it.
 func prepareExecutorDirectories(opts *Options) error {
-	for _, path := range []string{"/etc/techstack", stateRoot, "/usr/local/libexec"} {
+	for _, path := range []string{configRoot, stateRoot, "/usr/local/libexec"} {
 		if err := os.MkdirAll(opts.path(path), 0o755); err != nil {
 			return err
 		}
@@ -401,7 +399,7 @@ func prepareExecutorDirectories(opts *Options) error {
 	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		return fmt.Errorf("%w: Guard namespace anchor must be a directory", privatefs.ErrUnsafeCustody)
 	}
-	root, err := privatefs.Open(opts.path(executorStateDir))
+	root, err := privatefs.Open(opts.path(ExecutorStateDir))
 	if err != nil {
 		return err
 	}
@@ -416,10 +414,10 @@ func transferDaemonCustody(opts *Options, uid, gid int) error {
 		recursive bool
 	}
 	entries := []entry{
-		{"/etc/techstack", 0o750, 0, gid, false},
+		{configRoot, 0o750, 0, gid, false},
 		{stateRoot, 0o755, 0, 0, false},
-		{stateRoot + "/guard", 0o700, uid, gid, true},
-		{stateRoot + "/guard-handoff", 0o700, uid, gid, true},
+		{GuardStateDir, 0o700, uid, gid, true},
+		{HandoffDir, 0o700, uid, gid, true},
 		{"/usr/local/libexec", 0o755, 0, 0, false},
 	}
 	for _, e := range entries {
@@ -520,7 +518,7 @@ func captureBindingPins(opts *Options, enrollment string, info fs.FileInfo) erro
 	if err != nil {
 		return err
 	}
-	root, err := privatefs.Open(opts.path(executorStateDir))
+	root, err := privatefs.Open(opts.path(ExecutorStateDir))
 	if err != nil {
 		return err
 	}
@@ -623,7 +621,7 @@ func captureLayoutTrial(opts *Options, id string, uid, gid int, params UnitParam
 }
 
 func writeLayoutTrial(opts *Options, trial layoutTrial) error {
-	root, err := privatefs.Open(opts.path(executorStateDir))
+	root, err := privatefs.Open(opts.path(ExecutorStateDir))
 	if err != nil {
 		return err
 	}
@@ -647,7 +645,7 @@ func reserveLayoutTrial(opts *Options, trial layoutTrial) error {
 	if err != nil {
 		return err
 	}
-	root, err := privatefs.Open(opts.path(executorStateDir))
+	root, err := privatefs.Open(opts.path(ExecutorStateDir))
 	if err != nil {
 		return err
 	}
@@ -670,7 +668,7 @@ func reserveLayoutTrial(opts *Options, trial layoutTrial) error {
 }
 
 func readLayoutTrial(opts *Options) (layoutTrial, error) {
-	root, err := privatefs.Open(opts.path(executorStateDir))
+	root, err := privatefs.Open(opts.path(ExecutorStateDir))
 	if err != nil {
 		return layoutTrial{}, err
 	}
@@ -817,7 +815,7 @@ func finishLayoutTrialLocked(opts *Options, id string) error {
 	if trial.ID != id || (trial.Phase != "committed" && trial.Phase != "rolled_back") {
 		return errors.New("layout trial has no durable terminal disposition")
 	}
-	root, err := privatefs.Open(opts.path(executorStateDir))
+	root, err := privatefs.Open(opts.path(ExecutorStateDir))
 	if err != nil {
 		return err
 	}

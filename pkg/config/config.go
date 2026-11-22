@@ -204,7 +204,7 @@ func Load(configPath string) (*Config, error) {
 		for _, path := range []string{
 			"homelab.yaml",
 			"homelab.yml",
-			"/etc/techstack/config.yaml",
+			"/etc/homelab/config.yaml",
 			filepath.Join(os.Getenv("HOME"), ".homelab", "config.yaml"),
 		} {
 			// #nosec G703 -- candidates are application-owned defaults, including the operator's home config.

@@ -265,14 +265,24 @@ installer carries one.
   to `app/src/lib/settings/companion/` (its renderer, stylesheet and theme are not
   used; `app/scripts/check-settings-structure.mjs` fails on them). The adapter is
   the existing WebView2 bridge (`app/src/lib/client/companion-bridge.ts`).
-  `ClientWindow.Companion.cs` answers six fixed messages
-  (`kombify.homelab.companion.{read,write,watch,watch-cancel,pick-folder,open-link}.v1`),
+  `ClientWindow.Companion.cs` answers seven fixed messages
+  (`kombify.homelab.companion.{read,write,watch,watch-cancel,pick-folder,open-link,panel}.v1`),
   each bound to the current document's revision and token like the device-context
   read. It speaks AppLink v2 through `Kombify.Client.Shell`; no pipe, token,
   registry path or path of another program reaches the page. The folder picker is
   the native dialog, and a folder is written only when it is the one just picked
   or one the Companion itself reported. Only a link of the latest snapshot opens
   in the system browser.
+- **In-app Companion** (workspace AppLink v2 "In-app Companion"). The tab shows
+  "Also show the Companion in the app while Kubi runs on the desktop"
+  (`apps.showCompanion`, default on, one value in the Companion for every kombify
+  app on this PC). The window runs one `CompanionSettingsWatcher` from its start
+  to its close; `panel.v1` tells the current document whether to hide its
+  Companion panel, at once and again under the same request id at every change.
+  It is hidden only while the Companion runs switched on, Kubi is shown and that
+  value is off; the layout (`companion-panel.svelte.ts`) then leaves
+  `CompanionHost` out and brings it back when Kubi stops or the value goes on,
+  without a restart. The browser and the hosted web app never hide it.
 - **Carried installer.** No Companion version is typed and no digest is written in
   source: the client follows the Companion's releases. A new release reaches the
   next release slot by itself: kombify-AI-Platform's `companion-desktop-msi.yml`

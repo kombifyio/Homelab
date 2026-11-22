@@ -113,6 +113,13 @@ var betaFeatures = map[string]FeatureDefinition{
 		RiskLevel: RiskLevelLow, Category: CategoryBeta,
 		Description: "Show selected workload capacity evidence at server choice.",
 	},
+	// Settings › AI providers in the Windows client: the device-wide local AI runtimes
+	// (workspace platform/standards/local-ai-runtimes.v1.md). Off until released.
+	"local_ai_providers": {
+		Key: "local_ai_providers", Name: "Local AI providers", DefaultValue: false,
+		RiskLevel: RiskLevelLow, Category: CategoryBeta,
+		Description: "Show Settings › AI providers with the local AI runtimes this PC shares with the other kombify apps.",
+	},
 	"cloudflare_tunnel": {
 		Key:             "cloudflare_tunnel_enabled",
 		Name:            "Cloudflare Tunnel",

@@ -51,7 +51,7 @@ func AcquireHostedProfile(ctx context.Context) (func(), error) {
 		}
 	}
 	release := func() { _ = syscall.Flock(int(file.Fd()), syscall.LOCK_UN); _ = file.Close() }
-	if err = admitHostedProfile("/var/lib/techstack-guard-executor"); err != nil {
+	if err = admitHostedProfile("/var/lib/homelab-guard-executor"); err != nil {
 		release()
 		return nil, err
 	}

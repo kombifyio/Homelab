@@ -17,6 +17,7 @@ tags:
   - name: RuntimeSummary
   - name: UsageBudgets
   - name: Household
+  - name: ManagedRuntime
 security:
   - servicecallAuth: []
 paths:
@@ -739,6 +740,42 @@ paths:
         "404": {$ref: "#/components/responses/RuntimeLeaseDenied"}
         "503": {$ref: "#/components/responses/RuntimeLeaseDenied"}
 
+  /api/v1/internal/managed-runtime/guard-reenroll:
+    post:
+      operationId: reenrollInternalManagedGuard
+      tags: [ManagedRuntime]
+      summary: Pair the Guard of one managed node again over the execution channel
+      description: >-
+        Caller homelab-operations only, Ed25519 service token bound to this request,
+        scope homelab:guard-reenroll. The server first claims the node by compare-and-set on
+        the server record (one run per node; a call while a run holds it is answered 409
+        with nothing run). It probes the node; a node whose Guard is the Homelab binary at
+        the target version, enrolled and active, with a fresh accepted heartbeat of its bound
+        identity, is answered already_current without touching the node. Otherwise it fetches
+        install.sh, then archives the old enrollment, identity state and binary on the node,
+        runs install.sh with a lease-bound one-use capability and answers enrolled only after
+        the control plane accepted the first key-bound heartbeat of the new identity (credential
+        epoch advanced, identity bound) and the Guard reported the target version, within three
+        minutes. guard_reenrollment on the server records every result. Runs up to 20 minutes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [tenantId, leaseId]
+              properties:
+                tenantId: {type: string, maxLength: 256}
+                leaseId: {type: string, maxLength: 256}
+      responses:
+        "200": {description: "ok true; result.state enrolled or already_current, with attempt, before_version, after_version, target_version"}
+        "400": {description: Invalid request body}
+        "401": {description: Missing or invalid service token}
+        "403": {description: Caller or scope not admitted}
+        "409": {description: "ok false; a re-enrollment of this node is running, the server is not an active managed server, or the capability could not be issued (result.reason); nothing ran for this call"}
+        "502": {description: "ok false; result.state failed when the node could not be reached or the installer failed (result.reason: channel_custody_missing, probe_failed, installer_download_failed, installer_invalid, installer_failed), or installed_unconfirmed when no accepted heartbeat of the new identity at the target version arrived in time (heartbeat_not_observed, installed_version_differs, guard_binary_missing, enrollment_missing)"}
+        "503": {description: Route not configured on this installation}
 components:
   securitySchemes:
     servicecallAuth:

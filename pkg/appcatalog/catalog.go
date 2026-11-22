@@ -181,7 +181,7 @@ var entries = []Entry{
 	{ID: "tailscale", DisplayName: "Tailscale", Category: "infra", Infra: true,
 		images: []string{"tailscale/tailscale", "tailscale"}, names: []string{"tailscale", "tailscaled"}},
 	{ID: "kombify-agent", DisplayName: "Kombify Agent", Category: "infra", Infra: true,
-		names: []string{"techstack-agent", "kombify-guard", "kombify-agent"}},
+		names: []string{"homelab-agent", "kombify-guard", "kombify-agent"}},
 	{ID: "portainer-agent", DisplayName: "Portainer Agent", Category: "infra", Infra: true,
 		images: []string{"portainer/agent"}, names: []string{"portainer-agent"}},
 	{ID: "cadvisor", DisplayName: "cAdvisor", Category: "infra", Infra: true,

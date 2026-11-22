@@ -22,6 +22,7 @@ export interface CompanionSettingsLabels {
     enabled: string;
     startWithWindows: string;
     showKubi: string;
+    appsShowCompanion: string;
     voiceAnimation: string;
     shortcut: string;
     dictationBehavior: string;
@@ -85,6 +86,7 @@ export function companionSettingsLabels(): CompanionSettingsLabels {
       enabled: tr("companion.settings.rows.enabled"),
       startWithWindows: tr("companion.settings.rows.startWithWindows"),
       showKubi: tr("companion.settings.rows.showKubi"),
+      appsShowCompanion: tr("companion.settings.rows.appsShowCompanion"),
       voiceAnimation: tr("companion.settings.rows.voiceAnimation"),
       shortcut: tr("companion.settings.rows.shortcut"),
       dictationBehavior: tr("companion.settings.rows.dictationBehavior"),

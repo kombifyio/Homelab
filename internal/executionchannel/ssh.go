@@ -36,6 +36,9 @@ const (
 	maxOutputBytes = 64 << 10
 )
 
+// maxCommandTimeout caps RunWithin.
+const maxCommandTimeout = 20 * time.Minute
+
 // PinnedHostKey parses host-key custody (an authorized-key line, a
 // known_hosts-style line or a SHA256 fingerprint) and returns the exact
 // fingerprint, the key algorithm when known and a callback that accepts only
@@ -159,7 +162,16 @@ func targetSigners(target *jobs.ManagedRuntimeTarget) []ssh.Signer {
 // Run executes exactly one bounded command with optional stdin and returns
 // its combined, size-bounded output.
 func Run(ctx context.Context, target *jobs.ManagedRuntimeTarget, fingerprint, command, stdin string) (string, error) {
-	runCtx, cancel := context.WithTimeout(ctx, commandTimeout)
+	return RunWithin(ctx, commandTimeout, target, fingerprint, command, stdin)
+}
+
+// RunWithin is Run with an explicit bound, for the few node operations (the
+// Guard re-enrollment's installer run) that take longer than a Day-2 command.
+func RunWithin(ctx context.Context, timeout time.Duration, target *jobs.ManagedRuntimeTarget, fingerprint, command, stdin string) (string, error) {
+	if timeout <= 0 || timeout > maxCommandTimeout {
+		timeout = commandTimeout
+	}
+	runCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	client, err := Dial(runCtx, target, fingerprint)
 	if err != nil {

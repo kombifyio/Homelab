@@ -118,7 +118,7 @@ func bootstrapExistingHostedRIL(ctx context.Context) error {
 	if nodeproof.RequireHostedProfile() != nil {
 		return errors.New("RIL hosted profile unavailable")
 	}
-	state, err := privatefs.Open("/var/lib/techstack-guard-executor")
+	state, err := privatefs.Open("/var/lib/homelab-guard-executor")
 	if err != nil {
 		return err
 	}
@@ -126,7 +126,7 @@ func bootstrapExistingHostedRIL(ctx context.Context) error {
 	if err := nodeproof.PinLocalIdentity(state, nodeproof.Identity{TenantID: result.TenantID, OwnerID: result.OwnerID, ServerID: result.ServerID, StackID: result.StackID}); err != nil {
 		return err
 	}
-	etc, err := privatefs.Open("/etc/techstack")
+	etc, err := privatefs.Open("/etc/homelab")
 	if err != nil {
 		return err
 	}

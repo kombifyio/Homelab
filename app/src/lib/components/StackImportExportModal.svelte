@@ -5,6 +5,7 @@
   import Button from "#lib/components/ui/Button.svelte";
   import ErrorCallout from "#lib/components/ui/ErrorCallout.svelte";
   import { toast } from "#lib/stores/toast.js";
+  import { currentAiSetup } from "#lib/ai/ai-setup-state.js";
   import {
     importKombinationSpec,
     exportKombinationSpec,
@@ -48,6 +49,8 @@
       kitDeploymentId,
       exportFormat,
       time: new Date().toISOString(),
+      // Which AI the person had set (content-free): support reads it with the error.
+      aiSetup: currentAiSetup(),
       url: typeof window !== "undefined" ? window.location.href : "(no-window)",
       userAgent:
         typeof navigator !== "undefined" ? navigator.userAgent : "(no-ua)",

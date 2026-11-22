@@ -11,8 +11,6 @@
   import { tr } from "#lib/i18n.svelte.js";
   import WalletItemsPanel from "./WalletItemsPanel.svelte";
 
-  let { inlineTabs = false }: { inlineTabs?: boolean } = $props();
-
   const VIEW_KEY = "homelab.wallet.view";
   const VIEWS: EntityCardSize[] = ["mark", "tile", "row", "card"];
   let view = $state<EntityCardSize>("row");
@@ -37,10 +35,11 @@
   });
 </script>
 
+<!-- The shell's `main` scrolls the page in every mode; the Wallet never adds
+     a second scroll container inside an embed (KOMBIFY-DESIGN-SYSTEM-STANDARD
+     §7.4). -->
 <div
-  class="mx-auto flex w-full max-w-7xl flex-col gap-6 {inlineTabs
-    ? 'h-full min-h-0 overflow-y-auto'
-    : 'p-4 md:p-6'}"
+  class="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 md:p-6"
   data-testid="kombify-wallet-page"
 >
   <PageHeader title={tr("kwallet.title")} description={tr("kwallet.lead")}>

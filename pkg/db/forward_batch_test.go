@@ -2,7 +2,10 @@ package db
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	mathrand "math/rand/v2"
@@ -17,6 +20,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 )
 
 // Sensitive migration boundary: the shared staging ledger must not be edited to
@@ -630,4 +635,370 @@ func TestSubstrateAbsenceMigrationFoldsCRLFDefinition(t *testing.T) {
 	if _, err := substrateAbsenceEffectiveBody(append([]byte("-- changed\n"), body...)); err == nil {
 		t.Fatal("correction admitted a changed migration")
 	}
+}
+
+const forwardNamesMigration = "199_homelab_forward_names.sql"
+
+// Sensitive migration boundary (platform-2jlnx7.14): migration 199 moves the
+// values a 0.49.19 server stored to the spelling 0.50.x reads, in place, with
+// no second reader. The rows are seeded on the schema of migration 198 as the
+// 0.49.19 server wrote them, then the migration runs as the non-superuser
+// migration owner under FORCE ROW LEVEL SECURITY, exactly as the release's
+// database leg does.
+func TestIntegrationHomelabForwardNames(t *testing.T) {
+	dsn := forwardNamesDSN(t)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Minute)
+	defer cancel()
+	target, admin, _ := newForwardBatchDatabase(t, ctx, dsn)
+	prepareForwardNamesRoles(t, ctx, admin)
+	pinApplyMigrationsBefore(t, ctx, target, "199_")
+
+	seed := seedForwardNameRows(t, ctx, admin)
+	// The 0.50.x boot check refuses the 0.49.19-era ledger and admits it once
+	// 199 is applied.
+	var pin ExpectedDatabaseIdentity
+	if err := admin.QueryRowContext(ctx, `SELECT current_database(), system_identifier::text FROM pg_control_system()`).Scan(
+		&pin.DatabaseName, &pin.SystemIdentifier); err != nil {
+		t.Fatal(err)
+	}
+	if err := target.VerifyMigrationsAtFloor(ctx, pin, SchemaFloor); !errors.Is(err, ErrSchemaFloorUnmet) {
+		t.Fatalf("schema floor %d before 199 = %v, want ErrSchemaFloorUnmet", SchemaFloor, err)
+	}
+	pinApplyMigration(t, ctx, target, forwardNamesMigration)
+	if err := target.VerifyMigrationsAtFloor(ctx, pin, SchemaFloor); err != nil {
+		t.Fatalf("schema floor %d after 199: %v", SchemaFloor, err)
+	}
+
+	var keyIssuer, bindingIssuer, procedure, source, journey string
+	var stateJSON, resultJSON, payloadJSON []byte
+	var stateUpdated time.Time
+	if err := admin.QueryRowContext(ctx, `SELECT
+			(SELECT issuer_id FROM advanced_issuer_keys WHERE singleton),
+			(SELECT issuer_id FROM advanced_trust_bindings WHERE tenant_id = $1),
+			(SELECT procedure_ref FROM failure_resolution_outcomes WHERE tenant_id = $1),
+			(SELECT source FROM operator_self_disclosures WHERE tenant_id = $1),
+			(SELECT journey_id FROM user_onboarding_state WHERE tenant_id = $1),
+			(SELECT state_json::text FROM user_onboarding_state WHERE tenant_id = $1),
+			(SELECT updated_at FROM user_onboarding_state WHERE tenant_id = $1),
+			(SELECT result_json::text FROM jobs WHERE id = $2),
+			(SELECT payload_json::text FROM jobs WHERE id = $2)`, seed.tenantID, seed.jobID).Scan(
+		&keyIssuer, &bindingIssuer, &procedure, &source, &journey, &stateJSON, &stateUpdated, &resultJSON, &payloadJSON); err != nil {
+		t.Fatal(err)
+	}
+	// The binding keeps the bare issuer 0.49.19 bound; its bundle digest names
+	// that issuer, so the host's trust re-import creates it again.
+	if want := "homelab." + seed.issuerUUID; keyIssuer != want || bindingIssuer != "techstack" {
+		t.Fatalf("issuer labels = %q, %q; want %q and the bound techstack", keyIssuer, bindingIssuer, want)
+	}
+	if procedure != "homelab:stackkit/repair-volume" || source != "homelab" || journey != "homelab.platform" {
+		t.Fatalf("procedure=%q source=%q journey=%q", procedure, source, journey)
+	}
+	if !stateUpdated.Equal(seed.stateUpdated) {
+		t.Fatalf("the rewrite fired the updated_at trigger: %s, seeded %s", stateUpdated, seed.stateUpdated)
+	}
+	var state struct {
+		JourneyID string `json:"journey_id"`
+		Completed []struct {
+			StepID string `json:"step_id"`
+		} `json:"completed"`
+		SeenSteps []string `json:"seen_steps"`
+	}
+	if err := json.Unmarshal(stateJSON, &state); err != nil {
+		t.Fatal(err)
+	}
+	if state.JourneyID != "homelab.platform" || len(state.Completed) != 1 || state.Completed[0].StepID != "homelab.configure_intent" ||
+		strings.Join(state.SeenSteps, ",") != "homelab.configure_intent,homelab.add_server" {
+		t.Fatalf("onboarding state = %s", stateJSON)
+	}
+	var result map[string]any
+	if err := json.Unmarshal(resultJSON, &result); err != nil {
+		t.Fatal(err)
+	}
+	receipt, _ := result["service_action_receipt"].(map[string]any)
+	switch {
+	case result["schema_version"] != "homelab.stackkit-lifecycle-result/v1", result["kit_deployment_id"] != "stack-forward",
+		result["techstack_id"] != nil, receipt == nil, receipt["schema_version"] != "homelab.service-action-receipt/v1",
+		receipt["kit_deployment_id"] != "stack-forward", receipt["techstack_id"] != nil:
+		t.Fatalf("moved job result = %s", resultJSON)
+	case result["kept"] != "techstack.provider-control-operation/v1",
+		result["note"] != `the old id "techstack.wizard-intent/v1" inside a sentence stays`,
+		result["techstack_id_note"] != "techstack_id":
+		t.Fatalf("a value outside the move changed: %s", resultJSON)
+	}
+	if !strings.Contains(string(payloadJSON), `"homelab_enrollment"`) || strings.Contains(string(payloadJSON), "techstack_enrollment") {
+		t.Fatalf("job payload = %s", payloadJSON)
+	}
+
+	// The lease digest: every stored copy of the 0.49.19 digest is now the
+	// digest 0.50.x computes for the same lease generation.
+	var leaseJSON []byte
+	var journalDigest string
+	if err := admin.QueryRowContext(ctx, `SELECT
+			(SELECT lease_json::text FROM techstack_vm_leases WHERE id = $1),
+			(SELECT resource_generation_digest FROM techstack_vm_lease_operation_journal WHERE lease_id = $1)`, seed.leaseID).Scan(
+		&leaseJSON, &journalDigest); err != nil {
+		t.Fatal(err)
+	}
+	var lease vmlease.Lease
+	if err := json.Unmarshal(leaseJSON, &lease); err != nil {
+		t.Fatal(err)
+	}
+	newDigest, err := vmleases.ResourceGenerationDigest(seed.tenantID, lease)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(payloadJSON, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if newDigest == seed.oldLeaseDigest || lease.Metadata[vmleases.MetadataKeyDecommissionClaimDigest] != newDigest ||
+		journalDigest != newDigest || payload["resource_generation_digest"] != newDigest {
+		t.Fatalf("lease digest not moved: claim=%q journal=%q payload=%v want %q (old %q)",
+			lease.Metadata[vmleases.MetadataKeyDecommissionClaimDigest], journalDigest, payload["resource_generation_digest"],
+			newDigest, seed.oldLeaseDigest)
+	}
+
+	var forcedTables int
+	var forced, triggerEnabled, journalGuarded bool
+	if err := admin.QueryRowContext(ctx, `SELECT
+			count(*) FILTER (WHERE c.relname IN ('jobs', 'user_onboarding_state', 'operator_self_disclosures',
+				'failure_resolution_outcomes', 'advanced_trust_bindings', 'techstack_vm_leases', 'techstack_vm_lease_operation_journal')),
+			coalesce(bool_and(c.relforcerowsecurity) FILTER (WHERE c.relname IN ('jobs', 'user_onboarding_state', 'operator_self_disclosures',
+				'failure_resolution_outcomes', 'advanced_trust_bindings', 'techstack_vm_leases', 'techstack_vm_lease_operation_journal')), false),
+			(SELECT tgenabled = 'O' FROM pg_trigger WHERE tgname = 'set_user_onboarding_state_updated_at'),
+			(SELECT tgenabled = 'O' FROM pg_trigger WHERE tgname = 'techstack_vm_lease_operation_journal_reject_mutation')
+		FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public'`).Scan(
+		&forcedTables, &forced, &triggerEnabled, &journalGuarded); err != nil {
+		t.Fatal(err)
+	}
+	if forcedTables != 7 || !forced || !triggerEnabled || !journalGuarded {
+		t.Fatalf("row level security tables=%d forced=%t, updated_at trigger=%t, journal append-only trigger=%t after the migration",
+			forcedTables, forced, triggerEnabled, journalGuarded)
+	}
+
+	// The checks admit exactly what 0.50.x writes.
+	for _, statement := range []string{
+		`INSERT INTO failure_resolution_outcomes (tenant_id, resolution_id, receipt_kind, receipt_ref, signature, procedure_ref, outcome, completed_at)
+			VALUES ($1, gen_random_uuid()::text, 'job', 'job-new', repeat('b', 64), 'techstack:stackkit/repair-volume', 'failed', now())`,
+		`INSERT INTO operator_self_disclosures (id, tenant_id, owner_subject_id, source, disclosure_json)
+			VALUES ('disclosure-old-source', $1, 'subject-old-source', 'techstack', '{}')`,
+	} {
+		if _, err := admin.ExecContext(ctx, statement, seed.tenantID); err == nil || !strings.Contains(err.Error(), "check") {
+			t.Fatalf("an old spelling was admitted after the move: %v", err)
+		}
+	}
+	// Whatever 0.49.19 would still write under an old spelling before 0.50.x
+	// serves is refused at write, never stored for 0.50.x to misread.
+	for _, refused := range []struct {
+		statement string
+		args      []any
+		want      string
+	}{
+		{`UPDATE jobs SET result_json = '{"schema_version":"techstack.stackkit-lifecycle-result/v1"}' WHERE id = $1`, []any{seed.jobID}, "check"},
+		{`UPDATE jobs SET payload_json = '{"techstack_id":"stack-forward"}' WHERE id = $1`, []any{seed.jobID}, "check"},
+		{`UPDATE user_onboarding_state SET journey_id = 'techstack.platform' WHERE tenant_id = $1`, []any{seed.tenantID}, "check"},
+		{`UPDATE advanced_issuer_keys SET issuer_id = 'techstack.' || $1 WHERE singleton`, []any{seed.issuerUUID}, "check"},
+		{`UPDATE techstack_vm_leases SET lease_json = jsonb_set(lease_json, '{metadata,resource_decommission_claim_digest}', to_jsonb($1::text))
+			WHERE id = $2`, []any{seed.oldLeaseDigest, seed.leaseID}, "check"},
+		{`INSERT INTO techstack_vm_lease_operation_journal (tenant_id, lease_id, event_type, status, resource_generation_digest)
+			VALUES ($1, $2, 'decommission', 'decommissioned', $3)`, []any{seed.tenantID, seed.leaseID, seed.oldLeaseDigest},
+			"refuses a 0.49.19 resource generation digest"},
+	} {
+		if _, err := admin.ExecContext(ctx, refused.statement, refused.args...); err == nil || !strings.Contains(err.Error(), refused.want) {
+			t.Fatalf("a 0.49.19 write was admitted after the move (%s): %v", refused.statement, err)
+		}
+	}
+	// 0.50.x keeps writing its own spelling and digest.
+	pinExecInTenant(t, ctx, admin, seed.tenantID, `INSERT INTO techstack_vm_lease_operation_journal (tenant_id, lease_id, event_type, status, resource_generation_digest)
+		VALUES ($1, $2, 'decommission', 'decommissioned', $3)`, seed.tenantID, seed.leaseID, newDigest)
+	pinExecInTenant(t, ctx, admin, seed.tenantID, `UPDATE jobs SET result_json = '{"schema_version":"homelab.stackkit-lifecycle-result/v1"}' WHERE id = $1`, seed.jobID)
+	pinExec(t, ctx, admin, `INSERT INTO failure_resolution_outcomes (tenant_id, resolution_id, receipt_kind, receipt_ref, signature, procedure_ref, outcome, completed_at)
+		VALUES ($1, gen_random_uuid()::text, 'job', 'job-new', repeat('b', 64), 'homelab:stackkit/repair-volume', 'failed', now())`, seed.tenantID)
+	for _, value := range []string{"homelab", "link", "cloud"} {
+		pinExec(t, ctx, admin, `INSERT INTO operator_self_disclosures (id, tenant_id, owner_subject_id, source, disclosure_json)
+			VALUES ($2, $1, $2, $3, '{}')`, seed.tenantID, "subject-"+value, value)
+	}
+}
+
+// An object that would carry both the old and the new key refuses the whole
+// migration: nothing is moved and the release's database leg fails.
+func TestIntegrationHomelabForwardNamesKeepsTheNewKeyOfATwin(t *testing.T) {
+	dsn := forwardNamesDSN(t)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Minute)
+	defer cancel()
+	target, admin, _ := newForwardBatchDatabase(t, ctx, dsn)
+	prepareForwardNamesRoles(t, ctx, admin)
+	pinApplyMigrationsBefore(t, ctx, target, "199_")
+
+	seed := seedForwardNameRows(t, ctx, admin)
+	// Production held objects that carry the new key next to the old one.
+	pinExecInTenant(t, ctx, admin, seed.tenantID, `UPDATE jobs SET result_json = result_json || '{"kit_deployment_id":"other","nested":[{"techstack_id":"a","kit_deployment_id":"b"}]}'::jsonb WHERE id = $1`, seed.jobID)
+	if err := applyForwardNamesMigration(ctx, target); err != nil {
+		t.Fatalf("twin apply = %v", err)
+	}
+	var top, nested string
+	var old bool
+	if err := admin.QueryRowContext(ctx, `SELECT result_json->>'kit_deployment_id', result_json->'nested'->0->>'kit_deployment_id',
+			result_json::text ~ '"techstack_id"[[:space:]]*:' FROM jobs WHERE id = $1`, seed.jobID).Scan(&top, &nested, &old); err != nil {
+		t.Fatal(err)
+	}
+	if top != "other" || nested != "b" || old {
+		t.Fatalf("twin kept top=%q nested=%q old key left=%t", top, nested, old)
+	}
+	var helper bool
+	if err := admin.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'homelab_forward_drop_twin_key')`).Scan(&helper); err != nil {
+		t.Fatal(err)
+	}
+	if helper {
+		t.Fatal("the twin helper function outlived the migration")
+	}
+}
+
+// forwardNamesDSN prefers the throwaway superuser server of CI and falls back
+// to a private embedded server under the embeddedpg build tag.
+func forwardNamesDSN(t *testing.T) string {
+	t.Helper()
+	dsn := integrationDSN()
+	if dsn == "" {
+		dsn = forwardNamesEmbeddedDSN(t)
+	}
+	if dsn == "" {
+		t.Skip("HOMELAB_TEST_POSTGRES_URL not set and no embeddedpg tag; skipping Postgres integration test")
+	}
+	return dsn
+}
+
+// prepareForwardNamesRoles creates the NOLOGIN roles production prepares
+// before the migration chain (scripts/schema-old-binary-check.sh) when the
+// test cluster lacks them, and removes only what it created.
+func prepareForwardNamesRoles(t *testing.T, ctx context.Context, admin *sql.DB) {
+	t.Helper()
+	for _, role := range []string{"techstack_application", "techstack_backup_worker"} {
+		var exists bool
+		if err := admin.QueryRowContext(ctx, "SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = $1)", role).Scan(&exists); err != nil {
+			t.Fatal(err)
+		}
+		if exists {
+			continue
+		}
+		pinExec(t, ctx, admin, "CREATE ROLE "+role+" NOLOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION")
+		t.Cleanup(func() {
+			cleanupCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			_, _ = admin.ExecContext(cleanupCtx, "DROP OWNED BY "+role)
+			_, _ = admin.ExecContext(cleanupCtx, "DROP ROLE IF EXISTS "+role)
+		})
+	}
+}
+
+type forwardNameSeed struct {
+	tenantID       string
+	jobID          string
+	issuerUUID     string
+	leaseID        string
+	oldLeaseDigest string
+	stateUpdated   time.Time
+}
+
+// forwardNamesOldLeaseDigest is the 0.49.19 ResourceGenerationDigest: the
+// same fixed struct and steps as pkg/vmleases/resource_generation.go under the
+// old domain marker techstack.vmlease.resource-generation/v1.
+func forwardNamesOldLeaseDigest(t *testing.T, lease vmlease.Lease) string {
+	t.Helper()
+	payload, err := json.Marshal(struct {
+		Version              string `json:"version"`
+		TenantID             string `json:"tenant_id"`
+		LeaseID              string `json:"lease_id"`
+		ResourceGenerationID string `json:"resource_generation_id"`
+		ProviderID           string `json:"provider_id"`
+		EngineVMID           string `json:"engine_vm_id"`
+		SimulationID         string `json:"simulation_id"`
+		VMID                 string `json:"vm_id"`
+	}{
+		Version:              "techstack.vmlease.resource-generation/v1",
+		TenantID:             strings.TrimSpace(lease.Subject.OrgID),
+		LeaseID:              strings.TrimSpace(string(lease.ID)),
+		ResourceGenerationID: strings.TrimSpace(lease.Metadata[vmleases.MetadataKeyResourceGenerationID]),
+		ProviderID:           strings.ToLower(strings.TrimSpace(lease.Resource.ProviderID)),
+		EngineVMID:           strings.TrimSpace(lease.Resource.EngineVMID),
+		SimulationID:         strings.TrimSpace(lease.Resource.SimulationID),
+		VMID:                 strings.TrimSpace(lease.Resource.VMID),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256(payload)
+	return hex.EncodeToString(digest[:])
+}
+
+// seedForwardNameRows writes the rows as the 0.49.19 server stored them. The
+// superuser connection bypasses row level security only for the seed.
+func seedForwardNameRows(t *testing.T, ctx context.Context, admin *sql.DB) forwardNameSeed {
+	t.Helper()
+	suffix := strings.ReplaceAll(uuid.NewString(), "-", "")[:12]
+	seed := forwardNameSeed{tenantID: "forward-names-" + suffix, jobID: "job-forward-" + suffix, issuerUUID: uuid.NewString(),
+		leaseID: "lease-forward-" + suffix, stateUpdated: time.Date(2026, 11, 20, 9, 26, 0, 0, time.UTC)}
+	keyID := "ed25519://sha256/" + strings.Repeat("c", 64)
+	pinExec(t, ctx, admin, `INSERT INTO techstack_tenants (id, display_name, kind, status) VALUES ($1, $1, 'saas', 'active')`, seed.tenantID)
+	pinExec(t, ctx, admin, `INSERT INTO advanced_issuer_keys (singleton, issuer_id, key_id, public_key, private_key_enc)
+		VALUES (true, $1, $2, 'public-key', 'enc:v1:sealed')`, "techstack."+seed.issuerUUID, keyID)
+	pinExecInTenant(t, ctx, admin, seed.tenantID, `INSERT INTO advanced_trust_bindings (tenant_id, stack_id, owner_ref, bundle_sha256, issuer_id, key_id, imported_at)
+		VALUES ($1, 'stack-forward', $2, $3, $4, $5, now())`,
+		seed.tenantID, "owner/local/"+strings.Repeat("d", 32), "sha256:"+strings.Repeat("e", 64), "techstack", keyID)
+	pinExecInTenant(t, ctx, admin, seed.tenantID, `INSERT INTO failure_resolution_outcomes (tenant_id, resolution_id, receipt_kind, receipt_ref, signature, procedure_ref, outcome, completed_at)
+		VALUES ($1, gen_random_uuid()::text, 'job', 'job-old', repeat('a', 64), 'techstack:stackkit/repair-volume', 'succeeded', now())`, seed.tenantID)
+	pinExecInTenant(t, ctx, admin, seed.tenantID, `INSERT INTO operator_self_disclosures (id, tenant_id, owner_subject_id, source, disclosure_json)
+		VALUES ($2, $1, 'subject-typed', 'techstack', '{"experience":"technical"}')`, seed.tenantID, "disclosure-"+suffix)
+	pinExecInTenant(t, ctx, admin, seed.tenantID, `INSERT INTO user_onboarding_state (id, tenant_id, owner_subject_id, product, journey_id, journey_version, state_json, status, updated_at)
+		VALUES ($2, $1, 'subject-typed', 'techstack', 'techstack.platform', 3, $3::jsonb, 'active', $4)`, seed.tenantID, "onboarding-"+suffix,
+		`{"schema_version":1,"journey_id":"techstack.platform","journey_version":3,"completed":[{"step_id":"techstack.configure_intent","at":"2026-11-16T09:25:00Z","source":"derived"}],"seen_steps":["techstack.configure_intent","techstack.add_server"],"status":"active","dismissed_at":null,"reopened_at":null,"revision":2,"updated_at":"2026-11-20T09:26:00Z"}`,
+		seed.stateUpdated)
+	// A lease whose decommission 0.49.19 claimed. The fields exercise the
+	// encoding the SQL must share with Go: surrounding Unicode space, HTML
+	// escaping, a line separator, a quote and a backslash.
+	generation := uuid.NewString()
+	lease := vmlease.Lease{
+		ID:           vmlease.LeaseID(seed.leaseID),
+		Subject:      vmlease.Subject{Kind: vmlease.SubjectUser, ID: "subject-typed", OrgID: seed.tenantID},
+		Resource:     vmlease.ResourceRef{ProviderID: "centron", EngineVMID: "engine-7", SimulationID: `sim "quoted" \\ <&>`, VMID: "\u00a0 vm\u2028x\t"},
+		DesiredState: vmlease.DesiredStateRunning,
+		Metadata:     map[string]string{vmleases.MetadataKeyResourceGenerationID: generation},
+	}
+	seed.oldLeaseDigest = forwardNamesOldLeaseDigest(t, lease)
+	lease.Metadata[vmleases.MetadataKeyDecommissionClaimDigest] = seed.oldLeaseDigest
+	leaseJSON, err := json.Marshal(lease)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pinExecInTenant(t, ctx, admin, seed.tenantID, `INSERT INTO techstack_vm_leases
+		(id, tenant_id, subject_id, org_id, provider_id, engine_vm_id, desired_state, resource_generation_id, lease_json)
+		VALUES ($1, $2, 'subject-typed', $2, 'centron', 'engine-7', 'running', $3::uuid, $4::jsonb)`,
+		seed.leaseID, seed.tenantID, generation, string(leaseJSON))
+	pinExecInTenant(t, ctx, admin, seed.tenantID, `INSERT INTO techstack_vm_lease_operation_journal
+		(tenant_id, lease_id, event_type, status, resource_generation_digest)
+		VALUES ($1, $2, 'decommission', 'decommissioned', $3)`, seed.tenantID, seed.leaseID, seed.oldLeaseDigest)
+	pinExecInTenant(t, ctx, admin, seed.tenantID, `INSERT INTO jobs (id, tenant_id, type, state, payload_json, result_json)
+		VALUES ($2, $1, 'deploy', 'completed', $3::jsonb, $4::jsonb)`, seed.tenantID, seed.jobID,
+		`{"techstack_enrollment":{"worker_id":"worker-forward"},"resource_generation_digest":"`+seed.oldLeaseDigest+`"}`,
+		`{"schema_version":"techstack.stackkit-lifecycle-result/v1","techstack_id":"stack-forward","service_action_receipt":{"schema_version":"techstack.service-action-receipt/v1","techstack_id":"stack-forward"},"kept":"techstack.provider-control-operation/v1","note":"the old id \"techstack.wizard-intent/v1\" inside a sentence stays","techstack_id_note":"techstack_id"}`)
+	return seed
+}
+
+func applyForwardNamesMigration(ctx context.Context, target *DB) error {
+	body, err := migrationsFS.ReadFile(path.Join("migrations", forwardNamesMigration))
+	if err != nil {
+		return err
+	}
+	tx, err := target.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err := executePendingMigration(ctx, tx, forwardNamesMigration, body); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, "INSERT INTO schema_migrations(version) VALUES($1)", forwardNamesMigration); err != nil {
+		return err
+	}
+	return tx.Commit()
 }

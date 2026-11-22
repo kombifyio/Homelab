@@ -184,7 +184,7 @@ func runAgentMode(ctx context.Context, args []string) error {
 	}
 
 	log := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	log = log.With("service", "techstack-agent", "version", version)
+	log = log.With("service", "homelab-agent", "version", version)
 
 	// systemd integration (no-ops outside systemd): ready once configuration is
 	// valid, and a progress-gated watchdog so a hung Guard is restarted while a

@@ -1,12 +1,55 @@
 {
   "schemaVersion": "stackkits.release-notes/v1",
-  "version": "v0.59.2",
+  "version": "v0.60.1",
   "changelogUrl": "https://stackkit.cc/changelog",
   "releases": [
     {
+      "version": "v0.60.1",
+      "date": "2026-11-22",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "contracts",
+          "text": "add managed_app_fit CUE schema and serviceregistry placement tests"
+        }
+      ]
+    },
+    {
+      "version": "v0.60.0",
+      "date": "2026-11-21",
+      "entries": [
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "a platform role changes nothing in the hosted product"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "Kombify.Client.Shell 0.1.0-alpha.9 publishes the device sign-in types; a merged shell change under a published version fails its package run"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "remove the staff-scoped Simulate client"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "stop capturing owner roles for Guard reach, drop owner_roles"
+        }
+      ]
+    },
+    {
       "version": "v0.59.2",
       "date": "2026-11-20",
-      "entries": []
+      "entries": [
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "Kombify.Client.Shell 0.1.0-alpha.9 publishes the device sign-in types; a merged shell change under a published version fails its package run"
+        }
+      ]
     },
     {
       "version": "v0.59.1",
@@ -190,6 +233,66 @@
         },
         {
           "kind": "added",
+          "scope": "techstack",
+          "text": "Companion AppLink v1 client in Kombify.Client.Shell 0.1.0-alpha.5"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "dispatch the Loxone import on the node and return the merged home graph to Cloud"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "hand the node the platform's signed decision receipt for destructive operations"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "host container and service-unit actions run as governed RIL primitives; run_stackkit_operation leaves the agent surface (AP16.1)"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "make the managed-server path provider-neutral (ox5v)"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "name the installer editions Standalone and Connected"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "restart, update and backup run as governed RIL actions on one equipment-answered write path (AP16.1)"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "schema publication passes the read-only ClickHouse key and pins the producer with the restore point"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "server-side creation draft that continues across Cloud and Techstack"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "Settings &gt; Companion in the Windows client, the installer carries the Companion, techstack:// opens it"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "start Creation profiles on Standard capacity"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "the backup check runs for every kit and refuses with an actionable reason where there is no backup (AP16.1)"
+        },
+        {
+          "kind": "added",
           "scope": "transfer",
           "text": "carry portable application configuration into the receiving candidate"
         },
@@ -340,6 +443,101 @@
         },
         {
           "kind": "fixed",
+          "scope": "techstack",
+          "text": "adopt the job-scoped schema-expand producer bcf9b868"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "end the schema publication waits with the run they follow"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "enforce Gateway decisions and persist bounded job authority"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "expose confirmed use cases during rollout"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "gate company bundle extension on protected credentials"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "keep database readiness independent of image publication"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "Kombify.Client.Shell publishes itself when its version changes on main"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "lab lanes run their Core on the self-hosted embedded storage, not Stage"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "only a refused grant ends the Connect session; 429, 5xx and network faults keep the refresh token and retry"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "pin the installers to main's bytes and fail a stale pin before merge"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "read the company App session instead of the personal PAT custody"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "record the reserved-guest absence of a failed Proxmox substrate provision"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "require the dedicated bundle operator App ID"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "Services and stack page show the same content on a phone as on the desktop"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "terminalize a failed Proxmox substrate provision on definitive reserved-guest absence"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "terminalize resource-free Proxmox substrate teardown without a capacity release"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "the Render deploy admits with the requalified Techstack recipe (workspace 0d87b8f8)"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "the schema blocker reports its cause and the schema-expand producer logs the child failure"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "upgrade an older installed Companion at start and on an AppLink version refusal, ending a running one first"
+        },
+        {
+          "kind": "fixed",
           "scope": "test",
           "text": "copy the contract bundle into the bundlegen drift test's export"
         },
@@ -353,12 +551,34 @@
     {
       "version": "v0.57.19",
       "date": "2026-11-19",
-      "entries": []
+      "entries": [
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "Kombify.Client.Shell publishes itself when its version changes on main"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "the Render deploy admits with the requalified Techstack recipe (workspace 0d87b8f8)"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "upgrade an older installed Companion at start and on an AppLink version refusal, ending a running one first"
+        }
+      ]
     },
     {
       "version": "v0.57.18",
       "date": "2026-11-18",
-      "entries": []
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "Settings &gt; Companion in the Windows client, the installer carries the Companion, techstack:// opens it"
+        }
+      ]
     },
     {
       "version": "v0.57.17",
@@ -373,6 +593,11 @@
           "kind": "added",
           "scope": "photos",
           "text": "add standalone Ente deployment"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "start Creation profiles on Standard capacity"
         },
         {
           "kind": "fixed",
@@ -393,6 +618,11 @@
           "kind": "fixed",
           "scope": "scaffold",
           "text": "isolate additional module smoke routes"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "expose confirmed use cases during rollout"
         }
       ]
     },
@@ -404,7 +634,28 @@
     {
       "version": "v0.57.15",
       "date": "2026-11-16",
-      "entries": []
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "Companion AppLink v1 client in Kombify.Client.Shell 0.1.0-alpha.5"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "enforce Gateway decisions and persist bounded job authority"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "only a refused grant ends the Connect session; 429, 5xx and network faults keep the refresh token and retry"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "pin the installers to main's bytes and fail a stale pin before merge"
+        }
+      ]
     },
     {
       "version": "v0.57.14",
@@ -450,6 +701,11 @@
           "kind": "added",
           "scope": "install",
           "text": "install the recommended release, computed from the slot's recorded lanes"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "dispatch the Loxone import on the node and return the merged home graph to Cloud"
         },
         {
           "kind": "fixed",
@@ -507,6 +763,11 @@
           "kind": "added",
           "scope": "own-app",
           "text": "start, restart, tag update with rollback and catalog operations for own applications; Stack it row codes"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "hand the node the platform's signed decision receipt for destructive operations"
         },
         {
           "kind": "added",
@@ -585,6 +846,16 @@
           "text": "optional outbound Internet for own applications, only behind a managed host rule set"
         },
         {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "make the managed-server path provider-neutral (ox5v)"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "name the installer editions Standalone and Connected"
+        },
+        {
           "kind": "fixed",
           "scope": "installer-smoke",
           "text": "assert the current guided non-TTY contract"
@@ -593,6 +864,11 @@
           "kind": "fixed",
           "scope": "runtime",
           "text": "preserve rollout bootstrap and pair Debian 12 Engine with Compose"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "Services and stack page show the same content on a phone as on the desktop"
         }
       ]
     },
@@ -646,6 +922,26 @@
           "text": "cut over StackKits authority producers and consumers"
         },
         {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "host container and service-unit actions run as governed RIL primitives; run_stackkit_operation leaves the agent surface (AP16.1)"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "restart, update and backup run as governed RIL actions on one equipment-answered write path (AP16.1)"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "schema publication passes the read-only ClickHouse key and pins the producer with the restore point"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "the backup check runs for every kit and refuses with an actionable reason where there is no backup (AP16.1)"
+        },
+        {
           "kind": "fixed",
           "scope": "core",
           "text": "confine Home router diagnostics to container loopback"
@@ -679,6 +975,31 @@
           "kind": "fixed",
           "scope": "stackkits",
           "text": "validate append-only slot package ledger imports"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "end the schema publication waits with the run they follow"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "gate company bundle extension on protected credentials"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "keep database readiness independent of image publication"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "require the dedicated bundle operator App ID"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "the schema blocker reports its cause and the schema-expand producer logs the child failure"
         },
         {
           "kind": "fixed",
@@ -731,13 +1052,24 @@
           "kind": "fixed",
           "scope": "",
           "text": "select Techstack release artifacts by changed inputs"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "read the company App session instead of the personal PAT custody"
         }
       ]
     },
     {
       "version": "v0.57.5",
       "date": "2026-11-09",
-      "entries": []
+      "entries": [
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "adopt the job-scoped schema-expand producer bcf9b868"
+        }
+      ]
     },
     {
       "version": "v0.57.4",
@@ -770,9 +1102,34 @@
           "text": "serve install.ps1 from private R2"
         },
         {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "server-side creation draft that continues across Cloud and Techstack"
+        },
+        {
           "kind": "fixed",
           "scope": "integration",
           "text": "remove the integration-lane hold model"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "lab lanes run their Core on the self-hosted embedded storage, not Stage"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "record the reserved-guest absence of a failed Proxmox substrate provision"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "terminalize a failed Proxmox substrate provision on definitive reserved-guest absence"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "terminalize resource-free Proxmox substrate teardown without a capacity release"
         }
       ]
     },
@@ -832,6 +1189,26 @@
         },
         {
           "kind": "added",
+          "scope": "techstack",
+          "text": "a connected bare server joins an existing deployment as a node"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "choose another server per use case, re-solved and re-verified"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "Guard window lane techstack-connected-free for Journey C"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "review Builder plans in creation"
+        },
+        {
+          "kind": "added",
           "scope": "test-window",
           "text": "cleanup proof for a failed managed Cloud Advanced window run"
         },
@@ -864,6 +1241,11 @@
           "kind": "fixed",
           "scope": "security",
           "text": "build Go scanners with each scanned module toolchain"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "consume the canonical delivery authority"
         },
         {
           "kind": "fixed",
@@ -924,6 +1306,11 @@
       "entries": [
         {
           "kind": "added",
+          "scope": "techstack",
+          "text": "a connected bare server joins an existing deployment as a node"
+        },
+        {
+          "kind": "added",
           "scope": "upgrade",
           "text": "Cloud Kit public upgrade preview with owner approval, snapshot and rollback anchors"
         }
@@ -937,6 +1324,21 @@
           "kind": "added",
           "scope": "lab",
           "text": "two-guest native application transfer mode for proxmox-lab"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "choose another server per use case, re-solved and re-verified"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "Guard window lane techstack-connected-free for Journey C"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "review Builder plans in creation"
         },
         {
           "kind": "fixed",
@@ -1024,6 +1426,21 @@
           "kind": "added",
           "scope": "speechkit",
           "text": "the module describes the real homelab voice runtime and listens on 18080"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "plan layouts across every server of the homelab"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "reach, security repair, auto-repair and outcome release as agent tools for the person's acting agent"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "StackKits update setting, proposal with highlights and security patches without approval"
         },
         {
           "kind": "added",
@@ -1122,6 +1539,66 @@
         },
         {
           "kind": "fixed",
+          "scope": "techstack",
+          "text": "admit Proxmox substrate absence observations"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "end the RIL key refresh cleanly on a host without a hosted profile"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "governed decommission for leases of a deleted account"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "let a key-bound Guard booted offline observe without a grant"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "let agents acting for the person pass fresh-MFA step-ups per §5e"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "measure guard-disconnect stale/offline from the last heartbeat"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "name the lease's own provider in managed decommission refusals"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "publish Kombify.Client.Shell 0.1.0-alpha.4 from current source"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "qualify public mirror App access"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "release-authored seeds and spec templates follow the identity origin rule"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "sign Early Access notifications calls with a scoped Ed25519 key"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "Techstack manages StackKits updates, the Guard never moves the CLI under a stored plan"
+        },
+        {
+          "kind": "fixed",
           "scope": "upgrade",
           "text": "an upgrade interrupted after target Apply recovers: claimant proof and owner-approved forward completion"
         },
@@ -1145,6 +1622,11 @@
           "kind": "added",
           "scope": "rack-android",
           "text": "ephemeral Android emulator runner VM 9001 on rack-pve"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "governed decommission for leases of a deleted account"
         }
       ]
     },
@@ -1164,6 +1646,11 @@
       "date": "2026-11-04",
       "entries": [
         {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "reach, security repair, auto-repair and outcome release as agent tools for the person's acting agent"
+        },
+        {
           "kind": "fixed",
           "scope": "generator",
           "text": "preserve custom module journeys"
@@ -1172,6 +1659,16 @@
           "kind": "fixed",
           "scope": "speechkit",
           "text": "keep the hosted origin out of the public CLI"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "publish Kombify.Client.Shell 0.1.0-alpha.4 from current source"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "sign Early Access notifications calls with a scoped Ed25519 key"
         }
       ]
     },
@@ -1188,6 +1685,11 @@
           "kind": "fixed",
           "scope": "guard",
           "text": "back off a persistent server fault on result redelivery to 5 min"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "release-authored seeds and spec templates follow the identity origin rule"
         }
       ]
     },
@@ -1257,6 +1759,16 @@
           "kind": "added",
           "scope": "speechkit",
           "text": "Parakeet STT, LAN listener and mDNS announcer for the homelab speech module"
+        },
+        {
+          "kind": "added",
+          "scope": "techstack",
+          "text": "StackKits update setting, proposal with highlights and security patches without approval"
+        },
+        {
+          "kind": "fixed",
+          "scope": "techstack",
+          "text": "let agents acting for the person pass fresh-MFA step-ups per §5e"
         }
       ]
     },
@@ -1268,48 +1780,11 @@
           "kind": "fixed",
           "scope": "localowner",
           "text": "the legacy replacement lists household custody through the transaction walk"
-        }
-      ]
-    },
-    {
-      "version": "v0.55.10",
-      "date": "2026-11-02",
-      "entries": [
-        {
-          "kind": "fixed",
-          "scope": "dokploy",
-          "text": "quiesce backup writers through the Compose process contract"
         },
         {
           "kind": "fixed",
-          "scope": "dokploy",
-          "text": "UI route behind TinyAuth, bound for verify through the Dokploy service control"
-        },
-        {
-          "kind": "fixed",
-          "scope": "localowner",
-          "text": "refuse either admin group and re-judge the CAS snapshot before a legacy delete"
-        }
-      ]
-    },
-    {
-      "version": "v0.55.6",
-      "date": "2026-11-02",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "paas",
-          "text": "Dokploy Layer-2 platform on Basement with bootstrap, login, data operations and removal"
-        },
-        {
-          "kind": "added",
-          "scope": "runtipi",
-          "text": "shared backup, restore and removal for Runtipi workloads and the Runtipi Marketplace"
-        },
-        {
-          "kind": "fixed",
-          "scope": "coolify",
-          "text": "workloads fail fast when the Marketplace fails; released Vault lanes leave main"
+          "scope": "techstack",
+          "text": "Techstack manages StackKits updates, the Guard never moves the CLI under a stored plan"
         }
       ]
     }

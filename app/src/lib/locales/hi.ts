@@ -2867,6 +2867,7 @@ export const hi: Record<string, string> = {
   "companion.settings.rows.enabled": "इस कंप्यूटर पर Companion",
   "companion.settings.rows.startWithWindows": "Windows के साथ शुरू करें",
   "companion.settings.rows.showKubi": "Kubi दिखाएँ",
+  "companion.settings.rows.appsShowCompanion": "डेस्कटॉप पर Kubi चलते समय ऐप में भी Companion दिखाएँ",
   "companion.settings.rows.voiceAnimation": "आवाज़ एनिमेशन",
   "companion.settings.rows.shortcut": "शॉर्टकट",
   "companion.settings.rows.dictationBehavior": "शॉर्टकट मोड",

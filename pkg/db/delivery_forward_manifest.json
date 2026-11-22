@@ -152,6 +152,10 @@
     {
       "version": "198_platform_roles_removed.sql",
       "sha256": "4e98dde8e2847bcc8b42bf953239076ae8644bf46664ad44cd7b0f575cd11a26"
+    },
+    {
+      "version": "199_homelab_forward_names.sql",
+      "sha256": "3c0002c6cde971990141d6362d261a24c075ca7d42d4dc3f8954e239dbe57e4f"
     }
   ],
   "database_target": "core",

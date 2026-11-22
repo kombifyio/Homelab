@@ -156,7 +156,7 @@ async function localVerify(deps: ConnectedFreeDeps, when: string) {
 
 async function guardService(deps: ConnectedFreeDeps) {
   return (
-    await deps.root("systemctl is-active techstack-agent.service || true")
+    await deps.root("systemctl is-active homelab-agent.service || true")
   ).trim();
 }
 
@@ -253,7 +253,7 @@ export async function runConnectedFreeJourney(
   expect(
     (
       await deps.root(
-        "test -e /etc/techstack/agent-enrollment.json && echo enrolled || echo none",
+        "test -e /etc/homelab/agent-enrollment.json && echo enrolled || echo none",
       )
     ).trim(),
     "the node is local-only before it connects",

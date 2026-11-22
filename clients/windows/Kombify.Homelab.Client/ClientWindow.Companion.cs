@@ -19,6 +19,9 @@ namespace Kombify.Homelab.Client;
 //   watch         settings.watch            the revision once it rose (held by the program up to 25 s)
 //   pick-folder   native folder dialog      the chosen folder, or none
 //   open-link     system browser            only a link of the latest snapshot
+//   panel         the in-app Companion      whether the page hides its Companion panel now, and again under the
+//                                           same request id at every change (AppLink v2 "In-app Companion": true
+//                                           only while Kubi runs on the desktop and apps.showCompanion is off)
 internal sealed partial class ClientWindow
 {
     private const string CompanionPrefix = "kombify.homelab.companion.";
@@ -56,6 +59,11 @@ internal sealed partial class ClientWindow
     private ClientActivation? _companionActivation;
     private string? _companionRoute;
     private bool _companionDocumentStarted;
+    // The in-app Companion: one watcher for as long as the window is open, the state it last saw
+    // (shown until a snapshot says otherwise) and the document that asked for it.
+    private CompanionSettingsWatcher? _companionPanelWatcher;
+    private bool _companionPanelHidden;
+    private CompanionDocument? _companionPanelDocument;
 
     private void RegisterCompanionBridge()
     {
@@ -63,13 +71,22 @@ internal sealed partial class ClientWindow
         {
             _companionWatch?.Cancel();
             _companionActivation?.Dispose();
+            _companionPanelWatcher?.Dispose();
+            _companionPanelWatcher = null;
         };
         _webView.CoreWebView2.NavigationStarting += (_, args) =>
         {
             if (args.Cancel) return;
             _companionWatch?.Cancel();
             _companionPickedFolder = null;
+            _companionPanelDocument = null;
         };
+        // An ineligible process (elevated, low integrity, AppContainer) has no Companion and keeps the panel.
+        if (CompanionAppLink.IsCallerEligible())
+        {
+            _companionPanelWatcher = new CompanionSettingsWatcher(settings => OnCompanionUi(() => UpdateCompanionPanel(settings)));
+            _companionPanelWatcher.Start();
+        }
         _webView.CoreWebView2.WebMessageReceived += OnCompanionRequested;
         StartCompanionActivation();
         _ = RegisterCompanionOpenInAppAsync();
@@ -124,6 +141,13 @@ internal sealed partial class ClientWindow
                         && Bound(pick.RequestId, pick.DocumentRevision, pick.DocumentToken, source, revision, token) is { } picking)
                         BeginInvoke(new Action(() => CompanionPickFolder(picking, pick.Current)));
                     break;
+                case CompanionPrefix + "panel.v1":
+                    if (BoundRequest(json, source, revision, token) is { } panel)
+                    {
+                        _companionPanelDocument = panel;
+                        ReplyCompanion(panel, "panel", "ok", message => message["hidden"] = _companionPanelHidden);
+                    }
+                    break;
                 case CompanionPrefix + "open-link.v1":
                     if (JsonSerializer.Deserialize<CompanionLinkRequest>(json, CompanionJson) is { } link
                         && Bound(link.RequestId, link.DocumentRevision, link.DocumentToken, source, revision, token) is { } opening)
@@ -166,9 +190,36 @@ internal sealed partial class ClientWindow
             or System.Runtime.InteropServices.COMException or ObjectDisposedException) { /* the document is gone */ }
     }
 
+    // The panel gives way only while the Companion runs switched on with Kubi shown and the person switched
+    // apps.showCompanion off; stopped, not installed or the key absent keeps it. A failed read emits nothing,
+    // so the last state stays until discovery answers.
+    private static bool CompanionPanelHidden(CompanionSettings settings) =>
+        settings.Running && settings.Enabled
+        && settings.Find("showKubi")?.Value is true
+        && settings.Find("apps.showCompanion")?.Value is false;
+
+    private void UpdateCompanionPanel(CompanionSettings settings)
+    {
+        var hidden = CompanionPanelHidden(settings);
+        if (hidden == _companionPanelHidden) return;
+        _companionPanelHidden = hidden;
+        if (_companionPanelDocument is { } document)
+            ReplyCompanion(document, "panel", "ok", message => message["hidden"] = hidden);
+    }
+
+    // Runs on the UI thread; dropped once the window is gone.
+    private void OnCompanionUi(Action action)
+    {
+        if (IsDisposed || !IsHandleCreated) return;
+        try { BeginInvoke(action); }
+        catch (Exception error) when (error is InvalidOperationException or ObjectDisposedException) { /* closing */ }
+    }
+
     private void ReplySnapshot(CompanionDocument document, string operation, CompanionSettings settings)
     {
         RememberCompanionSettings(settings);
+        // A write from this section (apps.showCompanion) moves the panel at once, before the watch.
+        UpdateCompanionPanel(settings);
         using var parsed = JsonDocument.Parse(settings.ToJson());
         var snapshot = parsed.RootElement.Clone();
         ReplyCompanion(document, operation, "ok", message => message["settings"] = snapshot);

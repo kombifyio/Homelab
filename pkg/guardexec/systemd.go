@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/kombifyio/homelab/pkg/guardlayout"
 )
 
 var trialUnitPattern = regexp.MustCompile(`^homelab-guard-trial-[0-9]{1,20}$`)
@@ -82,7 +84,7 @@ func (s ExecSystemd) RunTransient(ctx context.Context, unit string, argv []strin
 	if len(argv) < 4 || argv[1] != "guard-executor" || (argv[2] != "trial" && argv[2] != "layout-trial") {
 		return errors.New("the transient unit must run an update trial supervisor")
 	}
-	args := append([]string{"--unit=" + unit, "--collect", "--quiet", "--no-block", "--property=Type=exec", "--description=kombify Guard update trial", "--property=EnvironmentFile=-/etc/techstack/executor.env", "--"}, argv...)
+	args := append([]string{"--unit=" + unit, "--collect", "--quiet", "--no-block", "--property=Type=exec", "--description=kombify Guard update trial", "--property=EnvironmentFile=-" + guardlayout.ExecutorEnvFile, "--"}, argv...)
 	_, err := s.run(ctx, "systemd-run", args...)
 	return err
 }

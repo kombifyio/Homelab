@@ -1,6 +1,7 @@
 // Draft only: do not add this catalog to locale negotiation until translation QA is admitted.
 import { ownApplicationMessagesMore } from "../services/own-application-messages-more";
 import { capacityMessages } from "../wizard/capacity-messages";
+import { localAiMessages } from "../settings/local-ai/local-ai-messages";
 
 export const frPending: Record<string, string> = {
   "ui.stacksCreatingCreationFailure.whatYouCanDo": "Ce que tu peux faire",
@@ -48,6 +49,7 @@ export const frPending: Record<string, string> = {
   "wizard.server.fit.unknown": "Compatibilité inconnue",
   ...ownApplicationMessagesMore.fr,
   ...capacityMessages.fr,
+  ...localAiMessages.fr,
   "ui.serviceCards.update.strip": "{to} disponible · {note}",
   "ui.serviceCards.status.running": "En marche",
   "ui.serviceCards.status.degraded": "Dégradé",
@@ -2209,6 +2211,7 @@ export const frPending: Record<string, string> = {
   "companion.settings.rows.enabled": "Companion sur cet ordinateur",
   "companion.settings.rows.startWithWindows": "Démarrer avec Windows",
   "companion.settings.rows.showKubi": "Afficher Kubi",
+  "companion.settings.rows.appsShowCompanion": "Afficher aussi le Companion dans l’app tant que Kubi est sur le bureau",
   "companion.settings.rows.voiceAnimation": "Animation vocale",
   "companion.settings.rows.shortcut": "Raccourci",
   "companion.settings.rows.dictationBehavior": "Mode du raccourci",

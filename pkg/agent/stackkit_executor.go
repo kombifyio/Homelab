@@ -36,7 +36,7 @@ const (
 	stackKitReleaseCacheEnv = "HOMELAB_STACKKIT_RELEASE_CACHE"
 	// defaultStackKitPersistentReleaseCache lies outside the runtime tree a
 	// replacement deletes; guardlayout writes the same path into executor.env.
-	defaultStackKitPersistentReleaseCache = "/var/lib/techstack/.stackkit/releases"
+	defaultStackKitPersistentReleaseCache = "/var/lib/homelab/.stackkit/releases"
 	stackKitCommandResultVersion          = "stackkit.command-result/v1"
 	stackKitRolloutEventVersion           = "stackkit.rollout-event/v1"
 	defaultStackKitCommandTimeout         = 30 * time.Minute
@@ -161,7 +161,7 @@ func rilPurposeKeyFile() string {
 	if path := strings.TrimSpace(os.Getenv("HOMELAB_RIL_PURPOSE_KEYS_FILE")); path != "" {
 		return path
 	}
-	return "/etc/techstack/ril-purpose-keys.json"
+	return "/etc/homelab/ril-purpose-keys.json"
 }
 
 // Execute validates one typed command, revalidates its exact published

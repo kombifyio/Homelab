@@ -283,7 +283,10 @@ func runDatabaseDelivery(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	if observedIssuer != issuerID || observedKey != keyID {
+	// Migration 199 moves the label of the same key from techstack[.<uuid>] to
+	// homelab[.<uuid>] inside this very apply; that one transition is the
+	// migration's outcome, not a changed issuer.
+	if observedKey != keyID || (observedIssuer != issuerID && observedIssuer != forwardIssuerLabel(issuerID)) {
 		return errors.New("database delivery retained issuer changed")
 	}
 	state, err := authority.InspectForwardBatch(ctx, batch)
@@ -459,4 +462,15 @@ func verifyDeliveryMigrationPosture(ctx context.Context, tx *sql.Tx) error {
 		return errors.New("subject helper retains public execution")
 	}
 	return nil
+}
+
+// forwardIssuerLabel is the label migration 199 gives a 0.49.19 issuer label.
+func forwardIssuerLabel(label string) string {
+	if label == "techstack" {
+		return "homelab"
+	}
+	if rest, ok := strings.CutPrefix(label, "techstack."); ok {
+		return "homelab." + rest
+	}
+	return label
 }

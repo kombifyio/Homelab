@@ -2799,6 +2799,7 @@ export const ar: Record<string, string> = {
   "companion.settings.rows.enabled": "Companion على هذا الكمبيوتر",
   "companion.settings.rows.startWithWindows": "التشغيل مع Windows",
   "companion.settings.rows.showKubi": "إظهار Kubi",
+  "companion.settings.rows.appsShowCompanion": "إظهار Companion في التطبيق أيضًا أثناء تشغيل Kubi على سطح المكتب",
   "companion.settings.rows.voiceAnimation": "حركة الصوت",
   "companion.settings.rows.shortcut": "اختصار لوحة المفاتيح",
   "companion.settings.rows.dictationBehavior": "وضع الاختصار",

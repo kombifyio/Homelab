@@ -257,8 +257,8 @@ enroll_with_guard_binary() {
     ENROLL_ERR_FILE=$(mktemp)
     trap 'rm -f "$ENROLL_TOKEN_FILE" "$ENROLL_ERR_FILE"' 0 1 2 15
     printf '%s' "$KOMBI_TOKEN" > "$ENROLL_TOKEN_FILE"
-    sudo install -d -m 0750 /etc/techstack
-    sudo install -d -m 0700 /var/lib/techstack/guard
+    sudo install -d -m 0750 /etc/homelab
+    sudo install -d -m 0700 /var/lib/homelab/guard
     LAN_PIN_FLAG=""
     if is_private_lan_origin "$SERVER"; then
         LAN_PIN_FLAG="--lan-pin=${KOMBI_PRIVATE_LAN_PIN}"
@@ -270,8 +270,8 @@ enroll_with_guard_binary() {
     # shellcheck disable=SC2086
     if ENROLL_OUT=$(sudo "$GUARD_BINARY" agent enroll \
         --server "$SERVER" --token-file "$ENROLL_TOKEN_FILE" \
-        --enrollment-file /etc/techstack/agent-enrollment.json \
-        --state-dir /var/lib/techstack/guard $SUBSTRATE_FLAG $LAN_PIN_FLAG 2>"$ENROLL_ERR_FILE"); then
+        --enrollment-file /etc/homelab/agent-enrollment.json \
+        --state-dir /var/lib/homelab/guard $SUBSTRATE_FLAG $LAN_PIN_FLAG 2>"$ENROLL_ERR_FILE"); then
         rm -f "$ENROLL_TOKEN_FILE" "$ENROLL_ERR_FILE"
         trap - 0 1 2 15
         if echo "$ENROLL_OUT" | grep -q 'accepted=true'; then
@@ -586,7 +586,7 @@ guard_enrollment_resumable() {
     printf '%s' "$KOMBI_TOKEN" > "$_resume_token_file"
     _resume_answer=$(sudo "$GUARD_BINARY" agent enroll --resumable \
         --server "${KOMBI_SERVER%/}" --token-file "$_resume_token_file" \
-        --state-dir /var/lib/techstack/guard 2>/dev/null) || _resume_answer=""
+        --state-dir /var/lib/homelab/guard 2>/dev/null) || _resume_answer=""
     rm -f "$_resume_token_file"
     case "$_resume_answer" in
         *GUARD_ENROLL_RESUMABLE=true*) return 0 ;;
@@ -1172,12 +1172,12 @@ install_systemd_service() {
     if ! getent passwd homelab >/dev/null 2>&1; then
         echo "${CYAN}Creating homelab system user...${NC}"
         if [ -w /etc/passwd ] || command -v sudo >/dev/null 2>&1; then
-            sudo useradd --system --home /var/lib/techstack --shell /usr/sbin/nologin homelab 2>/dev/null || true
+            sudo useradd --system --home /var/lib/homelab --shell /usr/sbin/nologin homelab 2>/dev/null || true
         fi
     fi
 
     # Create directories
-    for dir in /var/lib/techstack /var/log/techstack /etc/techstack; do
+    for dir in /var/lib/homelab /var/log/homelab /etc/homelab; do
         if [ ! -d "$dir" ]; then
             sudo mkdir -p "$dir"
             sudo chown homelab:homelab "$dir" 2>/dev/null || true
@@ -1230,7 +1230,7 @@ $(guard_service_type_lines)
 # never races a surviving StackKits child (durable outcomes, G04).
 KillMode=control-group
 User=root
-ExecStart=${BINARY_PATH} agent --transport=https --enrollment-file=/etc/techstack/agent-enrollment.json
+ExecStart=${BINARY_PATH} agent --transport=https --enrollment-file=/etc/homelab/agent-enrollment.json
 Restart=always
 RestartSec=15
 TimeoutStopSec=20
@@ -1244,7 +1244,7 @@ ProtectHome=read-only
 ProtectKernelTunables=no
 ProtectKernelModules=yes
 ProtectControlGroups=yes
-ReadOnlyPaths=/etc/techstack -/root/my-homelab
+ReadOnlyPaths=/etc/homelab -/root/my-homelab
 # The Agent converges its own executable by staging a sibling temp file and
 # renaming it into place, so it needs the CONTAINING DIRECTORY, not just the
 # file. Granting only the executable path made every self-update fail with
@@ -1256,18 +1256,18 @@ ReadOnlyPaths=/etc/techstack -/root/my-homelab
 ReadWritePaths=/app /opt /srv /mnt /media ${INSTALL_DIR%/} ${OPERATIONS_DIR} /etc /usr /var /run /root/.docker -/home/kombify/.ssh
 Environment=HOMELAB_ACCESS_MANIFEST=/opt/stackkit/.stackkit/access.json,/root/my-homelab/.stackkit/access.json
 Environment=HOMELAB_STACKKIT_RELEASE_PIN=/app/.stackkit/stackkits-release-pin.json
-Environment=HOMELAB_STACKKIT_RELEASE_CACHE=/var/lib/techstack/.stackkit/releases
+Environment=HOMELAB_STACKKIT_RELEASE_CACHE=/var/lib/homelab/.stackkit/releases
 Environment=HOMELAB_AGENT_EXECUTABLE_PATH=${BINARY_PATH}
 Environment=HOMELAB_OPERATIONS_EXECUTABLE_PATH=${OPERATIONS_DIR%/}/${OPERATIONS_BINARY_NAME}
 
 [Install]
 WantedBy=multi-user.target
 EOF
-    sudo install -m 0644 "$UNIT_TMP" /etc/systemd/system/techstack-agent.service
+    sudo install -m 0644 "$UNIT_TMP" /etc/systemd/system/homelab-agent.service
     rm -f "$UNIT_TMP"
     sudo systemctl daemon-reload
-    sudo systemctl enable techstack-agent.service
-    sudo systemctl restart techstack-agent.service
+    sudo systemctl enable homelab-agent.service
+    sudo systemctl restart homelab-agent.service
 }
 
 # install_split_guard_layout applies the privilege-split layout: the long-running
@@ -1323,10 +1323,10 @@ install_systemd_agent_service() {
     if [ "${GUARD_ENROLLED:-0}" != "1" ]; then
         printf '%s\n' "$ENROLLMENT_RESPONSE" > "$ENROLLMENT_TMP"
     fi
-    sudo install -d -m 0750 /etc/techstack
+    sudo install -d -m 0750 /etc/homelab
     sudo install -d -m 0755 /app /opt/stackkit /root/.docker
     if [ "${GUARD_ENROLLED:-0}" != "1" ]; then
-        sudo install -m 0600 "$ENROLLMENT_TMP" /etc/techstack/agent-enrollment.json
+        sudo install -m 0600 "$ENROLLMENT_TMP" /etc/homelab/agent-enrollment.json
     fi
     rm -f "$ENROLLMENT_TMP"
     trap - 0 1 2 15
@@ -1337,8 +1337,8 @@ install_systemd_agent_service() {
     fi
 
     echo "${GREEN}✓ Outbound HTTPS Guard installed and started.${NC}"
-    echo "  Status: sudo systemctl status techstack-agent"
-    echo "  Logs:   sudo journalctl -u techstack-agent -f"
+    echo "  Status: sudo systemctl status homelab-agent"
+    echo "  Logs:   sudo journalctl -u homelab-agent -f"
 }
 
 install_existing_runtime_agent_service() {
@@ -1350,9 +1350,9 @@ install_existing_runtime_agent_service() {
     INVENTORY_URL="${SERVER}/api/v1/workers/${KOMBI_RUNTIME_AGENT_ID}/inventory"
     TOKEN_ESC=$(printf '%s' "$KOMBI_TOKEN" | sed 's/\\/\\\\/g; s/"/\\"/g')
     printf '%s\n' "{\"data\":{\"runtime_agent_id\":\"${KOMBI_RUNTIME_AGENT_ID}\",\"server_id\":\"${KOMBI_SERVER_ID}\",\"tenant_id\":\"${KOMBI_TENANT_ID}\",\"owner_id\":\"${KOMBI_OWNER_ID}\",\"stack_id\":\"${KOMBI_STACK_ID}\",\"lease_id\":\"${KOMBI_LEASE_ID}\",\"agent_token\":\"${TOKEN_ESC}\",\"heartbeat_url\":\"${HEARTBEAT_URL}\",\"inventory_url\":\"${INVENTORY_URL}\"}}" > "$ENROLLMENT_TMP"
-    sudo install -d -m 0750 /etc/techstack
+    sudo install -d -m 0750 /etc/homelab
     sudo install -d -m 0755 /app /opt/stackkit /root/.docker
-    sudo install -m 0600 "$ENROLLMENT_TMP" /etc/techstack/agent-enrollment.json
+    sudo install -m 0600 "$ENROLLMENT_TMP" /etc/homelab/agent-enrollment.json
     rm -f "$ENROLLMENT_TMP"
     trap - 0 1 2 15
     if install_split_guard_layout; then
@@ -1362,8 +1362,8 @@ install_existing_runtime_agent_service() {
     fi
 
     echo "${GREEN}✓ Existing outbound HTTPS Guard enrollment installed and started.${NC}"
-    echo "  Status: sudo systemctl status techstack-agent"
-    echo "  Logs:   sudo journalctl -u techstack-agent -f"
+    echo "  Status: sudo systemctl status homelab-agent"
+    echo "  Logs:   sudo journalctl -u homelab-agent -f"
 }
 
 # The Guard reinstall (--reinstall-guard) brings the Guard of an enrolled server
@@ -1374,10 +1374,10 @@ install_existing_runtime_agent_service() {
 # and a Guard that does not come back up gets its previous binary back.
 GUARD_SIGNER_MOVE_VERSION="0.45.17"
 GUARD_RELEASE_ISSUER="https://token.actions.githubusercontent.com"
-GUARD_ENROLLMENT_FILE="/etc/techstack/agent-enrollment.json"
-GUARD_IDENTITY_KEY="/var/lib/techstack/guard/identity.key"
-GUARD_SERVICE="techstack-agent.service"
-GUARD_REINSTALL_DROPIN="/run/systemd/system/techstack-agent.service.d/zz-kombify-reinstall.conf"
+GUARD_ENROLLMENT_FILE="/etc/homelab/agent-enrollment.json"
+GUARD_IDENTITY_KEY="/var/lib/homelab/guard/identity.key"
+GUARD_SERVICE="homelab-agent.service"
+GUARD_REINSTALL_DROPIN="/run/systemd/system/homelab-agent.service.d/zz-kombify-reinstall.conf"
 
 # guard_binary_version prints the X.Y.Z a Guard executable reports.
 guard_binary_version() {
@@ -1695,7 +1695,7 @@ main() {
     echo "  2. Run '${BINARY_NAME}' to see available commands"
     if [ "$AS_SERVICE" = "1" ]; then
         if [ "$WORKER_REGISTERED" = "1" ]; then
-            echo "  3. Run 'sudo systemctl status techstack-agent' to verify continuous monitoring"
+            echo "  3. Run 'sudo systemctl status homelab-agent' to verify continuous monitoring"
         else
             echo "  3. Run 'sudo systemctl start homelab' to start the service"
         fi

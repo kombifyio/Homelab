@@ -4333,7 +4333,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
       const invocation = async (unit: string) =>
         (await ssh(`systemctl show -p InvocationID --value ${unit}`)).stdout.trim();
       const workload = await invocation("guard-disconnect-workload");
-      const guardBefore = await invocation("techstack-agent.service");
+      const guardBefore = await invocation("homelab-agent.service");
 
       const servers = async () => {
         const data = await retryTransient("server list", () =>
@@ -4454,7 +4454,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
       expect(String(before.worker_id ?? ""), "the enrolled server names its Guard").not.toBe("");
       expect(row?.worker_id, "the same Guard identity").toBe(before.worker_id);
       expect(await invocation("guard-disconnect-workload"), "the workload ran through the outage").toBe(workload);
-      expect(await invocation("techstack-agent.service"), "the Guard reconnected without a restart").toBe(guardBefore);
+      expect(await invocation("homelab-agent.service"), "the Guard reconnected without a restart").toBe(guardBefore);
 
       const receipt = {
         schemaVersion: "homelab.guard-disconnect/v1",
