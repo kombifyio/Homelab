@@ -13,7 +13,7 @@ import (
 // contract digest is deliberately updated with the installer.
 // scripts/pre-merge-installer-pin.mjs fails a pull request that changes
 // homelab/install.sh without this pin, so a release never meets the drift.
-const LinuxInstallerSHA256 = "09645e38eacaad51a0f73466e54ae6691a4e76122dfe1cb2c5444908e729040e"
+const LinuxInstallerSHA256 = "ad32b8b8ea85ff8f553a3710c657ea6b03bb2b52e0cefc5f7a870b1c1f5efb38"
 
 // WindowsInstallerSHA256 pins the authoritative repository install.ps1 after
 // CRLF-to-LF normalization. The runtime image copies that exact artifact and
