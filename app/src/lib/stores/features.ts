@@ -15,6 +15,10 @@ import {
 import { ApiRequestError } from "#lib/api/client.js";
 
 import { tr } from "#lib/i18n.svelte.js";
+
+/** Client feature key for the three-class placement board (D-2026-11-21-02). Default off. */
+export const PLACEMENT_BOARD_CLASSES_FLAG = "placement_board_classes";
+
 // Distinguishes a transient/auth verification failure (retryable, self-heals)
 // from a genuine not-entitled state. auth=401/403, network=no response, server=5xx.
 export type FeaturesErrorKind = "auth" | "network" | "server" | null;
@@ -79,6 +83,8 @@ const FEATURE_DEFAULTS: Record<string, boolean> = {
   stackkit_decision_receipt: false,
   server_hardware_fit: false,
   local_ai_providers: false,
+  // Three-class placement board (D-2026-11-21-02). A missing definition denies.
+  [PLACEMENT_BOARD_CLASSES_FLAG]: false,
 };
 
 /**

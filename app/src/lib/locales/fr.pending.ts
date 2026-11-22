@@ -6711,4 +6711,23 @@ export const frPending: Record<string, string> = {
   "guard.power.hostRequested": "Arrêt de l’hôte demandé {when}",
   "guard.power.evidence":
     "Chaque étape est consignée dans le journal d’alimentation local du serveur.",
+  "ui.placementClasses.native.title": "Applications natives kombify",
+  "ui.placementClasses.native.summary":
+    "Paperwork hébergé, kombify Sites et le dossier cloud Mediacenter sont inclus dans l’offre.",
+  "ui.placementClasses.native.empty":
+    "Aucune application native hébergée n’est signalée pour ce homelab.",
+  "ui.placementClasses.native.meta": "Inclus dans l’offre",
+  "ui.placementClasses.managed.title": "Managed Apps",
+  "ui.placementClasses.managed.summary":
+    "Applications légères sélectionnées sur un hébergement partagé. Cette zone n’est pas un serveur.",
+  "ui.placementClasses.managed.empty":
+    "Aucune application gérée n’est encore placée.",
+  "ui.placementClasses.managed.meta": "Application gérée",
+  "ui.placementClasses.managed.provider": "Application gérée · {provider}",
+  "ui.placementClasses.dedicated.title": "Serveurs dédiés",
+  "ui.placementClasses.dedicated.summary":
+    "Applications auto-hébergées et serveurs gérés dédiés pour les charges plus lourdes.",
+  "ui.placementClasses.dedicated.empty": "Aucun serveur dédié n’est connecté.",
+  "ui.placementClasses.badge.native": "Natif",
+  "ui.placementClasses.badge.zeroSlots": "0 emplacement de service géré",
 };

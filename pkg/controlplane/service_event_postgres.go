@@ -16,6 +16,7 @@ import (
 const serviceRuntimeColumns = `id, tenant_id, instance_id, stack_id, server_id,
 	target_kind, provider_id, managed_target_ref, provider_receipt_ref, sla_policy_ref,
 	backup_policy_ref, placement_evidence_ref, placement_observed_at,
+	isolation_class, ingress_hostname, managed_service_slot_ref,
 	service_key, service_instance, name, desired_state, observed_state, health_state, management_state,
 	mutation_lock_state, mutation_lock_reason_code, mutation_lock_actor, mutation_lock_changed_at,
 	observed_at, stackkit_version, access_json::text, capabilities_json::text,
@@ -170,6 +171,7 @@ func persistServiceEventHead(
 		string(serviceregistry.CanonicalMutationLockState(string(head.Runtime.MutationLock.State))),
 		head.Runtime.MutationLock.ReasonCode, head.Runtime.MutationLock.Actor,
 		nullableTime(head.Runtime.MutationLock.ChangedAt),
+		head.Runtime.Placement.IsolationClass, head.Runtime.Placement.IngressHostname, head.Runtime.Placement.ManagedServiceSlotRef,
 	}
 	if current == nil || !current.Exists {
 		stored, rowErr := scanServiceAggregateHead(tx.QueryRowContext(ctx, `
@@ -182,14 +184,14 @@ func persistServiceEventHead(
 				desired_state, observed_state, health_state, observed_at, stackkit_version,
 				access_json, capabilities_json, revision, management_state,
 				mutation_lock_state, mutation_lock_reason_code, mutation_lock_actor,
-				mutation_lock_changed_at
+				mutation_lock_changed_at, isolation_class, ingress_hostname, managed_service_slot_ref
 			) VALUES (
 				$1, $2, NULLIF($3, ''), $4, NULLIF($5, ''), NULLIF($6, ''), $7,
 				NULLIF($8, ''), NULLIF($9, ''), NULLIF($10, ''), NULLIF($11, ''), NULLIF($12, ''),
 				NULLIF($13, ''), $14, $15, $16, $17, $18, $19, NULLIF($20, ''),
 				NULLIF($21, ''), $22::jsonb, $23, $24, $25, $26, NULLIF($27, ''),
 				$28::jsonb, $29::jsonb, $30, $31,
-				$32, NULLIF($33, ''), NULLIF($34, ''), $35
+				$32, NULLIF($33, ''), NULLIF($34, ''), $35, NULLIF($36, ''), NULLIF($37, ''), NULLIF($38, '')
 			)
 			ON CONFLICT (id) DO NOTHING
 			RETURNING `+serviceAggregateColumns,
@@ -217,8 +219,9 @@ func persistServiceEventHead(
 			revision = $30, management_state = $31,
 			mutation_lock_state = $32, mutation_lock_reason_code = NULLIF($33, ''),
 			mutation_lock_actor = NULLIF($34, ''), mutation_lock_changed_at = $35,
+			isolation_class = NULLIF($36, ''), ingress_hostname = NULLIF($37, ''), managed_service_slot_ref = NULLIF($38, ''),
 			updated_at = now()
-		WHERE tenant_id = $2 AND id = $1 AND revision = $36
+		WHERE tenant_id = $2 AND id = $1 AND revision = $39
 		RETURNING `+serviceAggregateColumns,
 		args...,
 	))
@@ -319,6 +322,7 @@ func scanServiceAggregateHead(row rowScanner) (*serviceAggregateHead, error) {
 	var instanceID, serverID, stackKitVersion sql.NullString
 	var targetKind, providerID, managedTargetRef, providerReceiptRef sql.NullString
 	var slaPolicyRef, backupPolicyRef, placementEvidenceRef sql.NullString
+	var isolationClass, ingressHostname, managedServiceSlotRef sql.NullString
 	var observedAt, placementObservedAt, mutationLockChangedAt sql.NullTime
 	var mutationLockReasonCode, mutationLockActor sql.NullString
 	var mutationLockState string
@@ -327,6 +331,7 @@ func scanServiceAggregateHead(row rowScanner) (*serviceAggregateHead, error) {
 		&head.Runtime.ID, &head.Runtime.TenantID, &instanceID, &head.Runtime.StackID, &serverID,
 		&targetKind, &providerID, &managedTargetRef, &providerReceiptRef, &slaPolicyRef,
 		&backupPolicyRef, &placementEvidenceRef, &placementObservedAt,
+		&isolationClass, &ingressHostname, &managedServiceSlotRef,
 		&head.Runtime.ServiceKey, &head.Runtime.ServiceInstance, &head.Runtime.Name,
 		&head.Runtime.DesiredState, &head.Runtime.ObservedState, &head.Runtime.HealthState,
 		&head.Runtime.ManagementState,
@@ -340,13 +345,16 @@ func scanServiceAggregateHead(row rowScanner) (*serviceAggregateHead, error) {
 	head.Runtime.InstanceID = instanceID.String
 	head.Runtime.ServerID = serverID.String
 	head.Runtime.Placement = serviceregistry.Placement{
-		TargetKind:         serviceregistry.TargetKind(targetKind.String),
-		ProviderID:         providerID.String,
-		ManagedTargetRef:   managedTargetRef.String,
-		ProviderReceiptRef: providerReceiptRef.String,
-		SLAPolicyRef:       slaPolicyRef.String,
-		BackupPolicyRef:    backupPolicyRef.String,
-		EvidenceRef:        placementEvidenceRef.String,
+		TargetKind:            serviceregistry.TargetKind(targetKind.String),
+		ProviderID:            providerID.String,
+		ManagedTargetRef:      managedTargetRef.String,
+		ProviderReceiptRef:    providerReceiptRef.String,
+		SLAPolicyRef:          slaPolicyRef.String,
+		BackupPolicyRef:       backupPolicyRef.String,
+		IsolationClass:        isolationClass.String,
+		IngressHostname:       ingressHostname.String,
+		ManagedServiceSlotRef: managedServiceSlotRef.String,
+		EvidenceRef:           placementEvidenceRef.String,
 	}
 	if placementObservedAt.Valid {
 		head.Runtime.Placement.ObservedAt = &placementObservedAt.Time

@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/jobs"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
 	"github.com/kombifyio/homelab/pkg/runtimeidentity"
 	"github.com/kombifyio/homelab/pkg/serverregistry"
 )
@@ -303,6 +305,32 @@ func TestGuardReenrollAlreadyCurrentComesFromTheNode(t *testing.T) {
 			t.Fatalf("got %+v, %v, installs=%d; want a re-enrollment, enrolled", record, err, f.installs.Load())
 		}
 	})
+}
+
+type inactiveLeaseTarget struct{}
+
+func (inactiveLeaseTarget) ResolveManagedRuntimeTarget(context.Context, jobs.ManagedRuntimeTargetRequest) (*jobs.ManagedRuntimeTarget, error) {
+	return nil, fmt.Errorf("resolve lease: %w", monthlyruntime.ErrExecutionAuthorityInactive)
+}
+
+// A lease past its provider-control validity is refused as lease_not_active,
+// not reported as missing channel custody, and nothing reaches the node.
+func TestGuardReenrollRefusesALeaseOutsideProviderControl(t *testing.T) {
+	f := newReenrollFixture(t)
+	f.channel.Targets = inactiveLeaseTarget{}
+	record, err := f.channel.ReenrollGuard(context.Background(), f.request())
+	if !errors.Is(err, ErrGuardReenrollRefused) || errors.Is(err, monthlyruntime.ErrNodeChannelUnavailable) {
+		t.Fatalf("err = %v; want ErrGuardReenrollRefused only", err)
+	}
+	if record.State != GuardReenrollStateFailed || record.Reason != "lease_not_active" {
+		t.Fatalf("record = %+v; want failed, lease_not_active", record)
+	}
+	if f.probes.Load() != 0 || f.installs.Load() != 0 || f.issued.Load() != 0 {
+		t.Fatalf("refused run touched the node: probes=%d installs=%d capabilities=%d", f.probes.Load(), f.installs.Load(), f.issued.Load())
+	}
+	if stored := f.stored(); stored.State != GuardReenrollStateFailed || stored.claimHeld(f.now()) {
+		t.Fatalf("stored record = %+v; want failed, claim released", stored)
+	}
 }
 
 func TestGuardReenrollEnrolledNeedsTheNewIdentitysHeartbeat(t *testing.T) {

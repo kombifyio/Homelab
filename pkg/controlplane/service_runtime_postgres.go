@@ -157,6 +157,7 @@ const legacyServiceRuntimeBackfillQuery = `
 	SELECT legacy.id, legacy.tenant_id, legacy.instance_id, legacy.stack_id,
 		mapped_server.id,
 		CASE WHEN mapped_server.id IS NULL THEN 'unknown' ELSE 'server' END, NULL::text, NULL::text, NULL::text, NULL::text, NULL::text, NULL::text, NULL::timestamptz,
+		NULL::text, NULL::text, NULL::text,
 		lower(btrim(legacy.service_key)), 'default', legacy.name,
 		CASE WHEN lower(btrim(legacy.status)) IN ('stopped', 'exited', 'dead', 'archived', 'decommissioned') THEN 'stopped' ELSE 'running' END,
 		'unknown', 'unknown', legacy.management_state,
@@ -191,6 +192,7 @@ func scanServiceRuntime(row rowScanner) (*ServiceRuntime, error) {
 	var instanceID, serverID, stackKitVersion sql.NullString
 	var targetKind, providerID, managedTargetRef, providerReceiptRef sql.NullString
 	var slaPolicyRef, backupPolicyRef, placementEvidenceRef sql.NullString
+	var isolationClass, ingressHostname, managedServiceSlotRef sql.NullString
 	var observedAt, placementObservedAt, mutationLockChangedAt sql.NullTime
 	var mutationLockReasonCode, mutationLockActor sql.NullString
 	var mutationLockState string
@@ -199,6 +201,7 @@ func scanServiceRuntime(row rowScanner) (*ServiceRuntime, error) {
 		&service.ID, &service.TenantID, &instanceID, &service.StackID, &serverID,
 		&targetKind, &providerID, &managedTargetRef, &providerReceiptRef, &slaPolicyRef,
 		&backupPolicyRef, &placementEvidenceRef, &placementObservedAt,
+		&isolationClass, &ingressHostname, &managedServiceSlotRef,
 		&service.ServiceKey, &service.ServiceInstance, &service.Name, &service.DesiredState,
 		&service.ObservedState, &service.HealthState, &service.ManagementState,
 		&mutationLockState, &mutationLockReasonCode, &mutationLockActor, &mutationLockChangedAt,
@@ -211,13 +214,16 @@ func scanServiceRuntime(row rowScanner) (*ServiceRuntime, error) {
 	service.InstanceID = instanceID.String
 	service.ServerID = serverID.String
 	service.Placement = serviceregistry.Placement{
-		TargetKind:         serviceregistry.TargetKind(targetKind.String),
-		ProviderID:         providerID.String,
-		ManagedTargetRef:   managedTargetRef.String,
-		ProviderReceiptRef: providerReceiptRef.String,
-		SLAPolicyRef:       slaPolicyRef.String,
-		BackupPolicyRef:    backupPolicyRef.String,
-		EvidenceRef:        placementEvidenceRef.String,
+		TargetKind:            serviceregistry.TargetKind(targetKind.String),
+		ProviderID:            providerID.String,
+		ManagedTargetRef:      managedTargetRef.String,
+		ProviderReceiptRef:    providerReceiptRef.String,
+		SLAPolicyRef:          slaPolicyRef.String,
+		BackupPolicyRef:       backupPolicyRef.String,
+		IsolationClass:        isolationClass.String,
+		IngressHostname:       ingressHostname.String,
+		ManagedServiceSlotRef: managedServiceSlotRef.String,
+		EvidenceRef:           placementEvidenceRef.String,
 	}
 	if placementObservedAt.Valid {
 		service.Placement.ObservedAt = &placementObservedAt.Time

@@ -95,6 +95,16 @@
   import ServiceMoveDialog from "#lib/components/inventory/ServiceMoveDialog.svelte";
   import TrademarkNotice from "#lib/components/TrademarkNotice.svelte";
   import PlacementBoard from "#lib/components/inventory/PlacementBoard.svelte";
+  import PlacementClassBoard from "#lib/components/inventory/PlacementClassBoard.svelte";
+  import {
+    columnsWithoutLifted,
+    partitionPlacementBoard,
+  } from "#lib/services/placement-classes.js";
+  import {
+    PLACEMENT_BOARD_CLASSES_FLAG,
+    features,
+    getDefaultEnabled,
+  } from "#lib/stores/features.js";
   import ServiceAdoptionDialog from "#lib/components/inventory/ServiceAdoptionDialog.svelte";
   import StackItDialog from "#lib/components/inventory/StackItDialog.svelte";
   import { confirmInApp } from "#lib/dialogs/in-app-dialog.js";
@@ -1173,6 +1183,76 @@
     }),
   );
 
+  const featureFlags = features.allFeatures;
+  /** Default off. A missing flag definition keeps today's server columns. */
+  const placementClassesOn = $derived(
+    $featureFlags.get(PLACEMENT_BOARD_CLASSES_FLAG)?.enabled ??
+      getDefaultEnabled(PLACEMENT_BOARD_CLASSES_FLAG),
+  );
+
+  function placementClassInput(runtime: CanonicalService) {
+    return {
+      id: runtime.id,
+      name: runtime.application_display_name || runtime.name,
+      applicationKey: runtime.application_key,
+      serviceKey: runtime.service_key,
+      catalogId: runtime.catalog?.id,
+      targetKind: runtime.target_kind,
+      placementClass: runtime.placement_class,
+      serverId: runtime.server_id,
+      providerId: runtime.placement?.provider_id,
+    };
+  }
+
+  const placementClassView = $derived.by(() => {
+    if (!placementClassesOn) return null;
+    const partition = partitionPlacementBoard({
+      applications: serviceApplications.map((application) => ({
+        id: application.application_id,
+        name: application.display_name,
+        applicationKey: application.application_key,
+        catalogId: application.catalog?.id,
+        serverId: application.server_id,
+        system: application.system,
+        components: application.components.map(placementClassInput),
+      })),
+      services: canonicalServices.map(placementClassInput),
+    });
+    const lifted = new Set(partition.liftedIds);
+    const cardFor = (
+      item: (typeof partition.native)[number],
+      native: boolean,
+    ) => {
+      const row = item.serviceId
+        ? runtimeServiceRows.find(
+            (candidate) => candidate.id === item.serviceId,
+          )
+        : undefined;
+      const status = row?.status ?? "unknown";
+      return {
+        key: `${item.kind}:${item.id}`,
+        name: item.name || row?.name || item.id,
+        meta: native
+          ? tr("ui.placementClasses.native.meta")
+          : item.providerId
+            ? tr("ui.placementClasses.managed.provider", {
+                provider: item.providerId,
+              })
+            : tr("ui.placementClasses.managed.meta"),
+        serviceId: item.serviceId,
+        status,
+        statusLabel: row?.statusLabel,
+        native,
+        managedServiceSlots: item.managedServiceSlots,
+      };
+    };
+    return {
+      native: partition.native.map((item) => cardFor(item, true)),
+      managed: partition.managed.map((item) => cardFor(item, false)),
+      columns: columnsWithoutLifted(placementColumns, lifted),
+    };
+  });
+
   /** Card meta on the board: a localized type and the port. */
   function boardMeta(service: RegistryService): string {
     const meta = serviceMeta(service);
@@ -1597,6 +1677,20 @@
         </div>
       </div>
     {/if}
+  {:else if placementClassView}
+    <PlacementClassBoard
+      native={placementClassView.native}
+      managed={placementClassView.managed}
+      columns={placementClassView.columns}
+      {loading}
+      {registryError}
+      {cockpitStale}
+      {cockpitError}
+      onretry={() => void loadRegistryManagement()}
+      onopen={(serviceId) => openServiceSheet(serviceId)}
+      onmove={openMigration}
+      onstack={(card) => openAdoptionDialog(card.runtime, false)}
+    />
   {:else}
     <PlacementBoard
       columns={placementColumns}
