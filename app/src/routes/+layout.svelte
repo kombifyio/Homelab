@@ -25,7 +25,12 @@
   import { onboardingStore } from "#lib/onboarding/store.svelte.js";
   import IntroductionHost from "#lib/components/onboarding/IntroductionHost.svelte";
   import CompanionHost from "#lib/components/CompanionHost.svelte";
+  import {
+    companionPanel,
+    startCompanionPanel,
+  } from "#lib/client/companion-panel.svelte.js";
   import { features, loadFeatures } from "#lib/stores/features.js";
+  import { refreshAiSetup, startAiSetup } from "#lib/ai/ai-setup-state.js";
   import { authStore } from "#lib/stores/auth.svelte.js";
   import { theme } from "#lib/stores/theme.js";
   import {
@@ -87,6 +92,13 @@
   let authInitialized = $state(false);
   let framed = $state(true);
   let authSyncVersion = 0;
+
+  // The account's AI use needs the signed-in session: read it again at every sign-in and sign-out.
+  $effect(() => {
+    if (!authInitialized) return;
+    void authStore.isAuthenticated;
+    void refreshAiSetup(true);
+  });
 
   $effect(() => {
     if (!authInitialized) {
@@ -156,12 +168,18 @@
 
   // Initialize i18n and deployment mode on mount
   onMount(() => {
+    document.getElementById("homelab-initial-loading")?.remove();
     framed = window.parent !== window;
     // Initialize bridge early when in iframe to receive theme messages ASAP
     if (window.parent !== window) {
       initBridge();
     }
     const stopViewContext = initViewContext();
+    // The Windows client hides the in-app Companion while Kubi runs on the desktop and the
+    // person chose one Companion (apps.showCompanion off, AppLink v2 "In-app Companion").
+    const stopCompanionPanel = startCompanionPanel();
+    // Which AI the person has set rides on every panel turn and error report (support context).
+    const stopAiSetup = startAiSetup();
 
     initStackIdentity();
     theme.init();
@@ -196,6 +214,8 @@
     window.addEventListener("resize", syncViewport);
     return () => {
       stopViewContext();
+      stopCompanionPanel();
+      stopAiSetup();
       destroyBridge();
       window.removeEventListener("resize", syncViewport);
       authInitialized = false;
@@ -485,10 +505,12 @@
       </main>
     </div>
   {:else if $showInlineTabs}
-    <!-- SaaS Embedded Mode: Inline Tab Navigation -->
-    <div data-kx="app" class="flex flex-col h-screen">
+    <!-- SaaS Embedded Mode: Inline Tab Navigation. The tabs keep the tool's
+         sections and the Full App action; `main` is the one scroll container,
+         with the same definite-height chain as the other shells. -->
+    <div data-kx="app" class="flex h-screen flex-col overflow-hidden">
       <!-- Inline Tab Navigation Header -->
-      <div data-onboarding-anchor="homelab-nav">
+      <div class="shrink-0" data-onboarding-anchor="homelab-nav">
         <InlineTabNav apiVersion={productIdentity} />
       </div>
 
@@ -496,7 +518,7 @@
       <main
         id={CONTENT_PANE_ID}
         tabindex="-1"
-        class="flex-1 min-w-0 overflow-auto overflow-x-hidden flex flex-col outline-none"
+        class="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto overflow-x-hidden outline-none"
       >
         <SessionRenewalPrompt />
         <IntroductionHost />
@@ -526,8 +548,10 @@
   Standalone owns Companion. Inside Cloud the portal already mounts one;
   a second in-iframe launcher is the duplicate the Workbench embed already
   retired (owner report 2026-08-26). `ready.chrome.companion: host`.
+  In the Windows client it also gives way to Kubi on the desktop when the
+  person chose one Companion (`companionPanel.hidden`).
 -->
-{#if authInitialized && !framed && authStore.isAuthenticated && $deploymentMode.mode !== "saas-embedded"}
+{#if authInitialized && !framed && authStore.isAuthenticated && $deploymentMode.mode !== "saas-embedded" && !companionPanel.hidden}
   <CompanionHost />
 {/if}
 

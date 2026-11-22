@@ -16,7 +16,9 @@ const EnvDatabaseMigrationMode = "HOMELAB_DATABASE_MIGRATION_MODE"
 // SchemaFloor is the highest migration number this binary's serving code needs.
 // Bump it in the same pull request that adds a migration the code depends on;
 // an expand migration the code does not read yet may stay above it.
-const SchemaFloor = 194
+// 199: 0.50.x reads the stored values only under their Homelab spelling
+// (platform-2jlnx7.14), so it refuses a ledger without the forward move.
+const SchemaFloor = 199
 
 // PlatformProjectionSchemaFloor is what the private platform projection process
 // of the same binary needs: the role, grants and policies of migration 173. The

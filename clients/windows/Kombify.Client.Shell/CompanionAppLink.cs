@@ -100,6 +100,8 @@ public sealed record CompanionContext
     public string? Route { get; init; }
     public string? Locale { get; init; }
     public CompanionPage? Page { get; init; }
+    /// <summary>The app's AI setup (content-free); absent when the app has not determined it.</summary>
+    public CompanionAiSetup? AiSetup { get; init; }
 }
 
 /// <summary>Scope kinds: none, project, server, paperwork (with module), office (with officeId).</summary>
@@ -894,7 +896,7 @@ public static partial class CompanionAppLink
                 foreach (var (key, value) in facts) if (!ValidCode(key) || !ValidCode(value)) return false;
             }
         }
-        return true;
+        return context.AiSetup is null || context.AiSetup.Valid();
     }
 
     private static bool AllAbsent(params string?[] values) => values.All(Absent);
@@ -955,6 +957,11 @@ public static partial class CompanionAppLink
                 w.WriteEndObject();
             }
             w.WriteEndObject();
+        }
+        if (context.AiSetup is { } aiSetup)
+        {
+            w.WritePropertyName("aiSetup");
+            aiSetup.ToJson().WriteTo(w);
         }
         w.WriteEndObject();
     });

@@ -10,9 +10,6 @@ import (
 	"time"
 )
 
-// DefaultSocket is where the service manager listens for the executor.
-const DefaultSocket = "/run/techstack-guard-executor.sock"
-
 // Client is the daemon side of the boundary.
 type Client struct {
 	// Socket is the executor's Unix socket path.

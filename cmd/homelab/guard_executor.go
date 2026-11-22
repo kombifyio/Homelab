@@ -52,7 +52,7 @@ func runGuardExecutor(ctx context.Context, args []string) error {
 	if err := flags.Parse(args[1:]); err != nil {
 		return err
 	}
-	opts.Log = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo})).With("service", "techstack-guard-executor", "version", version)
+	opts.Log = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo})).With("service", "homelab-guard-executor", "version", version)
 	switch args[0] {
 	case "ril-keys-refresh":
 		// A host that never applied the hosted profile has nothing to refresh:
@@ -64,14 +64,14 @@ func runGuardExecutor(ctx context.Context, args []string) error {
 		} else if err != nil {
 			return err
 		}
-		if _, err := os.Stat("/etc/techstack/ril-hosted-enrollment"); errors.Is(err, os.ErrNotExist) {
+		if _, err := os.Stat("/etc/homelab/ril-hosted-enrollment"); errors.Is(err, os.ErrNotExist) {
 			if err := bootstrapExistingHostedRIL(ctx); err != nil {
 				return err
 			}
 		} else if err != nil {
 			return err
 		}
-		return nodeproof.RefreshPurposeKeys(ctx, "/etc/techstack")
+		return nodeproof.RefreshPurposeKeys(ctx, "/etc/homelab")
 	case "serve":
 		conn, err := guardexec.ConnFromStdin()
 		if err != nil {

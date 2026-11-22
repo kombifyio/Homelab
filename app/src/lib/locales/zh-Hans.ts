@@ -2662,6 +2662,7 @@ export const zhHans: Record<string, string> = {
   "companion.settings.rows.enabled": "此电脑上的 Companion",
   "companion.settings.rows.startWithWindows": "随 Windows 启动",
   "companion.settings.rows.showKubi": "显示 Kubi",
+  "companion.settings.rows.appsShowCompanion": "Kubi 在桌面上运行时，也在应用中显示 Companion",
   "companion.settings.rows.voiceAnimation": "语音动画",
   "companion.settings.rows.shortcut": "快捷键",
   "companion.settings.rows.dictationBehavior": "快捷键模式",

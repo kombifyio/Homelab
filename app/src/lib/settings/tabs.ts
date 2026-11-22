@@ -3,7 +3,9 @@
 // follows. The slug is the deep-link contract (`/settings?tab=<slug>`). The `companion` tab
 // exists only in the Windows client while it can show the desktop Companion (the native side
 // answers the Companion bridge); in a browser and in the hosted web app it is not a tab and
-// `?tab=companion` falls back to Account.
+// `?tab=companion` falls back to Account. The `ai-providers` tool tab (AI providers: the local AI
+// runtimes this PC shares) exists only in the Windows client with the flag `local_ai_providers` on;
+// elsewhere `?tab=ai-providers` falls back to Account too.
 
 export const SHARED_SETTINGS_TABS = [
   "account",
@@ -12,11 +14,10 @@ export const SHARED_SETTINGS_TABS = [
   "companion",
   "notifications",
 ] as const;
-export const TOOL_SETTINGS_TABS = ["homelab"] as const;
+export const TOOL_SETTINGS_TABS = ["ai-providers", "homelab"] as const;
 
 export type SettingsTabSlug =
-  | (typeof SHARED_SETTINGS_TABS)[number]
-  | (typeof TOOL_SETTINGS_TABS)[number];
+  (typeof SHARED_SETTINGS_TABS)[number] | (typeof TOOL_SETTINGS_TABS)[number];
 
 const KNOWN = new Set<string>([...SHARED_SETTINGS_TABS, ...TOOL_SETTINGS_TABS]);
 
@@ -27,9 +28,11 @@ const KNOWN = new Set<string>([...SHARED_SETTINGS_TABS, ...TOOL_SETTINGS_TABS]);
 export function resolveSettingsTab(
   raw: string | null | undefined,
   companionAvailable = false,
+  aiProvidersAvailable = false,
 ): SettingsTabSlug {
   const slug = (raw ?? "").trim().toLowerCase();
   if (slug === "companion" && !companionAvailable) return "account";
+  if (slug === "ai-providers" && !aiProvidersAvailable) return "account";
   return KNOWN.has(slug) ? (slug as SettingsTabSlug) : "account";
 }
 

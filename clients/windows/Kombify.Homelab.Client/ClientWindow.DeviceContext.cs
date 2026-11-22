@@ -55,6 +55,7 @@ internal sealed partial class ClientWindow
         _webView.CoreWebView2.WebMessageReceived += OnDeviceContextRequested;
         RegisterWalletRevealBridge();
         RegisterCompanionBridge();
+        RegisterLocalAiBridge();
     }
 
     private bool IsCurrentDeviceContextDocument(string source, long revision, string token)

@@ -1,5 +1,5 @@
 /** kombify-Brand commit the vendored /brand files were taken from. */
-const ASSET_REVISION = "8c2094d";
+const ASSET_REVISION = "b29d3daa";
 
 /**
  * Homelab assets from kombify-Brand/assets/logo/system/homelab.

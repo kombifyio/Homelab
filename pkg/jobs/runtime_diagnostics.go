@@ -199,8 +199,8 @@ type runtimeDiagnosticsCommandSpec struct {
 // belong to systemd-journal. Read the Guard journal with the same host authority
 // the bootstrap uses; an unprivileged read silently omits the convergence error.
 const runtimeDiagnosticsAgentCommand = `if [ "$(id -u)" != 0 ]; then SUDO="sudo -n"; else SUDO=""; fi
-$SUDO systemctl show techstack-agent.service --no-pager --property=LoadState,ActiveState,SubState,Result,ExecMainCode,ExecMainStatus 2>&1 || true
-$SUDO journalctl -u techstack-agent.service --no-pager -n 4 -o cat --grep='runtime_convergence_failed|guard_update_denied' 2>&1 || true`
+$SUDO systemctl show homelab-agent.service --no-pager --property=LoadState,ActiveState,SubState,Result,ExecMainCode,ExecMainStatus 2>&1 || true
+$SUDO journalctl -u homelab-agent.service --no-pager -n 4 -o cat --grep='runtime_convergence_failed|guard_update_denied' 2>&1 || true`
 
 func runtimeDiagnosticsCommands(action string) []runtimeDiagnosticsCommandSpec {
 	switch strings.TrimSpace(action) {

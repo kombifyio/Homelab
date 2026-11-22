@@ -21,6 +21,7 @@ import (
 	"github.com/kombifyio/homelab/internal/breakglass"
 	"github.com/kombifyio/homelab/internal/executionchannel"
 	"github.com/kombifyio/homelab/internal/executioncustody"
+	"github.com/kombifyio/homelab/internal/guardbootstrap"
 	"github.com/kombifyio/homelab/internal/layoutadvice"
 	"github.com/kombifyio/homelab/internal/managedstackkit"
 	productnotifications "github.com/kombifyio/homelab/internal/notifications"
@@ -1224,12 +1225,25 @@ func registerFeatureRoutes(router *httpx.Router, deps routeDeps, state runtimeRo
 		state.runtimeActions.RuntimeTargetResolver = remote
 	}
 	serverStore := serverRuntimeControlPlaneStore(deps.v2)
-	bindManagedDay2(monthlyRuntimeSvc, &executionchannel.Channel{
+	managedChannel := &executionchannel.Channel{
 		Servers: serverStore, Targets: state.runtimeActions.RuntimeTargetResolver,
-	})
+	}
+	bindManagedDay2(monthlyRuntimeSvc, managedChannel)
 	if remote, ok := deps.providerResolution.(*executioncustody.Remote); ok {
 		monthlyRuntimeSvc.SSHAccess = remote
 		monthlyRuntimeSvc.Reconnector = remote
+	} else if serverStore != nil {
+		// The managed Guard re-enrollment runs on the channel this process
+		// holds; a native installation with remote execution custody has no
+		// managed fleet to re-enroll and does not register it.
+		applicationDB := deps.v2.db.DB
+		routes.RegisterGuardReenrollRoute(router, routes.GuardReenrollRouteConfig{
+			Channel: managedChannel,
+			Issuer: func() (*guardbootstrap.EnrollmentIssuer, error) {
+				return guardbootstrap.NewEnrollmentIssuer(applicationDB, nil)
+			},
+			Version: version,
+		})
 	}
 	activityStore, _ := any(serverStore).(controlplane.ActivityStore)
 	routes.RegisterServerTerminalRoutes(router, routes.ServerTerminalRouteConfig{

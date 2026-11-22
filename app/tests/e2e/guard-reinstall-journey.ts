@@ -19,7 +19,7 @@ export const OLD_GUARD_SHA256 =
   "ea54cf72ea3091155a65c2d4f22fdd07339038fb2a104ec8a20cde54988fd6bc";
 const SIGNER_MOVE = [0, 45, 17];
 const CUSTODY =
-  "/etc/techstack/agent-enrollment.json /var/lib/techstack/guard/identity.key";
+  "/etc/homelab/agent-enrollment.json /var/lib/homelab/guard/identity.key";
 
 type Json = Record<string, any>;
 
@@ -72,9 +72,9 @@ export async function runGuardReinstallJourney(
   await deps.upload(oldGuardPath, "/tmp/homelab-guard-v0.45.6");
   await deps.root(
     "install -m 0755 /tmp/homelab-guard-v0.45.6 /usr/local/bin/.homelab.old && rm -f /tmp/homelab-guard-v0.45.6 && " +
-      "systemctl stop techstack-agent.service && mv -f /usr/local/bin/.homelab.old /usr/local/bin/homelab && " +
+      "systemctl stop homelab-agent.service && mv -f /usr/local/bin/.homelab.old /usr/local/bin/homelab && " +
       "install -m 0755 /usr/local/bin/homelab /usr/local/libexec/homelab-stackkit-operations && " +
-      "systemctl start techstack-agent.service",
+      "systemctl start homelab-agent.service",
   );
   expect(await deps.root("/usr/local/bin/homelab version")).toContain(`v${OLD_GUARD_VERSION}`);
   const custodyBefore = await deps.root(`sha256sum ${CUSTODY}`);
@@ -102,7 +102,7 @@ export async function runGuardReinstallJourney(
   expect(from).toBe(OLD_GUARD_VERSION);
   expect(atLeastSignerMove(to), `${to} is at or past the signer move`).toBe(true);
   expect(await deps.root(`sha256sum ${CUSTODY}`), "enrollment and identity key are byte for byte unchanged").toBe(custodyBefore);
-  expect(await deps.root("systemctl is-active techstack-agent.service")).toBe("active");
+  expect(await deps.root("systemctl is-active homelab-agent.service")).toBe("active");
 
   // API and UI: the Guard is current again.
   const current = await waitForGuard(deps, (g) => g.state !== "reinstall_required" && g.version === to, `Guard ${to}`, 10 * 60_000);

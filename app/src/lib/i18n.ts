@@ -43,6 +43,7 @@ import { layoutMessages } from "./wizard/layout-messages";
 import { boxMessages } from "./dashboard/box-messages";
 import { appLogoMessages } from "./app-logo-messages";
 import { sessionRenewalMessages } from "./auth/session-renewal-messages";
+import { localAiMessages } from "./settings/local-ai/local-ai-messages";
 import { connectDevicesMessages } from "./dashboard/connect-devices-messages";
 import { es } from "./locales/es";
 import { zhHans } from "./locales/zh-Hans";
@@ -90,6 +91,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     ...boxMessages.en,
     ...appLogoMessages.en,
     ...sessionRenewalMessages.en,
+    ...localAiMessages.en,
     "wizard.creation.preferenceOnly":
       "Preference saved. This release installs the suggested service; the alternative is not applied yet.",
     "wizard.preview.mail.title": "Mail",
@@ -1074,6 +1076,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     ...boxMessages.de,
     ...appLogoMessages.de,
     ...sessionRenewalMessages.de,
+    ...localAiMessages.de,
     ...loginMessages.de,
     ...accessUsersMessages.de,
     ...nodeGuidanceMessages.de,
@@ -2074,6 +2077,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     ...boxMessages.es,
     ...appLogoMessages.es,
     ...sessionRenewalMessages.es,
+    ...localAiMessages.es,
   },
   "zh-Hans": {
     ...zhHans,
@@ -2106,6 +2110,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     ...boxMessages["zh-Hans"],
     ...appLogoMessages["zh-Hans"],
     ...sessionRenewalMessages["zh-Hans"],
+    ...localAiMessages["zh-Hans"],
   },
   hi: {
     ...hi,
@@ -2138,6 +2143,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     ...boxMessages.hi,
     ...appLogoMessages.hi,
     ...sessionRenewalMessages.hi,
+    ...localAiMessages.hi,
   },
   ar: {
     ...ar,
@@ -2170,6 +2176,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     ...boxMessages.ar,
     ...appLogoMessages.ar,
     ...sessionRenewalMessages.ar,
+    ...localAiMessages.ar,
   },
 };
 

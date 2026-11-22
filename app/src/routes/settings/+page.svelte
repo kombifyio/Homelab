@@ -12,6 +12,9 @@
   } from "#lib/components/open-core/index.js";
   import { NotificationPreferences } from "#lib/components/open-core/index.js";
   import CompanionSettingsPanel from "#lib/components/settings/CompanionSettingsPanel.svelte";
+  import AiProviderSettingsPanel from "#lib/components/settings/AiProviderSettingsPanel.svelte";
+  import { hasLocalAiBridge } from "#lib/client/local-ai-bridge.js";
+  import { features } from "#lib/stores/features.js";
   import {
     createCompanionAdapter,
     hasCompanionBridge,
@@ -87,8 +90,19 @@
         companionRequested),
   );
   const companionAdapter = createCompanionAdapter();
+  // AI providers: the Windows client only (its shell holds the shared local AI runtimes), behind
+  // the flag `local_ai_providers` (off by default).
+  const allFeatures = features.allFeatures;
+  const aiProvidersTab = $derived(
+    hasLocalAiBridge() &&
+      ($allFeatures.get("local_ai_providers")?.enabled ?? false),
+  );
   const activeTab = $derived(
-    resolveSettingsTab(page.url.searchParams.get("tab"), companionTab),
+    resolveSettingsTab(
+      page.url.searchParams.get("tab"),
+      companionTab,
+      aiProvidersTab,
+    ),
   );
   const settingsTabs: readonly SettingsTab[] = $derived([
     { slug: "account", label: tr("ui.settings.account"), scope: "shared" },
@@ -100,6 +114,11 @@
         ] satisfies SettingsTab[])
       : []),
     { slug: "notifications", label: tr("nav.notifications"), scope: "shared" },
+    ...(aiProvidersTab
+      ? ([
+          { slug: "ai-providers", label: tr("settings.aiProviders.title"), scope: "tool" },
+        ] satisfies SettingsTab[])
+      : []),
     { slug: "homelab", label: tr("wizard.settings.title"), scope: "tool" },
   ]);
   const hrefForTab = (slug: string) => settingsTabHref(slug as SettingsTabSlug);
@@ -604,6 +623,8 @@
       </div>
     </section>
 
+      {:else if activeTab === "ai-providers"}
+    <AiProviderSettingsPanel />
       {:else if activeTab === "homelab"}
     <SettingsSection
       id="homelab-settings"

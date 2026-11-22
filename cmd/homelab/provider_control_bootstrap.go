@@ -164,7 +164,7 @@ func prepareProviderAndIssuerRuntime(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if retainedIssuerID != "" && (issuerID != retainedIssuerID || keyID != retainedKeyID) {
+	if retainedIssuerID != "" && (keyID != retainedKeyID || (issuerID != retainedIssuerID && issuerID != forwardIssuerLabel(retainedIssuerID))) {
 		return errors.New("prepared issuer identity differs from the qualified retained identity")
 	}
 	issuerURL, _ := url.Parse(issuerConfig.issuerDSN)

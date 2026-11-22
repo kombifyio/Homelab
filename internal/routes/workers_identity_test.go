@@ -12,6 +12,7 @@ import (
 
 	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
 	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/guardbinding"
 	"github.com/kombifyio/homelab/pkg/guardidentity"
 	"github.com/kombifyio/homelab/pkg/httpx"
 	"github.com/kombifyio/homelab/pkg/middleware"
@@ -603,5 +604,74 @@ func TestLeaseClaimDoesNotApproveALegacyKeyAndTheOwnerSeesItPending(t *testing.T
 	}
 	if got := list("owner-2"); len(got) != 0 {
 		t.Fatalf("another owner sees %d pending upgrades, want 0", len(got))
+	}
+}
+
+// leasePairing records a lease-bound pairing capability, the shape both the
+// managed provisioning and the managed Guard re-enrollment
+// (guardbootstrap.IssueReenrollCapability) mint.
+func (g *guardHarness) leasePairing(leaseID, source string) string {
+	g.t.Helper()
+	raw, hash, err := pairingtoken.Generate("tenant-1")
+	if err != nil {
+		g.t.Fatal(err)
+	}
+	expires := time.Now().Add(time.Hour)
+	if _, err := g.store.UpsertPairingToken(g.t.Context(), controlplane.PairingToken{
+		ID: "pairing-" + hash[:8], TenantID: "tenant-1", OwnerSubjectID: "owner-1", StackID: "stack-1",
+		TokenHash: hash, Status: "active", ExpiresAt: &expires,
+		Metadata: map[string]any{"lease_id": leaseID, "source": source},
+	}); err != nil {
+		g.t.Fatal(err)
+	}
+	return raw
+}
+
+// The managed Guard re-enrollment (platform-2jlnx7.14): a node paired before
+// the rename is paired again with a fresh host key through a second lease-bound
+// capability. The redemption lands on the lease's existing worker and server,
+// the old host key and credential stop authenticating, the new pair exchanges
+// and its heartbeat is accepted, and the Guard receives the binding pin the
+// server derives today.
+func TestLeaseBoundReenrollmentReplacesTheHostIdentityOfTheExistingWorker(t *testing.T) {
+	g := newGuardHarness(t)
+	base := []byte("0123456789abcdef0123456789abcdef")
+	g.handler.bindingKeyBase = base
+	oldKey, newKey := newGuardKey(t), newGuardKey(t)
+
+	id, oldCredential, first := g.register(g.leasePairing("lease-1", "managed-provision-cloud-init"), "attempt-0123456789ab", oldKey)
+	if id == "" || oldCredential == "" {
+		t.Fatalf("first enrollment = %d %+v", first.Code, first.Err)
+	}
+	if reply := g.exchange(id, oldCredential, oldKey, time.Now()); reply.Code != http.StatusOK {
+		t.Fatalf("first exchange = %d %+v", reply.Code, reply.Err)
+	}
+
+	again, newCredential, second := g.register(g.leasePairing("lease-1", "managed-guard-reenroll"), "attempt-abcdef012345", newKey)
+	if again != id || newCredential == "" || newCredential == oldCredential {
+		t.Fatalf("re-enrollment bound worker %q (want %q), new credential issued %t: %d %+v", again, id, newCredential != "" && newCredential != oldCredential, second.Code, second.Err)
+	}
+	if second.Data["server_id"] != first.Data["server_id"] {
+		t.Fatalf("re-enrollment moved the server: %v -> %v", first.Data["server_id"], second.Data["server_id"])
+	}
+	if reply := g.exchange(id, oldCredential, oldKey, time.Now()); reply.Code == http.StatusOK {
+		t.Fatal("the pre-rename host key and credential still exchange after the re-enrollment")
+	}
+	exchange := g.exchange(id, newCredential, newKey, time.Now())
+	if exchange.Code != http.StatusOK || exchange.Data["identity_state"] != controlplane.WorkerIdentityBound {
+		t.Fatalf("re-enrolled exchange = %d %+v %+v", exchange.Code, exchange.Data, exchange.Err)
+	}
+	if reply := g.keyBoundHeartbeat(id, exchange.Data["access_token"].(string), newKey, "", time.Now()); reply.Code != http.StatusOK {
+		t.Fatalf("re-enrolled heartbeat = %d %+v", reply.Code, reply.Err)
+	}
+
+	signer, err := guardbinding.DeriveWorkerSigner(base, "tenant-1", id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, _ := json.Marshal(second.Data["binding_signing_keys"])
+	want, _ := json.Marshal(signer.PublicKeys())
+	if string(got) != string(want) {
+		t.Fatalf("re-enrollment pins = %s, want the current derivation %s", got, want)
 	}
 }

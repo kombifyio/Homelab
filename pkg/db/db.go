@@ -40,7 +40,10 @@ const (
 	// migrationAdvisoryLockKey serializes schema migration runners across
 	// concurrently starting control-plane instances in the same database.
 	migrationAdvisoryLockKey int64 = 0x4b54534d49475241
-	migrationExecutionLimit        = 5 * time.Minute
+	// Ceiling for one migration run. A data move that holds its locks on purpose
+	// (199 on production, 2026-11-22) needs far more than the statement bound;
+	// lock waits stay short through lock_timeout.
+	migrationExecutionLimit = 45 * time.Minute
 )
 
 // StoreBackend identifies which persistence backend is authoritative.

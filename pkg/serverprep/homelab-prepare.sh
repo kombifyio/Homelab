@@ -5,7 +5,7 @@ set -e
 # Supported OS: Ubuntu 20.04, 22.04, 24.04, 26.04
 # Installs: Docker, OpenTofu, Terramate (optional)
 
-LOG_FILE="/var/log/techstack-prepare.log"
+LOG_FILE="/var/log/homelab-prepare.log"
 INSTALL_TERRAMATE=false
 
 log() {

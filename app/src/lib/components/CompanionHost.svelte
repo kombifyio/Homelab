@@ -43,6 +43,11 @@
     type StackIdentity,
   } from "#lib/stores/stackIdentity.js";
   import { theme } from "#lib/stores/theme.js";
+  import {
+    currentAiSetup,
+    refreshAiSetup,
+    subscribeAiSetup,
+  } from "#lib/ai/ai-setup-state.js";
   import { tr } from "#lib/i18n.svelte.js";
   import { get } from "svelte/store";
   import {
@@ -72,7 +77,11 @@
     if (!mount) return;
 
     const pageContext = (view = currentViewContext()) =>
-      companionPageContext(view, document.documentElement.lang || "en");
+      companionPageContext(
+        view,
+        document.documentElement.lang || "en",
+        currentAiSetup(),
+      );
     // Initial context covers a synchronous open notification during mount.
     let syncContext = (_view = currentViewContext()) => {};
 
@@ -93,7 +102,11 @@
       }),
       initialContext: pageContext(),
       onOpenChange: (open) => {
-        if (open) syncContext();
+        if (open) {
+          syncContext();
+          // The AI setup may have changed since the last read; the panel gets it before the next turn.
+          void refreshAiSetup();
+        }
         onOpenChange?.(open);
       },
       onLayoutChange: (layout) => onLayoutChange?.(layout),
@@ -103,6 +116,7 @@
       controller.setContext(context, context.page?.title);
     };
     const unsubscribeContext = subscribeViewContext(syncContext);
+    const unsubscribeAiSetup = subscribeAiSetup(() => syncContext());
 
     const syncStackIdentity = (identity: StackIdentity | null) => {
       const launcherIdentity = companionStackIdentityFromAccount(identity);
@@ -137,6 +151,7 @@
       unsubscribeFinish();
       unsubscribeIdentity();
       unsubscribeContext();
+      unsubscribeAiSetup();
       unregisterCompanion();
       window.removeEventListener(TRANSIENT_PANEL_DISMISS_EVENT, closeOnDismiss);
       controller.destroy();

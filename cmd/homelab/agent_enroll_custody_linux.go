@@ -19,7 +19,7 @@ const maxPublishedEnrollmentBytes = 1 << 20
 // enrollment, as the install command does after a detach. The redemption runs
 // in a child as the daemon user, which reads the capability from stdin, so the
 // identity, journal and enrollment leaves it writes stay the daemon's. Its
-// enrollment lands in the state directory, because /etc/techstack is not
+// enrollment lands in the state directory, because /etc/homelab is not
 // writable for that user; root then publishes it at the configured path as its
 // own file, the one `guard layout apply` adopts: the executor pins the new
 // binding keys from it (they are derived per worker, and a pairing creates a

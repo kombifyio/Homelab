@@ -17,6 +17,7 @@ import (
 
 	"github.com/kombifyio/homelab/pkg/agent/hostidentity"
 	"github.com/kombifyio/homelab/pkg/guardcompat"
+	"github.com/kombifyio/homelab/pkg/guardlayout"
 	"github.com/kombifyio/homelab/pkg/privatechannel"
 	"github.com/kombifyio/homelab/pkg/sdnotify"
 )
@@ -24,7 +25,7 @@ import (
 const (
 	guardStateDirEnv        = "HOMELAB_GUARD_STATE_DIR"
 	enrollCapabilityVersion = guardcompat.EnrollCapabilityVersion
-	defaultEnrollmentFile   = "/etc/techstack/agent-enrollment.json"
+	defaultEnrollmentFile   = guardlayout.EnrollmentFile
 	identityRetryCap        = 30 * time.Second
 	identityHoldInterval    = 10 * time.Minute
 )
@@ -34,7 +35,7 @@ func defaultGuardStateDir() string {
 	if runtime.GOOS == "windows" {
 		return filepath.Join(envDefault("ProgramData", `C:\ProgramData`), "kombify", "guard")
 	}
-	return "/var/lib/techstack/guard"
+	return guardlayout.GuardStateDir
 }
 
 func resolveGuardStateDir(configured string) string {

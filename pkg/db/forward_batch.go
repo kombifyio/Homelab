@@ -277,7 +277,7 @@ var (
 	forwardDrainTimeout = 8 * time.Second
 	forwardLockTimeout  = 800 * time.Millisecond
 	forwardPreLockLimit = 15 * time.Second
-	// Inside migrationExecutionLimit and the delivery child's five minutes.
+	// Bounds only the retries after a lock timeout, not a running body.
 	forwardRetryWindow           = 180 * time.Second
 	forwardMaxAttempts           = 200
 	forwardBackoffBase           = 100 * time.Millisecond

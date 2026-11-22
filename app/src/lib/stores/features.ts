@@ -78,6 +78,7 @@ const FEATURE_DEFAULTS: Record<string, boolean> = {
   use_case_access: true,
   stackkit_decision_receipt: false,
   server_hardware_fit: false,
+  local_ai_providers: false,
 };
 
 /**

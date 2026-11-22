@@ -12,22 +12,28 @@ import (
 
 // Unit and file names.
 const (
-	AgentUnit          = "techstack-agent.service"
-	ExecutorSocketUnit = "techstack-guard-executor.socket"
-	ExecutorUnit       = "techstack-guard-executor@.service"
-	RILKeysUnit        = "techstack-ril-keys.service"
-	RILKeysTimer       = "techstack-ril-keys.timer"
+	AgentUnit          = "homelab-agent.service"
+	ExecutorSocketUnit = "homelab-guard-executor.socket"
+	ExecutorUnit       = "homelab-guard-executor@.service"
+	RILKeysUnit        = "homelab-ril-keys.service"
+	RILKeysTimer       = "homelab-ril-keys.timer"
 	LegacyUnitSuffix   = ".legacy"
-	ExecutorEnvFile    = "/etc/techstack/executor.env"
+	configRoot         = "/etc/homelab"
+	stateRoot          = "/var/lib/homelab"
+	ExecutorEnvFile    = configRoot + "/executor.env"
+	ExecutorStateDir   = stateRoot + "-guard-executor"
+	GuardStateDir      = stateRoot + "/guard"
+	HandoffDir         = stateRoot + "/guard-handoff"
+	RuntimeDir         = "/run/homelab-guard"
 	// EnrollmentFile is where the Guard keeps the enrollment response with its
 	// worker credential; the daemon owns it, the executor cannot see it.
-	EnrollmentFile = "/etc/techstack/agent-enrollment.json"
+	EnrollmentFile = configRoot + "/agent-enrollment.json"
 )
 
 // ExecutorInstancePrefix starts the name of every instance systemd spawns
 // from ExecutorUnit: the socket accepts each connection into its own unit
-// (techstack-guard-executor@<n>-<pid>-<uid>.service), one per Guard command.
-const ExecutorInstancePrefix = "techstack-guard-executor@"
+// (homelab-guard-executor@<n>-<pid>-<uid>.service), one per Guard command.
+const ExecutorInstancePrefix = "homelab-guard-executor@"
 
 // IsExecutorInstance reports whether a systemd unit name is one per-connection
 // executor instance. Such an instance is Guard plumbing that lives for one
@@ -71,14 +77,14 @@ func AgentUnitText(p UnitParams) string {
 [Unit]
 Description=kombify Guard (unprivileged node daemon)
 Documentation=https://docs.kombify.io
-After=network-online.target techstack-guard-executor.socket
-Wants=network-online.target techstack-guard-executor.socket
+After=network-online.target homelab-guard-executor.socket
+Wants=network-online.target homelab-guard-executor.socket
 
 [Service]
 %[1]s
 User=%[2]s
 Group=%[2]s
-EnvironmentFile=-/etc/techstack/agent.env
+EnvironmentFile=-/etc/homelab/agent.env
 ExecStart=%[3]s agent --transport=https --enrollment-file=%[6]s --wait-for-enrollment
 Restart=always
 RestartSec=15
@@ -96,7 +102,7 @@ Environment=HOMELAB_GUARD_EXECUTOR_SOCKET=%[5]s
 StateDirectory=homelab/guard homelab/guard-handoff
 StateDirectoryMode=0700
 # The enrollment file is the one path outside its state the daemon may write: a
-# revoked Guard has to empty it (the file lives in the root-owned /etc/techstack,
+# revoked Guard has to empty it (the file lives in the root-owned /etc/homelab,
 # so it is bound read-write as a file; the directory stays read-only and the file
 # can be emptied but not replaced or unlinked). "-" ignores a host that has none.
 ReadWritePaths=-%[6]s
@@ -163,7 +169,7 @@ func ExecutorUnitText(p UnitParams) string {
 Description=kombify Guard privileged executor (%%i)
 Documentation=https://docs.kombify.io
 # Restarting or stopping the Guard ends every execution it requested.
-PartOf=techstack-agent.service
+PartOf=homelab-agent.service
 
 [Service]
 User=root
@@ -191,7 +197,7 @@ RestrictRealtime=yes
 SystemCallArchitectures=native
 # Neutral images have no enrollment file. Ignore only that missing path;
 # each socket-activated instance hides it once enrollment has created it.
-InaccessiblePaths=/var/lib/techstack/guard -%[3]s
+InaccessiblePaths=/var/lib/homelab/guard -%[3]s
 `, p.BinaryPath, ExecutorEnvFile, EnrollmentFile), "\n")
 }
 
@@ -208,7 +214,7 @@ func ExecutorEnvText(p UnitParams) string {
 # kombify Guard privileged executor environment. Root-owned; requests cannot change it.
 HOMELAB_ACCESS_MANIFEST=/opt/stackkit/.stackkit/access.json,/root/my-homelab/.stackkit/access.json
 HOMELAB_STACKKIT_RELEASE_PIN=/app/.stackkit/stackkits-release-pin.json
-HOMELAB_STACKKIT_RELEASE_CACHE=/var/lib/techstack/.stackkit/releases
+HOMELAB_STACKKIT_RELEASE_CACHE=/var/lib/homelab/.stackkit/releases
 HOMELAB_AGENT_EXECUTABLE_PATH=%[1]s
 HOMELAB_OPERATIONS_EXECUTABLE_PATH=%[2]s
 HOMELAB_GUARD_USER=%[3]s
@@ -232,7 +238,7 @@ NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectHome=yes
 ProtectSystem=strict
-ReadWritePaths=/etc/techstack /var/lib/techstack-guard-executor /run
+ReadWritePaths=/etc/homelab /var/lib/homelab-guard-executor /run
 `, p.BinaryPath), "\n")
 }
 func RILKeysTimerText() string {
@@ -242,7 +248,7 @@ Description=Refresh kombify RIL verification keys
 [Timer]
 OnBootSec=15s
 OnUnitActiveSec=20s
-Unit=techstack-ril-keys.service
+Unit=homelab-ril-keys.service
 [Install]
 WantedBy=timers.target
 `, "\n")

@@ -228,7 +228,7 @@ test.describe.serial("Release Smoke (Render deploy gate)", () => {
     expect(body).toContain("/api/v1/workers/register");
     expect(body).toContain('-H "Content-Type: application/octet-stream"');
     expect(body).toContain(
-      "agent --transport=https --enrollment-file=/etc/techstack/agent-enrollment.json",
+      "agent --transport=https --enrollment-file=/etc/homelab/agent-enrollment.json",
     );
     expect(body).toContain("KOMBI_TOKEN");
   });

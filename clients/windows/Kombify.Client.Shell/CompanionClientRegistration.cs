@@ -74,11 +74,13 @@ public static class CompanionClientRegistration
 }
 
 /// <summary>
-/// The watch loop of AppLink v2 ("Change notification") for a client while it shows the
-/// Companion section: reads the snapshot, holds <c>settings.watch</c>, reads again
-/// when the revision rose. On a lost transport or a stopped program it calls
-/// <c>status.get</c> (<see cref="CompanionAppLink.DiscoverAsync"/>) and backs off
-/// 1 s, 2 s, 5 s, 10 s, 20 s, then 30 s. The back-off resets after a watch reports a
+/// The watch loop of AppLink v2 ("Watch") for a client while it shows the Companion
+/// section, or for as long as it runs when it carries an in-app Companion panel
+/// ("In-app Companion"): reads the snapshot, holds <c>settings.watch</c>, reads again
+/// when the revision rose. On a lost transport it calls <c>status.get</c>
+/// (<see cref="CompanionAppLink.DiscoverAsync"/>) and backs off 1 s, 2 s, 5 s, 10 s,
+/// 20 s, then 30 s; a stopped or not installed program is looked for again at most
+/// every 5 s (<see cref="StoppedLook"/>), so a panel follows Kubi starting. The back-off resets after a watch reports a
 /// risen revision or answers after at least one second. A refused watch
 /// (<c>rate_limited</c>, the host's watch limit) or a quick answer whose revision did not
 /// rise spends a back-off step. A lower revision is refused by the transport and
@@ -93,6 +95,9 @@ public sealed class CompanionSettingsWatcher(Action<CompanionSettings> changed) 
     public static IReadOnlyList<TimeSpan> BackOff { get; } =
         [TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5),
          TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(30)];
+
+    /// <summary>The longest wait before a stopped or not installed program is looked for again.</summary>
+    public static TimeSpan StoppedLook { get; } = TimeSpan.FromSeconds(5);
 
     /// <summary>The shortest watch without a risen revision that resets the back-off.</summary>
     private static readonly TimeSpan HeldWatch = TimeSpan.FromSeconds(1);
@@ -148,8 +153,10 @@ public sealed class CompanionSettingsWatcher(Action<CompanionSettings> changed) 
                         Emit(settings);
                         if (!settings.Running)
                         {
-                            // Stopped or not installed: nothing to watch; look again after the back-off.
-                            await Task.Delay(BackOff[Math.Min(failures++, BackOff.Count - 1)], cancellationToken).ConfigureAwait(false);
+                            // Stopped or not installed: nothing to watch; look again after the back-off, at most 5 s
+                            // (a probe that finds no pipe is cheap, and an in-app panel follows Kubi starting).
+                            var wait = BackOff[Math.Min(failures++, BackOff.Count - 1)];
+                            await Task.Delay(wait < StoppedLook ? wait : StoppedLook, cancellationToken).ConfigureAwait(false);
                             continue;
                         }
                         watching = settings.Revision;

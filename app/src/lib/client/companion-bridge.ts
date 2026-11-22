@@ -281,3 +281,70 @@ export function createCompanionAdapter(): CompanionSettingsAdapter {
     },
   };
 }
+
+/**
+ * In-app Companion (workspace `companion-applink.v2.md`, "In-app Companion"): the Windows client
+ * watches the desktop Companion for as long as it runs and tells this document whether the in-app
+ * Companion gives way to Kubi on the desktop. The page asks once per document (`panel`); the shell
+ * answers at once and again under the same request id at every change. `hidden` is true only while
+ * Kubi runs on the desktop and the person switched `apps.showCompanion` off. A browser and the
+ * hosted web app have no bridge and never hide the panel. Returns the stop function.
+ */
+export function watchCompanionPanel(
+  changed: (hidden: boolean) => void,
+): () => void {
+  if (!hasCompanionBridge()) return () => {};
+  const host = window as CompanionWindow;
+  const bridge = host.chrome!.webview!;
+  const requestId = crypto.randomUUID();
+  let binding: DocumentBinding | undefined;
+  const receive = (event: MessageEvent) => {
+    const data = event.data as {
+      type?: unknown;
+      request_id?: unknown;
+      document_revision?: unknown;
+      operation?: unknown;
+      status?: unknown;
+      hidden?: unknown;
+    } | null;
+    if (
+      !data ||
+      data.type !== RESULT ||
+      data.request_id !== requestId ||
+      data.document_revision !== binding?.document_revision ||
+      data.operation !== "panel" ||
+      data.status !== "ok" ||
+      typeof data.hidden !== "boolean"
+    )
+      return;
+    changed(data.hidden);
+  };
+  const send = () => {
+    const current = host.__kombifyHomelabDocument;
+    if (
+      binding ||
+      !current ||
+      !Number.isSafeInteger(current.document_revision) ||
+      typeof current.document_token !== "string"
+    )
+      return;
+    binding = { ...current };
+    try {
+      bridge.postMessage({
+        type: `${PREFIX}panel.v1`,
+        request_id: requestId,
+        document_revision: binding.document_revision,
+        document_token: binding.document_token,
+      });
+    } catch {
+      /* The document is going away; the next one asks again. */
+    }
+  };
+  bridge.addEventListener("message", receive);
+  host.addEventListener("kombify-homelab-device-context-ready", send);
+  send();
+  return () => {
+    bridge.removeEventListener("message", receive);
+    host.removeEventListener("kombify-homelab-device-context-ready", send);
+  };
+}

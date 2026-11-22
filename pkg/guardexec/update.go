@@ -175,7 +175,7 @@ func NewUpdater(cfg UpdaterConfig) (*Updater, error) {
 		return nil, errors.New("updater needs a state directory, a handoff directory and both executable paths")
 	}
 	if cfg.AgentUnit == "" {
-		cfg.AgentUnit = "techstack-agent.service"
+		cfg.AgentUnit = AgentUnit
 	}
 	if cfg.SystemdDir == "" {
 		cfg.SystemdDir = "/etc/systemd/system"

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import HomelabBrandLogo from "#lib/components/HomelabBrandLogo.svelte";
   import { tr } from "#lib/i18n.svelte.js";
   // Auth redirect is now handled by +page.ts load function
   // This page shows a loading state while the redirect happens
@@ -6,21 +7,7 @@
 
 <div class="min-h-full flex items-center justify-center">
   <div class="text-center">
-    <div class="text-6xl mb-4 text-primary">
-      <svg
-        class="w-16 h-16 mx-auto animate-pulse"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="1.5"
-          d="M13 10V3L4 14h7v7l9-11h-7z"
-        />
-      </svg>
-    </div>
+    <HomelabBrandLogo sizes="240px" class="mx-auto mb-4 w-60 max-w-full" />
     <p class="mb-4 text-sm text-muted-foreground">
       {tr("ui.redirect.homelab")}
     </p>

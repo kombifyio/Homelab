@@ -30,7 +30,7 @@ const (
 	OwnerSSHAccessEnabled  = "enabled"
 	OwnerSSHAccessDisabled = "disabled"
 
-	guardServiceUnit = "techstack-agent.service"
+	guardServiceUnit = "homelab-agent.service"
 	maxOwnerKeys     = 16
 )
 
@@ -132,6 +132,8 @@ type Channel struct {
 	Now     func() time.Time
 	// run is replaceable for behavior tests; production uses Run.
 	run func(ctx context.Context, target *jobs.ManagedRuntimeTarget, fingerprint, command, stdin string) (string, error)
+	// wait is replaceable for behavior tests; production sleeps.
+	wait func(ctx context.Context, d time.Duration) error
 }
 
 func (c *Channel) now() time.Time {
