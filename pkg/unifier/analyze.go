@@ -29,7 +29,7 @@ func (e *Engine) Analyze(spec *core.KombinationSpec) (*core.RequirementsSpec, er
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
-	// Robustheit: nil-Spec wird mit leerer Config behandelt
+	// Robustness: nil spec is treated as an empty config.
 	if spec == nil {
 		spec = &core.KombinationSpec{
 			Name: "default-stack",

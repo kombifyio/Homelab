@@ -1,8 +1,24 @@
 {
   "schemaVersion": "stackkits.release-notes/v1",
-  "version": "v0.61.0",
+  "version": "v0.61.2",
   "changelogUrl": "https://stackkit.cc/changelog",
   "releases": [
+    {
+      "version": "v0.61.2",
+      "date": "2026-11-23",
+      "entries": []
+    },
+    {
+      "version": "v0.61.1",
+      "date": "2026-11-22",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "",
+          "text": "complete Managed Apps Phase 2 contracts"
+        }
+      ]
+    },
     {
       "version": "v0.61.0",
       "date": "2026-11-22",
@@ -1733,53 +1749,6 @@
           "kind": "fixed",
           "scope": "remove",
           "text": "keep a Techstack-managed workspace's intent so every destroy removal resolves the applied plan"
-        }
-      ]
-    },
-    {
-      "version": "v0.55.13",
-      "date": "2026-11-04",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "homelab identity and access P0 (..igti.7)"
-        }
-      ]
-    },
-    {
-      "version": "v0.55.12",
-      "date": "2026-11-03",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "access contracts for the homelab identity target; WireGuard overlay out of the default"
-        },
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "enrollment by the person with LAN-listener home, step-up classes and the local removal chain"
-        },
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "key-bound device credential with DPoP renewal and verifier rework; retire the X.509 device certificate"
-        },
-        {
-          "kind": "added",
-          "scope": "speechkit",
-          "text": "Parakeet STT, LAN listener and mDNS announcer for the homelab speech module"
-        },
-        {
-          "kind": "added",
-          "scope": "techstack",
-          "text": "StackKits update setting, proposal with highlights and security patches without approval"
-        },
-        {
-          "kind": "fixed",
-          "scope": "techstack",
-          "text": "let agents acting for the person pass fresh-MFA step-ups per §5e"
         }
       ]
     }
