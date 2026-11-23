@@ -138,7 +138,7 @@ var betaFeatures = map[string]FeatureDefinition{
 	"local_ai_providers": {
 		Key: "local_ai_providers", Name: "Local AI providers", DefaultValue: false,
 		RiskLevel: RiskLevelLow, Category: CategoryBeta,
-		Description: "Show Settings › AI providers with the local AI runtimes this PC shares with the other kombify apps.",
+		Description: "Show Settings › AI providers with the local AI runtimes this PC shares with the other kombify apps, and let the Companion answer on the runtime the person chooses (this PC's Ollama or their homelab server's).",
 	},
 	"cloudflare_tunnel": {
 		Key:             "cloudflare_tunnel_enabled",

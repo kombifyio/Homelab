@@ -18,6 +18,12 @@ import {
   watchLocalAi,
   type LocalAiSnapshot,
 } from "#lib/client/local-ai-bridge.js";
+import {
+  localAnswerOf,
+  setLocalAiFlag,
+  setLocalAiSnapshot,
+} from "#lib/ai/local-answer.svelte.js";
+import { features } from "#lib/stores/features.js";
 
 // The account record and a switched-on runtime's probe are cheap but not free: a panel open
 // refreshes at most this often; a sign-in or a change of the device file always refreshes.
@@ -28,6 +34,8 @@ const REFRESH_MS = 30_000;
 let current: AiSetup = buildAiSetup({ aiUse: null });
 let lastRefresh = 0;
 let generation = 0;
+// The flag `local_ai_providers` as last read: a local answer counts only with it on.
+let localFlag = false;
 const subscribers = new Set<(setup: AiSetup) => void>();
 
 export function currentAiSetup(): AiSetup {
@@ -76,7 +84,14 @@ export async function refreshAiSetup(force = false): Promise<void> {
   const mine = ++generation;
   const [aiUse, local] = await Promise.all([fetchAiUse(), readLocal()]);
   if (mine !== generation) return; // a newer read answers
-  publish(buildAiSetup({ aiUse, local }));
+  setLocalAiSnapshot(local);
+  publish(
+    buildAiSetup({
+      aiUse,
+      local,
+      localAnswer: localAnswerOf(local, localFlag),
+    }),
+  );
 }
 
 /**
@@ -86,8 +101,18 @@ export async function refreshAiSetup(force = false): Promise<void> {
 export function startAiSetup(): () => void {
   applyTags(current);
   const stopWatching = watchLocalAi(() => void refreshAiSetup(true));
+  const stopFlag = features.allFeatures.subscribe((all) => {
+    const on =
+      hasLocalAiBridge() && (all.get("local_ai_providers")?.enabled ?? false);
+    setLocalAiFlag(on);
+    if (on !== localFlag) {
+      localFlag = on;
+      void refreshAiSetup(true);
+    }
+  });
   void refreshAiSetup(true);
   return () => {
     stopWatching();
+    stopFlag();
   };
 }

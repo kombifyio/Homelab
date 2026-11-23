@@ -4,12 +4,14 @@
    * provider-source standard drawn from Homelab's own settings components (workspace
    * `platform/standards/local-ai-runtimes.v1.md` rule 6). Three source cards filter the list;
    * the Local list shows each runtime's standard row, off until switched on, with its server
-   * address and status line. The runtimes are the device-wide file every kombify app on this
-   * PC shares; a change in another app shows here at once. Homelab Runtime runs no AI on a
-   * local runtime yet, and the row says so.
+   * address and status line: this PC's Ollama and the Ollama of the person's homelab servers
+   * (rule 2, `ollama-<name>`). "Answers in Homelab" is the answer choice of rule 9: the
+   * Companion's questions run on the chosen runtime and model. The runtimes and the choice are
+   * the device-wide file every kombify app on this PC shares; a change in another app shows here
+   * at once. The homelab-server rows and the answer choice are an agent design (2026-11-23).
    */
   import { onMount } from "svelte";
-  import { Bot, Code, Cpu, Laptop, Terminal } from "@lucide/svelte";
+  import { Bot, Code, Cpu, Laptop, Server, Terminal } from "@lucide/svelte";
   import { brandMarkRosetteSrc } from "@kombiverselabs/ui/shell";
   import {
     OptionTiles,
@@ -23,20 +25,32 @@
   import Button from "#lib/components/ui/Button.svelte";
   import Switch from "#lib/components/ui/Switch.svelte";
   import { fetchAiUse, type AiUseChoice } from "#lib/ai/ai-use.js";
+  import { listCanonicalServices } from "#lib/api/services.js";
   import {
+    addLocalAiRuntime,
     readLocalAi,
+    removeLocalAiRuntime,
+    setLocalAiAnswer,
     watchLocalAi,
     writeLocalAi,
     type LocalAiRefusal,
     type LocalAiRuntime,
     type LocalAiSnapshot,
   } from "#lib/client/local-ai-bridge.js";
+  import { localAiReasonText, runtimeName } from "#lib/ai/local-ai-names.js";
 
   type Source = "kombify" | "other" | "local";
   const SOURCE_KEY = "kombify.homelab.provider-source";
-  const RUNTIME_NAMES: Record<string, { name: string; domain: string }> = {
-    ollama: { name: "Ollama", domain: "ollama.com" },
-  };
+  const RUNTIME_DOMAINS: Record<string, string> = { ollama: "ollama.com" };
+  // The value of the answer choice for "answer from the account's AI use".
+  const ACCOUNT = "";
+
+  /** An Ollama app one of the person's servers runs, as the homelab inventory reports it. */
+  interface HomelabOllama {
+    id: string;
+    name: string;
+    endpoint: string;
+  }
 
   let snapshot = $state<LocalAiSnapshot | null>(null);
   let aiUse = $state<AiUseChoice | null | "loading">("loading");
@@ -44,6 +58,9 @@
   let pending = $state(false);
   let refusal = $state<LocalAiRefusal | null>(null);
   let endpointDrafts = $state<Record<string, string>>({});
+  let homelabOllamas = $state<HomelabOllama[] | null>(null);
+  let newName = $state("");
+  let newEndpoint = $state("");
   const resolved = theme.resolved;
 
   function readStoredSource(): Source | null {
@@ -101,13 +118,45 @@
       hint: tr("settings.aiProviders.source.local.description"),
     },
   ]);
-  // The stored choice while it works, else kombify AI where it works, else Local.
+  // The stored choice while it works, else Local while a local answer is chosen, else kombify
+  // AI where it works, else Local.
   const source = $derived<Source>(
     stored === "local" || (stored === "kombify" && kombifyAvailable)
       ? stored
-      : kombifyAvailable
-        ? "kombify"
-        : "local",
+      : snapshot?.answer
+        ? "local"
+        : kombifyAvailable
+          ? "kombify"
+          : "local",
+  );
+
+  const answer = $derived(snapshot?.readable ? snapshot.answer : undefined);
+  const answerRuntime = $derived(
+    answer ? snapshot?.runtimes.find((r) => r.id === answer.runtime) : undefined,
+  );
+  // A runtime may answer once it is switched on; the chosen one stays listed while it is off.
+  const answerChoices = $derived(
+    (snapshot?.runtimes ?? []).filter(
+      (runtime) => runtime.enabled || runtime.id === answer?.runtime,
+    ),
+  );
+  const answerModels = $derived(
+    answerRuntime?.status?.chatModels ?? answerRuntime?.status?.models ?? [],
+  );
+  const answerStatus = $derived.by(() => {
+    if (!answer) return tr("settings.aiProviders.answer.account");
+    const name = runtimeName(answerRuntime ?? answer.runtime);
+    if (answer.reason === undefined)
+      return tr("settings.aiProviders.status.checking");
+    if (answer.reason)
+      return localAiReasonText(answer.reason, name, answer.model);
+    return tr("settings.aiProviders.answer.ready", {
+      name,
+      model: answer.resolvedModel || answer.model,
+    });
+  });
+  const addedEndpoints = $derived(
+    new Set((snapshot?.runtimes ?? []).map((runtime) => runtime.endpoint)),
   );
 
   async function refresh() {
@@ -118,23 +167,73 @@
     }
   }
 
-  async function write(
-    runtime: LocalAiRuntime,
-    change: { enabled?: boolean; endpoint?: string },
+  async function apply(
+    run: () => Promise<LocalAiSnapshot | { refused: LocalAiRefusal }>,
+    after?: () => void,
   ) {
     pending = true;
     refusal = null;
     try {
-      const answer = await writeLocalAi(runtime.id, change);
-      if ("refused" in answer) refusal = answer.refused;
+      const result = await run();
+      if ("refused" in result) refusal = result.refused;
       else {
-        snapshot = answer;
-        delete endpointDrafts[runtime.id];
+        snapshot = result;
+        after?.();
       }
     } catch {
       refusal = "failed";
     } finally {
       pending = false;
+    }
+  }
+
+  function write(
+    runtime: LocalAiRuntime,
+    change: { enabled?: boolean; endpoint?: string },
+  ) {
+    return apply(
+      () => writeLocalAi(runtime.id, change),
+      () => delete endpointDrafts[runtime.id],
+    );
+  }
+
+  function chooseAnswer(runtime: string, model = "") {
+    return apply(() =>
+      setLocalAiAnswer(runtime === ACCOUNT ? null : { runtime, model }),
+    );
+  }
+
+  function addRuntime(name: string, endpoint: string) {
+    return apply(
+      () => addLocalAiRuntime(name, endpoint),
+      () => {
+        newName = "";
+        newEndpoint = "";
+      },
+    );
+  }
+
+  // The Ollama apps of the person's servers (the canonical services of the homelab inventory):
+  // each one's web address is the runtime's server address.
+  async function loadHomelabOllamas() {
+    try {
+      const services = await listCanonicalServices();
+      homelabOllamas = services
+        .filter(
+          (service) =>
+            (service.application_key === "ollama" ||
+              service.catalog?.id === "ollama") &&
+            typeof service.access.url === "string" &&
+            /^https?:\/\//.test(service.access.url),
+        )
+        .map((service) => ({
+          id: service.id,
+          name:
+            service.server_id || service.application_display_name || service.name,
+          endpoint: String(service.access.url).replace(/\/+$/, ""),
+        }));
+    } catch {
+      homelabOllamas = [];
     }
   }
 
@@ -157,14 +256,17 @@
       ? tr("settings.aiProviders.refused.endpoint")
       : refusal === "unreadable"
         ? tr("settings.aiProviders.refused.unreadable")
-        : refusal === "failed"
-          ? tr("settings.aiProviders.refused.failed")
-          : "",
+        : refusal === "invalid"
+          ? tr("settings.aiProviders.refused.invalid")
+          : refusal === "failed"
+            ? tr("settings.aiProviders.refused.failed")
+            : "",
   );
 
   onMount(() => {
     void refresh();
     void fetchAiUse().then((choice) => (aiUse = choice));
+    void loadHomelabOllamas();
     return watchLocalAi(() => void refresh());
   });
 </script>
@@ -215,6 +317,68 @@
     />
   </SettingsSection>
 
+  {#if snapshot}
+    <SettingsSection
+      id="ai-provider-answer"
+      title={tr("settings.aiProviders.answer")}
+    >
+      <SettingsRow
+        label={tr("settings.aiProviders.answer.with")}
+        description={tr("settings.aiProviders.answer.description")}
+        facts={[
+          { label: tr("settings.aiProviders.status"), value: answerStatus },
+        ]}
+        for="local-ai-answer"
+      >
+        <select
+          id="local-ai-answer"
+          data-testid="local-ai-answer"
+          class="max-w-64 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={pending || !snapshot.readable}
+          value={answer?.runtime ?? ACCOUNT}
+          onchange={(event) => void chooseAnswer(event.currentTarget.value)}
+        >
+          <option value={ACCOUNT}>{tr("settings.aiProviders.answer.kombify")}</option>
+          {#each answerChoices as runtime (runtime.id)}
+            <option value={runtime.id}
+              >{tr("settings.aiProviders.answer.local", {
+                name: runtimeName(runtime),
+              })}</option
+            >
+          {/each}
+        </select>
+      </SettingsRow>
+      {#if answer}
+        <SettingsRow
+          label={tr("settings.aiProviders.answer.model")}
+          description={tr("settings.aiProviders.answer.scope")}
+          for="local-ai-answer-model"
+          narrow="below"
+        >
+          <select
+            id="local-ai-answer-model"
+            data-testid="local-ai-answer-model"
+            class="max-w-64 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={pending}
+            value={answer.model}
+            onchange={(event) =>
+              void chooseAnswer(answer.runtime, event.currentTarget.value)}
+          >
+            <option value=""
+              >{tr("settings.aiProviders.answer.firstModel")}</option
+            >
+            {#each answerModels as model (model)}
+              <option value={model}>{model}</option>
+            {/each}
+            {#if answer.model && !answerModels.includes(answer.model)}
+              <option value={answer.model}>{answer.model}</option>
+            {/if}
+          </select>
+        </SettingsRow>
+      {/if}
+    </SettingsSection>
+  {/if}
+
   <SettingsSection
     id="ai-provider-list"
     title={tr("settings.aiProviders.title")}
@@ -225,27 +389,33 @@
         description={tr("settings.aiProviders.kombify.description")}
       >
         <span class="text-sm text-muted-foreground"
-          >{tr("settings.aiProviders.kombify.active")}</span
+          >{answer
+            ? tr("settings.aiProviders.kombify.localAnswers")
+            : tr("settings.aiProviders.kombify.active")}</span
         >
       </SettingsRow>
     {:else if source === "local" && snapshot}
       {#each snapshot.runtimes as runtime (runtime.id)}
-        {@const meta = RUNTIME_NAMES[runtime.id] ?? {
-          name: runtime.id,
-          domain: "",
-        }}
+        {@const domain = RUNTIME_DOMAINS[runtime.kind] ?? ""}
         <SettingsRow
-          label={meta.name}
-          description={tr("settings.aiProviders.ollama.description")}
+          label={runtimeName(runtime)}
+          description={runtime.remote
+            ? tr("settings.aiProviders.remote.description")
+            : tr("settings.aiProviders.ollama.description")}
           facts={[
-            { label: tr("settings.aiProviders.status"), value: statusLine(runtime) },
+            {
+              label: tr("settings.aiProviders.status"),
+              value: statusLine(runtime),
+            },
           ]}
           for={`local-ai-${runtime.id}`}
         >
           <span class="flex items-center gap-3">
-            {#if meta.domain}
+            {#if runtime.remote}
+              <Server class="size-5 text-muted-foreground" aria-hidden="true" />
+            {:else if domain}
               <img
-                src={localBrandLogoUrl(meta.domain)}
+                src={localBrandLogoUrl(domain)}
                 alt=""
                 draggable="false"
                 class="size-6 rounded object-contain"
@@ -255,7 +425,7 @@
               id={`local-ai-${runtime.id}`}
               testId={`local-ai-${runtime.id}`}
               checked={runtime.enabled}
-              label={meta.name}
+              label={runtimeName(runtime)}
               disabled={pending || !snapshot.readable}
               onchange={(next) => void write(runtime, { enabled: next })}
               onText={tr("settings.aiProviders.on")}
@@ -265,7 +435,9 @@
         </SettingsRow>
         <SettingsRow
           label={tr("settings.aiProviders.endpoint")}
-          description={tr("settings.aiProviders.endpoint.description")}
+          description={runtime.remote
+            ? tr("settings.aiProviders.homelab.endpoint.description")
+            : tr("settings.aiProviders.endpoint.description")}
           for={`local-ai-${runtime.id}-endpoint`}
           narrow="below"
         >
@@ -274,7 +446,7 @@
               id={`local-ai-${runtime.id}-endpoint`}
               type="url"
               class="w-64 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-60"
-              placeholder={runtime.defaultEndpoint}
+              placeholder={runtime.defaultEndpoint || runtime.endpoint}
               disabled={pending || !snapshot.readable}
               value={endpointDrafts[runtime.id] ?? runtime.endpoint}
               oninput={(event) =>
@@ -289,10 +461,23 @@
                   void write(runtime, {
                     endpoint:
                       endpointDrafts[runtime.id]?.trim() ||
-                      runtime.defaultEndpoint,
+                      runtime.defaultEndpoint ||
+                      runtime.endpoint,
                   })}
               >
                 {tr("settings.aiProviders.save")}
+              </Button>
+            {/if}
+            {#if runtime.remote}
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={pending}
+                testId={`local-ai-${runtime.id}-remove`}
+                onclick={() =>
+                  void apply(() => removeLocalAiRuntime(runtime.id))}
+              >
+                {tr("settings.aiProviders.remove")}
               </Button>
             {/if}
           </span>
@@ -305,4 +490,74 @@
       {/if}
     {/if}
   </SettingsSection>
+
+  {#if source === "local" && snapshot?.readable}
+    <SettingsSection
+      id="ai-provider-homelab"
+      title={tr("settings.aiProviders.homelab")}
+    >
+      {#each homelabOllamas ?? [] as found (found.id)}
+        <SettingsRow
+          label={tr("settings.aiProviders.homelab.found", { name: found.name })}
+          description={found.endpoint}
+        >
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={pending || addedEndpoints.has(found.endpoint)}
+            onclick={() => void addRuntime(found.name, found.endpoint)}
+          >
+            {addedEndpoints.has(found.endpoint)
+              ? tr("settings.aiProviders.homelab.added")
+              : tr("settings.aiProviders.homelab.add")}
+          </Button>
+        </SettingsRow>
+      {/each}
+      {#if homelabOllamas !== null && homelabOllamas.length === 0}
+        <p class="px-1 text-sm text-muted-foreground">
+          {tr("settings.aiProviders.homelab.none")}
+        </p>
+      {/if}
+      <SettingsRow
+        label={tr("settings.aiProviders.homelab.manual")}
+        description={tr("settings.aiProviders.homelab.description")}
+        for="local-ai-new-name"
+        narrow="below"
+      >
+        <form
+          class="flex flex-wrap items-center gap-2"
+          onsubmit={(event) => {
+            event.preventDefault();
+            void addRuntime(newName.trim(), newEndpoint.trim());
+          }}
+        >
+          <input
+            id="local-ai-new-name"
+            data-testid="local-ai-new-name"
+            class="w-32 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground"
+            maxlength="80"
+            placeholder={tr("settings.aiProviders.homelab.namePlaceholder")}
+            aria-label={tr("settings.aiProviders.homelab.name")}
+            bind:value={newName}
+          />
+          <input
+            type="url"
+            data-testid="local-ai-new-endpoint"
+            class="w-56 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground"
+            placeholder="http://192.168.1.20:11434"
+            aria-label={tr("settings.aiProviders.endpoint")}
+            bind:value={newEndpoint}
+          />
+          <Button
+            type="submit"
+            variant="secondary"
+            size="sm"
+            disabled={pending || !newName.trim() || !newEndpoint.trim()}
+          >
+            {tr("settings.aiProviders.homelab.add")}
+          </Button>
+        </form>
+      </SettingsRow>
+    </SettingsSection>
+  {/if}
 </div>

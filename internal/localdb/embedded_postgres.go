@@ -145,6 +145,14 @@ func StartEmbeddedPostgresWithAdoption(dataDir, adoptIdentity string) (*Embedded
 		StartParameters(loopback.startParameters(custody.startupNonce)).
 		Logger(logFile)
 
+	if runtime.GOOS == "windows" {
+		// initdb takes the Windows code page otherwise (WIN1252 on a German
+		// Windows), and migrations that use characters outside it (199 builds
+		// Go's whitespace set with chr()) fail on a fresh cluster. UTF8 needs a
+		// locale that admits it; C does on every Windows. Only a new cluster is
+		// initialised; an existing data directory keeps its encoding.
+		cfg = cfg.Encoding("UTF8").Locale("C")
+	}
 	if repoURL := strings.TrimSpace(os.Getenv(EnvEmbeddedPostgresRepositoryURL)); repoURL != "" {
 		cfg = cfg.BinaryRepositoryURL(repoURL)
 	}

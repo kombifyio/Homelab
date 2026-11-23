@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 namespace Kombify.Client.Shell;
 
@@ -16,7 +17,7 @@ namespace Kombify.Client.Shell;
 /// <c>undecided</c> or an unreadable record is <c>unknown</c>); <see cref="ActiveSource"/> is what answers
 /// in this app right now (<c>kombify|other|local</c>).
 /// </summary>
-public sealed record CompanionAiSetup
+public sealed partial record CompanionAiSetup
 {
     public const string SourceKombify = "kombify";
     public const string SourceOther = "other";
@@ -29,18 +30,25 @@ public sealed record CompanionAiSetup
     public CompanionLocalRuntimes? LocalRuntimes { get; init; }
 
     /// <summary>
-    /// The local runtimes as the device-wide file holds them: Ollama's <c>enabled</c> from the file;
-    /// <c>reachable</c> only when <paramref name="statuses"/> has a status for it (a probe was made).
+    /// The local runtimes as the device-wide file holds them, by row id (the device's <c>ollama</c> and
+    /// runtimes on another machine such as <c>ollama-nas</c>, at most <see cref="MaxLocalRuntimes"/>):
+    /// <c>enabled</c> from the file; <c>reachable</c> only when <paramref name="statuses"/> has a status
+    /// for it (a probe was made).
     /// </summary>
     public static CompanionLocalRuntimes LocalFrom(LocalAiRuntimesSnapshot snapshot,
         IReadOnlyDictionary<string, LocalAiRuntimeStatus>? statuses = null)
     {
-        var ollama = snapshot.Find(LocalAiRuntimes.Ollama);
-        bool? reachable = statuses is not null && statuses.TryGetValue(LocalAiRuntimes.Ollama, out var status)
-            ? status.Reachable
-            : null;
-        return new CompanionLocalRuntimes { Ollama = new CompanionLocalRuntime { Enabled = ollama.Enabled, Reachable = reachable } };
+        var runtimes = new Dictionary<string, CompanionLocalRuntime>(StringComparer.Ordinal);
+        foreach (var runtime in snapshot.Runtimes.Take(MaxLocalRuntimes))
+        {
+            bool? reachable = statuses is not null && statuses.TryGetValue(runtime.Id, out var status) ? status.Reachable : null;
+            runtimes[runtime.Id] = new CompanionLocalRuntime { Enabled = runtime.Enabled, Reachable = reachable };
+        }
+        return new CompanionLocalRuntimes { Runtimes = runtimes };
     }
+
+    /// <summary>The most runtimes one block names (the schema's <c>maxProperties</c>).</summary>
+    public const int MaxLocalRuntimes = 8;
 
     /// <summary>
     /// Strict: exactly the wire shape, or null (an unknown or null member, a wrong type, an unknown
@@ -126,15 +134,16 @@ public sealed record CompanionAiSetup
         };
         if (!string.IsNullOrEmpty(Provider)) block["provider"] = Provider;
         if (!string.IsNullOrEmpty(Model)) block["model"] = Model;
-        if (LocalRuntimes?.Ollama is { } ollama)
+        if (LocalRuntimes is not null)
         {
-            var runtime = new JsonObject { ["enabled"] = ollama.Enabled };
-            if (ollama.Reachable is { } reachable) runtime["reachable"] = reachable;
-            block["localRuntimes"] = new JsonObject { ["ollama"] = runtime };
-        }
-        else if (LocalRuntimes is not null)
-        {
-            block["localRuntimes"] = new JsonObject();
+            var runtimes = new JsonObject();
+            foreach (var (id, local) in LocalRuntimes.Runtimes)
+            {
+                var runtime = new JsonObject { ["enabled"] = local.Enabled };
+                if (local.Reachable is { } reachable) runtime["reachable"] = reachable;
+                runtimes[id] = runtime;
+            }
+            block["localRuntimes"] = runtimes;
         }
         return block;
     }
@@ -150,11 +159,11 @@ public sealed record CompanionAiSetup
     private static CompanionLocalRuntimes? ParseLocal(JsonElement element)
     {
         if (element.ValueKind != JsonValueKind.Object) return null;
-        CompanionLocalRuntime? ollama = null;
-        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var runtimes = new Dictionary<string, CompanionLocalRuntime>(StringComparer.Ordinal);
         foreach (var property in element.EnumerateObject())
         {
-            if (!seen.Add(property.Name) || property.Name != "ollama" || property.Value.ValueKind != JsonValueKind.Object) return null;
+            if (runtimes.ContainsKey(property.Name) || runtimes.Count >= MaxLocalRuntimes
+                || !RuntimeId().IsMatch(property.Name) || property.Value.ValueKind != JsonValueKind.Object) return null;
             bool? enabled = null, reachable = null;
             var inner = new HashSet<string>(StringComparer.Ordinal);
             foreach (var member in property.Value.EnumerateObject())
@@ -169,16 +178,23 @@ public sealed record CompanionAiSetup
                 }
             }
             if (enabled is not { } on) return null;
-            ollama = new CompanionLocalRuntime { Enabled = on, Reachable = reachable };
+            runtimes[property.Name] = new CompanionLocalRuntime { Enabled = on, Reachable = reachable };
         }
-        return new CompanionLocalRuntimes { Ollama = ollama };
+        return new CompanionLocalRuntimes { Runtimes = runtimes };
     }
+
+    [GeneratedRegex("^[a-z][a-z0-9-]{0,31}$")]
+    private static partial Regex RuntimeId();
 }
 
-/// <summary>The device-local runtimes of the block; a runtime that is not named is not known.</summary>
+/// <summary>The local runtimes of the block by row id; a runtime that is not named is not known.</summary>
 public sealed record CompanionLocalRuntimes
 {
-    public CompanionLocalRuntime? Ollama { get; init; }
+    public IReadOnlyDictionary<string, CompanionLocalRuntime> Runtimes { get; init; } =
+        new Dictionary<string, CompanionLocalRuntime>(StringComparer.Ordinal);
+
+    /// <summary>The device's own Ollama, when named.</summary>
+    public CompanionLocalRuntime? Ollama => Runtimes.GetValueOrDefault(LocalAiRuntimes.Ollama);
 }
 
 /// <summary><see cref="Reachable"/> is set only when a probe was made.</summary>
