@@ -380,6 +380,128 @@ func rolloutRetryCurrentIntent(source controlplane.Job, leaseID, serverID string
 		"agent_id": agentID, "stackkit": kit, "spec_path": path, "release": release}, nil
 }
 
+// rolloutRetryLineageDepth bounds how many retry replacements are followed
+// back to the job that proved the node intent.
+const rolloutRetryLineageDepth = 8
+
+// rolloutRetryApplyProofField names, on an inherited intent, the failed Apply
+// job that proved the node intent. source_job_id then names the direct source
+// the bind compares with the dispatch.
+const rolloutRetryApplyProofField = "apply_proof_job_id"
+
+// storedRolloutRetryIntent returns the intent a retry replacement recorded at
+// dispatch, after cross-checking that the record is the one deterministic job
+// of its own source, lease and server. It returns nil for anything else.
+func storedRolloutRetryIntent(stackID string, replacement controlplane.Job, leaseID, serverID string) map[string]any {
+	key := stringFromAny(replacement.Result[rolloutRetryKeyField])
+	sourceID := stringFromAny(replacement.Result[rolloutRetrySourceField])
+	prior, _ := providerIdentityMap(replacement.Result[jobs.RolloutRetryCurrentIntentField])
+	if key == "" || sourceID == "" || len(prior) == 0 ||
+		stringFromAny(replacement.Result[rolloutRetryKindField]) != rolloutRetryKindExact ||
+		stringFromAny(replacement.Result[rolloutRetryReplacementField]) != replacement.ID ||
+		replacement.ID != exactRolloutRetryJobID(key) ||
+		key != exactRolloutRetryKey(stackID, sourceID, leaseID) ||
+		stringFromAny(prior["source_job_id"]) != sourceID ||
+		stringFromAny(prior["lease_id"]) != leaseID || stringFromAny(prior["server_id"]) != serverID ||
+		stringFromAny(prior["apply_source_job_id"]) != "" {
+		return nil
+	}
+	for _, field := range []string{"agent_id", "stackkit", "spec_path", "release"} {
+		if strings.TrimSpace(stringFromAny(prior[field])) == "" {
+			return nil
+		}
+	}
+	return prior
+}
+
+// inheritRolloutRetryIntent re-addresses a proven intent to a new direct
+// source, keeping the Apply job that proved it as apply_proof_job_id.
+func inheritRolloutRetryIntent(prior map[string]any, sourceID string) map[string]any {
+	inherited := cloneProvisionSpec(prior)
+	if stringFromAny(inherited[rolloutRetryApplyProofField]) == "" {
+		inherited[rolloutRetryApplyProofField] = stringFromAny(prior["source_job_id"])
+	}
+	inherited["source_job_id"] = sourceID
+	return inherited
+}
+
+// inheritedRolloutRetryIntent finds the proven node intent behind a source that
+// carries no typed failure of its own: a replacement that, as far as its record
+// shows, never reached the node (an absent typed record is the only evidence;
+// it is not proof). It follows the chain of exact retry replacements, at most
+// rolloutRetryLineageDepth, to the first one that recorded an intent or to the
+// failed Apply that proves it, and re-addresses that intent to this source. A
+// source that did reach the node is judged by its own typed failure instead.
+func (o *Orchestrator) inheritedRolloutRetryIntent(ctx context.Context, req RolloutRetryRequest, source controlplane.Job, serverID string) (map[string]any, error) {
+	current := source
+	seen := map[string]bool{}
+	for depth := 0; depth < rolloutRetryLineageDepth; depth++ {
+		if seen[current.ID] || current.TenantID != req.TenantID {
+			return nil, nil
+		}
+		seen[current.ID] = true
+		// Every walked job must itself be a failed deploy of this stack on this lease
+		// and server. The candidate digest is deliberately not compared: the applied
+		// document is always the stack's current admitted candidate (an owner repair
+		// between attempts changes it legitimately); the walk only proves which node
+		// intent and file exist.
+		if validateRolloutRetrySource(current, req.StackID, req.LeaseID, serverID) != nil {
+			return nil, nil
+		}
+		if _, reachedNode := current.Result["typed_stackkit_rollout"]; reachedNode {
+			if depth == 0 {
+				return nil, nil
+			}
+			proven, err := rolloutRetryCurrentIntent(current, req.LeaseID, serverID)
+			if err != nil || proven == nil {
+				return nil, nil
+			}
+			return inheritRolloutRetryIntent(proven, source.ID), nil
+		}
+		if prior := storedRolloutRetryIntent(req.StackID, current, req.LeaseID, serverID); prior != nil {
+			return inheritRolloutRetryIntent(prior, source.ID), nil
+		}
+		previousID := stringFromAny(current.Result[rolloutRetrySourceField])
+		if previousID == "" || stringFromAny(current.Result[rolloutRetryKindField]) != rolloutRetryKindExact ||
+			stringFromAny(current.Result[rolloutRetryKeyField]) != exactRolloutRetryKey(req.StackID, previousID, req.LeaseID) ||
+			current.ID != exactRolloutRetryJobID(stringFromAny(current.Result[rolloutRetryKeyField])) {
+			return nil, nil
+		}
+		previous, err := o.jobStore.GetJob(ctx, req.TenantID, previousID)
+		if err != nil || previous == nil {
+			return nil, nil
+		}
+		current = *previous
+	}
+	return nil, nil
+}
+
+// movedReleaseInspectIntent makes a failed INIT recoverable when it ran under a
+// StackKits release other than the one its lineage recorded. The caller-hash
+// lineage proves its producer by release and cannot follow a moved pin; the
+// inspect lineage can, because PLAN reads the node's own current hash again, so
+// the retry takes that path (the same CAS the failed Apply lineage uses)
+// instead of demanding a hash for a release nobody pinned the caller to.
+func movedReleaseInspectIntent(stackID string, source controlplane.Job, failure map[string]any, leaseID, serverID string) map[string]any {
+	// A compare-and-swap conflict means someone else changed the node's intent;
+	// the CLI's own message asks a person to review it, so only the caller's hash
+	// may continue. The failure record carries that fact (cas_conflict).
+	if conflict, _ := failure["cas_conflict"].(bool); conflict ||
+		strings.Contains(stringFromAny(failure["stackkit_reason_code"]), "compare_and_swap") ||
+		jobs.IsStackKitIntentConflictText(source.Error+" "+source.ErrorDetails+" "+source.Message) {
+		return nil
+	}
+	prior := storedRolloutRetryIntent(stackID, source, leaseID, serverID)
+	if prior == nil || rolloutRetryReleaseTag(stringFromAny(failure["release"])) == rolloutRetryReleaseTag(stringFromAny(prior["release"])) {
+		return nil
+	}
+	return inheritRolloutRetryIntent(prior, source.ID)
+}
+
+func rolloutRetryReleaseTag(version string) string {
+	return "v" + strings.TrimPrefix(strings.TrimSpace(version), "v")
+}
+
 func isRolloutRetry(opts ProvisionStackOptions) bool {
 	return strings.TrimSpace(opts.rolloutRetryJobID) != "" && strings.TrimSpace(opts.rolloutRetryKey) != "" &&
 		strings.TrimSpace(opts.rolloutRetryNewID) != "" && strings.TrimSpace(opts.RequiredLeaseID) != "" &&
@@ -410,6 +532,13 @@ func exactRecoveryDispatchReceipt(candidate, expected map[string]any, opts Provi
 	return false, nil
 }
 
+func withoutRolloutRetryHops(intent map[string]any) map[string]any {
+	stripped := cloneProvisionSpec(intent)
+	delete(stripped, "source_job_id")
+	delete(stripped, rolloutRetryApplyProofField)
+	return stripped
+}
+
 func exactRolloutRetryKey(stackID, sourceJobID, leaseID string) string {
 	sum := sha256.Sum256([]byte(strings.Join([]string{
 		strings.TrimSpace(stackID), strings.TrimSpace(sourceJobID), strings.TrimSpace(leaseID),
@@ -434,6 +563,19 @@ func exactRolloutRetryReceipt(candidate, expected map[string]any) (bool, error) 
 	}
 	candidateIntent, _ := providerIdentityMap(candidate[jobs.RolloutRetryCurrentIntentField])
 	expectedIntent, _ := providerIdentityMap(expected[jobs.RolloutRetryCurrentIntentField])
+	// A retry dispatched before intent inheritance recorded no intent for a
+	// source that never reached the node. It is the same retry, not another
+	// lineage, when the lineage now computed is an inherited one. Two inherited
+	// intents are the same lineage when everything but the direct source and the
+	// proving Apply agrees.
+	if stringFromAny(expectedIntent[rolloutRetryApplyProofField]) != "" {
+		if len(candidateIntent) == 0 {
+			return true, nil
+		}
+		if reflect.DeepEqual(withoutRolloutRetryHops(candidateIntent), withoutRolloutRetryHops(expectedIntent)) {
+			return true, nil
+		}
+	}
 	if !reflect.DeepEqual(candidateIntent, expectedIntent) {
 		return false, fmt.Errorf("%w: rollout retry native intent lineage changed", stackrouting.ErrIdempotencyConflict)
 	}
@@ -470,7 +612,7 @@ func (o *Orchestrator) findRolloutRetryReplay(
 		case jobs.JobStatePending, jobs.JobStateRunning, jobs.JobStateWaiting, jobs.JobStateCompleted:
 			return replacement.ID, true, false, nil
 		case jobs.JobStateFailed, jobs.JobStateCancelled:
-			return "", false, false, fmt.Errorf("%w: retry replacement is terminal", ErrRolloutRetryInvalid)
+			return "", false, false, fmt.Errorf("%w: retry replacement %s is terminal; retry from that job", ErrRolloutRetryInvalid, replacement.ID)
 		}
 	}
 	switch canonicalEnrollmentJobState(replacement.State) {
@@ -479,7 +621,7 @@ func (o *Orchestrator) findRolloutRetryReplay(
 	case persistentStateRunning, string(jobs.JobStateCompleted):
 		return replacement.ID, true, false, nil
 	case string(jobs.JobStateFailed), string(jobs.JobStateCancelled):
-		return "", false, false, fmt.Errorf("%w: retry replacement is terminal", ErrRolloutRetryInvalid)
+		return "", false, false, fmt.Errorf("%w: retry replacement %s is terminal; retry from that job", ErrRolloutRetryInvalid, replacement.ID)
 	default:
 		return "", false, false, fmt.Errorf("%w: unknown retry replacement state %q", ErrRolloutRetryUnavailable, replacement.State)
 	}

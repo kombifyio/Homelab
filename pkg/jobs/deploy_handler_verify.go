@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -125,6 +124,10 @@ func (r *deployRollout) runTypedStackKitRestoreDrill(ctx context.Context) (map[s
 	if err != nil {
 		return nil, err
 	}
+	nodeSpec, err := r.nodeSpecFile()
+	if err != nil {
+		return nil, err
+	}
 	request, err := NormalizeStackKitLifecycleRequest(StackKitLifecycleRequest{
 		StackID:            r.job.TargetID,
 		StackKitInstanceID: stackName,
@@ -134,7 +137,7 @@ func (r *deployRollout) runTypedStackKitRestoreDrill(ctx context.Context) (map[s
 		NodeRef:            PrimaryStackKitNodeRef(r.unifiedSpec.StackKit),
 		Operation:          StackKitLifecyclePlan,
 		WorkingDirectory:   defaultStackKitNodeWorkspace,
-		SpecPath:           filepath.Base(canonical.Path),
+		SpecPath:           nodeSpec,
 		StackKit:           r.unifiedSpec.StackKit,
 	})
 	if err != nil {

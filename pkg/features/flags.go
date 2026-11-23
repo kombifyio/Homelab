@@ -108,6 +108,26 @@ var betaFeatures = map[string]FeatureDefinition{
 		RiskLevel: RiskLevelLow, Category: CategoryBeta,
 		Description: "Select the IONOS Memory Cube S for full Immich in the Standard slot.",
 	},
+	"placement_board_classes": {
+		Key:             edgeFlagPlacementBoardClasses,
+		Name:            "Placement classes",
+		DefaultValue:    false,
+		RequiresConsent: false,
+		RequiresAdmin:   false,
+		RiskLevel:       RiskLevelLow,
+		Description:     "Show the three placement classes on the Services placement board.",
+		Category:        CategoryBeta,
+	},
+	"navigation_simple": {
+		Key:             edgeFlagCloudNavigationSimple,
+		Name:            "Simplified embedded navigation",
+		DefaultValue:    false,
+		RequiresConsent: false,
+		RequiresAdmin:   false,
+		RiskLevel:       RiskLevelLow,
+		Description:     "Hide Dashboard, Monitoring, and Settings tabs when Homelab is embedded in Cloud.",
+		Category:        CategoryUX,
+	},
 	"server_hardware_fit": {
 		Key: "server_hardware_fit", Name: "Server hardware fit", DefaultValue: false,
 		RiskLevel: RiskLevelLow, Category: CategoryBeta,
@@ -283,6 +303,8 @@ const (
 	edgeFlagHomelabBackupContent          = "homelab.backup.content"
 	edgeFlagHomelabUseCaseAccess          = "homelab.use-case-access"
 	edgeFlagHomelabDecisionReceipt        = "homelab.stackkit-decision-receipt"
+	edgeFlagPlacementBoardClasses         = "placement.board.classes"
+	edgeFlagCloudNavigationSimple         = "cloud.navigation.simple"
 )
 
 var featureDefinitionAliases = map[string]string{
@@ -358,9 +380,8 @@ func (s *Service) flagDecision(ctx context.Context, def FeatureDefinition) (bool
 	if s.edition != "" && s.edition.IsSaaS() {
 		return false, true
 	}
-	// Provider purchasing variants remain off without a centrally supplied
-	// decision, including in the self-host edition.
-	if def.Key == "ionos_standard_photo_memory" {
+	switch def.Key {
+	case "ionos_standard_photo_memory", edgeFlagPlacementBoardClasses, edgeFlagCloudNavigationSimple:
 		return false, false
 	}
 	if s.edition == config.EditionSelfHostOSS {
