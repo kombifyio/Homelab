@@ -22,6 +22,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -205,15 +206,102 @@ type ReplayGuard interface {
 	Seen(ctx context.Context, kid, nonce string) bool
 }
 
+// Error-code header and stable service-fault code emitted when an origin cannot
+// verify a hop the edge signed (platform-zatf1m, D-2026-11-18-10).
+const (
+	HeaderErrorCode              = "X-Kombify-Error-Code"
+	ErrorCodeEdgeHopUnverifiable = "edge_hop_unverifiable"
+)
+
 // Typed verification failures. Middleware returns their text as the JSON
-// "reason" of the 401 response; wrapping verifiers keep them for errors.Is.
+// "reason"; wrapping verifiers keep them for errors.Is.
 var (
 	// ErrEdgeServiceMismatch: the signed X-Kombify-Edge-Service does not
 	// name any of Config.ExpectedServices.
 	ErrEdgeServiceMismatch = errors.New("edge_service_mismatch")
 	// ErrEdgeNonceReplayed: Config.ReplayGuard has already seen the nonce.
 	ErrEdgeNonceReplayed = errors.New("edge_signature_replayed")
+	// ErrEdgeUnknownKeyID: the signed key id does not match any key configured
+	// on this origin (key-id split between Gateway and origin).
+	ErrEdgeUnknownKeyID = errors.New("edge_signature_unknown_key_id")
+	// ErrEdgeSecretMissing: origin has no HMAC or Ed25519 verification key configured.
+	ErrEdgeSecretMissing = errors.New("edge_signature_secret_missing")
+	// ErrEdgePublicKeyMissing: origin requires Ed25519 but has no public keys configured.
+	ErrEdgePublicKeyMissing = errors.New("edge_signature_public_key_missing")
+	// ErrEdgePublicKeyInvalid: origin's configured Ed25519 public-key set is malformed.
+	ErrEdgePublicKeyInvalid = errors.New("edge_signature_public_key_invalid")
+	// ErrEdgeEd25519Missing: origin requires Ed25519 but the signed hop carried only HMAC.
+	ErrEdgeEd25519Missing = errors.New("edge_signature_ed25519_missing")
 )
+
+// IsHopVerificationFault reports whether err indicates an origin-side key
+// configuration or key-split fault rather than a missing, forged, or replayed
+// caller credential. Origins answer 503 with Retry-After and a stable code for
+// these faults, never 401 (platform-zatf1m, D-2026-11-18-10).
+// Note: an unauthenticated caller can supply an unconfigured key id and elicit
+// 503 without being admitted; operational alerts should key on sustained
+// hop_fault rates rather than single 503 events.
+func IsHopVerificationFault(err error) bool {
+	return errors.Is(err, ErrEdgeUnknownKeyID) ||
+		errors.Is(err, ErrEdgeSecretMissing) ||
+		errors.Is(err, ErrEdgePublicKeyMissing) ||
+		errors.Is(err, ErrEdgePublicKeyInvalid)
+}
+
+func truncateLogField(value string, maxBytes int) string {
+	value = strings.TrimSpace(value)
+	if len(value) <= maxBytes {
+		return value
+	}
+	return value[:maxBytes]
+}
+
+func logEdgeVerificationFailure(r *http.Request, reason string, hopFault bool) {
+	slog.Warn("edgeauth: request verification failed",
+		"reason", reason,
+		"hop_fault", hopFault,
+		"method", r.Method,
+		"path", truncateLogField(r.URL.Path, 128),
+		"service", truncateLogField(r.Header.Get(HeaderEdgeService), 128),
+		"key_id", truncateLogField(r.Header.Get(HeaderEdgeKeyID), 128),
+	)
+}
+
+func writeEdgeUnauthorized(w http.ResponseWriter, r *http.Request, reason string) {
+	logEdgeVerificationFailure(r, reason, false)
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("WWW-Authenticate", `Bearer realm="api.kombify.io"`)
+	w.Header().Set(HeaderErrorCode, reason)
+	w.WriteHeader(http.StatusUnauthorized)
+	body, _ := json.Marshal(struct {
+		Error  string `json:"error"`
+		Reason string `json:"reason"`
+	}{Error: "edge_auth_required", Reason: reason})
+	_, _ = w.Write(body)
+}
+
+func writeEdgeHopFault(w http.ResponseWriter, r *http.Request, reason string) {
+	logEdgeVerificationFailure(r, reason, true)
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Retry-After", "2")
+	w.Header().Set(HeaderErrorCode, ErrorCodeEdgeHopUnverifiable)
+	w.WriteHeader(http.StatusServiceUnavailable)
+	// Keep specific origin misconfiguration details in the server log only;
+	// callers receive the stable retryable error code.
+	body, _ := json.Marshal(struct {
+		Error     string `json:"error"`
+		ErrorCode string `json:"error_code"`
+		Reason    string `json:"reason"`
+		Retryable bool   `json:"retryable"`
+	}{
+		Error:     "service_unavailable",
+		ErrorCode: ErrorCodeEdgeHopUnverifiable,
+		Reason:    ErrorCodeEdgeHopUnverifiable,
+		Retryable: true,
+	})
+	_, _ = w.Write(body)
+}
 
 var expectedServiceDeprecation sync.Once
 
@@ -246,21 +334,18 @@ func Middleware(cfg Config) func(next http.Handler) http.Handler {
 			edgeAuth := strings.TrimSpace(r.Header.Get(HeaderEdgeAuth))
 			if edgeAuth == "" {
 				if hasUnsignedIdentityHeaders(r) {
-					w.Header().Set("WWW-Authenticate", `Bearer realm="api.kombify.io"`)
-					http.Error(w, `{"error":"edge_auth_required","reason":"edge_signature_missing"}`, http.StatusUnauthorized)
+					writeEdgeUnauthorized(w, r, "edge_signature_missing")
 					return
 				}
 				if cfg.RequireEdgeAuth {
-					w.Header().Set("WWW-Authenticate", `Bearer realm="api.kombify.io"`)
-					http.Error(w, `{"error":"edge_auth_required","reason":"missing_edge_auth_header"}`, http.StatusUnauthorized)
+					writeEdgeUnauthorized(w, r, "missing_edge_auth_header")
 					return
 				}
 				next.ServeHTTP(w, r)
 				return
 			}
 			if !isSupportedEdgeAuthValue(edgeAuth) {
-				w.Header().Set("WWW-Authenticate", `Bearer realm="api.kombify.io"`)
-				http.Error(w, `{"error":"edge_auth_required","reason":"invalid_edge_auth_header"}`, http.StatusUnauthorized)
+				writeEdgeUnauthorized(w, r, "invalid_edge_auth_header")
 				return
 			}
 
@@ -270,8 +355,11 @@ func Middleware(cfg Config) func(next http.Handler) http.Handler {
 				err = ErrEdgeNonceReplayed
 			}
 			if err != nil {
-				w.Header().Set("WWW-Authenticate", `Bearer realm="api.kombify.io"`)
-				http.Error(w, fmt.Sprintf(`{"error":"edge_auth_required","reason":"%s"}`, err.Error()), http.StatusUnauthorized)
+				if IsHopVerificationFault(err) {
+					writeEdgeHopFault(w, r, err.Error())
+					return
+				}
+				writeEdgeUnauthorized(w, r, err.Error())
 				return
 			}
 
@@ -309,11 +397,11 @@ func verifyEdgeSignature(r *http.Request, cfg Config) error {
 	}
 	requireEd25519 := cfg.RequireEd25519 || strings.EqualFold(strings.TrimSpace(os.Getenv("EDGE_AUTH_REQUIRE_ED25519")), "true")
 	if requireEd25519 && len(publicKeys) == 0 {
-		return fmt.Errorf("edge_signature_public_key_missing")
+		return ErrEdgePublicKeyMissing
 	}
 	hasSecret := primary != "" || next != ""
 	if !hasSecret && len(publicKeys) == 0 {
-		return fmt.Errorf("edge_signature_secret_missing")
+		return ErrEdgeSecretMissing
 	}
 
 	signature := strings.TrimSpace(r.Header.Get(HeaderEdgeSignature))
@@ -344,21 +432,28 @@ func verifyEdgeSignature(r *http.Request, cfg Config) error {
 
 	payload := buildSignaturePayload(version, r.Method, signedPath, keyID, r, timestamp, nonce)
 	if asymmetric != "" && len(publicKeys) > 0 {
-		if !verifyEd25519Envelope(publicKeys, strings.TrimPrefix(asymmetric, version+"="), payload) {
-			return fmt.Errorf("edge_signature_invalid")
+		err := verifyEd25519Envelope(publicKeys, strings.TrimPrefix(asymmetric, version+"="), payload)
+		if err == nil {
+			if !expectedServiceAllowed(cfg.ExpectedServices, r.Header.Get(HeaderEdgeService)) {
+				return ErrEdgeServiceMismatch
+			}
+			return nil
 		}
-		if !expectedServiceAllowed(cfg.ExpectedServices, r.Header.Get(HeaderEdgeService)) {
-			return ErrEdgeServiceMismatch
+		// During an Ed25519 rotation, if the origin does not yet hold the new
+		// Ed25519 public key and is not in RequireEd25519 mode, fall through to
+		// HMAC verification when both an HMAC header and secret are present.
+		if !(errors.Is(err, ErrEdgeUnknownKeyID) && !requireEd25519 && signature != "" && hasSecret) {
+			return err
 		}
-		return nil
 	}
 	if requireEd25519 {
-		return fmt.Errorf("edge_signature_ed25519_missing")
+		return ErrEdgeEd25519Missing
 	}
 	if signature == "" || !hasSecret {
 		return fmt.Errorf("edge_signature_missing")
 	}
 	presented := strings.TrimPrefix(signature, version+"=")
+	matchedKey := false
 	for _, candidate := range []struct {
 		keyID  string
 		secret string
@@ -372,6 +467,7 @@ func verifyEdgeSignature(r *http.Request, cfg Config) error {
 		if keyID != candidate.keyID {
 			continue
 		}
+		matchedKey = true
 		expected := signPayload(candidate.secret, payload)
 		if hmac.Equal([]byte(presented), []byte(expected)) {
 			if !expectedServiceAllowed(cfg.ExpectedServices, r.Header.Get(HeaderEdgeService)) {
@@ -379,6 +475,9 @@ func verifyEdgeSignature(r *http.Request, cfg Config) error {
 			}
 			return nil
 		}
+	}
+	if !matchedKey {
+		return ErrEdgeUnknownKeyID
 	}
 	return fmt.Errorf("edge_signature_invalid")
 }

@@ -53,8 +53,6 @@ var planTierAliasPairs = [][2]string{
 	{"business", "ayn"},
 	{"enterprise", "ayn"},
 	{"team", "ayn"},
-	{"staff", "ayn"},
-	{"internal", "ayn"},
 }
 
 // PlanTierAliases maps every accepted spelling after NormalizeKey, canonical tiers included.
@@ -107,7 +105,7 @@ func NormalizePlanTier(value string) PlanTier {
 	return PlanTierUnknownFallback
 }
 
-// Role is a canonical staff or customer role (ENTITLEMENTS-ARCHITECTURE section 3.1).
+// Role is a canonical role (ENTITLEMENTS-ARCHITECTURE section 3.1).
 type Role string
 
 // RoleGlobalAdmin is the canonical role "global_admin".
@@ -128,9 +126,6 @@ const RoleUser Role = "user"
 // Roles lists every role in descending privilege order.
 var Roles = []Role{RoleGlobalAdmin, RoleAdmin, RoleDeveloper, RoleManager, RoleUser}
 
-// StaffRoles lists the roles that are staff.
-var StaffRoles = []Role{RoleGlobalAdmin, RoleAdmin, RoleDeveloper, RoleManager}
-
 // RoleLevel is the privilege level of each role.
 var RoleLevel = map[Role]int{
 	RoleGlobalAdmin: 100, RoleAdmin: 90, RoleDeveloper: 80, RoleManager: 60, RoleUser: 10,
@@ -148,16 +143,6 @@ func ParseRole(value string) (Role, bool) {
 	return role, ok
 }
 
-// IsStaff reports whether the role is a staff role.
-func (r Role) IsStaff() bool {
-	for _, staff := range StaffRoles {
-		if r == staff {
-			return true
-		}
-	}
-	return false
-}
-
 // KnowledgeTier is a canonical knowledge tier (ENTITLEMENTS-ARCHITECTURE section 3.2).
 type KnowledgeTier string
 
@@ -170,7 +155,6 @@ var knowledgeTierAliasPairs = [][2]string{
 	{"free", "public"},
 	{"client", "customer"},
 	{"dev", "developer"},
-	{"staff", "internal"},
 	{"admin", "owner"},
 }
 
@@ -239,6 +223,7 @@ var EntitlementKeys = []EntitlementKeyDefinition{
 	{Key: "agent.tier.premium", Owner: "kombify-AI-Platform", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Agent premium tier"},
 	{Key: "agent.tier.standard", Owner: "kombify-AI-Platform", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Agent standard tier"},
 	{Key: "agent.tier.ultra", Owner: "kombify-AI-Platform", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Agent ultra tier"},
+	{Key: "ai.companion.chat", Owner: "kombify-AI-Platform", RiskClass: "cost_bearing", GrantSource: "account_baseline", Description: "Signed-in human Companion conversation only, within the existing AI budget"},
 	{Key: "ai.memory.read", Owner: "kombify-AI-Platform", RiskClass: "none", GrantSource: "plan", Description: "Agent recall of the account's own AI memory"},
 	{Key: "ai.models", Owner: "kombify-AI-Platform", RiskClass: "none", GrantSource: "policy", Description: "AI model catalog route"},
 	{Key: "ai.picker.tier-and-models", Owner: "kombify-AI-Platform", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Direct AI model selection, reserved for All You Need"},
@@ -254,6 +239,23 @@ var EntitlementKeys = []EntitlementKeyDefinition{
 	{Key: "cloud.sla.automated", Owner: "kombify-Cloud", RiskClass: "none", GrantSource: "plan", Description: "Automated availability SLA"},
 	{Key: "connect.environments.link", Owner: "kombify-Gateway", RiskClass: "local_reversible", GrantSource: "account_baseline", Description: "Link a Workbench environment and hold a grant on it"},
 	{Key: "connect.installations.manage", Owner: "kombify-Gateway", RiskClass: "local_reversible", GrantSource: "account_baseline", Description: "Register, confirm and revoke device installations"},
+	{Key: "homelab.backup.config", Owner: "kombify-StackKits", RiskClass: "local_reversible", GrantSource: "plan", Description: "Backup configuration class"},
+	{Key: "homelab.backup.content", Owner: "kombify-StackKits", RiskClass: "local_reversible", GrantSource: "plan", Description: "Backup content class"},
+	{Key: "homelab.backup.storage.ayn", Owner: "kombify-StackKits", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Backup storage budget All-You-Need"},
+	{Key: "homelab.backup.storage.pro", Owner: "kombify-StackKits", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Backup storage budget Pro"},
+	{Key: "homelab.backup.storage.starter", Owner: "kombify-StackKits", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Backup storage budget Starter"},
+	{Key: "homelab.inventory.operate", Owner: "kombify-StackKits", RiskClass: "destructive", GrantSource: "plan", Description: "Operate stacks and servers through the Customer MCP (rollouts, routing, start and stop); approval receipt per destructive call"},
+	{Key: "homelab.inventory.provision", Owner: "kombify-StackKits", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Provision stacks and managed servers through the Customer MCP; approval receipt per cost-bearing call"},
+	{Key: "homelab.inventory.read", Owner: "kombify-StackKits", RiskClass: "none", GrantSource: "policy", Description: "Read-only Homelab inventory projection (shared public demo)"},
+	{Key: "homelab.inventory.write", Owner: "kombify-StackKits", RiskClass: "local_reversible", GrantSource: "plan", Description: "Homelab inventory write access"},
+	{Key: "homelab.managed.runtime", Owner: "kombify-StackKits", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Managed runtime"},
+	{Key: "homelab.managed.runtime.centron", Owner: "kombify-StackKits", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Managed runtime Centron"},
+	{Key: "homelab.managed.runtime.cloudkit", Owner: "kombify-StackKits", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Managed runtime Cloud Kit"},
+	{Key: "homelab.managed.runtime.ionos", Owner: "kombify-StackKits", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Managed runtime IONOS"},
+	{Key: "homelab.ril.actions", Owner: "kombify-StackKits", RiskClass: "destructive", GrantSource: "plan", Description: "RIL actions"},
+	{Key: "homelab.ril.read", Owner: "kombify-StackKits", RiskClass: "none", GrantSource: "plan", Description: "RIL read access"},
+	{Key: "homelab.servers.maintenance", Owner: "kombify-StackKits", RiskClass: "destructive", GrantSource: "plan", Description: "Server maintenance (reboot and OS updates)"},
+	{Key: "homelab.wizard.configure", Owner: "kombify-StackKits", RiskClass: "local_reversible", GrantSource: "account_baseline", Description: "Account baseline for released creation catalog and owned pre-run Wizard draft configuration; no inventory, runtime or spending grant"},
 	{Key: "mcp.customer.access", Owner: "kombify-Gateway", RiskClass: "none", GrantSource: "plan", Description: "Customer MCP connector access"},
 	{Key: "mcp.customer.connect", Owner: "kombify-Gateway", RiskClass: "none", GrantSource: "account_baseline", Description: "Account baseline for authenticated customer MCP transport admission only; grants no tool, inventory, runtime or spending rights"},
 	{Key: "mcp.github.read", Owner: "kombify-Gateway", RiskClass: "none", GrantSource: "plan", Description: "User-delegated GitHub repository read"},
@@ -299,23 +301,6 @@ var EntitlementKeys = []EntitlementKeyDefinition{
 	{Key: "speechkit.server.hosted", Owner: "kombify-SpeechKit", RiskClass: "cost_bearing", GrantSource: "plan", Description: "SpeechKit hosted server"},
 	{Key: "speechkit.voiceagent.live", Owner: "kombify-SpeechKit", RiskClass: "cost_bearing", GrantSource: "plan", Description: "SpeechKit live voice agent"},
 	{Key: "supplydock.access", Owner: "kombify-Gateway", RiskClass: "none", GrantSource: "policy", Description: "Supply Dock capability activation and eligibility routes"},
-	{Key: "techstack.backup.config", Owner: "kombify-Techstack", RiskClass: "local_reversible", GrantSource: "plan", Description: "Backup configuration class"},
-	{Key: "techstack.backup.content", Owner: "kombify-Techstack", RiskClass: "local_reversible", GrantSource: "plan", Description: "Backup content class"},
-	{Key: "techstack.backup.storage.ayn", Owner: "kombify-Techstack", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Backup storage budget All-You-Need"},
-	{Key: "techstack.backup.storage.pro", Owner: "kombify-Techstack", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Backup storage budget Pro"},
-	{Key: "techstack.backup.storage.starter", Owner: "kombify-Techstack", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Backup storage budget Starter"},
-	{Key: "techstack.inventory.operate", Owner: "kombify-Techstack", RiskClass: "destructive", GrantSource: "plan", Description: "Operate stacks and servers through the Customer MCP (rollouts, routing, start and stop); approval receipt per destructive call"},
-	{Key: "techstack.inventory.provision", Owner: "kombify-Techstack", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Provision stacks and managed servers through the Customer MCP; approval receipt per cost-bearing call"},
-	{Key: "techstack.inventory.read", Owner: "kombify-Techstack", RiskClass: "none", GrantSource: "policy", Description: "Read-only Techstack inventory projection (shared public demo)"},
-	{Key: "techstack.inventory.write", Owner: "kombify-Techstack", RiskClass: "local_reversible", GrantSource: "plan", Description: "Techstack inventory write access"},
-	{Key: "techstack.managed.runtime", Owner: "kombify-Techstack", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Managed runtime"},
-	{Key: "techstack.managed.runtime.centron", Owner: "kombify-Techstack", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Managed runtime Centron"},
-	{Key: "techstack.managed.runtime.cloudkit", Owner: "kombify-Techstack", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Managed runtime Cloud Kit"},
-	{Key: "techstack.managed.runtime.ionos", Owner: "kombify-Techstack", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Managed runtime IONOS"},
-	{Key: "techstack.ril.actions", Owner: "kombify-Techstack", RiskClass: "destructive", GrantSource: "plan", Description: "RIL actions"},
-	{Key: "techstack.ril.read", Owner: "kombify-Techstack", RiskClass: "none", GrantSource: "plan", Description: "RIL read access"},
-	{Key: "techstack.servers.maintenance", Owner: "kombify-Techstack", RiskClass: "destructive", GrantSource: "plan", Description: "Server maintenance (reboot and OS updates)"},
-	{Key: "techstack.wizard.configure", Owner: "kombify-Techstack", RiskClass: "local_reversible", GrantSource: "account_baseline", Description: "Account baseline for released creation catalog and owned pre-run Wizard draft configuration; no inventory, runtime or spending grant"},
 	{Key: "web.browser.login", Owner: "kombify-AI-Platform", RiskClass: "external_write", GrantSource: "plan", Description: "Agent browser sign-in with stored logins"},
 	{Key: "web.browser.read", Owner: "kombify-AI-Platform", RiskClass: "none", GrantSource: "plan", Description: "Agent browser access"},
 	{Key: "web.browser.session", Owner: "kombify-AI-Platform", RiskClass: "cost_bearing", GrantSource: "plan", Description: "Agent browser sessions"},
@@ -347,7 +332,7 @@ var RouteRequirements = []RouteRequirement{
 	{Route: "/v1/execution/*", Surface: "http", RequiresAll: []string{"agent.run"}, EnforcedBy: "kombify-Gateway"},
 	{Route: "/v1/ai/models", Surface: "http", RequiresAll: []string{"ai.models"}, EnforcedBy: "kombify-Gateway"},
 	{Route: "GET /v1/ai/agent-instances", Surface: "http", RequiresAll: []string{"agent.run"}, EnforcedBy: "kombify-Gateway"},
-	{Route: "POST /v1/techstack/servers/{id}/actions", Surface: "http", RequiresAll: []string{"techstack.servers.maintenance"}, EnforcedBy: "kombify-Techstack"},
+	{Route: "POST /v1/homelab/servers/{id}/actions", Surface: "http", RequiresAll: []string{"homelab.servers.maintenance"}, EnforcedBy: "kombify-StackKits"},
 	{Route: "/v1/supply-dock/* (activation and eligibility)", Surface: "http", RequiresAll: []string{"supplydock.access"}, EnforcedBy: "kombify-Gateway"},
 	{Route: "/v1/mcp/public/workpaths", Surface: "mcp", RequiresAll: []string{"automations.platform"}, EnforcedBy: "kombify-Gateway"},
 	{Route: "/mcp tool web.search", Surface: "mcp", RequiresAll: []string{"web.search.read"}, EnforcedBy: "kombify-Gateway"},

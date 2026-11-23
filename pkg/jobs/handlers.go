@@ -110,6 +110,7 @@ type ProvisionConfig struct {
 	// node Agent. When configured, deploy apply uses this product boundary
 	// instead of the retired embedded StackKits HTTP action server.
 	StackKitCommander StackKitCommandSender
+	StackKitLifecycle StackKitLifecycleConfig
 	// ManagedStackKitInventory binds managed Cloud rollouts to control-plane
 	// custody and the exact node-side Operations process. Cloud-kit apply is
 	// unavailable when this authority is absent.
@@ -1239,6 +1240,7 @@ func RegisterDefaultHandlers(q *Queue, cfg *ProvisionConfig) {
 	driftCfg := &DriftCheckConfig{
 		Sender:         cfg.StackKitCommander,
 		AdvancedIssuer: cfg.AdvancedIssuer,
+		lifecycle:      cfg.StackKitLifecycle,
 	}
 	RegisterDriftHandlers(q, driftCfg)
 }

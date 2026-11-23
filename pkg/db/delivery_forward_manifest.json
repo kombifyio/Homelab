@@ -160,6 +160,10 @@
     {
       "version": "200_managed_workload_placement.additive.sql",
       "sha256": "a0ecf82aff341e3cfb97d464292b12599a525fc3599f8c0f60f59311c3f15144"
+    },
+    {
+      "version": "201_managed_lease_renewal_directory.sql",
+      "sha256": "ea2525ce8ce5628bd3f063bedf36504bc3e585db5b186100355fab46f9affa93"
     }
   ],
   "database_target": "core",

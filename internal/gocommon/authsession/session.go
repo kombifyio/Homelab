@@ -41,7 +41,7 @@ type Config struct {
 	// Issuer is the `iss` claim. Defaults to [DefaultIssuer].
 	Issuer string
 	// Audience is the `aud` claim. Required: identifies the consuming
-	// frontend audience (e.g. "techstack:frontend", "kombisim:frontend").
+	// frontend audience (e.g. "homelab:frontend", "kombisim:frontend").
 	Audience string
 	// Secret is the HS256 signing secret. Must be at least 32 bytes.
 	Secret []byte

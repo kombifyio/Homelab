@@ -20,7 +20,7 @@ func parseEdgePublicKeys(raw string) (map[string]ed25519.PublicKey, error) {
 		kid, encoded = strings.TrimSpace(kid), strings.TrimRight(strings.TrimSpace(encoded), "=")
 		key, err := base64.RawURLEncoding.DecodeString(encoded)
 		if !ok || kid == "" || err != nil || len(key) != ed25519.PublicKeySize {
-			return nil, fmt.Errorf("edge_signature_public_key_invalid")
+			return nil, ErrEdgePublicKeyInvalid
 		}
 		keys[kid] = ed25519.PublicKey(key)
 	}
@@ -28,18 +28,24 @@ func parseEdgePublicKeys(raw string) (map[string]ed25519.PublicKey, error) {
 }
 
 // verifyEd25519Envelope checks a "<kid>.<base64url signature>" value.
-func verifyEd25519Envelope(keys map[string]ed25519.PublicKey, presented, payload string) bool {
+// Returns nil when valid, ErrEdgeUnknownKeyID when the signed key id is absent
+// from the origin's configured key set (key-split / rotation fault), and
+// edge_signature_invalid when the key is known but the signature does not match.
+func verifyEd25519Envelope(keys map[string]ed25519.PublicKey, presented, payload string) error {
 	kid, encoded, ok := strings.Cut(presented, ".")
 	if !ok {
-		return false
+		return fmt.Errorf("edge_signature_invalid")
 	}
 	key, known := keys[strings.TrimSpace(kid)]
 	if !known {
-		return false
+		return ErrEdgeUnknownKeyID
 	}
 	sig, err := base64.RawURLEncoding.DecodeString(strings.TrimSpace(encoded))
 	if err != nil || len(sig) != ed25519.SignatureSize {
-		return false
+		return fmt.Errorf("edge_signature_invalid")
 	}
-	return ed25519.Verify(key, []byte(payload), sig)
+	if !ed25519.Verify(key, []byte(payload), sig) {
+		return fmt.Errorf("edge_signature_invalid")
+	}
+	return nil
 }

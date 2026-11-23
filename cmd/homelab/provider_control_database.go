@@ -169,6 +169,8 @@ security_definer_boundary(function_name, runtime_executable) AS (
 		('provider_control_list_provider_provision_waits', true),
 		('provider_control_list_stale_capacity_recovery_candidates', true),
 		('provider_control_list_never_enrolled_runtime_candidates', true),
+		('provider_control_refresh_managed_lease_renewal_directory', false),
+		('provider_control_list_managed_lease_renewal_candidates', true),
         ('provider_incident_refresh_pending_dispatch_tenant', false),
         ('provider_incident_list_tenant_ids', false),
         ('provider_control_runtime_authority', true)
@@ -346,6 +348,16 @@ SELECT
         OR NOT pg_catalog.has_function_privilege(
             runtime_role.oid,
             pg_catalog.to_regprocedure(
+                pg_catalog.format(
+                    '%I.provider_control_list_managed_lease_renewal_candidates(text,text,integer,integer)',
+                    active_schema.nspname
+                )
+            ),
+            'EXECUTE'
+        )
+        OR NOT pg_catalog.has_function_privilege(
+            runtime_role.oid,
+            pg_catalog.to_regprocedure(
                 pg_catalog.format('%I.provider_control_runtime_authority()', active_schema.nspname)
             ),
             'EXECUTE'
@@ -474,6 +486,12 @@ SELECT
                        )
                    ),
                    pg_catalog.to_regprocedure(
+                       pg_catalog.format(
+                           '%I.provider_control_list_managed_lease_renewal_candidates(text,text,integer,integer)',
+                           active_schema.nspname
+                       )
+                   ),
+                   pg_catalog.to_regprocedure(
                        pg_catalog.format('%I.provider_control_runtime_authority()', active_schema.nspname)
                    )
               )
@@ -550,6 +568,7 @@ SELECT
 				   'provider_control_list_provider_provision_waits',
                    'provider_control_list_stale_capacity_recovery_candidates',
                    'provider_control_list_never_enrolled_runtime_candidates',
+                   'provider_control_list_managed_lease_renewal_candidates',
                   'provider_control_runtime_authority'
               )
         )

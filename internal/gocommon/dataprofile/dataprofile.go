@@ -85,7 +85,7 @@ type AIScope struct {
 // was resolved.
 //
 // Res and Ret are the account scope "cloud" (data stored by Cloud, Paperwork,
-// Techstack and the other product stores). AI, when set, is the account scope
+// Homelab and the other product stores). AI, when set, is the account scope
 // "ai" and the wire version is 2; when nil the ai scope equals Res and Ret
 // (v1). Read the scope of what a request touches with CloudScope or AIScopeOf;
 // when one request touches both, use Strictest. Loc is the edition's boot value
@@ -129,7 +129,7 @@ func (p Profile) WithAI(res Residency, ret Retention) Profile {
 }
 
 // CloudScope is the profile for data stored by kombify products (Cloud,
-// Paperwork, Techstack): the top-level res and ret, without an ai member.
+// Paperwork, Homelab): the top-level res and ret, without an ai member.
 func (p Profile) CloudScope() Profile {
 	p.V, p.AI = Version, nil
 	return p

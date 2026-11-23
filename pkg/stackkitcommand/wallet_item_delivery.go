@@ -77,9 +77,10 @@ func validateWalletItemDeliveryFields(command *agentpb.StackKitCommand) error {
 		(command.AiProviderBaseUrl != "" || command.AiProviderDisable) {
 		return fmt.Errorf("StackKit AI provider fields are only valid for AI provider setup")
 	}
-	if command.Operation != agentpb.StackKitOperation_STACKKIT_OPERATION_AI_PROVIDER_SETUP && !IsWorkloadRelocationOperation(command.Operation) &&
-		command.WalletItemRef != "" {
-		return fmt.Errorf("StackKit AI provider fields are only valid for AI provider setup")
+	if command.WalletItemRef != "" && command.Operation != agentpb.StackKitOperation_STACKKIT_OPERATION_AI_PROVIDER_SETUP && !IsWorkloadRelocationOperation(command.Operation) {
+		if command.Operation != agentpb.StackKitOperation_STACKKIT_OPERATION_WALLET_ITEM_IMPORT || !ValidWalletItemRef(command.WalletItemRef) {
+			return fmt.Errorf("StackKit Wallet item reference does not belong to this operation")
+		}
 	}
 	return nil
 }
@@ -147,7 +148,11 @@ func WalletItemDeliveryArgs(command *agentpb.StackKitCommand) ([]string, error) 
 		}
 		return append(args, "--owner-approve"), nil
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_WALLET_ITEM_IMPORT:
-		return []string{"wallet-item", "import", "--tenant-ref", command.DeliveryTenantRef, "--owner-approve"}, nil
+		args := []string{"wallet-item", "import", "--tenant-ref", command.DeliveryTenantRef, "--owner-approve"}
+		if command.WalletItemRef != "" {
+			args = append(args, "--wiki-registry-item", command.WalletItemRef)
+		}
+		return args, nil
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_SSH_APPLY:
 		return []string{"host", "ssh", "apply", "--tenant-ref", command.DeliveryTenantRef, "--owner-approve"}, nil
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_AI_PROVIDER_SETUP:
@@ -244,6 +249,9 @@ func ParseWalletItemImportEvidence(command *agentpb.StackKitCommand, result *age
 	}
 	if json.Unmarshal(data, &receipt) != nil || receipt.TenantRef != command.DeliveryTenantRef || !ValidWalletItemRef(receipt.ItemRef) || receipt.Version == 0 {
 		return WalletItemImportEvidence{}, fmt.Errorf("StackKit Wallet item import evidence is invalid")
+	}
+	if command.WalletItemRef != "" && receipt.ItemRef != command.WalletItemRef {
+		return WalletItemImportEvidence{}, fmt.Errorf("StackKit Wallet item import does not match the dispatched item")
 	}
 	return WalletItemImportEvidence{ItemRef: receipt.ItemRef, Version: receipt.Version}, nil
 }

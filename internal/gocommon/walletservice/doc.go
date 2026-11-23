@@ -1,7 +1,7 @@
 // Package walletservice is the shared Go client of the kombify Wallet's
 // product-service API (`POST /v1/wallet/service/*` on the Gateway;
 // kombify-Gateway `services/wallet-store/AGENT-ACCESS.md`, "Product services"
-// and "SSH certificates"). A kombify product backend (Techstack, Paperwork, AI
+// and "SSH certificates"). A kombify product backend (Homelab, Paperwork, AI
 // Platform, Simulate, Cloud) uses it to work with its users' Wallet items
 // without a person present. The product acts there as its own service for the
 // owner named in each call, never as the owner and never as an agent.

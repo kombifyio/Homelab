@@ -205,6 +205,9 @@ func registerCoreRoutes(router *httpx.Router, deps routeDeps, managedLeases jobs
 	stackKitCommander := stackKitCommanderForDeployment(cfg.DeploymentMode, cfg.Server.Environment, deps.typedControl, grpcSrv)
 	deps.orch.ConfigureManagedStackKitInventory(managedStackKitInventoryBuilder(deps))
 	deps.orch.ConfigureFederationFabric(federationFabric())
+	if deps.guardReach != nil {
+		deps.orch.ConfigureWikiRegistryIssuer(deps.guardReach.IssueWikiRegistryGrant)
+	}
 	deps.orch.ConfigureStackKitCommander(stackKitCommander)
 	var notificationOutbox productnotifications.ProductEventEnqueuer
 	if deps.monitor != nil {

@@ -82,3 +82,44 @@ func TestEvaluateManagedRuntimeEntitlement(t *testing.T) {
 		t.Fatalf("explicit local E2E path denied: %+v", decision)
 	}
 }
+
+// A managed lease renews only on a committed projection that grants every key
+// its provider requires (platform-2xnsxf); anything less never renews.
+func TestEvaluateManagedRuntimeRenewal(t *testing.T) {
+	t.Setenv("HOMELAB_ENV", "local")
+	t.Setenv("HOMELAB_ALLOW_LOCAL_SIMULATION_GATE", "true")
+	t.Setenv("HOMELAB_ALLOW_LOCAL_MANAGED_RUNTIME_E2E", "true")
+
+	ionos := []string{"homelab.ril.read", FeatureHomelabManagedRuntime, FeatureHomelabManagedRuntimeCloudKit, FeatureHomelabManagedRuntimeIONOS}
+	tests := []struct {
+		name        string
+		providerID  string
+		granted     []string
+		wantDenied  bool
+		wantReason  string
+		wantMissing []string
+	}{
+		{name: "ionos entitled", providerID: ProviderIONOS, granted: ionos},
+		{name: "centron entitled", providerID: ProviderCentron, granted: []string{FeatureHomelabManagedRuntime, FeatureHomelabManagedRuntimeCloudKit, FeatureHomelabManagedRuntimeCentron}},
+		{name: "other provider key only", providerID: ProviderCentron, granted: ionos, wantDenied: true, wantReason: EntitlementReasonFeatureDisabled, wantMissing: []string{FeatureHomelabManagedRuntimeCentron}},
+		{name: "base key missing", providerID: ProviderIONOS, granted: []string{FeatureHomelabManagedRuntimeCloudKit, FeatureHomelabManagedRuntimeIONOS}, wantDenied: true, wantReason: EntitlementReasonFeatureDisabled, wantMissing: []string{FeatureHomelabManagedRuntime}},
+		{name: "empty projection even under the local E2E exception", providerID: ProviderIONOS, wantDenied: true, wantReason: EntitlementReasonFeatureDisabled, wantMissing: []string{FeatureHomelabManagedRuntime, FeatureHomelabManagedRuntimeCloudKit, FeatureHomelabManagedRuntimeIONOS}},
+		{name: "unknown provider", providerID: "personal-ionos", granted: ionos, wantDenied: true, wantReason: EntitlementReasonProviderUnsupported},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			decision := EvaluateManagedRuntimeRenewal(test.providerID, test.granted)
+			if decision.Denied != test.wantDenied || decision.ReasonCode != test.wantReason {
+				t.Fatalf("decision = %+v", decision)
+			}
+			if len(decision.MissingFeatures) != len(test.wantMissing) {
+				t.Fatalf("missing = %v, want %v", decision.MissingFeatures, test.wantMissing)
+			}
+			for i, key := range test.wantMissing {
+				if decision.MissingFeatures[i] != key {
+					t.Fatalf("missing = %v, want %v", decision.MissingFeatures, test.wantMissing)
+				}
+			}
+		})
+	}
+}

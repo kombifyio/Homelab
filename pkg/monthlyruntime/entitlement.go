@@ -60,6 +60,35 @@ func EvaluateManagedRuntimeEntitlement(
 	return ManagedRuntimeEntitlementDecision{ProviderID: canonicalProviderID, RequiredFeatures: requiredFeatures}
 }
 
+// EvaluateManagedRuntimeRenewal decides whether a managed lease of providerID
+// may be renewed from a person's committed entitlement projection (Administration
+// GET /api/v1/entitlements/current). Every key the provider requires must be
+// granted. The caller passes only a projection it read successfully: an
+// unreadable projection is unknown, never reaches this decision and therefore
+// neither renews nor shortens anything. The local E2E exception does not apply;
+// renewal always needs the committed projection.
+func EvaluateManagedRuntimeRenewal(providerID string, granted []string) ManagedRuntimeEntitlementDecision {
+	canonicalProviderID, err := providercatalog.CanonicalProviderID(providerID)
+	if err != nil {
+		return deniedManagedRuntimeEntitlement(providerID, EntitlementReasonProviderUnsupported, nil, nil)
+	}
+	requiredFeatures := RequiredFeatureKeysForProvider(canonicalProviderID)
+	held := make(map[string]bool, len(granted))
+	for _, key := range granted {
+		held[strings.TrimSpace(key)] = true
+	}
+	var missing []string
+	for _, featureKey := range requiredFeatures {
+		if !held[featureKey] {
+			missing = append(missing, featureKey)
+		}
+	}
+	if len(missing) > 0 {
+		return deniedManagedRuntimeEntitlement(canonicalProviderID, EntitlementReasonFeatureDisabled, requiredFeatures, missing)
+	}
+	return ManagedRuntimeEntitlementDecision{ProviderID: canonicalProviderID, RequiredFeatures: requiredFeatures}
+}
+
 func deniedManagedRuntimeEntitlement(providerID, reasonCode string, requiredFeatures, missingFeatures []string) ManagedRuntimeEntitlementDecision {
 	return ManagedRuntimeEntitlementDecision{
 		Denied: true, Message: ManagedRuntimeEntitlementDeniedMessage,

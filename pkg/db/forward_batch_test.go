@@ -639,6 +639,11 @@ func TestSubstrateAbsenceMigrationFoldsCRLFDefinition(t *testing.T) {
 
 const forwardNamesMigration = "199_homelab_forward_names.sql"
 
+// forwardNamesFloor is the schema floor 0.50.x introduced with migration 199.
+// The serving floor has moved on since (SchemaFloor); this test keeps proving
+// the 199 boundary itself.
+const forwardNamesFloor = 199
+
 // Sensitive migration boundary (platform-2jlnx7.14): migration 199 moves the
 // values a 0.49.19 server stored to the spelling 0.50.x reads, in place, with
 // no second reader. The rows are seeded on the schema of migration 198 as the
@@ -661,12 +666,12 @@ func TestIntegrationHomelabForwardNames(t *testing.T) {
 		&pin.DatabaseName, &pin.SystemIdentifier); err != nil {
 		t.Fatal(err)
 	}
-	if err := target.VerifyMigrationsAtFloor(ctx, pin, SchemaFloor); !errors.Is(err, ErrSchemaFloorUnmet) {
-		t.Fatalf("schema floor %d before 199 = %v, want ErrSchemaFloorUnmet", SchemaFloor, err)
+	if err := target.VerifyMigrationsAtFloor(ctx, pin, forwardNamesFloor); !errors.Is(err, ErrSchemaFloorUnmet) {
+		t.Fatalf("schema floor %d before 199 = %v, want ErrSchemaFloorUnmet", forwardNamesFloor, err)
 	}
 	pinApplyMigration(t, ctx, target, forwardNamesMigration)
-	if err := target.VerifyMigrationsAtFloor(ctx, pin, SchemaFloor); err != nil {
-		t.Fatalf("schema floor %d after 199: %v", SchemaFloor, err)
+	if err := target.VerifyMigrationsAtFloor(ctx, pin, forwardNamesFloor); err != nil {
+		t.Fatalf("schema floor %d after 199: %v", forwardNamesFloor, err)
 	}
 
 	var keyIssuer, bindingIssuer, procedure, source, journey string

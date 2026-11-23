@@ -10,7 +10,7 @@ import (
 
 // DefaultSessionCookieName is the recommended cookie name for backends that
 // don't have a tool-specific override. Consumers SHOULD pick their own name
-// (e.g. "techstack_v2_session", "kombisim_session") to avoid cross-tool
+// (e.g. "homelab_v2_session", "kombisim_session") to avoid cross-tool
 // collisions on shared parent domains.
 const DefaultSessionCookieName = "kombify_session"
 

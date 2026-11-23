@@ -4,19 +4,35 @@
     {
       "id": "coolify",
       "repository": "https://github.com/coollabsio/coolify",
-      "commit": "4f56c81236834fdaff0fdc9d219faf230212a57e",
+      "commit": "5c987814e5b04501e523a0a4951c22352798283e",
       "license": "Apache-2.0",
       "path": "templates/compose"
     },
     {
       "id": "dokploy",
       "repository": "https://github.com/Dokploy/templates",
-      "commit": "b40194a4c27dee65b83cbba4e96710fd6cbf7b18",
+      "commit": "6313a2e2305b6f1b5e7da6811d3b0ee2fcb3f597",
       "license": "MIT",
       "path": "blueprints"
     }
   ],
   "apps": [
+    {
+      "id": "2fauth",
+      "name": "2FAuth",
+      "category": "security",
+      "homepage": "https://2fauth.app",
+      "source_repo": "bubka/2fauth",
+      "web_port": 8000,
+      "web_scheme": "http",
+      "images": [
+        "2fauth/2fauth"
+      ],
+      "icon": "2fauth",
+      "sources": [
+        "dokploy"
+      ]
+    },
     {
       "id": "3dokploy",
       "name": "3Dokploy",
@@ -288,6 +304,20 @@
         "dnomd343/alltube"
       ],
       "icon": "alltube",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
+      "id": "almog-evolution-api",
+      "name": "Evolution API",
+      "category": "dev",
+      "homepage": "https://evolutionfoundation.com.br/",
+      "source_repo": "almogcohen/evolution-api",
+      "web_port": 8080,
+      "web_scheme": "http",
+      "images": [],
+      "icon": "",
       "sources": [
         "dokploy"
       ]
@@ -998,18 +1028,32 @@
     {
       "id": "booklore",
       "name": "Booklore",
-      "category": "media",
-      "homepage": "https://booklore.org/docs/getting-started",
+      "category": "database",
+      "homepage": "https://github.com/booklore-app/booklore",
       "source_repo": "booklore-app/booklore",
-      "web_port": 80,
+      "web_port": 6060,
       "web_scheme": "http",
       "images": [
-        "booklore-app/booklore",
-        "booklore/booklore"
+        "booklore-app/booklore"
       ],
       "icon": "booklore",
       "sources": [
-        "coolify",
+        "dokploy"
+      ]
+    },
+    {
+      "id": "bookorbit",
+      "name": "BookOrbit",
+      "category": "media",
+      "homepage": "https://bookorbit.app",
+      "source_repo": "bookorbit/bookorbit",
+      "web_port": 3000,
+      "web_scheme": "http",
+      "images": [
+        "bookorbit/bookorbit"
+      ],
+      "icon": "bookorbit",
+      "sources": [
         "dokploy"
       ]
     },
@@ -1057,6 +1101,20 @@
       "images": [
         "botpress/server"
       ],
+      "icon": "",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
+      "id": "brightbean-studio",
+      "name": "Brightbean Studio",
+      "category": "other",
+      "homepage": "https://brightbean.xyz/studio/",
+      "source_repo": "brightbeanxyz/brightbean-studio",
+      "web_port": 8000,
+      "web_scheme": "http",
+      "images": [],
       "icon": "",
       "sources": [
         "dokploy"
@@ -1972,22 +2030,6 @@
       ]
     },
     {
-      "id": "container-monitoring",
-      "name": "Container Monitoring",
-      "category": "monitoring",
-      "homepage": "https://prometheus.io/",
-      "source_repo": "google/cadvisor",
-      "web_port": 3000,
-      "web_scheme": "http",
-      "images": [
-        "grafana/grafana"
-      ],
-      "icon": "",
-      "sources": [
-        "dokploy"
-      ]
-    },
-    {
       "id": "convertx",
       "name": "ConvertX",
       "category": "dev",
@@ -2378,11 +2420,9 @@
       "category": "ai",
       "homepage": "https://dify.ai/",
       "source_repo": "langgenius/dify",
-      "web_port": 3000,
+      "web_port": 80,
       "web_scheme": "http",
-      "images": [
-        "langgenius/dify-web"
-      ],
+      "images": [],
       "icon": "si:dify",
       "sources": [
         "coolify",
@@ -2610,7 +2650,7 @@
       "web_port": 0,
       "web_scheme": "",
       "images": [
-        "myoung34/docker-github-actions-runner"
+        "simplarix/dokploy-actions-runner"
       ],
       "icon": "",
       "sources": [
@@ -3025,6 +3065,20 @@
       ]
     },
     {
+      "id": "emdash",
+      "name": "EmDash",
+      "category": "productivity",
+      "homepage": "https://emdashcms.com/",
+      "source_repo": "emdash-cms/emdash",
+      "web_port": 4321,
+      "web_scheme": "http",
+      "images": [],
+      "icon": "",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
       "id": "emqx",
       "name": "EMQX",
       "category": "home-automation",
@@ -3250,6 +3304,22 @@
       ]
     },
     {
+      "id": "excaliself",
+      "name": "Excaliself",
+      "category": "productivity",
+      "homepage": "https://excaliself.com/",
+      "source_repo": "maciekzygmunt/excaliself",
+      "web_port": 3000,
+      "web_scheme": "http",
+      "images": [
+        "maciekzygmunt/excaliself"
+      ],
+      "icon": "excaliself",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
       "id": "executor",
       "name": "Executor",
       "category": "dev",
@@ -3341,6 +3411,22 @@
         "softinator/feedbacks"
       ],
       "icon": "",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
+      "id": "ferret",
+      "name": "Ferret",
+      "category": "ai",
+      "homepage": "https://github.com/ferret-project/ferret",
+      "source_repo": "ferret-project/ferret",
+      "web_port": 8787,
+      "web_scheme": "http",
+      "images": [
+        "ferret-project/ferret"
+      ],
+      "icon": "ferret",
       "sources": [
         "dokploy"
       ]
@@ -3488,6 +3574,20 @@
       "icon": "firefox",
       "sources": [
         "coolify"
+      ]
+    },
+    {
+      "id": "fitv-video-starter",
+      "name": "Free Image to Video Generator",
+      "category": "ai",
+      "homepage": "https://freeimagetovideo.ai/?utm_source=dokploy&utm_medium=template",
+      "source_repo": "hanshs474/fitv-video-starter",
+      "web_port": 3000,
+      "web_scheme": "http",
+      "images": [],
+      "icon": "",
+      "sources": [
+        "dokploy"
       ]
     },
     {
@@ -3732,6 +3832,22 @@
       ]
     },
     {
+      "id": "frameleaf",
+      "name": "Frameleaf",
+      "category": "media",
+      "homepage": "https://frameleaf.app/",
+      "source_repo": "frameleaf/frameleaf-app",
+      "web_port": 2283,
+      "web_scheme": "http",
+      "images": [
+        "frameleaf/frameleaf-server"
+      ],
+      "icon": "",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
       "id": "frappe-hr",
       "name": "Frappe HR",
       "category": "other",
@@ -3757,6 +3873,22 @@
       "web_scheme": "http",
       "images": [
         "frappe/lms"
+      ],
+      "icon": "",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
+      "id": "freeframe",
+      "name": "FreeFrame",
+      "category": "media",
+      "homepage": "https://github.com/techiebutler/freeframe",
+      "source_repo": "techiebutler/freeframe",
+      "web_port": 3000,
+      "web_scheme": "http",
+      "images": [
+        "techiebutler/freeframe-web"
       ],
       "icon": "",
       "sources": [
@@ -4155,8 +4287,8 @@
       "web_port": 3000,
       "web_scheme": "http",
       "images": [
-        "grafana/grafana-enterprise",
-        "grafana/grafana-oss"
+        "grafana/grafana",
+        "grafana/grafana-enterprise"
       ],
       "icon": "grafana",
       "sources": [
@@ -4552,6 +4684,22 @@
       ]
     },
     {
+      "id": "homelable",
+      "name": "Homelable",
+      "category": "network",
+      "homepage": "https://homelable.net",
+      "source_repo": "pouzor/homelable",
+      "web_port": 80,
+      "web_scheme": "http",
+      "images": [
+        "pouzor/homelable-frontend"
+      ],
+      "icon": "homelable",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
       "id": "homepage",
       "name": "Homepage",
       "category": "productivity",
@@ -4623,11 +4771,9 @@
       "category": "productivity",
       "homepage": "https://huly.io/",
       "source_repo": "hcengineering/huly-selfhost",
-      "web_port": 8080,
+      "web_port": 80,
       "web_scheme": "http",
-      "images": [
-        "hardcoreeng/front"
-      ],
+      "images": [],
       "icon": "",
       "sources": [
         "coolify",
@@ -4998,7 +5144,7 @@
       "category": "productivity",
       "homepage": "https://jitsi.org/jitsi-meet/",
       "source_repo": "jitsi/docker-jitsi-meet",
-      "web_port": 80,
+      "web_port": 8000,
       "web_scheme": "http",
       "images": [
         "jitsi/web"
@@ -5120,6 +5266,22 @@
       "icon": "karakeep",
       "sources": [
         "coolify",
+        "dokploy"
+      ]
+    },
+    {
+      "id": "kavel-image-starter",
+      "name": "Kavel Image Starter",
+      "category": "ai",
+      "homepage": "https://www.kavel.ai",
+      "source_repo": "hanshs474/kavel-image-starter",
+      "web_port": 3000,
+      "web_scheme": "http",
+      "images": [
+        "san8888/kavel-image-starter"
+      ],
+      "icon": "",
+      "sources": [
         "dokploy"
       ]
     },
@@ -5247,6 +5409,22 @@
         "tombursch/kitchenowl"
       ],
       "icon": "kitchenowl",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
+      "id": "kividb",
+      "name": "KiviDB",
+      "category": "database",
+      "homepage": "https://kividb.io/",
+      "source_repo": "kividbio/kividb",
+      "web_port": 0,
+      "web_scheme": "",
+      "images": [
+        "kividb/kividb"
+      ],
+      "icon": "",
       "sources": [
         "dokploy"
       ]
@@ -5642,6 +5820,22 @@
       ]
     },
     {
+      "id": "life-console",
+      "name": "Life Console",
+      "category": "productivity",
+      "homepage": "https://life-console.dev",
+      "source_repo": "tj-coding/life-console",
+      "web_port": 8080,
+      "web_scheme": "http",
+      "images": [
+        "tj-coding/life-console"
+      ],
+      "icon": "",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
       "id": "limesurvey",
       "name": "LimeSurvey",
       "category": "productivity",
@@ -5785,7 +5979,8 @@
       "web_port": 3210,
       "web_scheme": "http",
       "images": [
-        "lobehub/lobe-chat"
+        "lobehub/lobe-chat",
+        "lobehub/lobehub"
       ],
       "icon": "lobe-chat",
       "sources": [
@@ -5953,6 +6148,22 @@
       "web_scheme": "http",
       "images": [],
       "icon": "mailu",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
+      "id": "maily",
+      "name": "Maily",
+      "category": "communication",
+      "homepage": "https://github.com/stormsia/maily",
+      "source_repo": "stormsia/maily",
+      "web_port": 8477,
+      "web_scheme": "http",
+      "images": [
+        "stormsia/maily"
+      ],
+      "icon": "",
       "sources": [
         "dokploy"
       ]
@@ -6333,6 +6544,22 @@
       ]
     },
     {
+      "id": "mikrotik",
+      "name": "MikroTik RouterOS",
+      "category": "network",
+      "homepage": "https://mikrotik.com",
+      "source_repo": "ramezhany/mikrotik-chr-containerized",
+      "web_port": 0,
+      "web_scheme": "",
+      "images": [
+        "ramezhany/mikrotik-chr-containerized"
+      ],
+      "icon": "mikrotik",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
       "id": "mindsdb",
       "name": "Mindsdb",
       "category": "ai",
@@ -6459,6 +6686,38 @@
         "moltbot/clawdbot"
       ],
       "icon": "openclaw",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
+      "id": "montara-mail",
+      "name": "Montara Mail",
+      "category": "communication",
+      "homepage": "https://montaramail.web.id",
+      "source_repo": "montara-project/montara-mail-agent",
+      "web_port": 8080,
+      "web_scheme": "http",
+      "images": [
+        "montara-project/montara-mail-agent/community"
+      ],
+      "icon": "",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
+      "id": "montara-pass",
+      "name": "Montara Pass",
+      "category": "security",
+      "homepage": "https://montarapass.com",
+      "source_repo": "montara-project/montara-pass",
+      "web_port": 8080,
+      "web_scheme": "http",
+      "images": [
+        "montara-project/montara-pass/community"
+      ],
+      "icon": "",
       "sources": [
         "dokploy"
       ]
@@ -6608,6 +6867,22 @@
       ]
     },
     {
+      "id": "nakama",
+      "name": "Nakama",
+      "category": "ai",
+      "homepage": "https://getnakama.cloud",
+      "source_repo": "ahmadrosid/nakama",
+      "web_port": 4310,
+      "web_scheme": "http",
+      "images": [
+        "ahmadrosid/nakama"
+      ],
+      "icon": "",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
       "id": "navi-music",
       "name": "NaviMusic",
       "category": "media",
@@ -6703,6 +6978,22 @@
       ]
     },
     {
+      "id": "netbird",
+      "name": "Netbird",
+      "category": "network",
+      "homepage": "https://docs.netbird.io/selfhosted/selfhosted-quickstart",
+      "source_repo": "",
+      "web_port": 80,
+      "web_scheme": "http",
+      "images": [
+        "netbirdio/dashboard"
+      ],
+      "icon": "netbird",
+      "sources": [
+        "coolify"
+      ]
+    },
+    {
       "id": "netbird-client",
       "name": "Netbird Client",
       "category": "network",
@@ -6712,6 +7003,22 @@
       "web_scheme": "",
       "images": [
         "netbirdio/netbird"
+      ],
+      "icon": "netbird",
+      "sources": [
+        "coolify"
+      ]
+    },
+    {
+      "id": "netbird-proxy",
+      "name": "Netbird Proxy",
+      "category": "network",
+      "homepage": "https://docs.netbird.io/selfhosted/migration/enable-reverse-proxy",
+      "source_repo": "",
+      "web_port": 0,
+      "web_scheme": "",
+      "images": [
+        "netbirdio/reverse-proxy"
       ],
       "icon": "netbird",
       "sources": [
@@ -6738,8 +7045,8 @@
       "id": "networking-toolbox",
       "name": "Networking Toolbox",
       "category": "network",
-      "homepage": "https://github.com/lissy93/networking",
-      "source_repo": "lissy93/networking",
+      "homepage": "https://networkingtoolbox.net",
+      "source_repo": "lissy93/networking-toolbox",
       "web_port": 3000,
       "web_scheme": "http",
       "images": [
@@ -7003,6 +7310,22 @@
       "icon": "ntfy",
       "sources": [
         "coolify",
+        "dokploy"
+      ]
+    },
+    {
+      "id": "nyxiontech-pdf-tools",
+      "name": "Nyxiontech PDF Tools",
+      "category": "security",
+      "homepage": "https://tools.nyxiontech.com",
+      "source_repo": "jurecki007/nyxiontech-tools",
+      "web_port": 80,
+      "web_scheme": "http",
+      "images": [
+        "jurecki007/nyxiontech-tools"
+      ],
+      "icon": "",
+      "sources": [
         "dokploy"
       ]
     },
@@ -7293,6 +7616,22 @@
       ]
     },
     {
+      "id": "openalgo",
+      "name": "OpenAlgo",
+      "category": "finance",
+      "homepage": "https://openalgo.in",
+      "source_repo": "marketcalls/openalgo",
+      "web_port": 5000,
+      "web_scheme": "http",
+      "images": [
+        "marketcalls/openalgo"
+      ],
+      "icon": "",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
       "id": "openanalytics",
       "name": "Open Analytics",
       "category": "monitoring",
@@ -7302,6 +7641,22 @@
       "web_scheme": "http",
       "images": [],
       "icon": "",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
+      "id": "openbao",
+      "name": "OpenBao",
+      "category": "security",
+      "homepage": "https://openbao.org/",
+      "source_repo": "openbao/openbao",
+      "web_port": 8200,
+      "web_scheme": "http",
+      "images": [
+        "openbao/openbao"
+      ],
+      "icon": "openbao",
       "sources": [
         "dokploy"
       ]
@@ -7364,6 +7719,22 @@
       "web_port": 4310,
       "web_scheme": "http",
       "images": [],
+      "icon": "",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
+      "id": "openfault",
+      "name": "OpenFault",
+      "category": "monitoring",
+      "homepage": "https://openfault.dev",
+      "source_repo": "openfault/openfault",
+      "web_port": 8080,
+      "web_scheme": "http",
+      "images": [
+        "openfault/openfault"
+      ],
       "icon": "",
       "sources": [
         "dokploy"
@@ -7721,22 +8092,6 @@
       ]
     },
     {
-      "id": "osticket",
-      "name": "Osticket",
-      "category": "communication",
-      "homepage": "https://docs.osticket.com/en/latest/",
-      "source_repo": "",
-      "web_port": 80,
-      "web_scheme": "http",
-      "images": [
-        "tiredofit/osticket"
-      ],
-      "icon": "osticket",
-      "sources": [
-        "coolify"
-      ]
-    },
-    {
       "id": "otterwiki",
       "name": "Otter Wiki",
       "category": "productivity",
@@ -7772,12 +8127,12 @@
       "id": "overseerr",
       "name": "Overseerr",
       "category": "media",
-      "homepage": "https://docs.overseerr.dev/getting-started/installation#docker",
+      "homepage": "https://docs.seerr.dev/getting-started/docker",
       "source_repo": "",
       "web_port": 5055,
       "web_scheme": "http",
       "images": [
-        "sctx/overseerr"
+        "seerr-team/seerr"
       ],
       "icon": "overseerr",
       "sources": [
@@ -8265,7 +8620,6 @@
       "web_port": 3000,
       "web_scheme": "http",
       "images": [
-        "driaug/plunk",
         "useplunk/plunk"
       ],
       "icon": "",
@@ -9229,6 +9583,22 @@
       ]
     },
     {
+      "id": "satgas",
+      "name": "Satgas",
+      "category": "ai",
+      "homepage": "https://github.com/zeative/satgas",
+      "source_repo": "zeative/satgas",
+      "web_port": 4317,
+      "web_scheme": "http",
+      "images": [
+        "zeative/satgas"
+      ],
+      "icon": "",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
       "id": "satisfactory",
       "name": "Satisfactory",
       "category": "other",
@@ -9348,11 +9718,11 @@
       "name": "SendDock",
       "category": "communication",
       "homepage": "https://senddock.dev",
-      "source_repo": "arkhe-systems/senddock",
+      "source_repo": "senddock/senddock",
       "web_port": 8080,
       "web_scheme": "http",
       "images": [
-        "arkhe-systems/senddock"
+        "senddock/senddock"
       ],
       "icon": "",
       "sources": [
@@ -9902,7 +10272,7 @@
       "homepage": "https://stalw.art/",
       "source_repo": "stalwartlabs/mail-server",
       "web_port": 8080,
-      "web_scheme": "http",
+      "web_scheme": "https",
       "images": [
         "stalwartlabs/stalwart"
       ],
@@ -10128,11 +10498,9 @@
       "category": "monitoring",
       "homepage": "https://docs.swetrix.com/selfhosting/how-to",
       "source_repo": "",
-      "web_port": 3000,
+      "web_port": 80,
       "web_scheme": "http",
-      "images": [
-        "swetrix/swetrix-fe"
-      ],
+      "images": [],
       "icon": "",
       "sources": [
         "coolify"
@@ -10267,6 +10635,22 @@
       ]
     },
     {
+      "id": "terarouter",
+      "name": "Tera Router",
+      "category": "ai",
+      "homepage": "https://terarouter.xyz",
+      "source_repo": "montara-project/tera-router",
+      "web_port": 8080,
+      "web_scheme": "http",
+      "images": [
+        "montara-project/tera-router"
+      ],
+      "icon": "",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
       "id": "termix",
       "name": "Termix",
       "category": "dev",
@@ -10275,7 +10659,7 @@
       "web_port": 8080,
       "web_scheme": "http",
       "images": [
-        "lukegus/termix"
+        "termix-ssh/termix"
       ],
       "icon": "termix",
       "sources": [
@@ -10751,6 +11135,22 @@
       ]
     },
     {
+      "id": "uptimy-agent",
+      "name": "Uptimy Agent",
+      "category": "monitoring",
+      "homepage": "https://www.upti.my/agent",
+      "source_repo": "uptimy/agent",
+      "web_port": 8080,
+      "web_scheme": "http",
+      "images": [
+        "uptimy/agent"
+      ],
+      "icon": "",
+      "sources": [
+        "dokploy"
+      ]
+    },
+    {
       "id": "usesend",
       "name": "useSend",
       "category": "communication",
@@ -11129,7 +11529,7 @@
       "category": "productivity",
       "homepage": "https://js.wiki/",
       "source_repo": "requarks/wiki",
-      "web_port": 80,
+      "web_port": 3000,
       "web_scheme": "http",
       "images": [
         "requarks/wiki"
@@ -11237,6 +11637,22 @@
       "sources": [
         "coolify",
         "dokploy"
+      ]
+    },
+    {
+      "id": "wordpress-with-openlitespeed",
+      "name": "Wordpress With Openlitespeed",
+      "category": "productivity",
+      "homepage": "https://openlitespeed.org/kb/",
+      "source_repo": "",
+      "web_port": 80,
+      "web_scheme": "http",
+      "images": [
+        "litespeedtech/openlitespeed"
+      ],
+      "icon": "wordpress",
+      "sources": [
+        "coolify"
       ]
     },
     {
