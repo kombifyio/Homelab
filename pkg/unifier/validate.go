@@ -17,12 +17,12 @@ const validationTimeout = 5 * time.Second
 
 // Validate checks a KombinationSpec against CUE schemas and policies.
 // Returns validation result without executing any infrastructure changes.
-// Robustheit: Verwendet Timeout um nie ewig zu blockieren.
+// Robustness: Uses a timeout to prevent indefinite blocking.
 func (e *Engine) Validate(spec *core.KombinationSpec) (*core.ValidationResult, error) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
-	// Robustheit: nil-Spec wird mit leerer Config behandelt.
+	// Robustness: nil spec is treated as an empty config.
 	// NOTE: This does not imply the spec is valid; required fields may still be missing.
 	if spec == nil {
 		spec = &core.KombinationSpec{Name: "default"}
@@ -55,7 +55,7 @@ func (e *Engine) Validate(spec *core.KombinationSpec) (*core.ValidationResult, e
 		}, nil
 	}
 
-	// Robustheit: CUE-Validation mit Timeout (nie blockieren)
+	// Robustness: CUE validation uses a timeout to prevent blocking.
 	ctx, cancel := context.WithTimeout(context.Background(), validationTimeout)
 	defer cancel()
 

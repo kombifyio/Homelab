@@ -1,6 +1,6 @@
 {
-  "sourceSha": "4948a2a816f22d73a58ffd7c90da87fc322d717d",
-  "catalogSha256": "bd2bac57e917de46b2e565a502d95b1b5319625663111c0e5282b74f1d7acb1a",
+  "sourceSha": "89ab45dff4aa5c1bf7824a7de03f069f7d34e028",
+  "catalogSha256": "e3e9c9f196ed5ded383b744e47c519dd9dbcf3ddcb2e822c6156241874f3204a",
   "peaksMiB": {
     "stackkits-adguard-home-runtime/high": {
       "peakMiB": 29.55,
