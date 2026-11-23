@@ -5,17 +5,22 @@
  * failure that never reached the backend (a deploy-time 502, a timeout) is
  * invisible to its tools. A screen that shows such a failure asks on the
  * user's behalf with the exact error, through the controller CompanionHost
- * mounted once for the app.
+ * mounted once for the app, or the local Companion (LocalCompanionHost) when
+ * the person chose a local answer.
  */
-import type { CompanionController } from "@kombiverselabs/embed";
+
+/** What a screen needs of a Companion: `CompanionController` of the embed SDK, or the local one. */
+export interface CompanionAsker {
+  submit(input: { prompt: string; freshSession?: boolean }): void;
+}
 
 // Raw, not a deep proxy: the unregister below compares against the controller
 // it was handed, and a proxy would never equal it. A Companion mounted for a
 // moment before the embedded mode was known then stayed "available" for good.
-let active = $state.raw<CompanionController | null>(null);
+let active = $state.raw<CompanionAsker | null>(null);
 
 /** Registers the mounted controller; the returned function unregisters it. */
-export function registerCompanion(controller: CompanionController): () => void {
+export function registerCompanion(controller: CompanionAsker): () => void {
   active = controller;
   return () => {
     if (active === controller) active = null;

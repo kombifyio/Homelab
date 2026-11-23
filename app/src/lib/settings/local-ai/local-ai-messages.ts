@@ -1,4 +1,4 @@
-// Customer-visible strings of Settings › AI providers (workspace
+// Customer-visible strings of Settings › AI providers and the local Companion (workspace
 // platform/standards/local-ai-runtimes.v1.md). The card labels match Workbench Desktop's.
 // Merged into the main dictionary by i18n.ts.
 export const localAiMessages = {
@@ -26,7 +26,7 @@ export const localAiMessages = {
       "The Companion answers with kombify AI.",
     "settings.aiProviders.kombify.active": "Active",
     "settings.aiProviders.ollama.description":
-      "Shared by the kombify apps on this PC. Homelab Runtime does not run AI on it yet.",
+      "Shared by the kombify apps on this PC.",
     "settings.aiProviders.endpoint": "Server address",
     "settings.aiProviders.endpoint.description":
       "Ollama server on this machine or your local network.",
@@ -42,6 +42,63 @@ export const localAiMessages = {
     "settings.aiProviders.refused.unreadable":
       "The shared file on this PC has another version and stays as it is.",
     "settings.aiProviders.refused.failed": "The setting could not be saved.",
+    "settings.aiProviders.thisPc": "{name} (this PC)",
+    "settings.aiProviders.remote.description":
+      "On your homelab. Shared by the kombify apps on this PC.",
+    "settings.aiProviders.remove": "Remove",
+    "settings.aiProviders.kombify.localAnswers": "Local AI answers in Homelab",
+    "settings.aiProviders.answer": "Answers in Homelab",
+    "settings.aiProviders.answer.with": "Companion answers with",
+    "settings.aiProviders.answer.description":
+      "Applies on this PC to every kombify app that answers from one source, such as Kubi.",
+    "settings.aiProviders.answer.kombify": "Your kombify account",
+    "settings.aiProviders.answer.local": "Local AI · {name}",
+    "settings.aiProviders.answer.account": "Your kombify account's AI answers.",
+    "settings.aiProviders.answer.ready": "{name} answers with {model}.",
+    "settings.aiProviders.answer.model": "Model",
+    "settings.aiProviders.answer.firstModel": "First available model",
+    "settings.aiProviders.answer.scope":
+      "Your model answers questions and reads the page you are on. Changes to servers and apps run through the kombify Companion.",
+    "settings.aiProviders.reason.runtimeMissing":
+      "{name} is no longer set up on this PC.",
+    "settings.aiProviders.reason.runtimeOff": "{name} is switched off.",
+    "settings.aiProviders.reason.unreachable":
+      "{name} cannot be reached right now.",
+    "settings.aiProviders.reason.noModels": "{name} has no models yet.",
+    "settings.aiProviders.reason.modelMissing": "{name} does not have {model}.",
+    "settings.aiProviders.reason.noAnswer": "No local answer is chosen.",
+    "settings.aiProviders.reason.failed": "{name} stopped answering.",
+    "settings.aiProviders.refused.invalid":
+      "This runtime is not set up on this PC.",
+    "settings.aiProviders.homelab": "Ollama on your homelab",
+    "settings.aiProviders.homelab.found": "Ollama on {name}",
+    "settings.aiProviders.homelab.add": "Add",
+    "settings.aiProviders.homelab.added": "Added",
+    "settings.aiProviders.homelab.none":
+      "Your servers run no Ollama app yet. Deploy Ollama from the apps, or enter its address below.",
+    "settings.aiProviders.homelab.manual": "Add an Ollama server",
+    "settings.aiProviders.homelab.description":
+      "Your server does the work; this PC sends only the question.",
+    "settings.aiProviders.homelab.name": "Name",
+    "settings.aiProviders.homelab.namePlaceholder": "e.g. nas",
+    "settings.aiProviders.homelab.endpoint.description":
+      "Ollama server in your homelab.",
+    "localCompanion.title": "Companion",
+    "localCompanion.launcher": "Local AI",
+    "localCompanion.open": "Open the local Companion",
+    "localCompanion.close": "Close",
+    "localCompanion.new": "New conversation",
+    "localCompanion.source": "Local AI · {name} · {model}",
+    "localCompanion.answeredBy": "Answered by {name} · {model}",
+    "localCompanion.empty":
+      "Ask about what you see here. Your own model answers.",
+    "localCompanion.placeholder": "Ask about your homelab…",
+    "localCompanion.send": "Send",
+    "localCompanion.stop": "Stop",
+    "localCompanion.stopped": "Stopped.",
+    "localCompanion.thinking": "Thinking…",
+    "localCompanion.notSent": "Nothing went to kombify AI.",
+    "localCompanion.change": "Change in Settings › AI providers",
   },
   de: {
     "settings.aiProviders.title": "AI-Provider",
@@ -67,7 +124,7 @@ export const localAiMessages = {
       "Der Companion antwortet mit kombify AI.",
     "settings.aiProviders.kombify.active": "Aktiv",
     "settings.aiProviders.ollama.description":
-      "Gilt für die kombify-Apps auf diesem PC. Homelab Runtime nutzt es noch nicht für AI.",
+      "Gilt für die kombify-Apps auf diesem PC.",
     "settings.aiProviders.endpoint": "Serveradresse",
     "settings.aiProviders.endpoint.description":
       "Ollama-Server auf diesem Rechner oder im lokalen Netz.",
@@ -86,6 +143,65 @@ export const localAiMessages = {
       "Die gemeinsame Datei auf diesem PC hat eine andere Version und bleibt unverändert.",
     "settings.aiProviders.refused.failed":
       "Die Einstellung konnte nicht gespeichert werden.",
+    "settings.aiProviders.thisPc": "{name} (dieser PC)",
+    "settings.aiProviders.remote.description":
+      "In deinem Homelab. Gilt für die kombify-Apps auf diesem PC.",
+    "settings.aiProviders.remove": "Entfernen",
+    "settings.aiProviders.kombify.localAnswers":
+      "Lokale AI antwortet in Homelab",
+    "settings.aiProviders.answer": "Antworten in Homelab",
+    "settings.aiProviders.answer.with": "Companion antwortet mit",
+    "settings.aiProviders.answer.description":
+      "Gilt auf diesem PC für jede kombify-App, die aus einer Quelle antwortet, etwa Kubi.",
+    "settings.aiProviders.answer.kombify": "Deinem kombify-Konto",
+    "settings.aiProviders.answer.local": "Lokaler AI · {name}",
+    "settings.aiProviders.answer.account":
+      "Die AI deines kombify-Kontos antwortet.",
+    "settings.aiProviders.answer.ready": "{name} antwortet mit {model}.",
+    "settings.aiProviders.answer.model": "Modell",
+    "settings.aiProviders.answer.firstModel": "Erstes verfügbares Modell",
+    "settings.aiProviders.answer.scope":
+      "Dein Modell beantwortet Fragen und liest die Seite, auf der du bist. Änderungen an Servern und Apps laufen über den kombify Companion.",
+    "settings.aiProviders.reason.runtimeMissing":
+      "{name} ist auf diesem PC nicht mehr eingerichtet.",
+    "settings.aiProviders.reason.runtimeOff": "{name} ist ausgeschaltet.",
+    "settings.aiProviders.reason.unreachable":
+      "{name} ist gerade nicht erreichbar.",
+    "settings.aiProviders.reason.noModels": "{name} hat noch keine Modelle.",
+    "settings.aiProviders.reason.modelMissing": "{name} hat {model} nicht.",
+    "settings.aiProviders.reason.noAnswer": "Keine lokale Antwort gewählt.",
+    "settings.aiProviders.reason.failed": "{name} hat aufgehört zu antworten.",
+    "settings.aiProviders.refused.invalid":
+      "Diese Runtime ist auf diesem PC nicht eingerichtet.",
+    "settings.aiProviders.homelab": "Ollama in deinem Homelab",
+    "settings.aiProviders.homelab.found": "Ollama auf {name}",
+    "settings.aiProviders.homelab.add": "Hinzufügen",
+    "settings.aiProviders.homelab.added": "Hinzugefügt",
+    "settings.aiProviders.homelab.none":
+      "Auf deinen Servern läuft noch keine Ollama-App. Installiere Ollama über die Apps oder gib unten seine Adresse ein.",
+    "settings.aiProviders.homelab.manual": "Ollama-Server hinzufügen",
+    "settings.aiProviders.homelab.description":
+      "Dein Server rechnet; dieser PC schickt nur die Frage.",
+    "settings.aiProviders.homelab.name": "Name",
+    "settings.aiProviders.homelab.namePlaceholder": "z. B. nas",
+    "settings.aiProviders.homelab.endpoint.description":
+      "Ollama-Server in deinem Homelab.",
+    "localCompanion.title": "Companion",
+    "localCompanion.launcher": "Lokale AI",
+    "localCompanion.open": "Lokalen Companion öffnen",
+    "localCompanion.close": "Schließen",
+    "localCompanion.new": "Neues Gespräch",
+    "localCompanion.source": "Lokale AI · {name} · {model}",
+    "localCompanion.answeredBy": "Antwort von {name} · {model}",
+    "localCompanion.empty":
+      "Frag nach dem, was du hier siehst. Dein eigenes Modell antwortet.",
+    "localCompanion.placeholder": "Frag zu deinem Homelab…",
+    "localCompanion.send": "Senden",
+    "localCompanion.stop": "Stoppen",
+    "localCompanion.stopped": "Gestoppt.",
+    "localCompanion.thinking": "Denkt nach…",
+    "localCompanion.notSent": "Nichts ging an kombify AI.",
+    "localCompanion.change": "In Einstellungen › AI-Provider ändern",
   },
   es: {
     "settings.aiProviders.title": "AI providers",
@@ -111,7 +227,7 @@ export const localAiMessages = {
       "El Companion responde con kombify AI.",
     "settings.aiProviders.kombify.active": "Activo",
     "settings.aiProviders.ollama.description":
-      "Compartido por las apps de kombify en este PC. Homelab Runtime aún no ejecuta AI en él.",
+      "Compartido por las apps de kombify en este PC.",
     "settings.aiProviders.endpoint": "Dirección del servidor",
     "settings.aiProviders.endpoint.description":
       "Servidor de Ollama en este equipo o en tu red local.",
@@ -128,6 +244,65 @@ export const localAiMessages = {
     "settings.aiProviders.refused.unreadable":
       "El archivo compartido de este PC tiene otra versión y se queda como está.",
     "settings.aiProviders.refused.failed": "No se pudo guardar el ajuste.",
+    "settings.aiProviders.thisPc": "{name} (este PC)",
+    "settings.aiProviders.remote.description":
+      "En tu homelab. Compartido por las apps de kombify en este PC.",
+    "settings.aiProviders.remove": "Quitar",
+    "settings.aiProviders.kombify.localAnswers":
+      "La AI local responde en Homelab",
+    "settings.aiProviders.answer": "Respuestas en Homelab",
+    "settings.aiProviders.answer.with": "Companion responde con",
+    "settings.aiProviders.answer.description":
+      "Se aplica en este PC a cada app de kombify que responde desde una fuente, como Kubi.",
+    "settings.aiProviders.answer.kombify": "Tu cuenta de kombify",
+    "settings.aiProviders.answer.local": "AI local · {name}",
+    "settings.aiProviders.answer.account":
+      "Responde la AI de tu cuenta de kombify.",
+    "settings.aiProviders.answer.ready": "{name} responde con {model}.",
+    "settings.aiProviders.answer.model": "Modelo",
+    "settings.aiProviders.answer.firstModel": "Primer modelo disponible",
+    "settings.aiProviders.answer.scope":
+      "Tu modelo responde preguntas y lee la página en la que estás. Los cambios en servidores y apps pasan por el kombify Companion.",
+    "settings.aiProviders.reason.runtimeMissing":
+      "{name} ya no está configurado en este PC.",
+    "settings.aiProviders.reason.runtimeOff": "{name} está desactivado.",
+    "settings.aiProviders.reason.unreachable":
+      "{name} no está accesible ahora.",
+    "settings.aiProviders.reason.noModels": "{name} aún no tiene modelos.",
+    "settings.aiProviders.reason.modelMissing": "{name} no tiene {model}.",
+    "settings.aiProviders.reason.noAnswer": "No hay respuesta local elegida.",
+    "settings.aiProviders.reason.failed": "{name} dejó de responder.",
+    "settings.aiProviders.refused.invalid":
+      "Este runtime no está configurado en este PC.",
+    "settings.aiProviders.homelab": "Ollama en tu homelab",
+    "settings.aiProviders.homelab.found": "Ollama en {name}",
+    "settings.aiProviders.homelab.add": "Añadir",
+    "settings.aiProviders.homelab.added": "Añadido",
+    "settings.aiProviders.homelab.none":
+      "Tus servidores aún no ejecutan la app Ollama. Despliega Ollama desde las apps o escribe su dirección abajo.",
+    "settings.aiProviders.homelab.manual": "Añadir un servidor Ollama",
+    "settings.aiProviders.homelab.description":
+      "Tu servidor hace el trabajo; este PC solo envía la pregunta.",
+    "settings.aiProviders.homelab.name": "Nombre",
+    "settings.aiProviders.homelab.namePlaceholder": "p. ej. nas",
+    "settings.aiProviders.homelab.endpoint.description":
+      "Servidor Ollama en tu homelab.",
+    "localCompanion.title": "Companion",
+    "localCompanion.launcher": "AI local",
+    "localCompanion.open": "Abrir el Companion local",
+    "localCompanion.close": "Cerrar",
+    "localCompanion.new": "Nueva conversación",
+    "localCompanion.source": "AI local · {name} · {model}",
+    "localCompanion.answeredBy": "Respondido por {name} · {model}",
+    "localCompanion.empty":
+      "Pregunta por lo que ves aquí. Responde tu propio modelo.",
+    "localCompanion.placeholder": "Pregunta sobre tu homelab…",
+    "localCompanion.send": "Enviar",
+    "localCompanion.stop": "Detener",
+    "localCompanion.stopped": "Detenido.",
+    "localCompanion.thinking": "Pensando…",
+    "localCompanion.notSent": "Nada se envió a kombify AI.",
+    "localCompanion.change": "Cambiar en Ajustes › AI providers",
   },
   "zh-Hans": {
     "settings.aiProviders.title": "AI Provider",
@@ -150,7 +325,7 @@ export const localAiMessages = {
       "Companion 使用 kombify AI 回答。",
     "settings.aiProviders.kombify.active": "已启用",
     "settings.aiProviders.ollama.description":
-      "由此电脑上的 kombify 应用共享。Homelab Runtime 尚未在其上运行 AI。",
+      "由此电脑上的 kombify 应用共享。",
     "settings.aiProviders.endpoint": "服务器地址",
     "settings.aiProviders.endpoint.description":
       "此电脑或本地网络中的 Ollama 服务器。",
@@ -166,6 +341,59 @@ export const localAiMessages = {
     "settings.aiProviders.refused.unreadable":
       "此电脑上的共享文件版本不同，将保持不变。",
     "settings.aiProviders.refused.failed": "无法保存此设置。",
+    "settings.aiProviders.thisPc": "{name}（此电脑）",
+    "settings.aiProviders.remote.description":
+      "位于你的 homelab。由此电脑上的 kombify 应用共享。",
+    "settings.aiProviders.remove": "移除",
+    "settings.aiProviders.kombify.localAnswers": "本地 AI 在 Homelab 中回答",
+    "settings.aiProviders.answer": "Homelab 中的回答",
+    "settings.aiProviders.answer.with": "Companion 回答来源",
+    "settings.aiProviders.answer.description":
+      "适用于此电脑上所有从单一来源回答的 kombify 应用，例如 Kubi。",
+    "settings.aiProviders.answer.kombify": "你的 kombify 账户",
+    "settings.aiProviders.answer.local": "本地 AI · {name}",
+    "settings.aiProviders.answer.account": "由你的 kombify 账户的 AI 回答。",
+    "settings.aiProviders.answer.ready": "{name} 使用 {model} 回答。",
+    "settings.aiProviders.answer.model": "模型",
+    "settings.aiProviders.answer.firstModel": "第一个可用模型",
+    "settings.aiProviders.answer.scope":
+      "你的模型回答问题并读取你所在的页面。对服务器和应用的更改通过 kombify Companion 进行。",
+    "settings.aiProviders.reason.runtimeMissing": "{name} 已不在此电脑上设置。",
+    "settings.aiProviders.reason.runtimeOff": "{name} 已关闭。",
+    "settings.aiProviders.reason.unreachable": "{name} 当前无法访问。",
+    "settings.aiProviders.reason.noModels": "{name} 还没有模型。",
+    "settings.aiProviders.reason.modelMissing": "{name} 没有 {model}。",
+    "settings.aiProviders.reason.noAnswer": "尚未选择本地回答。",
+    "settings.aiProviders.reason.failed": "{name} 停止了回答。",
+    "settings.aiProviders.refused.invalid": "此运行时未在此电脑上设置。",
+    "settings.aiProviders.homelab": "你 homelab 中的 Ollama",
+    "settings.aiProviders.homelab.found": "{name} 上的 Ollama",
+    "settings.aiProviders.homelab.add": "添加",
+    "settings.aiProviders.homelab.added": "已添加",
+    "settings.aiProviders.homelab.none":
+      "你的服务器尚未运行 Ollama 应用。可从应用中部署 Ollama，或在下方输入其地址。",
+    "settings.aiProviders.homelab.manual": "添加 Ollama 服务器",
+    "settings.aiProviders.homelab.description":
+      "由你的服务器完成计算；此电脑只发送问题。",
+    "settings.aiProviders.homelab.name": "名称",
+    "settings.aiProviders.homelab.namePlaceholder": "例如 nas",
+    "settings.aiProviders.homelab.endpoint.description":
+      "你 homelab 中的 Ollama 服务器。",
+    "localCompanion.title": "Companion",
+    "localCompanion.launcher": "本地 AI",
+    "localCompanion.open": "打开本地 Companion",
+    "localCompanion.close": "关闭",
+    "localCompanion.new": "新对话",
+    "localCompanion.source": "本地 AI · {name} · {model}",
+    "localCompanion.answeredBy": "由 {name} · {model} 回答",
+    "localCompanion.empty": "询问你在这里看到的内容。由你自己的模型回答。",
+    "localCompanion.placeholder": "询问你的 homelab…",
+    "localCompanion.send": "发送",
+    "localCompanion.stop": "停止",
+    "localCompanion.stopped": "已停止。",
+    "localCompanion.thinking": "思考中…",
+    "localCompanion.notSent": "没有内容发送到 kombify AI。",
+    "localCompanion.change": "在设置 › AI Provider 中更改",
   },
   hi: {
     "settings.aiProviders.title": "AI Provider",
@@ -190,7 +418,7 @@ export const localAiMessages = {
       "Companion kombify AI से जवाब देता है।",
     "settings.aiProviders.kombify.active": "सक्रिय",
     "settings.aiProviders.ollama.description":
-      "इस PC के kombify ऐप्स में साझा। Homelab Runtime अभी इस पर AI नहीं चलाता।",
+      "इस PC के kombify ऐप्स में साझा।",
     "settings.aiProviders.endpoint": "सर्वर पता",
     "settings.aiProviders.endpoint.description":
       "इस मशीन या आपके लोकल नेटवर्क पर Ollama सर्वर।",
@@ -206,6 +434,63 @@ export const localAiMessages = {
     "settings.aiProviders.refused.unreadable":
       "इस PC की साझा फ़ाइल का संस्करण अलग है, वह जैसी है वैसी रहेगी।",
     "settings.aiProviders.refused.failed": "सेटिंग सहेजी नहीं जा सकी।",
+    "settings.aiProviders.thisPc": "{name} (यह PC)",
+    "settings.aiProviders.remote.description":
+      "आपके homelab में। इस PC के kombify ऐप्स में साझा।",
+    "settings.aiProviders.remove": "हटाएँ",
+    "settings.aiProviders.kombify.localAnswers":
+      "Homelab में लोकल AI जवाब देता है",
+    "settings.aiProviders.answer": "Homelab में जवाब",
+    "settings.aiProviders.answer.with": "Companion इससे जवाब देता है",
+    "settings.aiProviders.answer.description":
+      "इस PC पर हर उस kombify ऐप पर लागू जो एक स्रोत से जवाब देता है, जैसे Kubi।",
+    "settings.aiProviders.answer.kombify": "आपका kombify खाता",
+    "settings.aiProviders.answer.local": "लोकल AI · {name}",
+    "settings.aiProviders.answer.account":
+      "आपके kombify खाते का AI जवाब देता है।",
+    "settings.aiProviders.answer.ready": "{name} {model} से जवाब देता है।",
+    "settings.aiProviders.answer.model": "मॉडल",
+    "settings.aiProviders.answer.firstModel": "पहला उपलब्ध मॉडल",
+    "settings.aiProviders.answer.scope":
+      "आपका मॉडल सवालों के जवाब देता है और वह पेज पढ़ता है जिस पर आप हैं। सर्वर और ऐप्स में बदलाव kombify Companion से होते हैं।",
+    "settings.aiProviders.reason.runtimeMissing":
+      "{name} अब इस PC पर सेट नहीं है।",
+    "settings.aiProviders.reason.runtimeOff": "{name} बंद है।",
+    "settings.aiProviders.reason.unreachable": "{name} अभी पहुँच में नहीं है।",
+    "settings.aiProviders.reason.noModels": "{name} में अभी कोई मॉडल नहीं है।",
+    "settings.aiProviders.reason.modelMissing": "{name} में {model} नहीं है।",
+    "settings.aiProviders.reason.noAnswer": "कोई लोकल जवाब चुना नहीं गया है।",
+    "settings.aiProviders.reason.failed": "{name} ने जवाब देना बंद कर दिया।",
+    "settings.aiProviders.refused.invalid": "यह runtime इस PC पर सेट नहीं है।",
+    "settings.aiProviders.homelab": "आपके homelab में Ollama",
+    "settings.aiProviders.homelab.found": "{name} पर Ollama",
+    "settings.aiProviders.homelab.add": "जोड़ें",
+    "settings.aiProviders.homelab.added": "जोड़ा गया",
+    "settings.aiProviders.homelab.none":
+      "आपके सर्वर पर अभी कोई Ollama ऐप नहीं चलता। ऐप्स से Ollama डिप्लॉय करें, या नीचे उसका पता डालें।",
+    "settings.aiProviders.homelab.manual": "Ollama सर्वर जोड़ें",
+    "settings.aiProviders.homelab.description":
+      "काम आपका सर्वर करता है; यह PC सिर्फ़ सवाल भेजता है।",
+    "settings.aiProviders.homelab.name": "नाम",
+    "settings.aiProviders.homelab.namePlaceholder": "जैसे nas",
+    "settings.aiProviders.homelab.endpoint.description":
+      "आपके homelab में Ollama सर्वर।",
+    "localCompanion.title": "Companion",
+    "localCompanion.launcher": "लोकल AI",
+    "localCompanion.open": "लोकल Companion खोलें",
+    "localCompanion.close": "बंद करें",
+    "localCompanion.new": "नई बातचीत",
+    "localCompanion.source": "लोकल AI · {name} · {model}",
+    "localCompanion.answeredBy": "{name} · {model} का जवाब",
+    "localCompanion.empty":
+      "यहाँ जो दिखता है उसके बारे में पूछें। आपका अपना मॉडल जवाब देता है।",
+    "localCompanion.placeholder": "अपने homelab के बारे में पूछें…",
+    "localCompanion.send": "भेजें",
+    "localCompanion.stop": "रोकें",
+    "localCompanion.stopped": "रोका गया।",
+    "localCompanion.thinking": "सोच रहा है…",
+    "localCompanion.notSent": "kombify AI को कुछ नहीं भेजा गया।",
+    "localCompanion.change": "सेटिंग्स › AI Provider में बदलें",
   },
   ar: {
     "settings.aiProviders.title": "AI Provider",
@@ -229,7 +514,7 @@ export const localAiMessages = {
       "يجيب Companion باستخدام kombify AI.",
     "settings.aiProviders.kombify.active": "نشط",
     "settings.aiProviders.ollama.description":
-      "مشترك بين تطبيقات kombify على هذا الجهاز. لا يشغّل Homelab Runtime عليه AI بعد.",
+      "مشترك بين تطبيقات kombify على هذا الجهاز.",
     "settings.aiProviders.endpoint": "عنوان الخادم",
     "settings.aiProviders.endpoint.description":
       "خادم Ollama على هذا الجهاز أو في شبكتك المحلية.",
@@ -245,6 +530,63 @@ export const localAiMessages = {
     "settings.aiProviders.refused.unreadable":
       "الملف المشترك على هذا الجهاز بإصدار آخر ويبقى كما هو.",
     "settings.aiProviders.refused.failed": "تعذّر حفظ الإعداد.",
+    "settings.aiProviders.thisPc": "{name} (هذا الجهاز)",
+    "settings.aiProviders.remote.description":
+      "في الـ homelab الخاص بك. مشترك بين تطبيقات kombify على هذا الجهاز.",
+    "settings.aiProviders.remove": "إزالة",
+    "settings.aiProviders.kombify.localAnswers":
+      "الـ AI المحلي يجيب في Homelab",
+    "settings.aiProviders.answer": "الإجابات في Homelab",
+    "settings.aiProviders.answer.with": "يجيب Companion عبر",
+    "settings.aiProviders.answer.description":
+      "ينطبق على هذا الجهاز على كل تطبيق kombify يجيب من مصدر واحد، مثل Kubi.",
+    "settings.aiProviders.answer.kombify": "حساب kombify الخاص بك",
+    "settings.aiProviders.answer.local": "AI محلي · {name}",
+    "settings.aiProviders.answer.account": "يجيب الـ AI الخاص بحساب kombify.",
+    "settings.aiProviders.answer.ready": "{name} يجيب باستخدام {model}.",
+    "settings.aiProviders.answer.model": "النموذج",
+    "settings.aiProviders.answer.firstModel": "أول نموذج متاح",
+    "settings.aiProviders.answer.scope":
+      "نموذجك يجيب عن الأسئلة ويقرأ الصفحة التي أنت عليها. التغييرات على الخوادم والتطبيقات تتم عبر kombify Companion.",
+    "settings.aiProviders.reason.runtimeMissing":
+      "{name} لم يعد معدًّا على هذا الجهاز.",
+    "settings.aiProviders.reason.runtimeOff": "{name} متوقف.",
+    "settings.aiProviders.reason.unreachable":
+      "تعذّر الوصول إلى {name} حاليًا.",
+    "settings.aiProviders.reason.noModels": "لا توجد نماذج في {name} بعد.",
+    "settings.aiProviders.reason.modelMissing": "{name} لا يحتوي على {model}.",
+    "settings.aiProviders.reason.noAnswer": "لم يتم اختيار إجابة محلية.",
+    "settings.aiProviders.reason.failed": "توقف {name} عن الإجابة.",
+    "settings.aiProviders.refused.invalid":
+      "هذا الـ runtime غير معدّ على هذا الجهاز.",
+    "settings.aiProviders.homelab": "Ollama في الـ homelab الخاص بك",
+    "settings.aiProviders.homelab.found": "Ollama على {name}",
+    "settings.aiProviders.homelab.add": "إضافة",
+    "settings.aiProviders.homelab.added": "تمت الإضافة",
+    "settings.aiProviders.homelab.none":
+      "لا يشغّل أي من خوادمك تطبيق Ollama بعد. انشر Ollama من التطبيقات أو أدخل عنوانه أدناه.",
+    "settings.aiProviders.homelab.manual": "إضافة خادم Ollama",
+    "settings.aiProviders.homelab.description":
+      "خادمك يقوم بالعمل؛ هذا الجهاز يرسل السؤال فقط.",
+    "settings.aiProviders.homelab.name": "الاسم",
+    "settings.aiProviders.homelab.namePlaceholder": "مثل nas",
+    "settings.aiProviders.homelab.endpoint.description":
+      "خادم Ollama في الـ homelab الخاص بك.",
+    "localCompanion.title": "Companion",
+    "localCompanion.launcher": "AI محلي",
+    "localCompanion.open": "فتح Companion المحلي",
+    "localCompanion.close": "إغلاق",
+    "localCompanion.new": "محادثة جديدة",
+    "localCompanion.source": "AI محلي · {name} · {model}",
+    "localCompanion.answeredBy": "أجاب {name} · {model}",
+    "localCompanion.empty": "اسأل عمّا تراه هنا. يجيب نموذجك الخاص.",
+    "localCompanion.placeholder": "اسأل عن الـ homelab الخاص بك…",
+    "localCompanion.send": "إرسال",
+    "localCompanion.stop": "إيقاف",
+    "localCompanion.stopped": "تم الإيقاف.",
+    "localCompanion.thinking": "يفكر…",
+    "localCompanion.notSent": "لم يُرسل شيء إلى kombify AI.",
+    "localCompanion.change": "غيّر ذلك في الإعدادات › AI Provider",
   },
   // Draft for the inactive French catalog (locales/fr.pending.ts).
   fr: {
@@ -271,7 +613,7 @@ export const localAiMessages = {
       "Le Companion répond avec kombify AI.",
     "settings.aiProviders.kombify.active": "Actif",
     "settings.aiProviders.ollama.description":
-      "Partagé par les apps kombify de ce PC. Homelab Runtime n’y exécute pas encore d’IA.",
+      "Partagé par les apps kombify de ce PC.",
     "settings.aiProviders.endpoint": "Adresse du serveur",
     "settings.aiProviders.endpoint.description":
       "Serveur Ollama sur cette machine ou ton réseau local.",
@@ -289,5 +631,64 @@ export const localAiMessages = {
       "Le fichier partagé de ce PC a une autre version et reste tel quel.",
     "settings.aiProviders.refused.failed":
       "Le réglage n’a pas pu être enregistré.",
+    "settings.aiProviders.thisPc": "{name} (ce PC)",
+    "settings.aiProviders.remote.description":
+      "Dans ton homelab. Partagé par les apps kombify de ce PC.",
+    "settings.aiProviders.remove": "Retirer",
+    "settings.aiProviders.kombify.localAnswers":
+      "L’IA locale répond dans Homelab",
+    "settings.aiProviders.answer": "Réponses dans Homelab",
+    "settings.aiProviders.answer.with": "Le Companion répond avec",
+    "settings.aiProviders.answer.description":
+      "S’applique sur ce PC à chaque app kombify qui répond depuis une source, comme Kubi.",
+    "settings.aiProviders.answer.kombify": "Ton compte kombify",
+    "settings.aiProviders.answer.local": "IA locale · {name}",
+    "settings.aiProviders.answer.account": "L’IA de ton compte kombify répond.",
+    "settings.aiProviders.answer.ready": "{name} répond avec {model}.",
+    "settings.aiProviders.answer.model": "Modèle",
+    "settings.aiProviders.answer.firstModel": "Premier modèle disponible",
+    "settings.aiProviders.answer.scope":
+      "Ton modèle répond aux questions et lit la page où tu es. Les modifications de serveurs et d’apps passent par le kombify Companion.",
+    "settings.aiProviders.reason.runtimeMissing":
+      "{name} n’est plus configuré sur ce PC.",
+    "settings.aiProviders.reason.runtimeOff": "{name} est désactivé.",
+    "settings.aiProviders.reason.unreachable":
+      "{name} est injoignable pour le moment.",
+    "settings.aiProviders.reason.noModels": "{name} n’a pas encore de modèles.",
+    "settings.aiProviders.reason.modelMissing": "{name} n’a pas {model}.",
+    "settings.aiProviders.reason.noAnswer":
+      "Aucune réponse locale n’est choisie.",
+    "settings.aiProviders.reason.failed": "{name} a cessé de répondre.",
+    "settings.aiProviders.refused.invalid":
+      "Ce runtime n’est pas configuré sur ce PC.",
+    "settings.aiProviders.homelab": "Ollama dans ton homelab",
+    "settings.aiProviders.homelab.found": "Ollama sur {name}",
+    "settings.aiProviders.homelab.add": "Ajouter",
+    "settings.aiProviders.homelab.added": "Ajouté",
+    "settings.aiProviders.homelab.none":
+      "Tes serveurs n’exécutent pas encore l’app Ollama. Déploie Ollama depuis les apps ou saisis son adresse ci-dessous.",
+    "settings.aiProviders.homelab.manual": "Ajouter un serveur Ollama",
+    "settings.aiProviders.homelab.description":
+      "Ton serveur fait le travail ; ce PC envoie seulement la question.",
+    "settings.aiProviders.homelab.name": "Nom",
+    "settings.aiProviders.homelab.namePlaceholder": "p. ex. nas",
+    "settings.aiProviders.homelab.endpoint.description":
+      "Serveur Ollama dans ton homelab.",
+    "localCompanion.title": "Companion",
+    "localCompanion.launcher": "IA locale",
+    "localCompanion.open": "Ouvrir le Companion local",
+    "localCompanion.close": "Fermer",
+    "localCompanion.new": "Nouvelle conversation",
+    "localCompanion.source": "IA locale · {name} · {model}",
+    "localCompanion.answeredBy": "Réponse de {name} · {model}",
+    "localCompanion.empty":
+      "Pose une question sur ce que tu vois ici. Ton propre modèle répond.",
+    "localCompanion.placeholder": "Pose une question sur ton homelab…",
+    "localCompanion.send": "Envoyer",
+    "localCompanion.stop": "Arrêter",
+    "localCompanion.stopped": "Arrêté.",
+    "localCompanion.thinking": "Réflexion…",
+    "localCompanion.notSent": "Rien n’est parti vers kombify AI.",
+    "localCompanion.change": "Modifier dans Réglages › Fournisseurs d’IA",
   },
 } as const;

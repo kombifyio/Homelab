@@ -10,20 +10,29 @@
  * `ai-use.ts`) and the device-wide local runtimes (`local-ai-runtimes.v1.md`),
  * which only the Windows client can read.
  *
- * Homelab Runtime's own AI is the Companion panel AI Platform serves, which runs
- * on kombify AI; Ollama is only a device setting here. So what answers is
- * "other" when the account chose its own provider and "kombify" otherwise, and
- * never "local".
+ * Homelab Runtime's AI is the Companion. It answers on kombify AI through the
+ * panel AI Platform serves ("other" when the account chose its own provider),
+ * or, when the person chose a local answer (`local-ai-runtimes.v1.md` rule 9,
+ * `local-answer.svelte.ts`), on that local runtime: then it is "local" with
+ * the runtime's kind as `provider` and the model that answers.
  */
 import type { AiUseChoice } from "#lib/ai/ai-use.js";
 import type { LocalAiSnapshot } from "#lib/client/local-ai-bridge.js";
+import type { LocalAnswerView } from "#lib/ai/local-answer.svelte.js";
 
 export type AccountAiUse = "kombify" | "own" | "none" | "unknown";
 export type ActiveAiSource = "kombify" | "other" | "local";
 
-export interface AiSetupLocalRuntimes {
-  ollama?: { enabled: boolean; reachable?: boolean };
-}
+/** Per runtime row of the device file (`ollama`, `ollama-nas`): its switch and, after a probe, whether it answered. */
+export type AiSetupLocalRuntimes = Record<
+  string,
+  { enabled: boolean; reachable?: boolean }
+>;
+
+// The schema's bounds (`$defs/aiSetup`): at most eight runtimes, short codes only.
+const MAX_LOCAL_RUNTIMES = 8;
+const CODE = /^[A-Za-z0-9._:@/+-]{1,160}$/;
+const PROVIDER = /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/;
 
 export interface AiSetup {
   accountAiUse: AccountAiUse;
@@ -44,31 +53,44 @@ export function accountAiUseOf(choice: AiUseChoice | null): AccountAiUse {
     : "unknown";
 }
 
-/** The Ollama switch and, after a probe, its reachability; undefined when the device store is not readable here. */
+/** Each runtime's switch and, after a probe, its reachability; undefined when the device store is not readable here. */
 export function localRuntimesOf(
   snapshot: LocalAiSnapshot | null,
 ): AiSetupLocalRuntimes | undefined {
   if (!snapshot) return undefined;
-  const ollama = snapshot.runtimes.find((runtime) => runtime.id === "ollama");
-  const enabled = snapshot.readable && ollama?.enabled === true;
-  const reachable = enabled ? ollama?.status?.reachable : undefined;
-  return {
-    ollama: {
+  const runtimes: AiSetupLocalRuntimes = {};
+  const rows = snapshot.readable
+    ? snapshot.runtimes
+    : snapshot.runtimes.filter((runtime) => runtime.id === "ollama");
+  for (const runtime of rows.slice(0, MAX_LOCAL_RUNTIMES)) {
+    const enabled = snapshot.readable && runtime.enabled;
+    const reachable = enabled ? runtime.status?.reachable : undefined;
+    runtimes[runtime.id] = {
       enabled,
       ...(typeof reachable === "boolean" ? { reachable } : {}),
-    },
-  };
+    };
+  }
+  return runtimes;
 }
 
 export function buildAiSetup(input: {
   aiUse: AiUseChoice | null;
   local?: LocalAiSnapshot | null;
+  /** The local answer the person chose (rule 9); it answers in this app instead of kombify AI. */
+  localAnswer?: LocalAnswerView | null;
 }): AiSetup {
   const accountAiUse = accountAiUseOf(input.aiUse);
   const localRuntimes = localRuntimesOf(input.local ?? null);
+  const answer = input.localAnswer;
   return {
     accountAiUse,
-    activeSource: accountAiUse === "own" ? "other" : "kombify",
+    activeSource: answer
+      ? "local"
+      : accountAiUse === "own"
+        ? "other"
+        : "kombify",
+    ...(answer && PROVIDER.test(answer.kind) ? { provider: answer.kind } : {}),
+    ...(answer && CODE.test(answer.model) ? { model: answer.model } : {}),
     ...(localRuntimes ? { localRuntimes } : {}),
   };
 }

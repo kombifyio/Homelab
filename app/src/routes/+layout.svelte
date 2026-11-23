@@ -25,6 +25,8 @@
   import { onboardingStore } from "#lib/onboarding/store.svelte.js";
   import IntroductionHost from "#lib/components/onboarding/IntroductionHost.svelte";
   import CompanionHost from "#lib/components/CompanionHost.svelte";
+  import LocalCompanionHost from "#lib/components/LocalCompanionHost.svelte";
+  import { localAnswer } from "#lib/ai/local-answer.svelte.js";
   import {
     companionPanel,
     startCompanionPanel,
@@ -549,10 +551,15 @@
   a second in-iframe launcher is the duplicate the Workbench embed already
   retired (owner report 2026-08-26). `ready.chrome.companion: host`.
   In the Windows client it also gives way to Kubi on the desktop when the
-  person chose one Companion (`companionPanel.hidden`).
+  person chose one Companion (`companionPanel.hidden`). When the person chose a local answer
+  (local-ai-runtimes.v1 rule 9, flag `local_ai_providers`), the local Companion answers instead.
 -->
 {#if authInitialized && !framed && authStore.isAuthenticated && $deploymentMode.mode !== "saas-embedded" && !companionPanel.hidden}
-  <CompanionHost />
+  {#if localAnswer.active}
+    <LocalCompanionHost />
+  {:else}
+    <CompanionHost />
+  {/if}
 {/if}
 
 <!-- Product analytics: no replay, no persistent anonymous identity -->
