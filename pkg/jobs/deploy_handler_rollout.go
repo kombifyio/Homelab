@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -47,6 +48,70 @@ type deployRollout struct {
 	// baselineProof is the listener observation that passed the host baseline
 	// at admission and when it passed.
 	baselineProof *hostBaselineProof
+	// nodeSpecName is the one node-side StackSpec file name of this job: INIT,
+	// GENERATE, PLAN, APPLY, VERIFY, the restore drill, the failure record and
+	// the recorded e2e_proof.stack_spec_path all use it. A retry rebases it onto
+	// the file its failed intent lives in.
+	nodeSpecName string
+}
+
+// recordNodeSpecName fixes the node-side spec name of this job and records it
+// as e2e_proof.stack_spec_path, which a later retry reads as the node file.
+func (r *deployRollout) recordNodeSpecName(name string) {
+	r.nodeSpecName = name
+	if r.e2eProof != nil {
+		r.e2eProof["stack_spec_path"] = name
+		// Stored on every path: a failed Apply that returns no result saves no
+		// other progress, and the next retry reads this as the node file.
+		r.persistRuntimeProgress()
+	}
+}
+
+// resolveNodeSpecName computes the node-side spec name once per job, the way
+// Apply does: the typed apply's own derivation (canonicalStackSpecFor), and the
+// retry binding's rename when the payload carries a recovered node intent. It
+// evaluates the binding on a copy, so it has no side effect; a refusal is left
+// to Apply, which reports it, and the derived name stands for the branches that
+// do not apply (verify of an already activated plan).
+func (r *deployRollout) resolveNodeSpecName() error {
+	if r.nodeSpecName != "" || r.actionReq.HomelabEnrollment == nil || r.unifiedSpec == nil {
+		return nil
+	}
+	canonical, err := canonicalStackSpecFor(r.actionReq.StackSpecPath, r.unifiedSpec.StackKit, r.actionReq.StackName)
+	if err != nil {
+		return err
+	}
+	r.deriveNodeSpecName(filepath.Base(canonical.Path))
+	return nil
+}
+
+func (r *deployRollout) deriveNodeSpecName(canonicalBase string) {
+	newProbe := func() StackKitLifecycleRequest {
+		probe := StackKitLifecycleRequest{
+			AgentID: r.actionReq.HomelabEnrollment.RuntimeAgentID, StackKit: r.unifiedSpec.StackKit, SpecPath: canonicalBase,
+		}
+		if r.addressPrefix != "" {
+			probe.BoundSpecPath, probe.SpecPath = probe.SpecPath, "stack-spec.yaml"
+		}
+		return probe
+	}
+	probe := newProbe()
+	if bindErr := bindRolloutRetryCurrentIntent(r.job, &probe, r.actionReq.HomelabEnrollment.LeaseID, r.actionReq.HomelabEnrollment.ServerID); bindErr != nil {
+		probe = newProbe()
+	}
+	r.nodeSpecName = probe.SpecPath
+	if probe.BoundSpecPath != "" {
+		r.nodeSpecName = probe.BoundSpecPath
+	}
+}
+
+// nodeSpecFile is the node-side spec name for operations after Apply. It never
+// guesses: a job that did not run its Apply has no node file name.
+func (r *deployRollout) nodeSpecFile() (string, error) {
+	if r.nodeSpecName == "" {
+		return "", fmt.Errorf("the node-side StackSpec name is unknown: this job did not run its StackKits Apply")
+	}
+	return r.nodeSpecName, nil
 }
 
 // newDeployRollout builds the runtime-action request and the initial e2e proof

@@ -30,6 +30,7 @@ export interface NavItem {
   icon: Component;
   feature?: string; // Feature flag name (optional): hidden while the flag is off
   alwaysShow?: boolean; // Show even if the feature is off (see visibleNavItems)
+  hideWhenSimpleNav?: boolean;
   badge?: number | null; // Optional badge count
   children?: NavItem[]; // Sub-navigation items
   external?: boolean; // External URL — render with target="_blank" rel="noopener"
@@ -224,6 +225,7 @@ export const sidebarNavGroups: NavGroup[] = [
 export const embeddedNavItems: NavItem[] = [
   {
     id: "embedded-dashboard",
+    hideWhenSimpleNav: true,
     href: START_PAGE_HREF,
     labelKey: "nav.dashboard",
     labelFallback: "Dashboard",
@@ -261,6 +263,7 @@ export const embeddedNavItems: NavItem[] = [
   },
   {
     id: "embedded-monitoring",
+    hideWhenSimpleNav: true,
     href: "/monitoring",
     labelKey: "nav.monitoring",
     labelFallback: "Monitoring",
@@ -285,6 +288,7 @@ export const embeddedNavItems: NavItem[] = [
   },
   {
     id: "embedded-settings",
+    hideWhenSimpleNav: true,
     href: SETTINGS_HREF,
     labelKey: "nav.settings",
     labelFallback: "Settings",

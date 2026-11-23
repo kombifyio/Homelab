@@ -5,7 +5,7 @@
    */
   import { page } from "$app/state";
   import { embeddedNavItems, visibleNavItems } from "#lib/navigation.js";
-  import { features } from "#lib/stores/features.js";
+  import { features, NAVIGATION_SIMPLE_FLAG } from "#lib/stores/features.js";
   import { toPackageNavItems } from "./nav-items.js";
   import { HOST_NAVIGATION_QUERY } from "#lib/embedded-navigation.js";
   import {
@@ -24,10 +24,12 @@
 
   const packageItems = $derived.by<NavItem[]>(() => {
     void $features;
+    const simpleNav = features.isEnabled(NAVIGATION_SIMPLE_FLAG);
+    const items = simpleNav
+      ? embeddedNavItems.filter((item) => !item.hideWhenSimpleNav)
+      : embeddedNavItems;
     return toPackageNavItems(
-      visibleNavItems(embeddedNavItems, (feature) =>
-        features.isEnabled(feature),
-      ),
+      visibleNavItems(items, (feature) => features.isEnabled(feature)),
     );
   });
 

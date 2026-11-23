@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/jobs"
@@ -16,9 +17,16 @@ func (o *Orchestrator) rolloutRetryIntentForRequest(ctx context.Context, req Rol
 		source.Result[jobs.RolloutRetryCurrentIntentField] != nil
 	if req.CurrentSpecHash == "" {
 		if partialInit {
+			if intent := movedReleaseInspectIntent(req.StackID, source, failure, req.LeaseID, serverID); intent != nil {
+				return intent, nil
+			}
 			return nil, fmt.Errorf("%w: partial INIT recovery requires its current normalized spec hash", ErrRolloutRetryInvalid)
 		}
-		return rolloutRetryCurrentIntent(source, req.LeaseID, serverID)
+		intent, err := rolloutRetryCurrentIntent(source, req.LeaseID, serverID)
+		if err != nil || intent != nil {
+			return intent, err
+		}
+		return o.inheritedRolloutRetryIntent(ctx, req, source, serverID)
 	}
 	if !partialInit || candidateSHA == "" {
 		return nil, fmt.Errorf("%w: current spec hash is only admitted for exact partial INIT recovery", ErrRolloutRetryInvalid)
@@ -31,7 +39,9 @@ func (o *Orchestrator) rolloutRetryIntentForRequest(ctx context.Context, req Rol
 	current := source
 	var intent map[string]any
 	var applyID string
-	for depth := 0; depth < 8; depth++ {
+	// The walk covers what inheritance accepts: up to rolloutRetryLineageDepth
+	// inherited hops, plus the failed INIT that is its source and the Apply.
+	for depth := 0; depth < rolloutRetryLineageDepth+2; depth++ {
 		if current.TenantID != req.TenantID || seen[current.ID] {
 			return nil, fmt.Errorf("%w: native intent lineage has another tenant or a cycle", ErrRolloutRetryInvalid)
 		}
@@ -51,6 +61,25 @@ func (o *Orchestrator) rolloutRetryIntentForRequest(ctx context.Context, req Rol
 		}
 		priorID := stringFromAny(current.Result[rolloutRetrySourceField])
 		key := exactRolloutRetryKey(req.StackID, priorID, req.LeaseID)
+		if _, typed := current.Result["typed_stackkit_rollout"]; !typed && depth > 0 {
+			// An inherited hop: a replacement that shows no typed node failure and
+			// whose dispatch recorded the intent it inherited. It is stepped over with
+			// the same cross-checks inheritance applies, and its stored intent is
+			// replayed below.
+			if storedRolloutRetryIntent(req.StackID, current, req.LeaseID, serverID) == nil ||
+				priorID == "" || stringFromAny(current.Result[rolloutRetryKeyField]) != key ||
+				stringFromAny(current.Result[rolloutRetryLeaseField]) != req.LeaseID ||
+				stringFromAny(current.Result[rolloutRetryServerField]) != serverID {
+				return nil, fmt.Errorf("%w: native intent lineage crosses a retry that is not an exact inherited dispatch", ErrRolloutRetryInvalid)
+			}
+			chain = append(chain, current)
+			previous, err := o.jobStore.GetJob(ctx, req.TenantID, priorID)
+			if err != nil || previous == nil {
+				return nil, fmt.Errorf("%w: native intent lineage job is unavailable", ErrRolloutRetryInvalid)
+			}
+			current = *previous
+			continue
+		}
 		if stringFromAny(failure["operation"]) != jobs.StackKitLifecycleInit ||
 			stringFromAny(failure["status"]) != "failed" ||
 			stringFromAny(failure["command_id"]) != current.ID+"-"+jobs.StackKitLifecycleInit ||
@@ -78,10 +107,24 @@ func (o *Orchestrator) rolloutRetryIntentForRequest(ctx context.Context, req Rol
 		init := chain[index]
 		stored, _ := providerIdentityMap(init.Result[jobs.RolloutRetryCurrentIntentField])
 		failure, _ := providerIdentityMap(init.Result["typed_stackkit_rollout"])
-		if !reflect.DeepEqual(stored, intent) || stringFromAny(failure["release"]) != stringFromAny(intent["release"]) {
+		if _, typed := init.Result["typed_stackkit_rollout"]; !typed {
+			if !reflect.DeepEqual(stored, intent) {
+				return nil, fmt.Errorf("%w: inherited retry native intent proof changed", ErrRolloutRetryInvalid)
+			}
+			intent = inheritRolloutRetryIntent(intent, init.ID)
+			continue
+		}
+		if !reflect.DeepEqual(stored, intent) {
 			return nil, fmt.Errorf("%w: failed INIT native intent proof changed", ErrRolloutRetryInvalid)
 		}
 		intent = cloneProvisionSpec(intent)
+		// The release is not the document's identity: StackKits compares the
+		// caller's hash with the node's actual intent at INIT, so the CAS stays
+		// meaningful across a moved pin. Each hop records the release it ran under,
+		// and the next hop's stored intent was written from it.
+		if recorded := strings.TrimSpace(stringFromAny(failure["release"])); recorded != "" {
+			intent["release"] = recorded
+		}
 		intent["source_job_id"] = init.ID
 		intent["apply_source_job_id"] = applyID
 	}

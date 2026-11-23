@@ -47,6 +47,14 @@ func (r *deployRollout) runPortGovernedLifecycle(ctx context.Context) (applied b
 		return false, err
 	}
 	apply := deployApplyEnabled(r.job)
+	if apply {
+		// Apply and the verify-only branch (an already activated plan) both
+		// address the node's StackSpec by this one name.
+		if err := r.resolveNodeSpecName(); err != nil {
+			// The same failure surfaced inside the StackKits rollout before; keep its step and guidance.
+			return false, wrapProvisionCause(StepRolloutRunner, fmt.Errorf("StackKits rollout failed: %w", err), "")
+		}
+	}
 	if err := r.admitRuntimeListeners(ctx, apply); err != nil {
 		return false, err
 	}

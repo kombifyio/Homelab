@@ -71,10 +71,18 @@ func (r *deployRollout) runTypedStackKitApply(ctx context.Context) (map[string]i
 		// closed because replacement requires its current normalized hash.
 		ExpectedSpecHash: "",
 	}
-	if err := bindRolloutRetryCurrentIntent(r.job, &baseRequest, release.Receipt().Version, //nolint:govet // moved unchanged from deploy_handler.go
+	nodeSpec := func(request StackKitLifecycleRequest) string {
+		if request.BoundSpecPath != "" {
+			return request.BoundSpecPath
+		}
+		return request.SpecPath
+	}
+	if err := bindRolloutRetryCurrentIntent(r.job, &baseRequest, //nolint:govet // moved unchanged from deploy_handler.go
 		r.actionReq.HomelabEnrollment.LeaseID, r.actionReq.HomelabEnrollment.ServerID); err != nil {
 		return nil, err
 	}
+	// The bind may rebase a retry onto the node file its failed intent lives in.
+	r.recordNodeSpecName(nodeSpec(baseRequest))
 	var trustAdmission advancedTrustAdmission
 	if issuer := r.cfg.AdvancedIssuer; issuer != nil {
 		// Every managed deployment runs Advanced Mode from its first rollout:
@@ -138,6 +146,9 @@ func (r *deployRollout) runTypedStackKitApply(ctx context.Context) (map[string]i
 				}
 				if operationErr.TimedOut() || operationErr.Stalled() {
 					failure["retryable"] = true
+				}
+				if operationErr.CompareAndSwapConflict() {
+					failure["cas_conflict"] = true
 				}
 				if stall := operationErr.AgentStall; stall != nil {
 					failure["last_owner"] = stall.Owner
@@ -648,6 +659,35 @@ type typedStackKitOperationError struct {
 	Failure typedStackKitFailure
 }
 
+// IsStackKitIntentConflictText reports that text carries StackKits' refusal to
+// replace a node intent because the expected hash does not match it. The CLI
+// (v0.58 to v0.61) prints the cause text of stackspecintent, not its code,
+// wrapped by init as "...Review the current intent, then retry with
+// --expected-spec-hash"; the codes are matched for a CLI that prints them.
+func IsStackKitIntentConflictText(text string) bool {
+	text = strings.ToLower(text)
+	for _, marker := range []string{
+		"expected_spec_hash does not match current cue-normalized intent",
+		"expected_spec_hash is required to replace existing stackspec v2 intent",
+		"compare-and-swap-conflict", "compare-and-swap-required",
+	} {
+		if strings.Contains(text, marker) {
+			return true
+		}
+	}
+	return false
+}
+
+// CompareAndSwapConflict reports that StackKits refused the INIT because the
+// node's intent differs from the hash the caller bound (its own message asks a
+// person to review the current intent).
+func (e *typedStackKitOperationError) CompareAndSwapConflict() bool {
+	if e == nil {
+		return false
+	}
+	return (e.Err != nil && IsStackKitIntentConflictText(e.Err.Error())) || strings.Contains(e.Failure.ReasonCode, "compare_and_swap")
+}
+
 // Stalled reports that the node ended the command because it went silent.
 func (e *typedStackKitOperationError) Stalled() bool { return e.AgentStall != nil }
 
@@ -737,7 +777,7 @@ func (r *deployRollout) runTypedStackKitVerify(ctx context.Context) (map[string]
 	if release == nil {
 		return nil, fmt.Errorf("pinned published StackKits release is not configured")
 	}
-	canonical, err := canonicalStackSpecFor(r.actionReq.StackSpecPath, r.unifiedSpec.StackKit, r.actionReq.StackName)
+	nodeSpec, err := r.nodeSpecFile()
 	if err != nil {
 		return nil, err
 	}
@@ -749,7 +789,7 @@ func (r *deployRollout) runTypedStackKitVerify(ctx context.Context) (map[string]
 		NodeRef:          PrimaryStackKitNodeRef(r.unifiedSpec.StackKit),
 		Operation:        StackKitLifecycleVerify,
 		WorkingDirectory: defaultStackKitNodeWorkspace,
-		SpecPath:         filepath.Base(canonical.Path),
+		SpecPath:         nodeSpec,
 		StackKit:         r.unifiedSpec.StackKit,
 	})
 	if err != nil {
