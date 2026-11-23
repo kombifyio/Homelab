@@ -1,7 +1,7 @@
 // Package authlocal implements username+password authentication for kombify
 // backends backed by a single break-glass admin record.
 //
-// Self-hosted kombify tools (TechStack, Sim, …) deliberately avoid running
+// Self-hosted kombify tools (Homelab, Sim, …) deliberately avoid running
 // their own multi-user management. End users live in an OIDC provider
 // (Pocket ID, Auth0, PocketBase) once one is provisioned. The local package
 // only exists to bootstrap the very first admin so the operator can log in
@@ -14,7 +14,7 @@
 //   - First-claim-wins handover from bootstrap to operator-owned creds
 //
 // Donor: kombify-Techstack/pkg/v2/auth/local (lifted 2026-05-03 and rebound
-// from techstack-internal session/authmw to shared authsession +
+// from homelab-internal session/authmw to shared authsession +
 // oidcclient).
 package authlocal
 

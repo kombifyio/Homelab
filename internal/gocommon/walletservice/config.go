@@ -38,7 +38,7 @@ type Config struct {
 	// user info, path, query or fragment.
 	Origin string
 	// ServiceID is the product's service id at the Wallet: `paperwork`, `ai`,
-	// `techstack`, `simulate` or `cloud`. The service token's `svc`, the lease
+	// `homelab`, `simulate` or `cloud`. The service token's `svc`, the lease
 	// actor `service:<id>`, the transport key id and the transport audience
 	// `urn:kombify:wallet:service:<id>` all derive from it.
 	ServiceID string

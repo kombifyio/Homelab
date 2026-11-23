@@ -4,7 +4,7 @@
     {
       "id": "nuclei-templates",
       "repository": "https://github.com/projectdiscovery/nuclei-templates",
-      "commit": "0aee9e90725104501985724bc68e45cbc82bc38e",
+      "commit": "0cdad4ce10370c2fb2138f5dcf2df23258eaf7bf",
       "license": "MIT",
       "path": "http/technologies, http/exposed-panels"
     }
@@ -61,6 +61,38 @@
           "part": "body",
           "values": [
             "<title>Activepieces</title>"
+          ],
+          "condition": "or"
+        },
+        {
+          "type": "status",
+          "status": [
+            200
+          ]
+        }
+      ]
+    },
+    {
+      "app": "actual-budget",
+      "template": "actual-budget-panel",
+      "paths": [
+        "/login"
+      ],
+      "condition": "and",
+      "matchers": [
+        {
+          "type": "word",
+          "part": "body",
+          "values": [
+            "<title>Actual</title>"
+          ],
+          "condition": "or"
+        },
+        {
+          "type": "word",
+          "part": "body",
+          "values": [
+            "/site.webmanifest"
           ],
           "condition": "or"
         },
@@ -1872,25 +1904,24 @@
       "paths": [
         "/"
       ],
-      "condition": "and",
+      "condition": "or",
       "matchers": [
+        {
+          "type": "regex",
+          "part": "header",
+          "values": [
+            "(?mi)^Server: CUPS\\b"
+          ],
+          "condition": "or"
+        },
         {
           "type": "word",
           "part": "body",
           "values": [
             "Web Interface is Disabled - CUPS",
-            "Forbidden - CUPS",
-            "Server: CUPS"
+            "Forbidden - CUPS"
           ],
           "condition": "or"
-        },
-        {
-          "type": "status",
-          "status": [
-            200,
-            404,
-            403
-          ]
         }
       ]
     },

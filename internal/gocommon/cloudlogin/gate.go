@@ -9,7 +9,7 @@
 // suitable for surfacing in /readyz, audit logs, or admin telemetry.
 //
 // Donor: kombify-Techstack/pkg/cloudlogin (lifted 2026-05-03 with the
-// techstack-specific config.DeploymentMode dependency replaced by simple
+// homelab-specific config.DeploymentMode dependency replaced by simple
 // IsSaaS / IsSelfHosted booleans).
 package cloudlogin
 
@@ -35,7 +35,7 @@ const FeatureKey = "cloud_login"
 
 // DefaultAudience is the audience claim used when [Options.ExpectedAudience]
 // is empty. Consumers SHOULD set their own product-specific audience (e.g.
-// "kombify-techstack:selfhosted-cloud-login").
+// "kombify-homelab:selfhosted-cloud-login").
 const DefaultAudience = "kombify:selfhosted-cloud-login"
 
 // EnvPrefix is the default env-var prefix used by [OptionsFromEnv].

@@ -5,17 +5,35 @@
     {
       "id": "dashboard-icons",
       "repository": "https://github.com/homarr-labs/dashboard-icons",
-      "commit": "d767d7327db7f8ebd3715b552523f61889eea41c",
+      "commit": "9d019529dfd4431770e7380bfafd6628800b7986",
       "license": "Apache-2.0"
     },
     {
       "id": "simple-icons",
       "repository": "https://github.com/simple-icons/simple-icons",
-      "commit": "1bb2f6e6ea50f920de8d2f3d273ae48564a5eaee",
+      "commit": "c01109118e134e061c9bdf2e1a7f814117f1f032",
       "license": "CC0-1.0"
     }
   ],
   "icons": {
+    "2fauth": {
+      "source": "dashboard-icons",
+      "formats": [
+        "png",
+        "svg",
+        "webp"
+      ],
+      "light": "2fauth",
+      "dark": "2fauth-light"
+    },
+    "2fauth-light": {
+      "source": "dashboard-icons",
+      "formats": [
+        "png",
+        "svg",
+        "webp"
+      ]
+    },
     "3cx": {
       "source": "dashboard-icons",
       "formats": [
@@ -626,6 +644,13 @@
       "formats": [
         "png",
         "svg",
+        "webp"
+      ]
+    },
+    "bookorbit": {
+      "source": "dashboard-icons",
+      "formats": [
+        "png",
         "webp"
       ]
     },
@@ -1428,6 +1453,16 @@
         "png",
         "svg",
         "webp"
+      ],
+      "light": "docker",
+      "dark": "docker-light"
+    },
+    "docker-light": {
+      "source": "dashboard-icons",
+      "formats": [
+        "png",
+        "svg",
+        "webp"
       ]
     },
     "dockge": {
@@ -1683,10 +1718,26 @@
         "webp"
       ]
     },
+    "excaliself": {
+      "source": "dashboard-icons",
+      "formats": [
+        "png",
+        "svg",
+        "webp"
+      ]
+    },
     "ezbookkeeping": {
       "source": "dashboard-icons",
       "formats": [
         "png",
+        "webp"
+      ]
+    },
+    "ferret": {
+      "source": "dashboard-icons",
+      "formats": [
+        "png",
+        "svg",
         "webp"
       ]
     },
@@ -2427,6 +2478,14 @@
       ]
     },
     "homebridge": {
+      "source": "dashboard-icons",
+      "formats": [
+        "png",
+        "svg",
+        "webp"
+      ]
+    },
+    "homelable": {
       "source": "dashboard-icons",
       "formats": [
         "png",
@@ -3495,6 +3554,24 @@
         "webp"
       ]
     },
+    "mikrotik": {
+      "source": "dashboard-icons",
+      "formats": [
+        "png",
+        "svg",
+        "webp"
+      ],
+      "light": "mikrotik",
+      "dark": "mikrotik-light"
+    },
+    "mikrotik-light": {
+      "source": "dashboard-icons",
+      "formats": [
+        "png",
+        "svg",
+        "webp"
+      ]
+    },
     "minecraft": {
       "source": "dashboard-icons",
       "formats": [
@@ -4048,6 +4125,24 @@
       "dark": "open-webui-light"
     },
     "open-webui-light": {
+      "source": "dashboard-icons",
+      "formats": [
+        "png",
+        "svg",
+        "webp"
+      ]
+    },
+    "openbao": {
+      "source": "dashboard-icons",
+      "formats": [
+        "png",
+        "svg",
+        "webp"
+      ],
+      "light": "openbao-light",
+      "dark": "openbao"
+    },
+    "openbao-light": {
       "source": "dashboard-icons",
       "formats": [
         "png",
@@ -5983,7 +6078,6 @@
       "source": "dashboard-icons",
       "formats": [
         "png",
-        "svg",
         "webp"
       ]
     },

@@ -84,6 +84,7 @@ type DriftCheckConfig struct {
 	DetectTimeout    time.Duration
 	ReconcileTimeout time.Duration
 	releaseResolver  func() (*stackkitrelease.Release, error)
+	lifecycle        StackKitLifecycleConfig
 }
 
 // DefaultDriftCheckConfig returns a default configuration.
@@ -329,7 +330,9 @@ func DriftResolveHandler(cfg *DriftCheckConfig) JobHandler {
 
 		job.setStep(StepDriftCheckStacks)
 		q.UpdateProgress(job.ID, 50, "Reconciling drift through a StackKits change set...")
-		summary, err := runAdvancedStackKitLifecycle(ctx, StackKitLifecycleConfig{Sender: cfg.Sender, AdvancedIssuer: cfg.AdvancedIssuer}, *release, job.ID, request)
+		lifecycle := cfg.lifecycle
+		lifecycle.Sender, lifecycle.AdvancedIssuer = cfg.Sender, cfg.AdvancedIssuer
+		summary, err := runAdvancedStackKitLifecycle(ctx, lifecycle, *release, job.ID, request)
 		if summary != nil {
 			summary["stack_id"] = stackID
 			summary["duration_ms"] = time.Since(startTime).Milliseconds()

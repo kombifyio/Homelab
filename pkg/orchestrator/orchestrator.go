@@ -207,6 +207,7 @@ type Config struct {
 	// database; nil keeps them on the local disk only.
 	SpecFiles                jobs.SpecFileStore
 	StackKitCommander        jobs.StackKitCommandSender
+	WikiRegistryIssuer       jobs.WikiRegistryIssuer
 	ManagedStackKitInventory jobs.ManagedStackKitInventoryBuilder
 	// FederationFabric issues the inter-site link binding of a managed Modern
 	// deployment; nil leaves the rollout at the link-binding blocker.
@@ -384,6 +385,7 @@ func (o *Orchestrator) provisionConfig(actions jobs.RuntimeActions) *jobs.Provis
 		WorkDir:                      o.cfg.WorkDir,
 		RuntimeActions:               actions,
 		StackKitCommander:            o.stackKitCommander,
+		StackKitLifecycle:            o.stackKitLifecycleConfig,
 		ManagedStackKitInventory:     o.managedStackKitInventory,
 		StackKitNodeAgents:           o.resolveStackKitNodeAgent,
 		FederationFabric:             o.cfg.FederationFabric,

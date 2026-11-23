@@ -123,8 +123,11 @@ func (r *deployRollout) runTypedStackKitApply(ctx context.Context) (map[string]i
 	baseRequest.originCertificate = originCertificate
 	started := time.Now()
 	budget := managedStackKitSequenceBudget(baseRequest.modern != nil, baseRequest.originCertificate != nil)
-	result, err := runTypedStackKitApplySequenceWithBudget(ctx, r.cfg.StackKitCommander, r.job.ID, baseRequest, *release, budget, trustAdmission)
+	result, err := runTypedStackKitApplySequenceWithBudget(ctx, r.cfg.StackKitLifecycle, r.cfg.StackKitCommander, r.job.ID, baseRequest, *release, budget, trustAdmission)
 	if err != nil {
+		if registryOutcome, exists := result["wiki_registry"]; exists {
+			r.job.mutateResult(func(jobResult map[string]interface{}) { jobResult["wiki_registry"] = registryOutcome })
+		}
 		reason := "typed_stackkit_rollout_failed"
 		var operationErr *typedStackKitOperationError
 		if errors.As(err, &operationErr) {
@@ -291,7 +294,7 @@ func (r *deployRollout) modernRolloutSeam(ctx context.Context, receipt stackkitr
 // Control-plane artifacts live in a different filesystem and cannot substitute
 // for this node-local generation boundary.
 func runTypedStackKitApplySequence(ctx context.Context, sender StackKitCommandSender, jobID string, baseRequest StackKitLifecycleRequest, release stackkitrelease.Release) (map[string]interface{}, error) {
-	return runTypedStackKitApplySequenceWithBudget(ctx, sender, jobID, baseRequest, release, 0, nil)
+	return runTypedStackKitApplySequenceWithBudget(ctx, StackKitLifecycleConfig{}, sender, jobID, baseRequest, release, 0, nil)
 }
 
 // advancedTrustAdmission admits and records the host's trust-import evidence.
@@ -299,7 +302,7 @@ func runTypedStackKitApplySequence(ctx context.Context, sender StackKitCommandSe
 type advancedTrustAdmission func(context.Context, *agentpb.StackKitCommand, *agentpb.StackKitResult) error
 
 //nolint:gocyclo // moved unchanged from deploy_handler.go
-func runTypedStackKitApplySequenceWithBudget(ctx context.Context, sender StackKitCommandSender, jobID string, baseRequest StackKitLifecycleRequest, release stackkitrelease.Release, sequenceBudget time.Duration, admitTrust advancedTrustAdmission) (map[string]interface{}, error) {
+func runTypedStackKitApplySequenceWithBudget(ctx context.Context, lifecycle StackKitLifecycleConfig, sender StackKitCommandSender, jobID string, baseRequest StackKitLifecycleRequest, release stackkitrelease.Release, sequenceBudget time.Duration, admitTrust advancedTrustAdmission) (map[string]interface{}, error) {
 	maxBudget := managedStackKitSequenceBudget(baseRequest.modern != nil, baseRequest.originCertificate != nil)
 	if sequenceBudget <= 0 || sequenceBudget > maxBudget {
 		sequenceBudget = maxBudget
@@ -376,6 +379,10 @@ func runTypedStackKitApplySequenceWithBudget(ctx context.Context, sender StackKi
 	if err != nil {
 		return nil, err
 	}
+	registryOutcome := map[string]interface{}{}
+	if err := renewWikiRegistryPull(preApplyCtx, lifecycle, jobID, request, release, registryOutcome); err != nil {
+		return map[string]interface{}{"wiki_registry": registryOutcome}, err
+	}
 	result, _, err := dispatchTypedStackKitOperation(ctx, sender, jobID, request, release, func(command *agentpb.StackKitCommand) {
 		command.ExpectedPlanHash = nodePlanHash
 	})
@@ -418,6 +425,13 @@ func runTypedStackKitApplySequenceWithBudget(ctx context.Context, sender StackKi
 		return normalized, err
 	}
 	if cloudNode != nil {
+		cloudRegistryRequest := cloudNode.request
+		cloudRegistryRequest.CandidateSpecJSON = baseRequest.CandidateSpecJSON
+		registryOutcome := map[string]interface{}{}
+		if err := renewWikiRegistryPull(ctx, lifecycle, jobID+"-cloud", cloudRegistryRequest, release, registryOutcome); err != nil {
+			normalized["wiki_registry"] = registryOutcome
+			return normalized, err
+		}
 		cloudResult, cloudErr := cloudNode.apply(ctx, sender, jobID, release)
 		if cloudResult != nil {
 			normalized["modern_cloud_node_apply"] = cloudResult

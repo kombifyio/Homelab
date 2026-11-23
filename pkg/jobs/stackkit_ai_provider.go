@@ -164,6 +164,14 @@ func configureAIProvider(ctx context.Context, cfg StackKitLifecycleConfig, job *
 // open it into its Wallet item custody. The item must list the node as a host
 // target; when it does not, outcome names the target to add.
 func deliverWalletItem(ctx context.Context, cfg StackKitLifecycleConfig, job *Job, q *Queue, req StackKitLifecycleRequest, release stackkitrelease.Release, outcome map[string]interface{}) (WalletHostTarget, string, error) {
+	progress := func(step string, percent int, message string) {
+		job.setStep(step)
+		q.UpdateProgress(job.ID, percent, message)
+	}
+	return deliverWalletItemToNode(ctx, cfg, job.ID, req, release, outcome, progress)
+}
+
+func deliverWalletItemToNode(ctx context.Context, cfg StackKitLifecycleConfig, jobID string, req StackKitLifecycleRequest, release stackkitrelease.Release, outcome map[string]interface{}, progress func(string, int, string)) (WalletHostTarget, string, error) {
 	if cfg.WalletHostDelivery == nil {
 		return WalletHostTarget{}, "", &aiProviderConfigError{fmt.Errorf("kombify Wallet host delivery is not configured")}
 	}
@@ -176,13 +184,15 @@ func deliverWalletItem(ctx context.Context, cfg StackKitLifecycleConfig, job *Jo
 		return WalletHostTarget{}, "", errors.New("cannot draw a recipient challenge")
 	}
 	challenge := hex.EncodeToString(random)
+	if req.wikiRegistryItem != "" {
+		jobID += "-" + challenge[:16]
+	}
 
-	job.setStep("stackkit_" + stackKitStepHostDeliveryRecipient)
-	q.UpdateProgress(job.ID, 15, "Asking the node for its delivery recipient key")
+	progress("stackkit_"+stackKitStepHostDeliveryRecipient, 15, "Asking the node for its delivery recipient key")
 	recipient := walletDeliveryStep(req, stackKitStepHostDeliveryRecipient)
 	recipient.RecipientChallenge, recipient.DeliveryAuthorityKey, recipient.DeliveryAuthorityKeyID = challenge, key, keyID
 	var recipientCommand *agentpb.StackKitCommand
-	result, commandID, err := dispatchManagedDelivery(ctx, cfg.Sender, job.ID, recipient, release, &recipientCommand)
+	result, commandID, err := dispatchManagedDelivery(ctx, cfg.Sender, jobID, recipient, release, &recipientCommand)
 	if err != nil {
 		return WalletHostTarget{}, "", err
 	}
@@ -196,8 +206,7 @@ func deliverWalletItem(ctx context.Context, cfg StackKitLifecycleConfig, job *Jo
 		AgentID: req.AgentID,
 	}
 
-	job.setStep("wallet_host_delivery")
-	q.UpdateProgress(job.ID, 30, "Having the kombify Wallet seal the item to the node")
+	progress("wallet_host_delivery", 30, "Having the kombify Wallet seal the item to the node")
 	sealed, err := cfg.WalletHostDelivery.DeliverItem(ctx, req.OwnerID, req.WalletItemID, req.WalletItemRotate, target, statement.Statement, challenge, time.Now().Add(walletHostDeliveryLifetime))
 	if err != nil {
 		// The Wallet names its reason; the host target is what the owner
@@ -206,12 +215,11 @@ func deliverWalletItem(ctx context.Context, cfg StackKitLifecycleConfig, job *Jo
 		return target, "", fmt.Errorf("the kombify Wallet did not deliver item %s to this node: %w", req.WalletItemID, err)
 	}
 
-	job.setStep("stackkit_" + stackKitStepWalletItemImport)
-	q.UpdateProgress(job.ID, 45, "Opening the sealed Wallet item on the node")
+	progress("stackkit_"+stackKitStepWalletItemImport, 45, "Opening the sealed Wallet item on the node")
 	imported := walletDeliveryStep(req, stackKitStepWalletItemImport)
 	imported.SealedDelivery, imported.DeliveryTenantRef = sealed.Envelope, target.TenantRef
 	var importCommand *agentpb.StackKitCommand
-	result, commandID, err = dispatchManagedDelivery(ctx, cfg.Sender, job.ID, imported, release, &importCommand)
+	result, commandID, err = dispatchManagedDelivery(ctx, cfg.Sender, jobID, imported, release, &importCommand)
 	if err != nil {
 		return target, "", err
 	}

@@ -34,9 +34,6 @@ const (
 // AllRoles lists every defined role in descending privilege order.
 var AllRoles = []Role{GlobalAdmin, Admin, Developer, Manager, User}
 
-// StaffRoles lists roles that grant access to Admin Center and Company Tools.
-var StaffRoles = []Role{GlobalAdmin, Admin, Developer, Manager}
-
 // Level returns the numeric privilege level for a role.
 // Unknown roles return 0.
 func (r Role) Level() int {
@@ -46,17 +43,6 @@ func (r Role) Level() int {
 // AtLeast returns true if this role has at least the privilege level of target.
 func (r Role) AtLeast(target Role) bool {
 	return r.Level() >= target.Level()
-}
-
-// IsStaff returns true if this role is a staff role (any role in StaffRoles:
-// global_admin, admin, developer, manager).
-func (r Role) IsStaff() bool {
-	for _, s := range StaffRoles {
-		if r == s {
-			return true
-		}
-	}
-	return false
 }
 
 // IsValid returns true if this role is a known platform role.

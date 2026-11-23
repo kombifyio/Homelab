@@ -330,6 +330,7 @@ type StackKitLifecycleRequest struct {
 	WalletItemID      string
 	WalletItemRotate  bool
 	AIProviderDisable bool
+	wikiRegistryItem  string
 	// AdvancedTrustBundle is the installation's canonical public
 	// stackkit.advanced-trust-bundle/v1, set at dispatch for
 	// advanced_trust_import only and never persisted in a job payload.
@@ -536,6 +537,8 @@ type StackKitLifecycleConfig struct {
 	// WalletHostDelivery seals a kombify Wallet item to a node for
 	// ai_provider. Nil fails that operation closed.
 	WalletHostDelivery WalletHostDelivery
+	WikiRegistryRenew  WikiRegistryRenewal
+	WikiRegistrySpec   func(context.Context, StackKitLifecycleRequest) ([]byte, error)
 	// IdentityJoinWallet stores a joined server's sign-in client secret in the
 	// homelab's Wallet for host delivery. Nil fails the join closed.
 	IdentityJoinWallet HomelabIdentityJoinWallet
@@ -1180,6 +1183,13 @@ func StackKitLifecycleHandler(cfg StackKitLifecycleConfig) JobHandler {
 			dispatchReq.RestorePlanHash = expectedPlanHash
 			dispatchID += "-recover"
 		}
+		if req.Operation == StackKitLifecycleApply || (req.Operation == StackKitLifecycleApplicationUpdate && req.UseCase == "wiki") {
+			outcome := map[string]interface{}{}
+			if err := renewWikiRegistryPull(ctx, cfg, job.ID, req, *release, outcome); err != nil {
+				job.mutateResult(func(result map[string]interface{}) { result["wiki_registry"] = outcome })
+				return NewConfigError(err)
+			}
+		}
 		command, result, err := sendStackKitLifecycleCommand(ctx, cfg.Sender, dispatchID, dispatchReq, *release, expectedPlanHash, originalRecoveryRelease)
 		var reconciliation map[string]interface{}
 		if req.Operation == StackKitLifecycleBackupRestoreActivate && !resumeActivation && (err != nil || result == nil || !result.Success) {
@@ -1664,6 +1674,9 @@ func stackKitLifecycleCommand(commandID string, req StackKitLifecycleRequest, re
 		case agentpb.StackKitOperation_STACKKIT_OPERATION_WALLET_ITEM_IMPORT, agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_SSH_APPLY:
 			command.SealedDelivery = append([]byte(nil), req.SealedDelivery...)
 			command.DeliveryTenantRef = req.DeliveryTenantRef
+			if operation == agentpb.StackKitOperation_STACKKIT_OPERATION_WALLET_ITEM_IMPORT {
+				command.WalletItemRef = req.wikiRegistryItem
+			}
 		case agentpb.StackKitOperation_STACKKIT_OPERATION_AI_PROVIDER_SETUP:
 			command.AiProviderDisable = req.AIProviderDisable
 			if !req.AIProviderDisable {

@@ -18,7 +18,7 @@
 // ErrorBudget(ErrorBudgetOptions{}, scrubPII).
 //
 // Scope: SaaS services only (Ebene 2 per PRODUCT-SEGMENTATION.md).
-// OSS tools (Ebene 1 — Sim, SpeechKit, StackKits, TechStack-OSS) MUST NOT
+// OSS tools (Ebene 1 — Sim, SpeechKit, StackKits, Homelab-OSS) MUST NOT
 // import this package. See ../platform/standards/OBSERVABILITY-STANDARD.md.
 //
 // Usage:

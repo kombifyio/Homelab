@@ -45,6 +45,7 @@ var providerControlRuntimeFunctions = []string{
 	"provider_control_list_provider_provision_waits(text,text,integer)",
 	"provider_control_list_stale_capacity_recovery_candidates(text,text,integer)",
 	"provider_control_list_never_enrolled_runtime_candidates(text,text,integer,integer)",
+	"provider_control_list_managed_lease_renewal_candidates(text,text,integer,integer)",
 	"provider_control_runtime_authority()",
 }
 

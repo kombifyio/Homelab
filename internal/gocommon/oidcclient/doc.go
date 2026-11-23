@@ -1,5 +1,5 @@
 // Package oidcclient provides a provider-neutral OIDC client used across all
-// kombify Go services (Simulate, StackKits-Server, TechStack).
+// kombify Go services (Simulate, StackKits-Server, Homelab).
 //
 // The package is split into four pieces that compose:
 //

@@ -17,6 +17,7 @@ import (
 	"github.com/kombifyio/homelab/pkg/config"
 	"github.com/kombifyio/homelab/pkg/jobs"
 	"github.com/kombifyio/homelab/pkg/logger"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
 )
 
@@ -306,6 +307,9 @@ func composeNativeProviderControlParts(database *sql.DB, edition config.Edition,
 			return nativeProviderControl{}, fmt.Errorf("register never-enrolled managed runtime recovery: %w", err)
 		}
 	}
+	if err := registerManagedLeaseRenewal(runtime, database, edition, log); err != nil {
+		return nativeProviderControl{}, err
+	}
 	return nativeProviderControl{
 		runtime:   runtime,
 		actions:   jobs.RuntimeActions{LeaseManager: manager, LeaseDecommissioner: manager},
@@ -341,4 +345,66 @@ func neverEnrolledRecoveryWindowFromEnv(log *logger.Logger) time.Duration {
 		return 0
 	}
 	return parsed
+}
+
+// registerManagedLeaseRenewal keeps every managed lease active while its
+// owner's subscription entitles it (platform-2xnsxf). Administration is the
+// authority, so the loop runs only on the hosted edition with a service
+// identity that can read it; elsewhere no managed subscription lease exists.
+func registerManagedLeaseRenewal(runtime *providercontrol.Runtime, database *sql.DB, edition config.Edition, log *logger.Logger) error {
+	if !edition.IsSaaS() {
+		return nil
+	}
+	entitlements := newAdministrationEntitlements()
+	if entitlements == nil {
+		if log != nil {
+			log.Warn("managed_lease_renewal_unavailable", "reason", "administration_entitlements_unreadable")
+		}
+		return nil
+	}
+	renewal, err := providercontroljobs.NewManagedLeaseRenewal(providercontroljobs.ManagedLeaseRenewalConfig{
+		Database: database, Renewer: vmleases.NewPostgresStore(database), Entitlements: entitlements,
+		OnEvent: func(event providercontroljobs.ManagedLeaseRenewalEvent) { logManagedLeaseRenewal(log, event) },
+		OnError: func(renewalErr error) {
+			if log != nil {
+				log.Warn("managed_lease_renewal_blocked", "error", renewalErr)
+			}
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("compose managed lease renewal: %w", err)
+	}
+	if err := runtime.RegisterAuxiliaryWorker(renewal.Run); err != nil {
+		return fmt.Errorf("register managed lease renewal: %w", err)
+	}
+	return nil
+}
+
+// logManagedLeaseRenewal is the renewal receipt: identifiers and times only,
+// never the person's entitlement list or a credential.
+func logManagedLeaseRenewal(log *logger.Logger, event providercontroljobs.ManagedLeaseRenewalEvent) {
+	if log == nil {
+		return
+	}
+	attributes := []any{
+		"tenant_id", event.Candidate.TenantID,
+		"lease_id", event.Candidate.LeaseID,
+		"provider_id", event.Candidate.ProviderID,
+		"previous_valid_until", event.PreviousValidUntil.UTC().Format(time.RFC3339),
+		"valid_until", event.ValidUntil.UTC().Format(time.RFC3339),
+	}
+	switch event.Outcome {
+	case providercontroljobs.ManagedLeaseRenewalRenewed:
+		log.Info("managed_lease_renewed", append(attributes, "repaired_lapse", event.Lapsed)...)
+	case providercontroljobs.ManagedLeaseRenewalEntitlementUnknown:
+		log.Warn("managed_lease_renewal_entitlement_unknown", attributes...)
+	case providercontroljobs.ManagedLeaseRenewalNotEntitled:
+		log.Info("managed_lease_renewal_not_entitled", append(attributes, "missing", strings.Join(event.Missing, ","))...)
+	case providercontroljobs.ManagedLeaseRenewalLeaseChanged:
+		log.Info("managed_lease_renewal_skipped_changed_lease", attributes...)
+	case providercontroljobs.ManagedLeaseRenewalNotRenewable:
+		// A lease being torn down or released stays listed until its row is
+		// cancelled; it is checked every pass, so it is not logged above debug.
+		log.Debug("managed_lease_renewal_not_renewable", attributes...)
+	}
 }

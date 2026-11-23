@@ -50,7 +50,7 @@ type ClientConfig struct {
 	// ServiceAuthSecret is not needed; the HS256 secret remains the fallback.
 	SigningKey       ed25519.PrivateKey
 	SigningKeyID     string
-	ServiceName      string // This caller's service name (e.g. "techstack", "sim")
+	ServiceName      string // This caller's service name (e.g. "homelab", "sim")
 	AdminServiceName string // Target admin service name (default "administration")
 }
 

@@ -155,7 +155,7 @@ type Rules struct {
 	// TenantColumns are added to DefaultTenantColumns.
 	TenantColumns []string
 	// ExpandSuffix, when set, makes every file without this name suffix
-	// contract (Techstack: ".additive.sql").
+	// contract (Homelab: ".additive.sql").
 	ExpandSuffix string
 	// FunctionPrefix is the product's own name prefix for new functions, for
 	// example "paperwork_" (lower-case letters, digits and underscores, ending

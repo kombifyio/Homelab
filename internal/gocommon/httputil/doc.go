@@ -6,5 +6,5 @@
 // helper code only, carries no authentication, identity or product policy,
 // and must not grow any (use identity, edgeauth or servicecall for that).
 //
-// Stability: stable. Known consumers: kombify-Techstack and kombify-Simulate.
+// Stability: stable. Known consumers: kombify-StackKits and kombify-Simulate.
 package httputil

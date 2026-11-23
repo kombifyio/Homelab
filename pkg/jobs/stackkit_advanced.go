@@ -357,6 +357,13 @@ func runAdvancedStackKitLifecycle(ctx context.Context, cfg StackKitLifecycleConf
 			}
 			receipt = admittedReceipt.Compact
 		}
+		if step == stackKitStepChangeSetApply || step == stackKitStepDriftReconcile || step == stackKitStepRollback {
+			outcome := map[string]interface{}{}
+			if err := renewWikiRegistryPull(ctx, cfg, commandID, request, release, outcome); err != nil {
+				summary["success"], summary["wiki_registry"] = false, outcome
+				return summary, err
+			}
+		}
 		admitted, normalized, stepErr := dispatcher.dispatch(ctx, commandID, step, capability, func(command *agentpb.StackKitCommand) {
 			if index > 0 {
 				command.ChangeSetId, command.ChangeSetSha256 = created.ChangeSetID, created.ChangeSetSHA256
