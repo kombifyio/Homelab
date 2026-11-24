@@ -1,13 +1,6 @@
 <script lang="ts">
   import CreationGoals from "../CreationGoals.svelte";
-  import SmartHomeAdvice from "../SmartHomeAdvice.svelte";
-  import WizardHintZone from "../WizardHintZone.svelte";
   import LayoutRecommendationPanel from "../LayoutRecommendationPanel.svelte";
-  import CapacityHint from "../CapacityHint.svelte";
-  import type {
-    CapacityHint as CapacityHintModel,
-    CapacitySize,
-  } from "#lib/wizard/capacity-view.js";
   import ErrorCallout from "#lib/components/ui/ErrorCallout.svelte";
   import LoadingNote from "#lib/components/ui/LoadingNote.svelte";
   import { tr } from "#lib/i18n.svelte.js";
@@ -17,7 +10,6 @@
   import { useCaseTitle } from "#lib/wizard/creationGoalText.js";
   import type { HomelabAccessFacts } from "#lib/creation/use-case-access.js";
   import type { UseCaseAccessChoice } from "#lib/wizard/types.js";
-  import type { WizardRecommendation } from "#lib/api/unifier.js";
   import { useCreationContext } from "#lib/creation/context.js";
   import type { GoalsSlice } from "#lib/creation/core/index.js";
   import {
@@ -40,13 +32,9 @@
     onGoalChange,
     onSettingChange,
     recommendationState = { phase: "idle" },
-    capacityHint,
-    onCapacitySize,
-    onCapacityOmit,
     useCaseCatalog = new Map(),
     catalogState = "ready",
     onCatalogReload,
-    onRecommendationOpen,
     layoutState = { phase: "idle" },
     onLayoutRetry,
     layoutPins = {},
@@ -69,10 +57,6 @@
       value: string | boolean,
     ) => void;
     recommendationState?: WizardPreviewState;
-    /** Whether the selection fits the chosen server (advice, never a gate). */
-    capacityHint?: CapacityHintModel;
-    onCapacitySize?: (size: CapacitySize) => void;
-    onCapacityOmit?: (goal: string) => void;
     useCaseCatalog?: Map<string, UseCaseCatalogView>;
     /**
      * Where the release catalog stands. Cards need it: without it every use
@@ -81,7 +65,6 @@
      */
     catalogState?: "loading" | "ready" | "error";
     onCatalogReload?: () => void;
-    onRecommendationOpen?: (recommendation: WizardRecommendation) => void;
     /** The recommended distribution of the selection (existing deployments only). */
     layoutState?: LayoutPreviewState;
     onLayoutRetry?: () => void;
@@ -154,9 +137,7 @@
     const goal = accessGoal;
     creation
       .homelabAccess()
-      .catch(
-        (): HomelabAccessFacts => ({ saved: {}, people: [] }),
-      )
+      .catch((): HomelabAccessFacts => ({ saved: {}, people: [] }))
       .then((facts) => {
         accessFacts = facts;
         // Coming back: the saved decision is the starting point.
@@ -190,7 +171,9 @@
     config.useCaseAccess = next;
   }
   function inheritAccess() {
-    writeAccess(accessFacts?.saved[accessGoal] ? { mode: "inherit" } : undefined);
+    writeAccess(
+      accessFacts?.saved[accessGoal] ? { mode: "inherit" } : undefined,
+    );
   }
   function changeAccess(change: Partial<UseCaseAccessChoice>) {
     const next = { ...shownAccess, ...change };
@@ -213,7 +196,9 @@
     });
   }
   function togglePerson(ref: string, chosen: boolean) {
-    const refs = (shownAccess.person_refs ?? []).filter((entry) => entry !== ref);
+    const refs = (shownAccess.person_refs ?? []).filter(
+      (entry) => entry !== ref,
+    );
     changeAccess({ person_refs: chosen ? [...refs, ref] : refs });
   }
 </script>
@@ -233,7 +218,11 @@
     </header>
   {/if}
   {#if catalogState === "loading"}
-    <div class="space-y-4" aria-busy="true" data-testid="use-case-catalog-loading">
+    <div
+      class="space-y-4"
+      aria-busy="true"
+      data-testid="use-case-catalog-loading"
+    >
       <LoadingNote label={tr("wizard.catalog.loading")} />
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
         {#each Array(6) as _, index (index)}
@@ -260,6 +249,9 @@
       {onGoalChange}
       {onSettingChange}
       {ondisclose}
+      smartHomeRecommendation={recommendationState.phase === "resolved"
+        ? recommendationState.result.smart_home_recommendation
+        : undefined}
       {hardware}
       focus={focusGoal}
       stage={goalsStage}
@@ -292,7 +284,9 @@
           {/if}
         </header>
         <div class="access-row">
-          <span class="access-label">{tr("layout.addUseCases.access.reach")}</span>
+          <span class="access-label"
+            >{tr("layout.addUseCases.access.reach")}</span
+          >
           <SegmentedControl
             class="access-choice"
             label={tr("layout.addUseCases.access.reach")}
@@ -312,7 +306,9 @@
           />
         </div>
         <div class="access-row">
-          <span class="access-label">{tr("layout.addUseCases.access.people")}</span>
+          <span class="access-label"
+            >{tr("layout.addUseCases.access.people")}</span
+          >
           <SegmentedControl
             class="access-choice"
             label={tr("layout.addUseCases.access.people")}
@@ -353,21 +349,16 @@
                 pressed={chosen}
                 label={person.name}
                 onchange={(next) => togglePerson(person.ref, next)}
-                >{#if chosen}<Check size={14} aria-hidden="true" />{/if}{person.name}</Toggle
+                >{#if chosen}<Check
+                    size={14}
+                    aria-hidden="true"
+                  />{/if}{person.name}</Toggle
               >
             {/each}
           </div>
         {/if}
       </section>
     {/if}
-  {/if}
-  <WizardHintZone state={recommendationState} onopen={onRecommendationOpen} />
-  {#if capacityHint}
-    <CapacityHint
-      hint={capacityHint}
-      onsize={onCapacitySize}
-      onomit={onCapacityOmit}
-    />
   {/if}
   {#if layoutState.phase !== "idle"}
     <LayoutRecommendationPanel
@@ -377,11 +368,6 @@
       onpin={onLayoutPin}
       onundopin={onLayoutPinUndo}
       onclearpins={onLayoutPinsClear}
-    />
-  {/if}
-  {#if config.goals?.["smart-home"] && recommendationState.phase === "resolved"}
-    <SmartHomeAdvice
-      recommendation={recommendationState.result.smart_home_recommendation}
     />
   {/if}
 </div>

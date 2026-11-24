@@ -63,6 +63,8 @@
   import { CreationFrame } from "#lib/creation/frame.svelte.js";
   import { CREATION_MODULES } from "#lib/creation/modules.js";
   import LoadingNote from "#lib/components/ui/LoadingNote.svelte";
+  import WizardHintZone from "./WizardHintZone.svelte";
+  import CreationArchitecturePreview from "./CreationArchitecturePreview.svelte";
   import type { HomelabServerSelection } from "#lib/creation/homelab-servers.js";
   import {
     emitCreationEvent,
@@ -628,6 +630,20 @@
   >
     {#if !process.inactive[frame.current]}
       <currentModule.Component {...currentModule.props(frame)} />
+    {/if}
+
+    {#if frame.current === frame.lastStep}
+      <div class="mt-6">
+        <WizardHintZone
+          state={frame.recommendationState}
+          onopen={() => openServerStep()}
+        />
+        <CreationArchitecturePreview
+          config={frame.config}
+          recommendedStackKit={frame.recommendedStackKit}
+          homelab={frame.options.homelab}
+        />
+      </div>
     {/if}
 
     <!-- The accepted distribution, as a reminder where the run is created. -->

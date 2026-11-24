@@ -35,6 +35,12 @@
 
   let tips = $derived<Tip[]>([
     {
+      art: "architecture",
+      eyebrow: tr("ui.stacksCreatingCreationRunStatus.afterCreation"),
+      title: creation.stackName || tr("wizard.title"),
+      body: nextBody,
+    },
+    {
       art: "next",
       eyebrow: tr("ui.stacksCreatingCreationRunStatus.afterCreation"),
       title: tr("ui.stacksCreating.tips.nextTitle"),

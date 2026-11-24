@@ -34,8 +34,13 @@
   }
 
   const tight = $derived(hint.status === "tight");
+  const estimate = $derived(hint.status === "estimate");
   const unknown = $derived(hint.status === "unknown");
-  const numbers = $derived({ need: gb(hint.needGb), have: gb(hint.haveGb) });
+  const numbers = $derived({
+    need: gb(hint.needGb),
+    have: gb(hint.haveGb),
+    existing: gb(hint.existingHaveGb ?? 0),
+  });
 </script>
 
 <div
@@ -49,6 +54,18 @@
   <div class="line">
     {#if unknown}
       <span class="state">{tr("capacity.notAssessed")}</span>
+    {:else if estimate}
+      <span class="state"
+        >{tr(
+          hint.atLeast ? "capacity.estimateAtLeast" : "capacity.estimate",
+          numbers,
+        )}</span
+      >
+      {#if hint.existingHaveGb !== undefined && hint.existingHaveGb < hint.needGb}
+        <span class="supplement"
+          >{tr("capacity.existingShortfall", numbers)}</span
+        >
+      {/if}
     {:else}
       <span class="state"
         >{tr(
@@ -109,6 +126,11 @@
   }
   .state {
     color: var(--foreground);
+  }
+  .supplement {
+    color: var(--muted-foreground);
+    font-size: 11px;
+    line-height: 1.45;
   }
   .meter {
     height: 3px;

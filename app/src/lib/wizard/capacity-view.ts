@@ -26,8 +26,8 @@ export interface CapacitySize {
 }
 
 export interface CapacityHint {
-  /** `unknown`: a server and a selection exist but no fitting answer could be given. */
-  status: "fits" | "tight" | "unknown";
+  /** `estimate`: the selection has a need estimate but no server is selected yet. */
+  status: "fits" | "tight" | "estimate" | "unknown";
   /** Gigabytes the selection needs at most, and the server's. */
   needGb: number;
   haveGb: number;
@@ -39,6 +39,8 @@ export interface CapacityHint {
   size?: CapacitySize;
   /** Use cases whose omission makes the selection fit, in the backend's order. */
   omit: string[];
+  /** Combined RAM of approved existing servers, when Step 1 has no chosen host. */
+  existingHaveGb?: number;
 }
 
 export function toGb(mib: number): number {
@@ -95,14 +97,36 @@ export function capacityHint(
     currentOfferingId?: string;
     managed: boolean;
     assessed: boolean;
+    existingRamMb?: number;
   },
 ): CapacityHint | undefined {
   const silent = options.assessed ? NOT_ASSESSED : undefined;
-  if (!capacity || capacity.status === "unknown") return silent;
-  const atLeast = lowerBound(capacity);
-  if (atLeast && capacity.status !== "warning") return silent;
-  if (!(capacity.available_ram_mb > 0) || !(capacity.required_ram_mb > 0))
+  if (
+    !capacity ||
+    (capacity.status === "unknown" &&
+      (!(capacity.required_ram_mb > 0) || capacity.available_ram_mb > 0))
+  )
     return silent;
+  const atLeast = lowerBound(capacity);
+  if (atLeast && capacity.status !== "warning" && capacity.available_ram_mb > 0)
+    return silent;
+  if (!(capacity.required_ram_mb > 0)) return silent;
+  if (!(capacity.available_ram_mb > 0)) {
+    const existingHaveGb =
+      options.existingRamMb && options.existingRamMb > 0
+        ? toGb(options.existingRamMb)
+        : undefined;
+    return {
+      status: "estimate",
+      needGb: toGb(capacity.required_ram_mb),
+      haveGb: 0,
+      share: 0,
+      atLeast,
+      omit: [],
+      existingHaveGb,
+    };
+  }
+  if (atLeast && capacity.status !== "warning") return silent;
   const tight = capacity.status === "warning";
   return {
     status: tight ? "tight" : "fits",
@@ -126,12 +150,26 @@ export function capacityHint(
  */
 export function capacityRequestHost(
   config: StackConfig,
+  options: {
+    /** Step 1 must not treat the default managed offering as selected. */
+    allowManagedOffering?: boolean;
+    selectedServerRamMb?: number;
+  } = {},
 ): Pick<
   WizardRecommendationRequest,
   "server_capacity" | "runtime_offering_id" | "kit_slug"
 > {
+  if (options.selectedServerRamMb && options.selectedServerRamMb > 0)
+    return {
+      server_capacity: { ram_mb: options.selectedServerRamMb },
+      ...kitIdentity(config),
+    };
   const server = config.serverProvisioning;
-  if (server.mode === "kombify-cloud" && config.runtimeOfferingId)
+  if (
+    options.allowManagedOffering !== false &&
+    server.mode === "kombify-cloud" &&
+    config.runtimeOfferingId
+  )
     return { runtime_offering_id: config.runtimeOfferingId };
   const guest = server.mode === "hypervisor" ? server.substrate : undefined;
   if (guest && guest.memoryMiB > 0)

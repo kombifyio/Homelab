@@ -39,6 +39,8 @@
   import BrandLogoScope from "../BrandLogoScope.svelte";
   import { useCreationContext } from "#lib/creation/context.js";
   import type { GoalsSlice } from "#lib/creation/core/index.js";
+  import SmartHomeAdvice from "./SmartHomeAdvice.svelte";
+  import type { SmartHomeRecommendation } from "#lib/api/unifier.js";
 
   /**
    * The large card of one use case: its painting, the application choice and
@@ -54,6 +56,7 @@
     onSettingChange,
     hardware = {},
     oncomplete,
+    smartHomeRecommendation,
   }: {
     card: CreationGoal;
     config: GoalsSlice;
@@ -68,6 +71,7 @@
     hardware?: SetupHardwareHints;
     /** The guided setup was applied; the stage moves on. */
     oncomplete?: () => void;
+    smartHomeRecommendation?: SmartHomeRecommendation;
   } = $props();
 
   const creation = useCreationContext();
@@ -124,11 +128,7 @@
     );
   }
   function answers() {
-    return setupAnswersFor(
-      flow,
-      values,
-      config.useCaseSetupAnswers?.[card.id],
-    );
+    return setupAnswersFor(flow, values, config.useCaseSetupAnswers?.[card.id]);
   }
   function keepSetupAnswers(next: UseCaseSetupAnswers) {
     config.useCaseSetupAnswers = {
@@ -288,6 +288,12 @@
               /></a
             >{/if}
         </div>
+        {#if card.id === "smart-home" && smartHomeRecommendation}
+          <details class="smart-home-advice">
+            <summary>{tr("wizard.smartHome.advice")}</summary>
+            <SmartHomeAdvice recommendation={smartHomeRecommendation} compact />
+          </details>
+        {/if}
         {#if flow}
           <UseCaseGuidedSetup
             class="goal-setup"
@@ -314,7 +320,8 @@
         preview={reviewMode}
         {values}
         onchange={(id, value) => {
-          if (card.question) onSettingChange(card.question.configKey, id, value);
+          if (card.question)
+            onSettingChange(card.question.configKey, id, value);
         }}
       />
     {/if}
@@ -329,7 +336,9 @@
     {details}
     expanded={true}
     selectionLabel={`${tr(selected ? "wizard.goals.remove" : "wizard.goals.add")} ${title}`}
-    planLabel={tr(selected ? "wizard.preview.selected" : "wizard.preview.optional")}
+    planLabel={tr(
+      selected ? "wizard.preview.selected" : "wizard.preview.optional",
+    )}
     onToggle={(next) => {
       if (card.question) onGoalChange(card.question.configKey, next);
     }}
@@ -368,7 +377,10 @@
           >
             {preferenceNote()}
           </p>{/if}
-        {#if domain}<a href={`https://${domain}`} target="_blank" rel="noreferrer"
+        {#if domain}<a
+            href={`https://${domain}`}
+            target="_blank"
+            rel="noreferrer"
             >{tr("wizard.preview.website")}<ArrowUpRight
               size={16}
               aria-hidden="true"
