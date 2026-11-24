@@ -1,8 +1,19 @@
 {
   "schemaVersion": "stackkits.release-notes/v1",
-  "version": "v0.61.4",
+  "version": "v0.61.5",
   "changelogUrl": "https://stackkit.cc/changelog",
   "releases": [
+    {
+      "version": "v0.61.5",
+      "date": "2026-11-24",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "wiki",
+          "text": "admit published knowledge-node artifact into StackKits catalog"
+        }
+      ]
+    },
     {
       "version": "v0.61.4",
       "date": "2026-11-24",
@@ -1723,27 +1734,6 @@
           "kind": "fixed",
           "scope": "techstack",
           "text": "sign Early Access notifications calls with a scoped Ed25519 key"
-        }
-      ]
-    },
-    {
-      "version": "v0.55.16",
-      "date": "2026-11-04",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "window-lanes",
-          "text": "lane runs the Workbench M06 performance proof on the EliteDesk G6"
-        },
-        {
-          "kind": "fixed",
-          "scope": "guard",
-          "text": "back off a persistent server fault on result redelivery to 5 min"
-        },
-        {
-          "kind": "fixed",
-          "scope": "techstack",
-          "text": "release-authored seeds and spec templates follow the identity origin rule"
         }
       ]
     }

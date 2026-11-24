@@ -256,11 +256,11 @@
   "configured": true,
   "deliverability_known": true,
   "release": {
-    "tag": "v0.61.4",
-    "version": "0.61.4",
-    "sourceSha": "88e24417bcea5b0aa23a0f9b3de05ea952c83030",
-    "publicSourceSha": "efe69a6fd25527428979fc3c098bc13f7b73063d",
-    "releaseUrl": "https://github.com/kombifyio/StackKits/releases/tag/v0.61.4"
+    "tag": "v0.61.5",
+    "version": "0.61.5",
+    "sourceSha": "f774bd1e3d0198e8247d182267b64594adcfe69a",
+    "publicSourceSha": "f9d732651152740621c7371e7c4c5bf2b5f5f4a7",
+    "releaseUrl": "https://github.com/kombifyio/StackKits/releases/tag/v0.61.5"
   },
   "use_cases": [
     {
@@ -7243,12 +7243,60 @@
           "reason": "The native workload owns the closed environment and uses opaque node-custody references."
         }
       },
+      "alternatives": [
+        {
+          "configuration": {
+            "settings": [],
+            "secretRefs": [
+              "connection",
+              "read-bearer",
+              "registry-auth",
+              "write-bearer"
+            ]
+          },
+          "id": "wiki",
+          "modules": [
+            {
+              "id": "stackkits-wiki-runtime",
+              "computeProfiles": [
+                "standard"
+              ],
+              "computeProfileFacts": {
+                "standard": {
+                  "maturity": "experimental",
+                  "executable": true,
+                  "realization": "apply-ready",
+                  "hostFloor": {
+                    "minCpuCores": 2,
+                    "minRamGB": 4,
+                    "minStorageGB": 20
+                  },
+                  "reservation": {
+                    "ramGB": 0.125
+                  },
+                  "provenance": {
+                    "hostFloor": {
+                      "source": "policy",
+                      "ref": "Kombify host floor support policy"
+                    },
+                    "reservation": {
+                      "source": "policy",
+                      "ref": "Kombify reservation policy; declared, not a sum of component limits"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
       "components": [
         {
           "id": "wiki",
           "name": "kombify Wiki",
           "role": "primary",
-          "kind": "application"
+          "kind": "application",
+          "maturity": "experimental"
         }
       ],
       "compute_tiers": {
@@ -7270,10 +7318,13 @@
           }
         }
       },
-      "deliverable": false,
+      "default_alternative": "wiki",
+      "deliverable": true,
+      "delivery_status": "beta",
       "description": "The source of truth for personal IT, on this server as one SQLite Wiki file.",
       "docs": "/guides/stackkits/use-cases/wiki",
       "id": "wiki",
+      "maturity": "experimental",
       "settings": [
         {
           "id": "backend",
