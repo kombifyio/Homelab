@@ -23,6 +23,7 @@ import type {
   WizardCapacity,
   WizardRecommendationRequest,
 } from "#lib/api/unifier.js";
+import type { Worker } from "#lib/api/workers.js";
 import { wizardRequestKey } from "#lib/wizard/WizardPreviewController.js";
 import {
   LayoutPreviewController,
@@ -181,6 +182,7 @@ export class CreationFrame {
    */
   catalogState = $state<"loading" | "ready" | "error">("loading");
   #catalogAttempt = $state(0);
+  #workers = $state<Worker[]>([]);
 
   readonly owner: OwnerStepState;
   readonly #recommendations: WizardPreviewController;
@@ -235,6 +237,16 @@ export class CreationFrame {
     this.#followEverythingGoal();
     this.#followCreationPause();
     this.#loadCatalog();
+    $effect(() => {
+      void this.context.inventory
+        .listWorkers()
+        .then((workers) => {
+          this.#workers = workers;
+        })
+        .catch(() => {
+          this.#workers = [];
+        });
+    });
   }
 
   #followCreationPause() {
@@ -815,13 +827,23 @@ export class CreationFrame {
   }
 
   /** The question the recommendations are asked now; null where none is asked. */
-  readonly #recommendationRequest = $derived.by<WizardRecommendationRequest | null>(
-    () => {
+  readonly #recommendationRequest =
+    $derived.by<WizardRecommendationRequest | null>(() => {
       if (this.process.reusesOwner) return null;
       const config = this.config;
       const server = config.serverProvisioning;
       const smartHome = config.useCaseSettings?.["smart-home"];
       const selectedServer = this.options.homelab?.selected;
+      const selectedWorker = selectedServer
+        ? this.#workers.find(
+            (worker) =>
+              worker.id === selectedServer ||
+              worker.server_id === selectedServer,
+          )
+        : undefined;
+      const selectedServerRamMb = selectedWorker?.ram_mb;
+      const allowManagedOffering =
+        this.current === "server" || Boolean(selectedServer);
       const fitEnabled = this.context.features.isEnabled("server_hardware_fit");
       return {
         smart_home_settings: smartHome,
@@ -848,7 +870,10 @@ export class CreationFrame {
         ...(server.mode === "kombify-cloud"
           ? { provider_id: config.providerId }
           : {}),
-        ...capacityRequestHost(config),
+        ...capacityRequestHost(config, {
+          allowManagedOffering,
+          selectedServerRamMb,
+        }),
         ...(fitEnabled && selectedServer
           ? { server_fit: { server_id: selectedServer } }
           : fitEnabled &&
@@ -863,8 +888,7 @@ export class CreationFrame {
             : {}),
         surface: "easy",
       };
-    },
-  );
+    });
 
   #followRecommendations() {
     $effect(() => {
@@ -888,7 +912,6 @@ export class CreationFrame {
     // nothing selected gets no advice: the answer would be about another question.
     if (
       !request ||
-      Object.keys(capacityRequestHost(this.config)).length === 0 ||
       selectedCanonicalUseCasesFromGoals(this.config.goals).length === 0
     )
       return undefined;
@@ -909,6 +932,12 @@ export class CreationFrame {
       currentOfferingId: this.config.runtimeOfferingId,
       managed: this.config.serverProvisioning.mode === "kombify-cloud",
       assessed: answer.assessed,
+      existingRamMb:
+        this.current === "goals" && !this.options.homelab?.selected
+          ? this.#workers
+              .filter((worker) => worker.approved && (worker.ram_mb ?? 0) > 0)
+              .reduce((total, worker) => total + (worker.ram_mb ?? 0), 0)
+          : undefined,
     });
   });
   /** "Use this size": the larger managed size carries the selection. */

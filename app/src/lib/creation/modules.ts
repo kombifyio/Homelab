@@ -71,7 +71,6 @@ export const CREATION_MODULES: Record<CreationStepKey, CreationStepModule> = {
         capacityHint: frame.capacityHint,
         onCapacitySize: frame.useCapacitySize,
         onCapacityOmit: frame.leaveOutForCapacity,
-        onRecommendationOpen: frame.options.onRecommendationOpen,
         useCaseCatalog: frame.useCaseCatalog,
         catalogState: frame.catalogState,
         onCatalogReload: frame.reloadCatalog,

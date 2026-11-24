@@ -1,5 +1,12 @@
 <script lang="ts" module>
-  export type TipArtKind = "next" | "reach" | "restore" | "code" | "grow" | "own";
+  export type TipArtKind =
+    | "next"
+    | "architecture"
+    | "reach"
+    | "restore"
+    | "code"
+    | "grow"
+    | "own";
   let instances = 0;
 </script>
 
@@ -84,6 +91,22 @@
       stroke-width="3"
       d="M271 44 l5 5 l10 -11"
     />
+  {:else if kind === "architecture"}
+    <path
+      class="draw stroke-primary"
+      style="--i: 0"
+      pathLength="1"
+      stroke-width="2.5"
+      d="M160 38 V70 M78 70 H242 M78 70 V102 M160 70 V102 M242 70 V102"
+    />
+    <rect class="pop fill-card stroke-primary" style="--i: 1" x="112" y="18" width="96" height="32" rx="8" />
+    <path class="pop stroke-primary/50" style="--i: 1" stroke-width="3" d="M132 34 h56" />
+    <rect class="pop fill-card stroke-border" style="--i: 2" x="42" y="102" width="72" height="38" rx="8" />
+    <rect class="pop fill-card stroke-border" style="--i: 3" x="124" y="102" width="72" height="38" rx="8" />
+    <rect class="pop fill-card stroke-border" style="--i: 4" x="206" y="102" width="72" height="38" rx="8" />
+    <circle class="pop fill-success/20 stroke-success" style="--i: 5" cx="78" cy="121" r="6" />
+    <circle class="pop fill-primary/20 stroke-primary" style="--i: 5" cx="160" cy="121" r="6" />
+    <circle class="pop fill-success/20 stroke-success" style="--i: 5" cx="242" cy="121" r="6" />
   {:else if kind === "reach"}
     <rect
       class="pop fill-primary/10 stroke-primary/40"

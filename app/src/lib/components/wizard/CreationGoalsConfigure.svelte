@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick, untrack } from "svelte";
-  import { ChevronLeft, ChevronRight, Plus, ShieldCheck } from "@lucide/svelte";
+  import { ChevronLeft, ChevronRight, Plus } from "@lucide/svelte";
   import {
     UseCaseCardCompact,
     type SetupHardwareHints,
@@ -13,6 +13,12 @@
   import { useCreationContext } from "#lib/creation/context.js";
   import type { GoalsSlice } from "#lib/creation/core/index.js";
   import CreationGoalCard from "./CreationGoalCard.svelte";
+  import CapacityHint from "./CapacityHint.svelte";
+  import type {
+    CapacityHint as CapacityHintModel,
+    CapacitySize,
+  } from "#lib/wizard/capacity-view.js";
+  import type { SmartHomeRecommendation } from "#lib/api/unifier.js";
 
   /**
    * Step 1, second stage: the chosen use cases as a compact list, and beside
@@ -32,6 +38,10 @@
     initial,
     onadd,
     ondisclose,
+    capacityHint,
+    onCapacitySize,
+    onCapacityOmit,
+    smartHomeRecommendation,
   }: {
     /** The chosen use cases, in portfolio order. */
     cards: CreationGoal[];
@@ -51,11 +61,11 @@
     initial?: string;
     /** Back to the choice, to add a use case. */
     onadd: () => void;
-    ondisclose?: (event: {
-      kind: "drawer";
-      id: string;
-      open: boolean;
-    }) => void;
+    ondisclose?: (event: { kind: "drawer"; id: string; open: boolean }) => void;
+    capacityHint?: CapacityHintModel;
+    onCapacitySize?: (size: CapacitySize) => void;
+    onCapacityOmit?: (goal: string) => void;
+    smartHomeRecommendation?: SmartHomeRecommendation;
   } = $props();
 
   const appearance = useCreationContext().appearance;
@@ -69,7 +79,6 @@
   });
   const current = $derived(shown[index]);
   let stage = $state<HTMLElement>();
-  let globalAdvanced = $state(false);
 
   $effect(() => {
     lastIndex = index;
@@ -79,7 +88,8 @@
     const id = current?.id;
     if (!id) return;
     untrack(() => ondisclose?.({ kind: "drawer", id, open: true }));
-    return () => untrack(() => ondisclose?.({ kind: "drawer", id, open: false }));
+    return () =>
+      untrack(() => ondisclose?.({ kind: "drawer", id, open: false }));
   });
 
   async function show(target: number) {
@@ -104,7 +114,11 @@
   </div>
 </header>
 
-<div class="configure" class:single={Boolean(single)} data-testid="creation-goals-configure">
+<div
+  class="configure"
+  class:single={Boolean(single)}
+  data-testid="creation-goals-configure"
+>
   {#if !single}
     <aside class="chosen" aria-labelledby="chosen-title">
       <p id="chosen-title" class="chosen-title">
@@ -112,7 +126,10 @@
       </p>
       <ul>
         {#each shown as card, position (card.id)}
-          <li class:current={position === index} data-testid={`configure-item-${card.id}`}>
+          <li
+            class:current={position === index}
+            data-testid={`configure-item-${card.id}`}
+          >
             <UseCaseCardCompact
               name={goalTitle(card)}
               description={goalSummary(card)}
@@ -147,6 +164,13 @@
       >
         <Plus size={16} aria-hidden="true" />{tr("wizard.goals.configure.add")}
       </button>
+      {#if capacityHint}
+        <CapacityHint
+          hint={capacityHint}
+          onsize={onCapacitySize}
+          onomit={onCapacityOmit}
+        />
+      {/if}
     </aside>
   {/if}
 
@@ -176,6 +200,7 @@
           oncomplete={() => {
             if (index < shown.length - 1) void show(index + 1);
           }}
+          {smartHomeRecommendation}
         />
       {/key}
     {/if}
@@ -199,51 +224,6 @@
     {/if}
   </section>
 </div>
-
-{#if !single}
-  <div class="setup-preferences">
-    <button
-      type="button"
-      class="preferences-toggle"
-      aria-expanded={globalAdvanced}
-      aria-controls="creation-global-settings"
-      onclick={() => (globalAdvanced = !globalAdvanced)}
-    >
-      <ShieldCheck size={18} aria-hidden="true" /><span
-        ><strong>{tr("wizard.preview.setupPreferences")}</strong><small
-          >{tr("wizard.preview.setupPreferencesHint")}</small
-        ></span
-      ><Plus size={17} aria-hidden="true" />
-    </button>
-    {#if globalAdvanced}<div id="creation-global-settings" class="global-fields">
-        <label class="backup-setting"
-          ><input
-            type="checkbox"
-            bind:checked={config.advanced.backupsEnabled}
-          />{tr("wizard.advanced.backups")}</label
-        >
-        <label
-          >{tr("wizard.advanced.isolation")}<select
-            bind:value={config.advanced.isolation}
-            ><option value="isolated"
-              >{tr("wizard.advanced.isolation.isolated")}</option
-            ><option value="shared"
-              >{tr("wizard.advanced.isolation.shared")}</option
-            ></select
-          ></label
-        >
-        <label
-          >{tr("wizard.advanced.autostart")}<select
-            bind:value={config.advanced.autostart}
-            ><option value="auto">{tr("wizard.advanced.autostart.auto")}</option
-            ><option value="manual"
-              >{tr("wizard.advanced.autostart.manual")}</option
-            ></select
-          ></label
-        >
-      </div>{/if}
-  </div>
-{/if}
 
 <style>
   .goals-heading {
@@ -414,63 +394,7 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .setup-preferences {
-    border-top: 1px solid var(--border);
-    margin-top: 8px;
-  }
-  .preferences-toggle {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    gap: 12px;
-    text-align: start;
-    padding-block: 18px;
-    cursor: pointer;
-  }
-  .preferences-toggle span {
-    flex: 1;
-  }
-  .preferences-toggle strong {
-    font-size: 12px;
-    font-weight: 550;
-  }
-  .preferences-toggle small {
-    display: block;
-    color: var(--muted-foreground);
-    font-size: 11px;
-    margin-top: 4px;
-  }
-  .global-fields {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px;
-    padding: 6px 0 22px;
-  }
-  .global-fields label {
-    font-size: 12px;
-    display: grid;
-    gap: 8px;
-  }
-  .global-fields .backup-setting {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    grid-column: 1/-1;
-  }
-  input[type="checkbox"] {
-    width: 17px;
-    height: 17px;
-    accent-color: var(--primary);
-  }
-  select {
-    padding: 10px;
-    background: var(--input);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-control, 10px);
-  }
-  button:focus-visible,
-  select:focus-visible,
-  input:focus-visible {
+  button:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 4px;
   }
@@ -495,9 +419,6 @@
     }
     .position {
       grid-row: 2;
-    }
-    .global-fields {
-      grid-template-columns: 1fr;
     }
   }
 </style>

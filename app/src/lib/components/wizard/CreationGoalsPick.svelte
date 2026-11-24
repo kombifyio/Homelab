@@ -1,10 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { Circle, Rows3 } from "@lucide/svelte";
-  import {
-    UseCaseCardCompact,
-    UseCaseOrb,
-  } from "@kombiverselabs/ui/usecase";
+  import { UseCaseCardCompact, UseCaseOrb } from "@kombiverselabs/ui/usecase";
   import type {
     CreationGoal,
     CreationPresentation,
@@ -14,6 +11,11 @@
   import { tr } from "#lib/i18n.svelte.js";
   import { useCreationContext } from "#lib/creation/context.js";
   import type { GoalsSlice } from "#lib/creation/core/index.js";
+  import CapacityHint from "./CapacityHint.svelte";
+  import type {
+    CapacityHint as CapacityHintModel,
+    CapacitySize,
+  } from "#lib/wizard/capacity-view.js";
 
   /**
    * Step 1, first stage: the choice. Every use case is one small, fixed
@@ -29,6 +31,9 @@
     onGoalChange,
     templates,
     ring,
+    capacityHint,
+    onCapacitySize,
+    onCapacityOmit,
   }: {
     /** Available use cases first, then the ones coming soon. */
     cards: CreationGoal[];
@@ -42,6 +47,9 @@
     ring?: (
       card: CreationGoal,
     ) => { gradient: string; stripe: string; label: string } | undefined;
+    capacityHint?: CapacityHintModel;
+    onCapacitySize?: (size: CapacitySize) => void;
+    onCapacityOmit?: (goal: string) => void;
   } = $props();
 
   const appearance = useCreationContext().appearance;
@@ -111,6 +119,14 @@
 </header>
 
 {@render templates?.()}
+
+{#if capacityHint}
+  <CapacityHint
+    hint={capacityHint}
+    onsize={onCapacitySize}
+    onomit={onCapacityOmit}
+  />
+{/if}
 
 <div
   class="pick-grid"
@@ -276,8 +292,10 @@
   }
   /* A chosen use case that profiles hold wears their colours as its ring, in
      equal parts, in place of the single primary ring. */
-  .pick-orb[data-profiles] :global(.kf-uc-orb[aria-pressed="true"] .kf-uc-orb-disc) {
-    box-shadow: 0 6px 16px color-mix(in oklch, var(--foreground) 14%, transparent);
+  .pick-orb[data-profiles]
+    :global(.kf-uc-orb[aria-pressed="true"] .kf-uc-orb-disc) {
+    box-shadow: 0 6px 16px
+      color-mix(in oklch, var(--foreground) 14%, transparent);
   }
   .pick-orb[data-profiles] :global(.kf-uc-orb-disc::before) {
     content: "";

@@ -17,6 +17,11 @@
   import { tr } from "#lib/i18n.svelte.js";
   import { useCreationContext } from "#lib/creation/context.js";
   import type { GoalsSlice } from "#lib/creation/core/index.js";
+  import type {
+    CapacityHint as CapacityHintModel,
+    CapacitySize,
+  } from "#lib/wizard/capacity-view.js";
+  import type { SmartHomeRecommendation } from "#lib/api/unifier.js";
   import CreationGoalsPick from "./CreationGoalsPick.svelte";
   import CreationGoalsConfigure from "./CreationGoalsConfigure.svelte";
   import CreationTemplates from "./CreationTemplates.svelte";
@@ -51,6 +56,10 @@
     ondisclose,
     hardware = {},
     focus,
+    capacityHint,
+    onCapacitySize,
+    onCapacityOmit,
+    smartHomeRecommendation,
   }: {
     config: GoalsSlice;
     catalog: Map<string, UseCaseCatalogView>;
@@ -77,6 +86,10 @@
      * the catalog cannot offer leaves the whole choice.
      */
     focus?: string;
+    capacityHint?: CapacityHintModel;
+    onCapacitySize?: (size: CapacitySize) => void;
+    onCapacityOmit?: (goal: string) => void;
+    smartHomeRecommendation?: SmartHomeRecommendation;
   } = $props();
 
   const PRESENTATION_KEY = "kombify.creation.presentation";
@@ -302,6 +315,10 @@
       {initial}
       onadd={addUseCase}
       {ondisclose}
+      {capacityHint}
+      {onCapacitySize}
+      {onCapacityOmit}
+      {smartHomeRecommendation}
     />
   {:else}
     <CreationGoalsPick
@@ -311,6 +328,9 @@
       {reviewMode}
       onGoalChange={changeGoal}
       ring={profileRing}
+      {capacityHint}
+      {onCapacitySize}
+      {onCapacityOmit}
     >
       {#snippet templates()}
         <CreationTemplates

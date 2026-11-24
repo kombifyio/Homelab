@@ -1,8 +1,10 @@
 <script lang="ts">
   import { tr } from "#lib/i18n.svelte.js";
   import type { SmartHomeRecommendation } from "#lib/api/unifier.js";
-  let { recommendation }: { recommendation?: SmartHomeRecommendation } =
-    $props();
+  let {
+    recommendation,
+    compact = false,
+  }: { recommendation?: SmartHomeRecommendation; compact?: boolean } = $props();
 </script>
 
 {#if recommendation}
@@ -10,7 +12,9 @@
     class="rounded-lg border border-border bg-muted/30 p-4 text-sm space-y-2"
     aria-label={tr("wizard.smartHome.advice")}
   >
-    <p class="font-medium">{tr("wizard.smartHome.advice")}</p>
+    {#if !compact}<p class="font-medium">
+        {tr("wizard.smartHome.advice")}
+      </p>{/if}
     <p>
       {recommendation.management_scope === "observed"
         ? tr("wizard.smartHome.preserve")
@@ -20,7 +24,7 @@
     </p>
     {#if recommendation.requirements.length}
       <ul class="list-disc pl-5 space-y-1">
-        {#each recommendation.requirements as requirement}
+        {#each recommendation.requirements as requirement (requirement)}
           <li>{tr(`wizard.smartHome.${requirement}`)}</li>
         {/each}
       </ul>

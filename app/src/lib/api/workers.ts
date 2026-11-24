@@ -16,6 +16,7 @@ import { fetchApi } from "./client";
  */
 export interface Worker {
   id: string;
+  server_id?: string;
   hostname: string;
   ip: string;
   os: string;

@@ -75,7 +75,7 @@
   const homelabShown = $derived(
     Boolean(
       homelab &&
-        (homelab.loading || homelab.failed || homelab.servers.length > 0),
+      (homelab.loading || homelab.failed || homelab.servers.length > 0),
     ),
   );
   $effect(() => onselectionchange?.(existingChosen || selectionReady));
@@ -125,16 +125,18 @@
   <!-- While the person's servers are read, nothing is offered yet: the
        choice would jump once they arrive. -->
   {#if !existingChosen && !homelab?.loading}
-  {#if !nodeAlternative}
-    <ServerProvisioningStep
-      bind:config
-      bind:selectionReady
-      bind:detailsVisible
-      {onmanagedproviderselect}
-      {reviewMode}
-      {joinSurface}
-      substepOffset={homelabShown ? 1 : 0}
-    />
+    {#if !nodeAlternative}
+      <ServerProvisioningStep
+        bind:config
+        bind:selectionReady
+        bind:detailsVisible
+        {onmanagedproviderselect}
+        {reviewMode}
+        {joinSurface}
+        substepOffset={homelabShown ? 1 : 0}
+      />
+    {/if}
+
     {#if capacityHint}
       <CapacityHint
         hint={capacityHint}
@@ -142,52 +144,64 @@
         onomit={onCapacityOmit}
       />
     {/if}
-  {/if}
 
-  {#if fitEnabled}
-    <ServerFitNotice state={recommendationState} target={homelab?.selected ? { server_id: homelab.selected } : config.serverProvisioning.mode === "kombify-cloud" ? { provider_id: config.providerId, offering_id: config.runtimeOfferingId } : undefined} />
-  {/if}
-
-  <section class="advanced-region">
-    <button
-      type="button"
-      class="advanced-trigger"
-      aria-expanded={advancedOpen}
-      aria-controls="node-advanced-options"
-      onclick={() => (advancedOpen = !advancedOpen)}
-    >
-      <SlidersHorizontal size={15} aria-hidden="true" />{tr(
-        "wizard.advanced.title",
-      )}<ArrowRight size={15} aria-hidden="true" />
-    </button>
-    {#if advancedOpen}
-      <div
-        id="node-advanced-options"
-        class="advanced-content"
-        style:counter-reset={`substep ${substepsBeforeAdvanced}`}
-      >
-        {@render nodeOptions?.(config)}
-        {#if nodeAlternative}
-          {@render nodeAlternative()}
-        {:else}
-          <ServerRegistryPanel
-            bind:config
-            showProvisioning={false}
-            flat
-            {showRole}
-            {showServices}
-            {lockFoundation}
-            {joinSurface}
-            {onmanagedproviderselect}
-            {recommendedStackKit}
-          />
-        {/if}
-      </div>
+    {#if fitEnabled}
+      <ServerFitNotice
+        state={recommendationState}
+        target={homelab?.selected
+          ? { server_id: homelab.selected }
+          : config.serverProvisioning.mode === "kombify-cloud"
+            ? {
+                provider_id: config.providerId,
+                offering_id: config.runtimeOfferingId,
+              }
+            : undefined}
+      />
     {/if}
-  </section>
+
+    <section class="advanced-region">
+      <button
+        type="button"
+        class="advanced-trigger"
+        aria-expanded={advancedOpen}
+        aria-controls="node-advanced-options"
+        onclick={() => (advancedOpen = !advancedOpen)}
+      >
+        <SlidersHorizontal size={15} aria-hidden="true" />{tr(
+          "wizard.advanced.title",
+        )}<ArrowRight size={15} aria-hidden="true" />
+      </button>
+      {#if advancedOpen}
+        <div
+          id="node-advanced-options"
+          class="advanced-content"
+          style:counter-reset={`substep ${substepsBeforeAdvanced}`}
+        >
+          {@render nodeOptions?.(config)}
+          {#if nodeAlternative}
+            {@render nodeAlternative()}
+          {:else}
+            <ServerRegistryPanel
+              bind:config
+              showProvisioning={false}
+              flat
+              {showRole}
+              {showServices}
+              {lockFoundation}
+              {joinSurface}
+              {onmanagedproviderselect}
+              {recommendedStackKit}
+            />
+          {/if}
+        </div>
+      {/if}
+    </section>
   {/if}
   {#if fitEnabled && existingChosen}
-    <ServerFitNotice state={recommendationState} target={homelab?.selected ? { server_id: homelab.selected } : undefined} />
+    <ServerFitNotice
+      state={recommendationState}
+      target={homelab?.selected ? { server_id: homelab.selected } : undefined}
+    />
   {/if}
 </div>
 
