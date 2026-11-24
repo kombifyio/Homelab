@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "public_repository": "kombifyio/Homelab",
-  "source_commit": "eed04fc7e7793655ce6dd91278e45612ae2686fe",
-  "candidate_digest": "20e5ef6b397db30b58bddea26ceefd75daab5d7b35dd856a1fb52e3b56e9cc2d",
+  "source_commit": "3e0c1456aac76a7c2e8d585be59abd6426b92d1d",
+  "candidate_digest": "35779e6ecaae971c80c427e462e8c7b3981de1b88e59a2bd9c4048a93f6e24f4",
   "candidate_file_count": 2916,
   "digest_scope": "sha256 over every exported file except this receipt, in code-unit path order, as path NUL content NUL",
   "projected_go_sources": [

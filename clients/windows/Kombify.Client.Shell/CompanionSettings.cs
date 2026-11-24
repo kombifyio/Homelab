@@ -5,8 +5,11 @@ namespace Kombify.Client.Shell;
 
 // The Companion's settings snapshot of AppLink v2 ("Read: settings.get"):
 // parsed strictly from the host's answer and written back in the same shape for
-// a client's settings page (ToJson). Every field is always present; arrays may
-// be empty. A client renders only the values it receives, in the order given.
+// a client's settings page (ToJson). Every field is always present except the
+// optional display facts dictationModels, assistantModels, localModels and
+// aiAnswers (contract "Snapshot"), read item by item so their content never
+// fails the snapshot; arrays may be empty. A client renders only the values
+// it receives, in the order given.
 
 /// <summary>The value types of the contract.</summary>
 public static class CompanionSettingType
@@ -43,6 +46,39 @@ public sealed record CompanionPillAction(string Id, bool Allowed);
 
 public sealed record CompanionVoiceAnimation(string Id, bool Default);
 
+/// <summary>
+/// One named choice of an <c>enum</c> key whose ids are not words a client translates: the
+/// models of <c>dictation.model</c> and <c>assistant.model</c> (<c>dictationModels</c>,
+/// <c>assistantModels</c>) and the answers of <c>ai.answer</c> (<c>aiAnswers</c>). <see cref="Name"/>
+/// is a product name, shown as received.
+/// </summary>
+public sealed record CompanionChoice(string Id, string Name, bool Default);
+
+/// <summary>
+/// One speech model of the Companion's local catalog with this machine's state of it
+/// (<c>localModels</c>). The optional fields are null while the Companion leaves them out or
+/// sends a value this library cannot read. The Companion's free-text <c>error</c> and
+/// <c>unsupportedText</c> are never carried: they hold local paths and the Windows user name,
+/// and no account detail may cross to a client page. <see cref="UnsupportedReason"/> and
+/// <see cref="FailedReason"/> are the codes a client words itself.
+/// </summary>
+public sealed record CompanionLocalModel(
+    string Id,
+    string Family,
+    string Product,
+    string Name,
+    IReadOnlyList<string>? Languages,
+    long SizeBytes,
+    string? SizeLabel,
+    string License,
+    bool Supported,
+    string? UnsupportedReason,
+    string State,
+    double? Progress,
+    string? FailedReason,
+    string? JobId,
+    bool? Recommended);
+
 /// <summary>The device's one kombify sign-in (AppLink v2 "Session"). <see cref="Label"/> is empty when not signed in; <see cref="Flag"/> is on, off or unknown.</summary>
 public sealed record CompanionSession(bool SignedIn, string Label, string Flag, bool Consent);
 
@@ -74,6 +110,17 @@ public sealed partial record CompanionSettings
     public required IReadOnlyList<CompanionVoiceAnimation> VoiceAnimations { get; init; }
     public required IReadOnlyList<string> ScreenshotDestinations { get; init; }
     public required CompanionSession Session { get; init; }
+    /// <summary>
+    /// The named choices of <c>dictation.model</c>, <c>assistant.model</c> and <c>ai.answer</c>, and the
+    /// local speech models; null while the Companion leaves the fact out (an older program, or
+    /// <c>aiAnswers</c> while <c>ai.answer</c> is absent). Companion Desktop 0.3.0 and newer send the
+    /// first three on every snapshot; a client that refused them could read no snapshot at all
+    /// (Paperwork Settings › Companion "Companion not reachable", owner report 2026-11-24).
+    /// </summary>
+    public IReadOnlyList<CompanionChoice>? DictationModels { get; init; }
+    public IReadOnlyList<CompanionChoice>? AssistantModels { get; init; }
+    public IReadOnlyList<CompanionLocalModel>? LocalModels { get; init; }
+    public IReadOnlyList<CompanionChoice>? AiAnswers { get; init; }
     /// <summary>Account settings on the web (name to https URL), opened in the system browser.</summary>
     public required IReadOnlyList<KeyValuePair<string, string>> Links { get; init; }
 
@@ -168,6 +215,15 @@ public sealed partial record CompanionSettings
                 w.WriteEndObject();
             }
             w.WriteEndArray();
+            Choices(w, "dictationModels", DictationModels);
+            Choices(w, "assistantModels", AssistantModels);
+            if (LocalModels is { } local)
+            {
+                w.WriteStartArray("localModels");
+                foreach (var model in local) WriteLocalModel(w, model);
+                w.WriteEndArray();
+            }
+            Choices(w, "aiAnswers", AiAnswers);
             w.WriteStartArray("screenshotDestinations");
             foreach (var d in ScreenshotDestinations) w.WriteStringValue(d);
             w.WriteEndArray();
@@ -183,6 +239,47 @@ public sealed partial record CompanionSettings
             w.WriteEndObject();
         }
         return System.Text.Encoding.UTF8.GetString(output.WrittenSpan);
+    }
+
+    private static void Choices(Utf8JsonWriter w, string name, IReadOnlyList<CompanionChoice>? choices)
+    {
+        if (choices is null) return;
+        w.WriteStartArray(name);
+        foreach (var c in choices)
+        {
+            w.WriteStartObject();
+            w.WriteString("id", c.Id);
+            w.WriteString("name", c.Name);
+            w.WriteBoolean("default", c.Default);
+            w.WriteEndObject();
+        }
+        w.WriteEndArray();
+    }
+
+    private static void WriteLocalModel(Utf8JsonWriter w, CompanionLocalModel m)
+    {
+        w.WriteStartObject();
+        w.WriteString("id", m.Id);
+        w.WriteString("family", m.Family);
+        w.WriteString("product", m.Product);
+        w.WriteString("name", m.Name);
+        if (m.Languages is { } languages)
+        {
+            w.WriteStartArray("languages");
+            foreach (var language in languages) w.WriteStringValue(language);
+            w.WriteEndArray();
+        }
+        w.WriteNumber("sizeBytes", m.SizeBytes);
+        if (m.SizeLabel is { } sizeLabel) w.WriteString("sizeLabel", sizeLabel);
+        w.WriteString("license", m.License);
+        w.WriteBoolean("supported", m.Supported);
+        if (m.UnsupportedReason is { } reason) w.WriteString("unsupportedReason", reason);
+        w.WriteString("state", m.State);
+        if (m.Progress is { } progress) w.WriteNumber("progress", progress);
+        if (m.FailedReason is { } failed) w.WriteString("failedReason", failed);
+        if (m.JobId is { } job) w.WriteString("jobId", job);
+        if (m.Recommended is { } recommended) w.WriteBoolean("recommended", recommended);
+        w.WriteEndObject();
     }
 
     private static void Scalar(Utf8JsonWriter w, string name, object value)
@@ -233,9 +330,15 @@ public sealed partial record CompanionSettings
         List<string>? destinations = null;
         CompanionSession? session = null;
         List<KeyValuePair<string, string>>? links = null;
+        List<CompanionChoice>? dictationModels = null, assistantModels = null, aiAnswers = null;
+        List<CompanionLocalModel>? localModels = null;
+        if (root.ValueKind != JsonValueKind.Object) throw Invalid();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var property in root.EnumerateObject())
         {
             var v = property.Value;
+            // The wire's structural pass refuses duplicate keys already; a caller of Parse alone gets the same.
+            if (!seen.Add(property.Name)) throw Invalid();
             switch (property.Name)
             {
                 case "revision": revision = ParseRevision(v); break;
@@ -273,6 +376,13 @@ public sealed partial record CompanionSettings
                     });
                     break;
                 case "screenshotDestinations": destinations = Items(v, Code); break;
+                // Optional display facts (contract "Snapshot"): the names are part of the contract, so an
+                // unknown top-level name still fails; their content never takes the snapshot down. An
+                // item this library cannot read is left out, and a fact that is no array is absent.
+                case "dictationModels": dictationModels = FactItems(v, ParseChoice); break;
+                case "assistantModels": assistantModels = FactItems(v, ParseChoice); break;
+                case "aiAnswers": aiAnswers = FactItems(v, ParseChoice); break;
+                case "localModels": localModels = FactItems(v, ParseLocalModel); break;
                 case "session": session = ParseSession(v); break;
                 case "links": links = ParseLinks(v); break;
                 default: throw Invalid();
@@ -301,6 +411,10 @@ public sealed partial record CompanionSettings
             ScreenshotDestinations = destinations,
             Session = session,
             Links = links,
+            DictationModels = dictationModels,
+            AssistantModels = assistantModels,
+            LocalModels = localModels,
+            AiAnswers = aiAnswers,
         };
     }
 
@@ -393,6 +507,117 @@ public sealed partial record CompanionSettings
         return links;
     }
 
+    // ── Display facts: read tolerantly, item by item ──
+
+    /// <summary>The readable items of a display fact, at most <see cref="MaxItems"/>; null when it is no array.</summary>
+    private static List<T>? FactItems<T>(JsonElement element, Func<JsonElement, T?> item) where T : class
+    {
+        if (element.ValueKind != JsonValueKind.Array) return null;
+        var items = new List<T>();
+        foreach (var entry in element.EnumerateArray())
+        {
+            if (items.Count == MaxItems) break;
+            T? read;
+            try { read = item(entry); }
+            catch (CompanionAppLinkException) { read = null; }
+            if (read is not null) items.Add(read);
+        }
+        return items;
+    }
+
+    /// <summary>
+    /// Display text of a fact: control characters (a newline in a provider's message) become a
+    /// space and the text is cut at <paramref name="max"/>; null when it is no string.
+    /// </summary>
+    private static string? FactText(JsonElement element, int max)
+    {
+        if (element.ValueKind != JsonValueKind.String) return null;
+        var text = element.GetString()!;
+        var chars = new char[Math.Min(text.Length, max)];
+        for (var i = 0; i < chars.Length; i++)
+        {
+            var c = text[i];
+            chars[i] = c < 0x20 || c is >= '\u007f' and <= '\u009f' ? ' ' : c;
+        }
+        // A cut must not leave half of a surrogate pair.
+        var length = chars.Length;
+        if (length > 0 && char.IsHighSurrogate(chars[length - 1])) length--;
+        return new string(chars, 0, length);
+    }
+
+    /// <summary>A code of a fact (the contract's code pattern), or null.</summary>
+    private static string? FactCode(JsonElement element) =>
+        element.ValueKind == JsonValueKind.String && CompanionAppLink.ValidCode(element.GetString()) ? element.GetString() : null;
+
+    /// <summary>The properties of a fact item, each once; null when it is no object or names one twice. Unknown names are ignored.</summary>
+    private static Dictionary<string, JsonElement>? FactFields(JsonElement element)
+    {
+        if (element.ValueKind != JsonValueKind.Object) return null;
+        var found = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        foreach (var property in element.EnumerateObject())
+            if (!found.TryAdd(property.Name, property.Value)) return null;
+        return found;
+    }
+
+    private static CompanionChoice? ParseChoice(JsonElement element)
+    {
+        if (FactFields(element) is not { } f) return null;
+        if (!f.TryGetValue("id", out var id) || FactCode(id) is not { } code) return null;
+        var name = f.TryGetValue("name", out var n) ? FactText(n, 256) : null;
+        if (string.IsNullOrWhiteSpace(name)) name = code;
+        var isDefault = f.TryGetValue("default", out var d) && d.ValueKind == JsonValueKind.True;
+        return new CompanionChoice(code, name, isDefault);
+    }
+
+    private static readonly string[] LocalModelStates = ["not_installed", "downloading", "installed", "active", "failed"];
+
+    /// <summary>
+    /// One <c>localModels</c> entry, or null when its id, state or support is unreadable. Optional
+    /// fields that cannot be read are left out, <c>progress</c> is clamped to 0..1, and the
+    /// free-text <c>error</c> and <c>unsupportedText</c> are dropped (see <see cref="CompanionLocalModel"/>).
+    /// </summary>
+    private static CompanionLocalModel? ParseLocalModel(JsonElement element)
+    {
+        if (FactFields(element) is not { } f) return null;
+        string? Code_(string name) => f.TryGetValue(name, out var e) ? FactCode(e) : null;
+        string? Text_(string name, int max) => f.TryGetValue(name, out var e) ? FactText(e, max) : null;
+        if (Code_("id") is not { } id) return null;
+        if (Code_("state") is not { } state || !LocalModelStates.Contains(state, StringComparer.Ordinal)) return null;
+        if (!f.TryGetValue("supported", out var supported) || supported.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+            return null;
+        long sizeBytes = 0;
+        if (f.TryGetValue("sizeBytes", out var size) && size.ValueKind == JsonValueKind.Number
+            && size.TryGetInt64(out var bytes) && bytes >= 0)
+            sizeBytes = bytes;
+        double? progress = null;
+        if (f.TryGetValue("progress", out var p) && p.ValueKind == JsonValueKind.Number && p.TryGetDouble(out var fraction)
+            && double.IsFinite(fraction))
+            progress = Math.Clamp(fraction, 0, 1);
+        List<string>? languages = null;
+        if (f.TryGetValue("languages", out var list) && list.ValueKind == JsonValueKind.Array)
+            languages = list.EnumerateArray().Select(FactCode).OfType<string>().Take(MaxItems).ToList();
+        bool? recommended = f.TryGetValue("recommended", out var r) && r.ValueKind is JsonValueKind.True or JsonValueKind.False
+            ? r.ValueKind == JsonValueKind.True
+            : null;
+        var name = Text_("name", 256);
+        return new CompanionLocalModel(
+            id,
+            Code_("family") ?? "",
+            Text_("product", 128) ?? "",
+            string.IsNullOrWhiteSpace(name) ? id : name,
+            languages,
+            sizeBytes,
+            Text_("sizeLabel", 64),
+            Text_("license", 128) ?? "",
+            supported.ValueKind == JsonValueKind.True,
+            Code_("unsupportedReason"),
+            state,
+            progress,
+            Code_("failedReason"),
+            Code_("jobId"),
+            recommended);
+    }
+
     private static List<T> Items<T>(JsonElement element, Func<JsonElement, T> item)
     {
         if (element.ValueKind != JsonValueKind.Array || element.GetArrayLength() > MaxItems) throw Invalid();
@@ -407,7 +632,7 @@ public sealed partial record CompanionSettings
         foreach (var property in element.EnumerateObject())
         {
             var index = Array.IndexOf(names, property.Name);
-            if (index < 0) throw Invalid();
+            if (index < 0 || found[index] is not null) throw Invalid();
             found[index] = property.Value;
         }
         return found.Select(f => f ?? throw Invalid()).ToArray();
