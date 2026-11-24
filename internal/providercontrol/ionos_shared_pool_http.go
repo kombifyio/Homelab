@@ -32,7 +32,7 @@ func NewIONOSSharedPoolHTTPRuntime(origin string, client *http.Client) (*IONOSSh
 	if copy.Timeout <= 0 || copy.Timeout > 2*time.Minute {
 		copy.Timeout = 2 * time.Minute
 	}
-	endpoint.Path = "/v1/ionos-shared-pool/execute"
+	endpoint.Path = IONOSSharedPoolAgentPath
 	return &IONOSSharedPoolHTTPRuntime{endpoint: endpoint.String(), client: copy}, nil
 }
 

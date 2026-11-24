@@ -733,6 +733,10 @@ func registerRuntimeInventoryRoutes(router *httpx.Router, deps routeDeps, state 
 		MaintenanceOrigin: routes.MaintenanceOriginConfig{Keys: maintenanceKeys, Authority: maintenanceAuthority, Entitlements: maintenanceEntitlements},
 		MaintenanceAction: maintenanceRoutes.Action,
 		MaintenanceImpact: maintenanceRoutes.Impact,
+		Wiki: routes.WikiSourceConfig{
+			Origin: os.Getenv("HOMELAB_WIKI_AGENT_ORIGIN"),
+			Space:  os.Getenv("HOMELAB_WIKI_SPACE"),
+		},
 	})
 	var stackKitOperations routes.WorkerStackKitOperations
 	if deps.v2 == nil || deps.v2.db == nil || deps.v2.db.DB == nil {

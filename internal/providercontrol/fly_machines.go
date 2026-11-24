@@ -239,8 +239,8 @@ func (a *FlyMachinesAdapter) Restore(ctx context.Context, handle FlyMachineHandl
 // not a custody release. An authorized retry may observe that the previous
 // deletion already completed. A successful DELETE alone is never proof.
 func (a *FlyMachinesAdapter) Decommission(ctx context.Context, handle FlyMachineHandle) (FlyMachineAbsence, error) {
-	_, err := a.readOwned(ctx, handle)
-	if errors.Is(err, ErrFlyMachineNotFound) {
+	machine, err := a.readOwned(ctx, handle)
+	if errors.Is(err, ErrFlyMachineNotFound) || (err == nil && flyMachineAbsent(machine)) {
 		return FlyMachineAbsence{Handle: handle, ObservedAt: time.Now().UTC()}, nil
 	}
 	if err != nil {
@@ -250,14 +250,18 @@ func (a *FlyMachinesAdapter) Decommission(ctx context.Context, handle FlyMachine
 	if err != nil && !errors.Is(err, ErrFlyMachineNotFound) {
 		return FlyMachineAbsence{}, err
 	}
-	_, err = a.readOwned(ctx, handle)
-	if errors.Is(err, ErrFlyMachineNotFound) {
+	machine, err = a.readOwned(ctx, handle)
+	if errors.Is(err, ErrFlyMachineNotFound) || (err == nil && flyMachineAbsent(machine)) {
 		return FlyMachineAbsence{Handle: handle, ObservedAt: time.Now().UTC()}, nil
 	}
 	if err != nil {
 		return FlyMachineAbsence{}, err
 	}
 	return FlyMachineAbsence{}, ErrFlyMachineAbsencePending
+}
+
+func flyMachineAbsent(machine flyMachine) bool {
+	return machine.State == "destroyed"
 }
 
 func (a *FlyMachinesAdapter) machinesPath() string {

@@ -15,6 +15,7 @@ import (
 type flyMachinesTestAPI struct {
 	sync.Mutex
 	t             *testing.T
+	baseURL       string
 	requests      []string
 	latest        flyMachineCreate
 	machines      map[string]flyMachine
@@ -24,13 +25,19 @@ type flyMachinesTestAPI struct {
 	createRegion  string
 	tamperImage   string
 	dropOnCreate  bool
+	destroyState  string
+	expectAuth    string
 }
 
 func (api *flyMachinesTestAPI) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	api.Lock()
 	defer api.Unlock()
 	api.requests = append(api.requests, request.Method+" "+request.URL.RequestURI())
-	if request.Header.Get("Authorization") != "Bearer app-test-token" {
+	expectedAuth := api.expectAuth
+	if expectedAuth == "" {
+		expectedAuth = "Bearer app-test-token"
+	}
+	if request.Header.Get("Authorization") != expectedAuth {
 		api.t.Error("missing app-scoped token")
 		writer.WriteHeader(http.StatusForbidden)
 		return
@@ -93,7 +100,10 @@ func (api *flyMachinesTestAPI) ServeHTTP(writer http.ResponseWriter, request *ht
 			writer.WriteHeader(api.deleteStatus)
 			return
 		}
-		if !api.delayDeletion {
+		if api.destroyState != "" {
+			machine.State = api.destroyState
+			api.machines[machineID] = machine
+		} else if !api.delayDeletion {
 			delete(api.machines, machineID)
 		}
 		writer.WriteHeader(http.StatusAccepted)
@@ -101,6 +111,10 @@ func (api *flyMachinesTestAPI) ServeHTTP(writer http.ResponseWriter, request *ht
 		api.t.Errorf("unexpected Fly operation: %s %s", request.Method, request.URL.Path)
 		writer.WriteHeader(http.StatusBadRequest)
 	}
+}
+
+func (api *flyMachinesTestAPI) serverURL(_ *testing.T) string {
+	return api.baseURL
 }
 
 type flyMachinesTestR2 struct {
@@ -122,6 +136,7 @@ func flyMachineTestSetup(t *testing.T) (*flyMachinesTestAPI, func(string, FlyMac
 	t.Helper()
 	api := &flyMachinesTestAPI{t: t, machines: map[string]flyMachine{}}
 	server := httptest.NewServer(api)
+	api.baseURL = server.URL + "/v1"
 	t.Cleanup(server.Close)
 	return api, func(tenant string, store FlyMachineR2Store) *FlyMachinesAdapter {
 		t.Helper()
@@ -425,6 +440,44 @@ func TestFlyMachinesBoundary(t *testing.T) {
 			if (FlyBackupArtifact{Ref: validRef, SHA256: badSHA}).valid() {
 				t.Fatalf("expected digest %q to fail FlyBackupArtifact.valid()", badSHA)
 			}
+		}
+	})
+	t.Run("destroyed readback confirms absence while destroying stays pending and FlyV1 header is preserved", func(t *testing.T) {
+		api, _ := flyMachineTestSetup(t)
+		const flyV1Token = "FlyV1 fm2_test-secret-token"
+		api.Lock()
+		api.expectAuth = flyV1Token
+		api.destroyState = "destroying"
+		api.Unlock()
+		owner := FlyMachineOwner{TenantID: "tenant-a", WorkloadID: "workload-1", SlotRef: "slot-1", CustodyHash: "custody-hash-1"}
+		adapter, err := newFlyMachinesAdapter("isolated-app", flyV1Token, owner, nil, api.serverURL(t))
+		if err != nil {
+			t.Fatal(err)
+		}
+		handle, err := adapter.Provision(t.Context(), flyMachineTestSpec())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if proof, err := adapter.Decommission(t.Context(), handle); !errors.Is(err, ErrFlyMachineAbsencePending) || proof != (FlyMachineAbsence{}) {
+			t.Fatalf("state=destroying must keep absence pending, got proof=%+v err=%v", proof, err)
+		}
+		api.Lock()
+		api.destroyState = "destroyed"
+		api.Unlock()
+		if proof, err := adapter.Decommission(t.Context(), handle); err != nil || proof.Handle != handle || proof.ObservedAt.IsZero() {
+			t.Fatalf("state=destroyed readback must confirm absence, got proof=%+v err=%v", proof, err)
+		}
+		api.Lock()
+		before := len(api.requests)
+		api.Unlock()
+		if proof, err := adapter.Decommission(t.Context(), handle); err != nil || proof.Handle != handle {
+			t.Fatalf("repeat decommission on state=destroyed must confirm absence idempotently, got proof=%+v err=%v", proof, err)
+		}
+		api.Lock()
+		after := api.requests[before:]
+		api.Unlock()
+		if len(after) != 1 || after[0] != "GET /v1/apps/isolated-app/machines/"+handle.MachineID {
+			t.Fatalf("repeat decommission on state=destroyed must issue single GET without DELETE: %v", after)
 		}
 	})
 }
