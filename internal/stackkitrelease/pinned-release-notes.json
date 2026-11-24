@@ -1,8 +1,35 @@
 {
   "schemaVersion": "stackkits.release-notes/v1",
-  "version": "v0.61.2",
+  "version": "v0.61.4",
   "changelogUrl": "https://stackkit.cc/changelog",
   "releases": [
+    {
+      "version": "v0.61.4",
+      "date": "2026-11-24",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "providercontrol",
+          "text": "add Cloud Run europe-west3 provider adapter and schema support"
+        },
+        {
+          "kind": "fixed",
+          "scope": "wiki",
+          "text": "declare no recovery sequence while Wiki admission is closed"
+        }
+      ]
+    },
+    {
+      "version": "v0.61.3",
+      "date": "2026-11-23",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "wiki",
+          "text": "prepare the optional server module"
+        }
+      ]
+    },
     {
       "version": "v0.61.2",
       "date": "2026-11-23",
@@ -1717,38 +1744,6 @@
           "kind": "fixed",
           "scope": "techstack",
           "text": "release-authored seeds and spec templates follow the identity origin rule"
-        }
-      ]
-    },
-    {
-      "version": "v0.55.15",
-      "date": "2026-11-04",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "host-side identity signer, browser sessions, app passes and away confirmation"
-        }
-      ]
-    },
-    {
-      "version": "v0.55.14",
-      "date": "2026-11-04",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "transfer",
-          "text": "managed native application move with Techstack receive grants and verified destination readback"
-        },
-        {
-          "kind": "added",
-          "scope": "vpn",
-          "text": "optional VPN add-on with WireGuard, Headscale, Tailscale and Pangolin; peers at enrollment, removed on revocation"
-        },
-        {
-          "kind": "fixed",
-          "scope": "remove",
-          "text": "keep a Techstack-managed workspace's intent so every destroy removal resolves the applied plan"
         }
       ]
     }

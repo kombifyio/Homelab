@@ -256,11 +256,11 @@
   "configured": true,
   "deliverability_known": true,
   "release": {
-    "tag": "v0.61.2",
-    "version": "0.61.2",
-    "sourceSha": "89ab45dff4aa5c1bf7824a7de03f069f7d34e028",
-    "publicSourceSha": "992e60dabf89209c18786ec12d310fe647b6001f",
-    "releaseUrl": "https://github.com/kombifyio/StackKits/releases/tag/v0.61.2"
+    "tag": "v0.61.4",
+    "version": "0.61.4",
+    "sourceSha": "88e24417bcea5b0aa23a0f9b3de05ea952c83030",
+    "publicSourceSha": "efe69a6fd25527428979fc3c098bc13f7b73063d",
+    "releaseUrl": "https://github.com/kombifyio/StackKits/releases/tag/v0.61.4"
   },
   "use_cases": [
     {
@@ -7197,6 +7197,119 @@
         }
       ],
       "title": "Password Vault"
+    },
+    {
+      "agentSurface": {
+        "ref": "wiki",
+        "equipPolicy": "on-generate",
+        "lifecycleMcp": {
+          "ref": "stackkit",
+          "owner": "stackkit",
+          "endpoint": "/mcp",
+          "transport": "streamable-http",
+          "auth": "stackkit-mcp-token",
+          "generateClientConfig": true
+        },
+        "productMcps": [
+          {
+            "id": "wiki",
+            "owner": "product",
+            "endpoint": "/mcp",
+            "transport": "streamable-http",
+            "auth": "node-custodied-read-bearer",
+            "generateClientConfig": false,
+            "reason": "The server's StackKits MCP registers wiki_read and resolves its read credential locally; no credential reaches a generated client file."
+          }
+        ],
+        "apis": [
+          {
+            "id": "wiki",
+            "protocol": "rest",
+            "purpose": "Read, search and graph the person's Wiki.",
+            "auth": "node-custodied-read-bearer"
+          }
+        ],
+        "skills": [
+          {
+            "id": "wiki-first",
+            "audience": "stack-operator",
+            "source": "stackkits",
+            "path": "use-cases/wiki/agent/wiki-first/SKILL.md"
+          }
+        ],
+        "cliHelpers": [],
+        "configBaseline": {
+          "status": "omitted",
+          "reason": "The native workload owns the closed environment and uses opaque node-custody references."
+        }
+      },
+      "components": [
+        {
+          "id": "wiki",
+          "name": "kombify Wiki",
+          "role": "primary",
+          "kind": "application"
+        }
+      ],
+      "compute_tiers": {
+        "high": {
+          "included": false,
+          "reason": "No separately measured high capability."
+        },
+        "low": {
+          "included": false,
+          "reason": "No measured small-device profile."
+        },
+        "standard": {
+          "included": true,
+          "moduleSlug": "wiki",
+          "load": {
+            "residency": "always-on",
+            "baseline": "idle-resident",
+            "burst": "interactive"
+          }
+        }
+      },
+      "deliverable": false,
+      "description": "The source of truth for personal IT, on this server as one SQLite Wiki file.",
+      "docs": "/guides/stackkits/use-cases/wiki",
+      "id": "wiki",
+      "settings": [
+        {
+          "id": "backend",
+          "name": "Service",
+          "kind": "choice",
+          "group": "backend",
+          "depth": "summary",
+          "help": "Preferred service from this StackKits release.",
+          "options": [
+            {
+              "id": "wiki",
+              "name": "kombify Wiki",
+              "realization": "install"
+            }
+          ],
+          "default": "wiki",
+          "realization": "recorded"
+        },
+        {
+          "id": "profile",
+          "name": "Compute profile",
+          "kind": "choice",
+          "group": "profile",
+          "depth": "summary",
+          "help": "Preferred compute tier included by this StackKits release.",
+          "options": [
+            {
+              "id": "standard",
+              "name": "Standard"
+            }
+          ],
+          "default": "standard",
+          "realization": "recorded"
+        }
+      ],
+      "title": "Personal IT Wiki"
     }
   ]
 }
