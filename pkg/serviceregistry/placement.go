@@ -134,9 +134,9 @@ var (
 
 func validateManagedWorkloadPolicy(placement Placement) error {
 	switch placement.IsolationClass {
-	case "firecracker", "gvisor", "incus":
+	case "firecracker", "gvisor", "incus", "microvm":
 	default:
-		return fmt.Errorf("managed_workload requires firecracker, gvisor, or incus isolation")
+		return fmt.Errorf("managed_workload requires firecracker, gvisor, incus, or microvm isolation")
 	}
 	if !validPlacementRef(placement.BackupPolicyRef, "r2-backup-policy://") {
 		return fmt.Errorf("managed_workload requires an opaque R2 backup policy reference")

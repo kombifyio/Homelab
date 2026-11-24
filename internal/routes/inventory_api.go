@@ -74,6 +74,9 @@ type InventoryRouteConfig struct {
 	// Nil leaves the maintenance MCP operation unavailable.
 	MaintenanceAction httpx.HandlerFunc
 	MaintenanceImpact httpx.HandlerFunc
+	// Wiki configures the source document's report route (platform-m09kf.5.11);
+	// an empty origin or space keeps POST /api/v1/wiki/report fail-closed.
+	Wiki WikiSourceConfig
 }
 
 type inventoryHandlers struct {
@@ -92,6 +95,7 @@ type inventoryHandlers struct {
 	wizardRuns            controlplane.WizardRunStore
 	jobs                  controlplane.JobStore
 	ownerStackSpecs       controlplane.OwnerStackSpecReader
+	wiki                  WikiSourceConfig
 }
 
 type inventoryApplication struct {
@@ -216,6 +220,7 @@ func RegisterInventoryRoutes(r *httpx.Router, cfg InventoryRouteConfig) {
 		wizardRuns:            cfg.WizardRuns,
 		jobs:                  cfg.Jobs,
 		ownerStackSpecs:       cfg.OwnerStackSpecs,
+		wiki:                  cfg.Wiki,
 	}
 	r.GET("/api/v1/inventory/servers", h.httpListServers)
 	// Public RIL is a compatibility view over the canonical inventory read
@@ -230,6 +235,10 @@ func RegisterInventoryRoutes(r *httpx.Router, cfg InventoryRouteConfig) {
 	r.GET("/api/v1/inventory/backups", h.httpInventoryBackups)
 	r.GET("/api/v1/inventory/updates", h.httpInventoryUpdates)
 	r.GET("/api/v1/inventory/servers/{serverId}/access-context", h.httpServerAccessContext)
+	// Owner-scoped source document and its report to the person's Wiki
+	// (platform-m09kf.5.11); see inventory_wiki.go.
+	r.GET(wikiSourcesPath, h.httpWikiSources)
+	r.POST(wikiReportPath, h.httpWikiReport)
 	r.GET("/api/v1/tool-manifest.json", serveToolManifest)
 	// Private Cloud servicecall read for the dashboard Overview (servers +
 	// services of the on_behalf_of owner); see inventory_internal_summary.go.

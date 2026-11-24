@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"regexp"
 	"slices"
+	"strings"
 	"time"
 )
 
@@ -62,7 +63,7 @@ func (c flyMachinesClient) request(ctx context.Context, method, path string, pay
 	if err != nil {
 		return ErrFlyMachineSpec
 	}
-	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Authorization", flyAuthorizationHeader(c.token))
 	req.Header.Set("Accept", "application/json")
 	if payload != nil {
 		req.Header.Set("Content-Type", "application/json")
@@ -92,6 +93,13 @@ func (c flyMachinesClient) request(ctx context.Context, method, path string, pay
 		return ErrFlyMachineResponse
 	}
 	return nil
+}
+
+func flyAuthorizationHeader(token string) string {
+	if strings.HasPrefix(token, "FlyV1 ") {
+		return token
+	}
+	return "Bearer " + token
 }
 
 func flyMachinePathID(value string) bool {

@@ -369,12 +369,8 @@ func ionosPoolReadback(spec IONOSSharedPoolSpec, observation IONOSSharedPoolObse
 }
 
 func (a *IONOSSharedPoolAdapter) verifyBackup(ctx context.Context, spec IONOSSharedPoolSpec, backup *IONOSSharedPoolBackupManifest) error {
-	if backup == nil || backup.Spec != spec || backup.Store != "r2" || backup.Bucket == "" || backup.Version == "" || backup.SizeBytes <= 0 || !strings.HasPrefix(backup.Key, spec.VolumePrefix+"backups/") || strings.Contains(backup.Key, "..") || strings.ContainsAny(backup.Key, "\\\x00") {
-		return ionosPoolRefuse("backup_refused", "use a verified R2 manifest for this exact owning tenant generation")
-	}
-	digest, err := hex.DecodeString(backup.SHA256)
-	if err != nil || len(digest) != sha256.Size {
-		return ionosPoolRefuse("backup_refused", "supply the R2 object's SHA256 digest")
+	if err := ionosPoolBackupShape(spec, backup); err != nil {
+		return err
 	}
 	if err := a.backups.VerifyIONOSSharedPoolBackup(ctx, *backup); err != nil {
 		return ionosPoolRefuse("backup_refused", "verify the exact immutable R2 object before backup or restore")

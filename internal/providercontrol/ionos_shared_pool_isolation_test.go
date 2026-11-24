@@ -2,15 +2,25 @@ package providercontrol
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"math/big"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 type ionosTestIdentity struct{}
@@ -526,4 +536,400 @@ func TestIONOSSharedPoolHTTPSAgent(t *testing.T) {
 	if err == nil || redirected.Load() {
 		t.Fatal("followed mutation redirect")
 	}
+}
+
+func TestIONOSSharedPoolHostProfile(t *testing.T) {
+	for _, memory := range []int{32 * 1024, 64 * 1024} {
+		t.Run(fmt.Sprint(memory), func(t *testing.T) {
+			node := ionosNode()
+			node.MemoryMB = memory
+			profile, err := BuildIONOSSharedWorkerProfile(node)
+			if err != nil {
+				t.Fatal(err)
+			}
+			again, err := BuildIONOSSharedWorkerProfile(node)
+			if err != nil || again.CloudInit != profile.CloudInit || again.CloudInitSHA256 != profile.CloudInitSHA256 || len(profile.CloudInitSHA256) != 64 {
+				t.Fatal("profile is not deterministic")
+			}
+			if profile.NodeID != node.ID || profile.Location != "de/fra/2" || profile.MemoryMB != memory || profile.Slots != node.Slots || profile.BackupStore != "r2" {
+				t.Fatalf("profile does not describe the admitted node: %+v", profile)
+			}
+			if strings.Join(profile.IsolationRuntimes, ",") != "gvisor,incus" || strings.Join(profile.MaskedUnits, ",") != "docker.service,docker.socket" {
+				t.Fatalf("runtimes or masked units: %+v", profile)
+			}
+			agent := profile.Agent
+			if agent.Path != "/v1/ionos-shared-pool/execute" || agent.Path != IONOSSharedPoolAgentPath || !agent.TLSRequired || !agent.ClientCertRequired || agent.Interface != IONOSSharedWorkerAgentInterface || agent.AllowedSourceCIDR != IONOSSharedWorkerControlPlaneCIDR || agent.Port != IONOSSharedWorkerAgentPort {
+				t.Fatalf("agent listener: %+v", agent)
+			}
+			script := profile.CloudInit
+			for _, want := range []string{
+				"#!/bin/bash", "set -euo pipefail", node.ID, "runsc", "incus", "apt-mark hold runsc incus",
+				"systemctl mask docker.service docker.socket", "Pin-Priority: -1",
+				"br_netfilter", "net.bridge.bridge-nf-call-iptables = 1", "table bridge kombify_shared_worker_bridge",
+				`iifname { "kw*", "incusbr*" } drop`,
+				`iifname { "kw*", "incusbr*" } oifname { "kw*", "incusbr*" } drop`,
+				`iifname "wg-kombify" ip saddr 100.64.200.0/24 tcp dport 8443 accept`,
+				`include "/etc/kombify/ionos-shared-worker/nft.d/*.nft"`,
+				"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "169.254.0.0/16", "100.64.0.0/10", "fc00::/7", "fe80::/10",
+				"policy drop", "table inet @NETNS@", "net-<sha256",
+				"listen_addresses = '127.0.0.1'", "tenant_<sha256(tenant)[:24]>_app_<sha256(tenant NUL handle)[:24]>",
+				`GRANT CONNECT ON DATABASE kombify_shared TO "@SCHEMA@";`,
+				"REVOKE ALL ON SCHEMA public FROM PUBLIC", "KOMBIFY_BACKUP_STORE=r2", "KOMBIFY_BACKUP_VERIFY=version,size,sha256",
+				"KOMBIFY_AGENT_TLS=required", "KOMBIFY_AGENT_CLIENT_AUTH=require-and-verify", "KOMBIFY_AGENT_PATH=" + IONOSSharedPoolAgentPath,
+				"KOMBIFY_AGENT_INTERFACE=wg-kombify", "KOMBIFY_AGENT_ALLOWED_CIDR=100.64.200.0/24",
+				"KOMBIFY_AGENT_PORT=8443", "KOMBIFY_AGENT_MAX_BODY_BYTES=1048576",
+				"/etc/kombify/ionos-shared-worker/start-agent.sh", "ConditionPathExists=/sys/class/net/wg-kombify",
+			} {
+				if !strings.Contains(script, want) {
+					t.Errorf("cloud-init lacks %q", want)
+				}
+			}
+			for _, unwanted := range []string{"\ttcp dport 8443 accept", "private-interface"} {
+				if strings.Contains(script, unwanted) {
+					t.Errorf("cloud-init must not contain %q", unwanted)
+				}
+			}
+			lower := strings.ToLower(script)
+			for _, forbidden := range []string{"k3s", "k8s", "talos", "kubernetes", "secret", "token", "begin ", "private key", "akia", "access_key", "password =", "@@"} {
+				if strings.Contains(lower, forbidden) {
+					t.Errorf("cloud-init contains forbidden %q", forbidden)
+				}
+			}
+			for _, line := range strings.Split(script, "\n") {
+				if strings.Contains(line, "apt-get install") && strings.Contains(strings.ToLower(line), "docker") {
+					t.Errorf("cloud-init installs Docker: %q", line)
+				}
+			}
+		})
+	}
+	cases := []struct {
+		name, code string
+		change     func(*IONOSSharedPoolNode)
+	}{
+		{"location", "location_refused", func(n *IONOSSharedPoolNode) { n.Location = "de/fra/1" }},
+		{"below-32-GB", "node_memory_refused", func(n *IONOSSharedPoolNode) { n.MemoryMB = 32767 }},
+		{"above-64-GB", "node_memory_refused", func(n *IONOSSharedPoolNode) { n.MemoryMB = 65537 }},
+		{"slots", "node_density_refused", func(n *IONOSSharedPoolNode) { n.Slots = 41 }},
+		{"kubernetes", "orchestrator_refused", func(n *IONOSSharedPoolNode) { n.Orchestrator = "kubernetes" }},
+		{"k3s", "orchestrator_refused", func(n *IONOSSharedPoolNode) { n.Orchestrator = "k3s" }},
+		{"talos", "orchestrator_refused", func(n *IONOSSharedPoolNode) { n.Orchestrator = "talos" }},
+		{"node-id", "node_refused", func(n *IONOSSharedPoolNode) { n.ID = "worker;rm -rf /" }},
+	}
+	for _, tc := range cases {
+		t.Run("refuses-"+tc.name, func(t *testing.T) {
+			node := ionosNode()
+			tc.change(&node)
+			profile, err := BuildIONOSSharedWorkerProfile(node)
+			ionosRefused(t, err, tc.code)
+			if profile.CloudInit != "" {
+				t.Fatal("refused node rendered a script")
+			}
+		})
+	}
+}
+
+type ionosTestMTLSFixture struct {
+	serverTLSConfig *tls.Config
+	trustedClient   *http.Client
+	noCertClient    *http.Client
+	rogueClient     *http.Client
+	clientLeaf      *x509.Certificate
+	caLeaf          *x509.Certificate
+	serverCert      tls.Certificate
+	caPEM           []byte
+}
+
+func ionosTestMTLS(t *testing.T) ionosTestMTLSFixture {
+	t.Helper()
+	gen := func(tmpl *x509.Certificate, signer *x509.Certificate, signerKey *ecdsa.PrivateKey) (tls.Certificate, *x509.Certificate, *ecdsa.PrivateKey, []byte) {
+		key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			t.Fatal(err)
+		}
+		parent, parentKey := tmpl, key
+		if signer != nil {
+			parent, parentKey = signer, signerKey
+		}
+		der, err := x509.CreateCertificate(rand.Reader, tmpl, parent, &key.PublicKey, parentKey)
+		if err != nil {
+			t.Fatal(err)
+		}
+		certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+		keyDER, err := x509.MarshalECPrivateKey(key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		keyPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER})
+		tlsCert, err := tls.X509KeyPair(certPEM, keyPEM)
+		if err != nil {
+			t.Fatal(err)
+		}
+		leaf, err := x509.ParseCertificate(der)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return tlsCert, leaf, key, certPEM
+	}
+	now := time.Now().Add(-time.Minute)
+	exp := time.Now().Add(time.Hour)
+	_, caLeaf, caKey, caPEM := gen(&x509.Certificate{
+		SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "kombify-test-ca"},
+		NotBefore: now, NotAfter: exp, IsCA: true, BasicConstraintsValid: true,
+		KeyUsage: x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+	}, nil, nil)
+	serverCert, _, _, _ := gen(&x509.Certificate{
+		SerialNumber: big.NewInt(2), Subject: pkix.Name{CommonName: "127.0.0.1"},
+		NotBefore: now, NotAfter: exp, IPAddresses: []net.IP{net.ParseIP("127.0.0.1")},
+		KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	}, caLeaf, caKey)
+	clientCert, clientLeaf, _, _ := gen(&x509.Certificate{
+		SerialNumber: big.NewInt(3), Subject: pkix.Name{CommonName: "control-plane"},
+		NotBefore: now, NotAfter: exp,
+		KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+	}, caLeaf, caKey)
+	_, rogueLeaf, rogueKey, _ := gen(&x509.Certificate{
+		SerialNumber: big.NewInt(4), Subject: pkix.Name{CommonName: "rogue-ca"},
+		NotBefore: now, NotAfter: exp, IsCA: true, BasicConstraintsValid: true,
+		KeyUsage: x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+	}, nil, nil)
+	rogueCert, _, _, _ := gen(&x509.Certificate{
+		SerialNumber: big.NewInt(5), Subject: pkix.Name{CommonName: "rogue-client"},
+		NotBefore: now, NotAfter: exp,
+		KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+	}, rogueLeaf, rogueKey)
+
+	serverTLS, err := NewIONOSSharedPoolAgentTLSConfig(serverCert, caPEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+	roots := x509.NewCertPool()
+	if !roots.AppendCertsFromPEM(caPEM) {
+		t.Fatal("append root CA")
+	}
+	return ionosTestMTLSFixture{
+		serverTLSConfig: serverTLS,
+		trustedClient:   &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: roots, Certificates: []tls.Certificate{clientCert}, MinVersion: tls.VersionTLS13}}},
+		noCertClient:    &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: roots, MinVersion: tls.VersionTLS13}}},
+		rogueClient:     &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: roots, Certificates: []tls.Certificate{rogueCert}, MinVersion: tls.VersionTLS13}}},
+		clientLeaf:      clientLeaf,
+		caLeaf:          caLeaf,
+		serverCert:      serverCert,
+		caPEM:           caPEM,
+	}
+}
+
+func TestIONOSSharedPoolAgentHandler(t *testing.T) {
+	mtls := ionosTestMTLS(t)
+	if mtls.serverTLSConfig.MinVersion != tls.VersionTLS13 || mtls.serverTLSConfig.ClientAuth != tls.RequireAndVerifyClientCert {
+		t.Fatalf("server TLS posture not hardened: %+v", mtls.serverTLSConfig)
+	}
+	if _, err := NewIONOSSharedPoolAgentTLSConfig(tls.Certificate{}, mtls.caPEM); err == nil {
+		t.Fatal("empty server cert accepted")
+	}
+	if _, err := NewIONOSSharedPoolAgentTLSConfig(mtls.serverCert, []byte("not-pem")); err == nil {
+		t.Fatal("invalid client CA accepted")
+	}
+
+	node := ionosNode()
+	a, r, s, auth := ionosFixture(t, node)
+	_ = a
+	server := httptest.NewUnstartedServer(NewIONOSSharedPoolAgentHandler(node, r))
+	server.TLS = mtls.serverTLSConfig
+	server.StartTLS()
+	defer server.Close()
+	client, err := NewIONOSSharedPoolHTTPRuntime(server.URL, mtls.trustedClient)
+	if err != nil {
+		t.Fatal(err)
+	}
+	adapter, err := NewIONOSSharedPoolAdapter(node, client, s, auth, r.r2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	work := ionosWork("tenant-a", "one")
+	ctx := ionosTenant("tenant-a")
+	provisioned, err := adapter.Provision(ctx, work)
+	if err != nil || provisioned.State != "stopped" {
+		t.Fatal(provisioned, err)
+	}
+	spec := provisioned.Spec
+	started, err := adapter.Start(ctx, "tenant-a", "one")
+	if err != nil || started.State != "running" {
+		t.Fatal(started, err)
+	}
+	backup, err := adapter.Backup(ctx, "tenant-a", "one")
+	if err != nil || backup.Backup == nil {
+		t.Fatal(backup, err)
+	}
+	restored, err := adapter.Restore(ctx, "tenant-a", "one", *backup.Backup)
+	if err != nil || restored.State != "stopped" {
+		t.Fatal(restored, err)
+	}
+	removed, err := adapter.Decommission(ctx, "tenant-a", "one")
+	if err != nil || removed.State != "absent" || !removed.IsolationRemoved || !s.records["one"].Released {
+		t.Fatal(removed, err)
+	}
+
+	// TLS peers without a trusted client certificate fail the mTLS handshake.
+	for name, badHTTPClient := range map[string]*http.Client{
+		"no-client-cert": mtls.noCertClient,
+		"rogue-ca-cert":  mtls.rogueClient,
+	} {
+		t.Run("mtls-rejects-"+name, func(t *testing.T) {
+			untrusted, err := NewIONOSSharedPoolHTTPRuntime(server.URL, badHTTPClient)
+			if err != nil {
+				t.Fatal(err)
+			}
+			before := len(r.calls)
+			if _, err := untrusted.Execute(context.Background(), IONOSSharedPoolCommand{Action: IONOSPoolObserve, Spec: spec}); err == nil {
+				t.Fatal("untrusted TLS peer reached agent")
+			}
+			if len(r.calls) != before {
+				t.Fatal("untrusted TLS peer invoked runtime")
+			}
+		})
+	}
+
+	// The agent derives every isolation field itself and never trusts the caller's.
+	manifest := IONOSSharedPoolBackupManifest{Store: "r2", Bucket: "tenant-backups", Key: spec.VolumePrefix + "backups/snapshot", Version: "r2-version-1", SHA256: strings.Repeat("a", 64), SizeBytes: 128, Spec: spec}
+	rejected := []struct {
+		name   string
+		action IONOSSharedPoolAction
+		change func(*IONOSSharedPoolCommand)
+	}{
+		{"network-namespace", IONOSPoolStart, func(c *IONOSSharedPoolCommand) { c.Spec.NetworkNamespace = "host" }},
+		{"schema", IONOSPoolStart, func(c *IONOSSharedPoolCommand) { c.Spec.Schema = "public" }},
+		{"volume-prefix", IONOSPoolStart, func(c *IONOSSharedPoolCommand) { c.Spec.VolumePrefix = "tenants/other/" }},
+		{"runtime-binary", IONOSPoolStart, func(c *IONOSSharedPoolCommand) { c.Spec.RuntimeBinary = "runc" }},
+		{"tenant-label", IONOSPoolStart, func(c *IONOSSharedPoolCommand) { c.Spec.TenantLabel = "tenant-b" }},
+		{"node-id", IONOSPoolStart, func(c *IONOSSharedPoolCommand) { c.Spec.NodeID = "other-worker" }},
+		{"docker-socket", IONOSPoolStart, func(c *IONOSSharedPoolCommand) { c.Spec.Workload.RequiresDockerSocket = true }},
+		{"memory", IONOSPoolStart, func(c *IONOSSharedPoolCommand) { c.Spec.Workload.MemoryMB = 1024 }},
+		{"location", IONOSPoolStart, func(c *IONOSSharedPoolCommand) { c.Spec.Workload.Location = "us/las" }},
+		{"runtime", IONOSPoolStart, func(c *IONOSSharedPoolCommand) { c.Spec.Workload.Runtime = "docker" }},
+		{"unknown-action", "exec", func(*IONOSSharedPoolCommand) {}},
+		{"backup-on-start", IONOSPoolStart, func(c *IONOSSharedPoolCommand) { c.Backup = &manifest }},
+		{"restore-without-backup", IONOSPoolRestore, func(*IONOSSharedPoolCommand) {}},
+		{"restore-foreign-store", IONOSPoolRestore, func(c *IONOSSharedPoolCommand) { m := manifest; m.Store = "s3"; c.Backup = &m }},
+		{"restore-foreign-prefix", IONOSPoolRestore, func(c *IONOSSharedPoolCommand) { m := manifest; m.Key = "tenants/other/backups/snapshot"; c.Backup = &m }},
+		{"restore-dotdot-key", IONOSPoolRestore, func(c *IONOSSharedPoolCommand) { m := manifest; m.Key += "/../other"; c.Backup = &m }},
+		{"restore-zero-size", IONOSPoolRestore, func(c *IONOSSharedPoolCommand) { m := manifest; m.SizeBytes = 0; c.Backup = &m }},
+		{"restore-bad-sha256", IONOSPoolRestore, func(c *IONOSSharedPoolCommand) { m := manifest; m.SHA256 = "invalid"; c.Backup = &m }},
+		{"restore-foreign-spec", IONOSPoolRestore, func(c *IONOSSharedPoolCommand) { m := manifest; m.Spec.Schema = "public"; c.Backup = &m }},
+	}
+	for _, tc := range rejected {
+		t.Run("rejects-"+tc.name, func(t *testing.T) {
+			command := IONOSSharedPoolCommand{Action: tc.action, Spec: spec}
+			tc.change(&command)
+			before := len(r.calls)
+			if _, err := client.Execute(context.Background(), command); err == nil {
+				t.Fatal("tampered command accepted")
+			}
+			if len(r.calls) != before {
+				t.Fatal("tampered command reached the runtime")
+			}
+		})
+	}
+
+	serve := func(handler http.Handler, method, path, body string, secure, verifiedClient bool) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(method, path, strings.NewReader(body))
+		if secure {
+			state := &tls.ConnectionState{}
+			if verifiedClient {
+				state.PeerCertificates = []*x509.Certificate{mtls.clientLeaf}
+				state.VerifiedChains = [][]*x509.Certificate{{mtls.clientLeaf, mtls.caLeaf}}
+			}
+			req.TLS = state
+		}
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		return rec
+	}
+	handler := NewIONOSSharedPoolAgentHandler(node, r)
+	valid, err := json.Marshal(IONOSSharedPoolCommand{Action: IONOSPoolObserve, Spec: spec})
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := len(r.calls)
+	if rec := serve(handler, http.MethodPost, IONOSSharedPoolAgentPath, string(valid), true, true); rec.Code != http.StatusOK {
+		t.Fatalf("valid observe: %d %s", rec.Code, rec.Body)
+	}
+	if len(r.calls) != before+1 {
+		t.Fatal("valid command did not reach the runtime exactly once")
+	}
+	before = len(r.calls)
+	for _, tc := range []struct {
+		name, method, path, body string
+		secure, verifiedClient   bool
+		status                   int
+	}{
+		{"wrong-method", http.MethodGet, IONOSSharedPoolAgentPath, string(valid), true, true, http.StatusMethodNotAllowed},
+		{"put", http.MethodPut, IONOSSharedPoolAgentPath, string(valid), true, true, http.StatusMethodNotAllowed},
+		{"wrong-path", http.MethodPost, "/v1/ionos-shared-pool/other", string(valid), true, true, http.StatusNotFound},
+		{"root-path", http.MethodPost, "/", string(valid), true, true, http.StatusNotFound},
+		{"plaintext", http.MethodPost, IONOSSharedPoolAgentPath, string(valid), false, false, http.StatusForbidden},
+		{"tls-without-client-cert", http.MethodPost, IONOSSharedPoolAgentPath, string(valid), true, false, http.StatusForbidden},
+		{"malformed", http.MethodPost, IONOSSharedPoolAgentPath, `{"action":`, true, true, http.StatusBadRequest},
+		{"empty", http.MethodPost, IONOSSharedPoolAgentPath, ``, true, true, http.StatusBadRequest},
+		{"unknown-field", http.MethodPost, IONOSSharedPoolAgentPath, `{"action":"observe","spec":{},"extra":"x"}`, true, true, http.StatusBadRequest},
+		{"trailing-token", http.MethodPost, IONOSSharedPoolAgentPath, string(valid) + ` {}`, true, true, http.StatusBadRequest},
+		{"oversize", http.MethodPost, IONOSSharedPoolAgentPath, `{"action":"observe","pad":"` + strings.Repeat("x", (1<<20)+1) + `"}`, true, true, http.StatusRequestEntityTooLarge},
+		{"empty-command", http.MethodPost, IONOSSharedPoolAgentPath, `{}`, true, true, http.StatusUnprocessableEntity},
+	} {
+		t.Run("http-"+tc.name, func(t *testing.T) {
+			rec := serve(handler, tc.method, tc.path, tc.body, tc.secure, tc.verifiedClient)
+			if rec.Code != tc.status {
+				t.Fatalf("want %d, got %d %s", tc.status, rec.Code, rec.Body)
+			}
+			if tc.status == http.StatusMethodNotAllowed && rec.Header().Get("Allow") != http.MethodPost {
+				t.Fatal("missing Allow header")
+			}
+			if (tc.name == "plaintext" || tc.name == "tls-without-client-cert") && !strings.Contains(rec.Body.String(), "mtls_required") {
+				t.Fatalf("expected mtls_required refusal, got %s", rec.Body)
+			}
+			if len(r.calls) != before {
+				t.Fatal("refused request reached the runtime")
+			}
+		})
+	}
+
+	// Runtime failures reach the caller as a fixed code, never as internal detail.
+	r.failProvision = true
+	provision, err := json.Marshal(IONOSSharedPoolCommand{Action: IONOSPoolProvision, Spec: mustIONOSSpec(t, node, ionosWork("tenant-a", "lost"))})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := serve(handler, http.MethodPost, IONOSSharedPoolAgentPath, string(provision), true, true)
+	if rec.Code != http.StatusBadGateway || strings.Contains(rec.Body.String(), "response lost") || !strings.Contains(rec.Body.String(), "runtime_failed") {
+		t.Fatalf("runtime error leaked: %d %s", rec.Code, rec.Body)
+	}
+	r.failProvision = false
+
+	// A runtime answering for another owner is never forwarded.
+	r.wrongOwner = true
+	rec = serve(handler, http.MethodPost, IONOSSharedPoolAgentPath, string(valid), true, true)
+	r.wrongOwner = false
+	if rec.Code != http.StatusBadGateway || strings.Contains(rec.Body.String(), "other-tenant") {
+		t.Fatalf("foreign observation forwarded: %d %s", rec.Code, rec.Body)
+	}
+
+	// Misconfiguration fails closed.
+	bad := ionosNode()
+	bad.Location = "us/las"
+	for name, misconfigured := range map[string]http.Handler{
+		"node":    NewIONOSSharedPoolAgentHandler(bad, r),
+		"runtime": NewIONOSSharedPoolAgentHandler(node, nil),
+	} {
+		if rec := serve(misconfigured, http.MethodPost, IONOSSharedPoolAgentPath, string(valid), true, true); rec.Code != http.StatusServiceUnavailable {
+			t.Fatalf("%s misconfiguration served: %d", name, rec.Code)
+		}
+	}
+}
+
+func mustIONOSSpec(t *testing.T, node IONOSSharedPoolNode, w IONOSSharedPoolWorkload) IONOSSharedPoolSpec {
+	t.Helper()
+	spec, err := ionosPoolSpec(node, w)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return spec
 }
