@@ -1,14 +1,14 @@
 {
   "schemaVersion": "stackkits-use-case-catalog/v1",
   "release": {
-    "tag": "v0.61.2",
-    "version": "0.61.2",
-    "sourceSha": "89ab45dff4aa5c1bf7824a7de03f069f7d34e028",
-    "publicSourceSha": "992e60dabf89209c18786ec12d310fe647b6001f",
-    "releaseUrl": "https://github.com/kombifyio/StackKits/releases/tag/v0.61.2"
+    "tag": "v0.61.4",
+    "version": "0.61.4",
+    "sourceSha": "88e24417bcea5b0aa23a0f9b3de05ea952c83030",
+    "publicSourceSha": "efe69a6fd25527428979fc3c098bc13f7b73063d",
+    "releaseUrl": "https://github.com/kombifyio/StackKits/releases/tag/v0.61.4"
   },
-  "generatedAt": "2026-11-23T06:50:41Z",
-  "generatorVersion": "0.61.2",
+  "generatedAt": "2026-11-24T06:51:16Z",
+  "generatorVersion": "0.61.4",
   "catalog": {
     "authoring": {
       "retainedRemovalCandidates": true
@@ -6022,6 +6022,51 @@
             ]
           }
         ]
+      },
+      {
+        "id": "wiki",
+        "title": "Personal IT Wiki",
+        "description": "The source of truth for personal IT, on this server as one SQLite Wiki file.",
+        "components": [
+          {
+            "id": "wiki",
+            "name": "kombify Wiki",
+            "role": "primary",
+            "kind": "application"
+          }
+        ],
+        "mainUseCase": {
+          "id": "wiki",
+          "title": "Wiki"
+        },
+        "computeTiers": {
+          "high": {
+            "included": false,
+            "reason": "No separately measured high capability."
+          },
+          "low": {
+            "included": false,
+            "reason": "No measured small-device profile."
+          },
+          "standard": {
+            "included": true,
+            "functions": [
+              "wiki-read",
+              "wiki-search",
+              "wiki-graph"
+            ],
+            "load": {
+              "residency": "always-on",
+              "baseline": "idle-resident",
+              "burst": "interactive"
+            },
+            "moduleSlug": "wiki",
+            "notes": [
+              "Policy allocation, not a measured capacity claim. linux/amd64 only at the current artifact pin."
+            ]
+          }
+        },
+        "docs": "/guides/stackkits/use-cases/wiki"
       }
     ],
     "kitCores": [
@@ -6436,5 +6481,5 @@
       }
     ]
   },
-  "contentDigest": "sha256:64a2346d2ebec0971815e6617fd6b5796b4b29cedfd3e220eb172b1f2ba72e77"
+  "contentDigest": "sha256:b8b6ceb4af5371eff9d28b78aca73fafddb9fe7761c30910fc7d119e6e7f4dab"
 }
