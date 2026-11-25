@@ -118,11 +118,12 @@ type CloudRunR2Store interface {
 // It is not a server-lease executor and does not write or release custody.
 // It is not registered with the provider registry.
 type CloudRunAdapter struct {
-	client  cloudRunClient
-	project string
-	service string
-	owner   CloudRunOwner
-	r2      CloudRunR2Store
+	client       cloudRunClient
+	project      string
+	service      string
+	owner        CloudRunOwner
+	r2           CloudRunR2Store
+	pollInterval time.Duration
 }
 
 // String, GoString and Format keep the access token out of any formatted view.
@@ -147,7 +148,14 @@ func newCloudRunAdapter(project, serviceName, token string, owner CloudRunOwner,
 			return nil, ErrCloudRunOwnership
 		}
 	}
-	return &CloudRunAdapter{client: newCloudRunClient(apiBase, token), project: project, service: serviceName, owner: owner, r2: r2}, nil
+	return &CloudRunAdapter{
+		client:       newCloudRunClient(apiBase, token),
+		project:      project,
+		service:      serviceName,
+		owner:        owner,
+		r2:           r2,
+		pollInterval: cloudRunDefaultPollInterval,
+	}, nil
 }
 
 // Provision issues one create, with no retry or adoption. Dispatch must be
@@ -194,10 +202,14 @@ func (a *CloudRunAdapter) Provision(ctx context.Context, spec CloudRunSpec) (Clo
 		},
 	}
 	createPath := a.servicesPath(CloudRunRegion) + "?serviceId=" + url.QueryEscape(a.service)
-	if err := a.client.request(ctx, http.MethodPost, createPath, request, nil); err != nil {
+	var op cloudRunOperation
+	if err := a.client.request(ctx, http.MethodPost, createPath, request, &op); err != nil {
 		return CloudRunHandle{}, err
 	}
 	handle := CloudRunHandle{Project: a.project, Location: CloudRunRegion, ServiceName: a.service, Owner: a.owner}
+	if err := a.waitCreateOperation(ctx, op); err != nil {
+		return handle, err
+	}
 	service, err := a.readOwnedInRegion(ctx, handle)
 	if err != nil {
 		if errors.Is(err, ErrCloudRunNotFound) {
@@ -212,6 +224,57 @@ func (a *CloudRunAdapter) Provision(ctx context.Context, spec CloudRunSpec) (Clo
 		return handle, ErrCloudRunPolicyDrift
 	}
 	return handle, nil
+}
+
+func (a *CloudRunAdapter) waitCreateOperation(ctx context.Context, op cloudRunOperation) error {
+	if op.Done {
+		if op.Error != nil && op.Error.Code != 0 {
+			return ErrCloudRunResponse
+		}
+		return nil
+	}
+	opLoc, opID, ok := op.location(a.project)
+	if !ok {
+		return ErrCloudRunResponse
+	}
+	if opLoc != CloudRunRegion {
+		return &CloudRunRegionError{Region: opLoc}
+	}
+	opPath := "/projects/" + a.project + "/locations/" + CloudRunRegion + "/operations/" + opID
+	interval := a.pollInterval
+	if interval <= 0 {
+		interval = cloudRunDefaultPollInterval
+	}
+	waitCtx, cancel := context.WithTimeout(ctx, cloudRunOperationWaitLimit)
+	defer cancel()
+	for {
+		var next cloudRunOperation
+		if err := a.client.request(waitCtx, http.MethodGet, opPath, nil, &next); err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			if waitCtx.Err() != nil {
+				return ErrCloudRunResponse
+			}
+			return err
+		}
+		if next.Done {
+			if next.Error != nil && next.Error.Code != 0 {
+				return ErrCloudRunResponse
+			}
+			return nil
+		}
+		timer := time.NewTimer(interval)
+		select {
+		case <-waitCtx.Done():
+			timer.Stop()
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			return ErrCloudRunResponse
+		case <-timer.C:
+		}
+	}
 }
 
 // Start verifies the exact owned service in europe-west3 against the policy.

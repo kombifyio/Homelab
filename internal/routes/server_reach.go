@@ -14,6 +14,7 @@ import (
 	ksapi "github.com/kombifyio/homelab/pkg/api"
 	"github.com/kombifyio/homelab/pkg/guardreach"
 	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/middleware"
 )
 
 // serverReachStepUpMaxAge bounds the multi-factor sign-in behind publishing a
@@ -30,6 +31,53 @@ const (
 // server at a public kombify.me address, or withdrawing it.
 type ServerReachControl interface {
 	SetPublic(ctx context.Context, tenantID, workerID, ownerSubject string, want guardreach.PublicReach) (*guardreach.Row, error)
+}
+
+type ServerPaperworkSignInControl interface {
+	SetPaperworkSignIn(context.Context, string, string, string, bool) (*guardreach.Row, error)
+}
+
+func (h serverRuntimeHandlers) reachSetPaperworkSignIn(e *httpx.Event) error {
+	const capability = "homelab.servers.reach.paperwork-sign-in"
+	server, err := h.ownedServer(e, capability)
+	if err != nil || server == nil {
+		return err
+	}
+	ctx := e.Request.Context()
+	var request struct {
+		Enabled       *bool `json:"enabled"`
+		OwnerApproved bool  `json:"owner_approved"`
+	}
+	decoder := json.NewDecoder(http.MaxBytesReader(e.Response, e.Request.Body, 256))
+	decoder.DisallowUnknownFields()
+	if decoder.Decode(&request) != nil || decoder.Decode(new(json.RawMessage)) != io.EOF || request.Enabled == nil {
+		return httpx.BadRequest(e, "Specify whether to enable linked Paperwork sign-in", nil)
+	}
+	if *request.Enabled {
+		claims, verified := middleware.VerifiedStepUpFromContext(ctx)
+		if !verified || claims.PrincipalType != middleware.PrincipalTypeUser || claims.AgentID != "" || !request.OwnerApproved {
+			return httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden, "The server owner must confirm this action directly", nil)
+		}
+	}
+	workerID := strings.TrimSpace(server.WorkerID)
+	if workerID == "" {
+		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "This server is not enrolled for reach yet", nil)
+	}
+	owner, _, _ := authenticatedUser(e)
+	control, ok := h.reach.(ServerPaperworkSignInControl)
+	if !ok {
+		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Linked Paperwork sign-in is unavailable", nil)
+	}
+	row, err := control.SetPaperworkSignIn(ctx, server.TenantID, workerID, owner, *request.Enabled)
+	switch {
+	case errors.Is(err, guardreach.ErrNotFound), errors.Is(err, guardreach.ErrPaperworkSignInNotReady):
+		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "The current Guard and its Paperwork route must be ready", nil)
+	case err != nil:
+		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Linked Paperwork sign-in is unavailable", nil)
+	default:
+		slog.Warn("guard_paperwork_sign_in_set", "tenant_id", server.TenantID, "worker_id", workerID, "actor", owner, "enabled", *request.Enabled)
+		return httpx.Success(e, http.StatusOK, guardreach.ViewOf(*row))
+	}
 }
 
 type serverReachRequest struct {

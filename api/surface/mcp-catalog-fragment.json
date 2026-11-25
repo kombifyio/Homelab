@@ -4,7 +4,7 @@
   "source": {
     "product": "homelab",
     "path": "api/openapi/homelab-v1.yaml",
-    "sha256": "e978808f1e74cd7505c128d4c304976d500f639361c24c3fbac2c56d55e0b11b"
+    "sha256": "68af2e972c0637bc83fb0090d6c301014964e659f1b87d87cb63c761f8c441e8"
   },
   "tools": [
     {
@@ -3545,6 +3545,94 @@
       "costBearing": false,
       "upstreamKind": "product-native",
       "liveEnabled": false
+    },
+    {
+      "toolId": "homelab.execute_ionos_managed_workload_command",
+      "connectorFamily": "homelab",
+      "serverKey": "homelab",
+      "toolName": "execute_ionos_managed_workload_command",
+      "alias": "homelab.execute_ionos_managed_workload_command",
+      "title": "Execute an owned IONOS Managed App command",
+      "description": "Default-off hosted adapter. Requires a verified Edge tenant and subject, signed operation entitlement, and a fresh Cloud account allowance for provision, start, backup and restore. Cleanup requires an existing owned reservation and remains possible during Cloud outages or module rollback. Provision additionally requires the provision entitlement. Reserves an exact generation globally across placements before calling the worker. Stop and ambiguous outcomes retain the slot; release requires exact authoritative absence including isolation resources. Retry completed command IDs to replay receipts; synchronous execution is capped at four minutes and requires enough verified database identity lifetime. Reconcile uncertain dispatches with a new observe or decommission command. No tenant or provider input is accepted.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "provision",
+              "start",
+              "stop",
+              "observe",
+              "backup",
+              "restore",
+              "decommission"
+            ],
+            "type": "string"
+          },
+          "app_id": {
+            "enum": [
+              "vaultwarden",
+              "cloudreve-r2",
+              "workpaths-lite"
+            ],
+            "type": "string"
+          },
+          "backup": {
+            "description": "Exact worker-issued R2 backup manifest; required only for restore, validated and verified on the worker.",
+            "type": "object"
+          },
+          "command_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "generation_id": {
+            "description": "Opaque exact-generation identifier; never reuse a released generation.",
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "app_id",
+          "command_id",
+          "generation_id"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "featureKey": "mcp.customer.homelab.inventory.operate",
+      "entitlementKey": "homelab.inventory.operate",
+      "fgaObject": "tool:homelab/execute_ionos_managed_workload_command",
+      "auditEvent": "mcp.customer.homelab.inventory.execute_ionos_managed_workload_command",
+      "operationIds": [
+        "homelab.executeIONOSManagedWorkloadCommand"
+      ],
+      "risk": "high",
+      "approvalPolicy": "human",
+      "actionClass": "cost_bearing",
+      "quotaKey": "mcp.usage.homelab.inventory.operate",
+      "upstream": {
+        "kind": "product-native",
+        "ref": "homelab"
+      },
+      "portalVisibilityGroup": "customer-build-preview",
+      "requiredScopes": [
+        "mcp:connect"
+      ],
+      "capabilityBundle": "homelab.inventory.operate",
+      "requiredCapabilities": [
+        "homelab.inventory.operate"
+      ],
+      "costBearing": true,
+      "upstreamKind": "product-native",
+      "liveEnabled": true
     },
     {
       "toolId": "homelab.execute_own_application_operation",

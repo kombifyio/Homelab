@@ -62,6 +62,7 @@ type Config struct {
 	PendingInterval, ReadyInterval time.Duration
 	Logger                         *slog.Logger
 	Now                            func() time.Time
+	PaperworkSignIn                PaperworkNodeCustody
 }
 
 // Agent runs the exchange loop and owns the relay connection.
@@ -130,10 +131,12 @@ func relayURLOnAudienceHost(raw string) bool {
 func (a *Agent) Run(ctx context.Context) {
 	defer a.relay.Stop()
 	var proofs []guardreach.ProofSubmission
+	var paperwork *guardreach.PaperworkSignInReport
 	failures := 0
 	for ctx.Err() == nil {
-		document, err := a.exchange(ctx, guardreach.ExchangeRequest{Proofs: proofs, Relay: a.relay.Status()})
+		document, err := a.exchange(ctx, guardreach.ExchangeRequest{Proofs: proofs, Relay: a.relay.Status(), PaperworkSignIn: paperwork})
 		proofs = nil
+		paperwork = nil
 		wait := a.cfg.PendingInterval
 		if err != nil {
 			failures++
@@ -150,7 +153,11 @@ func (a *Agent) Run(ctx context.Context) {
 			var deliverNow bool
 			proofs, deliverNow = a.answer(document)
 			wait = a.apply(ctx, document)
-			if deliverNow {
+			paperwork = a.answerPaperworkSignIn(ctx, document)
+			if paperwork != nil && !document.PaperworkSignIn.Steady && wait > a.cfg.PendingInterval {
+				wait = a.cfg.PendingInterval
+			}
+			if deliverNow || (paperwork != nil && document.PaperworkSignIn.Kind == "apply") {
 				wait = 0
 			}
 		}

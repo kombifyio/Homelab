@@ -48,9 +48,11 @@ type stackKitLifecycleRequest struct {
 	AIProviderDisable bool   `json:"ai_provider_disable,omitempty"`
 	// ssh_trust_recipient: the owner's fresh challenge the node answers;
 	// ssh_trust_apply: the Wallet's sealed SSH delivery envelope (JSON text,
-	// public material only). Refused for every other operation.
+	// public material only). paperwork_move takes an encrypted Wallet move
+	// envelope and its delivery tenant reference.
 	RecipientChallenge string `json:"recipient_challenge,omitempty"`
 	SealedDelivery     string `json:"sealed_delivery,omitempty"`
+	DeliveryTenantRef  string `json:"delivery_tenant_ref,omitempty"`
 }
 
 type stackKitLifecycleResponse struct {
@@ -82,7 +84,8 @@ var stackLockGuardedOperations = map[string]bool{
 	jobs.StackKitLifecycleRollback:              true,
 	jobs.StackKitLifecycleBackupRestoreActivate: true,
 	// ai_provider reconciles the stack with the new provider setting.
-	jobs.StackKitLifecycleAIProvider: true,
+	jobs.StackKitLifecycleAIProvider:    true,
+	jobs.StackKitLifecyclePaperworkMove: true,
 }
 
 // lockedStackServices returns the ids of the stack's locked services for an
@@ -199,9 +202,25 @@ func (h crudRouteHandlers) startStackKitLifecycle(e *httpx.Event) error {
 		AIProviderDisable:     request.AIProviderDisable,
 		RecipientChallenge:    request.RecipientChallenge,
 		SealedDelivery:        []byte(request.SealedDelivery),
+		DeliveryTenantRef:     request.DeliveryTenantRef,
 	}
-	if (request.RecipientChallenge != "" || request.SealedDelivery != "") && !jobs.IsSSHTrustOperation(strings.ToLower(strings.TrimSpace(request.Operation))) {
-		return httpx.BadRequest(e, "recipient_challenge and sealed_delivery belong to ssh_trust_recipient and ssh_trust_apply only")
+	operation := strings.ToLower(strings.TrimSpace(request.Operation))
+	if operation == jobs.StackKitLifecyclePaperworkMove {
+		if h.runtimeFeatures == nil {
+			return httpx.Reject(e, http.StatusForbidden, ksapi.ErrCodeForbidden, "Paperwork move is not enabled", map[string]interface{}{"reason_code": "paperwork_move_disabled", "retryable": false})
+		}
+		enabled, flagErr := h.runtimeFeatures.IsEnabled(e.Request.Context(), "paperwork_move", ownerID)
+		if flagErr != nil || !enabled {
+			return httpx.Reject(e, http.StatusForbidden, ksapi.ErrCodeForbidden, "Paperwork move is not enabled", map[string]interface{}{"reason_code": "paperwork_move_disabled", "retryable": false})
+		}
+	} else if request.DeliveryTenantRef != "" {
+		return httpx.BadRequest(e, "delivery_tenant_ref belongs to paperwork_move only")
+	}
+	if request.RecipientChallenge != "" && !jobs.IsSSHTrustOperation(operation) {
+		return httpx.BadRequest(e, "recipient_challenge belongs to SSH trust only")
+	}
+	if request.SealedDelivery != "" && !jobs.IsSSHTrustOperation(operation) && operation != jobs.StackKitLifecyclePaperworkMove {
+		return httpx.BadRequest(e, "sealed_delivery belongs to SSH trust or paperwork_move only")
 	}
 	// A changed StackSpec is applied as an Owner-approved Advanced change set
 	// (every managed deployment is Advanced). The typed apply never reads a

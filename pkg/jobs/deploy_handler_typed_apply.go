@@ -125,9 +125,7 @@ func (r *deployRollout) runTypedStackKitApply(ctx context.Context) (map[string]i
 	budget := managedStackKitSequenceBudget(baseRequest.modern != nil, baseRequest.originCertificate != nil)
 	result, err := runTypedStackKitApplySequenceWithBudget(ctx, r.cfg.StackKitLifecycle, r.cfg.StackKitCommander, r.job.ID, baseRequest, *release, budget, trustAdmission)
 	if err != nil {
-		if registryOutcome, exists := result["wiki_registry"]; exists {
-			r.job.mutateResult(func(jobResult map[string]interface{}) { jobResult["wiki_registry"] = registryOutcome })
-		}
+		r.job.mutateResult(func(jobResult map[string]interface{}) { copyRegistryOutcomes(jobResult, result) })
 		reason := "typed_stackkit_rollout_failed"
 		var operationErr *typedStackKitOperationError
 		if errors.As(err, &operationErr) {
@@ -380,8 +378,8 @@ func runTypedStackKitApplySequenceWithBudget(ctx context.Context, lifecycle Stac
 		return nil, err
 	}
 	registryOutcome := map[string]interface{}{}
-	if err := renewWikiRegistryPull(preApplyCtx, lifecycle, jobID, request, release, registryOutcome); err != nil {
-		return map[string]interface{}{"wiki_registry": registryOutcome}, err
+	if err := renewCustomerRegistryPull(preApplyCtx, lifecycle, jobID, request, release, registryOutcome); err != nil {
+		return registryOutcome, err
 	}
 	result, _, err := dispatchTypedStackKitOperation(ctx, sender, jobID, request, release, func(command *agentpb.StackKitCommand) {
 		command.ExpectedPlanHash = nodePlanHash
@@ -428,8 +426,8 @@ func runTypedStackKitApplySequenceWithBudget(ctx context.Context, lifecycle Stac
 		cloudRegistryRequest := cloudNode.request
 		cloudRegistryRequest.CandidateSpecJSON = baseRequest.CandidateSpecJSON
 		registryOutcome := map[string]interface{}{}
-		if err := renewWikiRegistryPull(ctx, lifecycle, jobID+"-cloud", cloudRegistryRequest, release, registryOutcome); err != nil {
-			normalized["wiki_registry"] = registryOutcome
+		if err := renewCustomerRegistryPull(ctx, lifecycle, jobID+"-cloud", cloudRegistryRequest, release, registryOutcome); err != nil {
+			copyRegistryOutcomes(normalized, registryOutcome)
 			return normalized, err
 		}
 		cloudResult, cloudErr := cloudNode.apply(ctx, sender, jobID, release)

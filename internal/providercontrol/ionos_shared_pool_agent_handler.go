@@ -93,6 +93,14 @@ func (h *ionosSharedPoolAgentHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 		ionosPoolAgentRefusal(w, http.StatusUnprocessableEntity, err)
 		return
 	}
+	if command.Action == IONOSPoolVerifyBackup {
+		verifier, ok := h.runtime.(IONOSSharedPoolBackupVerifier)
+		if !ok || verifier.VerifyIONOSSharedPoolBackup(r.Context(), *command.Backup) != nil {
+			ionosPoolAgentError(w, http.StatusBadGateway, "backup_refused")
+			return
+		}
+		command.Action, command.Backup = IONOSPoolObserve, nil
+	}
 	observation, err := h.runtime.Execute(r.Context(), command)
 	if err != nil {
 		ionosPoolAgentRefusal(w, http.StatusBadGateway, err)
@@ -124,7 +132,7 @@ func (h *ionosSharedPoolAgentHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 // agent derives itself.
 func (h *ionosSharedPoolAgentHandler) admit(command IONOSSharedPoolCommand) (IONOSSharedPoolSpec, error) {
 	switch command.Action {
-	case IONOSPoolProvision, IONOSPoolStart, IONOSPoolStop, IONOSPoolObserve, IONOSPoolBackup, IONOSPoolRestore, IONOSPoolDecommission:
+	case IONOSPoolVerifyBackup, IONOSPoolProvision, IONOSPoolStart, IONOSPoolStop, IONOSPoolObserve, IONOSPoolBackup, IONOSPoolRestore, IONOSPoolDecommission:
 	default:
 		return IONOSSharedPoolSpec{}, ionosPoolRefuse("action_refused", "use a known lifecycle verb")
 	}
@@ -135,7 +143,7 @@ func (h *ionosSharedPoolAgentHandler) admit(command IONOSSharedPoolCommand) (ION
 	if command.Spec != expected {
 		return IONOSSharedPoolSpec{}, ionosPoolRefuse("spec_refused", "send the spec the worker derives from the workload")
 	}
-	if command.Action != IONOSPoolRestore {
+	if command.Action != IONOSPoolRestore && command.Action != IONOSPoolVerifyBackup {
 		if command.Backup != nil {
 			return IONOSSharedPoolSpec{}, ionosPoolRefuse("backup_refused", "attach a backup manifest only to restore")
 		}

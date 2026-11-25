@@ -206,7 +206,7 @@ func registerCoreRoutes(router *httpx.Router, deps routeDeps, managedLeases jobs
 	deps.orch.ConfigureManagedStackKitInventory(managedStackKitInventoryBuilder(deps))
 	deps.orch.ConfigureFederationFabric(federationFabric())
 	if deps.guardReach != nil {
-		deps.orch.ConfigureWikiRegistryIssuer(deps.guardReach.IssueWikiRegistryGrant)
+		deps.orch.ConfigureCustomerRegistryIssuer(deps.guardReach.IssueCustomerRegistryGrant)
 	}
 	deps.orch.ConfigureStackKitCommander(stackKitCommander)
 	var notificationOutbox productnotifications.ProductEventEnqueuer
@@ -573,6 +573,11 @@ func publicOriginHost() string {
 }
 
 func registerRuntimeInventoryRoutes(router *httpx.Router, deps routeDeps, state runtimeRouteState, inventoryPolicy routes.InventoryPolicy, actionCards *routes.ServiceActionCards) *routes.ManagedRuntimeExpansion {
+	if err := registerIONOSSharedPool(router, deps); err != nil {
+		if deps.log != nil {
+			deps.log.Error("ionos_shared_pool_unavailable", "error", err)
+		}
+	}
 	var metricWriter routes.WorkerMetricWriter
 	if deps.monitor != nil && deps.monitor.tsdb != nil {
 		metricWriter = deps.monitor.tsdb

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -25,7 +26,8 @@ import (
 )
 
 const (
-	StackKitLifecyclePlan = "plan"
+	StackKitLifecyclePaperworkMove = "paperwork_move"
+	StackKitLifecyclePlan          = "plan"
 	// Internal to admitted managed Generate. It is not an operator lifecycle
 	// input: it may only acquire the retained generation's attested cache.
 	stackKitStepPrepareSourceGeneration = "prepare_source_generation"
@@ -240,12 +242,15 @@ type StackKitLifecycleRequest struct {
 	// before the managed Inventory producer may replace its process pin.
 	ManagedRuntimeLeaseID  string
 	ManagedRuntimeServerID string
-	Operation              string
-	TargetRelease          string
-	DryRun                 bool
-	Offline                bool
-	OwnerApproved          bool
-	WorkingDirectory       string
+	// PaperworkMoveServerID is derived from the approved worker at enqueue;
+	// it binds the current backend operate permit and is never an HTTP input.
+	PaperworkMoveServerID string
+	Operation             string
+	TargetRelease         string
+	DryRun                bool
+	Offline               bool
+	OwnerApproved         bool
+	WorkingDirectory      string
 	// SpecPath is a relative canonical StackSpec path inside WorkingDirectory.
 	// Deploy binds this to the v2 document already materialized by the pinned
 	// generator; operator lifecycle calls default to the StackSpec the stack's
@@ -330,7 +335,8 @@ type StackKitLifecycleRequest struct {
 	WalletItemID      string
 	WalletItemRotate  bool
 	AIProviderDisable bool
-	wikiRegistryItem  string
+	registryItem      string
+	registryProduct   string
 	// AdvancedTrustBundle is the installation's canonical public
 	// stackkit.advanced-trust-bundle/v1, set at dispatch for
 	// advanced_trust_import only and never persisted in a job payload.
@@ -536,9 +542,9 @@ type StackKitLifecycleConfig struct {
 	OriginCertificates *originca.Service
 	// WalletHostDelivery seals a kombify Wallet item to a node for
 	// ai_provider. Nil fails that operation closed.
-	WalletHostDelivery WalletHostDelivery
-	WikiRegistryRenew  WikiRegistryRenewal
-	WikiRegistrySpec   func(context.Context, StackKitLifecycleRequest) ([]byte, error)
+	WalletHostDelivery    WalletHostDelivery
+	CustomerRegistryRenew CustomerRegistryRenewal
+	CustomerRegistrySpec  func(context.Context, StackKitLifecycleRequest) ([]byte, error)
 	// IdentityJoinWallet stores a joined server's sign-in client secret in the
 	// homelab's Wallet for host delivery. Nil fails the join closed.
 	IdentityJoinWallet HomelabIdentityJoinWallet
@@ -637,7 +643,7 @@ func validateStackKitLifecycleOperation(req *StackKitLifecycleRequest) error {
 	if IsApplicationLifecycleOperation(req.Operation) {
 		return validateApplicationLifecycleRequest(req)
 	}
-	if req.Operation != StackKitLifecycleAIProvider && req.Operation != stackKitStepAIProviderSetup &&
+	if req.Operation != StackKitLifecycleAIProvider && req.Operation != stackKitStepAIProviderSetup && req.Operation != StackKitLifecyclePaperworkMove &&
 		(req.AIProviderBaseURL != "" || req.AIProviderDisable || ((req.WalletItemID != "" || req.WalletItemRotate) && !isRelocationTransferStep(req.Operation))) {
 		return fmt.Errorf("AI provider inputs require ai_provider")
 	}
@@ -660,6 +666,10 @@ func validateStackKitLifecycleOperation(req *StackKitLifecycleRequest) error {
 		return fmt.Errorf("application update inputs require application_update")
 	}
 	switch req.Operation {
+	case StackKitLifecyclePaperworkMove:
+		if !req.OwnerApproved || !stackkitcommand.ValidWalletItemRef(req.WalletItemID) || req.DeliveryTenantRef != stackkitcommand.DeliveryTenantRef(req.TenantID) || len(req.SealedDelivery) == 0 || len(req.SealedDelivery) > stackkitcommand.MaxSealedDeliveryBytes || !json.Valid(req.SealedDelivery) || req.RecipientChallenge != "" || req.DryRun || req.Offline || len(req.CandidateSpecJSON) != 0 || req.WalletItemRotate || req.AIProviderBaseURL != "" || req.AIProviderDisable {
+			return errors.New("paperwork_move requires one owner-admitted sealed move item")
+		}
 	case StackKitLifecycleGenerate, StackKitLifecyclePlan, StackKitLifecycleVerify, StackKitLifecycleDriftDetect:
 	case StackKitLifecycleAddressBind:
 		if req.AddressPrefix == "" || req.BoundSpecPath == "" {
@@ -817,6 +827,7 @@ func StackKitLifecyclePayload(req StackKitLifecycleRequest) map[string]interface
 		"node_ref":                       req.NodeRef,
 		"managed_runtime_lease_id":       req.ManagedRuntimeLeaseID,
 		"managed_runtime_server_id":      req.ManagedRuntimeServerID,
+		"paperwork_move_server_id":       req.PaperworkMoveServerID,
 		"operation":                      req.Operation,
 		"target_release":                 req.TargetRelease,
 		"dry_run":                        req.DryRun,
@@ -852,10 +863,11 @@ func StackKitLifecyclePayload(req StackKitLifecycleRequest) map[string]interface
 		"application_version":            req.ApplicationVersion,
 		"application_digest":             req.ApplicationDigest,
 		"accept_untested":                req.AcceptUntested,
-		// Only the SSH CA trust operations take these from a caller; the
-		// SSH delivery carries public material only (stackkit_ssh_trust.go).
+		// SSH trust carries public material; Paperwork move carries only the
+		// Wallet's ciphertext, never the opened grant.
 		"recipient_challenge": sshTrustPayload(req, req.RecipientChallenge),
 		"sealed_delivery":     sshTrustPayload(req, string(req.SealedDelivery)),
+		"delivery_tenant_ref": sshTrustPayload(req, req.DeliveryTenantRef),
 	}
 	if req.OwnApplication != nil {
 		// Only an own-application step carries it, so every other payload
@@ -871,7 +883,7 @@ func StackKitLifecyclePayload(req StackKitLifecycleRequest) map[string]interface
 }
 
 func sshTrustPayload(req StackKitLifecycleRequest, value string) string {
-	if !IsSSHTrustOperation(req.Operation) {
+	if !IsSSHTrustOperation(req.Operation) && req.Operation != StackKitLifecyclePaperworkMove {
 		return ""
 	}
 	return value
@@ -1012,6 +1024,11 @@ func StackKitLifecycleHandler(cfg StackKitLifecycleConfig) JobHandler {
 		req, err := stackKitLifecycleRequestFromJob(job)
 		if err != nil {
 			return NewPermanentError(err)
+		}
+		if req.Operation == StackKitLifecyclePaperworkMove {
+			if err := authorizePaperworkMove(contextWithJobAuthorization(ctx, job), cfg, req); err != nil {
+				return NewPermanentError(err)
+			}
 		}
 		if req.Operation == StackKitLifecycleBackupRestoreActivate {
 			// Job identity survives redelivery; command IDs may change while a
@@ -1183,10 +1200,10 @@ func StackKitLifecycleHandler(cfg StackKitLifecycleConfig) JobHandler {
 			dispatchReq.RestorePlanHash = expectedPlanHash
 			dispatchID += "-recover"
 		}
-		if req.Operation == StackKitLifecycleApply || (req.Operation == StackKitLifecycleApplicationUpdate && req.UseCase == "wiki") {
+		if req.Operation == StackKitLifecycleApply || (req.Operation == StackKitLifecycleApplicationUpdate && (req.UseCase == "wiki" || req.UseCase == "paperwork")) {
 			outcome := map[string]interface{}{}
-			if err := renewWikiRegistryPull(ctx, cfg, job.ID, req, *release, outcome); err != nil {
-				job.mutateResult(func(result map[string]interface{}) { result["wiki_registry"] = outcome })
+			if err := renewCustomerRegistryPull(ctx, cfg, job.ID, req, *release, outcome); err != nil {
+				job.mutateResult(func(result map[string]interface{}) { copyRegistryOutcomes(result, outcome) })
 				return NewConfigError(err)
 			}
 		}
@@ -1223,6 +1240,11 @@ func StackKitLifecycleHandler(cfg StackKitLifecycleConfig) JobHandler {
 			return NewPermanentError(err)
 		}
 		if err != nil {
+			if req.Operation == StackKitLifecyclePaperworkMove {
+				status, _ := normalizePaperworkMoveResult(req, &agentpb.StackKitResult{ExitCode: 1})
+				job.replaceResult(status)
+				return NewPermanentError(fmt.Errorf("Paperwork move dispatch did not return verified evidence: %w", err))
+			}
 			if req.Operation == StackKitLifecycleApplicationUpdate {
 				// The node may have started, finished or rolled back the
 				// update: never retried, never inferred, the owner is told.
@@ -1544,6 +1566,8 @@ func stackKitLifecycleRequestFromJob(job *Job) (StackKitLifecycleRequest, error)
 		OriginHosts:                 stringListFromInterface(job.Payload["origin_hosts"]),
 		RecipientChallenge:          stringFromInterface(job.Payload["recipient_challenge"]),
 		SealedDelivery:              []byte(stringFromInterface(job.Payload["sealed_delivery"])),
+		DeliveryTenantRef:           stringFromInterface(job.Payload["delivery_tenant_ref"]),
+		PaperworkMoveServerID:       stringFromInterface(job.Payload["paperwork_move_server_id"]),
 		UseCase:                     stringFromInterface(job.Payload["use_case"]),
 		ApplicationVersion:          stringFromInterface(job.Payload["application_version"]),
 		ApplicationDigest:           stringFromInterface(job.Payload["application_digest"]),
@@ -1675,7 +1699,15 @@ func stackKitLifecycleCommand(commandID string, req StackKitLifecycleRequest, re
 			command.SealedDelivery = append([]byte(nil), req.SealedDelivery...)
 			command.DeliveryTenantRef = req.DeliveryTenantRef
 			if operation == agentpb.StackKitOperation_STACKKIT_OPERATION_WALLET_ITEM_IMPORT {
-				command.WalletItemRef = req.wikiRegistryItem
+				command.WalletItemRef = req.registryItem
+				if req.Operation == StackKitLifecyclePaperworkMove {
+					command.WalletItemRef = req.WalletItemID
+					command.WorkloadRef = "paperwork-move"
+					command.TimeoutSeconds = 12 * 60
+				}
+				if req.registryProduct == "paperwork" {
+					command.WorkloadRef = "paperwork"
+				}
 			}
 		case agentpb.StackKitOperation_STACKKIT_OPERATION_AI_PROVIDER_SETUP:
 			command.AiProviderDisable = req.AIProviderDisable
@@ -1862,7 +1894,7 @@ func stackKitLifecycleAgentOperation(operation string) (agentpb.StackKitOperatio
 		return agentpb.StackKitOperation_STACKKIT_OPERATION_BACKUP_TARGET_REBIND, nil
 	case stackKitStepHostDeliveryRecipient:
 		return agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_DELIVERY_RECIPIENT, nil
-	case stackKitStepWalletItemImport:
+	case stackKitStepWalletItemImport, StackKitLifecyclePaperworkMove:
 		return agentpb.StackKitOperation_STACKKIT_OPERATION_WALLET_ITEM_IMPORT, nil
 	case stackKitStepAIProviderSetup:
 		return agentpb.StackKitOperation_STACKKIT_OPERATION_AI_PROVIDER_SETUP, nil
@@ -1952,6 +1984,9 @@ func sendStackKitCommandBoundedWithGraceForTenant(ctx context.Context, sender St
 func normalizeStackKitLifecycleResult(req StackKitLifecycleRequest, result *agentpb.StackKitResult) (map[string]interface{}, error) {
 	if result == nil {
 		return nil, fmt.Errorf("typed StackKits result is missing")
+	}
+	if req.Operation == StackKitLifecyclePaperworkMove {
+		return normalizePaperworkMoveResult(req, result)
 	}
 	var commandResult map[string]interface{}
 	if err := json.Unmarshal(result.CommandResultJson, &commandResult); err != nil {

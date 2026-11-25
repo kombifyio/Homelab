@@ -95,6 +95,10 @@ func validateWalletItemDeliveryCommand(command *agentpb.StackKitCommand) error {
 	if len(command.InventoryJson) != 0 || len(command.CandidateSpecJson) != 0 || len(command.AdvancedCapability) != 0 || command.DryRun || command.Offline {
 		return fmt.Errorf("StackKit Wallet item delivery takes no Inventory, candidate, capability, dry run or offline mode")
 	}
+	if command.WorkloadRef != "" && (command.Operation != agentpb.StackKitOperation_STACKKIT_OPERATION_WALLET_ITEM_IMPORT ||
+		(command.WorkloadRef != "paperwork" && command.WorkloadRef != "paperwork-move") || !ValidWalletItemRef(command.WalletItemRef)) {
+		return fmt.Errorf("StackKit Wallet delivery workload must name the Paperwork registry import and exact item")
+	}
 	switch command.Operation {
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_DELIVERY_RECIPIENT:
 		challenge := command.RecipientChallenge
@@ -150,7 +154,13 @@ func WalletItemDeliveryArgs(command *agentpb.StackKitCommand) ([]string, error) 
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_WALLET_ITEM_IMPORT:
 		args := []string{"wallet-item", "import", "--tenant-ref", command.DeliveryTenantRef, "--owner-approve"}
 		if command.WalletItemRef != "" {
-			args = append(args, "--wiki-registry-item", command.WalletItemRef)
+			if command.WorkloadRef == "paperwork-move" {
+				args = append(args, "--paperwork-move-item", command.WalletItemRef)
+			} else if command.WorkloadRef == "paperwork" {
+				args = append(args, "--paperwork-registry-item", command.WalletItemRef)
+			} else {
+				args = append(args, "--wiki-registry-item", command.WalletItemRef)
+			}
 		}
 		return args, nil
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_SSH_APPLY:
@@ -299,7 +309,11 @@ func validateWalletItemDeliveryResult(command *agentpb.StackKitCommand, result *
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_DELIVERY_RECIPIENT:
 		_, err = ParseHostDeliveryStatement(command, result)
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_WALLET_ITEM_IMPORT:
-		_, err = ParseWalletItemImportEvidence(command, result)
+		if command.WorkloadRef == "paperwork-move" {
+			_, err = ParsePaperworkMoveEvidence(command, result)
+		} else {
+			_, err = ParseWalletItemImportEvidence(command, result)
+		}
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_AI_PROVIDER_SETUP:
 		_, err = ParseAIProviderEvidence(command, result)
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_SSH_APPLY:

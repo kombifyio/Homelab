@@ -254,6 +254,9 @@ func (executor *StackKitExecutor) execute(ctx context.Context, command *agentpb.
 	defer endProcess(nil)
 	process := newStackKitProcess(processCtx, release.BinaryPath(), args...)
 	process.Dir = workDir
+	if command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_WALLET_ITEM_IMPORT && command.WorkloadRef == "paperwork-move" {
+		configurePaperworkMoveProcess(process)
+	}
 	if command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_INIT {
 		process.Stdin = bytes.NewReader(command.CandidateSpecJson)
 	}

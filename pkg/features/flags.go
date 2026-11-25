@@ -103,6 +103,16 @@ var securityFeatures = map[string]FeatureDefinition{
 
 // betaFeatures defines experimental features. Each definition owns its default.
 var betaFeatures = map[string]FeatureDefinition{
+	"paperwork_move": {
+		Key: "paperwork_move", Name: "Paperwork move", DefaultValue: false,
+		RiskLevel: RiskLevelHigh, Category: CategoryBeta,
+		Description: "Dispatch an admitted sealed Paperwork move to its bound Guard node.",
+	},
+	"homelab.managed.apps.ionos.pool": {
+		Key: "homelab.managed.apps.ionos.pool", Name: "IONOS Managed Apps", DefaultValue: false,
+		RiskLevel: RiskLevelHigh, Category: CategoryBeta,
+		Description: "Run curated tenant-isolated Managed Apps on an admitted IONOS worker.",
+	},
 	"ionos_standard_photo_memory": {
 		Key: "ionos_standard_photo_memory", Name: "IONOS Standard photo memory", DefaultValue: false,
 		RiskLevel: RiskLevelLow, Category: CategoryBeta,

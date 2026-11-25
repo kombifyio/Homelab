@@ -242,6 +242,20 @@ export const guardMessagesAr: Record<keyof typeof guardMessages.en, string> = {
   "guard.reach.publish.current": "منشور: {service} على المنفذ {port}.",
   "guard.reach.publish.stepUp":
     "يتطلب النشر تأكيدًا بعاملك الثاني خلال آخر خمس دقائق. أكِّده ثم كرر هذه الخطوة.",
+  "guard.reach.paperworkSignIn.title": "تسجيل الدخول إلى Paperwork",
+  "guard.reach.paperworkSignIn.enable": "تفعيل تسجيل الدخول",
+  "guard.reach.paperworkSignIn.disable": "إيقاف تسجيل الدخول",
+  "guard.reach.paperworkSignIn.enableConfirm":
+    "هل تسمح لهذا الخادم بتلقي بيانات اعتماد حسابك المرتبط في Paperwork؟",
+  "guard.reach.paperworkSignIn.disableConfirm":
+    "هل تريد إلغاء وصول هذا الخادم إلى حسابك المرتبط في Paperwork؟",
+  "guard.reach.paperworkSignIn.off": "متوقف.",
+  "guard.reach.paperworkSignIn.unavailable": "لا يمكن تفعيل تسجيل الدخول إلى Paperwork على هذا الخادم الآن.",
+  "guard.reach.paperworkSignIn.pending": "جارٍ إعداد تسجيل الدخول إلى Paperwork…",
+  "guard.reach.paperworkSignIn.delivered": "تلقى هذا الخادم بيانات الاعتماد. لم يتم التحقق من تسجيل الدخول بعد.",
+  "guard.reach.paperworkSignIn.revoking": "جارٍ إلغاء وصول هذا الخادم…",
+  "guard.reach.paperworkSignIn.revoked": "تم إلغاء وصول هذا الخادم.",
+  "guard.reach.paperworkSignIn.error": "تعذّر تغيير إعداد تسجيل الدخول إلى Paperwork. تحقق من الحالة الحالية قبل المحاولة مرة أخرى.",
   "guard.upgrade.title": "الموافقة على مفتاح هذا الخادم",
   "guard.upgrade.pending":
     "مفتاح بالبصمة {fingerprint} ينتظر موافقتك. وافق عليه فقط إذا سجّل Guard البصمة نفسها على هذا الخادم.",

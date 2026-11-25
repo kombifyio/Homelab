@@ -3,7 +3,7 @@
   "product": "homelab",
   "source": {
     "path": "api/openapi/homelab-v1.yaml",
-    "sha256": "e978808f1e74cd7505c128d4c304976d500f639361c24c3fbac2c56d55e0b11b"
+    "sha256": "68af2e972c0637bc83fb0090d6c301014964e659f1b87d87cb63c761f8c441e8"
   },
   "envelope": "data",
   "cli": {
@@ -16738,6 +16738,143 @@
           "openWorldHint": false
         },
         "derived": true
+      }
+    },
+    {
+      "operationId": "executeIONOSManagedWorkloadCommand",
+      "method": "POST",
+      "path": "/api/v1/runtime/managed-workloads/ionos/commands",
+      "summary": "Execute an owned IONOS Managed App command",
+      "description": "Default-off hosted adapter. Requires a verified Edge tenant and subject,\nsigned operation entitlement, and a fresh Cloud account allowance for\nprovision, start, backup and restore. Cleanup requires an existing owned\nreservation and remains possible during Cloud outages or module rollback.\nProvision additionally requires the provision entitlement. Reserves an\nexact generation globally across placements before calling the worker.\nStop and ambiguous outcomes retain the slot; release requires exact\nauthoritative absence including isolation resources. Retry completed\ncommand IDs to replay receipts; synchronous execution is capped at four\nminutes and requires enough verified database identity lifetime. Reconcile uncertain dispatches with a\nnew observe or decommission command. No tenant or provider input is accepted.",
+      "tags": [
+        "Runtime"
+      ],
+      "confirmation": "This operation can provision, stop, restore or remove this Managed App generation.",
+      "mutating": true,
+      "arguments": [
+        {
+          "name": "action",
+          "in": "body",
+          "wireName": "action",
+          "required": true,
+          "schema": {
+            "enum": [
+              "provision",
+              "start",
+              "stop",
+              "observe",
+              "backup",
+              "restore",
+              "decommission"
+            ],
+            "type": "string"
+          }
+        },
+        {
+          "name": "app_id",
+          "in": "body",
+          "wireName": "app_id",
+          "required": true,
+          "schema": {
+            "enum": [
+              "vaultwarden",
+              "cloudreve-r2",
+              "workpaths-lite"
+            ],
+            "type": "string"
+          }
+        },
+        {
+          "name": "backup",
+          "in": "body",
+          "wireName": "backup",
+          "description": "Exact worker-issued R2 backup manifest; required only for restore, validated and verified on the worker.",
+          "schema": {
+            "description": "Exact worker-issued R2 backup manifest; required only for restore, validated and verified on the worker.",
+            "type": "object"
+          }
+        },
+        {
+          "name": "command_id",
+          "in": "body",
+          "wireName": "command_id",
+          "required": true,
+          "schema": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        {
+          "name": "generation_id",
+          "in": "body",
+          "wireName": "generation_id",
+          "required": true,
+          "description": "Opaque exact-generation identifier; never reuse a released generation.",
+          "schema": {
+            "description": "Opaque exact-generation identifier; never reuse a released generation.",
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          }
+        }
+      ],
+      "body": {
+        "contentType": "application/json",
+        "required": true,
+        "mode": "properties"
+      },
+      "output": {
+        "contentType": "application/json",
+        "schema": {
+          "properties": {
+            "backup": {
+              "type": "object"
+            },
+            "evidence_ref": {
+              "type": "string"
+            },
+            "isolation_removed": {
+              "type": "boolean"
+            },
+            "spec": {
+              "type": "object"
+            },
+            "state": {
+              "enum": [
+                "running",
+                "stopped",
+                "absent"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "spec",
+            "state",
+            "evidence_ref"
+          ],
+          "type": "object"
+        }
+      },
+      "cli": {
+        "command": [
+          "managed-workloads",
+          "ionos",
+          "command"
+        ]
+      },
+      "mcp": {
+        "toolName": "execute_ionos_managed_workload_command",
+        "requiredCapability": "homelab.inventory.operate",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "costBearing": true,
+        "actionClass": "cost_bearing"
       }
     },
     {

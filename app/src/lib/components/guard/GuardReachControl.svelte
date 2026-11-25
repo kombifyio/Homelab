@@ -1,9 +1,22 @@
 <script lang="ts">
+  import { onDestroy } from "svelte";
   import { tr } from "#lib/i18n.svelte.js";
   import Button from "#lib/components/ui/Button.svelte";
+  import ErrorCallout from "#lib/components/ui/ErrorCallout.svelte";
   import { parseApiError } from "#lib/api/errors.js";
-  import { denialReason, setGuardPublicReach } from "#lib/api/guard.js";
+  import {
+    denialReason,
+    readGuardPaperworkSignIn,
+    setGuardPaperworkSignIn,
+    setGuardPublicReach,
+    type GuardPaperworkSignIn,
+  } from "#lib/api/guard.js";
   import type { CanonicalGuardReach } from "#lib/api/registry.js";
+  import { confirmInApp } from "#lib/dialogs/in-app-dialog.js";
+  import {
+    createErrorAiHandoverContext,
+    type ErrorAiHandoverContext,
+  } from "#lib/support/error-handover.js";
   import GuardStepUpNotice from "./GuardStepUpNotice.svelte";
 
   interface Props {
@@ -19,9 +32,19 @@
   let busy = $state(false);
   let error = $state<string | null>(null);
   let stepUp = $state(false);
+  let paperworkError = $state<ErrorAiHandoverContext | null>(null);
+  let paperworkUpdate = $state.raw<{
+    serverId: string;
+    previousReach: CanonicalGuardReach | undefined;
+    signIn: GuardPaperworkSignIn | undefined;
+  }>();
+  let mounted = true;
+  onDestroy(() => {
+    mounted = false;
+  });
 
   const published = $derived(reach?.public?.enabled === true ? reach.public : null);
-  const visible = $derived(
+  const publicReachVisible = $derived(
     reach !== undefined &&
       reach.state !== "revoked" &&
       reach.state !== "not_enrolled",
@@ -31,6 +54,25 @@
       Number.isInteger(port) &&
       (port ?? 0) >= 1 &&
       (port ?? 0) <= 65535,
+  );
+  const paperworkSignIn = $derived(
+    paperworkUpdate &&
+      paperworkUpdate.serverId === serverId &&
+      paperworkUpdate.previousReach === reach
+      ? paperworkUpdate.signIn
+      : readGuardPaperworkSignIn(reach),
+  );
+  const paperworkState = $derived(paperworkSignIn?.state);
+  const paperworkOff = $derived(
+    paperworkState === "off" || paperworkState === "revoked",
+  );
+  const canEnablePaperwork = $derived(
+    paperworkOff && paperworkSignIn?.can_enable === true,
+  );
+  const canDisablePaperwork = $derived(
+    paperworkState === "pending" ||
+      paperworkState === "pending_reconcile" ||
+      paperworkState === "delivered",
   );
 
   async function change(request: Parameters<typeof setGuardPublicReach>[1]) {
@@ -54,14 +96,124 @@
       busy = false;
     }
   }
+
+  async function changePaperworkSignIn(enabled: boolean) {
+    if (busy || !(enabled ? canEnablePaperwork : canDisablePaperwork)) return;
+    const targetServerId = serverId;
+    const action = enabled ? "enable" : "disable";
+    const actionLabel = tr(`guard.reach.paperworkSignIn.${action}`);
+
+    busy = true;
+    paperworkError = null;
+    try {
+      const confirmed = await confirmInApp({
+        title: actionLabel,
+        message: tr(`guard.reach.paperworkSignIn.${action}Confirm`),
+        confirmText: actionLabel,
+        tone: enabled ? "primary" : "warning",
+      });
+      if (
+        !confirmed ||
+        !mounted ||
+        serverId !== targetServerId ||
+        !(enabled ? canEnablePaperwork : canDisablePaperwork)
+      ) return;
+
+      const updated = await setGuardPaperworkSignIn(targetServerId, {
+        enabled,
+        owner_approved: true,
+      });
+      if (!mounted || serverId !== targetServerId) return;
+      paperworkUpdate = {
+        serverId: targetServerId,
+        previousReach: reach,
+        signIn: readGuardPaperworkSignIn(updated),
+      };
+      await onChanged?.();
+    } catch (cause) {
+      if (!mounted || serverId !== targetServerId) return;
+      const parsed = parseApiError(cause);
+      paperworkError = createErrorAiHandoverContext({
+        surface: "guard-reach-paperwork-sign-in",
+        title: actionLabel,
+        userMessage: tr("guard.reach.paperworkSignIn.error"),
+        status: parsed.status,
+        code: parsed.code,
+        reasonCode: parsed.outcome?.reasonCode,
+        resourceId: targetServerId,
+        action,
+      });
+    } finally {
+      busy = false;
+    }
+  }
 </script>
 
-{#if visible}
+{#if publicReachVisible || paperworkSignIn}
   <section
     class="rounded-lg border border-border bg-muted/20 p-4"
-    aria-labelledby="guard-reach-title"
+    aria-labelledby={publicReachVisible ? "guard-reach-title" : "guard-paperwork-sign-in-title"}
     data-testid="guard-reach-control"
   >
+    {#if publicReachVisible}
+      {@render publicReach()}
+    {/if}
+
+    {#if paperworkSignIn}
+      <div
+        class:mt-4={publicReachVisible}
+        class:border-t={publicReachVisible}
+        class:border-border={publicReachVisible}
+        class:pt-4={publicReachVisible}
+        data-testid="guard-paperwork-sign-in"
+      >
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3
+              id="guard-paperwork-sign-in-title"
+              class="text-sm font-semibold text-foreground"
+            >
+              {tr("guard.reach.paperworkSignIn.title")}
+            </h3>
+            <p class="mt-1 text-xs text-muted-foreground" role="status">
+              {tr(
+                `guard.reach.paperworkSignIn.${paperworkSignIn.state === "pending_reconcile" ? "pending" : paperworkSignIn.state}`,
+              )}
+              {#if paperworkOff && !canEnablePaperwork}
+                {tr("guard.reach.paperworkSignIn.unavailable")}
+              {/if}
+            </p>
+          </div>
+          {#if paperworkOff || canDisablePaperwork}
+            <Button
+              variant="secondary"
+              size="sm"
+              testId={paperworkOff
+                ? "guard-paperwork-sign-in-enable"
+                : "guard-paperwork-sign-in-disable"}
+              disabled={busy || (paperworkOff && !canEnablePaperwork)}
+              onclick={() => void changePaperworkSignIn(paperworkOff)}
+            >
+              {tr(paperworkOff
+                ? "guard.reach.paperworkSignIn.enable"
+                : "guard.reach.paperworkSignIn.disable")}
+            </Button>
+          {/if}
+        </div>
+        {#if paperworkError?.resourceId === serverId}
+          <ErrorCallout
+            class="mt-3"
+            message={paperworkError.userMessage}
+            aiHandoverContext={paperworkError}
+          />
+        {/if}
+      </div>
+    {/if}
+  </section>
+{/if}
+
+{#snippet publicReach()}
+  <div>
     <h3 id="guard-reach-title" class="text-sm font-semibold text-foreground">
       {tr("guard.reach.publish.title")}
     </h3>
@@ -147,5 +299,5 @@
     {#if error}
       <p class="mt-3 text-xs text-destructive" role="alert">{error}</p>
     {/if}
-  </section>
-{/if}
+  </div>
+{/snippet}

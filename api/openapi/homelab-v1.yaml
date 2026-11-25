@@ -166,6 +166,71 @@ security:
   - bearerAuth: []
 
 paths:
+  /api/v1/runtime/managed-workloads/ionos/commands:
+    post:
+      operationId: executeIONOSManagedWorkloadCommand
+      x-kombify-envelope: false
+      summary: Execute an owned IONOS Managed App command
+      description: |
+        Default-off hosted adapter. Requires a verified Edge tenant and subject,
+        signed operation entitlement, and a fresh Cloud account allowance for
+        provision, start, backup and restore. Cleanup requires an existing owned
+        reservation and remains possible during Cloud outages or module rollback.
+        Provision additionally requires the provision entitlement. Reserves an
+        exact generation globally across placements before calling the worker.
+        Stop and ambiguous outcomes retain the slot; release requires exact
+        authoritative absence including isolation resources. Retry completed
+        command IDs to replay receipts; synchronous execution is capped at four
+        minutes and requires enough verified database identity lifetime. Reconcile uncertain dispatches with a
+        new observe or decommission command. No tenant or provider input is accepted.
+      tags: [Runtime]
+      x-kombify-cli: { command: "managed-workloads ionos command" }
+      x-kombify-confirmation: "This operation can provision, stop, restore or remove this Managed App generation."
+      x-kombify-mcp:
+        requiredCapability: homelab.inventory.operate
+        costBearing: true
+        actionClass: cost_bearing
+        annotations: { readOnlyHint: false, idempotentHint: true, destructiveHint: true, openWorldHint: true }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [command_id, generation_id, app_id, action]
+              properties:
+                command_id: { type: string, minLength: 1, maxLength: 128 }
+                generation_id: { type: string, minLength: 1, maxLength: 128, description: "Opaque exact-generation identifier; never reuse a released generation." }
+                app_id: { type: string, enum: [vaultwarden, cloudreve-r2, workpaths-lite] }
+                action: { type: string, enum: [provision, start, stop, observe, backup, restore, decommission] }
+                backup:
+                  type: object
+                  description: Exact worker-issued R2 backup manifest; required only for restore, validated and verified on the worker.
+      responses:
+        "200":
+          description: Exact worker observation or replayed completed receipt
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [spec, state, evidence_ref]
+                properties:
+                  state: { type: string, enum: [running, stopped, absent] }
+                  evidence_ref: { type: string }
+                  isolation_removed: { type: boolean }
+                  spec: { type: object }
+                  backup: { type: object }
+        "400":
+          description: Malformed command
+        "401":
+          description: Verified Edge identity required
+        "409":
+          description: Worker or account admission busy; retry after the Retry-After delay
+        "403":
+          description: Module, tenant, entitlement, admission or workload policy refusal with reason_code and repair
+        "503":
+          description: Dispatch unconfirmed; retain custody and reconcile exact generation
   # ============================================================
   # HEALTH & INFO
   # ============================================================
@@ -3236,6 +3301,43 @@ paths:
       responses:
         "200":
           description: The reach section after the change
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/GuardReach" }
+                  meta: { $ref: "#/components/schemas/ResponseMeta" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+
+  /api/v1/servers/{serverId}/reach/paperwork-sign-in:
+    put:
+      operationId: setServerPaperworkSignIn
+      x-kombify-internal: true
+      tags: [Servers]
+      summary: Set linked Paperwork sign-in for one Guard
+      description: Enable requires a direct node-owner session and explicit product confirmation. Disable requests revocation.
+      parameters:
+        - $ref: "#/components/parameters/serverId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              additionalProperties: false
+              properties:
+                enabled: { type: boolean }
+                owner_approved: { type: boolean, description: Must be true to enable. }
+      responses:
+        "200":
+          description: The current reach and sign-in state after recording the owner's decision
           content:
             application/json:
               schema:
@@ -13850,6 +13952,13 @@ components:
             target_port: { type: integer, minimum: 1, maximum: 65535, description: The port of the service on the Guard host's loopback. }
             enabled_by: { type: string }
             enabled_at: { type: string, format: date-time }
+        paperwork_sign_in:
+          type: object
+          description: Linked Paperwork credential delivery for this Guard. Delivery does not prove a successful sign-in.
+          required: [state, can_enable]
+          properties:
+            state: { type: string, enum: [off, pending, pending_reconcile, delivered, revoking, revoked] }
+            can_enable: { type: boolean }
         kombify_me:
           $ref: "#/components/schemas/GuardReachTarget"
         connect:

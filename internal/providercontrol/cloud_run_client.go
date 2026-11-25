@@ -14,8 +14,10 @@ import (
 )
 
 const (
-	cloudRunAPIBase       = "https://run.googleapis.com/v2"
-	cloudRunResponseLimit = 1 << 20
+	cloudRunAPIBase             = "https://run.googleapis.com/v2"
+	cloudRunResponseLimit       = 1 << 20
+	cloudRunDefaultPollInterval = 2 * time.Second
+	cloudRunOperationWaitLimit  = 2 * time.Minute
 
 	cloudRunExecutionGen2       = "EXECUTION_ENVIRONMENT_GEN2"
 	cloudRunIngressInternalOnly = "INGRESS_TRAFFIC_INTERNAL_ONLY"
@@ -27,10 +29,12 @@ const (
 var (
 	ErrCloudRunResponse = errors.New("providercontrol: invalid Cloud Run Admin API response")
 
-	cloudRunProjectPattern  = regexp.MustCompile(`^[a-z][a-z0-9-]{4,28}[a-z0-9]$`)
-	cloudRunServicePattern  = regexp.MustCompile(`^[a-z]([a-z0-9-]{0,47}[a-z0-9])?$`)
-	cloudRunLocationPattern = regexp.MustCompile(`^[a-z][a-z0-9-]{1,61}[a-z0-9]$`)
-	cloudRunLabelPattern    = regexp.MustCompile(`^[a-z0-9_-]{1,63}$`)
+	cloudRunProjectPattern    = regexp.MustCompile(`^[a-z][a-z0-9-]{4,28}[a-z0-9]$`)
+	cloudRunProjectNumPattern = regexp.MustCompile(`^[0-9]{1,32}$`)
+	cloudRunServicePattern    = regexp.MustCompile(`^[a-z]([a-z0-9-]{0,47}[a-z0-9])?$`)
+	cloudRunLocationPattern   = regexp.MustCompile(`^[a-z][a-z0-9-]{1,61}[a-z0-9]$`)
+	cloudRunOperationPattern  = regexp.MustCompile(`^[A-Za-z0-9._-]{1,128}$`)
+	cloudRunLabelPattern      = regexp.MustCompile(`^[a-z0-9_-]{1,63}$`)
 )
 
 // CloudRunAPIError reports a non-success HTTP status from the Cloud Run Admin
@@ -193,6 +197,33 @@ type cloudRunResources struct {
 type cloudRunCondition struct {
 	Type  string `json:"type"`
 	State string `json:"state"`
+}
+
+type cloudRunOperation struct {
+	Name  string           `json:"name,omitempty"`
+	Done  bool             `json:"done,omitempty"`
+	Error *cloudRunOpError `json:"error,omitempty"`
+}
+
+type cloudRunOpError struct {
+	Code int `json:"code,omitempty"`
+}
+
+// location validates and extracts the location and operation ID from
+// "projects/{project}/locations/{location}/operations/{opID}" without letting
+// the adapter follow arbitrary paths returned by a provider response.
+func (op cloudRunOperation) location(expectedProject string) (location, opID string, ok bool) {
+	parts := strings.Split(op.Name, "/")
+	if len(parts) != 6 || parts[0] != "projects" || parts[2] != "locations" || parts[4] != "operations" {
+		return "", "", false
+	}
+	if parts[1] != expectedProject && !cloudRunProjectNumPattern.MatchString(parts[1]) {
+		return "", "", false
+	}
+	if !cloudRunLocationID(parts[3]) || !cloudRunOperationPattern.MatchString(parts[5]) {
+		return "", "", false
+	}
+	return parts[3], parts[5], true
 }
 
 // cloudRunRawAbsent reports whether an optional JSON object is missing, null or

@@ -24,3 +24,11 @@ func configureStackKitProcess(cmd *exec.Cmd) {
 	// when a descendant has deliberately left the process group.
 	cmd.WaitDelay = time.Second
 }
+
+// The move CLI handles TERM by cancelling its pipe protocol and removing its
+// exactly owned daemon container. Killing its process group immediately would
+// prevent that cleanup; WaitDelay still bounds an unresponsive CLI.
+func configurePaperworkMoveProcess(cmd *exec.Cmd) {
+	cmd.Cancel = func() error { return cmd.Process.Signal(syscall.SIGTERM) }
+	cmd.WaitDelay = 20 * time.Second
+}

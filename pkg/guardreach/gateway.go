@@ -161,7 +161,8 @@ type NodeUpsert struct {
 	Placement                     string
 	// MCPHost is the https://<name>.kombify.me/mcp host of the server's product MCP (Gateway ADR 0042 rule 3); empty
 	// registers none. Gateway refuses any host that is not a kombify.me name.
-	MCPHost string
+	MCPHost         string
+	PaperworkOrigin *PaperworkOriginProof
 }
 
 type nodeBody struct {
@@ -183,12 +184,15 @@ func (g *Gateway) obo(owner, connectTenant string) *servicecall.OnBehalfOf {
 // PutNode upserts the homelab-node of one server. Gateway verifies the host
 // proof itself; a server whose proof does not verify is never recorded.
 func (g *Gateway) PutNode(ctx context.Context, in NodeUpsert) (*Node, error) {
-	fields := map[string]string{
+	fields := map[string]any{
 		"host_proof": in.HostProof, "guard_key_thumbprint": in.KeyThumbprint,
 		"display_name": in.DisplayName, "stack_id": in.StackID, "placement": in.Placement,
 	}
 	if in.MCPHost != "" {
 		fields["mcp_host"] = in.MCPHost
+	}
+	if in.PaperworkOrigin != nil {
+		fields["paperwork_route"] = in.PaperworkOrigin
 	}
 	body, err := json.Marshal(fields)
 	if err != nil {
@@ -260,7 +264,7 @@ func (g *Gateway) Revocations(ctx context.Context, after int64, limit int) (*Rev
 	return &page, nil
 }
 
-func (g *Gateway) do(ctx context.Context, scope, method, path string, body []byte, obo *servicecall.OnBehalfOf, out any) (int, error) {
+func (g *Gateway) do(ctx context.Context, scope, method, path string, body []byte, obo *servicecall.OnBehalfOf, out any, guardProof ...string) (int, error) {
 	var reader io.Reader
 	if body != nil {
 		reader = bytes.NewReader(body)
@@ -284,6 +288,9 @@ func (g *Gateway) do(ctx context.Context, scope, method, path string, body []byt
 		return 0, err
 	}
 	req.Header.Set(servicecall.HeaderServiceAuth, token)
+	if len(guardProof) == 1 {
+		req.Header.Set("X-Kombify-Guard-Proof", guardProof[0])
+	}
 	response, err := g.http.Do(req)
 	if err != nil {
 		return 0, fmt.Errorf("Gateway request failed: %w", err)

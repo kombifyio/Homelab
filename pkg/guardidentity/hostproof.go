@@ -95,6 +95,13 @@ type HostProofInput struct {
 // key nor anything derivable from it other than the public JWK and a signature
 // appears in the result.
 func SignHostProof(key ed25519.PrivateKey, in HostProofInput) (string, error) {
+	if in.Audience != AudienceConnect && in.Audience != AudienceRelay {
+		return "", errors.New("host proof audience is not a kombify Guard verifier")
+	}
+	return signHostProof(key, in)
+}
+
+func signHostProof(key ed25519.PrivateKey, in HostProofInput) (string, error) {
 	if len(key) != ed25519.PrivateKeySize {
 		return "", errors.New("guard identity key is not available")
 	}
@@ -103,9 +110,6 @@ func SignHostProof(key ed25519.PrivateKey, in HostProofInput) (string, error) {
 	}
 	if strings.TrimSpace(in.TenantID) == "" || len(in.TenantID) > 255 {
 		return "", errors.New("host proof needs a tenant id")
-	}
-	if in.Audience != AudienceConnect && in.Audience != AudienceRelay {
-		return "", errors.New("host proof audience is not a kombify Guard verifier")
 	}
 	if in.Generation < 1 {
 		return "", errors.New("host proof needs a binding generation of at least 1")

@@ -164,6 +164,14 @@
     {
       "version": "201_managed_lease_renewal_directory.sql",
       "sha256": "ea2525ce8ce5628bd3f063bedf36504bc3e585db5b186100355fab46f9affa93"
+    },
+    {
+      "version": "202_ionos_pool_custody.sql",
+      "sha256": "84f280b26c1e806f05670cc8aeb7f5f421da2e05feee3311b2bdbab8fb97bf27"
+    },
+    {
+      "version": "203_guard_paperwork_sign_in.additive.sql",
+      "sha256": "bfc3df93fafeb4597e72b74d9e868835611c7f344da03ed29f21a84dce7c0316"
     }
   ],
   "database_target": "core",

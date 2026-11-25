@@ -12,6 +12,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 const (
@@ -28,16 +29,23 @@ func cloudRunTestKey(location, serviceID string) string {
 
 type cloudRunTestAPI struct {
 	sync.Mutex
-	t              *testing.T
-	requests       []string
-	latest         cloudRunService
-	services       map[string]cloudRunService
-	delayDeletion  bool
-	deleteStatus   int
-	createStatus   int
-	createLocation string
-	tamperImage    string
-	dropOnCreate   bool
+	t                    *testing.T
+	requests             []string
+	latest               cloudRunService
+	services             map[string]cloudRunService
+	pendingIngress       map[string]string
+	opRemaining          map[string]int
+	pendingPolls         int
+	omitIngressUntilDone bool
+	opErrorCode          int
+	opNameOverride       string
+	hasOpNameOverride    bool
+	delayDeletion        bool
+	deleteStatus         int
+	createStatus         int
+	createLocation       string
+	tamperImage          string
+	dropOnCreate         bool
 }
 
 func (api *cloudRunTestAPI) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
@@ -62,28 +70,82 @@ func (api *cloudRunTestAPI) ServeHTTP(writer http.ResponseWriter, request *http.
 			return
 		}
 		serviceID := request.URL.Query().Get("serviceId")
-		if err := json.NewDecoder(request.Body).Decode(&api.latest); err != nil {
+		var decoded cloudRunService
+		if err := json.NewDecoder(request.Body).Decode(&decoded); err != nil {
 			api.t.Errorf("decode Cloud Run create: %v", err)
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		api.latest = decoded
 		reqLocation := parts[0]
 		respLocation := reqLocation
 		if api.createLocation != "" {
 			respLocation = api.createLocation
 		}
-		created := api.latest
+		created := decoded
 		created.Name = "projects/" + cloudRunTestProject + "/locations/" + respLocation + "/services/" + serviceID
 		created.TerminalCondition = &cloudRunCondition{Type: "Ready", State: cloudRunConditionSucceeded}
 		if api.tamperImage != "" {
 			created.Template.Containers = slices.Clone(created.Template.Containers)
 			created.Template.Containers[0].Image = api.tamperImage
 		}
+		svcKey := cloudRunTestKey(reqLocation, serviceID)
+		if api.omitIngressUntilDone {
+			if api.pendingIngress == nil {
+				api.pendingIngress = map[string]string{}
+			}
+			api.pendingIngress[svcKey] = created.Ingress
+			created.Ingress = ""
+			created.Reconciling = true
+		}
 		if !api.dropOnCreate {
-			api.services[cloudRunTestKey(reqLocation, serviceID)] = created
+			api.services[svcKey] = created
+		}
+		if api.opRemaining == nil {
+			api.opRemaining = map[string]int{}
+		}
+		opName := "projects/" + cloudRunTestProject + "/locations/" + respLocation + "/operations/create-1"
+		if api.hasOpNameOverride {
+			opName = api.opNameOverride
+		}
+		api.opRemaining[cloudRunTestKey(reqLocation, "create-1")] = api.pendingPolls
+		writer.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(writer).Encode(map[string]string{"name": opName})
+		return
+	}
+	if len(parts) == 3 && parts[0] != "" && parts[1] == "operations" && parts[2] != "" && request.Method == http.MethodGet {
+		opKey := cloudRunTestKey(parts[0], parts[2])
+		if rem := api.opRemaining[opKey]; rem > 0 {
+			api.opRemaining[opKey] = rem - 1
+			writer.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(writer).Encode(cloudRunOperation{
+				Name: "projects/" + cloudRunTestProject + "/locations/" + parts[0] + "/operations/" + parts[2],
+				Done: false,
+			})
+			return
+		}
+		if api.opErrorCode != 0 {
+			writer.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(writer).Encode(cloudRunOperation{
+				Name:  "projects/" + cloudRunTestProject + "/locations/" + parts[0] + "/operations/" + parts[2],
+				Done:  true,
+				Error: &cloudRunOpError{Code: api.opErrorCode},
+			})
+			return
+		}
+		for svcKey, ingress := range api.pendingIngress {
+			if svc, exists := api.services[svcKey]; exists {
+				svc.Ingress = ingress
+				svc.Reconciling = false
+				api.services[svcKey] = svc
+			}
+			delete(api.pendingIngress, svcKey)
 		}
 		writer.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(writer).Encode(map[string]string{"name": "projects/" + cloudRunTestProject + "/locations/" + respLocation + "/operations/create-1"})
+		_ = json.NewEncoder(writer).Encode(cloudRunOperation{
+			Name: "projects/" + cloudRunTestProject + "/locations/" + parts[0] + "/operations/" + parts[2],
+			Done: true,
+		})
 		return
 	}
 	if len(parts) != 3 || parts[0] == "" || parts[1] != "services" || parts[2] == "" {
@@ -164,6 +226,7 @@ func cloudRunTestSetup(t *testing.T) (*cloudRunTestAPI, func(string, CloudRunR2S
 		if err != nil {
 			t.Fatal(err)
 		}
+		adapter.pollInterval = time.Millisecond
 		return adapter
 	}
 }
@@ -276,9 +339,11 @@ func TestCloudRunBoundary(t *testing.T) {
 			t.Fatal(err)
 		}
 		const target = cloudRunTestBase + "/svc-tenant-a"
+		const createOp = "/v2/projects/test-project-1/locations/europe-west3/operations/create-1"
 		api.Lock()
-		if len(api.requests) != 2 || api.requests[0] != "POST "+cloudRunTestBase+"?serviceId=svc-tenant-a" || api.requests[1] != "GET "+target {
-			t.Fatalf("provision must be one create in europe-west3 and a separate readback: %v", api.requests)
+		if len(api.requests) != 3 || api.requests[0] != "POST "+cloudRunTestBase+"?serviceId=svc-tenant-a" ||
+			api.requests[1] != "GET "+createOp || api.requests[2] != "GET "+target {
+			t.Fatalf("provision must create in europe-west3, poll LRO and read back service: %v", api.requests)
 		}
 		create := api.latest
 		api.Unlock()
@@ -828,5 +893,93 @@ func TestCloudRunBoundary(t *testing.T) {
 		if _, err := adapter.Observe(t.Context(), handle); !errors.Is(err, ErrCloudRunResponse) || strings.Contains(err.Error(), closedURL) || strings.Contains(err.Error(), cloudRunTestToken) {
 			t.Fatalf("transport failure must not echo the URL or token: %v", err)
 		}
+	})
+	t.Run("create LRO waits for reconciling ingress and rejects failed or foreign operations", func(t *testing.T) {
+		api, makeAdapter := cloudRunTestSetup(t)
+		backups := &cloudRunTestR2{}
+
+		// Pending LRO omitting ingress while reconciling until poll 2 succeeds.
+		api.Lock()
+		api.pendingPolls = 2
+		api.omitIngressUntilDone = true
+		api.Unlock()
+		handle, err := makeAdapter("tenant-lro", backups).Provision(t.Context(), cloudRunTestSpec())
+		if err != nil || handle.ServiceName != "svc-tenant-lro" {
+			t.Fatalf("pending LRO provision failed: handle=%+v err=%v", handle, err)
+		}
+		api.Lock()
+		api.pendingPolls = 0
+		api.omitIngressUntilDone = false
+		gotReqs := slices.Clone(api.requests)
+		api.Unlock()
+		wantSeq := []string{
+			"POST " + cloudRunTestBase + "?serviceId=svc-tenant-lro",
+			"GET /v2/projects/test-project-1/locations/europe-west3/operations/create-1",
+			"GET /v2/projects/test-project-1/locations/europe-west3/operations/create-1",
+			"GET /v2/projects/test-project-1/locations/europe-west3/operations/create-1",
+			"GET " + cloudRunTestBase + "/svc-tenant-lro",
+		}
+		if !slices.Equal(gotReqs, wantSeq) {
+			t.Fatalf("expected 3 LRO polls before readback, got %v", gotReqs)
+		}
+
+		// Failed LRO returns handle + ErrCloudRunResponse without retrying POST.
+		api.Lock()
+		api.opErrorCode = 3
+		beforeFail := len(api.requests)
+		api.Unlock()
+		failHandle, err := makeAdapter("tenant-lro-err", backups).Provision(t.Context(), cloudRunTestSpec())
+		if !errors.Is(err, ErrCloudRunResponse) || failHandle.ServiceName != "svc-tenant-lro-err" {
+			t.Fatalf("failed LRO must return handle + ErrCloudRunResponse: handle=%+v err=%v", failHandle, err)
+		}
+		api.Lock()
+		api.opErrorCode = 0
+		if got := api.requests[beforeFail:]; len(got) != 2 || !strings.HasPrefix(got[0], "POST ") || !strings.HasPrefix(got[1], "GET /v2/projects/test-project-1/locations/europe-west3/operations/") {
+			t.Fatalf("failed LRO must not retry create: %v", got)
+		}
+		api.Unlock()
+
+		// Malformed or foreign-project LRO names fail closed without extra requests.
+		for idx, badName := range []string{
+			"",
+			"https://evil.example/v2/projects/test-project-1/locations/europe-west3/operations/op-1",
+			"projects/other-project/locations/europe-west3/operations/op-1",
+			"projects/" + cloudRunTestProject + "/locations/europe-west3/operations/bad/path",
+		} {
+			api.Lock()
+			api.opNameOverride = badName
+			api.hasOpNameOverride = true
+			before := len(api.requests)
+			api.Unlock()
+			svcName := fmt.Sprintf("tenant-bad-%d", idx)
+			badHandle, err := makeAdapter(svcName, backups).Provision(t.Context(), cloudRunTestSpec())
+			if !errors.Is(err, ErrCloudRunResponse) || badHandle.ServiceName != "svc-"+svcName {
+				t.Fatalf("bad op name %q: expected handle + ErrCloudRunResponse, got handle=%+v err=%v", badName, badHandle, err)
+			}
+			api.Lock()
+			if len(api.requests) != before+1 {
+				t.Fatalf("bad op name %q must not poll provider: %v", badName, api.requests[before:])
+			}
+			api.Unlock()
+		}
+
+		// Foreign-region LRO name returns handle + CloudRunRegionError without polling foreign region.
+		api.Lock()
+		api.opNameOverride = "projects/" + cloudRunTestProject + "/locations/europe-west4/operations/op-1"
+		api.hasOpNameOverride = true
+		beforeRegion := len(api.requests)
+		api.Unlock()
+		regHandle, err := makeAdapter("tenant-bad-reg", backups).Provision(t.Context(), cloudRunTestSpec())
+		var regErr *CloudRunRegionError
+		if !errors.As(err, &regErr) || regErr.Region != "europe-west4" || regHandle.ServiceName != "svc-tenant-bad-reg" {
+			t.Fatalf("foreign region LRO: expected handle + europe-west4 CloudRunRegionError, got handle=%+v err=%v", regHandle, err)
+		}
+		api.Lock()
+		api.opNameOverride = ""
+		api.hasOpNameOverride = false
+		if len(api.requests) != beforeRegion+1 {
+			t.Fatalf("foreign region LRO must not poll: %v", api.requests[beforeRegion:])
+		}
+		api.Unlock()
 	})
 }

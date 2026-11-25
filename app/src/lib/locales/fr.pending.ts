@@ -3761,6 +3761,20 @@ export const frPending: Record<string, string> = {
   "guard.reach.publish.current": "Publié : {service} sur le port {port}.",
   "guard.reach.publish.stepUp":
     "La publication nécessite une confirmation par votre second facteur datant de moins de cinq minutes. Confirmez-la, puis répétez cette étape.",
+  "guard.reach.paperworkSignIn.title": "Connexion à Paperwork",
+  "guard.reach.paperworkSignIn.enable": "Activer la connexion",
+  "guard.reach.paperworkSignIn.disable": "Désactiver la connexion",
+  "guard.reach.paperworkSignIn.enableConfirm":
+    "Autoriser ce serveur à recevoir les identifiants de votre compte Paperwork associé ?",
+  "guard.reach.paperworkSignIn.disableConfirm":
+    "Révoquer l’accès de ce serveur à votre compte Paperwork associé ?",
+  "guard.reach.paperworkSignIn.off": "Désactivée.",
+  "guard.reach.paperworkSignIn.unavailable": "Ce serveur ne peut pas activer la connexion à Paperwork pour le moment.",
+  "guard.reach.paperworkSignIn.pending": "Configuration de la connexion à Paperwork…",
+  "guard.reach.paperworkSignIn.delivered": "Ce serveur a reçu les identifiants. La connexion n’a pas encore été vérifiée.",
+  "guard.reach.paperworkSignIn.revoking": "Révocation de l’accès de ce serveur…",
+  "guard.reach.paperworkSignIn.revoked": "L’accès de ce serveur a été révoqué.",
+  "guard.reach.paperworkSignIn.error": "Impossible de modifier la connexion à Paperwork. Vérifiez l’état actuel avant de réessayer.",
   "guard.upgrade.title": "Approuver la clé de ce serveur",
   "guard.upgrade.pending":
     "Une clé d’empreinte {fingerprint} attend votre approbation. Approuvez-la uniquement si Guard enregistre la même empreinte sur ce serveur.",
@@ -6713,7 +6727,7 @@ export const frPending: Record<string, string> = {
     "Chaque étape est consignée dans le journal d’alimentation local du serveur.",
   "ui.placementClasses.native.title": "Applications natives kombify",
   "ui.placementClasses.native.summary":
-    "Paperwork hébergé, kombify Sites et le dossier cloud Mediacenter sont inclus dans l’offre.",
+    "kombify Sites et le dossier cloud Mediacenter sont inclus dans l’offre.",
   "ui.placementClasses.native.empty":
     "Aucune application native hébergée n’est signalée pour ce homelab.",
   "ui.placementClasses.native.meta": "Inclus dans l’offre",

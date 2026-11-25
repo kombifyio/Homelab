@@ -629,6 +629,51 @@ export async function setGuardPublicReach(
   return res.data;
 }
 
+export interface GuardPaperworkSignIn {
+  state:
+    | "off"
+    | "pending"
+    | "pending_reconcile"
+    | "delivered"
+    | "revoking"
+    | "revoked";
+  can_enable: boolean;
+}
+
+interface GuardReachView extends CanonicalGuardReach {
+  paperwork_sign_in?: GuardPaperworkSignIn;
+}
+
+export function readGuardPaperworkSignIn(
+  reach: CanonicalGuardReach | undefined,
+): GuardPaperworkSignIn | undefined {
+  const signIn = record(record(reach)?.paperwork_sign_in);
+  if (!signIn || typeof signIn.can_enable !== "boolean") return undefined;
+
+  switch (signIn.state) {
+    case "off":
+    case "pending":
+    case "pending_reconcile":
+    case "delivered":
+    case "revoking":
+    case "revoked":
+      return { state: signIn.state, can_enable: signIn.can_enable };
+    default:
+      return undefined;
+  }
+}
+
+export async function setGuardPaperworkSignIn(
+  serverId: string,
+  request: { enabled: boolean; owner_approved: true },
+): Promise<GuardReachView> {
+  const res = await fetchApi<GuardReachView>(
+    `/api/v1/servers/${encodeURIComponent(serverId)}/reach/paperwork-sign-in`,
+    { method: "PUT", body: JSON.stringify(request) },
+  );
+  return res.data;
+}
+
 export interface GuardIdentityUpgrade {
   worker_id: string;
   /** `legacy_bearer` until an owner-approved key is bound, then `host_key`. */

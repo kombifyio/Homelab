@@ -359,8 +359,9 @@ func runAdvancedStackKitLifecycle(ctx context.Context, cfg StackKitLifecycleConf
 		}
 		if step == stackKitStepChangeSetApply || step == stackKitStepDriftReconcile || step == stackKitStepRollback {
 			outcome := map[string]interface{}{}
-			if err := renewWikiRegistryPull(ctx, cfg, commandID, request, release, outcome); err != nil {
-				summary["success"], summary["wiki_registry"] = false, outcome
+			if err := renewCustomerRegistryPull(ctx, cfg, commandID, request, release, outcome); err != nil {
+				summary["success"] = false
+				copyRegistryOutcomes(summary, outcome)
 				return summary, err
 			}
 		}

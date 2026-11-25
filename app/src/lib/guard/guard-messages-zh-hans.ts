@@ -216,6 +216,20 @@ export const guardMessagesZhHans: Record<
   "guard.reach.publish.current": "已发布:{service},端口 {port}。",
   "guard.reach.publish.stepUp":
     "发布需要在最近五分钟内用你的第二因素进行确认。请确认后再重复此步骤。",
+  "guard.reach.paperworkSignIn.title": "Paperwork 登录",
+  "guard.reach.paperworkSignIn.enable": "开启登录",
+  "guard.reach.paperworkSignIn.disable": "关闭登录",
+  "guard.reach.paperworkSignIn.enableConfirm":
+    "允许此服务器接收你已关联的 Paperwork 账号的凭据吗？",
+  "guard.reach.paperworkSignIn.disableConfirm":
+    "要撤销此服务器对你已关联的 Paperwork 账号的访问权限吗？",
+  "guard.reach.paperworkSignIn.off": "已关闭。",
+  "guard.reach.paperworkSignIn.unavailable": "此服务器目前无法开启 Paperwork 登录。",
+  "guard.reach.paperworkSignIn.pending": "正在设置 Paperwork 登录…",
+  "guard.reach.paperworkSignIn.delivered": "此服务器已收到凭据。尚未验证登录。",
+  "guard.reach.paperworkSignIn.revoking": "正在撤销此服务器的访问权限…",
+  "guard.reach.paperworkSignIn.revoked": "此服务器的访问权限已撤销。",
+  "guard.reach.paperworkSignIn.error": "无法更改 Paperwork 登录设置。请先查看当前状态，再重试。",
   "guard.upgrade.title": "批准此服务器的密钥",
   "guard.upgrade.pending":
     "指纹为 {fingerprint} 的密钥正在等待你的批准。仅当 Guard 在此服务器上记录了相同指纹时才批准。",

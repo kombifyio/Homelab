@@ -85,6 +85,8 @@ type Config struct {
 	// AnnounceMCPHost registers the server's kombify.me route as its product MCP host with the Connect node, so a kombify
 	// agent with a server-bound lease can reach it (Gateway ADR 0042). Off by default.
 	AnnounceMCPHost bool
+	PaperworkRoutes PaperworkRouteVerifier
+	PaperworkSignIn bool
 	// RelayURL is the kombify.me relay WebSocket URL handed to Guards.
 	RelayURL string
 
@@ -195,6 +197,9 @@ func (s *Service) SetPublic(ctx context.Context, tenantID, workerID, ownerSubjec
 			return false
 		}
 		r.Public = normalized
+		if r.PaperworkSignIn.active() {
+			r.PaperworkSignIn.State = "revoking"
+		}
 		// The route changes: re-register (enable, change) or withdraw (disable).
 		r.Me = Target{State: TargetPending, Generation: r.Me.Generation, Ref: r.Me.Ref}
 		r.Attempts, r.NextAttemptAt = 0, now
@@ -206,6 +211,7 @@ func (s *Service) SetPublic(ctx context.Context, tenantID, workerID, ownerSubjec
 	if row.OwnerSubjectID != ownerSubject || row.Desired == DesiredRevoked {
 		return nil, ErrNotFound
 	}
+	row.PaperworkSignInAvailable = s.paperworkAvailable()
 	return row, nil
 }
 
@@ -654,7 +660,11 @@ func (s *Service) registerConnect(ctx context.Context, tenantID, workerID, proof
 	// A registered server repeats the registration once a day to read the
 	// Gateway's current agent envelope key (a new master key id rotates it).
 	refresh := s.cfg.AgentLinks != nil && row.agentKeyRefreshWanted(now)
+	refresh = refresh || s.paperworkOriginRefresh(*row)
 	if !row.ProofWanted(now) && !refresh {
+		return nil
+	}
+	if row.PaperworkSignIn.State == "revoking" && row.PaperworkSignIn.Generation == row.Generation && row.Connect.registeredAt(row.Generation) {
 		return nil
 	}
 	verified, verifyErr := guardidentity.VerifyHostProof(proof, guardidentity.HostProofExpectation{
@@ -686,11 +696,28 @@ func (s *Service) registerConnect(ctx context.Context, tenantID, workerID, proof
 	}
 	callCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
+	var paperworkOrigin *PaperworkOriginProof
+	if s.cfg.PaperworkRoutes != nil {
+		routeCtx, cancelRoute := context.WithTimeout(callCtx, 5*time.Second)
+		observed, routeErr := s.cfg.PaperworkRoutes.VerifyPaperworkRoute(routeCtx, *row, now)
+		cancelRoute()
+		if routeErr != nil {
+			s.log.Warn("guard_reach_paperwork_route_unverified", "server_id", row.ServerID)
+			if row.PaperworkSignIn.matches(*row) && row.PaperworkSignIn.active() {
+				return routeErr
+			}
+		} else if observed != nil {
+			observed.ValidUntil = min(observed.ValidUntil, verified.ExpiresAt.Unix())
+			if observed.ValidUntil > s.now().Unix() {
+				paperworkOrigin = observed
+			}
+		}
+	}
 	node, putErr := s.cfg.Connect.PutNode(callCtx, NodeUpsert{
 		OwnerSubject: row.OwnerSubjectID, ConnectTenantID: row.ConnectTenantID,
 		HostProof: proof, KeyThumbprint: row.KeyThumbprint, DisplayName: connectDisplayName(row),
 		StackID: gatewayStackID(row.StackID, row.ServerID), Placement: normalizePlacement(row.Placement),
-		MCPHost: s.mcpHostOf(row),
+		MCPHost: s.mcpHostOf(row), PaperworkOrigin: paperworkOrigin,
 	})
 	revokeNow := false
 	_, err = s.cfg.Store.Update(ctx, tenantID, workerID, func(r *Row) bool {
@@ -751,7 +778,11 @@ func connectDisplayName(row *Row) string {
 
 // ListByTenant serves the reach section of the server read model.
 func (s *Service) ListByTenant(ctx context.Context, tenantID string) ([]Row, error) {
-	return s.cfg.Store.ListByTenant(ctx, tenantID)
+	rows, err := s.cfg.Store.ListByTenant(ctx, tenantID)
+	for index := range rows {
+		rows[index].PaperworkSignInAvailable = s.paperworkAvailable()
+	}
+	return rows, err
 }
 
 // mcpHostOf is the https://<fqdn>/mcp host of a server whose kombify.me route is registered, or empty (also when the

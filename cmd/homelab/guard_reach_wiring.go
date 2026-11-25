@@ -29,7 +29,9 @@ const (
 	guardReachPollEnv    = "HOMELAB_GUARD_REACH_REVOCATION_POLL"
 	// guardReachAnnounceMCPEnv registers the server's kombify.me route as its product MCP host with the Connect node
 	// (Gateway ADR 0042). Off by default.
-	guardReachAnnounceMCPEnv = "HOMELAB_GUARD_REACH_ANNOUNCE_MCP_HOST"
+	guardReachAnnounceMCPEnv     = "HOMELAB_GUARD_REACH_ANNOUNCE_MCP_HOST"
+	guardReachPaperworkEnv       = "HOMELAB_GUARD_REACH_VERIFY_PAPERWORK_ROUTE"
+	guardReachPaperworkSignInEnv = "HOMELAB_LINKED_PAPERWORK_SIGN_IN_ENABLED"
 )
 
 // Maintenance authority is independent of optional tunnel publication and its
@@ -92,11 +94,18 @@ func bootGuardReach(v2 *v2Boot, edition config.Edition, orch *orchestrator.Orche
 	if orch != nil {
 		agentLinks = guardReachAgentLinks{orch: orch, links: store}
 	}
+	me := guardreach.NewMe(kombifyme.NewClient(meConfig))
+	var paperworkRoutes guardreach.PaperworkRouteVerifier
+	if envBoolDefault(guardReachPaperworkEnv, false) {
+		paperworkRoutes = me
+	}
 	service, err := guardreach.New(guardreach.Config{
-		Store: reachStore, Me: guardreach.NewMe(kombifyme.NewClient(meConfig)), Connect: gateway,
+		Store: reachStore, Me: me, Connect: gateway,
 		Identities: guardreach.ControlPlane{Workers: store, Identities: store, Servers: store}, Access: store,
 		AgentLinks:      agentLinks,
 		AnnounceMCPHost: os.Getenv(guardReachAnnounceMCPEnv) == "true",
+		PaperworkRoutes: paperworkRoutes,
+		PaperworkSignIn: envBoolDefault(guardReachPaperworkSignInEnv, false),
 		RelayURL:        os.Getenv(guardReachRelayEnv),
 		RevocationPoll:  poll, Logger: log.Logger,
 	})
