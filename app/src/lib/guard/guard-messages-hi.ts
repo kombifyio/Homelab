@@ -257,6 +257,20 @@ export const guardMessagesHi: Record<keyof typeof guardMessages.en, string> = {
   "guard.reach.publish.current": "प्रकाशित: {service}, पोर्ट {port} पर।",
   "guard.reach.publish.stepUp":
     "प्रकाशित करने के लिए पिछले पाँच मिनट के भीतर आपके दूसरे कारक से पुष्टि चाहिए। पुष्टि करें, फिर यह चरण दोहराएँ।",
+  "guard.reach.paperworkSignIn.title": "Paperwork साइन-इन",
+  "guard.reach.paperworkSignIn.enable": "साइन-इन चालू करें",
+  "guard.reach.paperworkSignIn.disable": "साइन-इन बंद करें",
+  "guard.reach.paperworkSignIn.enableConfirm":
+    "क्या इस सर्वर को आपके लिंक किए गए Paperwork खाते के क्रेडेंशियल पाने की अनुमति दें?",
+  "guard.reach.paperworkSignIn.disableConfirm":
+    "क्या आपके लिंक किए गए Paperwork खाते के लिए इस सर्वर की पहुँच रद्द करें?",
+  "guard.reach.paperworkSignIn.off": "बंद है।",
+  "guard.reach.paperworkSignIn.unavailable": "इस सर्वर पर अभी Paperwork साइन-इन चालू नहीं किया जा सकता।",
+  "guard.reach.paperworkSignIn.pending": "Paperwork साइन-इन सेट किया जा रहा है…",
+  "guard.reach.paperworkSignIn.delivered": "इस सर्वर को क्रेडेंशियल मिल गए हैं। साइन-इन की पुष्टि अभी नहीं हुई है।",
+  "guard.reach.paperworkSignIn.revoking": "इस सर्वर की पहुँच रद्द की जा रही है…",
+  "guard.reach.paperworkSignIn.revoked": "इस सर्वर की पहुँच रद्द कर दी गई है।",
+  "guard.reach.paperworkSignIn.error": "Paperwork साइन-इन की सेटिंग नहीं बदली जा सकी। फिर से कोशिश करने से पहले मौजूदा स्थिति देखें।",
   "guard.upgrade.title": "इस सर्वर की कुंजी स्वीकृत करें",
   "guard.upgrade.pending":
     "फ़िंगरप्रिंट {fingerprint} वाली एक कुंजी आपकी स्वीकृति की प्रतीक्षा में है। इसे तभी स्वीकृत करें जब Guard इस सर्वर पर वही फ़िंगरप्रिंट लॉग करे।",

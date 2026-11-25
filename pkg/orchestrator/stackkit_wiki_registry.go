@@ -11,13 +11,13 @@ import (
 	"github.com/kombifyio/homelab/pkg/kombifywallet"
 )
 
-func (o *Orchestrator) ConfigureWikiRegistryIssuer(issuer jobs.WikiRegistryIssuer) {
+func (o *Orchestrator) ConfigureCustomerRegistryIssuer(issuer jobs.CustomerRegistryIssuer) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	o.cfg.WikiRegistryIssuer = issuer
+	o.cfg.CustomerRegistryIssuer = issuer
 }
 
-func (o *Orchestrator) wikiRegistrySpec(ctx context.Context, req jobs.StackKitLifecycleRequest) ([]byte, error) {
+func (o *Orchestrator) customerRegistrySpec(ctx context.Context, req jobs.StackKitLifecycleRequest) ([]byte, error) {
 	stack, err := o.findStackForJob(ctx, req.StackID, ProvisionStackOptions{RequestContext: ctx, TenantID: req.TenantID, OwnerID: req.OwnerID})
 	if err != nil {
 		return nil, err
@@ -31,16 +31,16 @@ func (o *Orchestrator) wikiRegistrySpec(ctx context.Context, req jobs.StackKitLi
 	return nil, nil
 }
 
-func wikiRegistryRenewal(issuer jobs.WikiRegistryIssuer, wallet *kombifywallet.Client) jobs.WikiRegistryRenewal {
+func customerRegistryRenewal(issuer jobs.CustomerRegistryIssuer, wallet *kombifywallet.Client) jobs.CustomerRegistryRenewal {
 	if issuer == nil || !wallet.Enabled() {
 		return nil
 	}
-	return func(ctx context.Context, req jobs.StackKitLifecycleRequest) (string, error) {
+	return func(ctx context.Context, req jobs.StackKitLifecycleRequest, product string) (string, error) {
 		scope, ok := kombifywallet.ProjectScope(req.StackID)
 		if !ok {
-			return "", errors.New("Wiki registry renewal requires the deployment's Wallet scope")
+			return "", errors.New("customer registry renewal requires the deployment's Wallet scope")
 		}
-		grant, err := issuer(ctx, req.TenantID, req.OwnerID, req.StackID, req.AgentID)
+		grant, err := issuer(ctx, req.TenantID, req.OwnerID, req.StackID, req.AgentID, product)
 		if err != nil {
 			return "", err
 		}
@@ -48,8 +48,8 @@ func wikiRegistryRenewal(issuer jobs.WikiRegistryIssuer, wallet *kombifywallet.C
 		workerDigest := sha256.Sum256([]byte(req.AgentID))
 		item, err := wallet.Ensure(ctx, req.OwnerID, kombifywallet.ItemSpec{
 			Type: kombifywallet.ItemTypeGenericSecret, Scope: scope,
-			DisplayName: "Wiki image pull " + hex.EncodeToString(workerDigest[:8]),
-			Description: "Short-lived pull grant for this deployment's connected Wiki server. Allow host delivery only to that server.",
+			DisplayName: registryGrantDisplayName(product) + " image pull " + hex.EncodeToString(workerDigest[:8]),
+			Description: "Short-lived registry pull grant for this deployment's connected server. Allow host delivery only to that server.",
 			Value:       grant,
 		})
 		if err != nil {
@@ -57,4 +57,11 @@ func wikiRegistryRenewal(issuer jobs.WikiRegistryIssuer, wallet *kombifywallet.C
 		}
 		return item.ItemID, nil
 	}
+}
+
+func registryGrantDisplayName(product string) string {
+	if product == "paperwork" {
+		return "Paperwork"
+	}
+	return "Wiki"
 }

@@ -565,6 +565,7 @@ func jobLeftStackUnchanged(job jobs.JobSnapshot) bool {
 		return true
 	case jobs.JobTypeStackKitLifecycle:
 		return jobs.IsStackKitObservationOperation(stringResult(job.Payload["operation"])) ||
+			strings.EqualFold(stringResult(job.Payload["operation"]), jobs.StackKitLifecyclePaperworkMove) ||
 			boolResult(job.Payload["dry_run"]) ||
 			jobs.StackKitRefusedBeforeChange(stringResult(job.Result["reason_code"]))
 	default:

@@ -19,7 +19,7 @@ const EnvDatabaseMigrationMode = "HOMELAB_DATABASE_MIGRATION_MODE"
 // 201: provider control lists the managed leases to renew through the
 // directory of migration 201 (platform-2xnsxf); its runtime posture requires
 // the function, so a ledger without it is refused.
-const SchemaFloor = 201
+const SchemaFloor = 203
 
 // PlatformProjectionSchemaFloor is what the private platform projection process
 // of the same binary needs: the role, grants and policies of migration 173. The

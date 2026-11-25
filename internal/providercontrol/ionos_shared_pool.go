@@ -14,14 +14,8 @@ const (
 )
 
 // IONOSSharedPoolRefusal is a policy denial, never a successful lifecycle receipt.
-type IONOSSharedPoolRefusal struct {
-	Code   string
-	Repair string
-}
+type IONOSSharedPoolRefusal = ManagedAppRefusal
 
-func (e *IONOSSharedPoolRefusal) Error() string {
-	return IONOSSharedPoolAdapterID + ": " + e.Code + ": " + e.Repair
-}
 func ionosPoolRefuse(code, repair string) error {
 	return &IONOSSharedPoolRefusal{Code: code, Repair: repair}
 }
@@ -191,6 +185,12 @@ type IONOSSharedPoolRecord struct {
 // IONOSSharedPoolLockedCustody is a durable node-scoped store. Put commits before
 // returning, even if the enclosing callback later fails. Records returns copies.
 // A production implementation must persist records across process restarts.
+// IONOSSharedPoolCapacityCustody supplies global accounting without exposing
+// other tenants' workload records to a request-scoped database identity.
+type IONOSSharedPoolCapacityCustody interface {
+	Capacity(context.Context) (memoryMB, slots int, err error)
+}
+
 type IONOSSharedPoolLockedCustody interface {
 	Records(context.Context) ([]IONOSSharedPoolRecord, error)
 	Put(context.Context, IONOSSharedPoolRecord) error
@@ -204,9 +204,8 @@ type IONOSSharedPoolCustody interface {
 	WithNode(context.Context, string, func(IONOSSharedPoolLockedCustody) error) error
 }
 
-// IONOSSharedPoolAdapter is intentionally not registered as a production
-// executor. Wiring must supply durable custody, governed authorization and an
-// admitted node agent; the managed-server safety contract is not claimed here.
+// IONOSSharedPoolAdapter executes workload generations; production wiring lives
+// in IONOSSharedPoolControl, separate from managed-server execution.
 type IONOSSharedPoolAdapter struct {
 	node       IONOSSharedPoolNode
 	runtime    IONOSSharedPoolRuntime
@@ -272,6 +271,13 @@ func (a *IONOSSharedPoolAdapter) execute(ctx context.Context, action IONOSShared
 				copy := record
 				existing = &copy
 			}
+		}
+		if capacity, ok := store.(IONOSSharedPoolCapacityCustody); ok {
+			memory, count, err := capacity.Capacity(ctx)
+			if err != nil {
+				return err
+			}
+			usedMB, slots = a.node.ReservedMemoryMB+memory, count
 		}
 		var spec IONOSSharedPoolSpec
 		if workload != nil {
@@ -341,6 +347,9 @@ func (a *IONOSSharedPoolAdapter) execute(ctx context.Context, action IONOSShared
 			if result.State != "absent" || !result.IsolationRemoved {
 				return ionosPoolRefuse("absence_unconfirmed", "retain capacity until the exact workload and its isolation resources are absent")
 			}
+			return store.Put(ctx, IONOSSharedPoolRecord{Spec: spec, Released: true, AbsenceEvidenceRef: result.EvidenceRef})
+		}
+		if action == IONOSPoolObserve && result.State == "absent" && result.IsolationRemoved {
 			return store.Put(ctx, IONOSSharedPoolRecord{Spec: spec, Released: true, AbsenceEvidenceRef: result.EvidenceRef})
 		}
 		if action == IONOSPoolBackup {

@@ -554,7 +554,7 @@ func TestIONOSSharedPoolHostProfile(t *testing.T) {
 			if profile.NodeID != node.ID || profile.Location != "de/fra/2" || profile.MemoryMB != memory || profile.Slots != node.Slots || profile.BackupStore != "r2" {
 				t.Fatalf("profile does not describe the admitted node: %+v", profile)
 			}
-			if strings.Join(profile.IsolationRuntimes, ",") != "gvisor,incus" || strings.Join(profile.MaskedUnits, ",") != "docker.service,docker.socket" {
+			if strings.Join(profile.IsolationRuntimes, ",") != "gvisor" || strings.Join(profile.MaskedUnits, ",") != "docker.service,docker.socket" {
 				t.Fatalf("runtimes or masked units: %+v", profile)
 			}
 			agent := profile.Agent
@@ -563,18 +563,16 @@ func TestIONOSSharedPoolHostProfile(t *testing.T) {
 			}
 			script := profile.CloudInit
 			for _, want := range []string{
-				"#!/bin/bash", "set -euo pipefail", node.ID, "runsc", "incus", "apt-mark hold runsc incus",
+				"#!/bin/bash", "set -euo pipefail", node.ID, "runsc", "podman", "apt-mark hold runsc podman",
 				"systemctl mask docker.service docker.socket", "Pin-Priority: -1",
 				"br_netfilter", "net.bridge.bridge-nf-call-iptables = 1", "table bridge kombify_shared_worker_bridge",
-				`iifname { "kw*", "incusbr*" } drop`,
-				`iifname { "kw*", "incusbr*" } oifname { "kw*", "incusbr*" } drop`,
+				`iifname "kw*" drop`,
+				`iifname "kw*" oifname "kw*" drop`,
 				`iifname "wg-kombify" ip saddr 100.64.200.0/24 tcp dport 8443 accept`,
 				`include "/etc/kombify/ionos-shared-worker/nft.d/*.nft"`,
 				"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "169.254.0.0/16", "100.64.0.0/10", "fc00::/7", "fe80::/10",
-				"policy drop", "table inet @NETNS@", "net-<sha256",
-				"listen_addresses = '127.0.0.1'", "tenant_<sha256(tenant)[:24]>_app_<sha256(tenant NUL handle)[:24]>",
-				`GRANT CONNECT ON DATABASE kombify_shared TO "@SCHEMA@";`,
-				"REVOKE ALL ON SCHEMA public FROM PUBLIC", "KOMBIFY_BACKUP_STORE=r2", "KOMBIFY_BACKUP_VERIFY=version,size,sha256",
+				"policy drop", "table inet kombify_workload", "net-<sha256",
+				"KOMBIFY_BACKUP_STORE=r2", "KOMBIFY_BACKUP_VERIFY=version,size,sha256",
 				"KOMBIFY_AGENT_TLS=required", "KOMBIFY_AGENT_CLIENT_AUTH=require-and-verify", "KOMBIFY_AGENT_PATH=" + IONOSSharedPoolAgentPath,
 				"KOMBIFY_AGENT_INTERFACE=wg-kombify", "KOMBIFY_AGENT_ALLOWED_CIDR=100.64.200.0/24",
 				"KOMBIFY_AGENT_PORT=8443", "KOMBIFY_AGENT_MAX_BODY_BYTES=1048576",
@@ -810,7 +808,11 @@ func TestIONOSSharedPoolAgentHandler(t *testing.T) {
 		{"backup-on-start", IONOSPoolStart, func(c *IONOSSharedPoolCommand) { c.Backup = &manifest }},
 		{"restore-without-backup", IONOSPoolRestore, func(*IONOSSharedPoolCommand) {}},
 		{"restore-foreign-store", IONOSPoolRestore, func(c *IONOSSharedPoolCommand) { m := manifest; m.Store = "s3"; c.Backup = &m }},
-		{"restore-foreign-prefix", IONOSPoolRestore, func(c *IONOSSharedPoolCommand) { m := manifest; m.Key = "tenants/other/backups/snapshot"; c.Backup = &m }},
+		{"restore-foreign-prefix", IONOSPoolRestore, func(c *IONOSSharedPoolCommand) {
+			m := manifest
+			m.Key = "tenants/other/backups/snapshot"
+			c.Backup = &m
+		}},
 		{"restore-dotdot-key", IONOSPoolRestore, func(c *IONOSSharedPoolCommand) { m := manifest; m.Key += "/../other"; c.Backup = &m }},
 		{"restore-zero-size", IONOSPoolRestore, func(c *IONOSSharedPoolCommand) { m := manifest; m.SizeBytes = 0; c.Backup = &m }},
 		{"restore-bad-sha256", IONOSPoolRestore, func(c *IONOSSharedPoolCommand) { m := manifest; m.SHA256 = "invalid"; c.Backup = &m }},

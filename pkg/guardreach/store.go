@@ -3,6 +3,7 @@ package guardreach
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -72,13 +73,14 @@ const rowColumns = `tenant_id, worker_id, server_id, stack_id, owner_subject_id,
 	revoke_reason, attempts, next_attempt_at, last_error, created_at, updated_at,
 	public_enabled, public_service, public_scheme, public_port, public_enabled_by, public_enabled_at,
 	agent_envelope_key, agent_link_state, agent_link_generation, agent_link_digest, agent_link_reason,
-	agent_link_updated_at, agent_link_retry_at, agent_link_pinned`
+	agent_link_updated_at, agent_link_retry_at, agent_link_pinned, paperwork_sign_in`
 
 type rowScanner interface{ Scan(dest ...any) error }
 
 func scanRow(scanner rowScanner) (*Row, error) {
 	var r Row
 	var desired, meState, connectState, agentLinkState string
+	var paperworkSignIn []byte
 	var meAt, connectAt, connectRetry, relayAt, publicAt, agentLinkAt, agentLinkRetry sql.NullTime
 	if err := scanner.Scan(
 		&r.TenantID, &r.WorkerID, &r.ServerID, &r.StackID, &r.OwnerSubjectID, &r.DisplayName, &r.Placement,
@@ -89,9 +91,12 @@ func scanRow(scanner rowScanner) (*Row, error) {
 		&r.RevokeReason, &r.Attempts, &r.NextAttemptAt, &r.LastError, &r.CreatedAt, &r.UpdatedAt,
 		&r.Public.Enabled, &r.Public.Service, &r.Public.Scheme, &r.Public.Port, &r.Public.EnabledBy, &publicAt,
 		&r.AgentKey, &agentLinkState, &r.AgentLink.Generation, &r.AgentLink.Ref, &r.AgentLink.ReasonCode,
-		&agentLinkAt, &agentLinkRetry, &r.AgentLinkPinned,
+		&agentLinkAt, &agentLinkRetry, &r.AgentLinkPinned, &paperworkSignIn,
 	); err != nil {
 		return nil, err
+	}
+	if err := json.Unmarshal(paperworkSignIn, &r.PaperworkSignIn); err != nil {
+		return nil, fmt.Errorf("decode Paperwork sign-in progress: %w", err)
 	}
 	r.Desired, r.Me.State, r.Connect.State = Desired(desired), TargetState(meState), TargetState(connectState)
 	if meAt.Valid {
@@ -254,6 +259,10 @@ func (s *PostgresStore) Update(ctx context.Context, tenantID, workerID string, f
 		if !fn(row) {
 			return nil
 		}
+		paperworkSignIn, encodeErr := json.Marshal(row.PaperworkSignIn)
+		if encodeErr != nil {
+			return encodeErr
+		}
 		_, execErr := tx.ExecContext(ctx, `
 			UPDATE guard_reach_states SET
 				desired_state = $3, key_thumbprint = $4, credential_epoch = $5, binding_generation = $6,
@@ -266,7 +275,8 @@ func (s *PostgresStore) Update(ctx context.Context, tenantID, workerID string, f
 				public_enabled = $27, public_service = $28, public_scheme = $29, public_port = $30,
 				public_enabled_by = $31, public_enabled_at = $32,
 				agent_envelope_key = $33, agent_link_state = $34, agent_link_generation = $35, agent_link_digest = $36,
-				agent_link_reason = $37, agent_link_updated_at = $38, agent_link_retry_at = $39, agent_link_pinned = $40
+				agent_link_reason = $37, agent_link_updated_at = $38, agent_link_retry_at = $39, agent_link_pinned = $40,
+				paperwork_sign_in = $41::jsonb
 			WHERE tenant_id = $1 AND worker_id = $2
 		`, tenantID, workerID, string(row.Desired), row.KeyThumbprint, row.CredentialEpoch, row.Generation,
 			row.ConnectTenantID,
@@ -277,7 +287,7 @@ func (s *PostgresStore) Update(ctx context.Context, tenantID, workerID string, f
 			row.Connect.RetryAt, row.RevokeReason,
 			row.Public.Enabled, row.Public.Service, row.Public.Scheme, row.Public.Port, row.Public.EnabledBy, row.Public.EnabledAt,
 			row.AgentKey, string(row.AgentLink.State), row.AgentLink.Generation, row.AgentLink.Ref,
-			clampReason(row.AgentLink.ReasonCode), row.AgentLink.UpdatedAt, row.AgentLink.RetryAt, row.AgentLinkPinned)
+			clampReason(row.AgentLink.ReasonCode), row.AgentLink.UpdatedAt, row.AgentLink.RetryAt, row.AgentLinkPinned, string(paperworkSignIn))
 		return execErr
 	})
 	return out, err

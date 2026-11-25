@@ -1,9 +1,9 @@
-// Copy for the flag-gated three-class placement board (D-2026-11-21-02).
+// Copy for the flag-gated three-class placement board (D-2026-11-24-04).
 export const placementClassMessages = {
   en: {
     "ui.placementClasses.native.title": "Native kombify apps",
     "ui.placementClasses.native.summary":
-      "Hosted Paperwork, kombify Sites and the Mediacenter cloud folder are included with the plan.",
+      "kombify Sites and the Mediacenter cloud folder are included with the plan.",
     "ui.placementClasses.native.empty":
       "No hosted native apps are reported for this homelab.",
     "ui.placementClasses.native.meta": "Included with the plan",
@@ -23,7 +23,7 @@ export const placementClassMessages = {
   de: {
     "ui.placementClasses.native.title": "Native kombify-Apps",
     "ui.placementClasses.native.summary":
-      "Gehostetes Paperwork, kombify Sites und der Mediacenter-Cloud-Ordner sind im Tarif enthalten.",
+      "kombify Sites und der Mediacenter-Cloud-Ordner sind im Tarif enthalten.",
     "ui.placementClasses.native.empty":
       "Für dieses Homelab sind keine gehosteten nativen Apps gemeldet.",
     "ui.placementClasses.native.meta": "Im Tarif enthalten",
@@ -43,7 +43,7 @@ export const placementClassMessages = {
   es: {
     "ui.placementClasses.native.title": "Apps nativas de kombify",
     "ui.placementClasses.native.summary":
-      "Paperwork alojado, kombify Sites y la carpeta en la nube de Mediacenter están incluidos en el plan.",
+      "kombify Sites y la carpeta en la nube de Mediacenter están incluidos en el plan.",
     "ui.placementClasses.native.empty":
       "No hay apps nativas alojadas informadas para este homelab.",
     "ui.placementClasses.native.meta": "Incluido en el plan",
@@ -63,7 +63,7 @@ export const placementClassMessages = {
   "zh-Hans": {
     "ui.placementClasses.native.title": "kombify 原生应用",
     "ui.placementClasses.native.summary":
-      "托管的 Paperwork、kombify Sites 和 Mediacenter 云文件夹已包含在方案中。",
+      "kombify Sites 和 Mediacenter 云文件夹已包含在方案中。",
     "ui.placementClasses.native.empty": "此 homelab 尚未报告托管的原生应用。",
     "ui.placementClasses.native.meta": "包含在方案中",
     "ui.placementClasses.managed.title": "Managed Apps",
@@ -82,7 +82,7 @@ export const placementClassMessages = {
   hi: {
     "ui.placementClasses.native.title": "नेटिव kombify ऐप्स",
     "ui.placementClasses.native.summary":
-      "होस्टेड Paperwork, kombify Sites और Mediacenter क्लाउड फ़ोल्डर योजना में शामिल हैं।",
+      "kombify Sites और Mediacenter क्लाउड फ़ोल्डर योजना में शामिल हैं।",
     "ui.placementClasses.native.empty":
       "इस होमलैब के लिए कोई होस्टेड नेटिव ऐप रिपोर्ट नहीं हुआ।",
     "ui.placementClasses.native.meta": "योजना में शामिल",
@@ -102,7 +102,7 @@ export const placementClassMessages = {
   ar: {
     "ui.placementClasses.native.title": "تطبيقات kombify الأصلية",
     "ui.placementClasses.native.summary":
-      "Paperwork المستضاف وkombify Sites ومجلد Mediacenter السحابي مشمولة في الخطة.",
+      "تتضمن الخطة kombify Sites ومجلد Mediacenter السحابي.",
     "ui.placementClasses.native.empty":
       "لا توجد تطبيقات أصلية مستضافة مبلغ عنها لهذا الهوملاب.",
     "ui.placementClasses.native.meta": "مشمول في الخطة",

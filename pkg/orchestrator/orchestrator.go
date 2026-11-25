@@ -207,7 +207,7 @@ type Config struct {
 	// database; nil keeps them on the local disk only.
 	SpecFiles                jobs.SpecFileStore
 	StackKitCommander        jobs.StackKitCommandSender
-	WikiRegistryIssuer       jobs.WikiRegistryIssuer
+	CustomerRegistryIssuer   jobs.CustomerRegistryIssuer
 	ManagedStackKitInventory jobs.ManagedStackKitInventoryBuilder
 	// FederationFabric issues the inter-site link binding of a managed Modern
 	// deployment; nil leaves the rollout at the link-binding blocker.

@@ -272,6 +272,20 @@ export const guardMessagesEs: Record<keyof typeof guardMessages.en, string> = {
   "guard.reach.publish.current": "Publicado: {service} en el puerto {port}.",
   "guard.reach.publish.stepUp":
     "Publicar requiere una confirmación con tu segundo factor de los últimos cinco minutos. Confírmala y repite este paso.",
+  "guard.reach.paperworkSignIn.title": "Inicio de sesión en Paperwork",
+  "guard.reach.paperworkSignIn.enable": "Activar inicio de sesión",
+  "guard.reach.paperworkSignIn.disable": "Desactivar inicio de sesión",
+  "guard.reach.paperworkSignIn.enableConfirm":
+    "¿Permitir que este servidor reciba credenciales para tu cuenta de Paperwork vinculada?",
+  "guard.reach.paperworkSignIn.disableConfirm":
+    "¿Revocar el acceso de este servidor a tu cuenta de Paperwork vinculada?",
+  "guard.reach.paperworkSignIn.off": "Desactivado.",
+  "guard.reach.paperworkSignIn.unavailable": "Este servidor no puede activar el inicio de sesión en Paperwork por ahora.",
+  "guard.reach.paperworkSignIn.pending": "Configurando el inicio de sesión en Paperwork…",
+  "guard.reach.paperworkSignIn.delivered": "Este servidor recibió las credenciales. Aún no se ha verificado el inicio de sesión.",
+  "guard.reach.paperworkSignIn.revoking": "Revocando el acceso de este servidor…",
+  "guard.reach.paperworkSignIn.revoked": "Se revocó el acceso de este servidor.",
+  "guard.reach.paperworkSignIn.error": "No se pudo cambiar el inicio de sesión en Paperwork. Comprueba el estado actual antes de volver a intentarlo.",
   "guard.upgrade.title": "Aprobar la clave de este servidor",
   "guard.upgrade.pending":
     "Una clave con la huella {fingerprint} espera tu aprobación. Apruébala solo si Guard registra la misma huella en este servidor.",

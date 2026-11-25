@@ -288,6 +288,9 @@ func RegisterServerRuntimeRoutes(r *httpx.Router, cfg ServerRuntimeRouteConfig) 
 	if _, ok := h.reach.(ServerReachControl); ok {
 		r.PUT("/api/v1/servers/{serverId}/reach", h.reachSetPublic)
 	}
+	if _, ok := h.reach.(ServerPaperworkSignInControl); ok {
+		r.PUT("/api/v1/servers/{serverId}/reach/paperwork-sign-in", h.reachSetPaperworkSignIn)
+	}
 	if h.network != nil && h.network.Workers != nil {
 		r.GET("/api/v1/servers/{serverId}/network", h.networkRead)
 		r.POST("/api/v1/servers/{serverId}/network/rebind", h.networkRebind)

@@ -184,7 +184,7 @@ func deliverWalletItemToNode(ctx context.Context, cfg StackKitLifecycleConfig, j
 		return WalletHostTarget{}, "", errors.New("cannot draw a recipient challenge")
 	}
 	challenge := hex.EncodeToString(random)
-	if req.wikiRegistryItem != "" {
+	if req.registryItem != "" {
 		jobID += "-" + challenge[:16]
 	}
 
@@ -238,6 +238,7 @@ func deliverWalletItemToNode(ctx context.Context, cfg StackKitLifecycleConfig, j
 func walletDeliveryStep(req StackKitLifecycleRequest, step string) StackKitLifecycleRequest {
 	request := deliveryRequest(req, step)
 	request.AIProviderBaseURL, request.WalletItemID, request.WalletItemRotate, request.AIProviderDisable = "", "", false, false
+	request.WorkloadRef = ""
 	return request
 }
 

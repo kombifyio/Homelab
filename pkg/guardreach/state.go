@@ -105,7 +105,9 @@ type Row struct {
 	// AgentLinkPinned is the digest of the request the node last pinned,
 	// recorded on every successful install and cleared by a removal; it
 	// decides whether there is a pin to remove.
-	AgentLinkPinned string
+	AgentLinkPinned          string
+	PaperworkSignIn          PaperworkSignInProgress
+	PaperworkSignInAvailable bool
 
 	// RevokeReason is the reason both registries receive when the row is revoked.
 	RevokeReason  string

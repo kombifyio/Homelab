@@ -9,26 +9,41 @@ import (
 	"github.com/kombifyio/homelab/internal/stackkitrelease"
 )
 
-const wikiRegistrySecretRef = "secret://stackkits/wiki/registry-auth"
+type CustomerRegistryIssuer func(ctx context.Context, tenantID, ownerID, stackID, workerID, product string) ([]byte, error)
+type CustomerRegistryRenewal func(context.Context, StackKitLifecycleRequest, string) (string, error)
 
-type WikiRegistryIssuer func(ctx context.Context, tenantID, ownerID, stackID, workerID string) ([]byte, error)
-type WikiRegistryRenewal func(context.Context, StackKitLifecycleRequest) (string, error)
+func copyRegistryOutcomes(destination, source map[string]interface{}) {
+	for _, key := range []string{"wiki_registry", "paperwork_registry"} {
+		if outcome, present := source[key]; present {
+			destination[key] = outcome
+		}
+	}
+}
 
-func renewWikiRegistryPull(ctx context.Context, cfg StackKitLifecycleConfig, jobID string, req StackKitLifecycleRequest, release stackkitrelease.Release, outcome map[string]interface{}) error {
+type registryWorkload struct {
+	Enabled   *bool `json:"enabled"`
+	Placement struct {
+		NodeRefs []string `json:"nodeRefs"`
+		SiteRefs []string `json:"siteRefs"`
+	} `json:"placement"`
+	SecretRefs map[string]string `json:"secretRefs"`
+}
+
+func renewCustomerRegistryPull(ctx context.Context, cfg StackKitLifecycleConfig, jobID string, req StackKitLifecycleRequest, release stackkitrelease.Release, outcome map[string]interface{}) error {
 	if req.Offline || req.DryRun {
 		return nil
 	}
 	raw := req.CandidateSpecJSON
-	if len(raw) == 0 && cfg.WikiRegistrySpec != nil {
+	if len(raw) == 0 && cfg.CustomerRegistrySpec != nil {
 		var err error
-		raw, err = cfg.WikiRegistrySpec(ctx, req)
+		raw, err = cfg.CustomerRegistrySpec(ctx, req)
 		if err != nil {
 			return err
 		}
 	}
 	if len(raw) == 0 {
-		if req.UseCase == "wiki" {
-			return errors.New("Wiki registry needs the deployment's approved StackSpec")
+		if req.UseCase == "wiki" || req.UseCase == "paperwork" {
+			return errors.New("customer registry needs the deployment's approved StackSpec")
 		}
 		return nil
 	}
@@ -36,30 +51,39 @@ func renewWikiRegistryPull(ctx context.Context, cfg StackKitLifecycleConfig, job
 	if nodeRef == "" {
 		nodeRef = PrimaryStackKitNodeRef(req.StackKit)
 	}
-	needed, err := wikiRegistrySelected(raw, nodeRef)
-	if err != nil {
-		return err
-	}
-	if !needed {
-		if req.UseCase == "wiki" {
-			return errors.New("Wiki is not selected on this server")
+	for _, product := range []string{"wiki", "paperwork"} {
+		if req.Operation == StackKitLifecycleApplicationUpdate && req.UseCase != product {
+			continue
 		}
-		return nil
+		needed, err := customerRegistrySelected(raw, nodeRef, product)
+		if err != nil {
+			return err
+		}
+		if !needed {
+			if req.UseCase == product {
+				return errors.New(product + " is not selected on this server")
+			}
+			continue
+		}
+		if cfg.CustomerRegistryRenew == nil || cfg.WalletHostDelivery == nil {
+			return errors.New(product + " registry renewal requires the connected server and Wallet host delivery")
+		}
+		itemID, err := cfg.CustomerRegistryRenew(ctx, req, product)
+		if err != nil {
+			return err
+		}
+		productOutcome := map[string]interface{}{"wallet_item_id": itemID}
+		outcome[product+"_registry"] = productOutcome
+		delivery := req
+		delivery.WalletItemID, delivery.registryItem, delivery.registryProduct, delivery.WalletItemRotate = itemID, itemID, product, false
+		if _, _, err := deliverWalletItemToNode(ctx, cfg, jobID+"-"+product+"-registry", delivery, release, productOutcome, func(string, int, string) {}); err != nil {
+			return err
+		}
 	}
-	if cfg.WikiRegistryRenew == nil || cfg.WalletHostDelivery == nil {
-		return errors.New("Wiki registry renewal requires the connected server and Wallet host delivery")
-	}
-	itemID, err := cfg.WikiRegistryRenew(ctx, req)
-	if err != nil {
-		return err
-	}
-	outcome["wallet_item_id"] = itemID
-	req.WalletItemID, req.wikiRegistryItem, req.WalletItemRotate = itemID, itemID, false
-	_, _, err = deliverWalletItemToNode(ctx, cfg, jobID+"-wiki-registry", req, release, outcome, func(string, int, string) {})
-	return err
+	return nil
 }
 
-func wikiRegistrySelected(raw []byte, nodeRef string) (bool, error) {
+func customerRegistrySelected(raw []byte, nodeRef, product string) (bool, error) {
 	var spec struct {
 		Workloads map[string]json.RawMessage `json:"workloads"`
 		Nodes     []struct {
@@ -69,40 +93,33 @@ func wikiRegistrySelected(raw []byte, nodeRef string) (bool, error) {
 		} `json:"nodes"`
 	}
 	if err := json.Unmarshal(raw, &spec); err != nil {
-		return false, errors.New("Wiki registry could not read the approved workload selection")
+		return false, errors.New("customer registry could not read the approved workload selection")
 	}
-	if len(spec.Workloads["wiki"]) == 0 {
+	if len(spec.Workloads[product]) == 0 {
 		return false, nil
 	}
-	var wiki struct {
-		Enabled   *bool `json:"enabled"`
-		Placement struct {
-			NodeRefs []string `json:"nodeRefs"`
-			SiteRefs []string `json:"siteRefs"`
-		} `json:"placement"`
-		SecretRefs map[string]string `json:"secretRefs"`
+	var workload registryWorkload
+	if err := json.Unmarshal(spec.Workloads[product], &workload); err != nil {
+		return false, errors.New(product + " registry could not read the selected workload placement")
 	}
-	if err := json.Unmarshal(spec.Workloads["wiki"], &wiki); err != nil {
-		return false, errors.New("Wiki registry could not read the selected workload placement")
-	}
-	if wiki.Enabled != nil && !*wiki.Enabled {
+	if workload.Enabled != nil && !*workload.Enabled {
 		return false, nil
 	}
-	if len(wiki.Placement.NodeRefs) == 0 {
+	if len(workload.Placement.NodeRefs) == 0 {
 		for _, node := range spec.Nodes {
-			if (node.Enabled == nil || *node.Enabled) && (len(wiki.Placement.SiteRefs) == 0 || slices.Contains(wiki.Placement.SiteRefs, node.SiteRef)) {
-				wiki.Placement.NodeRefs = append(wiki.Placement.NodeRefs, node.ID)
+			if (node.Enabled == nil || *node.Enabled) && (len(workload.Placement.SiteRefs) == 0 || slices.Contains(workload.Placement.SiteRefs, node.SiteRef)) {
+				workload.Placement.NodeRefs = append(workload.Placement.NodeRefs, node.ID)
 			}
 		}
-		if len(wiki.Placement.NodeRefs) != 1 {
-			return false, errors.New("Wiki registry requires an explicit workload node placement when its site does not resolve to one node")
+		if len(workload.Placement.NodeRefs) != 1 {
+			return false, errors.New(product + " registry requires an explicit workload node placement when its site does not resolve to one node")
 		}
 	}
-	if !slices.Contains(wiki.Placement.NodeRefs, nodeRef) {
+	if !slices.Contains(workload.Placement.NodeRefs, nodeRef) {
 		return false, nil
 	}
-	if wiki.SecretRefs["registry-auth"] != wikiRegistrySecretRef {
-		return false, errors.New("Wiki registry-auth must use its fixed encrypted node custody slot")
+	if workload.SecretRefs["registry-auth"] != "secret://stackkits/"+product+"/registry-auth" {
+		return false, errors.New(product + " registry-auth must use its fixed encrypted node custody slot")
 	}
 	return true, nil
 }

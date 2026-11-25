@@ -44,8 +44,9 @@ type RelayStatus struct {
 
 // ExchangeRequest is what a Guard sends on each reach exchange.
 type ExchangeRequest struct {
-	Proofs []ProofSubmission `json:"proofs,omitempty"`
-	Relay  *RelayStatus      `json:"relay,omitempty"`
+	Proofs          []ProofSubmission      `json:"proofs,omitempty"`
+	Relay           *RelayStatus           `json:"relay,omitempty"`
+	PaperworkSignIn *PaperworkSignInReport `json:"paperwork_sign_in,omitempty"`
 }
 
 // ProofRequest asks the Guard to mint one host proof with exactly these claims.
@@ -75,10 +76,11 @@ type RelayTarget struct {
 
 // Document is the reach document a Guard receives. It carries no credential.
 type Document struct {
-	State         string         `json:"state"`
-	Generation    int64          `json:"generation,omitempty"`
-	KombifyMe     *RelayTarget   `json:"kombify_me,omitempty"`
-	ProofRequests []ProofRequest `json:"proof_requests,omitempty"`
+	State           string               `json:"state"`
+	Generation      int64                `json:"generation,omitempty"`
+	KombifyMe       *RelayTarget         `json:"kombify_me,omitempty"`
+	ProofRequests   []ProofRequest       `json:"proof_requests,omitempty"`
+	PaperworkSignIn *PaperworkSignInTask `json:"paperwork_sign_in,omitempty"`
 }
 
 // Exchange handles one Guard exchange: it records the Guard's relay report,
@@ -114,7 +116,19 @@ func (s *Service) Exchange(ctx context.Context, tenantID, workerID string, req E
 	if err != nil {
 		return nil, err
 	}
-	return s.document(*row, now), nil
+	if req.PaperworkSignIn == nil {
+		return s.document(*row, now), nil
+	}
+	delivery := s.advancePaperworkSignIn(ctx, *row, req.PaperworkSignIn)
+	row, err = s.cfg.Store.Get(ctx, tenantID, workerID)
+	if err != nil {
+		return nil, err
+	}
+	doc := s.document(*row, now)
+	if delivery != nil && doc.PaperworkSignIn != nil && doc.PaperworkSignIn.Reservation == delivery.Reservation && doc.PaperworkSignIn.Kind == "read" {
+		doc.PaperworkSignIn = delivery
+	}
+	return doc, nil
 }
 
 func applyRelayReport(r *Row, report RelayStatus, now time.Time) bool {
@@ -142,12 +156,13 @@ func (s *Service) document(row Row, now time.Time) *Document {
 			TargetPort: row.Public.Port,
 		}
 	}
-	if row.ProofWanted(now) || (s.cfg.AgentLinks != nil && row.agentKeyRefreshWanted(now)) {
+	if row.ProofWanted(now) || (s.cfg.AgentLinks != nil && row.agentKeyRefreshWanted(now)) || s.paperworkOriginRefresh(row) {
 		doc.ProofRequests = []ProofRequest{{
 			Audience: guardidentity.AudienceConnect, TenantID: row.ConnectTenantID, ServerID: row.ServerID,
 			WorkerID: row.WorkerID, Generation: row.Generation,
 		}}
 	}
+	doc.PaperworkSignIn = s.paperworkTask(row)
 	return doc
 }
 
@@ -227,8 +242,9 @@ type View struct {
 	Relay      *ViewRelay `json:"relay,omitempty"`
 	// Public is the owner's publication decision; Enabled=false is what the
 	// panel shows as "Not enabled" with an enable action.
-	Public    ViewPublic `json:"public"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	Public          ViewPublic           `json:"public"`
+	PaperworkSignIn *PaperworkSignInView `json:"paperwork_sign_in,omitempty"`
+	UpdatedAt       time.Time            `json:"updated_at"`
 }
 
 // ViewPublic is the owner's choice of what a server publishes at kombify.me.
@@ -263,6 +279,7 @@ type ViewRelay struct {
 // generation than the binding) read as pending, never as reachable.
 func ViewOf(row Row) View {
 	view := View{State: ReadinessState(row), Generation: row.Generation, UpdatedAt: row.UpdatedAt}
+	view.PaperworkSignIn = paperworkSignInView(row)
 	if row.Public.Enabled {
 		view.Public = ViewPublic{
 			Enabled: true, Service: row.Public.Service, Scheme: row.Public.Scheme, TargetPort: row.Public.Port,

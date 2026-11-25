@@ -28,3 +28,51 @@ func (m *Manager) MintHostProof(in guardidentity.HostProofInput) (string, error)
 	}
 	return guardidentity.SignHostProof(key, in)
 }
+
+func (m *Manager) MintPaperworkMoveProof(in guardidentity.HostProofInput, grant string) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.key == nil {
+		return "", ErrNoIdentityKey
+	}
+	switch m.rec.State {
+	case StateRevoked:
+		return "", ErrRevoked
+	case StateRecoveryNeeded:
+		return "", ErrRecoveryNeeded
+	case StateBound:
+	default:
+		return "", errors.New("Paperwork move proof requires a bound Guard")
+	}
+	return guardidentity.SignPaperworkMoveProof(m.key, in, grant)
+}
+
+// MintPaperworkPullProof retains node-key custody and refuses an identity that
+// was revoked, needs recovery or has not yet been bound. Each call mints a new
+// JTI; a retained pull session never turns into a bearer credential.
+func (m *Manager) MintPaperworkPullProof(in guardidentity.HostProofInput, requestSHA256 string) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.key == nil {
+		return "", ErrNoIdentityKey
+	}
+	switch m.rec.State {
+	case StateRevoked:
+		return "", ErrRevoked
+	case StateRecoveryNeeded:
+		return "", ErrRecoveryNeeded
+	case StateBound:
+	default:
+		return "", errors.New("Paperwork pull proof requires a bound Guard")
+	}
+	return guardidentity.SignPaperworkPullProof(m.key, in, requestSHA256)
+}
+
+func (m *Manager) MintPaperworkSignInProof(in guardidentity.HostProofInput, body []byte) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.key == nil || m.rec.State != StateBound {
+		return "", errors.New("Paperwork sign-in proof requires a bound Guard")
+	}
+	return guardidentity.SignPaperworkSignInProof(m.key, in, body)
+}

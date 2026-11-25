@@ -444,7 +444,7 @@ func runEnrolledHTTPAgentMode(runCtx context.Context, stop context.CancelFunc, c
 		OnFirstHeartbeat: func() {
 			confirmGuardUpdateTrial(execution, log)
 			relay.Start()
-			startGuardReach(execCtx, cfg, enrollment, identity, manager, log)
+			startGuardReach(execCtx, cfg, enrollment, identity, manager, execution, log)
 			startGuardTelemetry(execCtx, cfg, custodyRoot, enrollment, identity, execution, log)
 			if forwarder := newHTTPSNoticeForwarder(enrollment, identity); forwarder != nil {
 				startUserNotificationListener(execCtx, cfg, forwarder, log)
@@ -474,6 +474,7 @@ func runEnrolledHTTPAgentMode(runCtx context.Context, stop context.CancelFunc, c
 	// Posture does not wait for a first heartbeat: a Guard that boots while the
 	// control plane is unreachable still observes the host and, without a held
 	// grant, records that it only observes (G07).
+	startGuardPaperworkMove(execCtx, enrollment, manager, log)
 	startGuardPosture(execCtx, custodyRoot, enrollment, identity, manager, execution, log)
 	startGuardPower(execCtx, custodyRoot, enrollment, identity, execution, log)
 	log.Info("agent_mode_starting", "transport", httpsScheme, "agent_id", enrollment.RuntimeAgentID)

@@ -1,17 +1,18 @@
 /**
- * Three hosting classes for the placement board (D-2026-11-21-02 Phase 3C).
+ * Three hosting classes for the placement board (D-2026-11-24-04).
  *
  * The helper reads placement fields the services API already returns
  * (`target_kind`: "server" | "managed_workload" | "unknown", plus catalog
  * identity). It does not invent a host, a route or a slot meter.
  *
- * 1. Native kombify apps — hosted Paperwork, kombify Sites and the
- *    Mediacenter cloud folder. They consume 0 managed-service slots.
+ * 1. Native kombify apps — kombify Sites and the Mediacenter cloud folder.
+ *    They consume 0 Managed App slots.
  *    A copy whose `target_kind` is "server", or that already sits on a
  *    server without a managed-workload placement, stays on that server
  *    (self-hosted Paperwork is not the hosted product).
- * 2. Managed Apps — `target_kind === "managed_workload"`. They belong in
- *    one Managed Area, never in a fabricated server column.
+ * 2. Managed Apps — `target_kind === "managed_workload"`, including hosted
+ *    Paperwork. They belong in one Managed Area, never in a fabricated server
+ *    column. The board does not reserve or count slots.
  * 3. Dedicated servers — self-hosted workloads and dedicated managed
  *    servers. The existing server columns draw this class.
  */
@@ -66,12 +67,10 @@ export interface PlacementPartition {
 }
 
 /**
- * Hosted products named by D-2026-11-21-02. Matched on the whole machine token
+ * Zero-slot products under D-2026-11-24-04. Matched on the whole machine token
  * (catalog id, application key or service key), never display name or substring.
  */
 const NATIVE_APP_KEYS = new Set([
-  "paperwork",
-  "kombify-paperwork",
   "kombify-sites",
   "kombify-site",
   "sites",

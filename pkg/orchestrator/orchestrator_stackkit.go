@@ -33,8 +33,8 @@ func (o *Orchestrator) ConfigureStackKitCommander(sender jobs.StackKitCommandSen
 	config := jobs.StackKitLifecycleConfig{Sender: sender, AdvancedIssuer: o.cfg.AdvancedIssuer, OriginCertificates: o.cfg.OriginCertificates, ManagedStackKitInventory: o.managedStackKitInventory, ManagedAddressAuthority: o.managedChangeSetAddressAuthority, ApplicationAuthorize: o.authorizeApplicationOperation, ServiceRuntimeAuthorize: o.authorizeDeclaredServiceRuntime, ConnectorAuthorize: o.authorizeApplicationConnector}
 	config.HomeGraph = o.homeGraphStore()
 	config.WalletHostDelivery = walletHostDelivery(o.cfg.KombifyWallet, o.cfg.WalletHostAuthority)
-	config.WikiRegistryRenew = wikiRegistryRenewal(o.cfg.WikiRegistryIssuer, o.cfg.KombifyWallet)
-	config.WikiRegistrySpec = o.wikiRegistrySpec
+	config.CustomerRegistryRenew = customerRegistryRenewal(o.cfg.CustomerRegistryIssuer, o.cfg.KombifyWallet)
+	config.CustomerRegistrySpec = o.customerRegistrySpec
 	config.IdentityJoinWallet = identityJoinWallet(o.cfg.KombifyWallet, o.cfg.WalletHostAuthority)
 	config.Services, _ = o.cfg.StackStore.(interface {
 		controlplane.ServiceRuntimeStore
@@ -168,6 +168,18 @@ func (o *Orchestrator) EnqueueStackKitLifecycle(ctx context.Context, request job
 	normalized, stack, binding, err := o.prepareStackKitLifecycle(ctx, request)
 	if err != nil {
 		return "", err
+	}
+	if normalized.Operation == jobs.StackKitLifecyclePaperworkMove {
+		normalized.PaperworkMoveServerID = binding.ServerID
+		if binding.ServerID == "" {
+			return "", ErrStackKitLifecycleUnavailable
+		}
+		if err := o.authorizeDeclaredServiceRuntime(ctx, normalized, binding.ServerID); err != nil {
+			return "", err
+		}
+		if err := o.authorizeApplicationOperation(ctx, normalized.TenantID, normalized.OwnerID, binding.ServerID); err != nil {
+			return "", err
+		}
 	}
 	var restoreAdmission map[string]interface{}
 	if normalized.Operation == jobs.StackKitLifecycleBackupRestoreRecover {

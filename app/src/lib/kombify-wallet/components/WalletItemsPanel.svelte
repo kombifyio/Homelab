@@ -770,10 +770,10 @@
     try {
       const origin = authStore.portalUrl
         ? new URL(authStore.portalUrl).origin
-        : "https://kombify.io";
-      return `${origin}/dashboard/settings#wallet`;
+        : "https://app.kombify.io";
+      return `${origin}/dashboard/settings?tab=vault`;
     } catch {
-      return "https://kombify.io/dashboard/settings#wallet";
+      return "https://app.kombify.io/dashboard/settings?tab=vault";
     }
   });
 </script>

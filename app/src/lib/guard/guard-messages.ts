@@ -269,6 +269,20 @@ export const guardMessages = {
     "guard.reach.publish.current": "Published: {service} on port {port}.",
     "guard.reach.publish.stepUp":
       "Publishing needs a confirmation with your second factor from the last five minutes. Confirm it, then repeat this step.",
+    "guard.reach.paperworkSignIn.title": "Paperwork sign-in",
+    "guard.reach.paperworkSignIn.enable": "Turn on sign-in",
+    "guard.reach.paperworkSignIn.disable": "Turn off sign-in",
+    "guard.reach.paperworkSignIn.enableConfirm":
+      "Allow this server to receive credentials for your linked Paperwork account?",
+    "guard.reach.paperworkSignIn.disableConfirm":
+      "Revoke this server’s access to your linked Paperwork account?",
+    "guard.reach.paperworkSignIn.off": "Off.",
+    "guard.reach.paperworkSignIn.unavailable": "This server can’t turn on Paperwork sign-in right now.",
+    "guard.reach.paperworkSignIn.pending": "Setting up Paperwork sign-in…",
+    "guard.reach.paperworkSignIn.delivered": "This server received the credentials. Sign-in hasn’t been verified.",
+    "guard.reach.paperworkSignIn.revoking": "Revoking this server’s access…",
+    "guard.reach.paperworkSignIn.revoked": "This server’s access was revoked.",
+    "guard.reach.paperworkSignIn.error": "Couldn’t change Paperwork sign-in. Check the current status before trying again.",
     "guard.upgrade.title": "Approve this server's key",
     "guard.upgrade.pending":
       "A key with fingerprint {fingerprint} is waiting for your approval. Approve it only if Guard logs the same fingerprint on this server.",
@@ -803,6 +817,20 @@ export const guardMessages = {
     "guard.reach.publish.current": "Veröffentlicht: {service} auf Port {port}.",
     "guard.reach.publish.stepUp":
       "Das Veröffentlichen braucht eine Bestätigung mit deinem zweiten Faktor aus den letzten fünf Minuten. Bestätige sie und wiederhole diesen Schritt.",
+    "guard.reach.paperworkSignIn.title": "Paperwork-Anmeldung",
+    "guard.reach.paperworkSignIn.enable": "Anmeldung einschalten",
+    "guard.reach.paperworkSignIn.disable": "Anmeldung ausschalten",
+    "guard.reach.paperworkSignIn.enableConfirm":
+      "Darf dieser Server Zugangsdaten für dein verknüpftes Paperwork-Konto erhalten?",
+    "guard.reach.paperworkSignIn.disableConfirm":
+      "Diesem Server den Zugriff auf dein verknüpftes Paperwork-Konto entziehen?",
+    "guard.reach.paperworkSignIn.off": "Aus.",
+    "guard.reach.paperworkSignIn.unavailable": "Die Paperwork-Anmeldung lässt sich auf diesem Server gerade nicht einschalten.",
+    "guard.reach.paperworkSignIn.pending": "Paperwork-Anmeldung wird eingerichtet …",
+    "guard.reach.paperworkSignIn.delivered": "Der Server hat die Zugangsdaten erhalten. Die Anmeldung wurde noch nicht überprüft.",
+    "guard.reach.paperworkSignIn.revoking": "Der Zugriff für diesen Server wird entzogen …",
+    "guard.reach.paperworkSignIn.revoked": "Der Zugriff für diesen Server wurde entzogen.",
+    "guard.reach.paperworkSignIn.error": "Die Paperwork-Anmeldung konnte nicht geändert werden. Prüfe den aktuellen Status, bevor du es erneut versuchst.",
     "guard.upgrade.title": "Schlüssel dieses Servers freigeben",
     "guard.upgrade.pending":
       "Ein Schlüssel mit dem Fingerabdruck {fingerprint} wartet auf deine Freigabe. Gib ihn nur frei, wenn Guard auf diesem Server denselben Fingerabdruck protokolliert.",

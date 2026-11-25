@@ -21,10 +21,12 @@ const (
 	configRoot         = "/etc/homelab"
 	stateRoot          = "/var/lib/homelab"
 	ExecutorEnvFile    = configRoot + "/executor.env"
-	ExecutorStateDir   = stateRoot + "-guard-executor"
-	GuardStateDir      = stateRoot + "/guard"
-	HandoffDir         = stateRoot + "/guard-handoff"
-	RuntimeDir         = "/run/homelab-guard"
+	// Separate root-owned opt-in survives layout reapply; absent keeps moves off.
+	PaperworkMoveEnvFile = configRoot + "/paperwork-move.env"
+	ExecutorStateDir     = stateRoot + "-guard-executor"
+	GuardStateDir        = stateRoot + "/guard"
+	HandoffDir           = stateRoot + "/guard-handoff"
+	RuntimeDir           = "/run/homelab-guard"
 	// EnrollmentFile is where the Guard keeps the enrollment response with its
 	// worker credential; the daemon owns it, the executor cannot see it.
 	EnrollmentFile = configRoot + "/agent-enrollment.json"
@@ -85,6 +87,7 @@ Wants=network-online.target homelab-guard-executor.socket
 User=%[2]s
 Group=%[2]s
 EnvironmentFile=-/etc/homelab/agent.env
+EnvironmentFile=-/etc/homelab/paperwork-move.env
 ExecStart=%[3]s agent --transport=https --enrollment-file=%[6]s --wait-for-enrollment
 Restart=always
 RestartSec=15
@@ -177,6 +180,7 @@ StandardInput=socket
 StandardOutput=socket
 StandardError=journal
 EnvironmentFile=-%[2]s
+EnvironmentFile=-/etc/homelab/paperwork-move.env
 ExecStart=%[1]s guard-executor serve
 KillMode=control-group
 TimeoutStopSec=20

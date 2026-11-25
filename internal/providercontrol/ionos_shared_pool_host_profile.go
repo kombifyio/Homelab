@@ -21,7 +21,6 @@ const (
 	// reach IONOSSharedWorkerAgentPort on IONOSSharedWorkerAgentInterface.
 	IONOSSharedWorkerControlPlaneCIDR = "100.64.200.0/24"
 
-	ionosSharedWorkerDatabase     = "kombify_shared"
 	ionosSharedWorkerWorkloadCIDR = "10.200.0.0/16"
 	ionosSharedWorkerConfigDir    = "/etc/kombify/ionos-shared-worker"
 )
@@ -54,7 +53,6 @@ type IONOSSharedWorkerProfile struct {
 	MaskedUnits       []string                       `json:"masked_units"`
 	DeniedEgressCIDRs []string                       `json:"denied_egress_cidrs"`
 	MetadataEndpoints []string                       `json:"metadata_endpoints"`
-	Database          string                         `json:"database"`
 	BackupStore       string                         `json:"backup_store"`
 	Agent             IONOSSharedWorkerAgentListener `json:"agent"`
 	CloudInit         string                         `json:"cloud_init"`
@@ -74,11 +72,10 @@ func BuildIONOSSharedWorkerProfile(node IONOSSharedPoolNode) (IONOSSharedWorkerP
 		MemoryMB:          node.MemoryMB,
 		ReservedMemoryMB:  node.ReservedMemoryMB,
 		Slots:             node.Slots,
-		IsolationRuntimes: []string{"gvisor", "incus"},
+		IsolationRuntimes: []string{"gvisor"},
 		MaskedUnits:       []string{"docker.service", "docker.socket"},
 		DeniedEgressCIDRs: []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "169.254.0.0/16", "100.64.0.0/10"},
 		MetadataEndpoints: []string{"169.254.169.254"},
-		Database:          ionosSharedWorkerDatabase,
 		BackupStore:       "r2",
 		Agent: IONOSSharedWorkerAgentListener{
 			Path:               IONOSSharedPoolAgentPath,
@@ -108,7 +105,6 @@ func renderIONOSSharedWorkerCloudInit(p IONOSSharedWorkerProfile) string {
 		"@@AGENT_PORT@@", strconv.Itoa(p.Agent.Port),
 		"@@AGENT_IF@@", p.Agent.Interface,
 		"@@CONTROL_CIDR@@", p.Agent.AllowedSourceCIDR,
-		"@@DATABASE@@", p.Database,
 		"@@WORKLOAD_CIDR@@", ionosSharedWorkerWorkloadCIDR,
 		"@@CONF@@", ionosSharedWorkerConfigDir,
 	).Replace(ionosSharedWorkerCloudInitTemplate)
@@ -118,10 +114,9 @@ func renderIONOSSharedWorkerCloudInit(p IONOSSharedWorkerProfile) string {
 // leading #! user-data file as is). Every heredoc is quoted, so nothing expands
 // at write time, and no value here is a credential.
 const ionosSharedWorkerCloudInitTemplate = `#!/bin/bash
-# kombify IONOS shared worker @@NODE_ID@@ (@@LOCATION@@): standalone gVisor/Incus host.
+# kombify IONOS shared worker @@NODE_ID@@ (@@LOCATION@@): standalone gVisor host.
 # Slots @@SLOTS@@, RAM @@MEMORY_MB@@ MB of which @@RESERVED_MB@@ MB reserved for the host.
-# Free of credentials by construction: the agent TLS identity, the R2 backup credential and
-# the per-app database credentials are node-held and installed outside this script.
+# The agent TLS identity and R2 backup credential are installed outside this script.
 set -euo pipefail
 umask 022
 export DEBIAN_FRONTEND=noninteractive
@@ -142,15 +137,15 @@ KOMBIFY_EOF
 systemctl disable --now docker.service docker.socket 2>/dev/null || true
 systemctl mask docker.service docker.socket
 
-# 2. Isolation runtimes: gVisor (runsc) from its signed repository, and Incus.
+# 2. Daemonless OCI image management with gVisor from its signed repository.
 apt-get update
-apt-get install -y --no-install-recommends ca-certificates curl gnupg nftables iproute2 postgresql incus
+apt-get install -y --no-install-recommends ca-certificates curl gnupg nftables iproute2 podman wireguard-tools xfsprogs
 curl -fsSL https://gvisor.dev/archive.key | gpg --dearmor -o /usr/share/keyrings/gvisor-archive-keyring.gpg
 echo "deb [arch=amd64 signed-by=/usr/share/keyrings/gvisor-archive-keyring.gpg] https://storage.googleapis.com/gvisor/releases release main" >/etc/apt/sources.list.d/gvisor.list
 apt-get update
 apt-get install -y --no-install-recommends runsc
-apt-mark hold runsc incus
-{ runsc --version; dpkg-query -W -f='incus ${Version}\n' incus; } >@@CONF@@/runtime-pins.txt
+apt-mark hold runsc podman
+{ runsc --version; podman --version; } >@@CONF@@/runtime-pins.txt
 
 # 3. Fail-closed host and bridge network isolation. Workloads get no route to private,
 # link-local or CGNAT ranges, to the metadata endpoint, to each other (routed or bridged),
@@ -182,9 +177,9 @@ table inet kombify_shared_worker {
 	chain input {
 		type filter hook input priority 0; policy drop;
 		iifname "lo" accept
+		iifname "kw*" drop
 		ct state established,related accept
 		ct state invalid drop
-		iifname { "kw*", "incusbr*" } drop
 		ip protocol icmp accept
 		ip6 nexthdr icmpv6 accept
 		tcp dport 22 accept
@@ -192,13 +187,13 @@ table inet kombify_shared_worker {
 	}
 	chain forward {
 		type filter hook forward priority 0; policy drop;
+		iifname "kw*" oifname "kw*" drop
+		iifname "kw*" ip daddr @@METADATA@@ drop
+		iifname "kw*" ip daddr { @@DENIED_V4@@ } drop
+		iifname "kw*" meta nfproto ipv6 drop
 		ct state established,related accept
 		ct state invalid drop
-		iifname { "kw*", "incusbr*" } oifname { "kw*", "incusbr*" } drop
-		iifname { "kw*", "incusbr*" } ip daddr @@METADATA@@ drop
-		iifname { "kw*", "incusbr*" } ip daddr { @@DENIED_V4@@ } drop
-		iifname { "kw*", "incusbr*" } ip6 daddr { fc00::/7, fe80::/10 } drop
-		iifname { "kw*", "incusbr*" } accept
+		iifname "kw*" ip saddr @@WORKLOAD_CIDR@@ accept
 	}
 }
 
@@ -206,14 +201,13 @@ table bridge kombify_shared_worker_bridge {
 	chain forward {
 		type filter hook forward priority 0; policy drop;
 		iifname "kw*" oifname "kw*" drop
-		iifname "incusbr*" oifname "incusbr*" drop
 	}
 }
 
 table ip kombify_shared_worker_nat {
 	chain postrouting {
 		type nat hook postrouting priority srcnat; policy accept;
-		ip saddr @@WORKLOAD_CIDR@@ oifname != { "kw*", "incusbr*" } masquerade
+		ip saddr @@WORKLOAD_CIDR@@ oifname != "kw*" masquerade
 	}
 }
 
@@ -224,10 +218,10 @@ nft -c -f /etc/nftables.conf
 systemctl enable nftables
 systemctl restart nftables
 
-# Per-workload netns ruleset template: the node agent executes
+# Per-workload netns ruleset: the node agent executes
 # "ip netns exec net-<sha256(tenant NUL handle)> nft -f -" on Provision/Start.
-cat >@@CONF@@/workload-net.nft.tmpl <<'KOMBIFY_EOF'
-table inet @NETNS@ {
+cat >@@CONF@@/workload-net.nft <<'KOMBIFY_EOF'
+table inet kombify_workload {
 	chain input {
 		type filter hook input priority 0; policy drop;
 		iifname "lo" accept
@@ -245,44 +239,7 @@ table inet @NETNS@ {
 }
 KOMBIFY_EOF
 
-# 4. PostgreSQL: loopback only, one schema and one role per app, no cross-tenant grants.
-for dir in /etc/postgresql/*/main; do
-	cat >"$dir/conf.d/90-kombify-shared-worker.conf" <<'KOMBIFY_EOF'
-listen_addresses = '127.0.0.1'
-password_encryption = 'scram-sha-256'
-log_connections = on
-KOMBIFY_EOF
-	cat >"$dir/pg_hba.conf" <<'KOMBIFY_EOF'
-local all postgres peer
-host all all 127.0.0.1/32 scram-sha-256
-host all all ::1/128 reject
-KOMBIFY_EOF
-	chown postgres:postgres "$dir/conf.d/90-kombify-shared-worker.conf" "$dir/pg_hba.conf"
-done
-systemctl restart postgresql
-cat >@@CONF@@/baseline.sql <<'KOMBIFY_EOF'
-SELECT 'CREATE DATABASE @@DATABASE@@' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '@@DATABASE@@')\gexec
-REVOKE ALL ON DATABASE @@DATABASE@@ FROM PUBLIC;
-\connect @@DATABASE@@
-REVOKE ALL ON SCHEMA public FROM PUBLIC;
-KOMBIFY_EOF
-runuser -u postgres -- psql -v ON_ERROR_STOP=1 -f - <@@CONF@@/baseline.sql
-cat >@@CONF@@/app-schema.sql.tmpl <<'KOMBIFY_EOF'
--- @SCHEMA@ is tenant_<sha256(tenant)[:24]>_app_<sha256(tenant NUL handle)[:24]>.
--- The node agent sets the role credential from node-held custody, never from this file.
-CREATE ROLE "@SCHEMA@" LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION;
-GRANT CONNECT ON DATABASE @@DATABASE@@ TO "@SCHEMA@";
-CREATE SCHEMA "@SCHEMA@" AUTHORIZATION "@SCHEMA@";
-REVOKE ALL ON SCHEMA "@SCHEMA@" FROM PUBLIC;
-ALTER ROLE "@SCHEMA@" IN DATABASE @@DATABASE@@ SET search_path = "@SCHEMA@";
-KOMBIFY_EOF
-cat >@@CONF@@/app-schema-drop.sql.tmpl <<'KOMBIFY_EOF'
-DROP SCHEMA IF EXISTS "@SCHEMA@" CASCADE;
-DROP OWNED BY "@SCHEMA@";
-DROP ROLE IF EXISTS "@SCHEMA@";
-KOMBIFY_EOF
-
-# 5. R2 backup custody: expectations only. The agent reads its R2 credential from a
+# 4. R2 backup custody: expectations only. The agent reads its R2 credential from a
 # systemd encrypted credential that is installed on the node, never from user data.
 cat >@@CONF@@/backup-custody.env <<'KOMBIFY_EOF'
 KOMBIFY_BACKUP_STORE=r2
@@ -291,9 +248,12 @@ KOMBIFY_BACKUP_VERIFY=version,size,sha256
 KOMBIFY_BACKUP_CREDENTIAL=r2-backup
 KOMBIFY_EOF
 
-# 6. Node agent: mTLS only, verified client certificate, bound to @@AGENT_IF@@ address.
+# 5. Node agent: mTLS only, verified client certificate, bound to @@AGENT_IF@@ address.
 cat >@@CONF@@/agent.env <<'KOMBIFY_EOF'
 KOMBIFY_AGENT_NODE_ID=@@NODE_ID@@
+KOMBIFY_AGENT_MEMORY_MB=@@MEMORY_MB@@
+KOMBIFY_AGENT_RESERVED_MB=@@RESERVED_MB@@
+KOMBIFY_AGENT_SLOTS=@@SLOTS@@
 KOMBIFY_AGENT_PATH=@@AGENT_PATH@@
 KOMBIFY_AGENT_INTERFACE=@@AGENT_IF@@
 KOMBIFY_AGENT_ALLOWED_CIDR=@@CONTROL_CIDR@@
@@ -320,16 +280,19 @@ chmod 0750 @@CONF@@/start-agent.sh
 cat >/etc/systemd/system/kombify-ionos-shared-worker-agent.service <<'KOMBIFY_EOF'
 [Unit]
 Description=kombify IONOS shared worker node agent
-After=network-online.target nftables.service postgresql.service
+After=network-online.target nftables.service wg-quick@@@AGENT_IF@@.service
 Wants=network-online.target
-Requires=nftables.service postgresql.service
+Requires=nftables.service
 ConditionPathExists=/usr/local/bin/kombify-ionos-shared-worker-agent
 ConditionPathExists=/sys/class/net/@@AGENT_IF@@
 ConditionPathExists=@@CONF@@/agent-tls/server.crt
 ConditionPathExists=@@CONF@@/agent-tls/server.key
 ConditionPathExists=@@CONF@@/agent-tls/client-ca.crt
+ConditionPathExists=@@CONF@@/apps.json
+ConditionPathIsMountPoint=/var/lib/kombify/ionos-shared-worker
 
 [Service]
+Environment=LC_ALL=C
 EnvironmentFile=@@CONF@@/agent.env
 EnvironmentFile=@@CONF@@/backup-custody.env
 LoadCredentialEncrypted=r2-backup:/etc/credstore.encrypted/kombify-r2-backup
@@ -343,12 +306,12 @@ KOMBIFY_EOF
 systemctl daemon-reload
 systemctl enable kombify-ionos-shared-worker-agent.service
 
-# 7. Verify the isolation posture before the worker reports ready.
-for binary in runsc incus nft psql; do
+# 6. Verify the isolation prerequisites without claiming enrollment.
+for binary in runsc podman nft wg; do
 	command -v "$binary" >/dev/null 2>&1 || fail "$binary is missing"
 done
 if command -v dockerd >/dev/null 2>&1; then fail "bare Docker is installed"; fi
 [ "$(systemctl is-enabled docker.service docker.socket 2>/dev/null | sort -u)" = "masked" ] || fail "docker units are not masked"
 nft list ruleset | grep -q kombify_shared_worker || fail "host isolation ruleset is not loaded"
-echo "kombify-shared-worker: @@NODE_ID@@ ready"
+echo "kombify-shared-worker: @@NODE_ID@@ host profile installed; enrollment pending"
 `

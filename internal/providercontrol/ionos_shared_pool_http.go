@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const IONOSSharedPoolMaxCommandDuration = IONOSPoolSynchronousBudget
+
 // IONOSSharedPoolHTTPRuntime speaks the dedicated node-agent protocol, not the
 // IONOS Cloud API. The supplied client's transport must authenticate the admitted
 // worker (e.g. pinned mutual TLS with node-held credentials). No raw credentials
@@ -29,14 +31,19 @@ func NewIONOSSharedPoolHTTPRuntime(origin string, client *http.Client) (*IONOSSh
 	copy := *client
 	// Never forward node credentials or mutations through a redirect.
 	copy.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
-	if copy.Timeout <= 0 || copy.Timeout > 2*time.Minute {
-		copy.Timeout = 2 * time.Minute
+	if copy.Timeout <= 0 || copy.Timeout > IONOSSharedPoolMaxCommandDuration {
+		copy.Timeout = IONOSSharedPoolMaxCommandDuration
 	}
 	endpoint.Path = IONOSSharedPoolAgentPath
 	return &IONOSSharedPoolHTTPRuntime{endpoint: endpoint.String(), client: copy}, nil
 }
 
 func (r *IONOSSharedPoolHTTPRuntime) Execute(ctx context.Context, command IONOSSharedPoolCommand) (IONOSSharedPoolObservation, error) {
+	if command.Action != IONOSPoolBackup && command.Action != IONOSPoolRestore && command.Action != IONOSPoolVerifyBackup {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 2*time.Minute)
+		defer cancel()
+	}
 	payload, err := json.Marshal(command)
 	if err != nil {
 		return IONOSSharedPoolObservation{}, err
@@ -76,3 +83,10 @@ func (r *IONOSSharedPoolHTTPRuntime) Execute(ctx context.Context, command IONOSS
 }
 
 var _ IONOSSharedPoolRuntime = (*IONOSSharedPoolHTTPRuntime)(nil)
+
+const IONOSPoolVerifyBackup IONOSSharedPoolAction = "verify_backup"
+
+func (r *IONOSSharedPoolHTTPRuntime) VerifyIONOSSharedPoolBackup(ctx context.Context, manifest IONOSSharedPoolBackupManifest) error {
+	_, err := r.Execute(ctx, IONOSSharedPoolCommand{Action: IONOSPoolVerifyBackup, Spec: manifest.Spec, Backup: &manifest})
+	return err
+}
