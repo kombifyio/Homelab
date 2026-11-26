@@ -163,9 +163,18 @@ func (h wizardRunHandlers) runWizardExtend(e *httpx.Event, run *wizardRunState) 
 		newConfig[key] = value
 	}
 	newConfig[stackConfigKeySpecV2] = projection.Spec
+	committed, _ := stack.Config[stackConfigKeySpecV2].(map[string]any)
+	proof, err := managedWikiCommitProof(e, run.tenantID, run.ownerID, stack.ID, committed, projection.Spec, false)
+	if err != nil {
+		return err
+	}
 	updated, err := h.crud.stackStore.CompareAndSwapStackConfig(e.Request.Context(), controlplane.StackConfigCAS{
-		TenantID: run.tenantID, StackID: stack.ID, ExpectedUpdatedAt: stack.UpdatedAt, Config: newConfig,
+		ManagedWikiCommit: proof,
+		TenantID:          run.tenantID, StackID: stack.ID, ExpectedUpdatedAt: stack.UpdatedAt, Config: newConfig,
 	})
+	if errors.Is(err, controlplane.ErrManagedWikiInstallNotAdmitted) {
+		return managedWikiInstallRefusal(e)
+	}
 	if errors.Is(err, controlplane.ErrConflict) {
 		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
 			"The homelab changed while the use cases were being added", wizardRunDetails(

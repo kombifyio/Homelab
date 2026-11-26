@@ -11,6 +11,7 @@ import (
 	"github.com/kombifyio/homelab/internal/gocommon/edgeauth"
 	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
 	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/identity"
 	"github.com/kombifyio/homelab/pkg/logger"
 )
 
@@ -25,6 +26,8 @@ const (
 
 // Category classifies features by their type
 type Category string
+
+const ManagedWikiInstall = "homelab.wiki.install"
 
 const (
 	CategorySecurity Category = "security"
@@ -103,6 +106,11 @@ var securityFeatures = map[string]FeatureDefinition{
 
 // betaFeatures defines experimental features. Each definition owns its default.
 var betaFeatures = map[string]FeatureDefinition{
+	ManagedWikiInstall: {
+		Key: ManagedWikiInstall, Name: "Managed Wiki installation", DefaultValue: false,
+		RiskLevel: RiskLevelLow, Category: CategoryBeta,
+		Description: "Install Wiki on a connected server managed by Homelab.",
+	},
 	"paperwork_move": {
 		Key: "paperwork_move", Name: "Paperwork move", DefaultValue: false,
 		RiskLevel: RiskLevelHigh, Category: CategoryBeta,
@@ -384,6 +392,10 @@ func (s *Service) IsEnabled(ctx context.Context, featureKey string, userID strin
 
 // flagDecision returns whether the feature is enabled and centrally controlled.
 func (s *Service) flagDecision(ctx context.Context, def FeatureDefinition) (bool, bool) {
+	if def.Key == ManagedWikiInstall {
+		id := identity.FromContext(ctx)
+		return id != nil && ManagedWikiInstallEnabled(ctx, id.UserID, id.OrgID), true
+	}
 	if flags, present := edgeauth.FlagsFromContext(ctx); present {
 		return flags.Flags[signedFlagKey(def.Key)], true
 	}
@@ -398,6 +410,16 @@ func (s *Service) flagDecision(ctx context.Context, def FeatureDefinition) (bool
 		return true, false
 	}
 	return def.DefaultValue, false
+}
+
+func ManagedWikiInstallEnabled(ctx context.Context, ownerID, tenantID string) bool {
+	flags, present := edgeauth.FlagsFromContext(ctx)
+	if !present || ownerID == "" || tenantID == "" {
+		return false
+	}
+	binding, verified := flags.VerifiedDecisionBinding()
+	return verified && binding.SubjectID == ownerID && binding.TenantID == tenantID &&
+		binding.Audience == "homelab" && binding.PublicPrefix == "/v1/homelab" && flags.Decision(ManagedWikiInstall) == edgeauth.FlagGranted
 }
 
 // Gateway normalizes underscores to dots and signs monthly-runtime aliases

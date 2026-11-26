@@ -35,6 +35,8 @@ func (o *Orchestrator) ConfigureStackKitCommander(sender jobs.StackKitCommandSen
 	config.WalletHostDelivery = walletHostDelivery(o.cfg.KombifyWallet, o.cfg.WalletHostAuthority)
 	config.CustomerRegistryRenew = customerRegistryRenewal(o.cfg.CustomerRegistryIssuer, o.cfg.KombifyWallet)
 	config.CustomerRegistrySpec = o.customerRegistrySpec
+	config.CommitRollbackTarget = o.commitRollbackTarget
+	config.CommitSpecCanonical = o.commitSpecCanonical
 	config.IdentityJoinWallet = identityJoinWallet(o.cfg.KombifyWallet, o.cfg.WalletHostAuthority)
 	config.Services, _ = o.cfg.StackStore.(interface {
 		controlplane.ServiceRuntimeStore
@@ -167,6 +169,16 @@ func (o *Orchestrator) EnqueueStackKitLifecycle(ctx context.Context, request job
 	}
 	normalized, stack, binding, err := o.prepareStackKitLifecycle(ctx, request)
 	if err != nil {
+		return "", err
+	}
+	if err := o.commitManagedWikiLifecycleCandidate(ctx, &normalized, stack); err != nil {
+		return "", err
+	}
+	approvedSpec, err := registrySpecJSON(stack.config["stack_spec_v2"])
+	if err != nil {
+		return "", err
+	}
+	if err := o.bindManagedWikiLifecycle(ctx, &normalized, approvedSpec); err != nil {
 		return "", err
 	}
 	if normalized.Operation == jobs.StackKitLifecyclePaperworkMove {

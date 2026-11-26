@@ -1361,10 +1361,7 @@ func (q *Queue) Enqueue(job *Job) error {
 // The same ownership decision gates both initial enqueue state and direct
 // durable execution. A foreign tenant never changes attempts or wins a claim.
 func queueAdmitsJob(job *Job) bool {
-	if job == nil {
-		return false
-	}
-	return true
+	return job != nil
 }
 
 // Get returns a job by ID.

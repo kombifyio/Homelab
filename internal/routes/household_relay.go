@@ -15,7 +15,7 @@ func RegisterHouseholdRelay(r *httpx.Router, hub *agentcontrol.Hub) {
 		cfg, err := serviceauth.Apply(servicecall.Config{ServiceName: "homelab", Enabled: true, RequireEd25519: true,
 			AllowedCallers: []string{agentcontrol.HouseholdRelayCaller}})
 		if err != nil || hub == nil {
-			http.Error(e.Response, "household relay unavailable", 503)
+			http.Error(e.Response, "household relay unavailable", http.StatusServiceUnavailable)
 			return nil
 		}
 		// No shared-secret fallback, user OBO, dynamic receiver or scope expansion.
@@ -25,7 +25,7 @@ func RegisterHouseholdRelay(r *httpx.Router, hub *agentcontrol.Hub) {
 			http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 				caller := servicecall.FromContext(request.Context())
 				if caller == nil || caller.ExpiresAt.Sub(caller.IssuedAt) > 2*time.Minute {
-					http.Error(w, "relay lifetime denied", 403)
+					http.Error(w, "relay lifetime denied", http.StatusForbidden)
 					return
 				}
 				hub.ServeHouseholdTransient(w, request)

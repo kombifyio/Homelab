@@ -127,7 +127,7 @@ func (o *OwnerOperations) Execute(ctx context.Context, input managedstackkit.Ope
 	}
 	for _, gap := range observation.Gaps {
 		if gap != "companion_connector_authorization" {
-			return empty, errors.New("Home Assistant baseline requires authenticated TLS access and verified off-instance recovery")
+			return empty, errors.New("home Assistant baseline requires authenticated TLS access and verified off-instance recovery")
 		}
 	}
 	raw, _ := json.Marshal(observation)

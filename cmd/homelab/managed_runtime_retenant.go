@@ -146,13 +146,13 @@ func adoptManagedRuntimeRetenant(ctx context.Context, database *db.DB, req provi
 func parseManagedRuntimeRetenantArgs(args []string, stderr io.Writer) (managedRuntimeRetenantArgs, error) {
 	var out managedRuntimeRetenantArgs
 	if len(args) == 0 {
-		return out, errors.New(managedRuntimeRetenantUsage)
+		return out, errors.New(strings.TrimSuffix(managedRuntimeRetenantUsage, "\n"))
 	}
 	out.action = args[0]
 	switch out.action {
 	case "archive", "readmit", "adopt", "status":
 	default:
-		return out, errors.New(managedRuntimeRetenantUsage)
+		return out, errors.New(strings.TrimSuffix(managedRuntimeRetenantUsage, "\n"))
 	}
 	flags := flag.NewFlagSet("managed-runtime-retenant "+out.action, flag.ContinueOnError)
 	flags.SetOutput(stderr)
@@ -166,7 +166,7 @@ func parseManagedRuntimeRetenantArgs(args []string, stderr io.Writer) (managedRu
 		return out, fmt.Errorf("%w\n%s", err, managedRuntimeRetenantUsage)
 	}
 	if flags.NArg() != 0 {
-		return out, errors.New(managedRuntimeRetenantUsage)
+		return out, errors.New(strings.TrimSuffix(managedRuntimeRetenantUsage, "\n"))
 	}
 	out.req = providercontrol.CustodyRetenantRequest{
 		FromTenantID: strings.TrimSpace(*from), ToTenantID: strings.TrimSpace(*to),

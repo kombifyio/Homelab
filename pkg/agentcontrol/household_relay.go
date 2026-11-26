@@ -173,7 +173,7 @@ func (h *Hub) ConfigureHouseholdRelay(client *HouseholdRelayClient) {
 // command enqueue, owner impersonation, callback, replay or broadcast.
 func (h *Hub) ServeHouseholdTransient(w http.ResponseWriter, r *http.Request) {
 	if h == nil {
-		http.Error(w, "unavailable", 503)
+		http.Error(w, "unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), transientIdentityLifetime)
@@ -183,7 +183,7 @@ func (h *Hub) ServeHouseholdTransient(w http.ResponseWriter, r *http.Request) {
 		raw := make([]byte, 32)
 		if _, err := rand.Read(raw); err != nil {
 			h.mu.Unlock()
-			http.Error(w, "unavailable", 503)
+			http.Error(w, "unavailable", http.StatusServiceUnavailable)
 			return
 		}
 		h.householdReplica = hex.EncodeToString(raw)
@@ -233,14 +233,14 @@ func (h *Hub) ServeHouseholdTransient(w http.ResponseWriter, r *http.Request) {
 	_, seen := h.householdRelaySeen[key]
 	if seen || len(h.householdRelaySeen) >= 1024 {
 		h.mu.Unlock()
-		http.Error(w, "registration unavailable", 409)
+		http.Error(w, "registration unavailable", http.StatusConflict)
 		return
 	}
 	h.householdRelaySeen[key] = now.Add(CommandAuthorityLifetime)
 	h.mu.Unlock()
 	waiter, err := h.registerTransientIdentity(ctx, envelope.Tenant, envelope.Agent, command)
 	if err != nil {
-		http.Error(w, "original waiter exists", 409)
+		http.Error(w, "original waiter exists", http.StatusConflict)
 		return
 	}
 	defer h.removeTransientIdentity(envelope.Tenant, envelope.Agent, command.CommandId, waiter)

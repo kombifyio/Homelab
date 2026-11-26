@@ -247,12 +247,6 @@ func envStr(key string, current string) string {
 	return current
 }
 
-// envBool returns true if the environment variable is "true" or "1".
-func envBool(key string) bool {
-	v := os.Getenv(key)
-	return v == "true" || v == "1"
-}
-
 // envFloat returns the environment variable value as float64 if set and valid,
 // otherwise returns the current value.
 func envFloat(key string, current float64) float64 {

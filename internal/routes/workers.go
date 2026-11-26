@@ -234,32 +234,32 @@ func RegisterWorkerRoutesWithStore(r *httpx.Router, cfg WorkerRouteConfig) {
 }
 
 type workerRouteHandlers struct {
-	systemContext           func(context.Context) context.Context
-	managedRuntimeLeases    managedRuntimeLeaseLister
-	metricWriter            WorkerMetricWriter
-	wst                     controlplane.WorkerStore
-	serverStore             controlplane.ServerRuntimeStore
-	registryStore           controlplane.RegistryStore
-	rilStore                controlplane.RILStore
-	agentIdentityIssuer     WorkerAgentIdentityIssuer
-	typedControl            WorkerTypedControl
-	stackKitOperations      WorkerStackKitOperations
-	runtimeLogs             WorkerRuntimeLogWriter
-	portObservations        portinventory.ObservationWriter
-	reach                   WorkerReach
-	posture                 WorkerPosture
-	telemetry               WorkerTelemetry
-	userNotices             usernotice.Sink
-	stackKitsUpdates        WorkerStackKitsUpdates
-	updateEvaluator         *stackKitsUpdateEvaluator
-	entitlements            EntitlementGate
-	credentialStore         controlplane.WorkerCredentialStore
-	enrollmentStore         controlplane.WorkerEnrollmentStore
-	identityStore           controlplane.WorkerIdentityStore
-	credentialSecret        []byte
-	binaryArtifact          func() (agentBinaryArtifact, error)
-	stackKitReleaseArtifact func() (agentBinaryArtifact, error)
-	binaryDownloadGuard     *agentBinaryDownloadGuard
+	systemContext        func(context.Context) context.Context
+	managedRuntimeLeases managedRuntimeLeaseLister
+	metricWriter         WorkerMetricWriter
+	wst                  controlplane.WorkerStore
+	serverStore          controlplane.ServerRuntimeStore
+	registryStore        controlplane.RegistryStore
+	rilStore             controlplane.RILStore
+	agentIdentityIssuer  WorkerAgentIdentityIssuer
+	typedControl         WorkerTypedControl
+	stackKitOperations   WorkerStackKitOperations
+	runtimeLogs          WorkerRuntimeLogWriter
+	portObservations     portinventory.ObservationWriter
+	reach                WorkerReach
+	posture              WorkerPosture
+	telemetry            WorkerTelemetry
+	userNotices          usernotice.Sink
+	stackKitsUpdates     WorkerStackKitsUpdates
+	updateEvaluator      *stackKitsUpdateEvaluator
+	entitlements         EntitlementGate
+	credentialStore      controlplane.WorkerCredentialStore
+	enrollmentStore      controlplane.WorkerEnrollmentStore
+	identityStore        controlplane.WorkerIdentityStore
+	credentialSecret     []byte
+	binaryArtifact       func() (agentBinaryArtifact, error)
+
+	binaryDownloadGuard *agentBinaryDownloadGuard
 	// updateRefusals holds the Guard binary from a Guard that refused it; the
 	// heartbeat fills it, so it exists before any route is bound.
 	updateRefusals      *guardUpdateRefusals

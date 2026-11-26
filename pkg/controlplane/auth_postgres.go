@@ -661,6 +661,3 @@ func scanBreakglassAdmin(row rowScanner) (*BreakglassAdmin, error) {
 }
 
 var _ AuthStore = (*PostgresStore)(nil)
-
-// userGUC scopes the membership self-lookup RLS policy (migration 043).
-const userGUC = "app.user_id"

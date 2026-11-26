@@ -106,7 +106,7 @@ func runGuardTenantRebind(ctx context.Context, args []string) error {
 func parseGuardTenantRebindArgs(args []string, stderr io.Writer) (guardTenantRebindArgs, error) {
 	var out guardTenantRebindArgs
 	if len(args) == 0 {
-		return out, errors.New(guardTenantRebindUsage)
+		return out, errors.New(strings.TrimSuffix(guardTenantRebindUsage, "\n"))
 	}
 	out.action = args[0]
 	flags := flag.NewFlagSet("guard-tenant-rebind "+out.action, flag.ContinueOnError)
@@ -125,12 +125,12 @@ func parseGuardTenantRebindArgs(args []string, stderr io.Writer) (guardTenantReb
 		return out, fmt.Errorf("%w\n%s", err, guardTenantRebindUsage)
 	}
 	if flags.NArg() != 0 {
-		return out, errors.New(guardTenantRebindUsage)
+		return out, errors.New(strings.TrimSuffix(guardTenantRebindUsage, "\n"))
 	}
 	switch out.action {
 	case "stage", "commit", "status":
 	default:
-		return out, errors.New(guardTenantRebindUsage)
+		return out, errors.New(strings.TrimSuffix(guardTenantRebindUsage, "\n"))
 	}
 	out.from, out.to, out.subject, out.label = strings.TrimSpace(*from), strings.TrimSpace(*to), strings.TrimSpace(*subject), strings.TrimSpace(*label)
 	if err := guardidentity.ValidateTenantRebindPair(out.from, out.to, out.subject, out.label); err != nil {

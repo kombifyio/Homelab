@@ -278,7 +278,7 @@ func openBackupEntitlements(ctx context.Context) (*featureflags.Client, error) {
 		return nil, errors.New("backup projection requires its physical database identity")
 	}
 	if config.ReleaseChannel() == "preview" && (expected != "kombify@7699436836349883199" || cfg.ConnConfig.Host != "kombify-stg-pg-8146d168.pgv20v39ze9j4j3d3dwbj6p979.c0.eu-central-1.aws.pg.clickhouse.cloud") {
-		return nil, errors.New("Stage backup projection cannot receive production custody")
+		return nil, errors.New("stage backup projection cannot receive production custody")
 	}
 	cfg.MaxConns = 2
 	cfg.ConnConfig.RuntimeParams["default_transaction_read_only"] = "on"

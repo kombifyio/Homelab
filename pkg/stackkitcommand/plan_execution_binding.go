@@ -85,7 +85,7 @@ func ManagedPlanExecutionBinding(result *agentpb.StackKitResult, instance, nodeR
 		return binding, ErrPlanExecutionBindingMissing
 	}
 	if plan == nil {
-		return binding, fmt.Errorf("Guard did not attach the native local Owner Plan artifact projection")
+		return binding, fmt.Errorf("guard did not attach the native local Owner Plan artifact projection")
 	}
 	local := inspection.LocalOwner
 	if local.State == "unavailable" && local.StackID == instance && local.PlanHash == hash {
@@ -104,7 +104,7 @@ func ManagedPlanExecutionBinding(result *agentpb.StackKitResult, instance, nodeR
 		ExecutionChannelRef string `json:"executionChannelRef"`
 	}
 	if len(plan["nodes"]) == 0 || len(plan["externalHostBindings"]) == 0 {
-		return binding, fmt.Errorf("Guard did not attest the inspected Plan node projection")
+		return binding, fmt.Errorf("guard did not attest the inspected Plan node projection")
 	}
 	if json.Unmarshal(plan["nodes"], &nodes) != nil || json.Unmarshal(plan["externalHostBindings"], &external) != nil {
 		return binding, fmt.Errorf("inspected plan execution projection is invalid")

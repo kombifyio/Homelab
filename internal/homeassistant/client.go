@@ -31,8 +31,8 @@ type Client struct {
 	http     *http.Client
 }
 
-var ErrUnavailable = errors.New("Home Assistant connection unavailable")
-var ErrUnauthorized = errors.New("Home Assistant authorization denied")
+var ErrUnavailable = errors.New("home Assistant connection unavailable")
+var ErrUnauthorized = errors.New("home Assistant authorization denied")
 
 // NewLocalClient is exclusively for the owner-authorized local executor. HTTP
 // is accepted only on private addresses. DNS answers are pinned for the lifetime
@@ -40,18 +40,18 @@ var ErrUnauthorized = errors.New("Home Assistant authorization denied")
 func NewLocalClient(ctx context.Context, endpoint, token string) (*Client, error) {
 	u, err := url.Parse(strings.TrimSpace(endpoint))
 	if err != nil || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Scheme != "https" && u.Scheme != "http") || (u.Path != "" && u.Path != "/") {
-		return nil, errors.New("Home Assistant requires an HTTP(S) origin without credentials, path, query or fragment")
+		return nil, errors.New("home Assistant requires an HTTP(S) origin without credentials, path, query or fragment")
 	}
 	if strings.TrimSpace(token) == "" || strings.ContainsAny(token, "\r\n") {
-		return nil, errors.New("Home Assistant token required")
+		return nil, errors.New("home Assistant token required")
 	}
 	ips, err := net.DefaultResolver.LookupIPAddr(ctx, u.Hostname())
 	if err != nil || len(ips) == 0 {
-		return nil, errors.New("Home Assistant address resolution failed")
+		return nil, errors.New("home Assistant address resolution failed")
 	}
 	for _, ip := range ips {
 		if ip.IP.IsUnspecified() || ip.IP.IsMulticast() || ip.IP.IsLinkLocalUnicast() || (u.Scheme == "http" && !ip.IP.IsPrivate() && !ip.IP.IsLoopback()) {
-			return nil, errors.New("Home Assistant address is not permitted for local access")
+			return nil, errors.New("home Assistant address is not permitted for local access")
 		}
 	}
 	port := u.Port()
@@ -87,7 +87,7 @@ func (c *Client) Observe(ctx context.Context) (Observation, error) {
 		return Observation{}, err
 	}
 	if strings.TrimSpace(config.Version) == "" {
-		return Observation{}, errors.New("Home Assistant did not return a Core version")
+		return Observation{}, errors.New("home Assistant did not return a Core version")
 	}
 	caps := map[string]bool{"core_rest_read": true, "mcp_integration_loaded": false, "supervisor_authorized": false, "backup_restore_authorized": false}
 	for _, component := range config.Components {
@@ -110,7 +110,7 @@ func (c *Client) EntityIDs(ctx context.Context) ([]string, error) {
 	ids := make([]string, 0, len(states))
 	for _, state := range states {
 		if state.ID == "" {
-			return nil, errors.New("Home Assistant returned an empty entity identity")
+			return nil, errors.New("home Assistant returned an empty entity identity")
 		}
 		ids = append(ids, state.ID)
 	}
@@ -136,7 +136,7 @@ func (c *Client) json(ctx context.Context, method, path string, body io.Reader, 
 		if resp.StatusCode == 502 || resp.StatusCode == 503 || resp.StatusCode == 504 {
 			return ErrUnavailable
 		}
-		return fmt.Errorf("Home Assistant returned HTTP %d", resp.StatusCode)
+		return fmt.Errorf("home Assistant returned HTTP %d", resp.StatusCode)
 	}
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024+1))
 	if err != nil || len(data) > 2*1024*1024 {

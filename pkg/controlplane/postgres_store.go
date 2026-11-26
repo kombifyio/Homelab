@@ -11,8 +11,6 @@ import (
 	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 )
 
-const tenantGUC = "app.tenant_id"
-
 type PostgresStore struct {
 	db                   *sql.DB
 	backupWorker         bool

@@ -640,7 +640,3 @@ func (h inventoryHandlers) writeCloudReadError(e *httpx.Event, surface cloudRead
 	// httpx.Error itself.
 	_ = writeInventoryHTTPError(e, err)
 }
-
-func writeRuntimeSummaryDenial(e *httpx.Event, status int, reasonCode string, retryable bool, nextStep string) error {
-	return runtimeSummarySurface.deny(e, status, reasonCode, retryable, nextStep)
-}

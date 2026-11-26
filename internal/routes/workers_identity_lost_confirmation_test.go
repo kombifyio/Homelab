@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -45,7 +44,7 @@ func TestGuardAgentLostConfirmationAnswerBindsOnceAndKeepsNoCapability(t *testin
 		if strings.HasSuffix(r.URL.Path, "/identity/token") && dropped.CompareAndSwap(false, true) {
 			router.ServeHTTP(httptest.NewRecorder(), r)
 			if connection, _, hijackErr := w.(http.Hijacker).Hijack(); hijackErr == nil {
-				_ = connection.(net.Conn).Close()
+				_ = connection.Close()
 			}
 			return
 		}

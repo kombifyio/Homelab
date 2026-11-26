@@ -57,14 +57,14 @@ func (c *Client) websocket(ctx context.Context, message map[string]any, out any)
 		return ErrUnavailable
 	}
 	if auth.Type != "auth_required" {
-		return errors.New("Home Assistant WebSocket auth challenge missing")
+		return errors.New("home Assistant WebSocket auth challenge missing")
 	}
 	if conn.WriteJSON(map[string]any{"type": "auth", "access_token": c.token}) != nil || conn.ReadJSON(&auth) != nil || auth.Type != "auth_ok" {
 		return ErrUnauthorized
 	}
 	message["id"] = 1
 	if conn.WriteJSON(message) != nil {
-		return errors.New("Home Assistant WebSocket dispatch failed")
+		return errors.New("home Assistant WebSocket dispatch failed")
 	}
 	var result struct {
 		ID      int             `json:"id"`
@@ -132,7 +132,7 @@ type coreBackupInfo struct {
 
 func (c *CoreBackup) convert(info coreBackupInfo) (Backup, error) {
 	if !info.HomeAssistant || !info.Database || !info.Agents[c.AgentID].Protected || len(info.FailedAddons) > 0 || len(info.FailedFolders) > 0 || len(info.FailedAgents) > 0 {
-		return Backup{}, errors.New("Core backup is incomplete or not encrypted on selected agent")
+		return Backup{}, errors.New("core backup is incomplete or not encrypted on selected agent")
 	}
 	b := Backup{Slug: info.ID, Name: info.Name, Type: "full", Protected: true}
 	b.Content.HomeAssistant = true
@@ -146,7 +146,7 @@ func (c *CoreBackup) BackupInfo(ctx context.Context, id string) (Backup, error) 
 		return Backup{}, err
 	}
 	if out.Backup.ID != id {
-		return Backup{}, errors.New("Core backup identity mismatch")
+		return Backup{}, errors.New("core backup identity mismatch")
 	}
 	return c.convert(out.Backup)
 }

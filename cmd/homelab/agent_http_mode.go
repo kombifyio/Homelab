@@ -193,7 +193,7 @@ func runEnrolledHTTPAgentMode(runCtx context.Context, stop context.CancelFunc, c
 		return holdUntilStopped(runCtx, hostidentity.ErrRevoked, log, cfg.progress)
 	}
 	if manager == nil {
-		return errors.New("Guard identity custody is required")
+		return errors.New("guard identity custody is required")
 	}
 	custodyRoot, err := manager.OpenCustodyRoot()
 	if err != nil {
@@ -337,7 +337,7 @@ func runEnrolledHTTPAgentMode(runCtx context.Context, stop context.CancelFunc, c
 		return substrateClient.Run(execCtx)
 	}
 	if hypervisorErr == nil {
-		return errors.New("Proxmox requires an explicit substrate enrollment")
+		return errors.New("proxmox requires an explicit substrate enrollment")
 	}
 	execution := selectGuardExecution(runCtx, log)
 	// After a tenant rebind the privileged executor adopts the canonical

@@ -287,8 +287,11 @@ func (h crudRouteHandlers) startStackKitLifecycle(e *httpx.Event) error {
 	if maintenanceErr := h.refuseDuringServerMaintenance(e, tenantID, stackID, normalized.AgentID); maintenanceErr != nil {
 		return maintenanceErr
 	}
-	jobID, err := h.orch.EnqueueStackKitLifecycle(e.Request.Context(), normalized)
+	jobID, err := h.orch.EnqueueStackKitLifecycle(wikiInstallContext(e, ownerID, tenantID), normalized)
 	if err != nil {
+		if errors.Is(err, jobs.ErrManagedWikiInstallNotAdmitted) {
+			return httpx.Reject(e, http.StatusForbidden, ksapi.ErrCodeForbidden, "Managed Wiki installation is not enabled", map[string]any{"reason_code": "managed_wiki_install_disabled", "retryable": false})
+		}
 		if refusal := tenantguard.ExecutionRefusal(err); refusal != nil {
 			return refusal
 		}

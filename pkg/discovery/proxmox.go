@@ -45,7 +45,7 @@ func FingerprintProxmox(ctx context.Context, ip string, port int, timeout time.D
 	}
 	response, err := client.Do(req)
 	if err != nil {
-		return result, errors.New("Proxmox fingerprint unavailable")
+		return result, errors.New("proxmox fingerprint unavailable")
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK || !strings.HasPrefix(strings.ToLower(response.Header.Get("Server")), "pve-api-daemon/") || response.TLS == nil || len(response.TLS.PeerCertificates) == 0 {
@@ -73,5 +73,5 @@ func FingerprintProxmox(ctx context.Context, ip string, port int, timeout time.D
 			return result, nil
 		}
 	}
-	return result, errors.New("Proxmox authentication realms were not found")
+	return result, errors.New("proxmox authentication realms were not found")
 }

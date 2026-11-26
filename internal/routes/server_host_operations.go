@@ -33,8 +33,6 @@ const (
 	hostOpsReasonUnitProtected     = "unit_protected"
 	hostOpsReasonContainerProtect  = "container_protected"
 	hostOpsReasonFailed            = "host_operation_failed"
-
-	hostOpsAuditSource = "server-host-operations"
 )
 
 // HostOperationsDispatcher runs the two read-only Guard host operations on a
@@ -161,7 +159,7 @@ func hostOpsLimit(e *httpx.Event) (int32, error) {
 	if raw == "" {
 		return 0, nil
 	}
-	limit, err := strconv.Atoi(raw)
+	limit, err := strconv.ParseInt(raw, 10, 32)
 	if err != nil || limit < 1 || limit > stackkitcommand.HostListMaxLimit {
 		return 0, httpx.BadRequest(e, "limit must be between 1 and "+strconv.Itoa(stackkitcommand.HostListMaxLimit), nil)
 	}

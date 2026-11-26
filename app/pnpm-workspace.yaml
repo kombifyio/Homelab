@@ -39,12 +39,12 @@ overrides:
   # Force-patch transitive dev-tool vulns (vitest/wrangler/miniflare -> ws/undici).
   # GHSA-96hv-2xvq-fx4p (ws DoS), GHSA-vmh5-mc38-953g / vxpw-j846-p89q / hm92-r4w5-c3mj (undici).
   ws@>=8.0.0 <8.21.0: ">=8.22.0"
-  undici@>=7.0.0 <7.28.0: ">=7.30.1"
+  undici@>=7.0.0 <7.30.1: ">=7.30.1"
   # jsdom@29.1.1 uses undici/lib/handler/wrap-handler.js, which was removed in
   # undici 8.x, so jsdom's undici must stay on the 7.x line. 7.28.0 (released
   # since the original 7.27.2 pin) patches the three 2026-07 high advisories
   # while keeping wrap-handler.js. jsdom is dev-only (not shipped).
-  "jsdom>undici": ">=7.28.0 <8.0.0"
+  "jsdom>undici": ">=7.30.1 <8.0.0"
   # 2026-07-24 high advisories (platform-3nbia): brace-expansion DoS
   # (GHSA-3jxr-9vmj-r5cp), js-yaml merge-key DoS (GHSA-52cp-r559-cp3m;
   # GHSA-2883-xcg3-v3hh needs 4.3.2),
@@ -54,6 +54,10 @@ overrides:
   postcss@<=8.5.17: ">=8.5.29"
   js-yaml@>=4.0.0 <4.3.2: ">=4.3.2 <5.0.0"
   sharp@<0.35.0: ">=0.35.5"
+  # 2026-11 advisories: glob GHSA-3g3m-2fjr-6pw4, minimatch GHSA-g3hv-75wg-m249, postcss-selector-parser GHSA-rj75-hqrm-r3gf.
+  glob@>=9.0.0 <14.0.2: ">=14.0.6"
+  minimatch@>=7.0.0 <11.0.1: ">=11.0.9"
+  postcss-selector-parser@>=7.0.0 <7.1.6: ">=7.1.6"
 minimumReleaseAgeExclude:
   # First-party packages are published from the governed Kombify delivery lane.
   - "@kombiverselabs/*"

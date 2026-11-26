@@ -98,7 +98,7 @@ func (r *StageCandidateResolver) Resolve() (*Release, error) {
 	defer file.Close()
 	digest, err := digestArchiveReader(file, info.Size())
 	if err != nil || digest.sha256 != r.bundleSHA256 {
-		return nil, fmt.Errorf("Stage candidate bundle changed after admission")
+		return nil, fmt.Errorf("stage candidate bundle changed after admission")
 	}
 	if _, err = file.Seek(0, io.SeekStart); err != nil {
 		return nil, err

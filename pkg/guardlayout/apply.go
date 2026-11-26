@@ -218,15 +218,13 @@ func Apply(ctx context.Context, opts Options) (Result, error) {
 	}
 
 	agentUnit := filepath.Join(opts.path(systemdDir), AgentUnit)
-	existing, readErr := os.ReadFile(agentUnit) // #nosec G304 -- a fixed systemd unit path.
-	legacy := readErr == nil && IsLegacyUnit(string(existing))
 	unlock, err := lockLayoutState(&opts)
 	if err != nil {
 		return result, err
 	}
 	defer unlock()
-	existing, readErr = os.ReadFile(agentUnit)
-	legacy = readErr == nil && IsLegacyUnit(string(existing))
+	existing, readErr := os.ReadFile(agentUnit) // #nosec G304 -- a fixed systemd unit path.
+	legacy := readErr == nil && IsLegacyUnit(string(existing))
 	if _, err := readLayoutTrial(&opts); err == nil {
 		return result, errors.New("a prepared layout trial must be reconciled before another migration")
 	} else if !errors.Is(err, os.ErrNotExist) {

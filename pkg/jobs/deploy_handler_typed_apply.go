@@ -49,28 +49,34 @@ func (r *deployRollout) runTypedStackKitApply(ctx context.Context) (map[string]i
 		boundSpecPath = specPath
 		specPath = "stack-spec.yaml"
 	}
+	var candidateDocument map[string]any
+	if err := json.Unmarshal(candidateSpec, &candidateDocument); err != nil {
+		return nil, err
+	}
 	baseRequest := StackKitLifecycleRequest{
-		StackID:           r.job.TargetID,
-		TenantID:          r.actionReq.TenantID,
-		OwnerID:           r.actionReq.OwnerID,
-		OwnerEmail:        stackOwnerEmail(r.job, r.actionReq.OwnerID),
-		AgentID:           r.actionReq.HomelabEnrollment.RuntimeAgentID,
-		NodeRef:           PrimaryStackKitNodeRef(r.unifiedSpec.StackKit),
-		OwnerApproved:     true,
-		WorkingDirectory:  workingDirectory,
-		SpecPath:          specPath,
-		AddressPrefix:     r.addressPrefix,
-		BoundSpecPath:     boundSpecPath,
-		StackKit:          r.unifiedSpec.StackKit,
-		StackName:         stackName,
-		Domain:            domain,
-		CandidateSpecJSON: candidateSpec,
+		StackID:            r.job.TargetID,
+		StackKitInstanceID: specv2.StackKitInstanceID(candidateDocument),
+		TenantID:           r.actionReq.TenantID,
+		OwnerID:            r.actionReq.OwnerID,
+		OwnerEmail:         stackOwnerEmail(r.job, r.actionReq.OwnerID),
+		AgentID:            r.actionReq.HomelabEnrollment.RuntimeAgentID,
+		NodeRef:            PrimaryStackKitNodeRef(r.unifiedSpec.StackKit),
+		OwnerApproved:      true,
+		WorkingDirectory:   workingDirectory,
+		SpecPath:           specPath,
+		AddressPrefix:      r.addressPrefix,
+		BoundSpecPath:      boundSpecPath,
+		StackKit:           r.unifiedSpec.StackKit,
+		StackName:          stackName,
+		Domain:             domain,
+		CandidateSpecJSON:  candidateSpec,
 		// A fresh managed workspace has no current intent to compare-and-swap.
 		// StackKits creates it atomically without this field and treats an exact
 		// retry as already applied; a differing existing intent still fails
 		// closed because replacement requires its current normalized hash.
 		ExpectedSpecHash: "",
 	}
+	baseRequest.WikiInstallAdmission = stringFromInterface(r.job.Payload[ManagedWikiInstallAdmissionKey])
 	nodeSpec := func(request StackKitLifecycleRequest) string {
 		if request.BoundSpecPath != "" {
 			return request.BoundSpecPath
@@ -324,6 +330,9 @@ func runTypedStackKitApplySequenceWithBudget(ctx context.Context, lifecycle Stac
 		return nil, &typedStackKitOperationError{Operation: StackKitLifecycleInit, CommandID: jobID + "-" + StackKitLifecycleInit, Err: candidateErr}
 	}
 	baseRequest.CandidateSpecJSON = candidate
+	if err := ValidateManagedWikiExecution(ctx, lifecycle, baseRequest); err != nil {
+		return nil, err
+	}
 	const generationTarget = "terramate"
 	// Everything before apply, convergence waits and retries included, draws
 	// from ONE shared deadline: what the sequence budget leaves after the apply
@@ -332,7 +341,7 @@ func runTypedStackKitApplySequenceWithBudget(ctx context.Context, lifecycle Stac
 	// them; only a closer job deadline does.
 	preApplyCtx, cancel := context.WithTimeout(ctx, sequenceBudget-managedStackKitApplyAllowances(baseRequest.modern != nil))
 	defer cancel()
-	nodePlanHash, err := runTypedStackKitPreApplySequence(preApplyCtx, sender, jobID, baseRequest, release, admitTrust)
+	nodePlanHash, err := runTypedStackKitPreApplySequence(preApplyCtx, lifecycle, sender, jobID, baseRequest, release, admitTrust)
 	if err != nil {
 		return nil, err
 	}
@@ -425,6 +434,7 @@ func runTypedStackKitApplySequenceWithBudget(ctx context.Context, lifecycle Stac
 	if cloudNode != nil {
 		cloudRegistryRequest := cloudNode.request
 		cloudRegistryRequest.CandidateSpecJSON = baseRequest.CandidateSpecJSON
+		cloudRegistryRequest.WikiInstallAdmission = baseRequest.WikiInstallAdmission
 		registryOutcome := map[string]interface{}{}
 		if err := renewCustomerRegistryPull(ctx, lifecycle, jobID+"-cloud", cloudRegistryRequest, release, registryOutcome); err != nil {
 			copyRegistryOutcomes(normalized, registryOutcome)
@@ -450,7 +460,7 @@ const stackKitStepBackupTargetDelivery = "backup_target_delivery"
 // plan hash that Apply must match.
 //
 //nolint:gocyclo // moved unchanged from deploy_handler.go
-func runTypedStackKitPreApplySequence(ctx context.Context, sender StackKitCommandSender, jobID string, baseRequest StackKitLifecycleRequest, release stackkitrelease.Release, admitTrust advancedTrustAdmission) (string, error) {
+func runTypedStackKitPreApplySequence(ctx context.Context, lifecycle StackKitLifecycleConfig, sender StackKitCommandSender, jobID string, baseRequest StackKitLifecycleRequest, release stackkitrelease.Release, admitTrust advancedTrustAdmission) (string, error) {
 	if baseRequest.inspectCurrentIntent {
 		request := baseRequest
 		request.Operation = StackKitLifecyclePlan
@@ -524,6 +534,16 @@ func runTypedStackKitPreApplySequence(ctx context.Context, sender StackKitComman
 			return "", err
 		}
 		switch operation {
+		case StackKitLifecycleInit:
+			if lifecycle.CommitSpecCanonical != nil {
+				canonical, err := stackkitcommand.CommittedBaselineSpec(result)
+				if err != nil {
+					return "", err
+				}
+				if err := lifecycle.CommitSpecCanonical(ctx, request, canonical); err != nil {
+					return "", err
+				}
+			}
 		case StackKitLifecycleAdvancedTrustImport:
 			if admitErr := admitTypedAdvancedTrustImport(ctx, admitTrust, dispatched, result); admitErr != nil {
 				return "", &typedStackKitOperationError{Operation: operation, CommandID: commandID, Err: admitErr}

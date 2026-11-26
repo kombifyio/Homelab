@@ -55,11 +55,23 @@ func (o *Orchestrator) repairRolloutCandidate(ctx context.Context, req RolloutRe
 	if err := o.requireExactManagedRuntimeDeploy(ctx, stack, req.LeaseID, opts.RequiredServerID); err != nil {
 		return err
 	}
+	committedWiki, err := registrySpecJSON(baseline)
+	if err != nil {
+		return err
+	}
+	candidateWiki, err := registrySpecJSON(req.CandidateSpec)
+	if err != nil {
+		return err
+	}
+	admission, err := jobs.PrepareManagedWikiChange(ctx, req.TenantID, req.OwnerID, req.StackID, committedWiki, candidateWiki, false)
+	if err != nil {
+		return err
+	}
 	config := cloneProvisionSpec(current.Config)
 	config["stack_spec_v2"] = req.CandidateSpec
 	config[rolloutRetryCandidateField] = opts.rolloutRetryCandidateSHA
 	updated, err := store.CompareAndSwapStackConfig(ctx, controlplane.StackConfigCAS{
-		TenantID: req.TenantID, StackID: req.StackID, ExpectedUpdatedAt: current.UpdatedAt, Config: config,
+		TenantID: req.TenantID, StackID: req.StackID, ExpectedUpdatedAt: current.UpdatedAt, Config: config, ManagedWikiCommit: controlplane.ManagedWikiCommitProof{Admission: admission},
 	})
 	if err != nil {
 		return fmt.Errorf("%w: canonical repair revision changed", ErrRolloutRetryInvalid)

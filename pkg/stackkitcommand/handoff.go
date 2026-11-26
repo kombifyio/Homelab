@@ -129,7 +129,7 @@ func validateHandoffCommand(command *agentpb.StackKitCommand) error {
 			return err
 		}
 	}
-	if command.InventoryJson != nil && len(command.InventoryJson) != 0 {
+	if len(command.InventoryJson) != 0 {
 		return fmt.Errorf("StackKit federation hand-off takes no Inventory")
 	}
 	return nil

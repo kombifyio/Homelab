@@ -3,9 +3,10 @@ package nodeproof
 import (
 	"encoding/json"
 	"errors"
-	"github.com/kombifyio/homelab/internal/privatefs"
 	"os"
 	"strings"
+
+	"github.com/kombifyio/homelab/internal/privatefs"
 )
 
 const LocalIdentityFile = "ril-local-identity.json"
@@ -20,7 +21,7 @@ type localIdentity struct {
 // PinLocalIdentity is called only by the privileged installer after it has
 // admitted the root-owned enrollment response. Empty identity is a tombstone.
 func PinLocalIdentity(root *os.Root, id Identity) error {
-	raw, err := json.Marshal(localIdentity{id.TenantID, id.OwnerID, id.ServerID, id.StackID})
+	raw, err := json.Marshal(localIdentity(id))
 	if err != nil {
 		return err
 	}
@@ -40,5 +41,5 @@ func LoadLocalIdentity(dir string) (Identity, error) {
 	if strict(raw, &id) != nil || strings.TrimSpace(id.TenantID) != id.TenantID || strings.TrimSpace(id.ServerID) != id.ServerID || id.TenantID == "" || id.ServerID == "" {
 		return Identity{}, errors.New("RIL enrolled identity unavailable")
 	}
-	return Identity{TenantID: id.TenantID, OwnerID: id.OwnerID, ServerID: id.ServerID, StackID: id.StackID}, nil
+	return Identity(id), nil
 }

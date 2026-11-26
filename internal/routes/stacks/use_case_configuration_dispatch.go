@@ -62,7 +62,10 @@ func (h wizardRunHandlers) dispatchUseCaseChange(e *httpx.Event, stack *controlp
 		}
 		config := cloneConfigurationResult(stack.Config)
 		config[stackConfigKeySpecV2] = checkpoint.CandidateSpec
-		_, err := h.crud.stackStore.CompareAndSwapStackConfig(e.Request.Context(), controlplane.StackConfigCAS{TenantID: run.TenantID, StackID: stack.ID, ExpectedUpdatedAt: stack.UpdatedAt, Config: config})
+		_, err := h.crud.stackStore.CompareAndSwapStackConfig(e.Request.Context(), controlplane.StackConfigCAS{TenantID: run.TenantID, StackID: stack.ID, ExpectedUpdatedAt: stack.UpdatedAt, Config: config, ManagedWikiCommit: controlplane.ManagedWikiCommitProof{Admission: checkpoint.Requests[0].WikiInstallAdmission, ExplicitRemoval: checkpoint.Removal != nil}})
+		if errors.Is(err, jobs.ErrManagedWikiInstallNotAdmitted) {
+			return managedWikiInstallRefusal(e)
+		}
 		if errors.Is(err, controlplane.ErrConflict) {
 			// A concurrent retry may have committed this exact accepted candidate.
 			fresh, readErr := h.crud.stackStore.GetStack(e.Request.Context(), run.TenantID, stack.ID)
@@ -80,6 +83,9 @@ func (h wizardRunHandlers) dispatchUseCaseChange(e *httpx.Event, stack *controlp
 	jobIDs := make([]string, 0, len(checkpoint.Requests))
 	for _, request := range checkpoint.Requests {
 		id, err := h.crud.orch.EnqueueStackKitLifecycle(e.Request.Context(), request)
+		if errors.Is(err, jobs.ErrManagedWikiInstallNotAdmitted) {
+			return managedWikiInstallRefusal(e)
+		}
 		if err != nil {
 			return configurationError(e, http.StatusServiceUnavailable, reasonPrefix+"_dispatch_unavailable", "The accepted change could not be dispatched; retry with the same Idempotency-Key")
 		}

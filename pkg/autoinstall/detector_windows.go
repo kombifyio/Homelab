@@ -220,7 +220,17 @@ func (d *detector) installCloudflared(ctx context.Context) (*InstallResult, erro
 
 // getLatestRelease fetches the latest GitHub release URL.
 func (d *detector) getLatestRelease(ctx context.Context, apiURL, assetPattern string) (string, string, error) {
-	return getLatestReleaseHelper(ctx, apiURL, assetPattern)
+	release, err := FetchLatestRelease(ctx, apiURL)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to fetch release: %w", err)
+	}
+
+	downloadURL, err := release.FindAsset(assetPattern)
+	if err != nil {
+		return "", "", err
+	}
+
+	return downloadURL, release.TagName, nil
 }
 
 // downloadFile downloads a file to temp.

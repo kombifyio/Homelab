@@ -98,10 +98,11 @@ type Stack struct {
 }
 
 type CreateStackRequest struct {
-	ID             string
-	TenantID       string
-	InstanceID     string
-	OwnerSubjectID string
+	ManagedWikiCommit ManagedWikiCommitProof `json:"-"`
+	ID                string
+	TenantID          string
+	InstanceID        string
+	OwnerSubjectID    string
 	// HomelabID must reference an existing homelab in the same tenant (the
 	// composite FK from migration 044 enforces this). Public create paths
 	// resolve the owner's canonical homelab before calling the store; empty is
@@ -147,10 +148,13 @@ type OwnerStackSpec struct {
 }
 
 type StackConfigCAS struct {
-	TenantID          string
-	StackID           string
-	ExpectedUpdatedAt time.Time
-	Config            map[string]any
+	ManagedWikiCommit      ManagedWikiCommitProof `json:"-"`
+	CommittedSpecCanonical *CommittedStackSpecCanonical
+	CommittedSpecTarget    *CommittedStackSpecTarget
+	TenantID               string
+	StackID                string
+	ExpectedUpdatedAt      time.Time
+	Config                 map[string]any
 }
 
 func normalizeStackConfigCAS(command StackConfigCAS) (StackConfigCAS, error) {

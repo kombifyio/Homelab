@@ -225,7 +225,8 @@ type Config struct {
 	// execution retains wall-clock timestamps; injecting this clock lets the
 	// stale-heartbeat fence be deterministically verified without sleeping.
 	Now func() time.Time
-	// RolloutRetrySpecValidator uses the same pinned CLI acceptance boundary.
+	// RolloutRetrySpecValidator serves repair and direct lifecycle candidates
+	// through the same pinned CLI acceptance boundary.
 	// Nil resolves production custody from the configured release pin.
 	RolloutRetrySpecValidator specv2.SpecValidator
 	// KombifyWallet is the central kombify Wallet client. When set, StackKit
@@ -872,6 +873,10 @@ func (o *Orchestrator) ProvisionStackWithOptions(stackID string, spec map[string
 		return "", fmt.Errorf("invalid provider selection: %w", providerErr)
 	}
 	spec = canonicalSpec
+	if _, supplied := spec["stack_spec_v2"]; !supplied && stack.config["stack_spec_v2"] != nil {
+		spec = cloneProvisionSpec(spec)
+		spec["stack_spec_v2"] = stack.config["stack_spec_v2"]
+	}
 	idempotency, idempotencyErr := newProvisionIdempotency(stack, spec, opts.IdempotencyKey)
 	if opts.CustomerGuest != nil {
 		if err := o.requireCustomerGuestLease(ctx, stack, *opts.CustomerGuest); err != nil {
@@ -887,6 +892,10 @@ func (o *Orchestrator) ProvisionStackWithOptions(stackID string, spec map[string
 	}
 	if replayID, replay, replayErr := o.findStackLifecycleIdempotencyReplay(ctx, stack, idempotency); replayErr != nil || replay {
 		return replayID, replayErr
+	}
+	wikiInstallAdmission, err := o.prepareManagedWikiRollout(ctx, stack, spec["stack_spec_v2"])
+	if err != nil {
+		return "", err
 	}
 
 	// Validate stack status
@@ -952,6 +961,9 @@ func (o *Orchestrator) ProvisionStackWithOptions(stackID string, spec map[string
 	}
 	if preparedManagedLeaseRequest != nil {
 		job.Payload[jobs.PreparedManagedLeaseRequestPayloadKey] = preparedManagedLeaseRequest
+	}
+	if wikiInstallAdmission != "" {
+		job.Payload[jobs.ManagedWikiInstallAdmissionKey] = wikiInstallAdmission
 	}
 	for key, value := range existingServerPayload {
 		job.Payload[key] = value
@@ -1030,6 +1042,13 @@ func (o *Orchestrator) deployStackWithOptionsLocked(ctx context.Context, stackID
 	payload, payloadErr := o.deployJobPayload(ctx, stackID, stack, opts)
 	if payloadErr != nil {
 		return "", payloadErr
+	}
+	wikiInstallAdmission, err := o.prepareManagedWikiRollout(ctx, stack, payload["stack_spec_v2"])
+	if err != nil {
+		return "", err
+	}
+	if wikiInstallAdmission != "" {
+		payload[jobs.ManagedWikiInstallAdmissionKey] = wikiInstallAdmission
 	}
 	jobs.CaptureStackOwnerEmail(ctx, payload, stack.ownerID)
 

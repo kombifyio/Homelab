@@ -9,14 +9,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	jsoncanonicalizer "github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
-	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
-	"github.com/kombifyio/homelab/pkg/guardreach"
 	"strings"
 	"time"
 
+	jsoncanonicalizer "github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
+	"github.com/kombifyio/homelab/pkg/guardreach"
+
 	"github.com/google/uuid"
-	"github.com/kombifyio/homelab/pkg/ril/actioncontract"
+	rilaction "github.com/kombifyio/homelab/pkg/ril/actioncontract"
 	"github.com/kombifyio/homelab/pkg/ril/primitives"
 )
 
@@ -766,8 +767,6 @@ func (s *PostgresAuthority) Fail(ctx context.Context, tenantID, cardID, executio
 	})
 	return out, err
 }
-
-const cardStatusBeforeExecution = "approved"
 
 type actionTransitionAudit struct {
 	TenantID, CardID, FromStatus, ToStatus, CorrelationID, ActorSubjectID string

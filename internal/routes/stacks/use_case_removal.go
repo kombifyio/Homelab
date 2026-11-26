@@ -207,7 +207,10 @@ func (h wizardRunHandlers) removeUseCase(e *httpx.Event) error {
 		if !reflect.DeepEqual(spec, evidence.PreviousSpec) {
 			return configurationError(e, http.StatusConflict, "removal_desired_runtime_mismatch", "Desired intent differs from the installed native baseline")
 		}
-		requests, err := h.crud.orch.PrepareWizardUseCaseRemoval(e.Request.Context(), stack.TenantID, stack.OwnerSubjectID, stack.ID, run.ID, digest, evidence.PreviousSpec, evidence.CandidateSpec, removal)
+		requests, err := h.crud.orch.PrepareWizardUseCaseRemoval(wikiInstallContext(e, stack.OwnerSubjectID, stack.TenantID), stack.TenantID, stack.OwnerSubjectID, stack.ID, run.ID, digest, evidence.PreviousSpec, evidence.CandidateSpec, removal)
+		if errors.Is(err, jobs.ErrManagedWikiInstallNotAdmitted) {
+			return httpx.Reject(e, http.StatusForbidden, ksapi.ErrCodeForbidden, "Managed Wiki installation is not enabled", map[string]any{"reason_code": "managed_wiki_install_disabled", "retryable": false})
+		}
 		if err != nil || len(requests) == 0 {
 			return configurationError(e, http.StatusServiceUnavailable, "removal_dispatch_unavailable", "The Advanced removal group could not be prepared")
 		}

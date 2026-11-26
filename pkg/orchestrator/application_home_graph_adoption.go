@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/jobs"
 	"github.com/kombifyio/homelab/pkg/stackkitcommand"
-	"time"
 )
 
 var ErrHomeGraphAdoptionStale = errors.New("adoption graph changed; inventory again")
@@ -94,7 +95,7 @@ func (o *Orchestrator) homeGraphAdoptionTarget(ctx context.Context, tenantID, ow
 	if serviceID == "" {
 		return o.homeGraphTargetService(ctx, tenantID, ownerID)
 	}
-	stacks, ok := o.cfg.StackStore.(controlplane.StackStore)
+	stacks, ok := o.cfg.StackStore, o.cfg.StackStore != nil
 	services, okServices := o.cfg.StackStore.(controlplane.ServiceRuntimeStore)
 	if !ok || !okServices {
 		return nil, ErrStackKitLifecycleUnavailable

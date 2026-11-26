@@ -224,7 +224,16 @@ func validPublicKey(k publicKey, alg string) bool {
 		return k.Kty == "OKP" && k.Crv == "Ed25519" && k.Y == ""
 	}
 	y, err := rawURL(k.Y)
-	return err == nil && len(y) == 32 && k.Kty == "EC" && k.Crv == "P-256" && elliptic.P256().IsOnCurve(new(big.Int).SetBytes(x), new(big.Int).SetBytes(y))
+	if err != nil || len(y) != 32 || k.Kty != "EC" || k.Crv != "P-256" {
+		return false
+	}
+	_, err = ecdsa.ParseUncompressedPublicKey(elliptic.P256(), uncompressedPoint(x, y))
+	return err == nil
+}
+
+// uncompressedPoint is the SEC 1 uncompressed encoding of a P-256 point.
+func uncompressedPoint(x, y []byte) []byte {
+	return append(append([]byte{4}, x...), y...)
 }
 func verifySig(k publicKey, alg string, signed, signature []byte) bool {
 	x, err := rawURL(k.X)
@@ -237,12 +246,12 @@ func verifySig(k publicKey, alg string, signed, signature []byte) bool {
 		if e != nil || k.Kty != "EC" || k.Crv != "P-256" || len(x) != 32 || len(y) != 32 || len(signature) != 64 {
 			return false
 		}
-		pub := ecdsa.PublicKey{Curve: elliptic.P256(), X: new(big.Int).SetBytes(x), Y: new(big.Int).SetBytes(y)}
-		if !pub.Curve.IsOnCurve(pub.X, pub.Y) {
+		pub, perr := ecdsa.ParseUncompressedPublicKey(elliptic.P256(), uncompressedPoint(x, y))
+		if perr != nil {
 			return false
 		}
 		h := sha256.Sum256(signed)
-		return ecdsa.Verify(&pub, h[:], new(big.Int).SetBytes(signature[:32]), new(big.Int).SetBytes(signature[32:]))
+		return ecdsa.Verify(pub, h[:], new(big.Int).SetBytes(signature[:32]), new(big.Int).SetBytes(signature[32:]))
 	case "EdDSA":
 		return k.Kty == "OKP" && k.Crv == "Ed25519" && k.Y == "" && len(x) == ed25519.PublicKeySize && ed25519.Verify(ed25519.PublicKey(x), signed, signature)
 	}

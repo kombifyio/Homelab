@@ -137,7 +137,7 @@ func (a *Agent) Run(ctx context.Context) {
 		document, err := a.exchange(ctx, guardreach.ExchangeRequest{Proofs: proofs, Relay: a.relay.Status(), PaperworkSignIn: paperwork})
 		proofs = nil
 		paperwork = nil
-		wait := a.cfg.PendingInterval
+		var wait time.Duration
 		if err != nil {
 			failures++
 			wait = errorWait(failures, a.cfg.PendingInterval)

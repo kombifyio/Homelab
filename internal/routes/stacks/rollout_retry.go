@@ -11,6 +11,7 @@ import (
 	"github.com/kombifyio/homelab/internal/routes/tenantguard"
 	ksapi "github.com/kombifyio/homelab/pkg/api"
 	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
 	"github.com/kombifyio/homelab/pkg/orchestrator"
 	"github.com/kombifyio/homelab/pkg/stackrouting"
 )
@@ -53,7 +54,7 @@ func (h crudRouteHandlers) retryStackRollout(e *httpx.Event) error {
 	}
 	var ownerSpecAccess ownerSpecBootstrapAccess
 	result, retryErr := h.orch.RetryRollout(orchestrator.RolloutRetryRequest{
-		RequestContext: e.Request.Context(), StackID: stack.ID, TenantID: stack.TenantID,
+		RequestContext: wikiInstallContext(e, stack.OwnerSubjectID, stack.TenantID), StackID: stack.ID, TenantID: stack.TenantID,
 		OwnerID: stack.OwnerSubjectID, StackName: stack.Name, SourceJobID: req.SourceJobID,
 		LeaseID:       req.LeaseID,
 		CandidateSpec: req.CandidateSpec, OwnerApproved: req.OwnerApproved,
@@ -70,6 +71,9 @@ func (h crudRouteHandlers) retryStackRollout(e *httpx.Event) error {
 }
 
 func writeRolloutRetryError(e *httpx.Event, err error) error {
+	if errors.Is(err, jobs.ErrManagedWikiInstallNotAdmitted) {
+		return managedWikiInstallRefusal(e)
+	}
 	if refusal := tenantguard.ExecutionRefusal(err); refusal != nil {
 		return refusal
 	}

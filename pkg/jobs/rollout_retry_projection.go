@@ -5,10 +5,11 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"github.com/kombifyio/homelab/internal/stackkitrelease"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
 
 	"github.com/kombifyio/homelab/pkg/specv2"
 	"github.com/kombifyio/homelab/pkg/unifier"
@@ -167,9 +168,6 @@ func materializeRolloutRetryProjection(persister *unifier.SpecPersister, job *Jo
 	return persister.SaveStackSpecSnapshotBytes(raw)
 }
 
-func managedRolloutRetryProjection(persister *unifier.SpecPersister, snapshotPath, dispatchID string) (string, error) {
-	return managedRolloutRetryProjectionWithRelease(persister, snapshotPath, dispatchID, configuredTargetStackKitRelease)
-}
 func managedRolloutRetryProjectionForStack(ctx context.Context, tenant, stack string, persister *unifier.SpecPersister, snapshotPath, dispatchID string) (string, error) {
 	return managedRolloutRetryProjectionWithRelease(persister, snapshotPath, dispatchID, func() (*stackkitrelease.Release, error) { return TargetStackKitReleaseForStack(ctx, tenant, stack) })
 }

@@ -22,7 +22,11 @@ func (s *PostgresStore) CreateStack(ctx context.Context, req CreateStackRequest)
 
 	var out *Stack
 	err := s.withTenant(ctx, tenantID, func(tx *sql.Tx) error {
-		configJSON, err := marshalObject(req.Config)
+		config, err := retainCommittedStackSpecs(Stack{ID: req.ID, TenantID: tenantID, OwnerSubjectID: req.OwnerSubjectID}, req.Config, nil, nil, req.ManagedWikiCommit)
+		if err != nil {
+			return err
+		}
+		configJSON, err := marshalObject(config)
 		if err != nil {
 			return err
 		}
@@ -297,7 +301,20 @@ func (s *PostgresStore) CompareAndSwapStackConfig(ctx context.Context, command S
 }
 
 func compareAndSwapStackConfigTx(ctx context.Context, tx *sql.Tx, prepared StackConfigCAS) (*Stack, error) {
-	configJSON, marshalErr := marshalObject(prepared.Config)
+	current, err := scanStack(tx.QueryRowContext(ctx, `SELECT id, tenant_id, instance_id, owner_subject_id, homelab_id, stackkit_instance_id, name, description,
+ mode, status, config_json::text, services_json::text, runtime_summary_json::text, drift_status, drift_checked_at,
+ created_at, updated_at, deleted_at FROM stacks WHERE tenant_id=$1 AND id=$2 AND deleted_at IS NULL AND updated_at=$3 FOR UPDATE`, prepared.TenantID, prepared.StackID, prepared.ExpectedUpdatedAt))
+	if err == sql.ErrNoRows {
+		return nil, ErrConflict
+	}
+	if err != nil {
+		return nil, err
+	}
+	config, err := retainCommittedStackSpecs(*current, prepared.Config, prepared.CommittedSpecTarget, prepared.CommittedSpecCanonical, prepared.ManagedWikiCommit)
+	if err != nil {
+		return nil, err
+	}
+	configJSON, marshalErr := marshalObject(config)
 	if marshalErr != nil {
 		return nil, marshalErr
 	}

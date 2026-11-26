@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -60,6 +61,14 @@ func (o *Orchestrator) prepareWizardUseCaseChange(ctx context.Context, tenantID,
 	if err != nil {
 		return nil, err
 	}
+	committed, err := registrySpecJSON(stack.config["stack_spec_v2"])
+	if err != nil {
+		return nil, err
+	}
+	wikiAdmission, err := jobs.PrepareManagedWikiChange(ctx, tenantID, ownerID, stackID, committed, raw, slices.Contains(retired, jobs.ManagedWikiWorkload))
+	if err != nil {
+		return nil, err
+	}
 	if raw, err = jobs.TerramateGenerationCandidate(raw); err != nil {
 		return nil, err
 	}
@@ -102,6 +111,7 @@ func (o *Orchestrator) prepareWizardUseCaseChange(ctx context.Context, tenantID,
 			Operation: jobs.StackKitLifecycleAdvancedChangeSet, OwnerApproved: true, CandidateSpecJSON: raw,
 			WizardExtend: &jobs.WizardExtendBinding{RunID: runID, RequestDigest: requestDigest},
 		}, stackKitRolloutBinding(stack), stackKitCatalogRef(stack))
+		request.WikiInstallAdmission = wikiAdmission
 		request, err = jobs.PrepareWizardExtend(ctx, o.StackKitCommander(), issuer, request)
 		if err != nil {
 			return nil, err
@@ -190,10 +200,6 @@ func (o *Orchestrator) replayWizardExtend(ctx context.Context, request jobs.Stac
 		}
 	}
 	return existing.ID, true, nil
-}
-
-func changedWizardNodes(before, candidate map[string]any) ([]string, error) {
-	return changedWizardNodesForRetirement(before, candidate, nil)
 }
 
 func changedWizardNodesForRetirement(before, candidate map[string]any, retired []string) ([]string, error) {

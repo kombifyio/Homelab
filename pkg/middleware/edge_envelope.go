@@ -66,7 +66,7 @@ func ReverifyEdgeEnvelope(envelope *VerifiedEdgeEnvelope, cfg *config.Config) (c
 		return nil, err
 	}
 	if !IsEdgeAuthenticated(e.Request.Context()) || VerifiedEdgeEnvelopeFromContext(e.Request.Context()) == nil {
-		return nil, errors.New("Gateway envelope rejected")
+		return nil, errors.New("gateway envelope rejected")
 	}
 	return e.Request.Context(), nil
 }

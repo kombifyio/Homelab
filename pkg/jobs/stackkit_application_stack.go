@@ -54,13 +54,13 @@ func applicationStackRead(op string) bool {
 func validateApplicationStackRequest(req *StackKitLifecycleRequest) error {
 	b := req.Application
 	if b == nil || b.ServerID == "" || b.ExpectedServiceRevision <= 0 || req.ServiceID == "" || req.ServiceKey != "" || b.Profile != stackkitcommand.OwnApplicationAdoptedProfile || !stackkitcommand.ValidOwnApplicationName(b.OwnApplicationName) {
-		return fmt.Errorf("Stack it requires a retained exact service/source binding and own application name")
+		return fmt.Errorf("stack it requires a retained exact service/source binding and own application name")
 	}
 	if req.Operation == StackKitLifecycleApplicationStack && (b.ReviewedStack == nil || b.PlanJobID == "" || b.ReviewedStack.PlanDigest == "") {
-		return fmt.Errorf("Stack it adopt requires the retained reviewed plan")
+		return fmt.Errorf("stack it adopt requires the retained reviewed plan")
 	}
 	if applicationStackRead(req.Operation) == req.OwnerApproved {
-		return fmt.Errorf("Stack it mutations, and only they, carry Owner approval")
+		return fmt.Errorf("stack it mutations, and only they, carry Owner approval")
 	}
 	return nil
 }
@@ -89,7 +89,7 @@ func applicationStackCommand(req StackKitLifecycleRequest, release stackkitrelea
 
 // errApplicationStackIntentChanged: the receipt is retained, but newer service
 // intent requires review before it is projected.
-var errApplicationStackIntentChanged = errors.New("Stack it receipt retained but newer service intent requires review before projection")
+var errApplicationStackIntentChanged = errors.New("stack it receipt retained but newer service intent requires review before projection")
 
 // ApplicationStackFailureField is the structured failure of a Stack it job:
 // the producer outcome (refused, rolled_back, rollback_failed, unhealthy) or
@@ -111,7 +111,7 @@ func applicationStackFailed(job *Job, result map[string]interface{}, outcome, re
 	}
 	result[ApplicationStackFailureField] = failure
 	job.replaceResult(result)
-	return NewPermanentError(fmt.Errorf("Stack it %s: %s", outcome, firstNonEmpty(reasonCode, rowCode, "no_reason_code")))
+	return NewPermanentError(fmt.Errorf("stack it %s: %s", outcome, firstNonEmpty(reasonCode, rowCode, "no_reason_code")))
 }
 
 func runApplicationStackJob(ctx context.Context, cfg StackKitLifecycleConfig, job *Job, q *Queue, req StackKitLifecycleRequest, release stackkitrelease.Release) error {
@@ -262,7 +262,7 @@ func projectApplicationStack(ctx context.Context, cfg StackKitLifecycleConfig, o
 		return NewPermanentError(err)
 	}
 	if head.Service.StackID != req.StackID || head.Service.ServerID != req.Application.ServerID || ApplicationContainerIdentity(head.Service) != req.Application.ContainerID {
-		return NewPermanentError(fmt.Errorf("Stack it source changed before receipt projection"))
+		return NewPermanentError(fmt.Errorf("stack it source changed before receipt projection"))
 	}
 	if head.Service.Metadata[OwnApplicationAdoptionJobIDKey] == operationID {
 		return nil
@@ -285,7 +285,7 @@ func projectApplicationStack(ctx context.Context, cfg StackKitLifecycleConfig, o
 	case StackKitLifecycleApplicationStackReleaseOriginal:
 		record.State, record.RetainUntil = "released", nil
 	default:
-		return NewPermanentError(fmt.Errorf("Stack it %s projects nothing", req.Operation))
+		return NewPermanentError(fmt.Errorf("stack it %s projects nothing", req.Operation))
 	}
 	metadata := head.Service.Metadata
 	if metadata == nil {
@@ -323,7 +323,7 @@ func ApplicationStackReleaseForStack(ctx context.Context, tenant, stack string, 
 		return nil, fmt.Errorf("published StackKits release is unavailable")
 	}
 	if version := release.Receipt().Version; !stackkitcommand.ReleaseAtLeast(version, stackkitcommand.MinApplicationStackRelease) {
-		return nil, fmt.Errorf("Stack it needs StackKits %s or newer; this installation pins %s", stackkitcommand.MinApplicationStackRelease, version)
+		return nil, fmt.Errorf("stack it needs StackKits %s or newer; this installation pins %s", stackkitcommand.MinApplicationStackRelease, version)
 	}
 	catalog, err := release.AdvancedOperations()
 	if err != nil {

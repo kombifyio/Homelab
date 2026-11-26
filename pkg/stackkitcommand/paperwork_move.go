@@ -53,15 +53,15 @@ func ParsePaperworkMoveEvidence(command *agentpb.StackKitCommand, result *agentp
 	decoder := json.NewDecoder(bytes.NewReader(result.CommandResultJson))
 	decoder.DisallowUnknownFields()
 	if decoder.Decode(&envelope) != nil || decoder.Decode(new(any)) != io.EOF || envelope.SchemaVersion != CommandResultVersion || envelope.Command != walletItemDeliveryCommandName(command.Operation) || envelope.Status != commandResultStatusSuccess {
-		return invalid, fmt.Errorf("Paperwork move envelope is invalid")
+		return invalid, fmt.Errorf("paperwork move envelope is invalid")
 	}
 	move := envelope.Data.Move
 	if move.Format != "kombify-paperwork-node-move-status/1" || !paperworkMoveIDPattern.MatchString(move.MoveID) || !sha256Pattern.MatchString(move.PinSHA256) || move.ItemRef != command.WalletItemRef || move.TenantRef != command.DeliveryTenantRef || move.State != "verified" || move.Result == nil {
-		return invalid, fmt.Errorf("Paperwork move status differs from the dispatched admission")
+		return invalid, fmt.Errorf("paperwork move status differs from the dispatched admission")
 	}
 	receipt := move.Result
 	if receipt.Kind != "result" || receipt.State != "verified" || !sha256Pattern.MatchString(receipt.ReceiptSHA256) || receipt.Manifest == nil || !sha256Pattern.MatchString(receipt.Manifest.SHA256) || receipt.Manifest.Size < 1 || receipt.Manifest.Size > 32<<20 || receipt.Tables < 0 || receipt.Rows < 0 || receipt.Blobs < 0 {
-		return invalid, fmt.Errorf("Paperwork move receipt is invalid")
+		return invalid, fmt.Errorf("paperwork move receipt is invalid")
 	}
 	return move, nil
 }
