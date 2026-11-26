@@ -1,12 +1,14 @@
 package routes
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"time"
 
+	"github.com/kombifyio/homelab/internal/ionospooltunnel"
 	"github.com/kombifyio/homelab/internal/providercontrol"
 	"github.com/kombifyio/homelab/pkg/httpx"
 	"github.com/kombifyio/homelab/pkg/middleware"
@@ -14,8 +16,8 @@ import (
 
 // The dedicated workload route shares the canonical Edge identity chain. It
 // never routes workloads through a fake server ID or a no-op service action.
-func RegisterIONOSSharedPoolRoutes(router *httpx.Router, control *providercontrol.IONOSSharedPoolControl) {
-	if control == nil {
+func RegisterIONOSSharedPoolRoutes(router *httpx.Router, execute func(context.Context, providercontrol.IONOSPoolIdentity, providercontrol.IONOSPoolRequest) (providercontrol.IONOSSharedPoolObservation, error)) {
+	if execute == nil {
 		return
 	}
 	router.POST("/api/v1/runtime/managed-workloads/ionos/commands", func(e *httpx.Event) error {
@@ -37,8 +39,12 @@ func RegisterIONOSSharedPoolRoutes(router *httpx.Router, control *providercontro
 			return e.JSON(http.StatusServiceUnavailable, map[string]string{"reason_code": "command_deadline_unavailable"})
 		}
 		e.Response.Header().Set("Cache-Control", "no-store")
-		observation, err := control.Execute(ctx, providercontrol.IONOSPoolIdentity{TenantID: scope.tenantID, SubjectID: scope.ownerID}, request)
+		observation, err := execute(ctx, providercontrol.IONOSPoolIdentity{TenantID: scope.tenantID, SubjectID: scope.ownerID}, request)
 		if err != nil {
+			var readiness *ionospooltunnel.ReadinessError
+			if errors.As(err, &readiness) {
+				return e.JSON(http.StatusServiceUnavailable, readiness)
+			}
 			var refusal *providercontrol.IONOSSharedPoolRefusal
 			if errors.As(err, &refusal) {
 				status := http.StatusForbidden

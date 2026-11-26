@@ -181,6 +181,7 @@ func registerCoreRoutes(router *httpx.Router, deps routeDeps, managedLeases jobs
 		database = deps.v2.db
 	}
 	healthDeps := coreHealthDependencies(cfg, grpcSrv, database)
+	healthDeps.IONOSSharedPool = registerIONOSSharedPool(router, deps)
 	if deps.secondaryExecution != nil {
 		healthDeps.ExecutionScope = deps.secondaryExecution.Snapshot
 	}
@@ -573,11 +574,6 @@ func publicOriginHost() string {
 }
 
 func registerRuntimeInventoryRoutes(router *httpx.Router, deps routeDeps, state runtimeRouteState, inventoryPolicy routes.InventoryPolicy, actionCards *routes.ServiceActionCards) *routes.ManagedRuntimeExpansion {
-	if err := registerIONOSSharedPool(router, deps); err != nil {
-		if deps.log != nil {
-			deps.log.Error("ionos_shared_pool_unavailable", "error", err)
-		}
-	}
 	var metricWriter routes.WorkerMetricWriter
 	if deps.monitor != nil && deps.monitor.tsdb != nil {
 		metricWriter = deps.monitor.tsdb
