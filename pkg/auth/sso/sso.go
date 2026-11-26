@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/kombifyio/homelab/pkg/auth/localcloud"
 )
 
 // Error types for SSO token verification
@@ -55,6 +56,8 @@ type StackIdentity struct {
 
 // Config holds the configuration for SSO token verification.
 type Config struct {
+	// LocalCloud enables only the pinned development issuer and synthetic owner.
+	LocalCloud bool
 	// Secret is the HMAC secret Cloud signs Homelab launch tokens with
 	// (HOMELAB_SSO_JWT_SECRET).
 	Secret string
@@ -83,6 +86,7 @@ const maxTokenIDLength = 128
 
 // Verifier handles SSO token verification.
 type Verifier struct {
+	localCloud   bool
 	keys         []jwt.VerificationKey
 	allowedTools map[string]struct{}
 	clockSkew    time.Duration
@@ -134,6 +138,7 @@ func NewVerifier(cfg Config) (*Verifier, error) {
 	}
 
 	return &Verifier{
+		localCloud:   cfg.LocalCloud,
 		keys:         keys,
 		allowedTools: allowedTools,
 		clockSkew:    clockSkew,
@@ -156,7 +161,7 @@ func (v *Verifier) Verify(tokenString string) (*SSOTokenPayload, error) {
 		&ssoCustomClaims{},
 		v.keyFunc,
 		jwt.WithLeeway(v.clockSkew),
-		jwt.WithValidMethods([]string{"HS256"}),
+		jwt.WithValidMethods([]string{"HS256", "EdDSA"}),
 		jwt.WithIssuer(CloudIssuer),
 		jwt.WithExpirationRequired(),
 		jwt.WithIssuedAt(),
@@ -178,6 +183,11 @@ func (v *Verifier) Verify(tokenString string) (*SSOTokenPayload, error) {
 	// Validate required fields
 	if err := v.validateClaims(claims); err != nil {
 		return nil, err
+	}
+	if token.Method.Alg() == "EdDSA" && (!localcloud.Owner(claims.Subject, claims.TenantID) ||
+		claims.Tool != "kombifystack" || claims.AccessToken != "" ||
+		claims.ExpiresAt.Sub(claims.IssuedAt.Time) <= 0 || claims.ExpiresAt.Sub(claims.IssuedAt.Time) > time.Minute) {
+		return nil, ErrTokenInvalid
 	}
 
 	// Validate tool claim if allowedTools is configured
@@ -219,6 +229,15 @@ func (v *Verifier) Verify(tokenString string) (*SSOTokenPayload, error) {
 // keyFunc provides the HMAC key for token verification.
 // It also validates the signing method is HMAC.
 func (v *Verifier) keyFunc(token *jwt.Token) (interface{}, error) {
+	if token.Method.Alg() == "EdDSA" {
+		if !v.localCloud || token.Header["kid"] != localcloud.KeyID {
+			return nil, ErrTokenInvalid
+		}
+		return localcloud.Key(), nil
+	}
+	if token.Header["kid"] == localcloud.KeyID {
+		return nil, ErrTokenInvalid
+	}
 	// Validate signing algorithm - must be HMAC
 	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 		return nil, fmt.Errorf("%w: unexpected signing method %v", ErrTokenInvalid, token.Header["alg"])

@@ -13,6 +13,7 @@ import (
 
 	authsession "github.com/kombifyio/homelab/internal/gocommon/authsession"
 	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/auth/localcloud"
 	"github.com/kombifyio/homelab/pkg/auth/sessionpolicy"
 	"github.com/kombifyio/homelab/pkg/auth/sso"
 	"github.com/kombifyio/homelab/pkg/config"
@@ -102,6 +103,7 @@ func handleRuntimePortalVerify(ps PortalSession) func(e *httpx.Event) error {
 		}
 
 		verifier, err := sso.NewVerifier(sso.Config{
+			LocalCloud:   ps.Secure,
 			Secret:       ssoSecret,
 			NextSecret:   ssoSecretNext,
 			AllowedTools: []string{"kombifystack"},
@@ -116,6 +118,11 @@ func handleRuntimePortalVerify(ps PortalSession) func(e *httpx.Event) error {
 		payload, err := verifier.Verify(req.Token)
 		if err != nil {
 			return handleSSOError(e, err)
+		}
+		local := localcloud.IsToken(req.Token)
+		if (local && req.PortalOrigin != localcloud.Origin) ||
+			(req.PortalOrigin == localcloud.Origin && !local) {
+			return handleSSOError(e, sso.ErrTokenInvalid)
 		}
 		if _, err := portalTenantID(payload); err != nil {
 			return handleSSOError(e, fmt.Errorf("%w: tenant_id", sso.ErrMissingClaims))
@@ -206,18 +213,22 @@ const ssoProviderKey = "cloud"
 func setPortalSessionCookies(w http.ResponseWriter, ps PortalSession, token, portalOrigin string) error {
 	name := strings.TrimSpace(ps.CookieName)
 	defer ps.Browser.StampLogin(w.Header())
-	if !ps.Secure || config.CloudPreviewFrameOrigin(portalOrigin) == "" {
+	if !ps.Secure || (config.CloudPreviewFrameOrigin(portalOrigin) == "" && portalOrigin != localcloud.Origin) {
 		authsession.SetSessionCookie(w, name, token, ps.Secure)
 		return nil
 	}
 	http.SetCookie(w, &http.Cookie{
-		Name:     name,
-		Value:    token,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteNoneMode,
+		Name:        name,
+		Value:       token,
+		Path:        "/",
+		HttpOnly:    true,
+		Secure:      true,
+		SameSite:    http.SameSiteNoneMode,
+		Partitioned: portalOrigin == localcloud.Origin,
 	})
+	if portalOrigin == localcloud.Origin {
+		return middleware.IssuePartitionedCSRFCookie(w)
+	}
 	return middleware.IssueCrossSiteCSRFCookie(w)
 }
 

@@ -15,6 +15,7 @@ import (
 	"github.com/kombifyio/homelab/internal/gocommon/denial"
 	"github.com/kombifyio/homelab/internal/gocommon/servicecall"
 	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/auth/localcloud"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/httpx"
 	"github.com/kombifyio/homelab/pkg/jobs"
@@ -496,6 +497,12 @@ func (h inventoryHandlers) serveCloudRead(
 	surface cloudReadSurface,
 	serve func(e *httpx.Event, ctx context.Context, scope inventoryScope),
 ) error {
+	local := localcloud.IsToken(e.Request.Header.Get(servicecall.HeaderServiceAuth))
+	if local {
+		if _, err := localcloud.Verify(e.Request.Header.Get(servicecall.HeaderServiceAuth), localcloud.ReadScope); err != nil || e.Request.Method != http.MethodGet {
+			return surface.deny(e, http.StatusForbidden, "local_cloud_read_denied", false, "Use the shared local test owner.")
+		}
+	}
 	if !serviceauth.CanVerify(h.serviceAuthSecret) {
 		return surface.deny(e, http.StatusServiceUnavailable, surface.unavailableReason, true,
 			"Retry after Homelab Runtime service authentication is configured.")
@@ -510,6 +517,13 @@ func (h inventoryHandlers) serveCloudRead(
 	if err != nil {
 		return surface.deny(e, http.StatusServiceUnavailable, surface.unavailableReason, true,
 			"Retry after Homelab Runtime service authentication is configured.")
+	}
+	if local {
+		authCfg.Secret, authCfg.SecretNext = "", ""
+		authCfg.RequireEd25519 = true
+		authCfg.CallerPublicKeys = map[string]servicecall.CallerPublicKey{
+			localcloud.KeyID: {Service: "cloud", Key: localcloud.Key()},
+		}
 	}
 	auth := servicecall.RequireServiceAuth(authCfg)
 	auth(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
