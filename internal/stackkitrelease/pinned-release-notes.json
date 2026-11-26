@@ -1,8 +1,66 @@
 {
   "schemaVersion": "stackkits.release-notes/v1",
-  "version": "v0.61.5",
+  "version": "v0.61.8",
   "changelogUrl": "https://stackkit.cc/changelog",
   "releases": [
+    {
+      "version": "v0.61.8",
+      "date": "2026-11-26",
+      "entries": [
+        {
+          "kind": "fixed",
+          "scope": "stackkits",
+          "text": "keep hosted edge URL out of public archives"
+        },
+        {
+          "kind": "fixed",
+          "scope": "stackkits",
+          "text": "keep the private registry endpoint out of the public binaries"
+        }
+      ]
+    },
+    {
+      "version": "v0.61.7",
+      "date": "2026-11-25",
+      "entries": [
+        {
+          "kind": "fixed",
+          "scope": "security",
+          "text": "bump compress, Go 1.27.4, homelab npm floors, static-check fixes"
+        }
+      ]
+    },
+    {
+      "version": "v0.61.6",
+      "date": "2026-11-25",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "stackkits",
+          "text": "keep linked Paperwork sign-in in node custody"
+        },
+        {
+          "kind": "added",
+          "scope": "stackkits",
+          "text": "start a verified Paperwork bundle on a linked node"
+        },
+        {
+          "kind": "added",
+          "scope": "",
+          "text": "verify Paperwork delivery on linked servers"
+        },
+        {
+          "kind": "fixed",
+          "scope": "installer",
+          "text": "prepare fresh Linux targets before the public package journey"
+        },
+        {
+          "kind": "fixed",
+          "scope": "stackkits",
+          "text": "retry Paperwork sign-in custody after interruption"
+        }
+      ]
+    },
     {
       "version": "v0.61.5",
       "date": "2026-11-24",
@@ -1676,64 +1734,6 @@
           "kind": "fixed",
           "scope": "upgrade",
           "text": "forward recovery can finish with a newer verified release when the signed target cannot"
-        }
-      ]
-    },
-    {
-      "version": "v0.55.19",
-      "date": "2026-11-05",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "rack-android",
-          "text": "ephemeral Android emulator runner VM 9001 on rack-pve"
-        },
-        {
-          "kind": "fixed",
-          "scope": "techstack",
-          "text": "governed decommission for leases of a deleted account"
-        }
-      ]
-    },
-    {
-      "version": "v0.55.18",
-      "date": "2026-11-05",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "speechkit",
-          "text": "the module describes the real homelab voice runtime and listens on 18080"
-        }
-      ]
-    },
-    {
-      "version": "v0.55.17",
-      "date": "2026-11-04",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "techstack",
-          "text": "reach, security repair, auto-repair and outcome release as agent tools for the person's acting agent"
-        },
-        {
-          "kind": "fixed",
-          "scope": "generator",
-          "text": "preserve custom module journeys"
-        },
-        {
-          "kind": "fixed",
-          "scope": "speechkit",
-          "text": "keep the hosted origin out of the public CLI"
-        },
-        {
-          "kind": "fixed",
-          "scope": "techstack",
-          "text": "publish Kombify.Client.Shell 0.1.0-alpha.4 from current source"
-        },
-        {
-          "kind": "fixed",
-          "scope": "techstack",
-          "text": "sign Early Access notifications calls with a scoped Ed25519 key"
         }
       ]
     }
