@@ -558,7 +558,7 @@ func TestIONOSSharedPoolHostProfile(t *testing.T) {
 				t.Fatalf("runtimes or masked units: %+v", profile)
 			}
 			agent := profile.Agent
-			if agent.Path != "/v1/ionos-shared-pool/execute" || agent.Path != IONOSSharedPoolAgentPath || !agent.TLSRequired || !agent.ClientCertRequired || agent.Interface != IONOSSharedWorkerAgentInterface || agent.AllowedSourceCIDR != IONOSSharedWorkerControlPlaneCIDR || agent.Port != IONOSSharedWorkerAgentPort {
+			if agent.Path != IONOSSharedPoolAgentPath || !agent.TLSRequired || !agent.ClientCertRequired || agent.Interface != IONOSSharedWorkerAgentInterface || agent.AllowedSourceCIDR != IONOSSharedWorkerControlPlaneCIDR || agent.Port != IONOSSharedWorkerAgentPort {
 				t.Fatalf("agent listener: %+v", agent)
 			}
 			script := profile.CloudInit

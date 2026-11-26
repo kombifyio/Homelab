@@ -183,6 +183,7 @@ table inet kombify_shared_worker {
 		ip protocol icmp accept
 		ip6 nexthdr icmpv6 accept
 		tcp dport 22 accept
+		udp dport 51820 accept
 		iifname "@@AGENT_IF@@" ip saddr @@CONTROL_CIDR@@ tcp dport @@AGENT_PORT@@ accept
 	}
 	chain forward {
@@ -282,7 +283,7 @@ cat >/etc/systemd/system/kombify-ionos-shared-worker-agent.service <<'KOMBIFY_EO
 Description=kombify IONOS shared worker node agent
 After=network-online.target nftables.service wg-quick@@@AGENT_IF@@.service
 Wants=network-online.target
-Requires=nftables.service
+Requires=nftables.service wg-quick@@@AGENT_IF@@.service
 ConditionPathExists=/usr/local/bin/kombify-ionos-shared-worker-agent
 ConditionPathExists=/sys/class/net/@@AGENT_IF@@
 ConditionPathExists=@@CONF@@/agent-tls/server.crt

@@ -22,6 +22,7 @@ import (
 	"github.com/kombifyio/homelab/internal/gocommon/oidcclient"
 
 	"github.com/kombifyio/homelab/internal/frontend"
+	"github.com/kombifyio/homelab/internal/ionospooltunnel"
 	"github.com/kombifyio/homelab/internal/notifications"
 	"github.com/kombifyio/homelab/internal/portinventory"
 	"github.com/kombifyio/homelab/internal/routes"
@@ -69,6 +70,7 @@ import (
 )
 
 type startupContext struct {
+	poolTunnel         *ionospooltunnel.Tunnel
 	cfg                *config.Config
 	identity           instance.Identity
 	enrollmentResolver *enrollment.Resolver
@@ -480,6 +482,11 @@ func runHomelab(ctx context.Context) error {
 		}
 	}()
 
+	defer func() {
+		if startup.poolTunnel != nil {
+			startup.poolTunnel.Close()
+		}
+	}()
 	deps := routeDeps{
 		startup:                 startup,
 		orch:                    orch,

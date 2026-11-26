@@ -2,61 +2,73 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"net/http"
-	"net/netip"
-	"net/url"
 	"os"
 
+	"github.com/kombifyio/homelab/internal/ionospooltunnel"
 	"github.com/kombifyio/homelab/internal/providercontrol"
 	"github.com/kombifyio/homelab/internal/routes"
 	"github.com/kombifyio/homelab/pkg/httpx"
 	"github.com/kombifyio/homelab/pkg/middleware"
 )
 
-func registerIONOSSharedPool(router *httpx.Router, deps routeDeps) error {
+func registerIONOSSharedPool(router *httpx.Router, deps routeDeps) func() ionospooltunnel.Status {
 	if os.Getenv("HOMELAB_IONOS_SHARED_POOL_ENABLED") != "true" {
 		return nil
 	}
+	tunnel, err := configureIONOSSharedPool(router, deps)
+	if err != nil {
+		readiness := &ionospooltunnel.ReadinessError{Code: "pool_configuration_invalid"}
+		_ = errors.As(err, &readiness)
+		routes.RegisterIONOSSharedPoolRoutes(router, func(context.Context, providercontrol.IONOSPoolIdentity, providercontrol.IONOSPoolRequest) (providercontrol.IONOSSharedPoolObservation, error) {
+			return providercontrol.IONOSSharedPoolObservation{}, readiness
+		})
+		if deps.log != nil {
+			deps.log.Error("ionos_shared_pool_unavailable", "reason_code", readiness.Code)
+		}
+		return func() ionospooltunnel.Status {
+			return ionospooltunnel.Status{Enabled: true, State: "unavailable", Error: readiness}
+		}
+	}
+	deps.startup.poolTunnel = tunnel
+	return tunnel.Status
+}
+
+func configureIONOSSharedPool(router *httpx.Router, deps routeDeps) (*ionospooltunnel.Tunnel, error) {
 	if deps.startup == nil || !deps.startup.cfg.DeploymentMode.IsSaaS() || deps.v2 == nil || deps.v2.db == nil || deps.featureSvc == nil {
-		return fmt.Errorf("IONOS pool requires hosted database and feature authority")
+		return nil, fmt.Errorf("IONOS pool requires hosted database and feature authority")
 	}
 	var node providercontrol.IONOSSharedPoolNode
 	var apps map[string]providercontrol.IONOSPoolApplication
 	if json.Unmarshal([]byte(os.Getenv("HOMELAB_IONOS_SHARED_POOL_NODE")), &node) != nil || json.Unmarshal([]byte(os.Getenv("HOMELAB_IONOS_SHARED_POOL_APPS")), &apps) != nil {
-		return fmt.Errorf("IONOS pool requires admitted node and curated image configuration")
+		return nil, fmt.Errorf("IONOS pool requires admitted node and curated image configuration")
 	}
-	certificate, err := tls.LoadX509KeyPair(os.Getenv("HOMELAB_IONOS_SHARED_POOL_CLIENT_CERT_FILE"), os.Getenv("HOMELAB_IONOS_SHARED_POOL_CLIENT_KEY_FILE"))
+	tunnel, client, err := ionospooltunnel.OpenHTTPClient(
+		os.Getenv("HOMELAB_IONOS_SHARED_POOL_ORIGIN"),
+		os.Getenv("HOMELAB_IONOS_SHARED_POOL_WIREGUARD_FILE"),
+		os.Getenv("HOMELAB_IONOS_SHARED_POOL_CA_FILE"),
+		os.Getenv("HOMELAB_IONOS_SHARED_POOL_CLIENT_CERT_FILE"),
+		os.Getenv("HOMELAB_IONOS_SHARED_POOL_CLIENT_KEY_FILE"),
+		providercontrol.IONOSSharedPoolMaxCommandDuration,
+	)
 	if err != nil {
-		return fmt.Errorf("IONOS pool client certificate unavailable")
+		return nil, err
 	}
-	ca, err := os.ReadFile(os.Getenv("HOMELAB_IONOS_SHARED_POOL_CA_FILE"))
+	admitted := false
+	defer func() {
+		if !admitted {
+			tunnel.Close()
+		}
+	}()
+	runtime, err := providercontrol.NewIONOSSharedPoolHTTPRuntime(os.Getenv("HOMELAB_IONOS_SHARED_POOL_ORIGIN"), client)
 	if err != nil {
-		return fmt.Errorf("IONOS pool server CA unavailable")
-	}
-	roots := x509.NewCertPool()
-	if !roots.AppendCertsFromPEM(ca) {
-		return fmt.Errorf("IONOS pool server CA invalid")
-	}
-	origin, err := url.Parse(os.Getenv("HOMELAB_IONOS_SHARED_POOL_ORIGIN"))
-	if err != nil || origin.Scheme != "https" {
-		return fmt.Errorf("IONOS pool requires its private WireGuard HTTPS origin")
-	}
-	workerIP, ipErr := netip.ParseAddr(origin.Hostname())
-	if ipErr != nil || !netip.MustParsePrefix("100.64.200.0/24").Contains(workerIP) {
-		return fmt.Errorf("IONOS pool requires its private WireGuard HTTPS origin")
-	}
-	transport := &http.Transport{TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS13, RootCAs: roots, Certificates: []tls.Certificate{certificate}}, ResponseHeaderTimeout: providercontrol.IONOSSharedPoolMaxCommandDuration}
-	runtime, err := providercontrol.NewIONOSSharedPoolHTTPRuntime(origin.String(), &http.Client{Transport: transport, Timeout: providercontrol.IONOSSharedPoolMaxCommandDuration})
-	if err != nil {
-		return err
+		return nil, err
 	}
 	budgetReader, err := newManagedAppBudgetReader()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	admission := func(ctx context.Context, id providercontrol.IONOSPoolIdentity, req providercontrol.IONOSPoolRequest) (providercontrol.ManagedAppBudget, error) {
 		grants, ok := middleware.SignedEntitlementsFromContext(ctx)
@@ -76,8 +88,14 @@ func registerIONOSSharedPool(router *httpx.Router, deps routeDeps) error {
 	}
 	control, err := providercontrol.NewIONOSSharedPoolControl(deps.v2.db.DB, node, runtime, runtime, apps, admission)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	routes.RegisterIONOSSharedPoolRoutes(router, control)
-	return nil
+	routes.RegisterIONOSSharedPoolRoutes(router, func(ctx context.Context, id providercontrol.IONOSPoolIdentity, request providercontrol.IONOSPoolRequest) (providercontrol.IONOSSharedPoolObservation, error) {
+		if status := tunnel.Status(); status.Error != nil {
+			return providercontrol.IONOSSharedPoolObservation{}, status.Error
+		}
+		return control.Execute(ctx, id, request)
+	})
+	admitted = true
+	return tunnel, nil
 }
