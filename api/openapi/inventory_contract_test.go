@@ -162,16 +162,3 @@ func inventoryContractMap(t *testing.T, parent map[string]any, key string) map[s
 	}
 	return value
 }
-
-func inventoryContractStringSet(t *testing.T, parent map[string]any, key string) map[string]bool {
-	t.Helper()
-	values, ok := parent[key].([]any)
-	if !ok {
-		t.Fatalf("%q = %#v, want array", key, parent[key])
-	}
-	result := make(map[string]bool, len(values))
-	for _, value := range values {
-		result[fmt.Sprint(value)] = true
-	}
-	return result
-}

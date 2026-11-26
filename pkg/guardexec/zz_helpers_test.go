@@ -6,12 +6,13 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/kombifyio/homelab/pkg/guardrelease"
 	"os"
 	"path/filepath"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/kombifyio/homelab/pkg/guardrelease"
 )
 
 type fakeSystemd struct {
@@ -83,14 +84,6 @@ func newHost(t *testing.T, allowUnsigned bool, mutate func(*UpdaterConfig)) *hos
 	}
 	h.updater = updater
 	return h
-}
-
-func (h *host) offer(t *testing.T, content, version string) StageParams {
-	t.Helper()
-	if err := os.WriteFile(filepath.Join(h.handoff, "artifact"), []byte(content), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	return StageParams{ArtifactFile: "artifact", Version: version}
 }
 
 func (h *host) installed(t *testing.T) string {

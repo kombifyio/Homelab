@@ -20,8 +20,6 @@ import (
 	"github.com/kombifyio/homelab/pkg/jobs"
 )
 
-const tenantGUC = "app.tenant_id"
-
 // Cadence is the closed schedule vocabulary, mirroring #BackupScheduleV1.
 type Cadence string
 

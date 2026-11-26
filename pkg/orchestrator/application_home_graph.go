@@ -52,7 +52,7 @@ func activeConnectorService(service controlplane.ServiceRuntime) bool {
 // lock, so it does not flip while a lock is held; a locked target is fenced.
 // The POST path and the reconcile path both use it, so two nodes never race.
 func (o *Orchestrator) homeGraphTargetService(ctx context.Context, tenantID, ownerID string) (*controlplane.ServiceRuntime, error) {
-	stacks, ok := o.cfg.StackStore.(controlplane.StackStore)
+	stacks, ok := o.cfg.StackStore, o.cfg.StackStore != nil
 	services, okServices := o.cfg.StackStore.(controlplane.ServiceRuntimeStore)
 	if !ok || !okServices {
 		return nil, ErrStackKitLifecycleUnavailable

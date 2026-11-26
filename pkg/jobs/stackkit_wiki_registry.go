@@ -29,9 +29,26 @@ type registryWorkload struct {
 	SecretRefs map[string]string `json:"secretRefs"`
 }
 
+type registrySelectionNode struct {
+	ID      string `json:"id"`
+	SiteRef string `json:"siteRef"`
+	Enabled *bool  `json:"enabled"`
+}
+
+type registrySelectionSpec struct {
+	Workloads map[string]json.RawMessage `json:"workloads"`
+	Nodes     []registrySelectionNode    `json:"nodes"`
+}
+
 func renewCustomerRegistryPull(ctx context.Context, cfg StackKitLifecycleConfig, jobID string, req StackKitLifecycleRequest, release stackkitrelease.Release, outcome map[string]interface{}) error {
-	if req.Offline || req.DryRun {
+	if req.DryRun {
 		return nil
+	}
+	if req.Offline && req.Operation == StackKitLifecycleApplicationUpdate && req.UseCase != ManagedWikiWorkload {
+		return nil
+	}
+	if err := ValidateManagedWikiExecution(ctx, cfg, req); err != nil {
+		return err
 	}
 	raw := req.CandidateSpecJSON
 	if len(raw) == 0 && cfg.CustomerRegistrySpec != nil {
@@ -42,7 +59,7 @@ func renewCustomerRegistryPull(ctx context.Context, cfg StackKitLifecycleConfig,
 		}
 	}
 	if len(raw) == 0 {
-		if req.UseCase == "wiki" || req.UseCase == "paperwork" {
+		if req.UseCase == ManagedWikiWorkload || (!req.Offline && req.UseCase == "paperwork") {
 			return errors.New("customer registry needs the deployment's approved StackSpec")
 		}
 		return nil
@@ -51,7 +68,10 @@ func renewCustomerRegistryPull(ctx context.Context, cfg StackKitLifecycleConfig,
 	if nodeRef == "" {
 		nodeRef = PrimaryStackKitNodeRef(req.StackKit)
 	}
-	for _, product := range []string{"wiki", "paperwork"} {
+	for _, product := range []string{ManagedWikiWorkload, "paperwork"} {
+		if req.Offline && product != ManagedWikiWorkload {
+			continue
+		}
 		if req.Operation == StackKitLifecycleApplicationUpdate && req.UseCase != product {
 			continue
 		}
@@ -63,6 +83,11 @@ func renewCustomerRegistryPull(ctx context.Context, cfg StackKitLifecycleConfig,
 			if req.UseCase == product {
 				return errors.New(product + " is not selected on this server")
 			}
+			continue
+		}
+		// The Wiki digest above was checked against committed authority,
+		// rather than treating this candidate as its own admission.
+		if req.Offline {
 			continue
 		}
 		if cfg.CustomerRegistryRenew == nil || cfg.WalletHostDelivery == nil {
@@ -84,14 +109,7 @@ func renewCustomerRegistryPull(ctx context.Context, cfg StackKitLifecycleConfig,
 }
 
 func customerRegistrySelected(raw []byte, nodeRef, product string) (bool, error) {
-	var spec struct {
-		Workloads map[string]json.RawMessage `json:"workloads"`
-		Nodes     []struct {
-			ID      string `json:"id"`
-			SiteRef string `json:"siteRef"`
-			Enabled *bool  `json:"enabled"`
-		} `json:"nodes"`
-	}
+	var spec registrySelectionSpec
 	if err := json.Unmarshal(raw, &spec); err != nil {
 		return false, errors.New("customer registry could not read the approved workload selection")
 	}

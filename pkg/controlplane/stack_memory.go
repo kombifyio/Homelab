@@ -24,6 +24,10 @@ func (s *MemoryStore) CreateStack(_ context.Context, req CreateStackRequest) (*S
 		}
 	}
 
+	config, err := retainCommittedStackSpecs(Stack{ID: req.ID, TenantID: req.TenantID, OwnerSubjectID: req.OwnerSubjectID}, req.Config, nil, nil, req.ManagedWikiCommit)
+	if err != nil {
+		return nil, err
+	}
 	now := s.now()
 	stack := Stack{
 		ID:                 req.ID,
@@ -36,7 +40,7 @@ func (s *MemoryStore) CreateStack(_ context.Context, req CreateStackRequest) (*S
 		Description:        req.Description,
 		Mode:               firstNonEmpty(req.Mode, "easy"),
 		Status:             firstNonEmpty(req.Status, "draft"),
-		Config:             cloneMap(req.Config),
+		Config:             config,
 		Services:           cloneSliceOfMaps(req.Services),
 		RuntimeSummary:     map[string]any{},
 		CreatedAt:          now,
@@ -189,7 +193,11 @@ func (s *MemoryStore) compareAndSwapStackConfigLocked(prepared StackConfigCAS) (
 	if !stack.UpdatedAt.Equal(prepared.ExpectedUpdatedAt) {
 		return nil, ErrConflict
 	}
-	stack.Config = cloneMap(prepared.Config)
+	config, err := retainCommittedStackSpecs(stack, prepared.Config, prepared.CommittedSpecTarget, prepared.CommittedSpecCanonical, prepared.ManagedWikiCommit)
+	if err != nil {
+		return nil, err
+	}
+	stack.Config = config
 	stack.UpdatedAt = s.now()
 	if !stack.UpdatedAt.After(prepared.ExpectedUpdatedAt) {
 		stack.UpdatedAt = prepared.ExpectedUpdatedAt.Add(time.Nanosecond)

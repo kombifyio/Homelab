@@ -147,7 +147,7 @@ func (s *Service) Prepare(ctx context.Context, r Request) (Result, error) {
 	}
 	if substrate.IsUbuntuProfile(r.Placement.ProfileID) {
 		if r.Placement.Isolated {
-			return Result{}, errors.New("Ubuntu enrollment requires reachable LAN")
+			return Result{}, errors.New("ubuntu enrollment requires reachable LAN")
 		}
 		if _, err := guardbootstrap.NewEnrollmentIssuer(s.db, nil); err != nil {
 			return Result{}, err

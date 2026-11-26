@@ -42,7 +42,7 @@ func (m *Manager) MintPaperworkMoveProof(in guardidentity.HostProofInput, grant 
 		return "", ErrRecoveryNeeded
 	case StateBound:
 	default:
-		return "", errors.New("Paperwork move proof requires a bound Guard")
+		return "", errors.New("paperwork move proof requires a bound Guard")
 	}
 	return guardidentity.SignPaperworkMoveProof(m.key, in, grant)
 }
@@ -63,7 +63,7 @@ func (m *Manager) MintPaperworkPullProof(in guardidentity.HostProofInput, reques
 		return "", ErrRecoveryNeeded
 	case StateBound:
 	default:
-		return "", errors.New("Paperwork pull proof requires a bound Guard")
+		return "", errors.New("paperwork pull proof requires a bound Guard")
 	}
 	return guardidentity.SignPaperworkPullProof(m.key, in, requestSHA256)
 }
@@ -72,7 +72,7 @@ func (m *Manager) MintPaperworkSignInProof(in guardidentity.HostProofInput, body
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.key == nil || m.rec.State != StateBound {
-		return "", errors.New("Paperwork sign-in proof requires a bound Guard")
+		return "", errors.New("paperwork sign-in proof requires a bound Guard")
 	}
 	return guardidentity.SignPaperworkSignInProof(m.key, in, body)
 }

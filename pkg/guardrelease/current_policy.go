@@ -52,7 +52,7 @@ func ObserveVerifiedPolicy(raw, bundle []byte, verifier interface {
 	VerifyManifest([]byte, []byte) (*Manifest, error)
 }) error {
 	if verifier == nil {
-		return errors.New("Guard release policy verifier is required")
+		return errors.New("guard release policy verifier is required")
 	}
 	manifest, err := verifier.VerifyManifest(raw, bundle)
 	if err != nil {

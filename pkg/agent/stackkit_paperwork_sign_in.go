@@ -52,7 +52,7 @@ func (custody PaperworkSignInCustody) ApplyPaperworkSignIn(ctx context.Context, 
 		State string `json:"state"`
 	}
 	if json.Unmarshal(result, &reply) != nil || reply.State != "stored" {
-		return errors.New("Paperwork custody did not confirm the imported delivery")
+		return errors.New("paperwork custody did not confirm the imported delivery")
 	}
 	args := append([]string{"install-paperwork-bundle", "--source-sha", custody.Bundle.SourceSHA,
 		"--image", custody.Bundle.Image, "--bundle-sha256", custody.Bundle.BundleSHA256,
@@ -69,18 +69,18 @@ func (custody PaperworkSignInCustody) ApplyPaperworkSignIn(ctx context.Context, 
 	}
 	if json.Unmarshal(result, &installed) != nil || installed.State != "compose_ready" || installed.SourceSHA != custody.Bundle.SourceSHA ||
 		installed.Image != custody.Bundle.Image || installed.BundleSHA256 != custody.Bundle.BundleSHA256 {
-		return errors.New("Paperwork installation did not confirm the admitted bundle")
+		return errors.New("paperwork installation did not confirm the admitted bundle")
 	}
 	return nil
 }
 
 func (custody PaperworkSignInCustody) run(ctx context.Context, timeout time.Duration, input string, environment []string, command ...string) (json.RawMessage, error) {
 	if runtime.GOOS != "linux" || os.Getenv("STACKKIT_LINKED_PAPERWORK_INSTALL") != "true" || !custody.Executor.Available() || !custody.Bundle.Ready() {
-		return nil, errors.New("Paperwork custody is disabled on this node")
+		return nil, errors.New("paperwork custody is disabled on this node")
 	}
 	workspace, err := confineStackKitWorkDir(custody.Workspace)
 	if err != nil {
-		return nil, errors.New("Paperwork workspace is unavailable")
+		return nil, errors.New("paperwork workspace is unavailable")
 	}
 	release, err := custody.Executor.releaseCache().ResolvePin(custody.Executor.pinPath)
 	if err != nil {

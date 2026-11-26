@@ -1085,7 +1085,3 @@ func registryServiceActiveMigrationState(service controlplane.Service) string {
 	}
 	return ""
 }
-
-func registryStoreServiceKey(service controlplane.Service) string {
-	return normalizeServiceKey(firstNonEmptyString(service.ServiceKey, service.Name, service.ID))
-}

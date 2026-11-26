@@ -310,11 +310,6 @@ func (d *detector) installCloudflared(ctx context.Context) (*InstallResult, erro
 	}, nil
 }
 
-// getLatestRelease fetches the latest GitHub release URL.
-func (d *detector) getLatestRelease(ctx context.Context, apiURL, assetPattern string) (string, string, error) {
-	return getLatestReleaseHelper(ctx, apiURL, assetPattern)
-}
-
 // downloadFile downloads a file to temp.
 func (d *detector) downloadFile(ctx context.Context, url string) (string, error) {
 	// Add timeout for download

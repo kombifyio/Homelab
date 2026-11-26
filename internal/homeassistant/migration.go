@@ -75,11 +75,11 @@ func (b *MigrationBinding) Activities() map[string]workflow.ActivityFunc {
 }
 func (b *MigrationBinding) authorize(input map[string]any) error {
 	if b == nil || b.SourceCore == nil || b.TargetCore == nil || b.sourceBackup() == nil || b.TargetSupervisor == nil || b.Custody == nil || b.Archives == nil || b.Runtime == nil || b.DependencyAssessmentRef == "" {
-		return errors.New("Home Assistant native migration binding incomplete")
+		return errors.New("home Assistant native migration binding incomplete")
 	}
 	req, _ := input["request"].(map[string]any)
 	if str(input, "owner_id") != b.OwnerID || b.OwnerID == "" || str(req, "source_service_id") != b.SourceServiceID || b.SourceServiceID == "" || str(req, "target_binding_ref") != b.TargetBindingRef || b.TargetBindingRef == "" || str(req, "authorization_ref") != b.AuthorizationRef || b.AuthorizationRef == "" {
-		return errors.New("Home Assistant migration binding authorization denied")
+		return errors.New("home Assistant migration binding authorization denied")
 	}
 	return nil
 }

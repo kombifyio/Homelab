@@ -28,7 +28,7 @@ type managedAppBudgetReader struct {
 func newManagedAppBudgetReader() (*managedAppBudgetReader, error) {
 	config, err := serviceauth.Apply(servicecall.Config{})
 	if err != nil || config.SigningKey == nil {
-		return nil, fmt.Errorf("Managed App budgets require Homelab's Ed25519 service identity")
+		return nil, fmt.Errorf("managed App budgets require Homelab's Ed25519 service identity")
 	}
 	origin := strings.TrimRight(os.Getenv("HOMELAB_CLOUD_URL"), "/")
 	if origin == "" {
@@ -36,7 +36,7 @@ func newManagedAppBudgetReader() (*managedAppBudgetReader, error) {
 	}
 	parsed, err := url.Parse(origin)
 	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || parsed.Path != "" {
-		return nil, fmt.Errorf("Managed App budgets require the Cloud HTTPS origin")
+		return nil, fmt.Errorf("managed App budgets require the Cloud HTTPS origin")
 	}
 	return &managedAppBudgetReader{origin: origin, client: &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
 }
@@ -60,7 +60,7 @@ func (r *managedAppBudgetReader) Read(ctx context.Context, id providercontrol.Ma
 	}
 	token, ok, err := serviceauth.SignEdDSA(payload)
 	if err != nil || !ok {
-		return budget, fmt.Errorf("Managed App budget signing unavailable")
+		return budget, fmt.Errorf("managed App budget signing unavailable")
 	}
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, r.origin+managedAppBudgetPath, nil)
 	if err != nil {
@@ -70,7 +70,7 @@ func (r *managedAppBudgetReader) Read(ctx context.Context, id providercontrol.Ma
 	request.Header.Set("X-Request-ID", requestID)
 	response, err := r.client.Do(request)
 	if err != nil {
-		return budget, fmt.Errorf("Cloud Managed App budget unavailable")
+		return budget, fmt.Errorf("cloud Managed App budget unavailable")
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
@@ -79,7 +79,7 @@ func (r *managedAppBudgetReader) Read(ctx context.Context, id providercontrol.Ma
 	decoder := json.NewDecoder(io.LimitReader(response.Body, 16<<10))
 	decoder.DisallowUnknownFields()
 	if decoder.Decode(&budget) != nil || decoder.Decode(new(any)) != io.EOF || budget.AccountID == "" || budget.Subject != id.SubjectID || budget.RequestedTenantID != id.TenantID || budget.RequestID != requestID || budget.Limit < 0 || budget.Limit > 100000 || !budget.ValidUntil.After(time.Now()) || budget.ValidUntil.After(time.Now().Add(30*time.Second)) {
-		return providercontrol.ManagedAppBudget{}, fmt.Errorf("Cloud Managed App budget binding or freshness invalid")
+		return providercontrol.ManagedAppBudget{}, fmt.Errorf("cloud Managed App budget binding or freshness invalid")
 	}
 	return budget, nil
 }

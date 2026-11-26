@@ -25,7 +25,7 @@ type Journal struct {
 
 func (j *Journal) valid() error {
 	if j == nil || j.DB == nil || j.Encryptor == nil || j.TenantID == "" {
-		return errors.New("Home Assistant durable encrypted operation custody unavailable")
+		return errors.New("home Assistant durable encrypted operation custody unavailable")
 	}
 	return nil
 }

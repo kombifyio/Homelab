@@ -152,11 +152,11 @@ func (d *StackKitDispatcher) Execute(ctx context.Context, request rilaction.Requ
 	}
 	issued, err := d.authority.IssuedLease(ctx, request, admissionDigest)
 	if err != nil || !issued.Allowed || issued.Lease == "" || len(issued.Receipt) == 0 || len(issued.Effect) == 0 {
-		return d.failedEvidence(request, profile, executedAt, fmt.Errorf("Gateway issue denied or unavailable: %v", err))
+		return d.failedEvidence(request, profile, executedAt, fmt.Errorf("gateway issue denied or unavailable: %v", err))
 	}
 	claimed, err := d.proofGateway.RILAuthority(ctx, owner, request.TenantID, "claim", request.ActionCardID, issued.Lease, request.ExecutionID, admissionDigest)
 	if err != nil || !claimed.Allowed || claimed.Claim == "" || claimed.ExecutionID != request.ExecutionID || claimed.Fence != admissionDigest || claimed.LeaseID == "" {
-		return d.failedEvidence(request, profile, executedAt, fmt.Errorf("Gateway claim denied or mismatched: %v", err))
+		return d.failedEvidence(request, profile, executedAt, fmt.Errorf("gateway claim denied or mismatched: %v", err))
 	}
 	proof := &agentpb.RILExecutionProof{LeaseJws: issued.Lease, ClaimJws: claimed.Claim, ReceiptJson: issued.Receipt, EffectJson: issued.Effect}
 	proof.ProofDigest, err = stackkitcommand.RILProofDigest(proof)

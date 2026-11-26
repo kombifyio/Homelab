@@ -34,11 +34,11 @@ const (
 // idempotency key before dispatch and reconcile uncertain native submissions.
 func RegisterHomeAssistantWorkflows(engine *workflow.Engine, activities map[string]workflow.ActivityFunc) error {
 	if engine == nil {
-		return errors.New("Home Assistant workflow engine unavailable")
+		return errors.New("home Assistant workflow engine unavailable")
 	}
 	for _, name := range []string{ActHAAssess, ActHASourceArchive, ActHAProvisionIsolated, ActHARestoreIsolated, ActHAVerifyRestore, ActHAStopSource, ActHATransferToTarget, ActHAStartTarget, ActHAVerifyTarget, ActHATargetArchive, ActHAStopTarget, ActHATransferToSource, ActHAStartSource, ActHAVerifySource} {
 		if activities[name] == nil {
-			return fmt.Errorf("Home Assistant native activity unavailable: %s", name)
+			return fmt.Errorf("home Assistant native activity unavailable: %s", name)
 		}
 	}
 	for name, fn := range activities {
@@ -102,7 +102,7 @@ var haExclusiveEvidence = []string{"exclusive_device_ownership", "network_assign
 func haEvidenceStep(activity string, required []string) workflow.StepFunc {
 	return func(ctx context.Context, rc *workflow.RunContext) (workflow.StepResult, error) {
 		if rc == nil || rc.Run == nil || rc.Activities == nil {
-			return workflow.StepResult{}, errors.New("Home Assistant workflow context unavailable")
+			return workflow.StepResult{}, errors.New("home Assistant workflow context unavailable")
 		}
 		startedKey := activity + ":started_at"
 		started := contextString(rc, startedKey)
@@ -112,7 +112,7 @@ func haEvidenceStep(activity string, required []string) workflow.StepFunc {
 		}
 		at, err := time.Parse(time.RFC3339Nano, started)
 		if err != nil || time.Since(at) > 15*time.Minute {
-			return workflow.StepResult{}, errors.New("Home Assistant native phase exceeded its observation window; retained state requires inspection")
+			return workflow.StepResult{}, errors.New("home Assistant native phase exceeded its observation window; retained state requires inspection")
 		}
 		ctx, cancel := context.WithTimeout(ctx, 15*time.Minute-time.Since(at))
 		defer cancel()
@@ -125,18 +125,18 @@ func haEvidenceStep(activity string, required []string) workflow.StepFunc {
 		}
 		for _, key := range required {
 			if !mapBool(out, key) {
-				return workflow.StepResult{}, fmt.Errorf("Home Assistant %s did not prove %s", activity, key)
+				return workflow.StepResult{}, fmt.Errorf("home Assistant %s did not prove %s", activity, key)
 			}
 		}
 		// Enforce the durable archive receipt before progressing toward restore.
 		if activity == ActHASourceArchive || activity == ActHATargetArchive {
 			for _, key := range []string{"archive_ref", "archive_sha256", "recovery_key_ref"} {
 				if mapString(out, key) == "" {
-					return workflow.StepResult{}, fmt.Errorf("Home Assistant archive lacks %s", key)
+					return workflow.StepResult{}, fmt.Errorf("home Assistant archive lacks %s", key)
 				}
 			}
 			if mapString(out, "archive_ref") == mapString(out, "recovery_key_ref") {
-				return workflow.StepResult{}, errors.New("Home Assistant archive and recovery key custody must be separate")
+				return workflow.StepResult{}, errors.New("home Assistant archive and recovery key custody must be separate")
 			}
 		}
 		setContext(rc, activity, out)
@@ -145,7 +145,7 @@ func haEvidenceStep(activity string, required []string) workflow.StepFunc {
 }
 func (w *HomeAssistantWorkflow) assess(ctx context.Context, rc *workflow.RunContext) (workflow.StepResult, error) {
 	if inputString(rc, "source_service_id") == "" || inputString(rc, "target_binding_ref") == "" || inputString(rc, "authorization_ref") == "" {
-		return workflow.StepResult{}, errors.New("Home Assistant migration requires source, exact target binding and explicit authorization")
+		return workflow.StepResult{}, errors.New("home Assistant migration requires source, exact target binding and explicit authorization")
 	}
 	out, err := haEvidenceStep(ActHAAssess, []string{"source_identity_verified", "native_backup_available", "external_dependencies_accounted", "lifecycle_authorized", "target_binding_verified"})(ctx, rc)
 	if err != nil {
@@ -159,7 +159,7 @@ func (w *HomeAssistantWorkflow) assess(ctx context.Context, rc *workflow.RunCont
 }
 func (w *HomeAssistantWorkflow) confirm(_ context.Context, rc *workflow.RunContext) (workflow.StepResult, error) {
 	if rc == nil || rc.Run == nil {
-		return workflow.StepResult{}, errors.New("Home Assistant workflow context unavailable")
+		return workflow.StepResult{}, errors.New("home Assistant workflow context unavailable")
 	}
 	if w.rollback && (inputString(rc, "migration_run_id") == "" || inputString(rc, "authorization_ref") == "") {
 		return workflow.StepResult{}, errors.New("rollback requires an owned migration and explicit authorization")
@@ -168,7 +168,7 @@ func (w *HomeAssistantWorkflow) confirm(_ context.Context, rc *workflow.RunConte
 		return workflow.StepResult{Suspend: &workflow.SuspendDirective{SignalKey: HomeAssistantConfirmationKey(rc.Run.RunID), Timeout: 24 * time.Hour, TimerKind: workflow.TimerEscalation}}, nil
 	}
 	if rc.Signal.TimedOut || rc.Signal.Key != HomeAssistantConfirmationKey(rc.Run.RunID) || !mapBool(rc.Signal.Payload, "confirmed") {
-		return workflow.StepResult{}, errors.New("Home Assistant transition not explicitly confirmed")
+		return workflow.StepResult{}, errors.New("home Assistant transition not explicitly confirmed")
 	}
 	return workflow.StepResult{Output: map[string]any{"confirmed": true}}, nil
 }

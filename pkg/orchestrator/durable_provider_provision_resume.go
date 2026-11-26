@@ -299,6 +299,9 @@ func (o *Orchestrator) rehydrateHostedProviderProvisionWait(
 	if boolResult(persisted.Result["auto_deploy"]) {
 		payload["auto_deploy"] = true
 	}
+	if admission := stringFromAny(persisted.Result[jobs.ManagedWikiInstallAdmissionKey]); admission != "" {
+		payload[jobs.ManagedWikiInstallAdmissionKey] = admission
+	}
 	if prepared := persisted.Result[jobs.PreparedManagedLeaseRequestResultKey]; prepared != nil {
 		// Provider-wait recovery runs in a fresh process. The original job
 		// Payload was process-local, while this Result checkpoint is part of the

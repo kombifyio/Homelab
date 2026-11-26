@@ -260,6 +260,10 @@ type StackKitLifecycleRequest struct {
 	Domain            string
 	ExpectedSpecHash  string
 	CandidateSpecJSON []byte
+
+	// Retained in server-owned Wizard checkpoints for recovery after the desired
+	// spec CAS. Public lifecycle HTTP inputs have a separate closed type.
+	WikiInstallAdmission string `json:"wiki_install_admission,omitempty"`
 	// OriginHosts are the certificate hostnames a public_tls_repair installs,
 	// taken from the degraded rollout at enqueue.
 	OriginHosts []string
@@ -545,6 +549,8 @@ type StackKitLifecycleConfig struct {
 	WalletHostDelivery    WalletHostDelivery
 	CustomerRegistryRenew CustomerRegistryRenewal
 	CustomerRegistrySpec  func(context.Context, StackKitLifecycleRequest) ([]byte, error)
+	CommitSpecCanonical   func(context.Context, StackKitLifecycleRequest, []byte) error
+	CommitRollbackTarget  func(context.Context, StackKitLifecycleRequest, string, []byte) error
 	// IdentityJoinWallet stores a joined server's sign-in client secret in the
 	// homelab's Wallet for host delivery. Nil fails the join closed.
 	IdentityJoinWallet HomelabIdentityJoinWallet
@@ -878,6 +884,9 @@ func StackKitLifecyclePayload(req StackKitLifecycleRequest) map[string]interface
 		// Only a request on the decision receipt path carries it, so a
 		// payload with the flag off is exactly as before.
 		payload["decision_principal"] = req.DecisionPrincipal
+	}
+	if req.WikiInstallAdmission != "" {
+		payload[ManagedWikiInstallAdmissionKey] = req.WikiInstallAdmission
 	}
 	return payload
 }
@@ -1243,7 +1252,7 @@ func StackKitLifecycleHandler(cfg StackKitLifecycleConfig) JobHandler {
 			if req.Operation == StackKitLifecyclePaperworkMove {
 				status, _ := normalizePaperworkMoveResult(req, &agentpb.StackKitResult{ExitCode: 1})
 				job.replaceResult(status)
-				return NewPermanentError(fmt.Errorf("Paperwork move dispatch did not return verified evidence: %w", err))
+				return NewPermanentError(fmt.Errorf("paperwork move dispatch did not return verified evidence: %w", err))
 			}
 			if req.Operation == StackKitLifecycleApplicationUpdate {
 				// The node may have started, finished or rolled back the
@@ -1545,6 +1554,7 @@ func stackKitLifecycleRequestFromJob(job *Job) (StackKitLifecycleRequest, error)
 		Domain:                      stringFromInterface(job.Payload["domain"]),
 		ExpectedSpecHash:            stringFromInterface(job.Payload["expected_spec_hash"]),
 		CandidateSpecJSON:           []byte(stringFromInterface(job.Payload["candidate_spec_json"])),
+		WikiInstallAdmission:        stringFromInterface(job.Payload[ManagedWikiInstallAdmissionKey]),
 		ServiceKey:                  stringFromInterface(job.Payload["service_key"]),
 		LogTail:                     int32FromInterface(job.Payload["log_tail"]),
 		LogCursor:                   stringFromInterface(job.Payload["log_cursor"]),

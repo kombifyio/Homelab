@@ -422,6 +422,19 @@ func (executor *StackKitExecutor) execute(ctx context.Context, command *agentpb.
 		command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_CHANGE_SET_CREATE) {
 		finished.WorkspaceRevision = stackKitWorkspaceRevision(workDir, command)
 	}
+	if finished.Success && (command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_INIT ||
+		command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_CHANGE_SET_APPLY ||
+		command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_DRIFT_RECONCILE) {
+		finished.WorkspaceRevision = stackKitWorkspaceRevision(workDir, command)
+	}
+	if finished.Success && (command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_CHANGE_SET_CREATE ||
+		command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_INIT ||
+		command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_CHANGE_SET_APPLY ||
+		command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_ADVANCED_DRIFT_RECONCILE) {
+		// Provenance enrichment is optional. An unavailable observation leaves
+		// the native target opaque; it cannot fail an otherwise successful deploy.
+		_ = attachCommittedStackSpecSnapshot(workDir, command, finished)
+	}
 	if finished.Success && command.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_PLAN && command.StackkitInstanceId != "" {
 		if command.SourceGenerationInspection {
 			if err := attachSourceGenerationInspection(finished); err != nil {

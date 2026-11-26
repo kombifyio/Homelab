@@ -62,7 +62,7 @@ func (h crudRouteHandlers) resumeStackEnrollment(e *httpx.Event) error {
 
 	var ownerSpecAccess ownerSpecBootstrapAccess
 	result, resumeErr := h.orch.ResumeEnrollment(orchestrator.EnrollmentResumeRequest{
-		RequestContext:          e.Request.Context(),
+		RequestContext:          wikiInstallContext(e, stack.OwnerSubjectID, stack.TenantID),
 		StackID:                 stack.ID,
 		TenantID:                stack.TenantID,
 		OwnerID:                 stack.OwnerSubjectID,
@@ -149,6 +149,9 @@ func decodeStrictJSONBody(body io.Reader, target any) error {
 }
 
 func writeEnrollmentResumeError(e *httpx.Event, err error) error {
+	if errors.Is(err, jobs.ErrManagedWikiInstallNotAdmitted) {
+		return managedWikiInstallRefusal(e)
+	}
 	if refusal := tenantguard.ExecutionRefusal(err); refusal != nil {
 		return refusal
 	}

@@ -122,14 +122,6 @@ func joinSpecNodeIDFromStack(stack *controlplane.Stack) string {
 	return strings.TrimSpace(stringFromAny(last["id"]))
 }
 
-func joinPlannedServerID(stack *controlplane.Stack) string {
-	nodeID := joinSpecNodeIDFromStack(stack)
-	if stack == nil || nodeID == "" {
-		return ""
-	}
-	return runtimeidentity.StackServerID(stack.ID, nodeID)
-}
-
 func wizardJoinRemoteHost(run *wizardRunState, stack *controlplane.Stack) string {
 	if run != nil && run.request.Remote != nil {
 		if host := strings.TrimSpace(run.request.Remote.Host); host != "" {

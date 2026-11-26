@@ -206,7 +206,8 @@ func TestOriginCertificateKeyNeverLeavesTheNode(t *testing.T) {
 		encoded = append(encoded, raw...)
 	}
 	keyDER, _ := x509.MarshalECPrivateKey(node.key)
-	if originca.ContainsPrivateKey(encoded) || bytes.Contains(encoded, keyDER) || strings.Contains(string(encoded), hex.EncodeToString(node.key.D.Bytes())) {
+	rawScalar, _ := node.key.Bytes()
+	if originca.ContainsPrivateKey(encoded) || bytes.Contains(encoded, keyDER) || strings.Contains(string(encoded), hex.EncodeToString(rawScalar)) {
 		t.Fatal("private key material crossed the control plane")
 	}
 	if custody.CertificateID != "cf-cert-1" || custody.InstalledAt.IsZero() {

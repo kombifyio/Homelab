@@ -101,6 +101,9 @@ func ProvisionHandler(cfg *ProvisionConfig) JobHandler {
 			// different request from the mutable StackKit spec.
 			result[PreparedManagedLeaseRequestResultKey] = ManagedLeaseRequestPayload(*preparedLeaseRequest)
 		}
+		if admission := stringFromMap(job.Snapshot().Payload, ManagedWikiInstallAdmissionKey); admission != "" {
+			result[ManagedWikiInstallAdmissionKey] = admission
+		}
 		if token := stringFromMap(previousResult, "registration_token"); token != "" {
 			// A replay must not rotate the enrollment token issued by the
 			// first pass; only a new job mints a new one.

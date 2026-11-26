@@ -617,7 +617,7 @@ func (h crudRouteHandlers) provisionStack(e *httpx.Event) error {
 
 	if h.orch != nil {
 		jobID, provisionErr := h.orch.ProvisionStackWithOptions(stackID, spec, orchestrator.ProvisionStackOptions{
-			RequestContext:     e.Request.Context(),
+			RequestContext:     wikiInstallContext(e, stack.OwnerSubjectID, stack.TenantID),
 			TenantID:           stack.TenantID,
 			OwnerID:            stack.OwnerSubjectID,
 			StackName:          stack.Name,
@@ -625,6 +625,9 @@ func (h crudRouteHandlers) provisionStack(e *httpx.Event) error {
 			OwnerSpecBootstrap: ownerSpecRuntimeBootstrap(ownerSpecAccess),
 		})
 		if provisionErr != nil {
+			if errors.Is(provisionErr, jobs.ErrManagedWikiInstallNotAdmitted) {
+				return managedWikiInstallRefusal(e)
+			}
 			if refusal := tenantguard.ExecutionRefusal(provisionErr); refusal != nil {
 				return refusal
 			}
@@ -732,7 +735,7 @@ func (h crudRouteHandlers) deployStack(e *httpx.Event) error {
 	}
 
 	jobID, deployErr := h.orch.DeployStackWithOptions(stackID, orchestrator.ProvisionStackOptions{
-		RequestContext:     e.Request.Context(),
+		RequestContext:     wikiInstallContext(e, stack.OwnerSubjectID, stack.TenantID),
 		TenantID:           stack.TenantID,
 		OwnerID:            stack.OwnerSubjectID,
 		StackName:          stack.Name,
@@ -756,6 +759,9 @@ func deployOrchestratorUnavailable(e *httpx.Event, stackID string) error {
 // deployStartError maps orchestrator deploy-start failures onto the existing
 // response contract shared by both deploy paths.
 func (h crudRouteHandlers) deployStartError(e *httpx.Event, stackID string, deployErr error) error {
+	if errors.Is(deployErr, jobs.ErrManagedWikiInstallNotAdmitted) {
+		return managedWikiInstallRefusal(e)
+	}
 	if refusal := tenantguard.ExecutionRefusal(deployErr); refusal != nil {
 		return refusal
 	}
@@ -909,9 +915,9 @@ func (h crudRouteHandlers) startCreateStackWithOrchestrator(e *httpx.Event, disp
 		return authErr
 	}
 	autoDeploy := shouldStartRolloutAfterCreate(dispatch.spec)
-	startCtx, cancel := context.WithTimeout(e.Request.Context(), 30*time.Second)
-	defer cancel()
 	tenantID := strings.TrimSpace(dispatch.tenantID)
+	startCtx, cancel := context.WithTimeout(wikiInstallContext(e, ownerID, tenantID), 30*time.Second)
+	defer cancel()
 	jobID, err := h.orch.ProvisionStackWithOptions(dispatch.stackID, dispatch.spec, orchestrator.ProvisionStackOptions{
 		AutoDeploy:           autoDeploy,
 		OwnerSpecBootstrap:   ownerSpecRuntimeBootstrap(dispatch.ownerSpecAccess),
@@ -922,6 +928,9 @@ func (h crudRouteHandlers) startCreateStackWithOrchestrator(e *httpx.Event, disp
 		PreparedManagedLease: dispatch.preparedLease,
 	})
 	if err != nil {
+		if errors.Is(err, jobs.ErrManagedWikiInstallNotAdmitted) {
+			return managedWikiInstallRefusal(e)
+		}
 		if refusal := tenantguard.ExecutionRefusal(err); refusal != nil {
 			return refusal
 		}

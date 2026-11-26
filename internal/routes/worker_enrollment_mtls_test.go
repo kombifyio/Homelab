@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,24 +10,6 @@ import (
 	"github.com/kombifyio/homelab/pkg/grpcserver"
 	"github.com/kombifyio/homelab/pkg/httpx"
 )
-
-type recordingWorkerAgentIdentityIssuer struct {
-	request grpcserver.IssueRequest
-}
-
-func (issuer *recordingWorkerAgentIdentityIssuer) IssueAgentIdentity(_ context.Context, req grpcserver.IssueRequest) (*grpcserver.IssuedIdentity, error) {
-	issuer.request = req
-	return &grpcserver.IssuedIdentity{
-		AgentID:    req.AgentID,
-		TenantID:   req.TenantID,
-		CertPEM:    []byte("certificate"),
-		KeyPEM:     []byte("private-key"),
-		CACertPEM:  []byte("ca"),
-		Serial:     "1234",
-		ExpiresAt:  time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC),
-		EnrolledAt: time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC),
-	}, nil
-}
 
 func TestWorkerEnrollmentResponseIncludesMTLSIdentity(t *testing.T) {
 	expiresAt := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)

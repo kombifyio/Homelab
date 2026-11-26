@@ -123,9 +123,7 @@ func (s *MemoryStore) reconcile(ctx context.Context, rec Reconciliation, identit
 		}
 	}
 	change := planReconciliation(rec, open, identity, name, now, uuid.NewString)
-	for _, record := range change.open {
-		s.findings = append(s.findings, record)
-	}
+	s.findings = append(s.findings, change.open...)
 	replace := func(record FindingRecord) {
 		for i := range s.findings {
 			if s.findings[i].ID == record.ID {

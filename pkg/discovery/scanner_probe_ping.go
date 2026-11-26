@@ -17,11 +17,6 @@ func (s *Scanner) probeHost(ctx context.Context, ip string, timeout time.Duratio
 	if err != nil {
 		return nil
 	}
-	// Skip probing hosts that are Docker veth bridge or common docker IPs (heuristic to reduce noise)
-	if strings.HasPrefix(ip, "172.") && strings.Contains(ip, ".") && s.config.ExcludeLocalIPs {
-		// common docker network starts with 172.*, but we still allow scanning if user specified subnet explicitly
-	}
-
 	if !s.ping(ctx, ip, timeout) {
 		return nil
 	}

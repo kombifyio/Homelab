@@ -64,18 +64,3 @@ func (r *GitHubRelease) FindAsset(pattern string) (string, error) {
 
 	return "", fmt.Errorf("no asset found matching pattern: %s", pattern)
 }
-
-// getLatestReleaseHelper is a helper used by platform-specific implementations.
-func getLatestReleaseHelper(ctx context.Context, apiURL, assetPattern string) (string, string, error) {
-	release, err := FetchLatestRelease(ctx, apiURL)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to fetch release: %w", err)
-	}
-
-	downloadURL, err := release.FindAsset(assetPattern)
-	if err != nil {
-		return "", "", err
-	}
-
-	return downloadURL, release.TagName, nil
-}

@@ -15,7 +15,7 @@ var errRequestReplay = errors.New("execution request was already admitted")
 // and the one-create claim survive process restart and concurrent receivers.
 func (g *GatewayAdmission) claimEnvelope(ctx context.Context, grant CallerGrant, key, purpose [32]byte, create bool) error {
 	if g.audit == nil {
-		return errors.New("Gateway admission audit is unavailable")
+		return errors.New("gateway admission audit is unavailable")
 	}
 	tx, err := db.BeginTenantTransaction(ctx, g.audit, grant.TenantID)
 	if err != nil {

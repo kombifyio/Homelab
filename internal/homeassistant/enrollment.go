@@ -110,7 +110,7 @@ func (s *EnrollmentStore) Resolve(ctx context.Context, input managedstackkit.Ope
 		return nil, err
 	}
 	if !encrypted.Valid {
-		return nil, errors.New("Home Assistant owner enrollment awaits explicit authenticated instance attachment")
+		return nil, errors.New("home Assistant owner enrollment awaits explicit authenticated instance attachment")
 	}
 	if origin == "new" {
 		if !leaseID.Valid || s.VerifyFreshEndpoint == nil {

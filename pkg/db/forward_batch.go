@@ -3,13 +3,14 @@ package db
 import (
 	"bytes"
 	"context"
+	cryptorand "crypto/rand"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
-	"math/rand/v2"
 	"os"
 	"path"
 	"regexp"
@@ -427,7 +428,15 @@ func forwardBackoff(attempt int) time.Duration {
 	if wait <= 0 || wait > forwardBackoffMax {
 		wait = forwardBackoffMax
 	}
-	return wait/2 + rand.N(wait/2+1)
+	return wait/2 + forwardJitter(wait/2+1)
+}
+
+// forwardJitter returns a value in [0, limit) from the system CSPRNG; it only
+// spreads retries apart and carries no secret.
+func forwardJitter(limit time.Duration) time.Duration {
+	var b [8]byte
+	_, _ = cryptorand.Read(b[:])
+	return time.Duration(binary.BigEndian.Uint64(b[:]) % uint64(limit))
 }
 
 func setForwardLockTimeout(ctx context.Context, tx *sql.Tx, timeout time.Duration) error {

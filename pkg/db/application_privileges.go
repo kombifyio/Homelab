@@ -439,7 +439,7 @@ func verifyApplicationContextSchema(ctx context.Context, q PrivilegeQuerier, pri
 	 AND ($1<>$5 OR EXISTS(SELECT 1 FROM kombify_ctx.role_class WHERE role_name=$1 AND class='system'))
 	 FROM pg_namespace n WHERE n.nspname='kombify_ctx'`, principal.Role, principal.AuthorityOwner, requireCapabilities, class, RuntimeSystemRole).Scan(&safe)
 	if err != nil || !safe {
-		return fmt.Errorf("Common context namespace ownership, classification or PUBLIC authority is unsafe")
+		return fmt.Errorf("common context namespace ownership, classification or PUBLIC authority is unsafe")
 	}
 	return nil
 }
@@ -468,7 +468,7 @@ func verifyApplicationContextFunction(ctx context.Context, q PrivilegeQuerier, p
 	 FROM pg_proc f JOIN pg_roles owner ON owner.oid=f.proowner
 	 WHERE f.oid=$1 AND f.pronamespace=to_regnamespace('kombify_ctx')`, oid, principal.AuthorityOwner, definer, language, result).Scan(&safe)
 	if err != nil || !safe {
-		return fmt.Errorf("Common context verifier owner/execution posture is unsafe")
+		return fmt.Errorf("common context verifier owner/execution posture is unsafe")
 	}
 	return nil
 }

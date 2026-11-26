@@ -78,22 +78,22 @@ func ValidOwnApplicationName(name string) bool {
 
 func validateApplicationStackCommand(c *agentpb.StackKitCommand) error {
 	if !ReleaseAtLeast(c.Release.GetVersion(), MinApplicationStackRelease) {
-		return fmt.Errorf("Stack it requires StackKits %s or newer", MinApplicationStackRelease)
+		return fmt.Errorf("stack it requires StackKits %s or newer", MinApplicationStackRelease)
 	}
 	if c.StackkitInstanceId == "" || c.ServiceKey != "" || c.ApplicationAction != "" || c.RilExecutionProof != nil {
-		return fmt.Errorf("Stack it requires the exact workspace identity and carries no service key, action or RIL proof")
+		return fmt.Errorf("stack it requires the exact workspace identity and carries no service key, action or RIL proof")
 	}
 	if !sha256Pattern.MatchString(c.ApplicationContainerId) || !ValidOwnApplicationName(c.OwnApplicationName) {
-		return fmt.Errorf("Stack it requires a full container ID and a valid own application name")
+		return fmt.Errorf("stack it requires a full container ID and a valid own application name")
 	}
 	if !applicationStackMutation(c.Operation) {
 		if c.OwnerApproved || c.ApplicationPlanDigest != "" || c.ApplicationOperationId != "" {
-			return fmt.Errorf("Stack it read cannot carry mutation fields")
+			return fmt.Errorf("stack it read cannot carry mutation fields")
 		}
 		return nil
 	}
 	if !c.OwnerApproved || !commandIDPattern.MatchString(c.ApplicationOperationId) {
-		return fmt.Errorf("Stack it mutation requires Owner approval and stable operation identity")
+		return fmt.Errorf("stack it mutation requires Owner approval and stable operation identity")
 	}
 	if (c.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_STACK) != specHashPattern.MatchString(c.ApplicationPlanDigest) {
 		return fmt.Errorf("only Stack it adopt carries the reviewed plan digest")
@@ -171,7 +171,7 @@ var applicationStackPhase = map[agentpb.StackKitOperation]string{
 func ParseApplicationStackResult(c *agentpb.StackKitCommand, r *agentpb.StackKitResult) (ApplicationStackResult, error) {
 	var e ApplicationStackResult
 	if c == nil || r == nil || !IsApplicationStackOperation(c.Operation) {
-		return e, fmt.Errorf("Stack it result is required")
+		return e, fmt.Errorf("stack it result is required")
 	}
 	var envelope struct {
 		Data struct {
@@ -179,23 +179,23 @@ func ParseApplicationStackResult(c *agentpb.StackKitCommand, r *agentpb.StackKit
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(r.CommandResultJson, &envelope); err != nil || strings.TrimSpace(envelope.Data.Output) == "" {
-		return e, fmt.Errorf("Stack it returned no adoption result")
+		return e, fmt.Errorf("stack it returned no adoption result")
 	}
 	if err := json.Unmarshal([]byte(envelope.Data.Output), &e); err != nil {
 		return e, fmt.Errorf("decode Stack it result: %w", err)
 	}
 	if e.APIVersion != ApplicationStackResultVersion || e.Phase != applicationStackPhase[c.Operation] || e.ContainerID != c.ApplicationContainerId {
-		return e, fmt.Errorf("Stack it result does not match the dispatched container and phase")
+		return e, fmt.Errorf("stack it result does not match the dispatched container and phase")
 	}
 	if e.Name != "" && e.Name != c.OwnApplicationName {
-		return e, fmt.Errorf("Stack it result names another own application")
+		return e, fmt.Errorf("stack it result names another own application")
 	}
 	for _, row := range e.Rows {
 		if !slices.Contains([]string{"kept", "changed", "refused"}, row.Status) {
-			return e, fmt.Errorf("Stack it result has an unknown row status")
+			return e, fmt.Errorf("stack it result has an unknown row status")
 		}
 		if !applicationStackRowCodePattern.MatchString(row.Code) {
-			return e, fmt.Errorf("Stack it result has a row without its machine code")
+			return e, fmt.Errorf("stack it result has a row without its machine code")
 		}
 	}
 	if !r.Success {
@@ -204,26 +204,26 @@ func ParseApplicationStackResult(c *agentpb.StackKitCommand, r *agentpb.StackKit
 	switch c.Operation {
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_STACK_PLAN:
 		if e.Outcome != "planned" && e.Outcome != "refused" {
-			return e, fmt.Errorf("Stack it plan has no planned outcome")
+			return e, fmt.Errorf("stack it plan has no planned outcome")
 		}
 		if e.Outcome == "planned" && (!e.Admissible || !specHashPattern.MatchString(e.PlanDigest)) {
-			return e, fmt.Errorf("Stack it plan lacks its plan digest")
+			return e, fmt.Errorf("stack it plan lacks its plan digest")
 		}
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_STACK:
 		if e.Outcome != "adopted" || e.PlanDigest != c.ApplicationPlanDigest || e.RetainUntil == nil {
-			return e, fmt.Errorf("Stack it adoption does not match the approved plan")
+			return e, fmt.Errorf("stack it adoption does not match the approved plan")
 		}
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_STACK_VERIFY:
 		if e.Outcome != "verified" && e.Outcome != "unhealthy" && e.Outcome != "in_progress" {
-			return e, fmt.Errorf("Stack it verification has no verification outcome")
+			return e, fmt.Errorf("stack it verification has no verification outcome")
 		}
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_STACK_RESTORE_ORIGINAL:
 		if e.Outcome != "restored" {
-			return e, fmt.Errorf("Stack it restore did not restore the original")
+			return e, fmt.Errorf("stack it restore did not restore the original")
 		}
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_STACK_RELEASE_ORIGINAL:
 		if e.Outcome != "released" {
-			return e, fmt.Errorf("Stack it release did not remove the original")
+			return e, fmt.Errorf("stack it release did not remove the original")
 		}
 	}
 	return e, nil

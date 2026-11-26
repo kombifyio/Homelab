@@ -169,6 +169,10 @@ func (h crudRouteHandlers) persistStackViaStore(e *httpx.Event, ctx stackPersist
 			return nil, internalCreateStackError(e)
 		}
 	}
+	proof, err := managedWikiCommitProof(e, ctx.tenantID, ctx.ownerID, stackID, nil, ctx.req.StackSpecV2, false)
+	if err != nil {
+		return nil, err
+	}
 	create := func(name string) (*persistedStack, error) {
 		config := stackConfigFromRequest(ctx.req)
 		if ctx.idempotencyKey != "" {
@@ -176,6 +180,7 @@ func (h crudRouteHandlers) persistStackViaStore(e *httpx.Event, ctx stackPersist
 		}
 		stack, err := h.stackStore.CreateStack(e.Request.Context(), controlplane.CreateStackRequest{
 			ID:                 stackID,
+			ManagedWikiCommit:  proof,
 			TenantID:           ctx.tenantID,
 			OwnerSubjectID:     ctx.ownerID,
 			HomelabID:          ctx.req.HomelabID,
@@ -192,6 +197,9 @@ func (h crudRouteHandlers) persistStackViaStore(e *httpx.Event, ctx stackPersist
 	}
 	for attempt := 0; attempt < maxStackNameAutoFixAttempts; attempt++ {
 		ps, err := create(stackNameCandidate(ctx.req.Name, attempt))
+		if errors.Is(err, controlplane.ErrManagedWikiInstallNotAdmitted) {
+			return nil, managedWikiInstallRefusal(e)
+		}
 		if errors.Is(err, controlplane.ErrStackKitInstanceConflict) {
 			return nil, httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
 				"StackKit instance identity already exists in this homelab", map[string]any{
@@ -217,6 +225,9 @@ func (h crudRouteHandlers) persistStackViaStore(e *httpx.Event, ctx stackPersist
 		return ps, nil
 	}
 	ps, err := create(uniqueStackNameFallback(ctx.req.Name))
+	if errors.Is(err, controlplane.ErrManagedWikiInstallNotAdmitted) {
+		return nil, managedWikiInstallRefusal(e)
+	}
 	if err != nil {
 		return nil, internalCreateStackError(e)
 	}

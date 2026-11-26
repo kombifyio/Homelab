@@ -1,6 +1,7 @@
 package stackkitcommand
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -213,6 +214,7 @@ func ParseOperationDenial(result *agentpb.StackKitResult) (OperationDenial, bool
 // AdvancedOperationResult is the admitted evidence of one successful
 // Advanced operation.
 type AdvancedOperationResult struct {
+	CommittedBaselineSpecJSON json.RawMessage
 	// Operation is the catalog operation.
 	Operation string
 	// ChangeSetID and ChangeSetSHA256 name the change set a create stored.
@@ -283,8 +285,15 @@ func ParseAdvancedOperationResult(command *agentpb.StackKitCommand, result *agen
 }
 
 func admitChangeSetCreate(operation string, data advancedData, raw json.RawMessage, result *agentpb.StackKitResult) (AdvancedOperationResult, error) {
+	var snapshot struct {
+		Baseline json.RawMessage `json:"homelab_committed_baseline"`
+	}
+	if err := json.Unmarshal(result.CommandResultJson, &snapshot); err != nil {
+		return AdvancedOperationResult{}, err
+	}
 	admitted := AdvancedOperationResult{
-		Operation: operation, ChangeSetID: strings.TrimSpace(data.ChangeSetID),
+		CommittedBaselineSpecJSON: snapshot.Baseline,
+		Operation:                 operation, ChangeSetID: strings.TrimSpace(data.ChangeSetID),
 		ChangeSetSHA256: strings.TrimSpace(result.AdvancedChangeSetSha256), Status: "created", Report: raw,
 		WorkspaceRevision: strings.TrimSpace(result.WorkspaceRevision),
 	}
@@ -401,4 +410,32 @@ func ParseDriftReport(command *agentpb.StackKitCommand, result *agentpb.StackKit
 		}
 	}
 	return report, nil
+}
+
+// The field is added by the authenticated Guard after native success, never by
+// a public HTTP input or a controller candidate.
+func CommittedBaselineSpec(result *agentpb.StackKitResult) ([]byte, error) {
+	var envelope struct {
+		Spec json.RawMessage `json:"homelab_committed_baseline"`
+	}
+	if result == nil || !result.Success {
+		return nil, fmt.Errorf("committed spec requires native success")
+	}
+	if err := json.Unmarshal(result.CommandResultJson, &envelope); err != nil {
+		return nil, err
+	}
+	if len(envelope.Spec) == 0 || bytes.Equal(bytes.TrimSpace(envelope.Spec), []byte("null")) {
+		return nil, nil
+	}
+	if len(envelope.Spec) > MaxInitCandidateBytes {
+		return nil, fmt.Errorf("committed spec observation is unavailable")
+	}
+	var document map[string]any
+	if err := json.Unmarshal(envelope.Spec, &document); err != nil {
+		return nil, err
+	}
+	if document == nil {
+		return nil, fmt.Errorf("committed spec observation must be an object")
+	}
+	return envelope.Spec, nil
 }

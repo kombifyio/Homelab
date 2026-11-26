@@ -3,11 +3,9 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"os"
 	"runtime"
-	"strings"
 	"time"
 
 	agentpkg "github.com/kombifyio/homelab/pkg/agent"
@@ -144,10 +142,6 @@ func (e guardExecution) dockerProbe() func(context.Context, string, ...string) (
 		return nil
 	}
 	return e.remote.ProbeDocker
-}
-
-func describeGuardExecution(e guardExecution) string {
-	return fmt.Sprintf("%s(%s)", e.mode, strings.TrimSpace(executorSocket()))
 }
 
 // posture projects how this Guard is isolated and how its latest update went.

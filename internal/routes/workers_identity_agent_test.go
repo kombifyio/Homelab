@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -46,7 +45,7 @@ func TestGuardAgentEnrollmentSurvivesLostResponseAndSignsRequests(t *testing.T) 
 			router.ServeHTTP(httptest.NewRecorder(), r)
 			connection, _, hijackErr := w.(http.Hijacker).Hijack()
 			if hijackErr == nil {
-				_ = connection.(net.Conn).Close()
+				_ = connection.Close()
 			}
 			return
 		}

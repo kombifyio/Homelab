@@ -19,7 +19,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+
 	"github.com/kombifyio/homelab/internal/routes/auth"
+
 	// #nosec G501 -- md5 derives the deterministic homelab id matching
 	// migration 044's backfill scheme ('hl-' || md5(md5(tenant)||md5(owner)));
 	// it is an identity projection, not cryptography.
@@ -388,6 +390,7 @@ func (h wizardRunHandlers) createWizardRun(e *httpx.Event) error {
 	if len(run.blockedCapabilities) > 0 {
 		return h.persistBlockedWizardRun(e, &run)
 	}
+	e.Request = e.Request.WithContext(wikiInstallContext(e, ownerID, tenantID))
 	switch request.Intent.KitAssignment.Mode {
 	case wizardRunKindJoin:
 		return h.runWizardJoin(e, &run)
@@ -805,10 +808,7 @@ func (h wizardRunHandlers) prepareWizardRun(e *httpx.Event, run *wizardRunState)
 	}
 	run.request.Intent = effectiveIntent
 	run.blockedCapabilities = blocked
-	if !admitWizardGuestAccelerator(e, &run.request) {
-		return true
-	}
-	return false
+	return !admitWizardGuestAccelerator(e, &run.request)
 }
 
 // validateUseCaseSettingsAgainstCatalog closes the settings contract: every
@@ -837,37 +837,6 @@ func validateUseCaseSettingsAgainstCatalog(intent specv2.WizardIntent) error {
 			}
 			if !setting.AcceptsSettingValue(value) {
 				return fmt.Errorf("use case %q setting %q does not accept the given value", slug, id)
-			}
-		}
-	}
-	return nil
-}
-
-// validateUseCaseCapabilitiesAgainstCatalog closes the capability contract:
-// each capability must be declared by the use case, and its value must be the
-// default option, the alternative option or "off" (never for a required
-// capability). A recorded option is rejected because the release cannot
-// install it.
-func validateUseCaseCapabilitiesAgainstCatalog(intent specv2.WizardIntent) error {
-	if len(intent.UseCaseCapabilities) == 0 {
-		return nil
-	}
-	catalog, err := stackkitrelease.ResolveUseCaseCatalog()
-	if err != nil {
-		return fmt.Errorf("the StackKits use-case catalog could not be read: %w", err)
-	}
-	for slug, values := range intent.UseCaseCapabilities {
-		useCase, ok := catalog.FindUseCase(slug)
-		if !ok {
-			return fmt.Errorf("use case %q is not in the catalog", slug)
-		}
-		for id, value := range values {
-			capability, ok := useCase.FindCapability(id)
-			if !ok {
-				return fmt.Errorf("use case %q declares no capability %q", slug, id)
-			}
-			if err := capability.AcceptsSelection(value); err != nil {
-				return fmt.Errorf("use case %q: %w", slug, err)
 			}
 		}
 	}

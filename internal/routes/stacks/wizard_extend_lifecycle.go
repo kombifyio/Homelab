@@ -56,7 +56,10 @@ func (h wizardRunHandlers) runWizardRunningExtend(e *httpx.Event, run *wizardRun
 			return nil
 		}
 		run.captureGoalActivations(projection)
-		requests, err := h.crud.orch.PrepareWizardExtend(e.Request.Context(), run.tenantID, run.ownerID, stack.ID, run.runID, run.requestHash, base, projection.Spec)
+		requests, err := h.crud.orch.PrepareWizardExtend(wikiInstallContext(e, run.ownerID, run.tenantID), run.tenantID, run.ownerID, stack.ID, run.runID, run.requestHash, base, projection.Spec)
+		if errors.Is(err, jobs.ErrManagedWikiInstallNotAdmitted) {
+			return managedWikiInstallRefusal(e)
+		}
 		if err != nil {
 			return wizardExtendUnavailable(e, err.Error())
 		}
@@ -92,9 +95,17 @@ func (h wizardRunHandlers) runWizardRunningExtend(e *httpx.Event, run *wizardRun
 			config[key] = value
 		}
 		config[stackConfigKeySpecV2] = checkpoint.Projection.Spec
+		proof := controlplane.ManagedWikiCommitProof{}
+		if len(checkpoint.Requests) > 0 {
+			proof.Admission = checkpoint.Requests[0].WikiInstallAdmission
+		}
 		_, err := h.crud.stackStore.CompareAndSwapStackConfig(e.Request.Context(), controlplane.StackConfigCAS{
-			TenantID: run.tenantID, StackID: stack.ID, ExpectedUpdatedAt: stack.UpdatedAt, Config: config,
+			ManagedWikiCommit: proof,
+			TenantID:          run.tenantID, StackID: stack.ID, ExpectedUpdatedAt: stack.UpdatedAt, Config: config,
 		})
+		if errors.Is(err, controlplane.ErrManagedWikiInstallNotAdmitted) {
+			return managedWikiInstallRefusal(e)
+		}
 		if errors.Is(err, controlplane.ErrConflict) {
 			return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "The homelab changed while the extension was being saved", nil)
 		}
@@ -108,6 +119,9 @@ func (h wizardRunHandlers) runWizardRunningExtend(e *httpx.Event, run *wizardRun
 	jobIDs := make([]string, 0, len(checkpoint.Requests))
 	for _, request := range checkpoint.Requests {
 		jobID, err := h.crud.orch.EnqueueStackKitLifecycle(e.Request.Context(), request)
+		if errors.Is(err, jobs.ErrManagedWikiInstallNotAdmitted) {
+			return managedWikiInstallRefusal(e)
+		}
 		if err != nil {
 			return wizardExtendUnavailable(e, "The accepted extension could not be dispatched; retry with the same Idempotency-Key")
 		}

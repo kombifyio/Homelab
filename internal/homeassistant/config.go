@@ -182,7 +182,7 @@ func RegisterBindings(engine *workflow.Engine, bindings map[string]*MigrationBin
 				req, _ := input["request"].(map[string]any)
 				bound := bindings[str(req, "target_binding_ref")]
 				if bound == nil {
-					return nil, errors.New("Home Assistant exact runtime binding missing")
+					return nil, errors.New("home Assistant exact runtime binding missing")
 				}
 				return bound.Activities()[activityName](ctx, input)
 			}

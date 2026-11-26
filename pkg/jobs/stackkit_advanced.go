@@ -246,6 +246,10 @@ func (d *advancedDispatcher) dispatch(ctx context.Context, commandID, step strin
 	if err != nil {
 		return stackkitcommand.AdvancedOperationResult{}, normalized, err
 	}
+	admitted.CommittedBaselineSpecJSON = nil
+	if baseline, err := stackkitcommand.CommittedBaselineSpec(result); err == nil {
+		admitted.CommittedBaselineSpecJSON = baseline
+	}
 	if d.request.BackupRenewal != nil {
 		if err := verifyManagedDrillReceipt(admitted.Report, d.request.BackupRenewal, commandID, capability.ID); err != nil {
 			return stackkitcommand.AdvancedOperationResult{}, normalized, err
@@ -386,7 +390,19 @@ func runAdvancedStackKitLifecycle(ctx context.Context, cfg StackKitLifecycleConf
 			summary["success"] = false
 			return summary, stepErr
 		}
+		if (step == stackKitStepChangeSetApply || step == stackKitStepDriftReconcile) && cfg.CommitSpecCanonical != nil && len(request.CandidateSpecJSON) > 0 {
+			if err := cfg.CommitSpecCanonical(ctx, request, admitted.CommittedBaselineSpecJSON); err != nil {
+				summary["success"] = false
+				return summary, err
+			}
+		}
 		if step == stackKitStepChangeSetCreate {
+			if cfg.CommitRollbackTarget != nil {
+				if err := cfg.CommitRollbackTarget(ctx, request, admitted.ChangeSetID, admitted.CommittedBaselineSpecJSON); err != nil {
+					summary["success"] = false
+					return summary, err
+				}
+			}
 			created = admitted
 			summary["change_set_id"], summary["change_set_sha256"] = admitted.ChangeSetID, admitted.ChangeSetSHA256
 		}

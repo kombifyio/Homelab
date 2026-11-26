@@ -9,18 +9,19 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
-	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
-	"github.com/kombifyio/homelab/pkg/controlplane"
-	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/identity"
-	"github.com/kombifyio/homelab/pkg/vmleases"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/pkg/vmleases"
 )
 
 const clientDiscoveryTestInstanceID = "11111111-2222-4333-8444-555555555555"
@@ -155,14 +156,6 @@ func (f *fakeWizardRemoteSSHTester) TestSSHWithKey(_ context.Context, host strin
 	f.lastUser = username
 	f.lastKey = privateKey
 	return f.err
-}
-
-type fakeWizardFeatureChecker struct {
-	enabled bool
-}
-
-func (f fakeWizardFeatureChecker) IsEnabled(context.Context, string, string) (bool, error) {
-	return f.enabled, nil
 }
 
 func wizardRemoteSSHTestEvent(body string) (*httpx.Event, *httptest.ResponseRecorder) {

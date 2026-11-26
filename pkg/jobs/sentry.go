@@ -136,27 +136,6 @@ func breadcrumbStep(ctx context.Context, stepID, message string, data map[string
 	}, nil)
 }
 
-// breadcrumbWait records progress while a step is blocked waiting on an
-// external system (currently: the managed VM lease enrollment). Without this
-// a 5-minute hang shows up in Sentry as a single transition with no detail.
-func breadcrumbWait(ctx context.Context, stepID string, waited time.Duration, message string) {
-	hub := sentry.GetHubFromContext(ctx)
-	if hub == nil {
-		return
-	}
-	hub.AddBreadcrumb(&sentry.Breadcrumb{
-		Type:     "default",
-		Category: "job.wait",
-		Message:  safeSentryText(message),
-		Level:    sentry.LevelInfo,
-		Data: map[string]interface{}{
-			stepField:       stepID,
-			"waited_ms":     waited.Milliseconds(),
-			"waited_pretty": waited.Truncate(time.Second).String(),
-		},
-	}, nil)
-}
-
 // captureJobError records an error with extra context but lets the caller keep
 // returning the error to the queue. Use this for partial / mid-step failures
 // (e.g. a lease resolver error during a wait loop) that should be visible in

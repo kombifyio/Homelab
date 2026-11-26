@@ -53,7 +53,7 @@ func (c gatewayContext) Value(key any) any {
 }
 
 func (g *GatewayAdmission) admit(ctx context.Context, grant CallerGrant, action string, request providerRequest) (context.Context, error) {
-	denied := errors.New("Gateway admission purpose denied")
+	denied := errors.New("gateway admission purpose denied")
 	envelope := request.Envelope
 	if g == nil || envelope == nil || request.Lease == nil || (action != remotePath+"provider/preflight" && action != remotePath+"provider/create") {
 		return nil, denied
@@ -112,7 +112,7 @@ func (g *GatewayAdmission) admit(ctx context.Context, grant CallerGrant, action 
 	entry := g.entries[key]
 	if entry == nil {
 		if len(g.entries) >= 1000 {
-			return nil, errors.New("Gateway admission cache is full")
+			return nil, errors.New("gateway admission cache is full")
 		}
 		verified, err := middleware.ReverifyEdgeEnvelope(envelope, g.config)
 		if err != nil {

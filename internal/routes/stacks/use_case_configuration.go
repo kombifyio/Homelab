@@ -201,7 +201,10 @@ func (h wizardRunHandlers) configureUseCase(e *httpx.Event) error {
 		if err := stackkitcommand.ValidateUseCaseConfigurationModule(evidence, selection.ModuleRef); err != nil {
 			return configurationError(e, http.StatusConflict, "configuration_candidate_scope_invalid", "The compiler candidate changed unrelated module intent")
 		}
-		requests, err := h.crud.orch.PrepareWizardExtend(e.Request.Context(), stack.TenantID, stack.OwnerSubjectID, stack.ID, run.ID, digest, evidence.PreviousSpec, evidence.CandidateSpec)
+		requests, err := h.crud.orch.PrepareWizardExtend(wikiInstallContext(e, stack.OwnerSubjectID, stack.TenantID), stack.TenantID, stack.OwnerSubjectID, stack.ID, run.ID, digest, evidence.PreviousSpec, evidence.CandidateSpec)
+		if errors.Is(err, jobs.ErrManagedWikiInstallNotAdmitted) {
+			return httpx.Reject(e, http.StatusForbidden, ksapi.ErrCodeForbidden, "Managed Wiki installation is not enabled", map[string]any{"reason_code": "managed_wiki_install_disabled", "retryable": false})
+		}
 		if err != nil || len(requests) == 0 {
 			return configurationError(e, http.StatusServiceUnavailable, "configuration_dispatch_unavailable", "The Advanced configuration operation could not be prepared")
 		}

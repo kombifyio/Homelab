@@ -205,7 +205,7 @@ func (h wizardRouteHandlers) resolveWalletCredentialSecret(
 	tenantID, ownerID, label, kind string,
 ) (string, error) {
 	if h.cfg.Wallet == nil {
-		return "", errors.New("Wallet is not configured; store the SSH key in your wallet before testing by label")
+		return "", errors.New("wallet is not configured; store the SSH key in your wallet before testing by label")
 	}
 	label = strings.TrimSpace(label)
 	if label == "" {
@@ -213,7 +213,7 @@ func (h wizardRouteHandlers) resolveWalletCredentialSecret(
 	}
 	items, err := h.cfg.Wallet.ListWalletItems(ctx, tenantID, "")
 	if err != nil {
-		return "", errors.New("Could not load wallet credentials for SSH key lookup")
+		return "", errors.New("could not load wallet credentials for SSH key lookup")
 	}
 	for _, item := range items {
 		if !walletItemOwnedBy(item.Metadata, ownerID) {
@@ -232,15 +232,15 @@ func (h wizardRouteHandlers) resolveWalletCredentialSecret(
 		}
 		secret, revealErr := walletRevealField(walletString(item.Metadata["secret"]))
 		if revealErr != nil {
-			return "", errors.New("Could not decrypt the matching wallet credential")
+			return "", errors.New("could not decrypt the matching wallet credential")
 		}
 		secret = strings.TrimSpace(secret)
 		if secret == "" {
-			return "", errors.New("The matching wallet credential has no secret material")
+			return "", errors.New("the matching wallet credential has no secret material")
 		}
 		return secret, nil
 	}
-	return "", errors.New("No wallet credential matched the SSH key label")
+	return "", errors.New("no wallet credential matched the SSH key label")
 }
 
 // discoveryRemoteSSHAdapter exposes key-based and password-based probes from

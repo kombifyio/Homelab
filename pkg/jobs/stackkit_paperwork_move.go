@@ -38,13 +38,13 @@ func normalizePaperworkMoveResult(req StackKitLifecycleRequest, result *agentpb.
 
 func authorizePaperworkMove(ctx context.Context, cfg StackKitLifecycleConfig, req StackKitLifecycleRequest) error {
 	if req.PaperworkMoveServerID == "" || cfg.ApplicationAuthorize == nil || cfg.ServiceRuntimeAuthorize == nil {
-		return errors.New("Paperwork move operate authority is unavailable")
+		return errors.New("paperwork move operate authority is unavailable")
 	}
 	if err := cfg.ServiceRuntimeAuthorize(ctx, req, req.PaperworkMoveServerID); err != nil {
-		return errors.New("Paperwork move destination binding is no longer admitted")
+		return errors.New("paperwork move destination binding is no longer admitted")
 	}
 	if err := cfg.ApplicationAuthorize(ctx, req.TenantID, req.OwnerID, req.PaperworkMoveServerID); err != nil {
-		return errors.New("Paperwork move backend operate permit denied")
+		return errors.New("paperwork move backend operate permit denied")
 	}
 	return nil
 }

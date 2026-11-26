@@ -377,16 +377,16 @@ func presentationFromView(view stackIdentityView) (*controlplane.StackIdentityPr
 func validatePresentation(p controlplane.StackIdentityPresentation) error {
 	for _, id := range []string{p.CharacterID, p.AnimationStyle} {
 		if id != "" && !catalogID(id) {
-			return errors.New("Stack Identity character and animation must be catalog ids")
+			return errors.New("stack Identity character and animation must be catalog ids")
 		}
 	}
 	switch p.IconStyle {
 	case "", "filled", "glass", "gradient", "outlined":
 	default:
-		return errors.New("Stack Identity icon style is not supported")
+		return errors.New("stack Identity icon style is not supported")
 	}
 	if p.GlowColorOverride != nil && !hexColor(*p.GlowColorOverride) {
-		return errors.New("Stack Identity glow color must be a hex color")
+		return errors.New("stack Identity glow color must be a hex color")
 	}
 	return nil
 }

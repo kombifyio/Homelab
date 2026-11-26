@@ -258,13 +258,13 @@ func ParseHostOperationResult(command *agentpb.StackKitCommand, result *agentpb.
 		return data, err
 	}
 	if !IsGuardHostOperation(command.Operation) {
-		return data, fmt.Errorf("Guard host operation is required")
+		return data, fmt.Errorf("guard host operation is required")
 	}
 	if err := ValidateResult(result, command); err != nil {
 		return data, err
 	}
 	if !result.Success {
-		return data, fmt.Errorf("Guard host operation did not succeed")
+		return data, fmt.Errorf("guard host operation did not succeed")
 	}
 	return decodeHostOperationData(command, result)
 }
@@ -280,24 +280,24 @@ func decodeHostOperationData(command *agentpb.StackKitCommand, result *agentpb.S
 		return data, fmt.Errorf("decode Guard host operation result: %w", err)
 	}
 	if err := json.Unmarshal(envelope.Data, &data); err != nil || data.SchemaVersion != HostOperationsSchema {
-		return data, fmt.Errorf("Guard host operation returned no %s document", HostOperationsSchema)
+		return data, fmt.Errorf("guard host operation returned no %s document", HostOperationsSchema)
 	}
 	if len(data.Processes) > HostListMaxLimit || len(data.Containers) > HostListMaxLimit {
-		return data, fmt.Errorf("Guard host list exceeds its row bound")
+		return data, fmt.Errorf("guard host list exceeds its row bound")
 	}
 	switch command.Operation {
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_LIST_PROCESSES:
 		if data.Containers != nil || data.Receipt != nil {
-			return data, fmt.Errorf("Guard host process list carries foreign members")
+			return data, fmt.Errorf("guard host process list carries foreign members")
 		}
 	case agentpb.StackKitOperation_STACKKIT_OPERATION_HOST_LIST_CONTAINERS:
 		if data.Processes != nil || data.Receipt != nil {
-			return data, fmt.Errorf("Guard host container list carries foreign members")
+			return data, fmt.Errorf("guard host container list carries foreign members")
 		}
 	default:
 		if data.Processes != nil || data.Containers != nil || data.Receipt == nil ||
 			data.Receipt.Target != strings.TrimSpace(command.HostTarget) || data.Receipt.Action != strings.TrimSpace(command.HostAction) {
-			return data, fmt.Errorf("Guard host action receipt does not match the dispatched action")
+			return data, fmt.Errorf("guard host action receipt does not match the dispatched action")
 		}
 	}
 	return data, nil

@@ -210,11 +210,6 @@ type dockerContainer struct {
 	Ports string `json:"Ports"`
 }
 
-func (d *hostDiscovery) discoverDockerContainers(ctx context.Context) ([]Service, bool) {
-	services, probed, _ := d.discoverDockerContainersCoverage(ctx)
-	return services, probed
-}
-
 func (d *hostDiscovery) discoverDockerContainersCoverage(ctx context.Context) ([]Service, bool, bool) {
 	output, err := d.cfg.run(ctx, discoveryPlatformDocker,
 		"ps", "--all", "--no-trunc", "--format", "{{json .}}")
@@ -384,11 +379,6 @@ type systemdUnit struct {
 	Active      string `json:"active"`
 	Sub         string `json:"sub"`
 	Description string `json:"description"`
-}
-
-func (d *hostDiscovery) discoverSystemdUnits(ctx context.Context) ([]Service, bool) {
-	services, probed, _ := d.discoverSystemdUnitsCoverage(ctx)
-	return services, probed
 }
 
 func (d *hostDiscovery) discoverSystemdUnitsCoverage(ctx context.Context) ([]Service, bool, bool) {

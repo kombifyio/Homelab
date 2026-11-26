@@ -369,7 +369,35 @@ func (h wizardRunHandlers) projectAndValidate(e *httpx.Event, seed map[string]an
 			))
 		return nil, true
 	}
-	projection, projErr := h.cfg.Projector.Project(e.Request.Context(), seed, intent, run.homelabID)
+	var committedValue any
+	stackID := run.request.Intent.KitAssignment.KitDeploymentID
+	if run.resumeStack != nil {
+		stackID = run.resumeStack.ID
+		committedValue = run.resumeStack.Config[stackConfigKeySpecV2]
+	} else if stackID != "" {
+		if h.crud.stackStore == nil {
+			_ = httpx.InternalError(e, "Committed stack authority is unavailable")
+			return nil, true
+		}
+		stack, err := h.crud.stackStore.GetStack(e.Request.Context(), run.tenantID, stackID)
+		if err != nil || stack == nil || stack.OwnerSubjectID != run.ownerID {
+			_ = httpx.InternalError(e, "Committed stack authority is unavailable")
+			return nil, true
+		}
+		committedValue = stack.Config[stackConfigKeySpecV2]
+	}
+	committed, ok := committedValue.(map[string]any)
+	if committedValue != nil && !ok {
+		_ = httpx.BadRequest(e, "Invalid committed StackSpec")
+		return nil, true
+	}
+	projectionIntent := intent
+	wikiDeferred := false
+	wikiAllowed := jobs.ManagedWikiInstallAdmitted(e.Request.Context(), run.tenantID, run.ownerID)
+	if !wikiAllowed {
+		projectionIntent, wikiDeferred = withoutManagedWikiIntent(intent)
+	}
+	projection, projErr := h.cfg.Projector.Project(e.Request.Context(), seed, projectionIntent, run.homelabID)
 	if projErr != nil {
 		var blocked *specv2.UseCaseAccessProjectionError
 		if errors.As(projErr, &blocked) {
@@ -395,10 +423,36 @@ func (h wizardRunHandlers) projectAndValidate(e *httpx.Event, seed map[string]an
 			"Wizard projection rejected: "+projErr.Error(), details)
 		return nil, true
 	}
+
 	for _, hook := range beforeValidate {
 		if hook != nil && hook(projection) {
 			return nil, true
 		}
+	}
+	committedRaw, err := json.Marshal(committed)
+	if err != nil {
+		_ = httpx.BadRequest(e, "Invalid committed StackSpec")
+		return nil, true
+	}
+	existingWiki, err := jobs.ManagedWikiSelectionPresent(committedRaw)
+	if err != nil {
+		_ = httpx.BadRequest(e, "Invalid committed StackSpec")
+		return nil, true
+	}
+	// Apply preservation after layout hooks as well as goal authoring. An
+	// extension carries existing Wiki; removal uses the explicit removal route.
+	if err := preserveExistingWikiOnly(projection.Spec, committed, wikiAllowed && slices.Contains(intent.Goals, jobs.ManagedWikiWorkload)); err != nil {
+		_ = managedWikiInstallRefusal(e)
+		return nil, true
+	}
+	if wikiDeferred && !existingWiki {
+		projection.UnmappedGoals = append(projection.UnmappedGoals, jobs.ManagedWikiWorkload)
+	}
+	if stackID == "" {
+		stackID = deterministicStackID(run.tenantID, run.ownerID, run.key)
+	}
+	if err := requireManagedWikiChange(e, run.tenantID, run.ownerID, stackID, committed, projection.Spec, false); err != nil {
+		return nil, true
 	}
 	if h.cfg.Validator == nil {
 		_ = httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable,
@@ -569,7 +623,7 @@ func (h wizardRunHandlers) dispatchWizardProvision(e *httpx.Event, run *wizardRu
 		}
 		return jobID, false, false
 	}
-	startCtx, cancel := context.WithTimeout(e.Request.Context(), 30*time.Second)
+	startCtx, cancel := context.WithTimeout(wikiInstallContext(e, run.ownerID, run.tenantID), 30*time.Second)
 	defer cancel()
 	jobID, err := h.crud.orch.ProvisionStackWithOptions(stack.Id, jobSpec, orchestrator.ProvisionStackOptions{
 		AutoDeploy:           autoDeploy,
@@ -581,6 +635,10 @@ func (h wizardRunHandlers) dispatchWizardProvision(e *httpx.Event, run *wizardRu
 		PreparedManagedLease: preparedLease,
 	})
 	if err != nil {
+		if errors.Is(err, jobs.ErrManagedWikiInstallNotAdmitted) {
+			_ = managedWikiInstallRefusal(e)
+			return "", false, true
+		}
 		if refusal := tenantguard.ExecutionRefusal(err); refusal != nil {
 			_ = httpx.Error(e, refusal.Status, refusal.Code, refusal.Message, refusal.Details)
 			return "", false, true
@@ -783,10 +841,19 @@ func (h wizardRunHandlers) runWizardJoin(e *httpx.Event, run *wizardRunState) er
 		}
 		// CAS and the run-to-node identity commit together. Neither a cancelled
 		// later request nor a concurrent CAS loser can claim another run's Node.
+		committed, _ := stack.Config[stackConfigKeySpecV2].(map[string]any)
+		proof, err := managedWikiCommitProof(e, run.tenantID, run.ownerID, stack.ID, committed, projection.Spec, false)
+		if err != nil {
+			return err
+		}
 		_, storedRun, updateErr := store.CommitWizardJoinProjection(e.Request.Context(), controlplane.StackConfigCAS{
-			TenantID: run.tenantID, StackID: stack.ID,
+			ManagedWikiCommit: proof,
+			TenantID:          run.tenantID, StackID: stack.ID,
 			ExpectedUpdatedAt: stack.UpdatedAt, Config: newConfig,
 		}, entry)
+		if errors.Is(updateErr, controlplane.ErrManagedWikiInstallNotAdmitted) {
+			return managedWikiInstallRefusal(e)
+		}
 		if errors.Is(updateErr, controlplane.ErrConflict) {
 			return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
 				"The StackKit deployment changed while this Node was being added", wizardRunDetails(
