@@ -1271,6 +1271,12 @@ func bindGlobalMiddleware(router *httpx.Router, deps routeDeps) {
 	router.BindFunc(secondaryTransportAdmission)
 	router.BindFunc(v2SessionIdentityMiddleware(deps.v2))
 	router.BindFunc(testIdentityAdmission)
+	router.BindFunc(func(e *httpx.Event) error {
+		if cfg.DeploymentMode.IsSaaS() {
+			middleware.ApplyLocalCloudFrame(e.Response.Header(), e.Request)
+		}
+		return e.Next()
+	})
 	router.BindFunc(secondaryHTTPAdmission)
 	deps.secondaryExecution.HTTPInstalled()
 	bindRateLimiter(router, cfg)

@@ -230,18 +230,29 @@ func (c *CSRFMiddleware) ensureToken(w http.ResponseWriter, r *http.Request) err
 // double-submit check works there as it does same-site. Secure is not optional:
 // browsers reject SameSite=None cookies without it.
 func IssueCrossSiteCSRFCookie(w http.ResponseWriter) error {
+	return issueCrossSiteCSRFCookie(w, false)
+}
+
+// IssuePartitionedCSRFCookie keeps the local embed's double-submit token in
+// the same browser partition as its session, even with third-party cookies blocked.
+func IssuePartitionedCSRFCookie(w http.ResponseWriter) error {
+	return issueCrossSiteCSRFCookie(w, true)
+}
+
+func issueCrossSiteCSRFCookie(w http.ResponseWriter, partitioned bool) error {
 	token, err := generateCSRFToken()
 	if err != nil {
 		return err
 	}
 	http.SetCookie(w, &http.Cookie{
-		Name:     CSRFCookieName,
-		Value:    token,
-		Path:     "/",
-		MaxAge:   43200,
-		HttpOnly: false,
-		Secure:   true,
-		SameSite: http.SameSiteNoneMode,
+		Name:        CSRFCookieName,
+		Value:       token,
+		Path:        "/",
+		MaxAge:      43200,
+		HttpOnly:    false,
+		Secure:      true,
+		SameSite:    http.SameSiteNoneMode,
+		Partitioned: partitioned,
 	})
 	w.Header().Set(CSRFHeaderName, token)
 	return nil

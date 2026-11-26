@@ -540,3 +540,25 @@ func TestCSRFMiddleware_JSONResponse(t *testing.T) {
 		t.Errorf("expected JSON error response, got: %s", body)
 	}
 }
+
+func TestLocalPartitionedCSRFStillRequiresDoubleSubmit(t *testing.T) {
+	issued := httptest.NewRecorder()
+	if err := IssuePartitionedCSRFCookie(issued); err != nil {
+		t.Fatal(err)
+	}
+	cookies := issued.Result().Cookies()
+	if len(cookies) != 1 || !cookies[0].Secure || !cookies[0].Partitioned || cookies[0].SameSite != http.SameSiteNoneMode || cookies[0].HttpOnly {
+		t.Fatal("local CSRF cookie is not readable in the session partition")
+	}
+	csrf := NewCSRFMiddleware(CSRFConfig{Secure: true})
+	for _, matching := range []bool{false, true} {
+		request := httptest.NewRequest(http.MethodPost, "https://homelab.kombify.io/api/test", nil)
+		request.AddCookie(cookies[0])
+		if matching {
+			request.Header.Set(CSRFHeaderName, cookies[0].Value)
+		}
+		if csrf.validateToken(request) != matching {
+			t.Fatal("partitioned cookie bypassed double-submit policy")
+		}
+	}
+}

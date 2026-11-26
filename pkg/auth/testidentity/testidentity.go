@@ -17,6 +17,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/kombifyio/homelab/pkg/auth/localcloud"
 	"github.com/kombifyio/homelab/pkg/demoguard"
 )
 
@@ -55,6 +56,9 @@ func IsTestSubject(subject string) bool {
 	subject = strings.TrimSpace(subject)
 	if subject == "" {
 		return false
+	}
+	if subject == localcloud.Subject {
+		return true
 	}
 	if _, ok := Subjects()[subject]; ok {
 		return true
