@@ -256,11 +256,11 @@
   "configured": true,
   "deliverability_known": true,
   "release": {
-    "tag": "v0.61.10",
-    "version": "0.61.10",
-    "sourceSha": "470c5b149acf0a3982efdaf9b1494ba197b749c0",
-    "publicSourceSha": "7a96c5c33a969d1a113e02b6860cb174d7a0ed1c",
-    "releaseUrl": "https://github.com/kombifyio/StackKits/releases/tag/v0.61.10"
+    "tag": "v0.61.11",
+    "version": "0.61.11",
+    "sourceSha": "ed8142a8844886d710120e25b5ec1d0ec641837d",
+    "publicSourceSha": "d4899fe6bd19eb32c5fedd38a940a39f9a4777aa",
+    "releaseUrl": "https://github.com/kombifyio/StackKits/releases/tag/v0.61.11"
   },
   "use_cases": [
     {
@@ -2220,7 +2220,10 @@
                       "hostFloor": {
                         "minCpuCores": 2,
                         "minRamGB": 4,
-                        "minStorageGB": 20
+                        "minStorageGB": 20,
+                        "allowedArchitectures": [
+                          "amd64"
+                        ]
                       },
                       "reservation": {
                         "ramGB": 0.5
@@ -5553,6 +5556,128 @@
           "configuration": {
             "settings": [],
             "secretRefs": [
+              "database-password",
+              "encryption-key",
+              "hash-key",
+              "jwt-secret",
+              "s3-access-key",
+              "s3-secret-key"
+            ]
+          },
+          "id": "ente-photos",
+          "modules": [
+            {
+              "id": "stackkits-ente-photos-runtime",
+              "computeProfiles": [
+                "high",
+                "low",
+                "standard"
+              ],
+              "computeProfileFacts": {
+                "high": {
+                  "maturity": "beta",
+                  "executable": true,
+                  "realization": "apply-ready",
+                  "hostFloor": {
+                    "minCpuCores": 2,
+                    "minRamGB": 4,
+                    "minStorageGB": 20
+                  },
+                  "reservation": {
+                    "cpuCores": 0.1,
+                    "ramGB": 0.5
+                  },
+                  "recommended": {
+                    "cpuCores": 0.5,
+                    "ramGB": 0.875
+                  },
+                  "provenance": {
+                    "hostFloor": {
+                      "source": "policy",
+                      "ref": "Kombify host floor support policy"
+                    },
+                    "recommended": {
+                      "source": "policy",
+                      "ref": "Kombify recommended sizing policy"
+                    },
+                    "reservation": {
+                      "source": "policy",
+                      "ref": "Sum of pinned Compose component memoryReservation limits in foundation/architecture_v2_catalog.cue"
+                    }
+                  }
+                },
+                "low": {
+                  "maturity": "beta",
+                  "executable": true,
+                  "realization": "apply-ready",
+                  "hostFloor": {
+                    "minCpuCores": 2,
+                    "minRamGB": 4,
+                    "minStorageGB": 20
+                  },
+                  "reservation": {
+                    "cpuCores": 0.1,
+                    "ramGB": 0.5
+                  },
+                  "recommended": {
+                    "cpuCores": 0.5,
+                    "ramGB": 0.875
+                  },
+                  "provenance": {
+                    "hostFloor": {
+                      "source": "policy",
+                      "ref": "Kombify host floor support policy"
+                    },
+                    "recommended": {
+                      "source": "policy",
+                      "ref": "Kombify recommended sizing policy"
+                    },
+                    "reservation": {
+                      "source": "policy",
+                      "ref": "Sum of pinned Compose component memoryReservation limits in foundation/architecture_v2_catalog.cue"
+                    }
+                  }
+                },
+                "standard": {
+                  "maturity": "beta",
+                  "executable": true,
+                  "realization": "apply-ready",
+                  "hostFloor": {
+                    "minCpuCores": 2,
+                    "minRamGB": 4,
+                    "minStorageGB": 20
+                  },
+                  "reservation": {
+                    "cpuCores": 0.1,
+                    "ramGB": 0.5
+                  },
+                  "recommended": {
+                    "cpuCores": 0.5,
+                    "ramGB": 0.875
+                  },
+                  "provenance": {
+                    "hostFloor": {
+                      "source": "policy",
+                      "ref": "Kombify host floor support policy"
+                    },
+                    "recommended": {
+                      "source": "policy",
+                      "ref": "Kombify recommended sizing policy"
+                    },
+                    "reservation": {
+                      "source": "policy",
+                      "ref": "Sum of pinned Compose component memoryReservation limits in foundation/architecture_v2_catalog.cue"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "configuration": {
+            "settings": [],
+            "secretRefs": [
               "database-password"
             ]
           },
@@ -5693,7 +5818,8 @@
           "name": "Ente Photos",
           "role": "alternative",
           "kind": "application",
-          "realization": "recorded"
+          "realization": "install",
+          "maturity": "beta"
         },
         {
           "id": "immich",
@@ -5842,7 +5968,7 @@
             {
               "id": "ente-photos",
               "name": "Ente Photos",
-              "realization": "recorded"
+              "realization": "install"
             },
             {
               "id": "immich",
@@ -7269,7 +7395,10 @@
                   "hostFloor": {
                     "minCpuCores": 2,
                     "minRamGB": 4,
-                    "minStorageGB": 20
+                    "minStorageGB": 20,
+                    "allowedArchitectures": [
+                      "amd64"
+                    ]
                   },
                   "reservation": {
                     "ramGB": 0.125

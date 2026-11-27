@@ -1,14 +1,14 @@
 {
   "schemaVersion": "stackkits-use-case-catalog/v1",
   "release": {
-    "tag": "v0.61.10",
-    "version": "0.61.10",
-    "sourceSha": "470c5b149acf0a3982efdaf9b1494ba197b749c0",
-    "publicSourceSha": "7a96c5c33a969d1a113e02b6860cb174d7a0ed1c",
-    "releaseUrl": "https://github.com/kombifyio/StackKits/releases/tag/v0.61.10"
+    "tag": "v0.61.11",
+    "version": "0.61.11",
+    "sourceSha": "ed8142a8844886d710120e25b5ec1d0ec641837d",
+    "publicSourceSha": "d4899fe6bd19eb32c5fedd38a940a39f9a4777aa",
+    "releaseUrl": "https://github.com/kombifyio/StackKits/releases/tag/v0.61.11"
   },
-  "generatedAt": "2026-11-26T18:50:33Z",
-  "generatorVersion": "0.61.10",
+  "generatedAt": "2026-11-27T06:50:09Z",
+  "generatorVersion": "0.61.11",
   "catalog": {
     "authoring": {
       "retainedRemovalCandidates": true
@@ -4358,7 +4358,7 @@
             "name": "Ente Photos",
             "role": "alternative",
             "kind": "application",
-            "realization": "recorded"
+            "realization": "install"
           },
           {
             "id": "immich",
@@ -4521,6 +4521,129 @@
         "docs": "/guides/stackkits/use-cases/photos",
         "defaultAlternative": "immich",
         "alternatives": [
+          {
+            "configuration": {
+              "settings": [],
+              "secretRefs": [
+                "database-password",
+                "encryption-key",
+                "hash-key",
+                "jwt-secret",
+                "s3-access-key",
+                "s3-secret-key"
+              ]
+            },
+            "id": "ente-photos",
+            "name": "ente-photos",
+            "modules": [
+              {
+                "id": "stackkits-ente-photos-runtime",
+                "computeProfiles": [
+                  "high",
+                  "low",
+                  "standard"
+                ],
+                "computeProfileFacts": {
+                  "high": {
+                    "maturity": "beta",
+                    "executable": true,
+                    "realization": "apply-ready",
+                    "hostFloor": {
+                      "minCpuCores": 2,
+                      "minRamGB": 4,
+                      "minStorageGB": 20
+                    },
+                    "reservation": {
+                      "cpuCores": 0.1,
+                      "ramGB": 0.5
+                    },
+                    "recommended": {
+                      "cpuCores": 0.5,
+                      "ramGB": 0.875
+                    },
+                    "provenance": {
+                      "hostFloor": {
+                        "ref": "Kombify host floor support policy",
+                        "source": "policy"
+                      },
+                      "recommended": {
+                        "ref": "Kombify recommended sizing policy",
+                        "source": "policy"
+                      },
+                      "reservation": {
+                        "ref": "Sum of pinned Compose component memoryReservation limits in foundation/architecture_v2_catalog.cue",
+                        "source": "policy"
+                      }
+                    }
+                  },
+                  "low": {
+                    "maturity": "beta",
+                    "executable": true,
+                    "realization": "apply-ready",
+                    "hostFloor": {
+                      "minCpuCores": 2,
+                      "minRamGB": 4,
+                      "minStorageGB": 20
+                    },
+                    "reservation": {
+                      "cpuCores": 0.1,
+                      "ramGB": 0.5
+                    },
+                    "recommended": {
+                      "cpuCores": 0.5,
+                      "ramGB": 0.875
+                    },
+                    "provenance": {
+                      "hostFloor": {
+                        "ref": "Kombify host floor support policy",
+                        "source": "policy"
+                      },
+                      "recommended": {
+                        "ref": "Kombify recommended sizing policy",
+                        "source": "policy"
+                      },
+                      "reservation": {
+                        "ref": "Sum of pinned Compose component memoryReservation limits in foundation/architecture_v2_catalog.cue",
+                        "source": "policy"
+                      }
+                    }
+                  },
+                  "standard": {
+                    "maturity": "beta",
+                    "executable": true,
+                    "realization": "apply-ready",
+                    "hostFloor": {
+                      "minCpuCores": 2,
+                      "minRamGB": 4,
+                      "minStorageGB": 20
+                    },
+                    "reservation": {
+                      "cpuCores": 0.1,
+                      "ramGB": 0.5
+                    },
+                    "recommended": {
+                      "cpuCores": 0.5,
+                      "ramGB": 0.875
+                    },
+                    "provenance": {
+                      "hostFloor": {
+                        "ref": "Kombify host floor support policy",
+                        "source": "policy"
+                      },
+                      "recommended": {
+                        "ref": "Kombify recommended sizing policy",
+                        "source": "policy"
+                      },
+                      "reservation": {
+                        "ref": "Sum of pinned Compose component memoryReservation limits in foundation/architecture_v2_catalog.cue",
+                        "source": "policy"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
           {
             "configuration": {
               "settings": [],
@@ -6534,5 +6657,5 @@
       }
     ]
   },
-  "contentDigest": "sha256:129c095b9308604dd06ce6db7d8cb0aea422eaa0af61941c65a92d0dcc27650a"
+  "contentDigest": "sha256:336d70d01a1be0720492c4334f3c62bbb405c421fc66a78c66b3bf825f57e653"
 }
