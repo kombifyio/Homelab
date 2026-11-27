@@ -1,8 +1,34 @@
 {
   "schemaVersion": "stackkits.release-notes/v1",
-  "version": "v0.61.10",
+  "version": "v0.61.11",
   "changelogUrl": "https://stackkit.cc/changelog",
   "releases": [
+    {
+      "version": "v0.61.11",
+      "date": "2026-11-27",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "homegraph",
+          "text": "classify HA devices by entity domain, enforce mirror_classes, and match device identity"
+        },
+        {
+          "kind": "added",
+          "scope": "photos",
+          "text": "add native Ente Photos Architecture v2 alternative"
+        },
+        {
+          "kind": "fixed",
+          "scope": "day2",
+          "text": "guard nil runtime adapter, honor workload release overrides, cache preflight port hashes"
+        },
+        {
+          "kind": "fixed",
+          "scope": "security",
+          "text": "clear the Trivy findings on main"
+        }
+      ]
+    },
     {
       "version": "v0.61.10",
       "date": "2026-11-26",
@@ -1452,37 +1478,6 @@
           "kind": "added",
           "scope": "upgrade",
           "text": "Cloud Kit public upgrade preview with owner approval, snapshot and rollback anchors"
-        }
-      ]
-    },
-    {
-      "version": "v0.56.2",
-      "date": "2026-11-06",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "lab",
-          "text": "two-guest native application transfer mode for proxmox-lab"
-        },
-        {
-          "kind": "added",
-          "scope": "techstack",
-          "text": "choose another server per use case, re-solved and re-verified"
-        },
-        {
-          "kind": "added",
-          "scope": "techstack",
-          "text": "Guard window lane techstack-connected-free for Journey C"
-        },
-        {
-          "kind": "added",
-          "scope": "techstack",
-          "text": "review Builder plans in creation"
-        },
-        {
-          "kind": "fixed",
-          "scope": "test-window",
-          "text": "route the managed Cloud Advanced Core's Stage database through the fixed egress"
         }
       ]
     }
