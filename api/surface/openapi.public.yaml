@@ -128,7 +128,7 @@ paths:
               properties:
                 command_id: {type: string, minLength: 1, maxLength: 128}
                 generation_id: {type: string, minLength: 1, maxLength: 128, description: "Opaque exact-generation identifier; never reuse a released generation."}
-                app_id: {type: string, enum: [vaultwarden, cloudreve-r2, workpaths-lite]}
+                app_id: {type: string, enum: [vaultwarden, cloudreve-r2]}
                 action: {type: string, enum: [provision, start, stop, observe, backup, restore, decommission]}
                 backup:
                   type: object

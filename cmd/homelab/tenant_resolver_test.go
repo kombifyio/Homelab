@@ -11,6 +11,7 @@ import (
 	authsession "github.com/kombifyio/homelab/internal/gocommon/authsession"
 	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/internal/gocommon/oidcclient"
+	"github.com/kombifyio/homelab/internal/gocommon/tenantdb"
 
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/httpx"
@@ -228,6 +229,33 @@ func TestEnrichV2SessionIdentityKeepsDefaultChainInSelfHosted(t *testing.T) {
 	}
 	if membership == nil || membership.TenantID != "default" {
 		t.Fatalf("membership = %#v, want default chain untouched in self-hosted mode", membership)
+	}
+}
+
+type membershipLookupRecorder struct {
+	stubAuthStore
+	lookedUp []string
+}
+
+func (s *membershipLookupRecorder) GetMembership(ctx context.Context, tenantID, userID string) (*controlplane.Membership, error) {
+	s.lookedUp = append(s.lookedUp, tenantID)
+	return s.stubAuthStore.GetMembership(ctx, tenantID, userID)
+}
+
+func TestEnrichIdentityFromMembershipDoesNotCrossSignedTenantContext(t *testing.T) {
+	store := &membershipLookupRecorder{}
+	id := &identity.Identity{UserID: "auth0|user-1", OrgID: "usr:auth0|user-1"}
+	ctx := tenantdb.NewContextWithToken(context.Background(), "opaque-signed-context")
+
+	membership, err := enrichIdentityFromMembership(ctx, store, id, id.OrgID, "default", "default")
+	if err != nil {
+		t.Fatalf("enrichIdentityFromMembership() error = %v", err)
+	}
+	if membership != nil {
+		t.Fatalf("membership = %#v, want absent signed-tenant membership", membership)
+	}
+	if len(store.lookedUp) != 1 || store.lookedUp[0] != id.OrgID {
+		t.Fatalf("membership lookups = %#v, want only signed tenant %q", store.lookedUp, id.OrgID)
 	}
 }
 

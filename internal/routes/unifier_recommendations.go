@@ -5,12 +5,16 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/kombifyio/homelab/internal/routes/tenantguard"
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
 	ksapi "github.com/kombifyio/homelab/pkg/api"
 	kscore "github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/features"
 	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
 	"github.com/kombifyio/homelab/pkg/monthlyruntime"
 	"github.com/kombifyio/homelab/pkg/specv2"
 	"github.com/kombifyio/homelab/pkg/unifier"
@@ -54,6 +58,14 @@ func (api *UnifierAPI) handleRecommendations(e *httpx.Event) error {
 		return httpx.BadRequest(e, "invalid recommendation request: "+decodeErr.Error())
 	}
 	request := envelope.WizardRecommendationRequest
+	// A recommendation never preselects a use case this person cannot
+	// receive in full (jobs.UnofferedUseCases); the catalog does not offer it.
+	// An unreadable catalog still withholds the Wiki itself.
+	offerCatalog, _ := stackkitrelease.ResolveUseCaseCatalog()
+	unoffered := jobs.UnofferedUseCases(offerCatalog, features.ManagedWikiInstallEnabled(e.Request.Context(), ownerID, tenantID))
+	request.AvailableGoals = slices.DeleteFunc(slices.Clone(request.AvailableGoals), func(goal string) bool {
+		return slices.Contains(unoffered, strings.ToLower(strings.TrimSpace(goal)))
+	})
 	if api.features != nil {
 		if memoryEnabled, flagErr := api.features.IsEnabled(e.Request.Context(), "ionos_standard_photo_memory", ownerID); flagErr == nil {
 			request.IONOSMemoryEnabled = memoryEnabled

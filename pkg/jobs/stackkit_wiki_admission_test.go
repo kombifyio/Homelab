@@ -278,3 +278,38 @@ func TestManagedWikiExistingEditCarriesItsSourceAndResult(t *testing.T) {
 		t.Fatalf("uncommitted edit accepted: %v", err)
 	}
 }
+
+// The pinned catalog offers the Wiki only with an admitted installation and
+// keeps every other use case either way.
+func TestManagedWikiIsOfferedOnlyWhenAdmitted(t *testing.T) {
+	catalog, err := stackkitrelease.PinnedUseCaseCatalog()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids := func(catalog stackkitrelease.UseCaseCatalog) map[string]bool {
+		present := map[string]bool{}
+		for _, useCase := range catalog.UseCases {
+			present[useCase.ID] = true
+		}
+		return present
+	}
+	full, offered, admitted := ids(catalog), ids(OfferedUseCaseCatalog(catalog, false)), ids(OfferedUseCaseCatalog(catalog, true))
+	if !full[ManagedWikiWorkload] || !admitted[ManagedWikiWorkload] {
+		t.Fatal("the pinned catalog or an admitted person lost the Wiki")
+	}
+	for id := range full {
+		needsWiki := id == ManagedWikiWorkload
+		for _, slug := range catalog.UseCasesForModule(ManagedWikiModule) {
+			needsWiki = needsWiki || slug == id
+		}
+		if offered[id] == needsWiki {
+			t.Fatalf("use case %q offered=%v without admission", id, offered[id])
+		}
+	}
+	if len(ids(catalog)) != len(full) {
+		t.Fatal("offering changed the shared catalog")
+	}
+	if !SelectsManagedWiki([]string{"photos", " WIKI "}) || SelectsManagedWiki([]string{"photos", "wiki-graph"}) {
+		t.Fatal("Wiki goal spelling not read as goal authoring reads it")
+	}
+}

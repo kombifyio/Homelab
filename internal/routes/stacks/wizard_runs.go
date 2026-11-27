@@ -408,6 +408,9 @@ func (h wizardRunHandlers) createWizardRun(e *httpx.Event) error {
 			}
 		}
 	}
+	if h.refuseNewWikiWithoutAdmission(e, &run) {
+		return nil
+	}
 	if handled := h.reserveWizardRun(e, &run); handled {
 		return nil
 	}

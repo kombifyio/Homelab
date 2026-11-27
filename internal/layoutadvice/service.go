@@ -33,6 +33,7 @@ import (
 	"github.com/kombifyio/homelab/internal/stackkitrelease"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/jobs"
 	"github.com/kombifyio/homelab/pkg/layout"
 	"github.com/kombifyio/homelab/pkg/ril/actions"
 	"github.com/kombifyio/homelab/pkg/runtimeidentity"
@@ -128,6 +129,9 @@ const verificationCacheTTL = 10 * time.Minute
 type Scope struct {
 	TenantID string
 	OwnerID  string
+	// WikiAdmitted is the owner's current managed Wiki installation
+	// decision. Without it a preview never recommends a new Wiki.
+	WikiAdmitted bool
 }
 
 // Selection is the owner's question, stored with the record so acceptance
@@ -279,6 +283,16 @@ func (s *Service) Preview(ctx context.Context, scope Scope, selection Selection)
 	stack, spec, err := s.ownedSpec(ctx, scope, selection.StackID)
 	if err != nil {
 		return View{}, err
+	}
+	// A recommendation is never made for a Wiki the run would refuse.
+	if !scope.WikiAdmitted && jobs.SelectsManagedWiki(selection.Goals) {
+		raw, err := json.Marshal(spec)
+		if err != nil {
+			return View{}, err
+		}
+		if existing, err := jobs.ManagedWikiSelectionPresent(raw); err != nil || !existing {
+			return View{}, jobs.ErrManagedWikiInstallNotAdmitted
+		}
 	}
 	result, err := s.evaluate(ctx, scope, stack, spec, selection, s.projections(ctx, selection, nil))
 	if err != nil {

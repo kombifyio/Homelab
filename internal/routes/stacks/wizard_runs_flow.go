@@ -415,11 +415,29 @@ func (h wizardRunHandlers) projectAndValidate(e *httpx.Event, seed map[string]an
 		_ = httpx.BadRequest(e, "Invalid committed StackSpec")
 		return nil, true
 	}
+	committedRaw, err := json.Marshal(committed)
+	if err != nil {
+		_ = httpx.BadRequest(e, "Invalid committed StackSpec")
+		return nil, true
+	}
+	existingWiki, err := jobs.ManagedWikiSelectionPresent(committedRaw)
+	if err != nil {
+		_ = httpx.BadRequest(e, "Invalid committed StackSpec")
+		return nil, true
+	}
 	projectionIntent := intent
-	wikiDeferred := false
 	wikiAllowed := jobs.ManagedWikiInstallAdmitted(e.Request.Context(), run.tenantID, run.ownerID)
 	if !wikiAllowed {
-		projectionIntent, wikiDeferred = withoutManagedWikiIntent(intent)
+		var wikiSelected bool
+		projectionIntent, wikiSelected = withoutManagedWikiIntent(intent)
+		// The catalog does not offer a Wiki this person cannot receive. A
+		// selection of a new one is refused before anything is projected,
+		// never dropped while the other goals install. An existing Wiki is
+		// carried by preserveExistingWikiOnly below.
+		if wikiSelected && !existingWiki {
+			_ = managedWikiInstallRefusal(e)
+			return nil, true
+		}
 	}
 	projection, projErr := h.cfg.Projector.Project(e.Request.Context(), seed, projectionIntent, run.homelabID)
 	if projErr != nil {
@@ -455,24 +473,11 @@ func (h wizardRunHandlers) projectAndValidate(e *httpx.Event, seed map[string]an
 			return nil, true
 		}
 	}
-	committedRaw, err := json.Marshal(committed)
-	if err != nil {
-		_ = httpx.BadRequest(e, "Invalid committed StackSpec")
-		return nil, true
-	}
-	existingWiki, err := jobs.ManagedWikiSelectionPresent(committedRaw)
-	if err != nil {
-		_ = httpx.BadRequest(e, "Invalid committed StackSpec")
-		return nil, true
-	}
 	// Apply preservation after layout hooks as well as goal authoring. An
 	// extension carries existing Wiki; removal uses the explicit removal route.
-	if err := preserveExistingWikiOnly(projection.Spec, committed, wikiAllowed && slices.Contains(intent.Goals, jobs.ManagedWikiWorkload)); err != nil {
+	if err := preserveExistingWikiOnly(projection.Spec, committed, wikiAllowed && jobs.SelectsManagedWiki(intent.Goals)); err != nil {
 		_ = managedWikiInstallRefusal(e)
 		return nil, true
-	}
-	if wikiDeferred && !existingWiki {
-		projection.UnmappedGoals = append(projection.UnmappedGoals, jobs.ManagedWikiWorkload)
 	}
 	if stackID == "" {
 		stackID = deterministicStackID(run.tenantID, run.ownerID, run.key)

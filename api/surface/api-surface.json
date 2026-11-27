@@ -3,7 +3,7 @@
   "product": "homelab",
   "source": {
     "path": "api/openapi/homelab-v1.yaml",
-    "sha256": "68af2e972c0637bc83fb0090d6c301014964e659f1b87d87cb63c761f8c441e8"
+    "sha256": "d46141da469a930c95c8b9749eecfb08c2e070e9542661d4c7b6633e3c20ad74"
   },
   "envelope": "data",
   "cli": {
@@ -16778,8 +16778,7 @@
           "schema": {
             "enum": [
               "vaultwarden",
-              "cloudreve-r2",
-              "workpaths-lite"
+              "cloudreve-r2"
             ],
             "type": "string"
           }
@@ -17541,6 +17540,30 @@
                     },
                     "required": [
                       "state"
+                    ],
+                    "type": "object"
+                  },
+                  "paperwork_sign_in": {
+                    "description": "Linked Paperwork credential delivery for this Guard. Delivery does not prove a successful sign-in.",
+                    "properties": {
+                      "can_enable": {
+                        "type": "boolean"
+                      },
+                      "state": {
+                        "enum": [
+                          "off",
+                          "pending",
+                          "pending_reconcile",
+                          "delivered",
+                          "revoking",
+                          "revoked"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "can_enable"
                     ],
                     "type": "object"
                   },
@@ -18710,6 +18733,30 @@
                   },
                   "required": [
                     "state"
+                  ],
+                  "type": "object"
+                },
+                "paperwork_sign_in": {
+                  "description": "Linked Paperwork credential delivery for this Guard. Delivery does not prove a successful sign-in.",
+                  "properties": {
+                    "can_enable": {
+                      "type": "boolean"
+                    },
+                    "state": {
+                      "enum": [
+                        "off",
+                        "pending",
+                        "pending_reconcile",
+                        "delivered",
+                        "revoking",
+                        "revoked"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "state",
+                    "can_enable"
                   ],
                   "type": "object"
                 },
@@ -21902,6 +21949,30 @@
               },
               "required": [
                 "state"
+              ],
+              "type": "object"
+            },
+            "paperwork_sign_in": {
+              "description": "Linked Paperwork credential delivery for this Guard. Delivery does not prove a successful sign-in.",
+              "properties": {
+                "can_enable": {
+                  "type": "boolean"
+                },
+                "state": {
+                  "enum": [
+                    "off",
+                    "pending",
+                    "pending_reconcile",
+                    "delivered",
+                    "revoking",
+                    "revoked"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "state",
+                "can_enable"
               ],
               "type": "object"
             },

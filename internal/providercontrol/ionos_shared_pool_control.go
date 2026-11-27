@@ -51,7 +51,7 @@ func NewIONOSSharedPoolControl(database *sql.DB, node IONOSSharedPoolNode, runti
 	}
 	catalog := make(map[string]IONOSPoolApplication, len(apps))
 	for id, app := range apps {
-		if (id != "vaultwarden" && id != "cloudreve-r2" && id != "workpaths-lite") || !ionosPinnedImage.MatchString(app.Image) || app.MemoryMB < 128 || app.MemoryMB > 512 {
+		if (id != "vaultwarden" && id != "cloudreve-r2") || !ionosPinnedImage.MatchString(app.Image) || app.MemoryMB < 128 || app.MemoryMB > 512 {
 			return nil, ionosPoolRefuse("catalog_refused", "pin curated lightweight images and 128–512 MB limits")
 		}
 		catalog[id] = app
