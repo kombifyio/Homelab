@@ -4,9 +4,12 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
 	"github.com/kombifyio/homelab/internal/stackkitrelease"
 	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/features"
 	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
 	"github.com/kombifyio/homelab/pkg/specv2"
 	"github.com/kombifyio/homelab/pkg/unifier"
 )
@@ -92,14 +95,24 @@ func (api *UnifierAPI) handleDetectAddons(e *httpx.Event) error {
 // is set, otherwise the catalog generated from the pinned StackKits module.
 // They never load CUE from a STACKKITS_REPO checkout.
 func (api *UnifierAPI) handleUseCaseCatalog(e *httpx.Event) error {
-	if _, err := requireUnifierAuth(e); err != nil {
+	ownerID, err := requireUnifierAuth(e)
+	if err != nil {
 		return err
+	}
+	// Without a tenant scope the catalog is still readable; it then offers
+	// no use case that needs a per-tenant admission.
+	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.stackkits.use-cases")
+	if tenantErr != nil {
+		tenantID = ""
 	}
 	catalog, err := stackkitrelease.ResolveUseCaseCatalog()
 	if err != nil {
 		return httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal,
 			"StackKits use-case catalog could not be read", err.Error())
 	}
+	// Offer only what this person receives in full: the same flag decision
+	// that admits a Wiki installation in a Wizard run decides its card.
+	catalog = jobs.OfferedUseCaseCatalog(catalog, features.ManagedWikiInstallEnabled(e.Request.Context(), ownerID, tenantID))
 	// Deliverability comes from the same compatibility manifest that
 	// AuthorGoals gates on, so the card cannot promise something the
 	// authoring path will drop. Five of the ten catalogued use cases have no

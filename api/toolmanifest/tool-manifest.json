@@ -4636,8 +4636,7 @@
           "app_id": {
             "enum": [
               "vaultwarden",
-              "cloudreve-r2",
-              "workpaths-lite"
+              "cloudreve-r2"
             ],
             "type": "string"
           },
@@ -11758,6 +11757,30 @@
                 },
                 "required": [
                   "state"
+                ],
+                "type": "object"
+              },
+              "paperwork_sign_in": {
+                "description": "Linked Paperwork credential delivery for this Guard. Delivery does not prove a successful sign-in.",
+                "properties": {
+                  "can_enable": {
+                    "type": "boolean"
+                  },
+                  "state": {
+                    "enum": [
+                      "off",
+                      "pending",
+                      "pending_reconcile",
+                      "delivered",
+                      "revoking",
+                      "revoked"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "state",
+                  "can_enable"
                 ],
                 "type": "object"
               },
@@ -25697,6 +25720,30 @@
             },
             "required": [
               "state"
+            ],
+            "type": "object"
+          },
+          "paperwork_sign_in": {
+            "description": "Linked Paperwork credential delivery for this Guard. Delivery does not prove a successful sign-in.",
+            "properties": {
+              "can_enable": {
+                "type": "boolean"
+              },
+              "state": {
+                "enum": [
+                  "off",
+                  "pending",
+                  "pending_reconcile",
+                  "delivered",
+                  "revoking",
+                  "revoked"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "state",
+              "can_enable"
             ],
             "type": "object"
           },

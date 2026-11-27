@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"database/sql"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
@@ -934,4 +935,51 @@ func mustIONOSSpec(t *testing.T, node IONOSSharedPoolNode, w IONOSSharedPoolWork
 		t.Fatal(err)
 	}
 	return spec
+}
+
+func TestIONOSSharedPoolControlCatalogAdmission(t *testing.T) {
+	node := ionosNode()
+	verifier := &ionosTestR2{manifests: map[string]IONOSSharedPoolBackupManifest{}}
+	runtime := &ionosTestRuntime{objects: map[string]IONOSSharedPoolObservation{}, r2: verifier}
+	admitCalled := false
+	admit := func(context.Context, IONOSPoolIdentity, IONOSPoolRequest) (ManagedAppBudget, error) {
+		admitCalled = true
+		return ManagedAppBudget{}, nil
+	}
+	pinned := func(repo string) string {
+		return repo + "@sha256:" + strings.Repeat("a", 64)
+	}
+
+	control, err := NewIONOSSharedPoolControl(new(sql.DB), node, runtime, verifier, map[string]IONOSPoolApplication{
+		"vaultwarden":  {Image: pinned("ghcr.io/dani-garcia/vaultwarden"), MemoryMB: 256},
+		"cloudreve-r2": {Image: pinned("ghcr.io/cloudreve/cloudreve"), MemoryMB: 512},
+	}, admit)
+	if err != nil || control == nil {
+		t.Fatalf("expected curated catalog admission to succeed, got control=%v err=%v", control, err)
+	}
+
+	// Retired single-volume catalog ID removed under Option A (platform-m09kf.3.2).
+	retiredApp := "workpaths" + "-lite"
+	for _, rejectedID := range []string{retiredApp, "unknown-app"} {
+		t.Run("rejects-"+rejectedID, func(t *testing.T) {
+			_, err := NewIONOSSharedPoolControl(new(sql.DB), node, runtime, verifier, map[string]IONOSPoolApplication{
+				rejectedID: {Image: pinned("ghcr.io/kombifyio/workpaths"), MemoryMB: 256},
+			}, admit)
+			ionosRefused(t, err, "catalog_refused")
+
+			_, execErr := control.Execute(context.Background(), IONOSPoolIdentity{
+				TenantID:  "tenant-a",
+				SubjectID: "subject-a",
+			}, IONOSPoolRequest{
+				CommandID:    "cmd-1",
+				GenerationID: "gen-1",
+				AppID:        rejectedID,
+				Action:       IONOSPoolProvision,
+			})
+			ionosRefused(t, execErr, "catalog_refused")
+			if admitCalled || len(runtime.calls) != 0 {
+				t.Fatalf("refused app reached admit (%v) or runtime (%d calls)", admitCalled, len(runtime.calls))
+			}
+		})
+	}
 }

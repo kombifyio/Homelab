@@ -1,9 +1,17 @@
 import * as Sentry from "@sentry/sveltekit";
 import { errorBudget } from "@kombiverselabs/observability/error-budget";
 import { loadClientBootstrap } from "#lib/client/bootstrap.js";
+import { installLegacyBrowserSupport } from "#lib/client/legacy-browser.js";
+import { installStaleBuildReload } from "#lib/client/stale-build.js";
 import { scrubSentryEvent } from "#lib/observability/sentry-scrub.js";
 
 declare const __SENTRY_RELEASE__: string | undefined;
+
+// Module-level on purpose: the router imports a route node only after this
+// module has evaluated, so a pre-ES2022 engine gets its missing `.at` and a
+// failed chunk preload reloads the current build before the route reports it.
+installLegacyBrowserSupport();
+installStaleBuildReload();
 
 // Sentry is initialized from the runtime boot config (ADR-033 OQ2): the static
 // bundle carries no baked-in DSN, and selfhost-oss/local deployments stay

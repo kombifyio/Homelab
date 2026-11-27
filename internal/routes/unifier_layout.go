@@ -15,7 +15,9 @@ import (
 	ksapi "github.com/kombifyio/homelab/pkg/api"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	kscore "github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/features"
 	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
 	"github.com/kombifyio/homelab/pkg/ril/actions"
 )
 
@@ -67,7 +69,7 @@ func (h layoutRecommendationHandlers) scope(e *httpx.Event) (layoutadvice.Scope,
 		return layoutadvice.Scope{}, httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable,
 			"Layout recommendations are unavailable", map[string]any{"reason_code": "layout_recommendations_unavailable", "retryable": true})
 	}
-	return layoutadvice.Scope{TenantID: tenantID, OwnerID: ownerID}, nil
+	return layoutadvice.Scope{TenantID: tenantID, OwnerID: ownerID, WikiAdmitted: features.ManagedWikiInstallEnabled(e.Request.Context(), ownerID, tenantID)}, nil
 }
 
 func (h layoutRecommendationHandlers) preview(e *httpx.Event) error {
@@ -182,6 +184,8 @@ func layoutAdviceError(e *httpx.Event, err error) error {
 		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "This homelab has no canonical setup yet", map[string]any{"reason_code": "layout_spec_unavailable", "retryable": false})
 	case errors.Is(err, actions.ErrRecommendationState), errors.Is(err, actions.ErrRecommendationDigest):
 		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "The recommendation changed; reload it", map[string]any{"reason_code": "layout_recommendation_changed", "retryable": true})
+	case errors.Is(err, jobs.ErrManagedWikiInstallNotAdmitted):
+		return httpx.Reject(e, http.StatusForbidden, ksapi.ErrCodeForbidden, "Managed Wiki installation is not enabled for this selection", map[string]any{"reason_code": "managed_wiki_install_disabled", "retryable": false})
 	case errors.Is(err, layoutadvice.ErrUnavailable):
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "Layout recommendations are unavailable", map[string]any{"reason_code": "layout_recommendations_unavailable", "retryable": true})
 	case errors.Is(err, layoutadvice.ErrPinServer):

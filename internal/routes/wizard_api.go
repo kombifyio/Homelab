@@ -7,9 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/homelab/internal/routes/tenantguard"
 	ksapi "github.com/kombifyio/homelab/pkg/api"
 	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/features"
 	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/jobs"
 	"github.com/kombifyio/homelab/pkg/kombifywallet"
 	"github.com/kombifyio/homelab/pkg/specv2"
 )
@@ -74,7 +77,7 @@ const wizardProjectionWriteBudget = 5 * time.Minute
 
 func (h wizardRouteHandlers) preview(e *httpx.Event) error {
 	_ = httpx.ExtendWriteDeadline(e.Response, wizardProjectionWriteBudget)
-	_, _, ok := authenticatedUser(e)
+	ownerID, _, ok := authenticatedUser(e)
 	if !ok {
 		return httpx.Unauthorized(e, "Authentication required")
 	}
@@ -98,6 +101,25 @@ func (h wizardRouteHandlers) preview(e *httpx.Event) error {
 	seed, handled := h.previewSeed(e, request)
 	if handled {
 		return nil
+	}
+	// The preview promises what the run installs: a new Wiki without a
+	// current decision is refused here as the Wizard run refuses it.
+	if jobs.SelectsManagedWiki(request.Intent.Goals) {
+		tenantID, _ := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.wizard.preview")
+		existing := false
+		if len(request.BaseSpec) > 0 {
+			raw, err := json.Marshal(request.BaseSpec)
+			if err != nil {
+				return httpx.BadRequest(e, "Invalid base StackSpec")
+			}
+			if existing, err = jobs.ManagedWikiSelectionPresent(raw); err != nil {
+				return httpx.BadRequest(e, "Invalid base StackSpec")
+			}
+		}
+		if !existing && !features.ManagedWikiInstallEnabled(e.Request.Context(), ownerID, tenantID) {
+			// Same refusal as stacks.managedWikiInstallRefusal.
+			return httpx.Reject(e, http.StatusForbidden, ksapi.ErrCodeForbidden, "Managed Wiki installation is not enabled for this selection", map[string]any{"reason_code": "managed_wiki_install_disabled", "retryable": false})
+		}
 	}
 
 	if h.cfg.Projector == nil {

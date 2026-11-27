@@ -8,7 +8,9 @@ import (
 	"errors"
 	"slices"
 	"sort"
+	"strings"
 
+	"github.com/kombifyio/homelab/internal/stackkitrelease"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 )
 
@@ -32,6 +34,40 @@ func WithManagedWikiInstallAdmission(ctx context.Context, tenantID, ownerID stri
 func ManagedWikiInstallAdmitted(ctx context.Context, tenantID, ownerID string) bool {
 	principal, ok := ctx.Value(wikiInstallAdmissionKey{}).(wikiInstallPrincipal)
 	return ok && tenantID != "" && ownerID != "" && principal == (wikiInstallPrincipal{tenantID, ownerID})
+}
+
+// IsManagedWikiGoal compares a goal as goal authoring reads it (trimmed,
+// lower case), so no spelling of the Wiki goal passes a check unseen.
+func IsManagedWikiGoal(goal string) bool {
+	return strings.ToLower(strings.TrimSpace(goal)) == ManagedWikiWorkload
+}
+
+// SelectsManagedWiki reports whether goals name the Wiki in any spelling.
+func SelectsManagedWiki(goals []string) bool {
+	return slices.ContainsFunc(goals, IsManagedWikiGoal)
+}
+
+// UnofferedUseCases names the use cases one person cannot receive in full.
+// Until their managed Wiki installation is admitted, that is the Wiki and
+// every use case built from the Wiki module, so the Wizard, the catalog and
+// the recommendations never offer a solution that would install without it.
+func UnofferedUseCases(catalog stackkitrelease.UseCaseCatalog, wikiAdmitted bool) []string {
+	if wikiAdmitted {
+		return nil
+	}
+	return append(catalog.UseCasesForModule(ManagedWikiModule), ManagedWikiWorkload)
+}
+
+// OfferedUseCaseCatalog is the catalog without UnofferedUseCases.
+func OfferedUseCaseCatalog(catalog stackkitrelease.UseCaseCatalog, wikiAdmitted bool) stackkitrelease.UseCaseCatalog {
+	unoffered := UnofferedUseCases(catalog, wikiAdmitted)
+	if len(unoffered) == 0 {
+		return catalog
+	}
+	catalog.UseCases = slices.DeleteFunc(slices.Clone(catalog.UseCases), func(useCase stackkitrelease.UseCase) bool {
+		return slices.Contains(unoffered, useCase.ID)
+	})
+	return catalog
 }
 
 // managedWikiAdmission is server-owned recovery state, never an HTTP credential.

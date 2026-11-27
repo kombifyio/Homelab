@@ -4,7 +4,7 @@
   "source": {
     "product": "homelab",
     "path": "api/openapi/homelab-v1.yaml",
-    "sha256": "68af2e972c0637bc83fb0090d6c301014964e659f1b87d87cb63c761f8c441e8"
+    "sha256": "d46141da469a930c95c8b9749eecfb08c2e070e9542661d4c7b6633e3c20ad74"
   },
   "tools": [
     {
@@ -3572,8 +3572,7 @@
           "app_id": {
             "enum": [
               "vaultwarden",
-              "cloudreve-r2",
-              "workpaths-lite"
+              "cloudreve-r2"
             ],
             "type": "string"
           },

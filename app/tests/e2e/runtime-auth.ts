@@ -45,6 +45,7 @@ export interface RuntimeAuthOptions {
 
 export type RuntimeFixturePrefix =
   | "TEST_RIL_PRO_USER"
+  | "TEST_PRO_USER"
   | "TEST_PRO_DOCUMENTS_MEDIA_USER"
   | "TEST_ALL_YOU_NEED_USER"
   | "TEST_FREE_USER"

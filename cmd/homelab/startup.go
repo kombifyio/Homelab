@@ -21,6 +21,7 @@ import (
 	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	commonobservability "github.com/kombifyio/homelab/internal/gocommon/observability"
 	"github.com/kombifyio/homelab/internal/gocommon/oidcclient"
+	"github.com/kombifyio/homelab/internal/gocommon/tenantdb"
 
 	"github.com/kombifyio/homelab/internal/frontend"
 	"github.com/kombifyio/homelab/internal/ionospooltunnel"
@@ -1617,6 +1618,14 @@ func enrichIdentityFromMembership(ctx context.Context, store controlplane.AuthSt
 	tenantIDs = uniqueNonEmptyStrings(tenantIDs...)
 	if len(tenantIDs) == 0 {
 		return nil, nil
+	}
+	// A Gateway context token is bound by the database to one subject and org.
+	// After that tenant has no membership, probing legacy/default tenants would
+	// turn their expected absence into ErrContextMismatch and reject every
+	// request from a signed-in owner whose personal membership is not projected
+	// yet. The owner-tenant projection below remains the recovery path.
+	if tenantdb.ContextTokenFromContext(ctx) != "" {
+		tenantIDs = tenantIDs[:1]
 	}
 	for _, tenantID := range tenantIDs {
 		membership, err := store.GetMembership(ctx, tenantID, id.UserID)

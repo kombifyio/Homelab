@@ -48,6 +48,7 @@ export default defineConfig({
     "runtime-dashboard-load.spec.ts",
     "runtime-offline-destroy.spec.ts",
     "runtime-b3-cleanup-readback.spec.ts",
+    "guard-tenant-isolation.spec.ts",
   ],
   timeout: 300_000,
   expect: {
