@@ -3,9 +3,14 @@ package monthlyruntime
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/kombifyio/homelab/internal/gocommon/identity"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/features"
+	"github.com/kombifyio/homelab/pkg/middleware"
 )
 
 type managedRuntimeEntitlementChecker struct {
@@ -121,5 +126,136 @@ func TestEvaluateManagedRuntimeRenewal(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestEvaluateManagedRuntimeOfferingEntitlement(t *testing.T) {
+	t.Setenv("HOMELAB_ENV", "production")
+	t.Setenv("HOMELAB_ALLOW_LOCAL_SIMULATION_GATE", "")
+	t.Setenv("HOMELAB_ALLOW_LOCAL_MANAGED_RUNTIME_E2E", "")
+
+	proCtx := middleware.WithSignedEntitlements(
+		context.Background(),
+		FeatureHomelabManagedRuntime,
+		FeatureHomelabManagedRuntimeCloudKit,
+		FeatureHomelabManagedRuntimeIONOS,
+		"cloud.runtime.credits.pro",
+	)
+	aynCtx := middleware.WithSignedEntitlements(
+		context.Background(),
+		FeatureHomelabManagedRuntime,
+		FeatureHomelabManagedRuntimeCloudKit,
+		FeatureHomelabManagedRuntimeIONOS,
+		EntitlementKeyAllYouNeedCredits,
+	)
+
+	// 1. SaaS without signed AYN credit denies premium/large fail-closed, allows standard.
+	if d := EvaluateManagedRuntimeOfferingEntitlement(proCtx, "saas", ProviderIONOS, "monthly-runtime-standard"); d.Denied {
+		t.Fatalf("pro standard offering denied unexpectedly: %+v", d)
+	}
+	for _, offering := range []string{"monthly-runtime-premium", "monthly-runtime-large"} {
+		d := EvaluateManagedRuntimeOfferingEntitlement(proCtx, "saas", ProviderIONOS, offering)
+		if !d.Denied || d.ReasonCode != EntitlementReasonOfferingTierRequired || d.RefusalClass != EntitlementRefusalClassEntitlement {
+			t.Fatalf("pro user must fail closed on %s: %+v", offering, d)
+		}
+		if d.Details()["refusal_class"] != EntitlementRefusalClassEntitlement {
+			t.Fatalf("decision.Details() must include refusal_class=%q: %+v", EntitlementRefusalClassEntitlement, d.Details())
+		}
+		if d := EvaluateManagedRuntimeOfferingEntitlement(context.Background(), "saas", ProviderIONOS, offering); !d.Denied || d.ReasonCode != EntitlementReasonOfferingTierRequired {
+			t.Fatalf("unverified context must fail closed on %s: %+v", offering, d)
+		}
+		if d := EvaluateManagedRuntimeOfferingEntitlement(aynCtx, "saas", ProviderIONOS, offering); d.Denied {
+			t.Fatalf("ayn context must allow %s: %+v", offering, d)
+		}
+	}
+
+	// 2. Centron Large is unsupported by catalog regardless of AYN.
+	if d := EvaluateManagedRuntimeOfferingEntitlement(aynCtx, "saas", ProviderCentron, "monthly-runtime-large"); !d.Denied || d.ReasonCode != EntitlementReasonOfferingUnsupported || d.RefusalClass != EntitlementRefusalClassProvider {
+		t.Fatalf("centron large must fail closed as unsupported: %+v", d)
+	}
+
+	// 3. AllowedOfferingsForRequest filters to standard for Pro and all provider-supported offerings for AYN.
+	if got := AllowedOfferingsForRequest(proCtx, "saas", ProviderIONOS); !slices.Equal(got, []string{"monthly-runtime-standard"}) {
+		t.Fatalf("pro allowed offerings = %v, want [monthly-runtime-standard]", got)
+	}
+	if got := AllowedOfferingsForRequest(aynCtx, "saas", ProviderIONOS); !slices.Equal(got, []string{"monthly-runtime-standard", "monthly-runtime-premium", "monthly-runtime-large"}) {
+		t.Fatalf("ayn allowed ionos offerings = %v", got)
+	}
+	if got := AllowedOfferingsForRequest(aynCtx, "saas", ProviderCentron); !slices.Equal(got, []string{"monthly-runtime-standard", "monthly-runtime-premium"}) {
+		t.Fatalf("ayn allowed centron offerings = %v", got)
+	}
+
+	// 4. Empty or unknown deployment lane MUST fail closed even with signed AYN
+	// or Standard offering, and DeploymentLaneFromMode maps zero-value mode to empty.
+	if got := DeploymentLaneFromMode(config.DeploymentMode("")); got != "" {
+		t.Fatalf("empty DeploymentMode must yield empty lane, got %q", got)
+	}
+	if got := DeploymentLaneFromMode(config.DeploymentMode("staging")); got != "" {
+		t.Fatalf("unknown DeploymentMode must yield empty lane, got %q", got)
+	}
+	if got := DeploymentLaneFromMode(config.ModeSaaS); got != DeploymentLaneSaaS {
+		t.Fatalf("ModeSaaS must yield saas lane, got %q", got)
+	}
+	if got := DeploymentLaneFromMode(config.ModeSelfHosted); got != DeploymentLaneSelfHosted {
+		t.Fatalf("ModeSelfHosted must yield self-hosted lane, got %q", got)
+	}
+	for _, badLane := range []DeploymentLane{"", "unknown", DeploymentLaneFromMode(config.DeploymentMode(""))} {
+		for _, offering := range []string{"monthly-runtime-standard", "monthly-runtime-premium", "monthly-runtime-large"} {
+			d := EvaluateManagedRuntimeOfferingEntitlement(aynCtx, badLane, ProviderIONOS, offering)
+			if !d.Denied || d.ReasonCode != EntitlementReasonDeploymentModeUnknown || d.RefusalClass != EntitlementRefusalClassEntitlement {
+				t.Fatalf("lane %q must fail closed on %s: %+v", badLane, offering, d)
+			}
+		}
+		if got := AllowedOfferingsForRequest(aynCtx, badLane, ProviderIONOS); len(got) != 0 {
+			t.Fatalf("lane %q with provider must yield empty allowed offerings, got %v", badLane, got)
+		}
+		if got := AllowedOfferingsForRequest(aynCtx, badLane, ""); len(got) != 0 {
+			t.Fatalf("lane %q without provider must yield empty allowed offerings, got %v", badLane, got)
+		}
+	}
+
+	// 5. self-hosted lane and LocalManagedRuntimeE2EAllowed bypass tier restriction.
+	if d := EvaluateManagedRuntimeOfferingEntitlement(context.Background(), "self-hosted", ProviderIONOS, "monthly-runtime-large"); d.Denied {
+		t.Fatalf("self-hosted must remain open: %+v", d)
+	}
+	t.Setenv("HOMELAB_ENV", "local")
+	t.Setenv("HOMELAB_ALLOW_LOCAL_SIMULATION_GATE", "true")
+	t.Setenv("HOMELAB_ALLOW_LOCAL_MANAGED_RUNTIME_E2E", "true")
+	if d := EvaluateManagedRuntimeOfferingEntitlement(context.Background(), "saas", ProviderIONOS, "monthly-runtime-large"); d.Denied {
+		t.Fatalf("local E2E must remain open: %+v", d)
+	}
+	if d := EvaluateManagedRuntimeOfferingEntitlement(aynCtx, "", ProviderIONOS, "monthly-runtime-standard"); !d.Denied || d.ReasonCode != EntitlementReasonDeploymentModeUnknown {
+		t.Fatalf("empty lane must still fail closed even when local E2E env is set: %+v", d)
+	}
+	unknownDecision := EvaluateManagedRuntimeOfferingEntitlement(aynCtx, "", ProviderIONOS, "monthly-runtime-standard")
+	if len(unknownDecision.RequiredFeatures) == 0 {
+		t.Fatalf("expected RequiredFeatures on deployment_mode_unknown decision, got %+v", unknownDecision)
+	}
+	originalFirst := RequiredFeatureKeysForProvider(ProviderIONOS)[0]
+	unknownDecision.RequiredFeatures[0] = "mutated"
+	if RequiredFeatureKeysForProvider(ProviderIONOS)[0] != originalFirst {
+		t.Fatal("deployment_mode_unknown decision must clone RequiredFeatures instead of aliasing provider keys")
+	}
+}
+
+func TestIONOSStandardPhotoMemoryFlagRemainsClosedByDefault(t *testing.T) {
+	t.Setenv("HOMELAB_ENV", "production")
+	decision := EvaluateManagedRuntimeEntitlement(context.Background(), &managedRuntimeEntitlementChecker{enabled: true}, "owner-1", ProviderIONOS)
+	if decision.Denied {
+		t.Fatalf("standard entitlement denied unexpectedly: %+v", decision)
+	}
+	svc, err := features.NewService(nil, features.ServiceConfig{})
+	if err != nil {
+		t.Fatalf("features.NewService: %v", err)
+	}
+	if flag, ok := svc.GetDefinition("ionos_standard_photo_memory"); !ok || flag.DefaultValue {
+		t.Fatalf("ionos_standard_photo_memory flag = %+v (ok=%v), want DefaultValue=false", flag, ok)
+	}
+	pkg, err := PackageForProvider(ProviderIONOS, string(serverruntime.RuntimeOfferingStandard))
+	if err != nil {
+		t.Fatalf("PackageForProvider(ionos, standard): %v", err)
+	}
+	if pkg.SKU != "Basic Cube S" {
+		t.Fatalf("unexpected standard SKU %q, want Basic Cube S", pkg.SKU)
 	}
 }

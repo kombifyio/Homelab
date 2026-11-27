@@ -14,10 +14,13 @@ import (
 )
 
 const (
-	managedRuntimeCapacityScopeOwner = "owner_subject"
-	managedRuntimeCapacityOrigin     = "native_admission"
-	managedRuntimeCapacityDigestV2   = "providercontrol/managed-runtime-capacity-policy/v2"
-	managedRuntimeCapacityMaxLimit   = 2147483647
+	managedRuntimeCapacityScopeOwner               = "owner_subject"
+	managedRuntimeCapacityOrigin                   = "native_admission"
+	managedRuntimeCapacityOriginSupportReplacement = "support_replacement_temporary"
+	managedRuntimeCapacityDigestV2                 = "providercontrol/managed-runtime-capacity-policy/v2"
+	managedRuntimeCapacityMaxLimit                 = 2147483647
+
+	CapacityDecisionSourceSupportReplacementMemoryCubeS = "support_replacement:ionos_memory_cube_s/v1"
 
 	// CapacityDecisionSourceSignedRuntimeBudget and
 	// CapacityDecisionSourceSelfHostManifest are the only native policy
@@ -220,6 +223,20 @@ func countHeldManagedRuntimeCapacity(ctx context.Context, tx *sql.Tx, tenantID, 
 		        AND retirement.lease_id = reservation.lease_id
 		        AND retirement.resource_generation_id = reservation.resource_generation_id
 		  )
+		  AND (
+		      reservation.reservation_origin <> 'support_replacement_temporary'
+		      OR EXISTS (
+		          SELECT 1
+		          FROM managed_runtime_support_replacements AS sr
+		          JOIN managed_runtime_capacity_release_facts AS src_release
+		            ON src_release.tenant_id = sr.tenant_id
+		           AND src_release.lease_id = sr.source_lease_id
+		           AND src_release.resource_generation_id::text = sr.source_resource_generation_id
+		          WHERE sr.tenant_id = reservation.tenant_id
+		            AND sr.destination_lease_id = reservation.lease_id
+		            AND sr.destination_resource_generation_id = reservation.resource_generation_id::text
+		      )
+		  )
 	`, tenantID, ownerSubjectID).Scan(&held); err != nil {
 		return 0, fmt.Errorf("providercontrol: count managed runtime capacity: %w", err)
 	}
@@ -238,6 +255,10 @@ func insertManagedRuntimeCapacityReservationTx(
 	if grant.Mode == CapacityModeLimited {
 		limit = grant.Limit
 	}
+	origin := managedRuntimeCapacityOrigin
+	if strings.TrimSpace(request.SupportReplacementID) != "" {
+		origin = managedRuntimeCapacityOriginSupportReplacement
+	}
 	insert, err := tx.ExecContext(ctx, `
 		INSERT INTO managed_runtime_capacity_reservations (
 			tenant_id, owner_subject_id, provider_id, lease_id, resource_generation_id,
@@ -248,7 +269,7 @@ func insertManagedRuntimeCapacityReservationTx(
 	`,
 		request.TenantID, grant.ScopeID, strings.ToLower(strings.TrimSpace(request.Lease.Resource.ProviderID)),
 		result.LeaseID, result.ResourceGenerationID,
-		result.Operation.Command.OperationID, request.IdempotencyKey, grant.Mode, limit, managedRuntimeCapacityOrigin,
+		result.Operation.Command.OperationID, request.IdempotencyKey, grant.Mode, limit, origin,
 		grant.DecisionSource, grant.PolicyDigest, reservedAt,
 	)
 	if err != nil {
@@ -304,10 +325,17 @@ func (replay managedRuntimeCapacityReplay) matches(
 	result NativeProvisionAdmissionResult,
 ) bool {
 	canonicalProviderID := strings.ToLower(strings.TrimSpace(request.Lease.Resource.ProviderID))
+	originValid := replay.origin == managedRuntimeCapacityOrigin && validNativeCapacityDecisionSource(replay.policySource)
+	if strings.TrimSpace(request.SupportReplacementID) != "" {
+		originValid = replay.origin == managedRuntimeCapacityOriginSupportReplacement &&
+			replay.policySource == CapacityDecisionSourceSupportReplacementMemoryCubeS &&
+			replay.mode == string(CapacityModeLimited) &&
+			replay.capacityLimit.Valid && replay.capacityLimit.Int64 == 1
+	}
 	return replay.ownerID == request.OwnerSubjectID && replay.providerID == canonicalProviderID &&
 		validManagedRuntimeProviderID(replay.providerID) && replay.generationID == result.ResourceGenerationID &&
 		replay.operationID.Valid && replay.operationID.String == result.Operation.Command.OperationID &&
-		replay.origin == managedRuntimeCapacityOrigin && validNativeCapacityDecisionSource(replay.policySource) &&
+		originValid &&
 		replay.modeMatchesLimit() && validCapacityPolicyDigest(replay.policyDigest) &&
 		replay.policyDigest == replay.expectedPolicyDigest(request.TenantID)
 }

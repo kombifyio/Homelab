@@ -119,6 +119,7 @@ var custodyRetenantTables = []custodyRetenantTable{
 	{"provider_incidents", "(lease_id = $2 OR operation_id = ANY($3))", false},
 	{"substrate_guest_leases", "lease_id = $2", false},
 	{"provider_provision_dispatch_guards", "lease_id = $2", false},
+	{"managed_runtime_support_replacements", "(source_lease_id = $2 OR destination_lease_id = $2)", false},
 	{"managed_runtime_capacity_reservations", "lease_id = $2", false},
 	{"managed_runtime_server_slot_generations", "lease_id = $2", false},
 	{"managed_runtime_server_slots", "slot_id = ANY($4)", false},
@@ -380,7 +381,7 @@ func validateLegacyManagedCustodyTx(
 		return refuse("the lease has revisions after its admission; only a first-revision lease is re-admitted")
 	case lease.cancelled || (lease.desiredState != string(vmlease.DesiredStateRunning) && lease.desiredState != string(vmlease.DesiredStateStopped)):
 		return refuse("the lease is cancelled or not live")
-	case lease.authority.String != string(ExecutionAuthorityHomelabProviderControl):
+	case !isHomelabProviderControlAuthority(ExecutionAuthority(lease.authority.String)):
 		return refuse("the lease is not native provider-control custody")
 	case lease.serverID == "" || lease.generationID == "" || vmleases.ResourceGenerationID(decoded) != lease.generationID:
 		return refuse("the lease has no server or resource generation")

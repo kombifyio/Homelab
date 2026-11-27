@@ -2,8 +2,13 @@ package providercontrol
 
 import "fmt"
 
+func isHomelabProviderControlAuthority(authority ExecutionAuthority) bool {
+	return authority == ExecutionAuthorityHomelabProviderControl ||
+		authority == executionAuthorityHomelabForward
+}
+
 func validateExecutionAuthority(authority ExecutionAuthority) error {
-	if authority == ExecutionAuthorityHomelabProviderControl {
+	if isHomelabProviderControlAuthority(authority) {
 		return nil
 	}
 	return fmt.Errorf("%w: unsupported authority %q", ErrExecutionAuthority, authority)
@@ -12,6 +17,9 @@ func validateExecutionAuthority(authority ExecutionAuthority) error {
 func requireExecutionAuthority(record OperationRecord, expected ExecutionAuthority) error {
 	if err := validateExecutionAuthority(record.ExecutionAuthority); err != nil {
 		return err
+	}
+	if isHomelabProviderControlAuthority(expected) && isHomelabProviderControlAuthority(record.ExecutionAuthority) {
+		return nil
 	}
 	if record.ExecutionAuthority != expected {
 		return fmt.Errorf(

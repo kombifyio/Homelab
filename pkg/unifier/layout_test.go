@@ -37,10 +37,14 @@ func TestOwnerPinPlacesUseCaseOnTheChosenServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	worker := func(id, name string, cores int, ramGB int) core.Worker {
-		return core.Worker{ID: "worker-" + id, ServerID: id, Name: name, Status: "online", Capabilities: core.WorkerCapabilities{
-			CPU: cores, RAM: ramGB * 1024, Disk: 2048, Arch: "amd64", AMD64MicroarchitectureLevel: 3,
-		}}
+	worker := func(id, name string, cores int, ramGB int, ip string) core.Worker {
+		return core.Worker{
+			ID: "worker-" + id, ServerID: id, Name: name, Status: "online",
+			Tags: map[string]string{"ip": ip},
+			Capabilities: core.WorkerCapabilities{
+				CPU: cores, RAM: ramGB * 1024, Disk: 2048, Arch: "amd64", AMD64MicroarchitectureLevel: 3,
+			},
+		}
 	}
 	input := func(pins map[string]string, workers ...core.Worker) LayoutInput {
 		in := LayoutInput{
@@ -53,7 +57,7 @@ func TestOwnerPinPlacesUseCaseOnTheChosenServer(t *testing.T) {
 		}
 		return in
 	}
-	main, spare, tiny := worker("srv-main", "main", 16, 64), worker("srv-spare", "spare", 8, 32), worker("srv-tiny", "tiny", 1, 1)
+	main, spare, tiny := worker("srv-main", "main", 16, 64, "192.168.10.10"), worker("srv-spare", "spare", 8, 32, "192.168.10.11"), worker("srv-tiny", "tiny", 1, 1, "192.168.10.12")
 	plan := func(in LayoutInput) LayoutComputation {
 		t.Helper()
 		computation, err := ComputeLayout(context.Background(), catalog, in, nil)
@@ -119,5 +123,142 @@ func TestOwnerPinPlacesUseCaseOnTheChosenServer(t *testing.T) {
 	kept := plan(addOn)
 	if len(kept.Problem.Pins) != 1 || kept.Problem.Pins[0].NodeID != "srv-main" || kept.Problem.Pins[0].Reason != "with_use_case" {
 		t.Fatalf("the add-on must stay with its running use case despite a choice, got %+v", kept.Problem.Pins)
+	}
+}
+
+func TestMultiNodeLayoutRejectsUnreachableNodeAddress(t *testing.T) {
+	catalog, err := stackkitrelease.PinnedUseCaseCatalog()
+	if err != nil {
+		t.Fatal(err)
+	}
+	worker := func(id, name, ip string) core.Worker {
+		return core.Worker{
+			ID: "worker-" + id, ServerID: id, Name: name, Status: "online",
+			Tags: map[string]string{"ip": ip},
+			Capabilities: core.WorkerCapabilities{
+				CPU: 8, RAM: 16384, Disk: 500, Arch: "amd64", AMD64MicroarchitectureLevel: 3,
+			},
+		}
+	}
+
+	// Both connected nodes lack concrete non-loopback unicast addresses ->
+	// OutcomeUnknown with node_address_unreachable note.
+	badA := worker("srv-a", "node-a", "")
+	badB := worker("srv-b", "node-b", "127.0.0.1")
+	comp, err := ComputeLayout(context.Background(), catalog, LayoutInput{
+		Scope:           "stack:beta",
+		StackID:         "beta",
+		OwnerID:         "owner",
+		Workers:         []core.Worker{badA, badB},
+		PrimaryServerID: "srv-a",
+		SpecNodeRefs:    map[string]string{"srv-a": "node-a", "srv-b": "node-b"},
+		NodeRoles:       map[string][]string{"srv-a": {"controller"}, "srv-b": {"worker"}},
+		Goals:           []string{"files"},
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if comp.Result.Outcome != layout.OutcomeUnknown {
+		t.Fatalf("expected OutcomeUnknown for unreachable multi-node addresses, got %+v", comp.Result)
+	}
+	foundNote := false
+	for _, note := range comp.Result.Notes {
+		if note.Code == "node_address_unreachable" {
+			foundNote = true
+			break
+		}
+	}
+	if !foundNote {
+		t.Fatalf("expected node_address_unreachable note, got %+v", comp.Result.Notes)
+	}
+
+	// Two connected nodes with link-local / IPv6 loopback addresses ->
+	// OutcomeUnknown with node_address_unreachable note.
+	badLL := worker("srv-a", "node-a", "fe80::1")
+	badV6 := worker("srv-b", "node-b", "::1")
+	compLL, err := ComputeLayout(context.Background(), catalog, LayoutInput{
+		Scope:           "stack:beta-ll",
+		StackID:         "beta-ll",
+		OwnerID:         "owner",
+		Workers:         []core.Worker{badLL, badV6},
+		PrimaryServerID: "srv-a",
+		SpecNodeRefs:    map[string]string{"srv-a": "node-a", "srv-b": "node-b"},
+		NodeRoles:       map[string][]string{"srv-a": {"controller"}, "srv-b": {"worker"}},
+		Goals:           []string{"files"},
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if compLL.Result.Outcome != layout.OutcomeUnknown {
+		t.Fatalf("expected OutcomeUnknown for link-local/loopback multi-node addresses, got %+v", compLL.Result)
+	}
+	foundLLNote := false
+	for _, note := range compLL.Result.Notes {
+		if note.Code == "node_address_unreachable" {
+			foundLLNote = true
+			break
+		}
+	}
+	if !foundLLNote {
+		t.Fatalf("expected node_address_unreachable note for link-local multi-node, got %+v", compLL.Result.Notes)
+	}
+
+	// Mixed multi-node: reachable node remains eligible, link-local node is excluded with node_address_unreachable.
+	goodA := worker("srv-a", "node-a", "192.168.10.10")
+	linkLocalB := worker("srv-b", "node-b", "fe80::1")
+	compMixed, err := ComputeLayout(context.Background(), catalog, LayoutInput{
+		Scope:           "stack:beta-mixed",
+		StackID:         "beta-mixed",
+		OwnerID:         "owner",
+		Workers:         []core.Worker{goodA, linkLocalB},
+		PrimaryServerID: "srv-a",
+		SpecNodeRefs:    map[string]string{"srv-a": "node-a", "srv-b": "node-b"},
+		NodeRoles:       map[string][]string{"srv-a": {"controller"}, "srv-b": {"worker"}},
+		Goals:           []string{"files"},
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundMixedNote := false
+	for _, note := range compMixed.Result.Notes {
+		if note.Code == "node_address_unreachable" && note.Params["node"] == "node-b" {
+			foundMixedNote = true
+			break
+		}
+	}
+	if !foundMixedNote || compMixed.Result.Outcome != layout.OutcomeFeasible || len(compMixed.Result.Options) == 0 || len(compMixed.Result.Options[0].Loads) != 1 || compMixed.Result.Options[0].Loads[0].NodeID != "srv-a" {
+		t.Fatalf("expected reachable node-a placed and link-local node-b excluded with node_address_unreachable, got %+v", compMixed.Result)
+	}
+}
+
+func TestSingleNodeLoopbackAndLinkLocalRemainPlaceable(t *testing.T) {
+	catalog, err := stackkitrelease.PinnedUseCaseCatalog()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, addr := range []string{"127.0.0.1", "::1", "fe80::1"} {
+		single := core.Worker{
+			ID: "worker-srv-1", ServerID: "srv-1", Name: "single-node", Status: "online",
+			Tags: map[string]string{"ip": addr},
+			Capabilities: core.WorkerCapabilities{
+				CPU: 8, RAM: 16384, Disk: 500, Arch: "amd64", AMD64MicroarchitectureLevel: 3,
+			},
+		}
+		comp, err := ComputeLayout(context.Background(), catalog, LayoutInput{
+			Scope:           "stack:single",
+			StackID:         "single",
+			OwnerID:         "owner",
+			Workers:         []core.Worker{single},
+			PrimaryServerID: "srv-1",
+			SpecNodeRefs:    map[string]string{"srv-1": "node-srv-1"},
+			NodeRoles:       map[string][]string{"srv-1": {"controller"}},
+			Goals:           []string{"files"},
+		}, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if comp.Result.Outcome != layout.OutcomeFeasible || len(comp.Result.Options) == 0 || len(comp.Result.Options[0].Assignments) != 1 {
+			t.Fatalf("single-node homelab with address %q must remain placeable, got %+v", addr, comp.Result)
+		}
 	}
 }

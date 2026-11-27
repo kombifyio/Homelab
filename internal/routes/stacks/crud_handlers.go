@@ -227,9 +227,13 @@ func (h crudRouteHandlers) ownerBootstrapContextForCreate(e *httpx.Event, ownerI
 }
 
 func (h crudRouteHandlers) rejectUnauthorizedManagedRuntime(e *httpx.Event, ownerID string, normalized normalizedCreateStackRequest) (bool, error) {
-	if decision := evaluateManagedRuntimeEntitlement(e.Request.Context(), normalized, ownerID, h.runtimeFeatures); decision.Denied {
+	if decision := evaluateManagedRuntimeEntitlement(e.Request.Context(), normalized, ownerID, h.runtimeFeatures, h.deploymentMode); decision.Denied {
 		details := decision.Details()
-		details["refusal_class"] = unifier.RefusalClassEntitlement
+		refusalClass := decision.RefusalClass
+		if refusalClass == "" {
+			refusalClass = unifier.RefusalClassEntitlement
+		}
+		details["refusal_class"] = refusalClass
 		details["choices_retained"] = true
 		return true, httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden, decision.Message, details)
 	}

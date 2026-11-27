@@ -8,6 +8,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"net/netip"
+	"net/url"
 	"reflect"
 	"slices"
 	"strings"
@@ -42,6 +45,58 @@ const TransferConfigurationOperation = "application-transfer.configuration"
 // pinned StackKits contract that carries the receive scope.
 type TransferReceiveIssuer interface {
 	IssueTransferReceive(ctx context.Context, request advancedissuer.Request, scope wire.TransferReceive) (advancedissuer.Capability, error)
+}
+
+// TransferRelaySlot is one single-use, capability-scoped ciphertext relay slot
+// minted for a NAT-traversed native application transfer.
+type TransferRelaySlot struct {
+	TransferID    string
+	ArchiveSHA256 string
+	RelayURL      string
+	UploadToken   string
+	DownloadToken string
+	ExpiresAt     time.Time
+}
+
+// TransferRelay stages opaque age-encrypted transfer archives on the control
+// plane when source and destination cannot reach each other directly over TCP.
+type TransferRelay interface {
+	BaseURL() string
+	AllocateSlot(transferID, archiveSHA256 string, ttl time.Duration, maxBytes int64) (TransferRelaySlot, error)
+	ReleaseSlot(transferID, archiveSHA256 string)
+}
+
+var cgnatPrefix = netip.MustParsePrefix("100.64.0.0/10")
+
+// IsDirectlyRoutablePublicIP reports whether raw is a globally routable public
+// IP suitable for direct node-to-node TCP:8124 transfer.
+func IsDirectlyRoutablePublicIP(raw string) bool {
+	ip, err := netip.ParseAddr(strings.TrimSpace(raw))
+	if err != nil || !ip.IsValid() {
+		return false
+	}
+	if ip.IsPrivate() || ip.IsLoopback() || ip.IsUnspecified() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsMulticast() {
+		return false
+	}
+	if ip.Is4() && cgnatPrefix.Contains(ip) {
+		return false
+	}
+	return true
+}
+
+func isLoopbackRelayURL(raw string) bool {
+	parsed, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || !strings.EqualFold(parsed.Scheme, "http") {
+		return false
+	}
+	host := strings.ToLower(parsed.Hostname())
+	if host == "localhost" {
+		return true
+	}
+	if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
+		return true
+	}
+	return false
 }
 
 // errTransferStepUnanswered marks a step whose node answer never arrived: its
@@ -214,6 +269,13 @@ func runNativeWorkloadRelocation(ctx context.Context, cfg StackKitLifecycleConfi
 	}
 	m.receive = receive
 
+	directTransferOK := IsDirectlyRoutablePublicIP(req.SourceAddress) && IsDirectlyRoutablePublicIP(req.DestinationAddress)
+	relayTransferOK := cfg.TransferRelay != nil && strings.TrimSpace(cfg.TransferRelay.BaseURL()) != ""
+	if !directTransferOK && !relayTransferOK {
+		m.outcome["reason_code"], m.outcome["state"] = "transfer_transport_unavailable", "preflight_failed"
+		return m.finish(fmt.Errorf("neither direct node-to-node public IP reachability nor the encrypted transfer relay is available"), true)
+	}
+
 	// 1. The source projects its selected applications' portable public
 	// configuration: public settings and effective module profiles only. Secret
 	// material moves solely inside the existing sealed archive custody.
@@ -359,24 +421,67 @@ func runNativeWorkloadRelocation(ctx context.Context, cfg StackKitLifecycleConfi
 		return m.finish(m.abort(ctx, docs, err), false)
 	}
 
-	// 4. Node to node: the source serves the ciphertext once to the
-	// destination address, which keeps it only when its digest matches.
+	// 4. Transfer ciphertext: use direct TCP:8124 when both nodes have directly
+	// routable public IPs; otherwise use the single-use HTTPS ciphertext relay.
 	job.setStep("stackkit_transfer_copy")
 	q.UpdateProgress(job.ID, 45, "Copying the encrypted data to the destination server")
-	var serveErr, fetchErr error
+	var sendErr, fetchErr error
 	var wg sync.WaitGroup
-	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		_, serveErr = m.dispatch(ctx, "serve", req.Source, stackkitcommand.ApplicationTransferRequest{Step: stackkitcommand.TransferStepServe, OperationID: docs.operation, Peer: req.DestinationAddress}, nil)
-	}()
-	go func() {
-		defer wg.Done()
-		_, fetchErr = m.dispatch(ctx, "fetch", req.Destination, stackkitcommand.ApplicationTransferRequest{Step: stackkitcommand.TransferStepFetch, Peer: req.SourceAddress, ArchiveSHA256: docs.archive}, nil)
-	}()
-	wg.Wait()
+	if directTransferOK {
+		m.outcome["transfer_transport"] = "direct"
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			_, sendErr = m.dispatch(ctx, "serve", req.Source, stackkitcommand.ApplicationTransferRequest{Step: stackkitcommand.TransferStepServe, OperationID: docs.operation, Peer: req.DestinationAddress}, nil)
+		}()
+		go func() {
+			defer wg.Done()
+			_, fetchErr = m.dispatch(ctx, "fetch", req.Destination, stackkitcommand.ApplicationTransferRequest{Step: stackkitcommand.TransferStepFetch, Peer: req.SourceAddress, ArchiveSHA256: docs.archive}, nil)
+		}()
+		wg.Wait()
+	} else {
+		m.outcome["transfer_transport"] = "relay"
+		slot, slotErr := cfg.TransferRelay.AllocateSlot(job.ID, docs.archive, 30*time.Minute, 0)
+		if slotErr != nil {
+			return m.finish(m.abort(ctx, docs, fmt.Errorf("allocate encrypted transfer relay slot: %w", slotErr)), false)
+		}
+		defer cfg.TransferRelay.ReleaseSlot(slot.TransferID, slot.ArchiveSHA256)
+		loopback := isLoopbackRelayURL(slot.RelayURL)
+		pushCtx, cancelPush := context.WithCancel(ctx)
+		fetchCtx, cancelFetch := context.WithCancel(ctx)
+		defer cancelPush()
+		defer cancelFetch()
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			_, sendErr = m.dispatch(pushCtx, "push", req.Source, stackkitcommand.ApplicationTransferRequest{
+				Step:                  stackkitcommand.TransferStepPush,
+				OperationID:           docs.operation,
+				RelayURL:              slot.RelayURL,
+				RelayToken:            slot.UploadToken,
+				AllowInsecureLoopback: loopback,
+			}, nil)
+			if sendErr != nil {
+				cancelFetch()
+			}
+		}()
+		go func() {
+			defer wg.Done()
+			_, fetchErr = m.dispatch(fetchCtx, "fetch", req.Destination, stackkitcommand.ApplicationTransferRequest{
+				Step:                  stackkitcommand.TransferStepFetch,
+				RelayURL:              slot.RelayURL,
+				RelayToken:            slot.DownloadToken,
+				AllowInsecureLoopback: loopback,
+				ArchiveSHA256:         docs.archive,
+			}, nil)
+			if fetchErr != nil {
+				cancelPush()
+			}
+		}()
+		wg.Wait()
+	}
 	if fetchErr != nil {
-		return m.finish(m.abort(ctx, docs, errors.Join(fetchErr, serveErr)), false)
+		return m.finish(m.abort(ctx, docs, errors.Join(fetchErr, sendErr)), false)
 	}
 
 	// 5. The destination adopts the transferred credentials before its first

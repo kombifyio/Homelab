@@ -53,7 +53,7 @@ type Metrics struct {
 	// Monthly Runtime metrics
 	MonthlyRuntimeEnrollments *prometheus.GaugeVec
 
-	// Session recovery metrics (reason_code session_reprojection_required)
+	// Session recovery metrics (error_code session_renewal_required, reason session_reprojection)
 	SessionReprojectionsTotal *prometheus.CounterVec
 
 	// Durable RIL workflow metrics. Labels are deliberately bounded to the

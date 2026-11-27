@@ -30,7 +30,7 @@ func (o *Orchestrator) ConfigureStackKitCommander(sender jobs.StackKitCommandSen
 	defer o.mu.Unlock()
 	o.stackKitCommander = sender
 	o.cfg.StackKitCommander = sender
-	config := jobs.StackKitLifecycleConfig{Sender: sender, AdvancedIssuer: o.cfg.AdvancedIssuer, OriginCertificates: o.cfg.OriginCertificates, ManagedStackKitInventory: o.managedStackKitInventory, ManagedAddressAuthority: o.managedChangeSetAddressAuthority, ApplicationAuthorize: o.authorizeApplicationOperation, ServiceRuntimeAuthorize: o.authorizeDeclaredServiceRuntime, ConnectorAuthorize: o.authorizeApplicationConnector}
+	config := jobs.StackKitLifecycleConfig{Sender: sender, AdvancedIssuer: o.cfg.AdvancedIssuer, OriginCertificates: o.cfg.OriginCertificates, ManagedStackKitInventory: o.managedStackKitInventory, ManagedAddressAuthority: o.managedChangeSetAddressAuthority, ApplicationAuthorize: o.authorizeApplicationOperation, ServiceRuntimeAuthorize: o.authorizeDeclaredServiceRuntime, ConnectorAuthorize: o.authorizeApplicationConnector, TransferRelay: o.cfg.TransferRelay}
 	config.HomeGraph = o.homeGraphStore()
 	config.WalletHostDelivery = walletHostDelivery(o.cfg.KombifyWallet, o.cfg.WalletHostAuthority)
 	config.CustomerRegistryRenew = customerRegistryRenewal(o.cfg.CustomerRegistryIssuer, o.cfg.KombifyWallet)
@@ -152,6 +152,18 @@ func (o *Orchestrator) ConfigureFederationFabric(fabric jobs.FederationFabric) {
 	defer o.mu.Unlock()
 	o.cfg.FederationFabric = fabric
 	jobs.RegisterDefaultHandlers(o.queue, o.provisionConfig(o.cfg.RuntimeActions))
+}
+
+// ConfigureTransferRelay installs the HTTPS ciphertext relay authority used for
+// NAT-traversed native application relocations.
+func (o *Orchestrator) ConfigureTransferRelay(relay jobs.TransferRelay) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	o.cfg.TransferRelay = relay
+	if o.stackKitCommander != nil {
+		o.stackKitLifecycleConfig.TransferRelay = relay
+		jobs.RegisterWorkloadRelocationHandler(o.queue, o.stackKitLifecycleConfig)
+	}
 }
 
 func (o *Orchestrator) EnqueueStackKitLifecycle(ctx context.Context, request jobs.StackKitLifecycleRequest) (string, error) {

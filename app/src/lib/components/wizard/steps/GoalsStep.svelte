@@ -17,7 +17,12 @@
     type SetupHardwareHints,
   } from "@kombiverselabs/ui/usecase";
   import type { UseCaseCatalogView } from "#lib/api/useCaseCatalog.js";
+  import type { DetectedExistingApp } from "#lib/api/unifier.js";
   import type { CreationStage } from "#lib/wizard/creationGoals.js";
+  import type {
+    ProStarterAlternative,
+    ServerFitRecovery,
+  } from "#lib/api/unifier.js";
   import type { WizardPreviewState } from "#lib/wizard/WizardPreviewController.js";
   import type { LayoutPreviewState } from "#lib/wizard/LayoutPreviewController.js";
   import type {
@@ -32,6 +37,9 @@
     onGoalChange,
     onSettingChange,
     recommendationState = { phase: "idle" },
+    detectedExistingApps = [],
+    onAdoptExistingApp,
+    onOverrideExistingApp,
     useCaseCatalog = new Map(),
     catalogState = "ready",
     onCatalogReload,
@@ -46,6 +54,8 @@
     goalsStage = "pick",
     onGoalsStage,
     asksUseCaseAccess = false,
+    lanReachable = false,
+    onFitRecovery,
   }: {
     config: GoalsSlice;
     primaryGoalQuestions: BundleQuestionDefinition<GoalConfigKey>[];
@@ -57,6 +67,9 @@
       value: string | boolean,
     ) => void;
     recommendationState?: WizardPreviewState;
+    detectedExistingApps?: DetectedExistingApp[];
+    onAdoptExistingApp?: (app: DetectedExistingApp) => void;
+    onOverrideExistingApp?: (app: DetectedExistingApp) => void;
     useCaseCatalog?: Map<string, UseCaseCatalogView>;
     /**
      * Where the release catalog stands. Cards need it: without it every use
@@ -85,6 +98,8 @@
     onGoalsStage: (stage: CreationStage) => void;
     /** The focused use case decides its own reach and people. */
     asksUseCaseAccess?: boolean;
+    lanReachable?: boolean;
+    onFitRecovery?: (recovery: ServerFitRecovery) => void;
   } = $props();
 
   const questions = $derived([
@@ -252,6 +267,35 @@
       smartHomeRecommendation={recommendationState.phase === "resolved"
         ? recommendationState.result.smart_home_recommendation
         : undefined}
+      proStarters={recommendationState.phase === "resolved"
+        ? recommendationState.result.pro_starters
+        : undefined}
+      serverFit={recommendationState.phase === "resolved"
+        ? recommendationState.result.server_fit
+        : undefined}
+      selectionGuidance={recommendationState.phase === "resolved"
+        ? recommendationState.result.selection
+        : undefined}
+      {lanReachable}
+      onStarterAlternative={(alt: ProStarterAlternative) => {
+        if (alt.kind === "use_owned_server" && alt.server_id) {
+          onFitRecovery?.({ action: "use_owned_server", server_id: alt.server_id, server_name: alt.server_name });
+        } else if (alt.kind === "switch_provider" && alt.provider_id) {
+          onFitRecovery?.({
+            action: "switch_provider",
+            provider_id: alt.provider_id,
+            offering_id: alt.offering_id,
+            offering_sku: alt.offering_sku,
+          });
+        } else if (alt.kind === "switch_offering" && alt.offering_id) {
+          onFitRecovery?.({ action: "switch_offering", offering_id: alt.offering_id, offering_sku: alt.offering_sku });
+        } else if (alt.kind === "switch_profile" && alt.goal === "photos" && alt.profile) {
+          onSettingChange("photos", "backend", alt.profile);
+        }
+      }}
+      {detectedExistingApps}
+      {onAdoptExistingApp}
+      {onOverrideExistingApp}
       {hardware}
       focus={focusGoal}
       stage={goalsStage}

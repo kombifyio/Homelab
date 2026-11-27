@@ -176,6 +176,22 @@
     {
       "version": "204_fly_machines_custody.sql",
       "sha256": "11dcac66c054926696c4983b18ecd9fc3cf818ccd0e98d51e70a330f3849d7e0"
+    },
+    {
+      "version": "205_ionos_memory_cube_support_replacement.sql",
+      "sha256": "1fb6ca21aeb127dad2d859efc0b65ad5d4e0ef9a95693807b7145f98eed51341"
+    },
+    {
+      "version": "206_homelab_rename_expand.sql",
+      "sha256": "72c8080dd4ac982d8c793759cab536d74ec7e4da46901c44f5fde3d2cce83b37"
+    },
+    {
+      "version": "207_stack_tenant_directory.sql",
+      "sha256": "8d15d224175fcc72f96827a6139d6c209988eabf55e3c09e9a67545399b13b08"
+    },
+    {
+      "version": "208_never_enrolled_runtime_directory.sql",
+      "sha256": "291053858d0feb8173f04afb423c5cf15d0434d946991d1a4f744192472680d9"
     }
   ],
   "database_target": "core",

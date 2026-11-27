@@ -147,6 +147,7 @@ export type WizardRecommendationStatus =
 export interface WizardRecommendationRequest {
   smart_home_context?: SmartHomeContext;
   smart_home_settings?: Record<string, string | boolean>;
+  existing_server_id?: string;
   goals: string[];
   services: string[];
   deployment_lane: "saas" | "self-hosted";
@@ -283,15 +284,20 @@ export interface ServerFitBudget {
 export interface ServerFitRecovery {
   action:
     | "switch_offering"
+    | "switch_provider"
+    | "use_owned_server"
     | "switch_profile"
     | "omit_use_case"
     | "refresh_inventory"
     | "review_selection";
   reason_code?: string;
+  provider_id?: string;
   offering_id?: string;
   offering_name?: string;
   offering_sku?: string;
   offering_memory_mb?: number;
+  server_id?: string;
+  server_name?: string;
   profile?: string;
   goal?: string;
 }
@@ -333,9 +339,78 @@ export interface ServerFit {
   advisories?: ServerFitReason[];
 }
 
+export interface DocumentsMediaWorkloadEnvelope {
+  supported_playback_modes: string[];
+  max_concurrent_workloads: number;
+  min_root_disk_gb: number;
+  backup_working_space_gb: number;
+  requires_full_immich: boolean;
+}
+
+export interface ProStarterAlternative {
+  kind:
+    | "switch_profile"
+    | "switch_offering"
+    | "switch_provider"
+    | "use_owned_server"
+    | "defer_goal";
+  goal?: string;
+  profile?: string;
+  provider_id?: string;
+  offering_id?: string;
+  offering_sku?: string;
+  server_id?: string;
+  server_name?: string;
+  requires_confirmation: boolean;
+  lost_functions?: string[];
+  settings?: Record<string, string | boolean>;
+}
+
+export interface ProStarterEvaluation {
+  id: string;
+  recommended_full: boolean;
+  starts_with: string[];
+  deferred_goals?: string[];
+  default_settings?: Record<string, Record<string, string | boolean>>;
+  requires_confirmation?: boolean;
+  confirmation_reasons?: string[];
+  fit?: ServerFit;
+  alternatives?: ProStarterAlternative[];
+  workload_envelope?: DocumentsMediaWorkloadEnvelope;
+}
+
+export type AppSpectrumTier = "first_class" | "known_catalog" | "custom_app";
+
+export interface DetectedExistingAppLogo {
+  url: string;
+  light_url?: string;
+  dark_url?: string;
+  source: string;
+}
+
+export interface DetectedExistingApp {
+  service_id: string;
+  app_id: string;
+  display_name: string;
+  spectrum_tier: AppSpectrumTier;
+  use_case_slug?: string;
+  first_class_package?: string;
+  adoption_mode: "adopt_in_place" | "stack_it" | "connect_existing" | string;
+  container_id?: string;
+  compose_project?: string;
+  icon_url?: string;
+  logo?: DetectedExistingAppLogo;
+  vendor_name?: string;
+  docs_url?: string;
+  homepage_url?: string;
+  ports?: number[];
+}
+
 export interface WizardRecommendationResult {
   server_fit?: ServerFit;
+  pro_starters?: Record<string, ProStarterEvaluation>;
   smart_home_recommendation?: SmartHomeRecommendation;
+  detected_existing_apps?: DetectedExistingApp[];
   status: WizardRecommendationStatus;
   generated_at: string;
   decision_context?: DecisionContext;
@@ -350,6 +425,7 @@ export interface WizardRecommendationResult {
 
 export interface SmartHomeContext {
   existing?: boolean;
+  auto_detected?: boolean;
   proxmox_available?: boolean;
   lan_reachable?: boolean;
   cpu?: number;
@@ -360,6 +436,7 @@ export interface SmartHomeContext {
 export interface SmartHomeRecommendation {
   operating_form?: "container" | "haos";
   management_scope: "observed" | "managed";
+  auto_detected?: boolean;
   reasons: string[];
   requirements: string[];
   capabilities: Record<string, string[]>;

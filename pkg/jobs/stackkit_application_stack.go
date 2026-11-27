@@ -56,6 +56,18 @@ func validateApplicationStackRequest(req *StackKitLifecycleRequest) error {
 	if b == nil || b.ServerID == "" || b.ExpectedServiceRevision <= 0 || req.ServiceID == "" || req.ServiceKey != "" || b.Profile != stackkitcommand.OwnApplicationAdoptedProfile || !stackkitcommand.ValidOwnApplicationName(b.OwnApplicationName) {
 		return fmt.Errorf("stack it requires a retained exact service/source binding and own application name")
 	}
+	if err := stackkitcommand.ValidateStackItHTTPPort(b.HTTPPort); err != nil {
+		return err
+	}
+	if err := stackkitcommand.ValidateStackItMemoryMiB(b.MemoryMiB); err != nil {
+		return err
+	}
+	if err := stackkitcommand.ValidateStackItCPUsString(b.CPUs); err != nil {
+		return err
+	}
+	if err := stackkitcommand.ValidateStackItHTTPService(b.HTTPService); err != nil {
+		return err
+	}
 	if req.Operation == StackKitLifecycleApplicationStack && (b.ReviewedStack == nil || b.PlanJobID == "" || b.ReviewedStack.PlanDigest == "") {
 		return fmt.Errorf("stack it adopt requires the retained reviewed plan")
 	}
@@ -72,6 +84,14 @@ func applicationStackCommand(req StackKitLifecycleRequest, release stackkitrelea
 	}
 	c.ApplicationContainerId = req.Application.ContainerID
 	c.OwnApplicationName = req.Application.OwnApplicationName
+	if req.Operation == StackKitLifecycleApplicationStackPlan || req.Operation == StackKitLifecycleApplicationStack {
+		c.StackItHttpPort = int32(req.Application.HTTPPort)
+		c.StackItNoOutbound = req.Application.NoOutbound
+		c.StackItMemoryMib = int32(req.Application.MemoryMiB)
+		c.StackItCpus = req.Application.CPUs
+		c.StackItAdoptComposeProject = req.Application.AdoptComposeProject
+		c.StackItHttpService = req.Application.HTTPService
+	}
 	if !applicationStackRead(req.Operation) {
 		c.ApplicationOperationId = req.DurableJobID
 	}

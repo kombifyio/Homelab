@@ -3,6 +3,7 @@ import {
   type CreationGoalId,
 } from "./creationGoals.js";
 import { installsService } from "#lib/api/useCaseCatalog.js";
+import type { ProStarterEvaluation } from "#lib/api/unifier.js";
 import type { GoalConfigKey } from "./standardBundle.js";
 
 /** Selection templates (profiles) above the use case cards: one click selects
@@ -91,10 +92,20 @@ export const STANDARD_STARTS: Record<
   },
 };
 
+const ALLOWED_PROFILE_EXPANSIONS: Record<
+  CreationTemplateId,
+  readonly CreationGoalId[]
+> = {
+  infinity: STANDARD_STARTS.infinity.expansion,
+  "self-employed": ["automation", "ai"],
+  family: ["smart-home", "photos", "media"],
+  "documents-media": ["photos", "media"],
+};
+
 export function profileExpansionGoals(
   id: CreationTemplateId,
 ): readonly CreationGoalId[] {
-  return STANDARD_STARTS[id].expansion;
+  return ALLOWED_PROFILE_EXPANSIONS[id];
 }
 
 export type CreationTemplate = (typeof CREATION_TEMPLATES)[number];
@@ -112,6 +123,10 @@ export interface TemplateStartOptions {
   lanReachable?: boolean;
   /** Target host meets the >=12 GiB / 4 vCPU local AI floor. */
   supportsLocalAI?: boolean;
+  /** Live backend Pro starter evaluations keyed by template id. */
+  proStarters?: Record<string, ProStarterEvaluation>;
+  /** Full Infinity fits on a capable own server or entitled larger package. */
+  fullInfinityFits?: boolean;
 }
 
 export function templateSelection(
@@ -121,6 +136,15 @@ export function templateSelection(
   options: TemplateStartOptions = {},
 ): TemplateSelection {
   const startGoals = (id: CreationTemplateId): readonly CreationGoalId[] => {
+    const starter = options.proStarters?.[id];
+    if (starter?.starts_with) {
+      return starter.starts_with as CreationGoalId[];
+    }
+    if (id === "infinity" && options.fullInfinityFits) {
+      return cards
+        .filter((card) => card.availability === "available")
+        .map((card) => card.id);
+    }
     const base = STANDARD_STARTS[id].goals;
     if (id === "family" && options.lanReachable) {
       return [...base, "smart-home"];

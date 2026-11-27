@@ -67,6 +67,35 @@ export interface PlacementPartition {
 }
 
 /**
+ * Curated Managed Apps selection on shared hosting.
+ * Only apps in CURATED_MANAGED_APP_KEYS are currently eligible for Managed Apps;
+ * UPCOMING_MANAGED_APP_KEYS lists queued profiles (e.g., Cloudreve R2).
+ */
+export const CURATED_MANAGED_APP_KEYS = ["vaultwarden"] as const;
+export const UPCOMING_MANAGED_APP_KEYS = ["cloudreve"] as const;
+
+export type CuratedManagedAppStatus = "supported" | "upcoming";
+
+export interface CuratedManagedAppSpec {
+  appKey: string;
+  displayName: string;
+  status: CuratedManagedAppStatus;
+}
+
+export const CURATED_MANAGED_APPS: readonly CuratedManagedAppSpec[] = [
+  {
+    appKey: "vaultwarden",
+    displayName: "Vaultwarden",
+    status: "supported",
+  },
+  {
+    appKey: "cloudreve",
+    displayName: "Files (Cloudreve R2)",
+    status: "upcoming",
+  },
+] as const;
+
+/**
  * Zero-slot products under D-2026-11-24-04. Matched on the whole machine token
  * (catalog id, application key or service key), never display name or substring.
  */
@@ -86,6 +115,19 @@ function token(value: string | undefined): string {
     .trim()
     .toLowerCase()
     .replace(/[\s_]+/g, "-");
+}
+
+export function isCuratedManagedAppKey(key: string | undefined): boolean {
+  const normalized = token(key);
+  return (CURATED_MANAGED_APP_KEYS as readonly string[]).includes(normalized);
+}
+
+export function isUpcomingManagedAppKey(key: string | undefined): boolean {
+  const normalized = token(key);
+  return (
+    normalized === "cloudreve-r2" ||
+    (UPCOMING_MANAGED_APP_KEYS as readonly string[]).includes(normalized)
+  );
 }
 
 export function isNativeKombifyApp(input: PlacementClassInput): boolean {

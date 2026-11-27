@@ -59,11 +59,12 @@ type NativeProvisionAdmissionRequest struct {
 	ReplayOnly bool
 	// ValidFor is measured from the transaction's database time. Zero selects
 	// vmleases.DefaultNativeAdmissionValidity; absolute caller times are rejected.
-	ValidFor       time.Duration
-	Lease          vmlease.Lease
-	Server         NativeAdmissionServer
-	DesiredSpecRef string
-	DesiredSpec    json.RawMessage
+	ValidFor             time.Duration
+	Lease                vmlease.Lease
+	Server               NativeAdmissionServer
+	DesiredSpecRef       string
+	DesiredSpec          json.RawMessage
+	SupportReplacementID string
 }
 
 // NativeProvisionAdmissionResult identifies the exact lease/server/generation
@@ -230,6 +231,9 @@ func (a *NativeAdmission) AdmitProvision(
 	ctx = SystemAuthorityContext(ctx)
 	if !a.configured() {
 		return NativeProvisionAdmissionResult{}, fmt.Errorf("%w: native admission is not configured", ErrInvalidRequest)
+	}
+	if strings.TrimSpace(request.SupportReplacementID) != "" {
+		return NativeProvisionAdmissionResult{}, fmt.Errorf("%w: standard native admission cannot bind a support replacement", ErrInvalidRequest)
 	}
 	normalized, digest, digestText, normalizeErr := normalizeNativeProvisionAdmission(request)
 	if normalizeErr != nil {
@@ -602,7 +606,7 @@ func nativeAdmissionReplayCustodyMatches(
 	leaseID string,
 	request NativeProvisionAdmissionRequest,
 ) bool {
-	return executionAuthority == string(ExecutionAuthorityHomelabProviderControl) &&
+	return isHomelabProviderControlAuthority(ExecutionAuthority(executionAuthority)) &&
 		record.Command.LeaseRevision == vmleases.NativeAdmissionLeaseRevision &&
 		record.Command.RuntimeServerID == request.RuntimeServerID && record.Command.LeaseID == leaseID &&
 		record.Command.Operation == providerexecutor.OperationProvision &&

@@ -12,7 +12,7 @@
     | { source: "guard" | "ssh" | "substrate" | "install-command" | "existing"; host?: string };
 
   let {
-    state,
+    state: previewState,
     target,
     onrecovery,
     onrecheck,
@@ -25,8 +25,8 @@
 
   // Previous or differently scoped results never describe the current choice.
   const fit = $derived.by<ServerFit | undefined>(() => {
-    if (!target || state?.phase !== "resolved") return undefined;
-    const result = state.result.server_fit;
+    if (!target || previewState?.phase !== "resolved") return undefined;
+    const result = previewState.result.server_fit;
     if (!result) return undefined;
     if ("server_id" in target)
       return result.server_id === target.server_id ? result : undefined;
@@ -41,7 +41,7 @@
   const status = $derived(
     !target
       ? "unknown"
-      : state?.phase === "loading"
+      : previewState?.phase === "loading"
         ? "checking"
         : (fit?.status ?? "unknown"),
   );
@@ -108,6 +108,7 @@
     provider_package_unavailable: "package",
     profile_unsupported: "profile",
     photo_backend_unavailable: "backend",
+    entitlement_required: "entitlement",
   };
 
   const reasons = $derived.by(() => {
@@ -143,8 +144,34 @@
     return formatNumber(value, { maximumFractionDigits: 1 });
   }
 
+  let confirmLostFunctions = $state(false);
+  const recoveryResetKey = $derived(
+    fit?.recovery
+      ? `${fit.status}:${fit.provider_id ?? ""}:${fit.offering_id ?? ""}:${fit.server_id ?? ""}:${fit.recovery.action}:${fit.recovery.profile ?? ""}:${fit.recovery.goal ?? ""}`
+      : "",
+  );
+  $effect(() => {
+    void recoveryResetKey;
+    confirmLostFunctions = false;
+  });
+
+  function providerDisplayName(providerId?: string): string {
+    if (providerId === "centron") return "Centron";
+    if (providerId === "ionos") return "IONOS";
+    return providerId || "";
+  }
+
   function recoveryLabel(recovery: ServerFitRecovery): string {
     switch (recovery.action) {
+      case "use_owned_server":
+        return tr("wizard.server.fit.recovery.useOwnedServer", {
+          server: recovery.server_name || recovery.server_id || "",
+        });
+      case "switch_provider":
+        return tr("wizard.server.fit.recovery.switchProvider", {
+          provider: providerDisplayName(recovery.provider_id),
+          sku: recovery.offering_sku || recovery.offering_name || "",
+        });
       case "switch_offering": {
         const offering = recovery.offering_name || recovery.offering_id || "";
         return recovery.offering_sku
@@ -171,11 +198,22 @@
     }
   }
 
+  function requiresLostFunctionConfirmation(recovery: ServerFitRecovery): boolean {
+    return (
+      recovery.action === "switch_profile" &&
+      (recovery.profile === "immich-lite" || recovery.profile === "ente-photos")
+    );
+  }
+
   function triggerRecovery(recovery: ServerFitRecovery) {
+    if (requiresLostFunctionConfirmation(recovery) && !confirmLostFunctions) {
+      return;
+    }
     if (recovery.action === "refresh_inventory" && onrecheck) {
       onrecheck();
       return;
     }
+    confirmLostFunctions = false;
     onrecovery?.(recovery);
   }
 </script>
@@ -289,10 +327,25 @@
     {/if}
     {#if fit?.recovery && status !== "fits" && (onrecovery || (fit.recovery.action === "refresh_inventory" && onrecheck))}
       {@const recovery = fit.recovery}
+      {@const needsConfirm = requiresLostFunctionConfirmation(recovery)}
       <div class="fit-recovery" data-testid="server-fit-recovery">
+        {#if needsConfirm}
+          <p class="lost-functions-note">
+            {tr("wizard.server.fit.recovery.lostFunctionsNote")}
+          </p>
+          <label class="confirm-change">
+            <input
+              type="checkbox"
+              data-testid="server-fit-confirm-lost-functions"
+              bind:checked={confirmLostFunctions}
+            />
+            <span>{tr("wizard.server.fit.recovery.confirmChange")}</span>
+          </label>
+        {/if}
         <Button
           size="sm"
           variant="secondary"
+          disabled={needsConfirm && !confirmLostFunctions}
           onclick={() => triggerRecovery(recovery)}
         >
           {recoveryLabel(recovery)}
@@ -367,5 +420,19 @@
   .retained-note {
     font-size: 11px;
     color: var(--muted-foreground);
+  }
+  .lost-functions-note {
+    width: 100%;
+    font-size: 12px;
+    color: var(--foreground);
+  }
+  .confirm-change {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--foreground);
+    cursor: pointer;
   }
 </style>

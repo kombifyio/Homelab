@@ -1546,10 +1546,11 @@ func splitManagedRuntimeLeasesByMachineEvidence(
 }
 
 func managedRuntimeCustodyActions(item managedRuntimeInventoryItem) []string {
-	if item.NativeActive && item.ExecutionAuthority == string(vmleases.LeaseExecutionAuthorityHomelabProviderControl) {
+	isProviderControl := vmleases.IsHomelabProviderControlExecutionAuthority(vmleases.LeaseExecutionAuthority(item.ExecutionAuthority))
+	if item.NativeActive && isProviderControl {
 		return []string{"decommission"}
 	}
-	if item.ExecutionAuthority != string(vmleases.LeaseExecutionAuthorityHomelabProviderControl) {
+	if !isProviderControl {
 		return []string{"resolve_custody"}
 	}
 	return nil

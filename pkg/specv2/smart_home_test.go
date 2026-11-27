@@ -59,7 +59,8 @@ func TestSmartHomeRecommendationPreservesChoiceAndExposesConstraints(t *testing.
 		t.Fatal("explicit choice or compatibility constraints lost")
 	}
 	context.Existing = true
-	if got = RecommendSmartHome(context, nil); got.ManagementScope != "observed" || got.OperatingForm != "" {
+	context.AutoDetected = true
+	if got = RecommendSmartHome(context, nil); got.ManagementScope != "observed" || got.OperatingForm != "" || !got.AutoDetected || !slices.Contains(got.Reasons, "preserve-existing-installation") {
 		t.Fatal("existing instance reinterpreted as a new installation")
 	}
 }

@@ -93,6 +93,9 @@ func AssessWizardCapacity(request core.WizardRecommendationRequest) *core.Wizard
 		provider := request.ProviderID
 		smallest := 0
 		for _, offering := range monthlyruntime.Catalog() {
+			if !offeringAllowedInRequest(request, string(offering.ID)) {
+				continue
+			}
 			pkg, err := monthlyruntime.PackageForProvider(provider, string(offering.ID))
 			if err == nil && pkg.MemoryMB >= required && (smallest == 0 || pkg.MemoryMB < smallest) {
 				smallest = pkg.MemoryMB

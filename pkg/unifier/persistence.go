@@ -58,10 +58,6 @@ type SpecPersister struct {
 	mirror SpecFileMirror
 }
 
-// ErrSpecMirrorPending reports that the durable custody does not exist yet
-// (the binary runs before its schema). The local directory stays the only copy.
-var ErrSpecMirrorPending = errors.New("durable spec file custody is not rolled out yet")
-
 // SpecFileMirror is the durable custody of one stack's managed spec files,
 // keyed by the managed filename.
 type SpecFileMirror interface {

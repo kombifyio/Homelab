@@ -89,6 +89,8 @@ export default ts.config(
       "dist/",
       "**/dist/**",
       "node_modules/",
+      "project.inlang/",
+      "src/lib/paraglide/",
       "test-results*/",
       "playwright-report*/",
       "**/*.svelte.ts",

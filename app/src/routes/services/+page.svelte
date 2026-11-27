@@ -31,7 +31,9 @@
     mintExtendWizardIdempotencyKey,
   } from "#lib/wizard/idempotency-keys.js";
   import {
+    blockedMoveTargetsFor as blockedMoveTargetsAmong,
     cockpitServerFor,
+    ineligibleDestinationsByServer,
     migrationProgress,
     moveTargetsFor as moveTargetsAmong,
     serverCapacity,
@@ -1160,6 +1162,7 @@
               moveTargetIds: canMove
                 ? moveTargetsFor(service).map((target) => target.id)
                 : [],
+              ineligibleByServerId: ineligibleDestinationsByServer(service),
               migrating: isServiceMigrating(service.id),
               migrationMessage: getMigrationMessage(service.id),
               actions: [
@@ -1714,6 +1717,14 @@
       label: moveTargetLabel(server),
     }))}
     initialTargetId={moveTarget.id}
+    warnings={moveSource.move?.warnings ?? []}
+    blockedTargets={blockedMoveTargetsAmong(registry.servers, moveSource).map(
+      ({ server, entry }) => ({
+        server,
+        label: moveTargetLabel(server),
+        code: entry.code,
+      }),
+    )}
     submitting={moveSubmitting}
     failure={moveFailure}
     oncancel={cancelMigration}

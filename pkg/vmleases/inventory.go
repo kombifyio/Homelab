@@ -35,7 +35,7 @@ type LeaseInventoryRecord struct {
 // actions. Neither an authority binding nor a running lease is sufficient on
 // its own.
 func (record LeaseInventoryRecord) NativeActive() bool {
-	return normalizeLeaseExecutionAuthority(record.ExecutionAuthority) == LeaseExecutionAuthorityHomelabProviderControl &&
+	return IsHomelabProviderControlExecutionAuthority(record.ExecutionAuthority) &&
 		record.AuthorityState == LeaseAuthorityStateNativeActive
 }
 
@@ -62,10 +62,10 @@ func classifyLeaseInventory(row leaseInventoryRow, now time.Time) (LeaseInventor
 		return LeaseInventoryRecord{}, err
 	}
 	record.ExecutionAuthority = authority
-	switch authority {
-	case LeaseExecutionAuthorityLegacySimulate:
+	switch {
+	case authority == LeaseExecutionAuthorityLegacySimulate:
 		record.AuthorityState = LeaseAuthorityStateLegacyQuarantined
-	case LeaseExecutionAuthorityHomelabProviderControl:
+	case IsHomelabProviderControlExecutionAuthority(authority):
 		record.AuthorityState = LeaseAuthorityStateNativeInactive
 		if leaseLifecycleActive(record.Lease, now) {
 			record.AuthorityState = LeaseAuthorityStateNativeActive

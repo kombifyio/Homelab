@@ -13,7 +13,6 @@ package jobs
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -140,6 +139,9 @@ type ProvisionConfig struct {
 	// RoutingStore supplies a revisioned desired-state overlay. Deploy applies
 	// it after loading immutable intent and before deriving rollout artifacts.
 	RoutingStore stackrouting.Store
+	// SupportReplacement wires the closed free Memory Cube S support-replacement
+	// store and step operators.
+	SupportReplacement *SupportReplacementConfig
 	// BackupScheduleProjector records the cadence a managed rollout selected so
 	// the due-stack scanner can find it. Without it the projection stays empty
 	// and no backup is ever due, however correct the rest of the chain is.
@@ -296,7 +298,7 @@ func newSpecPersister(cfg *ProvisionConfig, job *Job) (*unifier.SpecPersister, e
 	if tenantID == "" {
 		return nil, fmt.Errorf("durable spec persistence requires the job's tenant identity")
 	}
-	if err := p.AttachMirror(cfg.SpecFiles.SpecFiles(tenantID, stackID)); err != nil && !errors.Is(err, unifier.ErrSpecMirrorPending) {
+	if err := p.AttachMirror(cfg.SpecFiles.SpecFiles(tenantID, stackID)); err != nil {
 		return nil, err
 	}
 	return p, nil
@@ -701,6 +703,22 @@ func DestroyHandler(cfg *ProvisionConfig) JobHandler {
 	cfg = normalizeProvisionConfig(cfg)
 
 	return func(ctx context.Context, job *Job, q *Queue) error {
+		if cfg.SupportReplacement != nil {
+			snapshot := job.Snapshot()
+			tenantID := payloadString(snapshot.Payload, tenantIDField)
+			if checker, ok := cfg.SupportReplacement.Store.(SupportReplacementStackFenceChecker); ok && checker != nil {
+				if fenceErr := checker.EnsureNoActiveSupportReplacementForStack(ctx, tenantID, snapshot.TargetID); fenceErr != nil {
+					return wrapProvisionCause(StepCreateLease, fenceErr,
+						"This stack is currently fenced by an active or conflicted Memory Cube S support replacement and cannot be destroyed until reconciled.")
+				}
+			}
+			if checker, ok := cfg.SupportReplacement.Ops.(SupportReplacementStackFenceChecker); ok && checker != nil {
+				if fenceErr := checker.EnsureNoActiveSupportReplacementForStack(ctx, tenantID, snapshot.TargetID); fenceErr != nil {
+					return wrapProvisionCause(StepCreateLease, fenceErr,
+						"This stack is currently fenced by an active or conflicted Memory Cube S support replacement and cannot be destroyed until reconciled.")
+				}
+			}
+		}
 		// Addresses go first: a kombify.me route must never outlive the server
 		// it points at, because a released provider IP can be reassigned and
 		// then pass ACME HTTP-01 for the stack's hostnames.
@@ -1235,6 +1253,7 @@ func RegisterDefaultHandlers(q *Queue, cfg *ProvisionConfig) {
 	q.RegisterHandler(JobTypeReconcileLease, ReconcileLeaseHandler(cfg))
 	q.RegisterHandler(JobTypeRemoteEnrollment, RemoteEnrollmentHandler(cfg))
 	q.RegisterHandler(JobTypeBackup, BackupHandler(cfg))
+	q.RegisterHandler(JobTypeSupportIONOSMemoryReplacement, SupportIONOSMemoryReplacementHandler(cfg))
 
 	// Drift detection handlers
 	driftCfg := &DriftCheckConfig{

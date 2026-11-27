@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
 )
 
 const (
@@ -103,10 +104,43 @@ func (a *WizardRecommendationAuthority) Recommend(input WizardRecommendationEval
 	if req.ServerFit != nil {
 		response.ServerFit = EvaluateServerFit(req, input.Inventory)
 	}
+	starterReq := req
+	starterLANReachable := false
+	if starterReq.ServerFit == nil {
+		if starterReq.DeploymentLane == wizardRecommendationDeploymentSaaS && starterReq.ProviderID != "" {
+			offeringID := strings.TrimSpace(starterReq.RuntimeOfferingID)
+			if offeringID == "" {
+				offeringID = string(monthlyruntime.DefaultOfferingID())
+			}
+			starterReq.ServerFit = &core.WizardServerFitRequest{
+				ProviderID: starterReq.ProviderID,
+				OfferingID: offeringID,
+				Source:     "managed",
+			}
+		} else if worker, ok := bestOnlineObservedWorker(input.Inventory); ok {
+			starterReq.ServerFit = &core.WizardServerFitRequest{
+				ServerID: firstNonEmptyRecommendation(worker.ServerID, worker.ID),
+				Source:   "guard",
+			}
+			starterLANReachable = hasOwnedLANReachable(worker)
+		}
+	} else {
+		source := strings.ToLower(strings.TrimSpace(starterReq.ServerFit.Source))
+		isManagedTarget := strings.TrimSpace(starterReq.ServerFit.ProviderID) != "" ||
+			strings.TrimSpace(starterReq.ServerFit.OfferingID) != "" ||
+			source == "managed" ||
+			source == "managed-runtime"
+		if !isManagedTarget {
+			if worker, found := findOwnedWorker(starterReq.ServerFit, input.Inventory.Workers); found {
+				starterLANReachable = hasOwnedLANReachable(worker)
+			}
+		}
+	}
+	response.ProStarters = EvaluateProStarters(starterReq, input.Inventory, starterLANReachable)
 	response.Selection = GuideWizardSelection(req, input)
 	response.Capacity = AssessWizardCapacity(req)
 	spec := wizardRecommendationSpec(req)
-	decisionContext := buildWizardRecommendationDecisionContext(req, input, spec)
+	decisionContext := buildWizardRecommendationDecisionContext(req, input, spec, starterLANReachable)
 	response.DecisionContext = decisionContext
 	response.DecisionContextHash = HashDecisionContext(decisionContext)
 
@@ -217,7 +251,7 @@ func wizardRecommendationSpec(request core.WizardRecommendationRequest) *core.Ko
 	}
 }
 
-func buildWizardRecommendationDecisionContext(request core.WizardRecommendationRequest, input WizardRecommendationEvaluation, spec *core.KombinationSpec) *core.DecisionContext {
+func buildWizardRecommendationDecisionContext(request core.WizardRecommendationRequest, input WizardRecommendationEvaluation, spec *core.KombinationSpec, lanReachable bool) *core.DecisionContext {
 	observedAt := input.Inventory.ObservedAt.UTC()
 	context := &core.DecisionContext{
 		Channel: "wizard:" + request.Surface,
@@ -237,6 +271,37 @@ func buildWizardRecommendationDecisionContext(request core.WizardRecommendationR
 	}
 	if request.ProviderID != "" {
 		context.Constraints = append(context.Constraints, core.DecisionConstraint{Key: "provider_id", Value: request.ProviderID, Source: "wizard"})
+	}
+	if strings.TrimSpace(request.RuntimeOfferingID) != "" {
+		context.Constraints = append(context.Constraints, core.DecisionConstraint{Key: "runtime_offering_id", Value: strings.TrimSpace(request.RuntimeOfferingID), Source: "wizard"})
+	}
+	if lanReachable {
+		context.Constraints = append(context.Constraints, core.DecisionConstraint{Key: "lan_reachable", Value: "true", Source: "worker-registry"})
+	} else {
+		context.Constraints = append(context.Constraints, core.DecisionConstraint{Key: "lan_reachable", Value: "false", Source: "worker-registry"})
+	}
+	if request.IONOSMemoryEnabled {
+		context.Constraints = append(context.Constraints, core.DecisionConstraint{Key: "ionos_memory_enabled", Value: "true", Source: "feature"})
+	}
+	if request.OfferingEntitlementChecked || len(request.AllowedOfferings) > 0 {
+		offerings := append([]string(nil), request.AllowedOfferings...)
+		sort.Strings(offerings)
+		context.Constraints = append(context.Constraints, core.DecisionConstraint{Key: "allowed_offerings", Value: strings.Join(offerings, ","), Source: "entitlement", Required: true})
+	}
+	if request.ProviderAdmissionChecked || len(request.AdmittedProviders) > 0 {
+		providers := append([]string(nil), request.AdmittedProviders...)
+		sort.Strings(providers)
+		context.Constraints = append(context.Constraints, core.DecisionConstraint{Key: "admitted_providers", Value: strings.Join(providers, ","), Source: "entitlement", Required: true})
+	}
+	if request.ServerFit != nil {
+		fitTarget := strings.Join([]string{
+			strings.TrimSpace(request.ServerFit.Source),
+			strings.TrimSpace(request.ServerFit.ProviderID),
+			strings.TrimSpace(request.ServerFit.OfferingID),
+			strings.TrimSpace(request.ServerFit.ServerID),
+			strings.TrimSpace(request.ServerFit.Host),
+		}, ":")
+		context.Constraints = append(context.Constraints, core.DecisionConstraint{Key: "server_fit_target", Value: fitTarget, Source: "wizard"})
 	}
 	context.Operator = OperatorCapabilityFromSelfDisclosure(input.SelfDisclosure, input.SelfDisclosureUpdatedAt)
 	context.Constraints = append(context.Constraints, selfDisclosureConstraints(input.SelfDisclosure)...)
@@ -382,6 +447,43 @@ func firstNonEmptyRecommendation(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func isOwnedNonManagedWorker(worker core.Worker) bool {
+	return !strings.EqualFold(strings.TrimSpace(worker.Tags["source"]), "managed-runtime") &&
+		strings.TrimSpace(worker.Tags["lease_id"]) == ""
+}
+
+func isOwnedUnboundWorker(worker core.Worker) bool {
+	return isOwnedNonManagedWorker(worker) &&
+		strings.TrimSpace(worker.Tags["stack_id"]) == "" &&
+		strings.TrimSpace(worker.StackID) == ""
+}
+
+func bestOnlineObservedWorker(inventory WizardRecommendationInventory) (core.Worker, bool) {
+	if strings.EqualFold(strings.TrimSpace(inventory.State), wizardRecommendationInventoryUnavailable) {
+		return core.Worker{}, false
+	}
+	var (
+		best  core.Worker
+		found bool
+	)
+	for _, worker := range inventory.Workers {
+		if inventory.StaleWorkerIDs[worker.ID] || (worker.ServerID != "" && inventory.StaleWorkerIDs[worker.ServerID]) {
+			continue
+		}
+		if !strings.EqualFold(strings.TrimSpace(worker.Status), "online") || !worker.UsageObserved || worker.Capabilities.RAM <= 0 {
+			continue
+		}
+		if !isOwnedUnboundWorker(worker) {
+			continue
+		}
+		if !found || worker.Capabilities.RAM > best.Capabilities.RAM ||
+			(worker.Capabilities.RAM == best.Capabilities.RAM && firstNonEmptyRecommendation(worker.ServerID, worker.ID) < firstNonEmptyRecommendation(best.ServerID, best.ID)) {
+			best, found = worker, true
+		}
+	}
+	return best, found
 }
 
 func cloneRecommendationTags(values map[string]string) map[string]string {

@@ -1,19 +1,34 @@
 <!--
   Owner confirmation of one application move dropped on the Placement Board.
-  The page starts the move; this dialog only confirms the destination.
+  The page starts the move; this dialog confirms the destination, surfaces
+  pre-flight warnings (such as direct TCP:8124 reachability), and lists any
+  blocked servers with their reasons.
 -->
 <script lang="ts">
-  import { Loader2 } from "@lucide/svelte";
+  import { AlertTriangle, Ban, ChevronDown, Info, Loader2 } from "@lucide/svelte";
   import Modal from "#lib/components/Modal.svelte";
   import ErrorCallout from "#lib/components/ui/ErrorCallout.svelte";
   import { tr } from "#lib/i18n.svelte.js";
-  import type { RegistryServer } from "#lib/api/registry.js";
+  import { moveIneligibleLabel, moveWarningLabel } from "#lib/services/move-copy.js";
+  import type {
+    RegistryMoveIneligibleCode,
+    RegistryMoveWarning,
+    RegistryServer,
+  } from "#lib/api/registry.js";
+
+  interface BlockedMoveTarget {
+    server: RegistryServer;
+    label: string;
+    code: RegistryMoveIneligibleCode;
+  }
 
   interface Props {
     applicationName: string;
     sourceNodeName: string;
     targets: { server: RegistryServer; label: string }[];
     initialTargetId: string;
+    warnings?: RegistryMoveWarning[];
+    blockedTargets?: BlockedMoveTarget[];
     submitting: boolean;
     failure: string | null;
     oncancel: () => void;
@@ -25,6 +40,8 @@
     sourceNodeName,
     targets,
     initialTargetId,
+    warnings = [],
+    blockedTargets = [],
     submitting,
     failure,
     oncancel,
@@ -35,6 +52,21 @@
   let targetId = $state(initialTargetId);
   const target = $derived(
     targets.find((entry) => entry.server.id === targetId),
+  );
+  const activeWarnings = $derived(
+    warnings.filter(
+      (warning) => !warning.server_id || warning.server_id === targetId,
+    ),
+  );
+  const infoNotes = $derived(
+    activeWarnings.filter(
+      (warning) => warning.code === "encrypted_relay_transport",
+    ),
+  );
+  const cautionWarnings = $derived(
+    activeWarnings.filter(
+      (warning) => warning.code !== "encrypted_relay_transport",
+    ),
   );
 </script>
 
@@ -66,9 +98,83 @@
       </label>
     {/if}
 
+    {#if infoNotes.length > 0}
+      <div
+        class="space-y-1.5 rounded-lg border border-border/70 bg-muted/40 p-3 text-xs text-muted-foreground"
+        role="status"
+        data-testid="service-move-info-notes"
+      >
+        <div class="flex items-center gap-1.5 font-medium text-foreground">
+          <Info class="h-4 w-4 shrink-0 text-muted-foreground" />
+          <span>{tr("applicationMove.relayInfoTitle")}</span>
+        </div>
+        <ul class="space-y-1 pl-5 list-disc">
+          {#each infoNotes as note (note.code + ":" + (note.server_id ?? ""))}
+            <li data-info-code={note.code}>
+              {moveWarningLabel(note.code)}
+            </li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
+
+    {#if cautionWarnings.length > 0}
+      <div
+        class="space-y-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs text-warning"
+        role="status"
+        data-testid="service-move-warnings"
+      >
+        <div class="flex items-center gap-1.5 font-semibold">
+          <AlertTriangle class="h-4 w-4 shrink-0" />
+          <span>{tr("applicationMove.warningsTitle")}</span>
+        </div>
+        <ul class="space-y-1.5 pl-5 list-disc text-warning/90">
+          {#each cautionWarnings as warning (warning.code + ":" + (warning.server_id ?? ""))}
+            <li data-warning-code={warning.code}>
+              {moveWarningLabel(warning.code)}
+            </li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
+
     <p class="text-xs text-muted-foreground">
       {tr("applicationMove.keepSource")}
     </p>
+
+    {#if blockedTargets.length > 0}
+      <details
+        class="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-xs text-muted-foreground"
+        data-testid="service-move-blocked-targets"
+      >
+        <summary
+          class="flex cursor-pointer list-none items-center justify-between gap-2 font-medium text-foreground/80"
+        >
+          <span class="flex items-center gap-1.5">
+            <Ban class="h-3.5 w-3.5 text-muted-foreground" />
+            {tr("applicationMove.blockedDestinations", {
+              count: blockedTargets.length,
+            })}
+          </span>
+          <ChevronDown class="h-3.5 w-3.5 shrink-0" />
+        </summary>
+        <ul class="mt-2.5 space-y-2 border-t border-border/50 pt-2">
+          {#each blockedTargets as blocked (blocked.server.id)}
+            <li
+              class="flex flex-col gap-0.5"
+              data-blocked-server={blocked.server.id}
+              data-blocked-code={blocked.code}
+            >
+              <span class="font-medium text-foreground/90">{blocked.label}</span
+              >
+              <span class="text-[11px] text-muted-foreground"
+                >{moveIneligibleLabel(blocked.code)}</span
+              >
+            </li>
+          {/each}
+        </ul>
+      </details>
+    {/if}
 
     {#if failure}
       <ErrorCallout

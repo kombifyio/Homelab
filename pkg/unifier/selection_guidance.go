@@ -6,6 +6,7 @@ import (
 
 	"github.com/kombifyio/homelab/internal/stackkitrelease"
 	"github.com/kombifyio/homelab/pkg/core"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
 )
 
 // Selection guidance codes shared with the Wizard message catalog.
@@ -39,7 +40,36 @@ func GuideWizardSelection(request core.WizardRecommendationRequest, input Wizard
 	if !wantsPreselect && len(selected) < 2 {
 		return nil
 	}
+	catalog, catalogErr := stackkitrelease.ResolveUseCaseCatalog()
+	providerID := strings.TrimSpace(request.ProviderID)
+	offeringID := strings.TrimSpace(request.RuntimeOfferingID)
+	if request.ServerFit != nil {
+		providerID = firstNonEmptyRecommendation(request.ServerFit.ProviderID, providerID)
+		offeringID = firstNonEmptyRecommendation(request.ServerFit.OfferingID, offeringID)
+	}
 	workers := onlineWorkers(input.Inventory)
+	if len(workers) == 0 && request.OfferingEntitlementChecked && request.DeploymentLane == wizardRecommendationDeploymentSaaS && providerID != "" {
+		if offeringID == "" {
+			offeringID = string(monthlyruntime.DefaultOfferingID())
+		}
+		if !offeringAllowedInRequest(request, offeringID) {
+			offeringID = string(monthlyruntime.DefaultOfferingID())
+		}
+		if pkg, err := resolveManagedPackageForRequest(catalog, catalogErr, request, providerID, offeringID); err == nil {
+			workers = []core.Worker{{
+				ID:            "planned:" + providerID + ":" + offeringID,
+				Status:        "online",
+				UsageObserved: true,
+				Capabilities: core.WorkerCapabilities{
+					CPU:                         pkg.VCPUs,
+					RAM:                         pkg.MemoryMB,
+					Disk:                        pkg.DiskGB,
+					Arch:                        pkg.Architecture,
+					AMD64MicroarchitectureLevel: pkg.AMD64Level,
+				},
+			}}
+		}
+	}
 	experience := -1
 	if profile := OperatorCapabilityFromSelfDisclosure(input.SelfDisclosure, input.SelfDisclosureUpdatedAt); profile != nil {
 		experience = profile.Score
@@ -54,8 +84,7 @@ func GuideWizardSelection(request core.WizardRecommendationRequest, input Wizard
 	if len(guidance.Context) == 0 {
 		guidance.Context = []string{SelectionContextNone}
 	}
-	catalog, err := stackkitrelease.ResolveUseCaseCatalog()
-	if err != nil {
+	if catalogErr != nil {
 		guidance.Context = append(guidance.Context, "catalog_unavailable")
 		return guidance
 	}

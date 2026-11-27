@@ -30,9 +30,6 @@ const (
 )
 
 func RegisterImportExportRuntimeRoutes(r *httpx.Router, runtime auth.RuntimeStore, orch *orchestrator.Orchestrator, mode config.DeploymentMode, featureChecker managedRuntimeFeatureChecker) {
-	if !mode.IsValid() {
-		mode = config.ModeSelfHosted
-	}
 	stores := currentControlPlaneStores()
 	h := importExportRouteHandlers{
 		create: crudRouteHandlers{

@@ -33,7 +33,17 @@ type WorkloadRelocationInput struct {
 	OwnerApproved      bool     `json:"owner_approved"`
 }
 
-func (o *Orchestrator) relocationNode(ctx context.Context, tenant, owner, stackID, agentID string, source bool) (jobs.WorkloadRelocationNode, string, error) {
+func (o *Orchestrator) transferRelayAvailable() bool {
+	if o == nil {
+		return false
+	}
+	o.mu.RLock()
+	relay := o.cfg.TransferRelay
+	o.mu.RUnlock()
+	return relay != nil && strings.TrimSpace(relay.BaseURL()) != ""
+}
+
+func (o *Orchestrator) relocationNode(ctx context.Context, tenant, owner, stackID, agentID string, resolveAddress, allowRelayFallback bool) (jobs.WorkloadRelocationNode, string, error) {
 	var node jobs.WorkloadRelocationNode
 	stack, err := o.findStackForJob(ctx, stackID, ProvisionStackOptions{RequestContext: ctx, TenantID: tenant, OwnerID: owner})
 	if err != nil {
@@ -76,12 +86,17 @@ func (o *Orchestrator) relocationNode(ctx context.Context, tenant, owner, stackI
 	if err := jobs.RequireStackKitNode(node.StackKit, node.NodeRef); err != nil {
 		return node, "", err
 	}
-	if !source {
+	if !resolveAddress {
 		return node, "", nil
 	}
 	host, _ := runtime.Metadata["host"].(map[string]any)
-	ip, ipErr := netip.ParseAddr(stringFromAny(host["public_ip"]))
-	if ipErr != nil || !ip.IsValid() || ip.IsUnspecified() || ip.IsLoopback() || ip.IsMulticast() {
+	rawPublicIP := strings.TrimSpace(stringFromAny(host["public_ip"]))
+	ip, ipErr := netip.ParseAddr(rawPublicIP)
+	validIP := ipErr == nil && ip.IsValid() && !ip.IsUnspecified() && !ip.IsLoopback() && !ip.IsMulticast()
+	if !validIP {
+		if allowRelayFallback && o.transferRelayAvailable() {
+			return node, "", nil
+		}
 		return node, "", fmt.Errorf("%w: current Guard source address is unavailable", ErrStackKitLifecycleUnavailable)
 	}
 	if runtime.LeaseID != "" {
@@ -93,6 +108,9 @@ func (o *Orchestrator) relocationNode(ctx context.Context, tenant, owner, stackI
 		if err != nil || providerIP != ip {
 			return node, "", fmt.Errorf("source address differs from current provider lease")
 		}
+	}
+	if allowRelayFallback && !jobs.IsDirectlyRoutablePublicIP(ip.String()) && o.transferRelayAvailable() {
+		return node, "", nil
 	}
 	return node, ip.String(), nil
 }
@@ -118,15 +136,20 @@ func (o *Orchestrator) EnqueueWorkloadRelocation(ctx context.Context, tenant, ow
 	} else if !errors.Is(err, controlplane.ErrNotFound) {
 		return "", err
 	}
-	source, address, err := o.relocationNode(ctx, tenant, owner, input.SourceStackID, input.SourceAgentID, true)
+	isNative := input.Engine == jobs.RelocationEngineNative
+	source, address, err := o.relocationNode(ctx, tenant, owner, input.SourceStackID, input.SourceAgentID, true, isNative)
 	if err != nil {
 		return "", err
 	}
-	// A native move is node to node in both directions of its handshake: the
-	// source admits exactly the destination's current Guard address.
-	destination, destinationAddress, err := o.relocationNode(ctx, tenant, owner, input.DestinationStackID, input.DestinationAgentID, input.Engine == jobs.RelocationEngineNative)
+	// A native move uses direct TCP:8124 when both nodes have directly routable
+	// public IPs, and falls back to the encrypted HTTPS ciphertext relay when
+	// either node sits behind NAT.
+	destination, destinationAddress, err := o.relocationNode(ctx, tenant, owner, input.DestinationStackID, input.DestinationAgentID, isNative, isNative)
 	if err != nil {
 		return "", err
+	}
+	if isNative && (!jobs.IsDirectlyRoutablePublicIP(address) || !jobs.IsDirectlyRoutablePublicIP(destinationAddress)) && !o.transferRelayAvailable() {
+		return "", fmt.Errorf("%w: native relocation requires directly routable public IPs on both nodes or an active transfer relay", ErrStackKitLifecycleUnavailable)
 	}
 	req, err := jobs.NormalizeWorkloadRelocationRequest(jobs.WorkloadRelocationRequest{TenantID: tenant, OwnerID: owner, Engine: input.Engine, UseCase: input.UseCase, Workloads: input.Workloads, DestinationAddress: destinationAddress,
 		Source: source, Destination: destination, Projects: input.Projects, ResourceUUIDs: input.ResourceUUIDs, SourceAddress: address, WalletItemID: input.WalletItemID, DomainSwitches: input.DomainSwitches, OwnerApproved: input.OwnerApproved}, nil)
@@ -193,7 +216,7 @@ func (o *Orchestrator) recoverWorkloadRelocation(ctx context.Context, tenant, ow
 		node   jobs.WorkloadRelocationNode
 		source bool
 	}{{request.Source, true}, {request.Destination, false}} {
-		current, _, err := o.relocationNode(ctx, tenant, owner, side.node.StackID, side.node.AgentID, side.source)
+		current, _, err := o.relocationNode(ctx, tenant, owner, side.node.StackID, side.node.AgentID, side.source, false)
 		if err != nil {
 			return nil, err
 		}

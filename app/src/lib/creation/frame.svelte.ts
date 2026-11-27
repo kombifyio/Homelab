@@ -20,6 +20,7 @@ import {
   type CapacitySize,
 } from "#lib/wizard/capacity-view.js";
 import type {
+  DetectedExistingApp,
   WizardCapacity,
   WizardRecommendationRequest,
 } from "#lib/api/unifier.js";
@@ -49,6 +50,7 @@ import type {
 } from "#lib/wizard/household-draft.js";
 import {
   applyPasskeyFirstOwnerLogin,
+  applyServerProvisioningMode,
   applyWizardDeploymentLane,
   buildLayoutSelection,
   createDefaultConfig,
@@ -183,6 +185,13 @@ export class CreationFrame {
   catalogState = $state<"loading" | "ready" | "error">("loading");
   #catalogAttempt = $state(0);
   #workers = $state<Worker[]>([]);
+  /** The server the last resolved recommendations answered for. */
+  #resolvedForServer = $state<string | undefined>(undefined);
+  /**
+   * The server for which "instance-origin" was set to "existing" by detection
+   * rather than by the person. Any explicit choice clears it.
+   */
+  #autoOriginServer = $state<string | undefined>(undefined);
 
   readonly owner: OwnerStepState;
   readonly #recommendations: WizardPreviewController;
@@ -215,6 +224,9 @@ export class CreationFrame {
     this.owner = new OwnerStepState(() => this.config);
     this.#recommendations = new WizardPreviewController((state) => {
       this.recommendationState = state;
+      if (state.phase === "resolved") {
+        this.#resolvedForServer = untrack(() => this.options.homelab?.selected);
+      }
     });
     this.#layouts = new LayoutPreviewController((state) => {
       this.layoutState = state;
@@ -231,6 +243,7 @@ export class CreationFrame {
     this.#keepDraft();
     this.#adoptLateInitialConfig();
     this.#followRecommendations();
+    this.#followDetectedExistingApps();
     this.#followLayout();
     this.#followOwner();
     this.#applyLaneDefaults();
@@ -559,6 +572,9 @@ export class CreationFrame {
     value: string | boolean,
   ) => {
     if (this.interacted) this.userEdited = true;
+    if (goal === "smart-home" && settingId === "instance-origin") {
+      this.#autoOriginServer = undefined;
+    }
     this.config.useCaseSettings ??= {};
     this.config.useCaseSettings[goal] = {
       ...(this.config.useCaseSettings[goal] ?? {}),
@@ -842,6 +858,12 @@ export class CreationFrame {
           )
         : undefined;
       const selectedServerRamMb = selectedWorker?.ram_mb;
+      const ownedLanReachable = Boolean(
+        selectedWorker
+          ? isWorkerLanReachable(selectedWorker)
+          : server.mode === "install-command" &&
+              this.context.auth.lane !== "saas",
+      );
       const allowManagedOffering =
         this.current === "server" || Boolean(selectedServer);
       const fitEnabled = this.context.features.isEnabled("server_hardware_fit");
@@ -850,6 +872,7 @@ export class CreationFrame {
         smart_home_context: {
           existing: smartHome?.["instance-origin"] === "existing",
           needs_radio: smartHome?.["device-passthrough"] === true,
+          lan_reachable: ownedLanReachable,
           ...(server.mode === "hypervisor" &&
           server.substrate?.advisoryInventory
             ? {
@@ -861,7 +884,11 @@ export class CreationFrame {
               }
             : {}),
         },
+        ...(selectedServer ? { existing_server_id: selectedServer } : {}),
         goals: selectedCanonicalUseCasesFromGoals(config.goals),
+        ...(this.catalogState === "ready"
+          ? { available_goals: this.#availableGoals }
+          : {}),
         use_case_settings: config.useCaseSettings,
         use_case_capabilities: config.useCaseCapabilities,
         services: [],
@@ -948,6 +975,76 @@ export class CreationFrame {
   }
 
   /**
+   * Observed applications discovered on the selected existing server. An
+   * answer (or the one shown while a changed question loads) counts only for
+   * the server it was asked about, never for the one selected now.
+   */
+  readonly detectedExistingApps = $derived.by<DetectedExistingApp[]>(() => {
+    const selected = this.options.homelab?.selected;
+    if (!selected || this.#resolvedForServer !== selected) return [];
+    const state = this.recommendationState;
+    if (state.phase === "resolved") {
+      return state.result.detected_existing_apps ?? [];
+    }
+    if (state.phase === "loading" || state.phase === "degraded") {
+      return state.previous?.detected_existing_apps ?? [];
+    }
+    return [];
+  });
+
+  /**
+   * When Home Assistant is detected on the selected existing server and the
+   * person has not explicitly chosen an installation origin yet, pre-select
+   * non-destructive observation ("existing") so the wizard proposes takeover
+   * instead of a fresh install or port collision. Only that automatic choice
+   * is withdrawn when another server is selected or Home Assistant is no
+   * longer detected; a choice the person made stays.
+   */
+  #followDetectedExistingApps() {
+    $effect(() => {
+      const selected = this.options.homelab?.selected;
+      const detected = this.detectedExistingApps;
+      const hasSmartHome = detected.some(
+        (app) =>
+          app.use_case_slug === "smart-home" || app.app_id === "home-assistant",
+      );
+      untrack(() => {
+        const auto = this.#autoOriginServer;
+        if (auto !== undefined && (auto !== selected || !hasSmartHome)) {
+          this.#autoOriginServer = undefined;
+          const settings = this.config.useCaseSettings?.["smart-home"];
+          if (settings?.["instance-origin"] === "existing") {
+            const { "instance-origin": _auto, ...rest } = settings;
+            this.config.useCaseSettings!["smart-home"] = rest;
+          }
+        }
+        if (!selected || !hasSmartHome) return;
+        const current =
+          this.config.useCaseSettings?.["smart-home"]?.["instance-origin"];
+        if (current !== undefined) return;
+        this.config.useCaseSettings ??= {};
+        this.config.useCaseSettings["smart-home"] = {
+          ...(this.config.useCaseSettings["smart-home"] ?? {}),
+          "instance-origin": "existing",
+        };
+        this.#autoOriginServer = selected;
+      });
+    });
+  }
+
+  adoptExistingApp = (app: DetectedExistingApp) => {
+    if (app.use_case_slug === "smart-home" || app.app_id === "home-assistant") {
+      this.setUseCaseSetting("smart-home", "instance-origin", "existing");
+    }
+  };
+
+  overrideExistingApp = (app: DetectedExistingApp) => {
+    if (app.use_case_slug === "smart-home" || app.app_id === "home-assistant") {
+      this.setUseCaseSetting("smart-home", "instance-origin", "new");
+    }
+  };
+
+  /**
    * Whether the selected use cases fit the chosen server, as advice (never a
    * gate): the capacity of the recommendations answer to exactly this
    * selection and server; while a changed question is being asked there is no
@@ -1007,15 +1104,61 @@ export class CreationFrame {
     const request = this.#recommendationRequest;
     if (request) this.#recommendations.refresh(request);
   };
+  get workers(): readonly Worker[] {
+    return this.#workers;
+  }
+
+  get lanReachable(): boolean {
+    return this.#recommendationRequest?.smart_home_context?.lan_reachable === true;
+  }
+
   /** Applies one actionable fit recovery without erasing the user's choices. */
   applyFitRecovery = (recovery: {
     action: string;
+    provider_id?: string;
     offering_id?: string;
+    server_id?: string;
     profile?: string;
     goal?: string;
   }) => {
     if (this.interacted) this.userEdited = true;
     switch (recovery.action) {
+      case "use_owned_server": {
+        if (!this.options.homelab || !recovery.server_id) return;
+        const homelab = this.options.homelab;
+        const matchedWorker = this.#workers.find(
+          (worker) =>
+            worker.id === recovery.server_id ||
+            worker.server_id === recovery.server_id,
+        );
+        const targetServerId =
+          homelab.servers.find((server) => server.id === recovery.server_id)
+            ?.id ??
+          (matchedWorker?.server_id
+            ? homelab.servers.find(
+                (server) => server.id === matchedWorker.server_id,
+              )?.id
+            : undefined);
+        if (!targetServerId) return;
+        if (this.config.serverProvisioning.mode === "kombify-cloud") {
+          applyServerProvisioningMode(this.config, "install-command");
+        }
+        homelab.select(targetServerId);
+        break;
+      }
+      case "switch_provider":
+        if (recovery.provider_id === "ionos" || recovery.provider_id === "centron") {
+          this.config.providerId = recovery.provider_id;
+          this.options.onmanagedproviderselect?.(recovery.provider_id);
+        }
+        if (
+          recovery.offering_id === "monthly-runtime-standard" ||
+          recovery.offering_id === "monthly-runtime-premium" ||
+          recovery.offering_id === "monthly-runtime-large"
+        ) {
+          this.config.runtimeOfferingId = recovery.offering_id;
+        }
+        break;
       case "switch_offering":
         if (
           recovery.offering_id === "monthly-runtime-standard" ||
@@ -1156,4 +1299,63 @@ export class CreationFrame {
       };
     });
   }
+}
+
+function isPrivateLanIp(raw?: string): boolean {
+  let ip = (raw ?? "").trim();
+  if (!ip) return false;
+  if (ip.startsWith("[") && ip.endsWith("]")) ip = ip.slice(1, -1);
+  const zoneIdx = ip.indexOf("%");
+  if (zoneIdx !== -1) ip = ip.slice(0, zoneIdx);
+  if (ip.toLowerCase().startsWith("::ffff:")) ip = ip.slice(7);
+  const ipv4Parts = ip.split(".");
+  if (ipv4Parts.length === 4) {
+    const octets = ipv4Parts.map((part) =>
+      /^\d{1,3}$/.test(part) ? Number(part) : -1,
+    );
+    if (octets.some((n) => n < 0 || n > 255)) return false;
+    const a = octets[0] ?? -1;
+    const b = octets[1] ?? -1;
+    return (
+      a === 10 ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168)
+    );
+  }
+  if (!ip.includes(":")) return false;
+  // IPv6 ULA fc00::/7 (first hextet 0xfc00..0xfdff)
+  const firstHextet = ip.split(":")[0] ?? "";
+  if (!/^[0-9a-fA-F]{1,4}$/.test(firstHextet)) return false;
+  const value = Number.parseInt(firstHextet, 16);
+  return (value & 0xfe00) === 0xfc00;
+}
+
+function isWorkerLanReachable(worker: Worker): boolean {
+  if (
+    worker.source === "managed-runtime" ||
+    Boolean(worker.lease_id) ||
+    Boolean(worker.kit_deployment_id)
+  ) {
+    return false;
+  }
+  const rawTags = (worker.tags ?? "").trim();
+  if (rawTags) {
+    if (rawTags.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(rawTags) as Record<string, unknown>;
+        const explicit = parsed?.lan_reachable;
+        if (explicit === false || explicit === "false") return false;
+        if (explicit === true || explicit === "true") return true;
+      } catch {
+        // ignore non-JSON tags
+      }
+    } else {
+      for (const token of rawTags.split(/[\s,;]+/)) {
+        const normalized = token.trim().toLowerCase();
+        if (normalized === "lan_reachable=false") return false;
+        if (normalized === "lan_reachable=true") return true;
+      }
+    }
+  }
+  return isPrivateLanIp(worker.ip);
 }

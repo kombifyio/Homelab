@@ -1358,6 +1358,73 @@ func (q *Queue) Enqueue(job *Job) error {
 	}
 }
 
+// ErrSupportReplacementConflict marks an idempotency or single-flight conflict
+// when enqueueing a support replacement job.
+var ErrSupportReplacementConflict = errors.New("jobs: support replacement job conflict")
+
+// EnqueueSupportReplacement atomically enforces in-memory idempotency and
+// per-(tenant_id, replacement_id) single-flight for support replacement jobs.
+func (q *Queue) EnqueueSupportReplacement(job *Job, tenantID, replacementID, intentDigest string) (string, bool, error) {
+	if !queueAdmitsJob(job) {
+		return "", false, releasechannel.ErrTenantNotOwned
+	}
+	tenantID = strings.TrimSpace(tenantID)
+	replacementID = strings.TrimSpace(replacementID)
+	if job.ID == "" {
+		job.ID = NewID()
+	}
+	if job.MaxAttempts == 0 {
+		job.MaxAttempts = 1
+	}
+	job.State = JobStatePending
+	job.WaitReason = ""
+	job.NextResumeAt = nil
+	job.CreatedAt = time.Now()
+
+	q.jobsMu.Lock()
+	if existing, exists := q.jobs[job.ID]; exists && !existing.Snapshot().PersistenceSuppressed {
+		snap := existing.Snapshot()
+		existingDigest, _ := snap.Result["support_replacement_request_sha256"].(string)
+		q.jobsMu.Unlock()
+		if snap.Type == JobTypeSupportIONOSMemoryReplacement && snap.TargetID == job.TargetID && existingDigest == intentDigest {
+			return snap.ID, true, nil
+		}
+		return "", false, fmt.Errorf("%w: idempotency key already used with different support replacement run intent", ErrSupportReplacementConflict)
+	}
+	for _, existing := range q.jobs {
+		snap := existing.Snapshot()
+		if snap.PersistenceSuppressed || snap.Type != JobTypeSupportIONOSMemoryReplacement {
+			continue
+		}
+		if snap.State != JobStatePending && snap.State != JobStateWaiting && snap.State != JobStateRunning {
+			continue
+		}
+		existingTenant, _ := snap.Payload["tenant_id"].(string)
+		existingReplacement, _ := snap.Payload["replacement_id"].(string)
+		if strings.TrimSpace(existingTenant) == tenantID && strings.TrimSpace(existingReplacement) == replacementID {
+			q.jobsMu.Unlock()
+			return "", false, fmt.Errorf("%w: active support replacement job %q already in flight", ErrSupportReplacementConflict, snap.ID)
+		}
+	}
+	q.jobs[job.ID] = job
+	q.jobsMu.Unlock()
+
+	q.addLog(job, "info", "Job queued")
+
+	select {
+	case q.pending <- job:
+		q.log.Info("job_enqueued", "id", job.ID, "type", job.Type)
+		return job.ID, false, nil
+	default:
+		q.jobsMu.Lock()
+		if q.jobs[job.ID] == job {
+			delete(q.jobs, job.ID)
+		}
+		q.jobsMu.Unlock()
+		return "", false, fmt.Errorf("job queue full")
+	}
+}
+
 // The same ownership decision gates both initial enqueue state and direct
 // durable execution. A foreign tenant never changes attempts or wins a claim.
 func queueAdmitsJob(job *Job) bool {

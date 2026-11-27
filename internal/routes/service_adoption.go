@@ -21,10 +21,21 @@ import (
 )
 
 type adoptionRequest struct {
-	ExpectedInventoryRevision int64  `json:"expected_inventory_revision"`
-	Mode                      string `json:"mode,omitempty"`
-	PlanDigest                string `json:"plan_digest,omitempty"`
-	OwnerApproved             bool   `json:"owner_approved,omitempty"`
+	ExpectedInventoryRevision int64    `json:"expected_inventory_revision"`
+	Mode                      string   `json:"mode,omitempty"`
+	PlanDigest                string   `json:"plan_digest,omitempty"`
+	OwnerApproved             bool     `json:"owner_approved,omitempty"`
+	OwnApplicationName        string   `json:"own_application_name,omitempty"`
+	HTTPPort                  *int     `json:"http_port,omitempty"`
+	NoOutbound                bool     `json:"no_outbound,omitempty"`
+	MemoryMiB                 *int     `json:"memory_mib,omitempty"`
+	CPUs                      *float64 `json:"cpus,omitempty"`
+	AdoptComposeProject       bool     `json:"adopt_compose_project,omitempty"`
+	HTTPService               string   `json:"http_service,omitempty"`
+}
+
+func (r adoptionRequest) hasStackItOverrides() bool {
+	return strings.TrimSpace(r.OwnApplicationName) != "" || r.HTTPPort != nil || r.NoOutbound || r.MemoryMiB != nil || r.CPUs != nil || r.AdoptComposeProject || strings.TrimSpace(r.HTTPService) != ""
 }
 type adoptionTarget struct {
 	tenant, owner string
@@ -124,7 +135,7 @@ func (h *serviceRuntimeHandlers) prepareAdoption(e *httpx.Event) error {
 	if r.Mode == adoptionModeStackIt {
 		return h.prepareStackIt(e, t, r, key)
 	}
-	if r.Mode != adoptionModeInPlace || r.OwnerApproved || r.PlanDigest != "" {
+	if r.Mode != adoptionModeInPlace || r.OwnerApproved || r.PlanDigest != "" || r.hasStackItOverrides() {
 		return httpx.BadRequest(e, "Only a read-only adopt_in_place or stack_it assessment is supported", nil)
 	}
 	if !inPlaceAdoptionProfile(*t.service) {
@@ -155,7 +166,15 @@ func (h *serviceRuntimeHandlers) readAdoption(e *httpx.Event) error {
 	}
 	receipt, _ := plan.Result["service_action_receipt"].(map[string]any)
 	if receipt["action"] == jobs.StackKitLifecycleApplicationStackPlan {
-		return httpx.Success(e, http.StatusOK, map[string]any{"plan_id": plan.ID, "service_id": t.service.ID, "mode": adoptionModeStackIt, "status": serviceActionJobStatus(plan.State), "stack_plan": plan.Result["application_stack"], "error": plan.Error})
+		return httpx.Success(e, http.StatusOK, map[string]any{
+			"plan_id":          plan.ID,
+			"service_id":       t.service.ID,
+			"mode":             adoptionModeStackIt,
+			"status":           serviceActionJobStatus(plan.State),
+			"stack_plan":       plan.Result["application_stack"],
+			"catalog_proposal": h.enrichService(e.Request.Context(), *t.service, false),
+			"error":            plan.Error,
+		})
 	}
 	return httpx.Success(e, http.StatusOK, map[string]any{"plan_id": plan.ID, "service_id": t.service.ID, "mode": adoptionModeInPlace, "status": serviceActionJobStatus(plan.State), "assessment": plan.Result["application_evidence"], "source_binding": plan.Result["application_binding"], "error": plan.Error})
 }
@@ -195,7 +214,7 @@ func (h *serviceRuntimeHandlers) executeAdoption(e *httpx.Event) error {
 	} else if stackPlan {
 		return h.executeStackIt(e, t, r, key, plan)
 	}
-	if !r.OwnerApproved || r.Mode != adoptionModeInPlace || r.PlanDigest == "" {
+	if !r.OwnerApproved || r.Mode != adoptionModeInPlace || r.PlanDigest == "" || r.hasStackItOverrides() {
 		return httpx.BadRequest(e, "Execute requires the reviewed in-place plan digest and Owner approval", nil)
 	}
 	if !inPlaceAdoptionProfile(*t.service) {
@@ -241,7 +260,7 @@ func (h *serviceRuntimeHandlers) releaseAdoption(e *httpx.Event) error {
 	if err != nil {
 		return err
 	}
-	if !r.OwnerApproved || r.PlanDigest != "" || r.Mode != "" {
+	if !r.OwnerApproved || r.PlanDigest != "" || r.Mode != "" || r.hasStackItOverrides() {
 		return httpx.BadRequest(e, "Release requires Owner approval", nil)
 	}
 	if replayed, replayErr := h.replayServiceAction(e, t.tenant, t.service, jobs.StackKitLifecycleApplicationRelease, adoptionLifecycleRequest(t, r, key, jobs.StackKitLifecycleApplicationRelease, &jobs.ApplicationLifecycleBinding{ContainerID: jobs.ApplicationContainerIdentity(t.service)})); replayed || replayErr != nil {
@@ -281,7 +300,13 @@ func (h *serviceRuntimeHandlers) enqueueAdoption(e *httpx.Event, t adoptionTarge
 	return h.enqueueServiceAction(e, t.tenant, t.stack.ID, t.service, op, req)
 }
 func adoptionLifecycleRequest(t adoptionTarget, r adoptionRequest, key, op string, binding *jobs.ApplicationLifecycleBinding) jobs.StackKitLifecycleRequest {
-	fingerprint := sha256.Sum256([]byte(strings.Join([]string{t.tenant, t.service.ID, op, strconv.FormatInt(r.ExpectedInventoryRevision, 10), r.PlanDigest, binding.PlanJobID, binding.ContainerID}, "\x00")))
+	fingerprint := sha256.Sum256([]byte(strings.Join([]string{
+		t.tenant, t.service.ID, op, strconv.FormatInt(r.ExpectedInventoryRevision, 10),
+		r.PlanDigest, binding.PlanJobID, binding.ContainerID,
+		binding.OwnApplicationName, strconv.Itoa(binding.HTTPPort), strconv.FormatBool(binding.NoOutbound),
+		strconv.Itoa(binding.MemoryMiB), binding.CPUs,
+		strconv.FormatBool(binding.AdoptComposeProject), binding.HTTPService,
+	}, "\x00")))
 	return jobs.StackKitLifecycleRequest{StackID: t.stack.ID, StackKitInstanceID: t.stack.StackKitInstanceID, TenantID: t.tenant, OwnerID: t.owner, AgentID: t.server.WorkerID, Operation: op, OwnerApproved: r.OwnerApproved, ServiceID: t.service.ID, ServiceKey: adoptionServiceKey(binding), DurableJobID: jobs.StackKitServiceActionJobID(t.tenant, t.owner, key), ServiceActionDigest: hex.EncodeToString(fingerprint[:]), Application: binding}
 }
 

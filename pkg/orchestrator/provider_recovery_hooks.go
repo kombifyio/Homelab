@@ -12,8 +12,9 @@ import (
 // provider recovery installs the optional hooks from the excluded private
 // extension; local self-hosted jobs are never re-dispatched to a provider.
 const (
-	managedDecommissionRecoveryMarkerKey    = "managed_provider_decommission_recovery"
-	managedDecommissionRecoveryMarkerSchema = "techstack.managed-provider-decommission-recovery/v1"
+	managedDecommissionRecoveryMarkerKey           = "managed_provider_decommission_recovery"
+	managedDecommissionRecoveryMarkerSchema        = "techstack.managed-provider-decommission-recovery/v1"
+	managedDecommissionRecoveryMarkerSchemaForward = "homelab.managed-provider-decommission-recovery/v1"
 )
 
 func (o *Orchestrator) durableRecoveryNow() time.Time {
@@ -31,12 +32,24 @@ func managedProviderDecommissionRecoveryMarker(tenantID, stackID string) map[str
 	}
 }
 
+func managedProviderDecommissionRecoveryMarkerSchema(result map[string]any) string {
+	marker, ok := result[managedDecommissionRecoveryMarkerKey].(map[string]any)
+	if !ok {
+		return ""
+	}
+	schema := strings.TrimSpace(stringFromAny(marker["schema"]))
+	if schema == managedDecommissionRecoveryMarkerSchema || schema == managedDecommissionRecoveryMarkerSchemaForward {
+		return schema
+	}
+	return ""
+}
+
 func hasManagedProviderDecommissionRecoveryMarker(result map[string]any, tenantID, stackID string) bool {
 	marker, ok := result[managedDecommissionRecoveryMarkerKey].(map[string]any)
 	if !ok {
 		return false
 	}
-	return strings.TrimSpace(stringFromAny(marker["schema"])) == managedDecommissionRecoveryMarkerSchema &&
+	return managedProviderDecommissionRecoveryMarkerSchema(result) != "" &&
 		strings.TrimSpace(stringFromAny(marker["tenant_id"])) == strings.TrimSpace(tenantID) &&
 		strings.TrimSpace(stringFromAny(marker["stack_id"])) == strings.TrimSpace(stackID)
 }

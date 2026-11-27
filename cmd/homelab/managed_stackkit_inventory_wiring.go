@@ -141,3 +141,73 @@ func (adapter managedBackupDeliveryAdapter) NodeBinding(ctx context.Context, ten
 func (adapter managedBackupDeliveryAdapter) AttestTarget(ctx context.Context, tenantID, stackID string) (string, error) {
 	return adapter.delivery.AttestTarget(ctx, tenantID, stackID)
 }
+
+func (adapter managedBackupDeliveryAdapter) NodeOwnerPublicKey(ctx context.Context, tenantID, stackID string) ([]byte, error) {
+	return adapter.delivery.NodeOwnerPublicKey(ctx, tenantID, stackID)
+}
+
+func (adapter managedBackupDeliveryAdapter) AdmitReplacementRecipient(ctx context.Context, scope jobs.ManagedBackupReplacementScope, challenge string, statement []byte) (jobs.ManagedBackupRecipient, error) {
+	recipient, err := adapter.delivery.AdmitReplacementRecipient(ctx, managedstackkit.ReplacementScope{
+		TenantID:                      scope.TenantID,
+		StackID:                       scope.StackID,
+		OwnerID:                       scope.OwnerID,
+		ReplacementID:                 scope.ReplacementID,
+		DestinationLeaseID:            scope.DestinationLeaseID,
+		DestinationServerID:           scope.DestinationServerID,
+		DestinationResourceGeneration: scope.DestinationResourceGeneration,
+	}, challenge, statement)
+	if err != nil {
+		return jobs.ManagedBackupRecipient{}, err
+	}
+	return jobs.ManagedBackupRecipient{
+		Public: recipient.Public, Fingerprint: recipient.Fingerprint, Generation: recipient.Generation, SiteRef: recipient.SiteRef, NodeRef: recipient.NodeRef,
+		Statement: recipient.Statement, Challenge: recipient.Challenge,
+	}, nil
+}
+
+func (adapter managedBackupDeliveryAdapter) SealReplacement(ctx context.Context, scope jobs.ManagedBackupReplacementScope, recipient jobs.ManagedBackupRecipient, operation string) ([]byte, error) {
+	sealOperation := hostdelivery.OperationBackupTargetImport
+	if operation == jobs.StackKitLifecycleBackupTargetRebind {
+		sealOperation = hostdelivery.OperationBackupTargetRebind
+	}
+	return adapter.delivery.SealReplacement(ctx, managedstackkit.ReplacementScope{
+		TenantID:                      scope.TenantID,
+		StackID:                       scope.StackID,
+		OwnerID:                       scope.OwnerID,
+		ReplacementID:                 scope.ReplacementID,
+		DestinationLeaseID:            scope.DestinationLeaseID,
+		DestinationServerID:           scope.DestinationServerID,
+		DestinationResourceGeneration: scope.DestinationResourceGeneration,
+	}, managedstackkit.Recipient{
+		Public: recipient.Public, Fingerprint: recipient.Fingerprint, Generation: recipient.Generation, SiteRef: recipient.SiteRef, NodeRef: recipient.NodeRef,
+		Statement: recipient.Statement, Challenge: recipient.Challenge, PlacementRef: kombifywallet.PlacementRef(recipient.AgentID),
+	}, sealOperation)
+}
+
+func (adapter managedBackupDeliveryAdapter) RecordReplacementNodeBinding(ctx context.Context, scope jobs.ManagedBackupReplacementScope, binding jobs.ManagedBackupNodeBinding) error {
+	return adapter.delivery.RecordReplacementNodeBinding(ctx, managedstackkit.ReplacementScope{
+		TenantID:                      scope.TenantID,
+		StackID:                       scope.StackID,
+		OwnerID:                       scope.OwnerID,
+		ReplacementID:                 scope.ReplacementID,
+		DestinationLeaseID:            scope.DestinationLeaseID,
+		DestinationServerID:           scope.DestinationServerID,
+		DestinationResourceGeneration: scope.DestinationResourceGeneration,
+	}, backupstore.NodeBinding{BackupTargetRef: binding.BackupTargetRef, CustodyAttestationRef: binding.CustodyAttestationRef})
+}
+
+func (adapter managedBackupDeliveryAdapter) ReplacementNodeBinding(ctx context.Context, tenantID, stackID, replacementID string) (jobs.ManagedBackupNodeBinding, error) {
+	binding, err := adapter.delivery.ReplacementNodeBinding(ctx, tenantID, stackID, replacementID)
+	if err != nil {
+		return jobs.ManagedBackupNodeBinding{}, err
+	}
+	return jobs.ManagedBackupNodeBinding{BackupTargetRef: binding.BackupTargetRef, CustodyAttestationRef: binding.CustodyAttestationRef}, nil
+}
+
+func (adapter managedBackupDeliveryAdapter) CommitReplacementCustody(ctx context.Context, tenantID, stackID, replacementID string) error {
+	return adapter.delivery.CommitReplacementCustody(ctx, tenantID, stackID, replacementID)
+}
+
+func (adapter managedBackupDeliveryAdapter) DiscardReplacementCustody(ctx context.Context, tenantID, stackID, replacementID string) error {
+	return adapter.delivery.DiscardReplacementCustody(ctx, tenantID, stackID, replacementID)
+}

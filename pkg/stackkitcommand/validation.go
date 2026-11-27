@@ -50,7 +50,11 @@ const (
 	// Pending supporting producer publication and adoption. Older artifacts
 	// lack the pre-effect expected-plan flag; this floor alone grants no
 	// availability without the exact signed release and Guard capability.
-	MinRestoreActivationRelease          = "v0.52.5"
+	MinRestoreActivationRelease = "v0.52.5"
+	// MinCloudRestoreActivationRelease pins the StackKits release that carries
+	// standalone cloud-kit restore activation (internal/restoreactivation/authority.go).
+	// Live execution on IONOS Memory Cube S still requires the authorized provider test window.
+	MinCloudRestoreActivationRelease     = "v0.61.11"
 	SourceGenerationInspectionCapability = "stackkit.source-generation-inspection.v1"
 	// Publication and signed runtime adoption must establish this supporting
 	// release before the preparation transport can be used.
@@ -557,12 +561,25 @@ var restoreActivationIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{7,127}
 func ValidRestoreActivationID(id string) bool { return restoreActivationIDPattern.MatchString(id) }
 
 func validateRestoreActivationCommand(command *agentpb.StackKitCommand) error {
-	if !command.OwnerApproved || command.Stackkit != "basement-kit" || command.StackkitInstanceId == "" ||
+	if !command.OwnerApproved || command.StackkitInstanceId == "" ||
 		!specHashPattern.MatchString(command.ExpectedPlanHash) || !specHashPattern.MatchString(command.RestoreResultId) ||
 		!restoreActivationIDPattern.MatchString(command.ActivationOperationId) ||
-		command.DryRun || command.Offline || command.SnapshotAnchorId != "" ||
-		!ReleaseAtLeast(command.Release.Version, MinRestoreActivationRelease) {
-		return fmt.Errorf("restore activation requires approved Basement workspace, exact result/plan/original operation and supporting release")
+		command.DryRun || command.Offline || command.SnapshotAnchorId != "" {
+		return fmt.Errorf("restore activation requires approved workspace, exact result/plan/original operation")
+	}
+	switch command.Stackkit {
+	case "basement-kit":
+		if !ReleaseAtLeast(command.Release.Version, MinRestoreActivationRelease) {
+			return fmt.Errorf("basement-kit restore activation requires supporting release %s or newer", MinRestoreActivationRelease)
+		}
+	case "cloud-kit":
+		if command.Operation != agentpb.StackKitOperation_STACKKIT_OPERATION_BACKUP_RESTORE_ACTIVATE ||
+			command.LocalSiteRef != "cloud" || command.LocalNodeRef != "cloud-main" ||
+			!ReleaseAtLeast(command.Release.Version, MinCloudRestoreActivationRelease) {
+			return fmt.Errorf("cloud-kit restore activation is restricted to BACKUP_RESTORE_ACTIVATE on cloud/cloud-main at %s or newer", MinCloudRestoreActivationRelease)
+		}
+	default:
+		return fmt.Errorf("restore activation requires basement-kit or scoped cloud-kit (got %q)", command.Stackkit)
 	}
 	return validateLocalExecutionPlacement(command, "restore activation")
 }

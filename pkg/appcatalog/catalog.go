@@ -62,6 +62,21 @@ type Entry struct {
 	// Evidence is the recognition layer that named this unit (EvidenceLabel,
 	// EvidenceImage, ...). Empty on an entry looked up by id.
 	Evidence string `json:"evidence,omitempty"`
+	// SpectrumTier classifies the entry along StackKits' 3-tier recognition
+	// spectrum: first_class, known_catalog, or custom_app.
+	SpectrumTier SpectrumTier `json:"spectrum_tier,omitempty"`
+	// UseCaseSlug is the StackKits First-Class Use Case slug when SpectrumTier
+	// is first_class (e.g. "smart-home", "vault", "files", "photos").
+	UseCaseSlug string `json:"use_case_slug,omitempty"`
+	// FirstClassPackage is the canonical StackKits package ID for a first_class app.
+	FirstClassPackage string `json:"first_class_package,omitempty"`
+	// AdoptionMode is the recommended adoption path ("adopt_in_place",
+	// "stack_it", or "connect_existing").
+	AdoptionMode string `json:"adoption_mode,omitempty"`
+	// VendorName is the human-readable upstream vendor or project name.
+	VendorName string `json:"vendor_name,omitempty"`
+	// DocsURL is the upstream documentation or guide URL for the application.
+	DocsURL string `json:"docs_url,omitempty"`
 	// Infra entries are plumbing (proxy, updater, agent) and stay in the System
 	// bucket instead of becoming an Application.
 	Infra bool `json:"-"`
@@ -359,6 +374,9 @@ func Match(subject Subject) *Entry {
 		if entry := bestImageMatch(repo); entry != nil {
 			return withEvidence(entry, EvidenceImage)
 		}
+		if entry := synonymByImage(repo); entry != nil {
+			return withEvidence(entry, EvidenceImage)
+		}
 		if entry := generatedByImage(repo); entry != nil {
 			return withEvidence(entry, EvidenceImage)
 		}
@@ -372,12 +390,20 @@ func Match(subject Subject) *Entry {
 		if released := Lookup(candidate); released != nil {
 			return withEvidence(released, EvidenceReleasedCatalog)
 		}
+		if entry := synonymByName(candidate); entry != nil {
+			return withEvidence(entry, EvidenceName)
+		}
 		if entry := bestNameMatch(tokenize(candidate)); entry != nil {
 			return withEvidence(entry, EvidenceName)
 		}
 	}
 	for _, candidate := range candidates {
 		if entry := generatedByName(tokenize(strings.TrimSuffix(strings.ToLower(candidate), ".service"))); entry != nil {
+			return withEvidence(entry, EvidenceName)
+		}
+	}
+	if project := strings.TrimSpace(subject.ComposeProject); project != "" && !IsPlatformProject(project) {
+		if entry := synonymByComposeProject(project); entry != nil {
 			return withEvidence(entry, EvidenceName)
 		}
 	}
@@ -447,6 +473,7 @@ func copyEntry(entry *Entry) *Entry {
 	}
 	attachReleasedApplicationPresentation(&cloned)
 	attachPresentation(&cloned)
+	attachSpectrum(&cloned)
 	return &cloned
 }
 

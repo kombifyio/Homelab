@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -115,6 +116,23 @@ func (s *Service) NeedsRenewal(record Record, hosts []string) bool {
 	}
 	lifetime := record.NotAfter.Sub(record.InstalledAt)
 	return s.now().After(record.InstalledAt.Add(lifetime * renewalNumerator / renewalDenominator))
+}
+
+// RevokeCertificate revokes a single Origin CA certificate by id without
+// modifying stack_origin_certificates custody (used when rolling back a
+// staged replacement destination certificate before cutover).
+func (s *Service) RevokeCertificate(ctx context.Context, certificateID string) error {
+	certificateID = strings.TrimSpace(certificateID)
+	if certificateID == "" {
+		return nil
+	}
+	if s == nil {
+		return ErrUnavailable
+	}
+	if s.authority == nil {
+		return s.authorityErr
+	}
+	return s.authority.Revoke(ctx, certificateID)
 }
 
 // Decommission revokes the stack's current and retired certificates at

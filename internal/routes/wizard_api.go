@@ -41,6 +41,10 @@ type WizardRouteConfig struct {
 	// KombifyWallet is the central kombify Wallet client. Nil means this
 	// deployment reads the built-in (legacy) wallet through Wallet.
 	KombifyWallet *kombifywallet.Client
+	// Servers and Services allow the preview endpoint to surface observed
+	// applications already running on a selected existing server.
+	Servers  controlplane.ServerRuntimeStore
+	Services controlplane.ServiceRuntimeStore
 }
 
 type wizardRouteHandlers struct {
@@ -166,16 +170,25 @@ func (h wizardRouteHandlers) preview(e *httpx.Event) error {
 		response["intent_adjustments"] = request.intentAdjustments
 		response["effective_intent"] = request.Intent
 	}
+	var detectedApps []DetectedExistingApp
+	if existingServerID := strings.TrimSpace(request.Intent.Server.ExistingServerID); existingServerID != "" {
+		tenantID, _ := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.wizard.preview")
+		detectedApps = detectExistingServerApps(e.Request.Context(), h.cfg.Servers, h.cfg.Services, tenantID, ownerID, existingServerID)
+		if len(detectedApps) > 0 {
+			response["detected_existing_apps"] = detectedApps
+		}
+	}
 	for _, goal := range request.Intent.Goals {
 		if goal == "smart-home" {
-			context := request.SmartHomeContext
+			smartHomeCtx := request.SmartHomeContext
 			if request.Intent.KitAssignment.Mode == specv2.KitAssignmentJoin {
 				workloads, _ := seed["workloads"].(map[string]any)
 				if _, exists := workloads["smart-home"]; exists {
-					context.Existing = true
+					smartHomeCtx.Existing = true
 				}
 			}
-			response["smart_home_recommendation"] = specv2.RecommendSmartHome(context, request.Intent.UseCaseSettings["smart-home"])
+			smartHomeCtx = applyDetectedSmartHomeContext(smartHomeCtx, request.Intent.UseCaseSettings["smart-home"], detectedApps)
+			response["smart_home_recommendation"] = specv2.RecommendSmartHome(smartHomeCtx, request.Intent.UseCaseSettings["smart-home"])
 			break
 		}
 	}

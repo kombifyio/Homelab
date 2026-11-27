@@ -205,6 +205,11 @@ func registerCoreRoutes(router *httpx.Router, deps routeDeps, managedLeases jobs
 		Jobs:   stores.Jobs,
 	}
 	stackKitCommander := stackKitCommanderForDeployment(cfg.DeploymentMode, cfg.Server.Environment, deps.typedControl, grpcSrv)
+	transferRelay := deps.transferRelay
+	if transferRelay != nil {
+		routes.RegisterTransferRelayRoutes(router, transferRelay)
+		deps.orch.ConfigureTransferRelay(transferRelay)
+	}
 	deps.orch.ConfigureManagedStackKitInventory(managedStackKitInventoryBuilder(deps))
 	deps.orch.ConfigureFederationFabric(federationFabric())
 	if deps.guardReach != nil {
@@ -246,8 +251,9 @@ func registerCoreRoutes(router *httpx.Router, deps routeDeps, managedLeases jobs
 		Registry:                registryControlPlaneStore(deps.v2),
 		Jobs:                    stores.Jobs,
 		// Canonical serverregistry state backs Node placement in Registry Services.
-		Servers: serverRuntimeControlPlaneStore(deps.v2),
-		Wallet:  walletSecretReferences(deps),
+		Servers:             serverRuntimeControlPlaneStore(deps.v2),
+		Wallet:              walletSecretReferences(deps),
+		TransferRelayActive: transferRelay != nil,
 	})
 	if deps.wallet != nil {
 		routes.RegisterSystemAccountRefusal(router)
@@ -276,7 +282,7 @@ func registerCoreRoutes(router *httpx.Router, deps routeDeps, managedLeases jobs
 		})
 	}
 	memoryAvailability, _ := managedLeases.(interface{ IONOSStandardMemoryAvailable(context.Context) error })
-	if err := routes.RegisterUnifierRoutes(router, workerControlPlaneStore(deps.v2), deps.featureSvc, memoryAvailability); err != nil {
+	if err := routes.RegisterUnifierRoutes(router, workerControlPlaneStore(deps.v2), deps.featureSvc, memoryAvailability, cfg.DeploymentMode); err != nil {
 		fmt.Printf("⚠️  Unifier routes failed: %v\n", err)
 	}
 	trustWorkerStore := workerControlPlaneStore(deps.v2)
@@ -582,6 +588,7 @@ func registerRuntimeInventoryRoutes(router *httpx.Router, deps routeDeps, state 
 	stackStores := stackControlPlaneStores(deps.v2)
 	deps.orch.ConfigureApplicationConnectorRefreshAuthorization(applicationConnectorRefreshAuthorization(deps.v2.authStore, inventoryPolicy, deps.startup.cfg.DeploymentMode.IsSaaS()))
 	managedExpansion := routes.RegisterStackLifecycleRoutesWithStores(router, state.leaseSvc, nil, deps.featureSvc, routes.StackLifecycleStores{
+		DeploymentMode: deps.startup.cfg.DeploymentMode,
 		Stacks:         stackStores.Stacks,
 		Workers:        workerControlPlaneStore(deps.v2),
 		Jobs:           stackStores.Jobs,
@@ -698,11 +705,16 @@ func registerRuntimeInventoryRoutes(router *httpx.Router, deps routeDeps, state 
 			Store: serverRuntimeStore, Transitions: transitionWindows,
 		})
 	}
+	var managedPoolExecutor routes.ManagedPoolExecutor
+	if deps.startup != nil {
+		managedPoolExecutor = deps.startup.managedPoolExecutor
+	}
 	routes.RegisterServiceRuntimeRoutes(router, routes.ServiceRuntimeRouteConfig{
 		Metrics: deps.monitor.queryBackend,
 		Policy:  inventoryPolicy,
 		Store:   serviceRuntimeStore, Stacks: stackStores.Stacks, Servers: serverRuntimeStore, Jobs: stackStores.Jobs, Orchestrator: deps.orch,
-		ActionCards: actionCards,
+		ActionCards:         actionCards,
+		ManagedPoolExecutor: managedPoolExecutor,
 	})
 	inventoryReadStore, ok := serverRuntimeStore.(controlplane.InventoryReadStore)
 	if !ok {
@@ -1054,6 +1066,8 @@ func registerWizardRoutes(router *httpx.Router, deps routeDeps, featureSvc *feat
 		RemoteSSHTester: routes.NewDiscoveryRemoteSSHAdapter(discovery.New()),
 		Wallet:          stores.Wallet,
 		KombifyWallet:   deps.wallet,
+		Servers:         stores.Servers,
+		Services:        stores.Services,
 	}
 	var migrator specv2.SpecMigrator
 	validator, err := specv2.NewCLIValidatorFromEnv()
@@ -1223,6 +1237,9 @@ func registerFeatureRoutes(router *httpx.Router, deps routeDeps, state runtimeRo
 		Reconcile:       recoveryIntent,
 		Addresses:       managedAddressDeregistrar{},
 	}
+	if deps.providerAdmission != nil {
+		monthlyRuntimeSvc.SupportReplacementFence = deps.providerAdmission
+	}
 	routes.RegisterMonthlyRuntimeRoutes(router, monthlyRuntimeSvc, state.managedRuntimeExpansion)
 	deps.governedDecommission.bind(monthlyRuntimeSvc)
 	state.runtimeActions.RuntimeTargetResolver = monthlyRuntimeTargetResolver(
@@ -1254,6 +1271,39 @@ func registerFeatureRoutes(router *httpx.Router, deps routeDeps, state runtimeRo
 			Version: version,
 		})
 	}
+	if deps.providerAdmission != nil {
+		inventory := managedStackKitInventoryBuilder(deps)
+		var backupDelivery jobs.ManagedBackupTargetDelivery
+		if inv, ok := inventory.(interface {
+			BackupDelivery() jobs.ManagedBackupTargetDelivery
+		}); ok {
+			backupDelivery = inv.BackupDelivery()
+		}
+		var controlPlaneDB *sql.DB
+		if deps.v2 != nil && deps.v2.db != nil {
+			controlPlaneDB = deps.v2.db.DB
+		}
+		stepOps := &jobs.DefaultSupportReplacementStepOps{
+			DB:                 deps.providerControlDB,
+			ControlPlaneDB:     controlPlaneDB,
+			Sender:             stackKitCommanderForDeployment(deps.startup.cfg.DeploymentMode, deps.startup.cfg.Server.Environment, deps.typedControl, deps.grpc.server),
+			Decommissioner:     deps.providerActions.LeaseDecommissioner,
+			BackupDelivery:     backupDelivery,
+			Inventory:          inventory,
+			OriginCertificates: composeOriginCertificates(deps.v2, deps.log),
+		}
+		deps.orch.ConfigureSupportReplacement(&jobs.SupportReplacementConfig{
+			Store: providerControlSupportReplacementStore{admission: deps.providerAdmission},
+			Ops:   stepOps,
+		})
+		routes.RegisterSupportReplacementRoutes(router, routes.SupportReplacementRouteConfig{
+			Controller: routeSupportReplacementController{
+				admission: deps.providerAdmission,
+				orch:      deps.orch,
+				ops:       stepOps,
+			},
+		})
+	}
 	activityStore, _ := any(serverStore).(controlplane.ActivityStore)
 	routes.RegisterServerTerminalRoutes(router, routes.ServerTerminalRouteConfig{
 		Servers: serverStore, Targets: state.runtimeActions.RuntimeTargetResolver,
@@ -1269,10 +1319,11 @@ func registerFeatureRoutes(router *httpx.Router, deps routeDeps, state runtimeRo
 	if deps.startup.cfg.DeploymentMode.IsSaaS() {
 		stackStores := stackControlPlaneStores(deps.v2)
 		demoStores := routes.StackLifecycleStores{
-			Stacks:   stackStores.Stacks,
-			Workers:  workerControlPlaneStore(deps.v2),
-			Jobs:     stackStores.Jobs,
-			Registry: serverRuntimeControlPlaneStore(deps.v2),
+			DeploymentMode: deps.startup.cfg.DeploymentMode,
+			Stacks:         stackStores.Stacks,
+			Workers:        workerControlPlaneStore(deps.v2),
+			Jobs:           stackStores.Jobs,
+			Registry:       serverRuntimeControlPlaneStore(deps.v2),
 		}
 		routes.RegisterDemoResetRoutes(router, state.leaseSvc, recoveryIntent, demoStores)
 	}

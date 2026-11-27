@@ -65,7 +65,7 @@ func (h registryRouteHandlers) projectRegistryRuntimeServices(stack controlplane
 		if server != nil {
 			record.ServerName = firstNonEmptyString(server.Name, server.ID)
 		}
-		record.moveRuntimeRef = registryApplicationRuntimeRef(row, record.ManagementState)
+		record.moveRuntimeRef, record.moveRuntimeAdapter, record.moveHostDeviceBound = registryApplicationMoveMeta(row, record.ManagementState)
 		result = append(result, record)
 	}
 	for _, record := range legacy {

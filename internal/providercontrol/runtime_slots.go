@@ -103,6 +103,63 @@ func (a *NativeAdmission) ResolveManagedRuntimeSlotGeneration(
 	if err != nil {
 		return ManagedRuntimeSlotGenerationResolution{}, fmt.Errorf("providercontrol: resolve runtime slot generation: %w", err)
 	}
+	if unresolvedCount == 2 {
+		var linkedOrdinal sql.NullInt64
+		linkedErr := tx.QueryRowContext(ctx, `
+			SELECT sr.destination_generation_ordinal
+			FROM managed_runtime_support_replacements AS sr
+			WHERE sr.tenant_id = $1
+			  AND sr.runtime_slot_id = $2
+			  AND sr.phase IN (
+			      'destination_admitted',
+			      'staging',
+			      'cutover_in_progress',
+			      'cutover_verified',
+			      'source_decommissioning',
+			      'rolling_back',
+			      'fenced_conflict'
+			  )
+			  AND sr.destination_generation_ordinal IS NOT NULL
+			  AND EXISTS (
+			      SELECT 1
+			      FROM managed_runtime_server_slot_generations AS sg_src
+			      LEFT JOIN managed_runtime_capacity_release_facts AS rel_src
+			        ON rel_src.tenant_id = sg_src.tenant_id
+			       AND rel_src.lease_id = sg_src.lease_id
+			       AND rel_src.resource_generation_id = sg_src.resource_generation_id
+			      WHERE sg_src.tenant_id = sr.tenant_id
+			        AND sg_src.slot_id = sr.runtime_slot_id
+			        AND sg_src.lease_id = sr.source_lease_id
+			        AND sg_src.resource_generation_id::text = sr.source_resource_generation_id
+			        AND sg_src.generation_ordinal = sr.source_generation_ordinal
+			        AND rel_src.lease_id IS NULL
+			  )
+			  AND EXISTS (
+			      SELECT 1
+			      FROM managed_runtime_server_slot_generations AS sg_dst
+			      LEFT JOIN managed_runtime_capacity_release_facts AS rel_dst
+			        ON rel_dst.tenant_id = sg_dst.tenant_id
+			       AND rel_dst.lease_id = sg_dst.lease_id
+			       AND rel_dst.resource_generation_id = sg_dst.resource_generation_id
+			      WHERE sg_dst.tenant_id = sr.tenant_id
+			        AND sg_dst.slot_id = sr.runtime_slot_id
+			        AND sg_dst.lease_id = sr.destination_lease_id
+			        AND sg_dst.resource_generation_id::text = sr.destination_resource_generation_id
+			        AND sg_dst.generation_ordinal = sr.destination_generation_ordinal
+			        AND rel_dst.lease_id IS NULL
+			  )
+			ORDER BY sr.authorized_at DESC
+			LIMIT 1
+		`, tenantID, slotID).Scan(&linkedOrdinal)
+		if linkedErr == nil && linkedOrdinal.Valid && linkedOrdinal.Int64 > 0 {
+			if err := tx.Commit(); err != nil {
+				return ManagedRuntimeSlotGenerationResolution{}, fmt.Errorf("providercontrol: commit runtime slot generation resolution: %w", err)
+			}
+			return ManagedRuntimeSlotGenerationResolution{
+				RuntimeSlotID: slotID, GenerationOrdinal: uint64(linkedOrdinal.Int64), ExistingUnreleased: true,
+			}, nil
+		}
+	}
 	if unresolvedCount > 1 || maximum < 0 || unresolvedOrdinal < 0 {
 		return ManagedRuntimeSlotGenerationResolution{}, fmt.Errorf("%w: runtime slot has ambiguous generation custody", ErrNativeAdmissionConflict)
 	}
@@ -219,8 +276,60 @@ func insertManagedRuntimeServerSlotTx(
 	`, request.TenantID, request.RuntimeSlotID).Scan(&maximumOrdinal, &unresolvedCount); err != nil {
 		return fmt.Errorf("providercontrol: inspect managed runtime slot occupancy: %w", err)
 	}
-	if unresolvedCount != 0 || maximumOrdinal < 0 ||
-		uint64(maximumOrdinal)+1 != request.RuntimeSlotGeneration {
+	if maximumOrdinal < 0 || uint64(maximumOrdinal)+1 != request.RuntimeSlotGeneration {
+		return fmt.Errorf("%w: managed runtime slot still owns another generation", ErrNativeAdmissionConflict)
+	}
+	switch unresolvedCount {
+	case 0:
+	case 1:
+		if strings.TrimSpace(request.SupportReplacementID) == "" ||
+			strings.ToLower(strings.TrimSpace(request.Lease.Resource.ProviderID)) != SupportReplacementTargetProvider {
+			return fmt.Errorf("%w: managed runtime slot still owns another generation", ErrNativeAdmissionConflict)
+		}
+		var replacementMatches bool
+		if err := tx.QueryRowContext(ctx, `
+			SELECT EXISTS (
+				SELECT 1
+				FROM managed_runtime_support_replacements AS sr
+				WHERE sr.tenant_id = $1
+				  AND sr.replacement_id = $2
+				  AND sr.runtime_slot_id = $3
+				  AND sr.source_generation_ordinal < sr.destination_generation_ordinal
+				  AND sr.destination_generation_ordinal = $4
+				  AND sr.destination_lease_id = $5
+				  AND sr.destination_resource_generation_id = $6
+				  AND sr.customer_accepted_at IS NOT NULL
+				  AND sr.no_charge_confirmed = true
+				  AND sr.target_product_slug = $7
+				  AND sr.phase IN ('accepted', 'destination_admitted', 'staging')
+				  AND EXISTS (
+				      SELECT 1
+				      FROM managed_runtime_server_slot_generations AS sg
+				      WHERE sg.tenant_id = sr.tenant_id
+				        AND sg.slot_id = sr.runtime_slot_id
+				        AND sg.lease_id = sr.source_lease_id
+				        AND sg.resource_generation_id::text = sr.source_resource_generation_id
+				        AND sg.generation_ordinal = sr.source_generation_ordinal
+				  )
+				  AND NOT EXISTS (
+				      SELECT 1
+				      FROM managed_runtime_capacity_release_facts AS rel
+				      WHERE rel.tenant_id = sr.tenant_id
+				        AND rel.lease_id = sr.source_lease_id
+				        AND rel.resource_generation_id::text = sr.source_resource_generation_id
+				  )
+			)
+		`,
+			request.TenantID, strings.TrimSpace(request.SupportReplacementID), request.RuntimeSlotID,
+			request.RuntimeSlotGeneration,
+			result.LeaseID, result.ResourceGenerationID, SupportReplacementTargetProductSlug,
+		).Scan(&replacementMatches); err != nil {
+			return fmt.Errorf("providercontrol: verify support replacement slot continuity: %w", err)
+		}
+		if !replacementMatches {
+			return fmt.Errorf("%w: support replacement slot continuity verification failed", ErrNativeAdmissionConflict)
+		}
+	default:
 		return fmt.Errorf("%w: managed runtime slot still owns another generation", ErrNativeAdmissionConflict)
 	}
 	generationInserted, err := tx.ExecContext(ctx, `

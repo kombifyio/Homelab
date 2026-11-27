@@ -66,20 +66,26 @@ type ImportReport struct {
 
 	// StacksUnownedWithFiles names the unresolved and orphaned stacks that hold
 	// any file but provider plugins (UnownedFiles, UnownedBytes): a live stack
-	// may hide there, and only a tenant-scoped row is restored. Their managed
-	// spec files are copied into the tenant-free archive (UnownedSpecFiles,
-	// read back as UnownedSpecMatching).
+	// may hide there, and only a tenant-scoped row is restored. Every file of
+	// such a stack is copied into the tenant-free archive, so the disk's
+	// content survives the disk; the managed spec files are counted
+	// separately (UnownedSpecFiles, read back as UnownedSpecMatching).
 	StacksUnownedWithFiles []string
 	UnownedFiles           int
 	UnownedBytes           int64
-	UnownedSpecFiles       int
-	UnownedSpecMatching    int
+	// UnownedMatching counts the archived copies of an unowned stack's files
+	// that were read back byte for byte.
+	UnownedMatching     int
+	UnownedSpecFiles    int
+	UnownedSpecMatching int
 
 	// LegacyFiles and LegacyBytes count what the legacy directories still hold
-	// (not copied; LegacyListing names path:size). UnknownEntries are
-	// top-level entries this import does not account for.
+	// (copied into the tenant-free archive; LegacyMatching names the copies
+	// read back byte for byte). UnknownEntries are top-level entries this
+	// import does not know.
 	LegacyFiles    int
 	LegacyBytes    int64
+	LegacyMatching int
 	LegacyListing  string
 	UnknownEntries []string
 
@@ -145,8 +151,10 @@ func Import(ctx context.Context, pool *sql.DB, dataDir string, log *slog.Logger)
 		"stacks_unowned_with_files", strings.Join(capNames(report.StacksUnownedWithFiles), ","),
 		"unowned_files", report.UnownedFiles,
 		"unowned_bytes", report.UnownedBytes,
+		"unowned_matching", report.UnownedMatching,
 		"legacy_files", report.LegacyFiles,
 		"legacy_bytes", report.LegacyBytes,
+		"legacy_matching", report.LegacyMatching,
 		"legacy_listing", report.LegacyListing,
 		"unknown_entries", strings.Join(capNames(report.UnknownEntries), ","),
 		"errors", report.Errors,
@@ -156,17 +164,24 @@ func Import(ctx context.Context, pool *sql.DB, dataDir string, log *slog.Logger)
 }
 
 // Complete reports whether the database holds every durable item of the disk
-// byte for byte: every pin it has not retired, every managed spec file and an archive copy of
-// every file of each stack the database knows, and an archive copy of the
-// control-plane files. It stays false while an unowned stack (unresolved or
-// orphaned) holds any file but provider plugins, while a legacy directory still
-// holds a file or the disk holds an entry the import does not know: each is the
-// owner's decision before the disk is removed.
+// byte for byte with no unowned, legacy, or unknown remainder requiring an
+// owner decision before PR B disk deletion: every pin it has not retired, every
+// managed spec file and an archive copy of every file of each stack the
+// database knows, and an archive copy of the control-plane files. Even though
+// unowned stack files and legacy directories are archived and verified by
+// digest (UnownedMatching == UnownedFiles, LegacyMatching == LegacyFiles),
+// Complete stays false while an unowned stack holds any file other than
+// provider plugins (len(StacksUnownedWithFiles) > 0), while a legacy
+// directory still holds a file (LegacyFiles > 0), or while the disk holds an
+// unknown entry (len(UnknownEntries) > 0): each requires explicit owner
+// approval before PR B removes the disk.
 func (r ImportReport) Complete() bool {
 	return r.Errors == 0 && len(r.HostKeyConflicts) == 0 && r.HostKeyMatching+r.HostKeyRetired == r.HostKeyPins &&
 		r.StackFilesMatching == r.StackFilesOnDisk && r.StackArchiveMatch == r.StackArchiveFiles &&
-		r.ArchiveMatching == r.ArchiveFiles && r.UnownedSpecMatching == r.UnownedSpecFiles &&
-		len(r.StacksUnownedWithFiles) == 0 && r.LegacyFiles == 0 && len(r.UnknownEntries) == 0
+		r.ArchiveMatching == r.ArchiveFiles && r.UnownedMatching == r.UnownedFiles &&
+		r.UnownedSpecMatching == r.UnownedSpecFiles &&
+		len(r.StacksUnownedWithFiles) == 0 && r.LegacyMatching == r.LegacyFiles &&
+		r.LegacyFiles == 0 && len(r.UnknownEntries) == 0
 }
 
 // capNames bounds a name list written to one log line.
@@ -326,8 +341,8 @@ func importStacks(ctx context.Context, pool *sql.DB, dataDir string, report *Imp
 		stack.evidence = tenantEvidence(stack.managed)
 		pending[stack.id] = stack
 	}
-	// First the tenant each stack names itself, then every tenant with an
-	// active stack (migration 153). Each match is a tenant-scoped stacks row.
+	// First the tenant each stack names itself, then every tenant that holds
+	// a stack (migration 207). Each match is a tenant-scoped stacks row.
 	orphanCandidates := map[string]bool{}
 	for id, stack := range pending {
 		for _, tenantID := range stack.evidence {
@@ -410,14 +425,37 @@ func contains(values []string, value string) bool {
 	return false
 }
 
-// listTenants pages the secret-free directory of tenants that hold an active
-// stack (migration 153); stacks rows themselves stay behind tenant RLS.
+// listTenants pages the secret-free directory of the tenants that hold a
+// stack (migration 207). The stacks rows themselves stay behind tenant RLS:
+// the directory function reads them under the migration role and returns
+// tenant identifiers alone.
+//
+// A binary that runs before its migration falls back to the directory the
+// drift schedule kept (migration 153), so the import keeps its previous
+// behavior instead of failing the boot.
 func listTenants(ctx context.Context, pool *sql.DB) ([]string, error) {
+	tenants, err := listStackTenantDirectory(ctx, pool)
+	if err == nil {
+		return tenants, nil
+	}
+	if !errors.Is(err, errStackTenantDirectoryPending) {
+		return nil, err
+	}
+	return listDriftScheduleTenants(ctx, pool)
+}
+
+// listDriftScheduleTenants pages the tenant directory of the drift schedule.
+func listDriftScheduleTenants(ctx context.Context, pool *sql.DB) ([]string, error) {
+	return pageTenants(ctx, pool, `SELECT tenant_id FROM public.techstack_list_drift_schedule_tenants($1, $2)`)
+}
+
+// pageTenants reads one bounded page of tenant identifiers at a time.
+func pageTenants(ctx context.Context, pool *sql.DB, query string) ([]string, error) {
 	const page = 100
 	var tenants []string
 	after := ""
 	for {
-		rows, err := pool.QueryContext(ctx, `SELECT tenant_id FROM public.techstack_list_drift_schedule_tenants($1, $2)`, after, page)
+		rows, err := pool.QueryContext(ctx, query, after, page)
 		if err != nil {
 			return nil, err
 		}

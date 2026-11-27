@@ -267,16 +267,20 @@ func (t *generatedTable) entry(id string) *Entry {
 		BrandDomain: homepageDomain(app.Homepage), WebPort: app.WebPort, HomepageURL: app.Homepage,
 		webScheme: app.WebScheme, icon: app.Icon,
 	}
+	// Guide, store clients and vendor facts join from the same pinned snapshot
+	// the released catalog reads; the generated table never copies them.
+	attachReleasedApplicationPresentation(entry)
 	attachPresentation(entry)
+	attachSpectrum(entry)
 	return entry
 }
 
 // lookupKnown resolves an application id from the hand and released catalogs
-// (by id, then by an exact hand name such as "pihole") and the generated
-// table. iconOnly also accepts a mirrored dashboard icon of that name; only
-// evidence an operator chose on purpose (a dashboard label, a fingerprint
-// mapped by the generator) may name an application that way, never an image
-// title a base image or packager set.
+// (by id, then by an exact hand name such as "pihole"), curated synonyms, and
+// the generated table. iconOnly also accepts a mirrored dashboard icon of that
+// name; only evidence an operator chose on purpose (a dashboard label, a
+// fingerprint mapped by the generator) may name an application that way, never
+// an image title a base image or packager set.
 func lookupKnown(id string, iconOnly bool) *Entry {
 	id = slugify(id)
 	if id == "" {
@@ -288,13 +292,20 @@ func lookupKnown(id string, iconOnly bool) *Entry {
 	if entry := exactHandName(id); entry != nil {
 		return entry
 	}
+	if canonical := synonymAppID(id); canonical != "" {
+		if entry := resolveCanonicalEntry(canonical); entry != nil {
+			return entry
+		}
+	}
 	table := loadGeneratedTable()
 	if entry := table.entry(id); entry != nil {
 		return entry
 	}
 	if asset, ok := table.icons[id]; iconOnly && ok && asset.Source == iconSourceDashboardIcons {
 		entry := &Entry{ID: id, DisplayName: titleFromSlug(id), Category: defaultCategory}
+		attachReleasedApplicationPresentation(entry)
 		attachPresentation(entry)
+		attachSpectrum(entry)
 		return entry
 	}
 	return nil

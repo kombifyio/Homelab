@@ -17,6 +17,7 @@ import (
 	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
 	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
 	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/config"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/httpx"
 	jobruntime "github.com/kombifyio/homelab/pkg/jobs"
@@ -60,6 +61,7 @@ type stackLifecycleRouteHandlers struct {
 	leases         stackLifecycleLeaseService
 	runtime        stackLifecycleRuntimeClient
 	features       monthlyruntime.FeatureChecker
+	deploymentMode config.DeploymentMode
 	stacks         controlplane.StackStore
 	workers        controlplane.WorkerStore
 	jobs           controlplane.JobStore
@@ -71,6 +73,7 @@ type stackLifecycleRouteHandlers struct {
 // StackLifecycleStores carries the control-plane stores the lifecycle handlers
 // need to operate on the authoritative saas-standalone data.
 type StackLifecycleStores struct {
+	DeploymentMode config.DeploymentMode
 	Stacks         controlplane.StackStore
 	Workers        controlplane.WorkerStore
 	Jobs           controlplane.JobStore
@@ -163,6 +166,7 @@ func RegisterStackLifecycleRoutesWithStores(r *httpx.Router, leases stackLifecyc
 		leases:         leases,
 		runtime:        runtime,
 		features:       featureChecker,
+		deploymentMode: stores.DeploymentMode,
 		stacks:         stores.Stacks,
 		workers:        stores.Workers,
 		jobs:           stores.Jobs,
@@ -326,9 +330,10 @@ func (h stackLifecycleRouteHandlers) executeManagedRuntimeExpansion(
 	constraints managedRuntimeExpansionConstraints,
 ) (*ManagedRuntimeExpansionResult, error) {
 	tenantID := stack.TenantID
+	effective := newManagedRuntimeEffectiveIntent(tenantID, ownerID, stack, req)
 	if h.managedLeases == nil {
 		if stackUsesManagedRuntime(stack) {
-			if decision := h.evaluateManagedRuntimeServerEntitlement(e.Request.Context(), ownerID, req); decision.Denied {
+			if decision := h.evaluateManagedRuntimeServerEntitlement(e.Request.Context(), ownerID, managedRuntimeRequestFromEffectiveIntent(effective)); decision.Denied {
 				return nil, httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden, decision.Message, decision.Details())
 			}
 		}
@@ -338,7 +343,6 @@ func (h stackLifecycleRouteHandlers) executeManagedRuntimeExpansion(
 				managedRuntimeDetailsRetryableKey:  true,
 			})
 	}
-	effective := newManagedRuntimeEffectiveIntent(tenantID, ownerID, stack, req)
 	resolver, ok := h.managedLeases.(jobruntime.ManagedRuntimeSlotGenerationResolver)
 	if !ok || resolver == nil {
 		return nil, httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable,
@@ -407,7 +411,7 @@ func (h stackLifecycleRouteHandlers) executeManagedRuntimeExpansion(
 			"stack_id": stack.ID,
 		})
 	}
-	if decision := h.evaluateManagedRuntimeServerEntitlement(e.Request.Context(), ownerID, req); decision.Denied {
+	if decision := h.evaluateManagedRuntimeServerEntitlement(e.Request.Context(), ownerID, managedRuntimeRequestFromEffectiveIntent(effective)); decision.Denied {
 		return nil, httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden, decision.Message, decision.Details())
 	}
 	offeringID := serverruntime.RuntimeOfferingID(effective.RuntimeOfferingID)
@@ -648,7 +652,15 @@ func normalizeLifecycleStackKit(value, defaultKit string) string {
 }
 
 func (h stackLifecycleRouteHandlers) evaluateManagedRuntimeServerEntitlement(ctx context.Context, ownerID string, req managedRuntimeServerRequest) monthlyruntime.ManagedRuntimeEntitlementDecision {
-	return monthlyruntime.EvaluateManagedRuntimeEntitlement(ctx, h.features, ownerID, req.ProviderID)
+	if decision := monthlyruntime.EvaluateManagedRuntimeEntitlement(ctx, h.features, ownerID, req.ProviderID); decision.Denied {
+		return decision
+	}
+	offeringID := strings.TrimSpace(req.RuntimeOfferingID)
+	if offeringID == "" {
+		offeringID = string(monthlyruntime.DefaultOfferingID())
+	}
+	lane := monthlyruntime.DeploymentLaneFromMode(h.deploymentMode)
+	return monthlyruntime.EvaluateManagedRuntimeOfferingEntitlement(ctx, lane, req.ProviderID, offeringID)
 }
 
 func stackUsesManagedRuntime(stack managedRuntimeStackRef) bool {

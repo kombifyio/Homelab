@@ -13,9 +13,10 @@ import (
 	pgx "github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	homelabdb "github.com/kombifyio/homelab/pkg/db"
 	providerexecutor "github.com/kombifyio/stackkits/contracts/providerexecutor/v1beta1"
+	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -147,7 +148,13 @@ func openNativeAdmissionIntegrationDBWithProfile(
 	t.Helper()
 	dsn := strings.TrimSpace(os.Getenv("HOMELAB_TEST_POSTGRES_URL"))
 	if dsn == "" {
-		t.Skip("HOMELAB_TEST_POSTGRES_URL not set; skipping native admission PostgreSQL integration test")
+		if dsn = embeddedProviderControlDSN(t); dsn != "" {
+			// Later helpers (restricted runtime role) re-read the DSN from the environment.
+			t.Setenv("HOMELAB_TEST_POSTGRES_URL", dsn)
+		}
+	}
+	if dsn == "" {
+		t.Skip("HOMELAB_TEST_POSTGRES_URL not set and embeddedpg tag absent; skipping native admission PostgreSQL integration test")
 	}
 
 	adminConfig, err := pgx.ParseConfig(dsn)
@@ -159,34 +166,82 @@ func openNativeAdmissionIntegrationDBWithProfile(
 		_ = adminDatabase.Close()
 		t.Fatalf("ping native admission integration PostgreSQL: %v", pingErr)
 	}
-	schema := fmt.Sprintf("native_admission_test_%d", time.Now().UnixNano())
-	quotedSchema := pgx.Identifier{schema}.Sanitize()
-	if _, createSchemaErr := adminDatabase.ExecContext(t.Context(), "CREATE SCHEMA "+quotedSchema); createSchemaErr != nil {
+	// Each test gets its own database owned by a non-superuser migration owner,
+	// and the production migrator applies the schema: migrations name public.*
+	// objects explicitly and refuse a superuser or RLS-bypassing owner (for
+	// example 151_ril_workflow_tenant_scope.sql, 153_drift_schedule_authority.sql).
+	var superuser bool
+	if err := adminDatabase.QueryRowContext(t.Context(), `SELECT rolsuper FROM pg_roles WHERE rolname = current_user`).Scan(&superuser); err != nil || !superuser {
 		_ = adminDatabase.Close()
-		t.Fatalf("create native admission integration schema: %v", createSchemaErr)
+		t.Skip("native admission integration needs a superuser test cluster to prepare the migration owner")
 	}
+	id := strings.ReplaceAll(uuid.NewString(), "-", "")[:16]
+	databaseName := "native_admission_test_" + id
+	quotedDatabase := pgx.Identifier{databaseName}.Sanitize()
+	owner := "native_admission_owner_" + id
+	ownerPassword := strings.ReplaceAll(uuid.NewString(), "-", "")
+	statements := []string{"CREATE ROLE " + owner + " LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE PASSWORD '" + ownerPassword + "'"}
+	createdRoles := []string{}
+	for _, role := range []string{"techstack_application", "techstack_backup_worker", "techstack_household_worker", "techstack_platform_projection_system"} {
+		var exists bool
+		if err := adminDatabase.QueryRowContext(t.Context(), `SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = $1)`, role).Scan(&exists); err != nil {
+			_ = adminDatabase.Close()
+			t.Fatalf("inspect native admission integration role %s: %v", role, err)
+		}
+		if !exists {
+			statements = append(statements, "CREATE ROLE "+role+" NOLOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION")
+			createdRoles = append(createdRoles, role)
+		}
+	}
+	statements = append(statements,
+		"GRANT EXECUTE ON FUNCTION pg_catalog.pg_control_system() TO "+owner+" WITH GRANT OPTION",
+		"CREATE DATABASE "+quotedDatabase+" OWNER "+owner)
 
 	scopedConfig := adminConfig.Copy()
-	scopedConfig.RuntimeParams = make(map[string]string, len(adminConfig.RuntimeParams)+1)
-	for key, value := range adminConfig.RuntimeParams {
-		scopedConfig.RuntimeParams[key] = value
-	}
-	scopedConfig.RuntimeParams["search_path"] = schema + ",public"
+	scopedConfig.Database = databaseName
 	database := stdlib.OpenDB(*scopedConfig)
 	database.SetMaxOpenConns(8)
 	database.SetMaxIdleConns(8)
-	if pingErr := database.PingContext(t.Context()); pingErr != nil {
+	dropDatabase := func() {
 		_ = database.Close()
-		_, _ = adminDatabase.ExecContext(context.Background(), "DROP SCHEMA IF EXISTS "+quotedSchema+" CASCADE")
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		_, _ = adminDatabase.ExecContext(cleanupCtx, "DROP DATABASE IF EXISTS "+quotedDatabase+" WITH (FORCE)")
+		_, _ = adminDatabase.ExecContext(cleanupCtx, "REVOKE EXECUTE ON FUNCTION pg_catalog.pg_control_system() FROM "+owner+" CASCADE")
+		for _, role := range append(createdRoles, owner) {
+			_, _ = adminDatabase.ExecContext(cleanupCtx, "DROP OWNED BY "+role)
+			_, _ = adminDatabase.ExecContext(cleanupCtx, "DROP ROLE IF EXISTS "+role)
+		}
 		_ = adminDatabase.Close()
+	}
+	t.Cleanup(dropDatabase)
+	for _, statement := range statements {
+		if _, err := adminDatabase.ExecContext(t.Context(), statement); err != nil {
+			t.Fatalf("prepare native admission integration database: %v", err)
+		}
+	}
+	if pingErr := database.PingContext(t.Context()); pingErr != nil {
 		t.Fatalf("open native admission integration database: %v", pingErr)
 	}
-	t.Cleanup(func() {
-		_ = database.Close()
-		_, _ = adminDatabase.ExecContext(context.Background(), "DROP SCHEMA IF EXISTS "+quotedSchema+" CASCADE")
-		_ = adminDatabase.Close()
-	})
-	applyNativeAdmissionMigrations(t, database)
+	// Production's public schema belongs to the migration owner.
+	if _, err := database.ExecContext(t.Context(), "ALTER SCHEMA public OWNER TO "+owner); err != nil {
+		t.Fatalf("prepare native admission integration schema owner: %v", err)
+	}
+	ownerURL, err := url.Parse(dsn)
+	if err != nil {
+		t.Fatalf("parse native admission integration DSN as URL: %v", err)
+	}
+	ownerURL.User = url.UserPassword(owner, ownerPassword)
+	ownerURL.Path = "/" + databaseName
+	migrator, err := homelabdb.Open(homelabdb.Config{Backend: homelabdb.StoreBackendPostgres, DSN: ownerURL.String()})
+	if err != nil {
+		t.Fatalf("open native admission migration owner: %v", err)
+	}
+	migrateErr := migrator.Migrate(t.Context())
+	_ = migrator.Close()
+	if migrateErr != nil {
+		t.Fatalf("apply native admission migrations: %v", migrateErr)
+	}
 	tx, err := database.BeginTx(t.Context(), nil)
 	if err != nil {
 		t.Fatalf("begin native admission tenant seed: %v", err)
@@ -300,12 +355,13 @@ func openRestrictedNativeAdmissionRuntimeDB(t *testing.T, adminDatabase *sql.DB)
 		{"servers", "SELECT,INSERT,UPDATE"},
 		{"server_state_transitions", "SELECT,INSERT"},
 		{"server_registry_outbox", "SELECT,INSERT"},
-		{"techstack_vm_leases", "SELECT,INSERT"},
+		{"techstack_vm_leases", "SELECT,INSERT,UPDATE"},
 		{"runtime_lease_execution_authorities", "SELECT,INSERT"},
 		{"runtime_lease_idempotency_records", "SELECT,INSERT"},
 		{"managed_runtime_capacity_reservations", "SELECT,INSERT"},
 		{"managed_runtime_server_slots", "SELECT,INSERT"},
 		{"managed_runtime_server_slot_generations", "SELECT,INSERT"},
+		{"managed_runtime_support_replacements", "SELECT,INSERT,UPDATE"},
 		{"managed_runtime_capacity_release_facts", "SELECT,INSERT"},
 		{"managed_runtime_capacity_quarantine_retirements", "SELECT"},
 		{"provider_desired_spec_revisions", "SELECT,INSERT,UPDATE"},
@@ -313,6 +369,7 @@ func openRestrictedNativeAdmissionRuntimeDB(t *testing.T, adminDatabase *sql.DB)
 		{"provider_operation_receipts", "SELECT,INSERT"},
 		{"provider_operation_resources", "SELECT,INSERT,UPDATE"},
 		{"provider_operation_evidence", "SELECT,INSERT,UPDATE"},
+		{"provider_absence_observations", "SELECT,INSERT"},
 		{"provider_operation_execution_claims", "SELECT,INSERT,UPDATE"},
 		{"provider_provision_dispatch_guards", "SELECT,INSERT"},
 		{"provider_provision_discovery_observations", "SELECT,INSERT"},
@@ -339,6 +396,7 @@ func openRestrictedNativeAdmissionRuntimeDB(t *testing.T, adminDatabase *sql.DB)
 	for _, function := range []string{
 		"substrate_guest_custody_valid(text,text,text,text)",
 		"substrate_lock_binding(text,text,bigint)",
+		"managed_runtime_capacity_policy_digest(text,text,text,text,text,integer,text)",
 		"provider_control_lock_runtime_lease_projection(text)",
 		"provider_control_count_unsettled_generation_dispatch_guards(text,uuid)",
 	} {
@@ -351,10 +409,15 @@ func openRestrictedNativeAdmissionRuntimeDB(t *testing.T, adminDatabase *sql.DB)
 		}
 	}
 
+	var databaseName string
+	if err := adminDatabase.QueryRowContext(t.Context(), `SELECT current_database()`).Scan(&databaseName); err != nil {
+		t.Fatalf("load native admission integration database name: %v", err)
+	}
 	config, err := pgx.ParseConfig(strings.TrimSpace(os.Getenv("HOMELAB_TEST_POSTGRES_URL")))
 	if err != nil {
 		t.Fatalf("parse restricted native admission DSN: %v", err)
 	}
+	config.Database = databaseName
 	config.User = role
 	config.Password = password
 	runtimeParams := make(map[string]string, len(config.RuntimeParams)+1)
@@ -370,35 +433,6 @@ func openRestrictedNativeAdmissionRuntimeDB(t *testing.T, adminDatabase *sql.DB)
 		t.Fatalf("ping restricted native admission role: %v", err)
 	}
 	return runtimeDatabase
-}
-
-func applyNativeAdmissionMigrations(t *testing.T, database *sql.DB) {
-	t.Helper()
-	migrationDir := filepath.Join("..", "..", "pkg", "db", "migrations")
-	entries, err := os.ReadDir(migrationDir)
-	if err != nil {
-		t.Fatalf("read native admission migrations: %v", err)
-	}
-	for _, entry := range entries {
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".sql" {
-			continue
-		}
-		payload, err := os.ReadFile(filepath.Join(migrationDir, entry.Name()))
-		if err != nil {
-			t.Fatalf("read migration %s: %v", entry.Name(), err)
-		}
-		tx, err := database.BeginTx(t.Context(), nil)
-		if err != nil {
-			t.Fatalf("begin migration %s: %v", entry.Name(), err)
-		}
-		if _, err := tx.ExecContext(t.Context(), string(payload)); err != nil {
-			_ = tx.Rollback()
-			t.Fatalf("apply migration %s: %v", entry.Name(), err)
-		}
-		if err := tx.Commit(); err != nil {
-			t.Fatalf("commit migration %s: %v", entry.Name(), err)
-		}
-	}
 }
 
 type staticAdmissionCapacityPolicy struct {

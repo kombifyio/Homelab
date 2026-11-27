@@ -3,7 +3,11 @@ import { execFile, spawn } from "node:child_process";
 import { createReadStream } from "node:fs";
 import { createHash, randomUUID } from "node:crypto";
 import type { MonthlyRuntimeCleanupReadback } from "../../src/lib/api/stacks";
-import type { WizardRecommendationRequest, WizardRecommendationResult } from "../../src/lib/api/unifier";
+import type {
+  DocumentsMediaWorkloadEnvelope,
+  WizardRecommendationRequest,
+  WizardRecommendationResult,
+} from "../../src/lib/api/unifier";
 import type {
   ConfigureInstalledWorkloadRequest,
   UseCaseConfigurationView,
@@ -164,9 +168,9 @@ const MANAGED_RUNTIME_RETAIN =
 const MANAGED_DOCUMENTS_MEDIA =
   process.env.HOMELAB_RUNTIME_E2E_MANAGED_PROFILE === "documents-media";
 const STANDARD_PROFILE_GOALS = {
-  family: ["files", "photos", "media", "vault", "smart-home"],
+  family: ["files", "photos", "media", "vault"],
   "documents-media": ["files", "photos", "media"],
-  "self-employed": ["files", "vault", "mail"],
+  "self-employed": ["files", "vault", "mail", "automation"],
   infinity: ["files", "vault", "mail", "dev"],
 } as const;
 // Pinned catalog alternatives and their registry aliases; Mail is an existing
@@ -174,8 +178,9 @@ const STANDARD_PROFILE_GOALS = {
 const STANDARD_PROFILE_APPLICATIONS: Record<string, { alternative: string; registryKeys: string[] }> = {
   files: { alternative: "cloudreve", registryKeys: ["files", "cloudreve"] },
   vault: { alternative: "vaultwarden", registryKeys: ["vault", "vaultwarden"] },
-  photos: { alternative: "immich-lite", registryKeys: ["photos", "immich-lite"] },
+  photos: { alternative: "immich", registryKeys: ["photos", "immich"] },
   media: { alternative: "jellyfin", registryKeys: ["media", "jellyfin"] },
+  automation: { alternative: "workpaths", registryKeys: ["automation", "workpaths"] },
   "smart-home": { alternative: "home-assistant", registryKeys: ["smart-home", "home-assistant"] },
   dev: { alternative: "gitea", registryKeys: ["dev", "gitea"] },
 };
@@ -792,12 +797,22 @@ async function createManagedRuntimeStackViaWizard(
   }
   if (STANDARD_PROFILE) {
     expect(intent.goals.slice().sort()).toEqual([...STANDARD_PROFILE_GOALS[STANDARD_PROFILE]].sort());
-    if (STANDARD_PROFILE === "infinity" || STANDARD_PROFILE === "self-employed") {
+    if (STANDARD_PROFILE === "infinity") {
       expect(intent.profile_expansions).toEqual(expect.arrayContaining([
-        expect.objectContaining({ profile: STANDARD_PROFILE, deferred_goals: expect.arrayContaining(["automation", "ai"]) }),
+        expect.objectContaining({ profile: "infinity", deferred_goals: expect.arrayContaining(["automation", "ai"]) }),
       ]));
     }
-    if (intent.goals.includes("photos")) expect(intent.use_case_settings?.photos?.backend).toBe("immich-lite");
+    if (STANDARD_PROFILE === "self-employed") {
+      expect(intent.profile_expansions).toEqual(expect.arrayContaining([
+        expect.objectContaining({ profile: "self-employed", deferred_goals: expect.arrayContaining(["ai"]) }),
+      ]));
+    }
+    if (STANDARD_PROFILE === "family") {
+      expect(intent.profile_expansions).toEqual(expect.arrayContaining([
+        expect.objectContaining({ profile: "family", deferred_goals: expect.arrayContaining(["smart-home"]) }),
+      ]));
+    }
+    if (intent.goals.includes("photos")) expect(intent.use_case_settings?.photos?.backend).toBe("immich");
     if (intent.goals.includes("mail")) expect(intent.use_case_settings?.mail?.hosting).toBe("existing");
   }
   if (MANAGED_DOCUMENTS_MEDIA) {
@@ -1403,6 +1418,7 @@ async function assertProStandardDocumentsMediaRollout(args: {
   stackId: string;
   release: string;
   services: RuntimeStackOperationService[];
+  workloadEnvelope?: DocumentsMediaWorkloadEnvelope;
 }) {
   const capabilities = args.server.capabilities;
   expect(capabilities?.provider).toBe("ionos");
@@ -1435,6 +1451,76 @@ async function assertProStandardDocumentsMediaRollout(args: {
   }
   const registeredKeys = args.services.map((service) => service.application_key);
   expect(registeredKeys).toEqual(expect.arrayContaining(DOCUMENTS_MEDIA_GOALS));
+
+  // Verify live endpoint readiness for Cloudreve (files), full Immich (photos),
+  // and Jellyfin (media) on the real provisioned Pro Standard package.
+  const serviceByGoal = new Map<string, RuntimeStackOperationService>();
+  for (const goal of DOCUMENTS_MEDIA_GOALS) {
+    const match = args.services.find(
+      (svc) => svc.application_key === goal || svc.application_key === DOCUMENTS_MEDIA_ALTERNATIVES[goal as keyof typeof DOCUMENTS_MEDIA_ALTERNATIVES],
+    );
+    if (match) serviceByGoal.set(goal, match);
+  }
+  const probeUrl = async (
+    svc: RuntimeStackOperationService | undefined,
+    pathSuffix: string,
+    expectedBody?: string,
+  ) => {
+    const base = String(svc?.url ?? "").trim().replace(/\/+$/, "");
+    if (!base) return null;
+    const response = await fetch(`${base}${pathSuffix}`, {
+      redirect: "manual",
+      signal: AbortSignal.timeout(15_000),
+    });
+    const body = await response.text();
+    const isDirect200 = response.status === 200;
+    const bodyMatched = expectedBody
+      ? body.toLowerCase().includes(expectedBody.toLowerCase())
+      : body.trim().length > 0;
+    return {
+      url: `${base}${pathSuffix}`,
+      status: response.status,
+      ok: isDirect200 && bodyMatched,
+    };
+  };
+  const [filesProbe, photosProbe, mediaProbe] = await Promise.all([
+    probeUrl(serviceByGoal.get("files"), "/api/v3/site/ping"),
+    probeUrl(serviceByGoal.get("photos"), "/api/server/ping", "pong"),
+    probeUrl(serviceByGoal.get("media"), "/health"),
+  ]);
+  for (const [goal, probe] of [["files", filesProbe], ["photos", photosProbe], ["media", mediaProbe]] as const) {
+    expect(probe, `${goal} live service endpoint URL must be present and reachable`).not.toBeNull();
+    expect(probe!.status, `${goal} probe ${probe!.url} must return HTTP 200 without redirect`).toBe(200);
+    expect(probe!.ok, `${goal} live service endpoint ${probe!.url} responded with unexpected status/body (${probe!.status})`).toBe(true);
+  }
+  const photosConfig = inspected.use_cases.find((entry) => entry.id === "photos");
+  expect(photosConfig?.workloads.some((w) => w.alternative === "immich")).toBe(true);
+
+  let envelope = args.workloadEnvelope;
+  if (!envelope) {
+    const recRes = await authorizedFetch(
+      args.session,
+      runtimeApiUrl(args.session.apiBase, "/api/v1/unifier/recommendations"),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          surface: "easy",
+          deployment_lane: "saas",
+          goals: DOCUMENTS_MEDIA_GOALS,
+          services: [],
+          use_case_settings: { photos: { backend: "immich" } },
+          server_fit: { provider_id: "ionos", offering_id: DOCUMENTS_MEDIA_OFFERING },
+        }),
+        signal: AbortSignal.timeout(30_000),
+      },
+    );
+    expect(recRes.status, "Documents & Media workload envelope readback").toBe(200);
+    const recData = (await recRes.json()) as { data: WizardRecommendationResult };
+    envelope = recData.data?.pro_starters?.["documents-media"]?.workload_envelope;
+  }
+  expect(envelope, "pro_starters['documents-media'].workload_envelope must be defined").toBeDefined();
+
   await attachJson("pro-standard-documents-media-rollout.json", {
     provider: "ionos",
     runtime_offering: DOCUMENTS_MEDIA_OFFERING,
@@ -1443,7 +1529,10 @@ async function assertProStandardDocumentsMediaRollout(args: {
     observed_guest: { cpu_cores: 2, memory_bytes: memoryBytes, disk_bytes: diskBytes },
     installed_alternatives: DOCUMENTS_MEDIA_ALTERNATIVES,
     registered_application_keys: DOCUMENTS_MEDIA_GOALS,
-    scope: "package_and_application_rollout",
+    workload_probes: { files: filesProbe, photos: photosProbe, media: mediaProbe },
+    supported_playback_modes: envelope!.supported_playback_modes,
+    max_concurrent_workloads: envelope!.max_concurrent_workloads,
+    scope: "package_application_and_endpoint_rollout",
   });
 }
 
@@ -1457,6 +1546,18 @@ async function assertProStandardDocumentsMediaAuthority(session: GatewaySessionK
     throw new Error("The Gateway session is not the exact isolated Documents & media Pro fixture");
   }
   expect(identity["https://kombify.io/tier"], "the test owner is on real Pro").toBe("pro");
+  const featuresClaim =
+    identity["https://kombify.io/features"] ??
+    identity.features ??
+    identity.entitlements;
+  const hasAllYouNeed = Array.isArray(featuresClaim)
+    ? featuresClaim.includes("cloud.runtime.credits.ayn")
+    : Boolean(
+        featuresClaim &&
+          typeof featuresClaim === "object" &&
+          (featuresClaim as Record<string, unknown>)["cloud.runtime.credits.ayn"],
+      );
+  expect(hasAllYouNeed, "the Pro fixture must not hold cloud.runtime.credits.ayn").toBe(false);
   const admitted = await fetchRuntimeApi<{
     provider_id?: string;
     request_bound?: boolean;
@@ -1471,9 +1572,31 @@ async function assertProStandardDocumentsMediaAuthority(session: GatewaySessionK
     request_bound: true,
     admission_preflight: true,
   });
+  const premiumProbeRes = await authorizedFetch(
+    session,
+    runtimeApiUrl(session.apiBase, "/api/v1/unifier/recommendations"),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        surface: "easy",
+        deployment_lane: "saas",
+        goals: DOCUMENTS_MEDIA_GOALS,
+        services: [],
+        server_fit: { provider_id: "ionos", offering_id: "monthly-runtime-premium" },
+      }),
+      signal: AbortSignal.timeout(30_000),
+    },
+  );
+  expect(premiumProbeRes.status, "monthly-runtime-premium behavioral entitlement probe").toBe(200);
+  const premiumProbeBody = (await premiumProbeRes.json()) as { data: WizardRecommendationResult };
+  expect(premiumProbeBody.data?.server_fit?.status).toBe("does_not_fit");
+  expect(premiumProbeBody.data?.server_fit?.refusal_class).toBe("entitlement");
 }
 
-async function assertProStandardDocumentsMediaPackage(session: GatewaySessionKeeper) {
+async function assertProStandardDocumentsMediaPackage(
+  session: GatewaySessionKeeper,
+): Promise<DocumentsMediaWorkloadEnvelope | undefined> {
   const selection: WizardRecommendationRequest = {
     surface: "easy",
     deployment_lane: "saas",
@@ -1497,7 +1620,35 @@ async function assertProStandardDocumentsMediaPackage(session: GatewaySessionKee
   expect(data?.server_fit, "the fixture must have the Memory Cube S flag before ordering").toMatchObject(
     DOCUMENTS_MEDIA_PACKAGE,
   );
+  expect(data?.pro_starters?.["documents-media"]?.recommended_full).toBe(true);
+  expect(data?.pro_starters?.family?.deferred_goals).toContain("smart-home");
+  expect(data?.pro_starters?.["self-employed"]?.deferred_goals).toContain("ai");
+
+  // Verify Infinity without AYN names limiting workload and never offers an unentitled paid upgrade.
+  const infinityRes = await authorizedFetch(
+    session,
+    runtimeApiUrl(session.apiBase, "/api/v1/unifier/recommendations"),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        surface: "easy",
+        deployment_lane: "saas",
+        goals: ["files", "photos", "media", "vault", "smart-home", "ai", "dev"],
+        services: [],
+        server_fit: { provider_id: "ionos", offering_id: "monthly-runtime-standard" },
+      }),
+      signal: AbortSignal.timeout(30_000),
+    },
+  );
+  expect(infinityRes.ok, `Infinity recommendation without AYN failed with HTTP ${infinityRes.status}`).toBe(true);
+  const infBody = (await infinityRes.json()) as { data: WizardRecommendationResult };
+  expect(infBody.data?.server_fit?.status).toBe("does_not_fit");
+  const recovery = infBody.data?.server_fit?.recovery;
+  expect(recovery, "Infinity refusal without AYN must return a concrete recovery").toBeDefined();
+  expect(recovery!.action).not.toBe("switch_offering");
   await attachJson("pro-standard-documents-media-package.json", DOCUMENTS_MEDIA_PACKAGE);
+  return data?.pro_starters?.["documents-media"]?.workload_envelope;
 }
 
 async function runManagedServiceActionEvidence(args: {
@@ -3707,6 +3858,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
         );
         if (!PROFILE_WINDOW) managedApi = session;
         laneStartedAt = new Date().toISOString();
+        let documentsMediaEnvelope: DocumentsMediaWorkloadEnvelope | undefined;
         if (PROFILE_WINDOW) {
           const health = await fetchRuntimeApi<{ revision?: string; release_channel?: string }>(
             session, "/api/v1/health", session.apiBase,
@@ -3716,7 +3868,9 @@ test.describe.serial("Runtime E2E scenarios", () => {
             release_channel: "stable",
           });
           await assertProStandardDocumentsMediaAuthority(session);
-          if (MANAGED_DOCUMENTS_MEDIA) await assertProStandardDocumentsMediaPackage(session);
+          if (MANAGED_DOCUMENTS_MEDIA) {
+            documentsMediaEnvelope = await assertProStandardDocumentsMediaPackage(session);
+          }
         }
         advertisedStackkitsRelease = String(
           (
@@ -3976,6 +4130,7 @@ test.describe.serial("Runtime E2E scenarios", () => {
             stackId: stack.stack_id,
             release: advertisedStackkitsRelease,
             services: inventoryEvidence.service_registry.services,
+            workloadEnvelope: documentsMediaEnvelope,
           });
         }
         if (STANDARD_PROFILE) {

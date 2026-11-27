@@ -43,6 +43,9 @@ type ServiceRuntimeRouteConfig struct {
 	// UpdateChecker answers registry update questions for observed container
 	// images; nil uses the public-registry checker.
 	UpdateChecker *appcatalog.UpdateChecker
+	// Enricher resolves Tier-0 catalog metadata and optional Tier-1 Connected
+	// enrichment; nil uses appcatalog.NewDefaultEnricher().
+	Enricher *appcatalog.Enricher
 	// StackKitReleaseVersion reports the StackKits release this control plane
 	// pins, the target of the `update` action; nil resolves the configured pin.
 	StackKitReleaseVersion func() string
@@ -52,6 +55,12 @@ type ServiceRuntimeRouteConfig struct {
 	// HostEligibility is the node eligibility of the host primitives' card
 	// admission (the same rules as the owner's host routes).
 	HostEligibility *HostOperationEligibility
+	// ManagedPoolEnabled reports whether the curated Managed Apps shared pool is
+	// enabled; nil checks HOMELAB_IONOS_SHARED_POOL_ENABLED.
+	ManagedPoolEnabled func() bool
+	// ManagedPoolExecutor dispatches tenant-scoped IONOS Shared Pool commands
+	// when managed migration execution is requested; nil fails closed with 503.
+	ManagedPoolExecutor ManagedPoolExecutor
 }
 
 type serviceActionOrchestrator interface {
@@ -83,12 +92,15 @@ type serviceRuntimeHandlers struct {
 	// updates and stackKitRelease are optional; without them a service reports
 	// no registry or release comparison instead of an invented one.
 	updates         *appcatalog.UpdateChecker
+	enricher        *appcatalog.Enricher
 	stackKitRelease func() string
 	// releaseCatalog resolves the stack's pinned release catalog; nil reads
 	// the cached target release (jobs.CachedTargetStackKitReleaseForStack).
 	releaseCatalog  func(ctx context.Context, tenantID, stackID string) (stackkitrelease.AdvancedOperationsCatalog, error)
-	actionCards     *ServiceActionCards
-	hostEligibility *HostOperationEligibility
+	actionCards         *ServiceActionCards
+	hostEligibility     *HostOperationEligibility
+	managedPoolEnabled  func() bool
+	managedPoolExecutor ManagedPoolExecutor
 }
 
 type serviceActionRequest struct {
@@ -271,12 +283,25 @@ func RegisterServiceRuntimeRoutes(r *httpx.Router, cfg ServiceRuntimeRouteConfig
 	if h.updates == nil {
 		h.updates = appcatalog.NewUpdateChecker()
 	}
+	h.enricher = cfg.Enricher
+	if h.enricher == nil {
+		h.enricher = appcatalog.NewDefaultEnricher()
+	}
 	h.stackKitRelease = cfg.StackKitReleaseVersion
 	if h.stackKitRelease == nil {
 		h.stackKitRelease = pinnedStackKitRelease()
 	}
+	h.managedPoolEnabled = cfg.ManagedPoolEnabled
+	if h.managedPoolEnabled == nil {
+		h.managedPoolEnabled = defaultManagedPoolEnabled
+	}
+	h.managedPoolExecutor = cfg.ManagedPoolExecutor
 	r.GET("/api/v1/services", h.list)
 	r.GET("/api/v1/services/{serviceId}", h.get)
+	r.GET("/api/v1/services/{serviceId}/enrichment", h.getServiceEnrichment)
+	r.GET("/api/v1/services/{serviceId}/managed-migration/eligibility", h.managedMigrationEligibility)
+	r.POST("/api/v1/services/{serviceId}/managed-migration", h.planManagedMigration)
+	r.POST("/api/v1/catalog/enrich", h.enrichCatalog)
 	r.GET("/api/v1/services/{serviceId}/metrics", h.serviceMetrics)
 	r.GET("/api/v1/service-applications", h.listApplications)
 	r.GET("/api/v1/service-applications/{applicationId}", h.getApplication)

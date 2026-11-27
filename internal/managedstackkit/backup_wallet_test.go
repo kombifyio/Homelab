@@ -158,3 +158,138 @@ func TestWalletModeDeliversTheBackupTargetOnlyThroughTheWallet(t *testing.T) {
 		t.Fatalf("Wallet mode without a Wallet sealed itself: %v", err)
 	}
 }
+
+func TestBackupDeliveryReplacementRecipientHandoffPreservesSourceAndEnforcesStrictNonReplacement(t *testing.T) {
+	ctx := context.Background()
+	scope := DeliveryScope{TenantID: "tenant-a", StackID: "stack-a", OwnerID: "owner-1"}
+	custody := &fakeDeliveryCustody{}
+	delivery, err := NewBackupDelivery(custody, custody)
+	if err != nil {
+		t.Fatal(err)
+	}
+	delivery.attest = func(_ context.Context, _ backupstore.Credentials, evidence backupstore.CustodyEvidence) (backupstore.CustodyEvidence, error) {
+		evidence.ObservedAt = time.Now()
+		return evidence, nil
+	}
+
+	sourceNode := newNode(t)
+	destNode := newNode(t)
+	rogueNode := newNode(t)
+
+	// 1. Source Basic Cube S enrolls normally.
+	ch, _ := delivery.NewChallenge()
+	srcRecipient, err := delivery.AdmitRecipient(ctx, scope, ch, sourceNode.statement(t, ch, time.Now()))
+	if err != nil {
+		t.Fatalf("source AdmitRecipient: %v", err)
+	}
+	if _, err := delivery.Seal(ctx, scope, srcRecipient, hostdelivery.OperationBackupTargetImport); err != nil {
+		t.Fatalf("source Seal: %v", err)
+	}
+	srcBinding := backupstore.NodeBinding{
+		BackupTargetRef:       "backup-target://sha256/" + strings.Repeat("1", 64),
+		CustodyAttestationRef: "backup-custody-attestation://sha256/" + strings.Repeat("2", 64),
+	}
+	if err := delivery.RecordNodeBinding(ctx, scope, srcBinding); err != nil {
+		t.Fatalf("source RecordNodeBinding: %v", err)
+	}
+
+	// 2. Non-replacement AdmitRecipient still rejects destination or rogue keys.
+	ch, _ = delivery.NewChallenge()
+	if _, err := delivery.AdmitRecipient(ctx, scope, ch, destNode.statement(t, ch, time.Now())); err == nil || !strings.Contains(err.Error(), "pinned owner key") {
+		t.Fatalf("non-replacement AdmitRecipient with dest owner key = %v, want pinned owner key error", err)
+	}
+	ch, _ = delivery.NewChallenge()
+	swappedOnSource := node{owner: sourceNode.owner, recipient: destNode.recipient}
+	if _, err := delivery.AdmitRecipient(ctx, scope, ch, swappedOnSource.statement(t, ch, time.Now())); !errors.Is(err, backupstore.ErrRecipientSubstituted) {
+		t.Fatalf("non-replacement AdmitRecipient with substituted recipient key = %v, want ErrRecipientSubstituted", err)
+	}
+
+	// 3. Replacement handoff stages destNode without disturbing sourceNode's pin or binding.
+	repScope := ReplacementScope{
+		TenantID: "tenant-a", StackID: "stack-a", OwnerID: "owner-1",
+		ReplacementID: "sr-1", DestinationLeaseID: "lease-dest-1",
+		DestinationServerID: "srv-dest-1", DestinationResourceGeneration: "gen-dest-1",
+	}
+	ch, _ = delivery.NewChallenge()
+	dstRecipient, err := delivery.AdmitReplacementRecipient(ctx, repScope, ch, destNode.statement(t, ch, time.Now()))
+	if err != nil {
+		t.Fatalf("AdmitReplacementRecipient: %v", err)
+	}
+	// Non-replacement Seal MUST refuse the staged destination recipient key.
+	if sealed, err := delivery.Seal(ctx, scope, dstRecipient, hostdelivery.OperationBackupTargetImport); !errors.Is(err, backupstore.ErrRecipientSubstituted) || sealed != nil {
+		t.Fatalf("non-replacement Seal with staged dest recipient = %v, want ErrRecipientSubstituted", err)
+	}
+	if sealed, err := delivery.SealReplacement(ctx, repScope, dstRecipient, hostdelivery.OperationBackupTargetImport); err != nil || len(sealed) == 0 {
+		t.Fatalf("SealReplacement for staged replacement recipient: %v", err)
+	}
+	// SealReplacement MUST refuse an unpinned/substituted key.
+	roguePub := rogueNode.recipient.PublicKey().Bytes()
+	rogueRecipient := Recipient{
+		Public: roguePub, Fingerprint: hostdelivery.Fingerprint(roguePub),
+		Generation: dstRecipient.Generation, SiteRef: dstRecipient.SiteRef, NodeRef: dstRecipient.NodeRef,
+	}
+	if sealed, err := delivery.SealReplacement(ctx, repScope, rogueRecipient, hostdelivery.OperationBackupTargetImport); !errors.Is(err, backupstore.ErrRecipientSubstituted) || sealed != nil {
+		t.Fatalf("SealReplacement with rogue recipient = %v, want ErrRecipientSubstituted", err)
+	}
+	dstBinding := backupstore.NodeBinding{
+		BackupTargetRef:       "backup-target://sha256/" + strings.Repeat("3", 64),
+		CustodyAttestationRef: "backup-custody-attestation://sha256/" + strings.Repeat("4", 64),
+	}
+	if err := delivery.RecordReplacementNodeBinding(ctx, repScope, dstBinding); err != nil {
+		t.Fatalf("RecordReplacementNodeBinding: %v", err)
+	}
+
+	// Source node still owns stack_backup_stores before cutover.
+	gotBinding, err := delivery.NodeBinding(ctx, scope)
+	if err != nil || gotBinding != srcBinding {
+		t.Fatalf("source NodeBinding disturbed before cutover: got=%+v want=%+v err=%v", gotBinding, srcBinding, err)
+	}
+
+	// Key substitution during retry of the same replacement_id is refused.
+	ch, _ = delivery.NewChallenge()
+	if _, err := delivery.AdmitReplacementRecipient(ctx, repScope, ch, rogueNode.statement(t, ch, time.Now())); err == nil || !strings.Contains(err.Error(), "pinned owner key") {
+		t.Fatalf("AdmitReplacementRecipient rogue owner key = %v, want pinned owner key error", err)
+	}
+	ch, _ = delivery.NewChallenge()
+	swappedOnDest := node{owner: destNode.owner, recipient: rogueNode.recipient}
+	if _, err := delivery.AdmitReplacementRecipient(ctx, repScope, ch, swappedOnDest.statement(t, ch, time.Now())); !errors.Is(err, backupstore.ErrRecipientSubstituted) {
+		t.Fatalf("AdmitReplacementRecipient key substitution = %v, want ErrRecipientSubstituted", err)
+	}
+
+	// 4. Pre-cutover rollback discards staged handoff while keeping source intact.
+	if err := delivery.DiscardReplacementCustody(ctx, "tenant-a", "stack-a", "sr-1"); err != nil {
+		t.Fatalf("DiscardReplacementCustody: %v", err)
+	}
+	ch, _ = delivery.NewChallenge()
+	if _, err := delivery.AdmitRecipient(ctx, scope, ch, sourceNode.statement(t, ch, time.Now())); err != nil {
+		t.Fatalf("source AdmitRecipient after rollback failed: %v", err)
+	}
+
+	// 5. Retry replacement sr-2 commits at cutover, promoting destNode into stack_backup_stores.
+	repScope2 := repScope
+	repScope2.ReplacementID = "sr-2"
+	repScope2.DestinationLeaseID = "lease-dest-2"
+	ch, _ = delivery.NewChallenge()
+	if _, err := delivery.AdmitReplacementRecipient(ctx, repScope2, ch, destNode.statement(t, ch, time.Now())); err != nil {
+		t.Fatalf("AdmitReplacementRecipient sr-2: %v", err)
+	}
+	if err := delivery.RecordReplacementNodeBinding(ctx, repScope2, dstBinding); err != nil {
+		t.Fatalf("RecordReplacementNodeBinding sr-2: %v", err)
+	}
+	if err := delivery.CommitReplacementCustody(ctx, "tenant-a", "stack-a", "sr-2"); err != nil {
+		t.Fatalf("CommitReplacementCustody: %v", err)
+	}
+	promoted, err := delivery.NodeBinding(ctx, scope)
+	if err != nil || promoted != dstBinding {
+		t.Fatalf("promoted NodeBinding = %+v, want %+v (err=%v)", promoted, dstBinding, err)
+	}
+	ch, _ = delivery.NewChallenge()
+	if _, err := delivery.AdmitRecipient(ctx, scope, ch, sourceNode.statement(t, ch, time.Now())); err == nil || !strings.Contains(err.Error(), "pinned owner key") {
+		t.Fatalf("old source owner key after cutover = %v, want pinned owner key error", err)
+	}
+	ch, _ = delivery.NewChallenge()
+	swappedAfterCutover := node{owner: destNode.owner, recipient: sourceNode.recipient}
+	if _, err := delivery.AdmitRecipient(ctx, scope, ch, swappedAfterCutover.statement(t, ch, time.Now())); !errors.Is(err, backupstore.ErrRecipientSubstituted) {
+		t.Fatalf("old source recipient key after cutover = %v, want ErrRecipientSubstituted", err)
+	}
+}

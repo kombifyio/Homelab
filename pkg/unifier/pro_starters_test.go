@@ -213,3 +213,468 @@ func TestEntePhotosDriverAndBasicCubeSelection(t *testing.T) {
 		t.Fatalf("expected photos_ente capacity driver, got %+v", drivers)
 	}
 }
+
+func TestWizardRecommendationAuthorityEvaluatesProStartersEndToEnd(t *testing.T) {
+	authority := NewWizardRecommendationAuthority(nil)
+
+	// 1. Managed cloud Pro Standard without LAN reach: Family defers smart-home,
+	// Self-Employed includes automation and defers local AI, Documents & Media
+	// fits with full Immich on Memory Cube S.
+	cloudResp := authority.Recommend(WizardRecommendationEvaluation{
+		TenantID: "t1",
+		OwnerID:  "u1",
+		Request: core.WizardRecommendationRequest{
+			KitSlug:                    "cloud-kit",
+			DeploymentLane:             "saas",
+			ProviderID:                 monthlyruntime.ProviderIONOS,
+			RuntimeOfferingID:          "monthly-runtime-standard",
+			IONOSMemoryEnabled:         true,
+			LANReachable:               false,
+			AllowedOfferings:           []string{"monthly-runtime-standard"},
+			OfferingEntitlementChecked: true,
+			Goals:                      []string{"files", "photos", "media"},
+			Surface:                    "easy",
+			ServerFit: &core.WizardServerFitRequest{
+				ProviderID: monthlyruntime.ProviderIONOS,
+				OfferingID: "monthly-runtime-standard",
+				Source:     "managed",
+			},
+		},
+	})
+	if len(cloudResp.ProStarters) != 3 {
+		t.Fatalf("expected 3 evaluated ProStarters from Recommend(), got %d", len(cloudResp.ProStarters))
+	}
+	if !cloudResp.ProStarters[ProStarterDocumentsMedia].RecommendedFull {
+		t.Fatalf("expected documents-media RecommendedFull on Memory Cube S: %+v", cloudResp.ProStarters[ProStarterDocumentsMedia])
+	}
+	familyCloud := cloudResp.ProStarters[ProStarterFamily]
+	if familyCloud.RecommendedFull || !slices.Equal(familyCloud.DeferredGoals, []string{"smart-home"}) || !familyCloud.RequiresConfirmation {
+		t.Fatalf("expected family cloud starter to defer smart-home with confirmation: %+v", familyCloud)
+	}
+	selfEmpCloud := cloudResp.ProStarters[ProStarterSelfEmployed]
+	if selfEmpCloud.RecommendedFull || !slices.Contains(selfEmpCloud.DeferredGoals, "ai") {
+		t.Fatalf("expected self-employed cloud starter to defer local ai: %+v", selfEmpCloud)
+	}
+
+	// 2. Owned LAN-reachable 16 GiB host: Family recommends full choice first!
+	ownedWorker := core.Worker{
+		ID:            "wrk-lan",
+		ServerID:      "srv-lan",
+		Name:          "home-node",
+		Status:        "online",
+		UsageObserved: true,
+		Capabilities: core.WorkerCapabilities{
+			CPU: 4, RAM: 16384, Disk: 200, Arch: "amd64", AMD64MicroarchitectureLevel: 2,
+		},
+		Tags: map[string]string{"ip": "192.168.1.40"},
+	}
+	lanResp := authority.Recommend(WizardRecommendationEvaluation{
+		TenantID: "t1",
+		OwnerID:  "u1",
+		Inventory: WizardRecommendationInventory{
+			State:   "fresh",
+			Workers: []core.Worker{ownedWorker},
+		},
+		Request: core.WizardRecommendationRequest{
+			KitSlug:        "basement-kit",
+			DeploymentLane: "self-hosted",
+			LANReachable:   true,
+			Goals:          []string{"photos", "files", "media", "vault", "smart-home"},
+			Surface:        "easy",
+		},
+	})
+	if !lanResp.ProStarters[ProStarterFamily].RecommendedFull || !slices.Contains(lanResp.ProStarters[ProStarterFamily].StartsWith, "smart-home") {
+		t.Fatalf("expected full family starter recommended first on LAN-reachable 16 GiB host: %+v", lanResp.ProStarters[ProStarterFamily])
+	}
+	if !lanResp.ProStarters[ProStarterSelfEmployed].RecommendedFull {
+		t.Fatalf("expected full self-employed starter recommended first on 16 GiB host: %+v", lanResp.ProStarters[ProStarterSelfEmployed])
+	}
+}
+
+func TestProStartersDocumentsMediaConfirmationAlternativesAndExcludeServerID(t *testing.T) {
+	// 1. Basic Cube S (4 GiB) with Centron admitted: documents-media sets
+	// RequiresConfirmation=true, ConfirmationReasons=["documents_media_host_insufficient"],
+	// and surfaces switch_provider (Centron Standard) alongside lighter photo alternatives.
+	centronReq := core.WizardRecommendationRequest{
+		KitSlug:                  "cloud-kit",
+		DeploymentLane:           "saas",
+		ProviderID:               monthlyruntime.ProviderIONOS,
+		RuntimeOfferingID:        "monthly-runtime-standard",
+		IONOSMemoryEnabled:       false,
+		ProviderAdmissionChecked: true,
+		AdmittedProviders:        []string{monthlyruntime.ProviderIONOS, monthlyruntime.ProviderCentron},
+		ServerFit: &core.WizardServerFitRequest{
+			ProviderID: monthlyruntime.ProviderIONOS,
+			OfferingID: "monthly-runtime-standard",
+			Source:     "managed",
+		},
+	}
+	dmCentron := EvaluateProStarter(ProStarterDocumentsMedia, centronReq, WizardRecommendationInventory{}, false)
+	if dmCentron.RecommendedFull || !dmCentron.RequiresConfirmation {
+		t.Fatalf("documents-media on 4 GiB Basic Cube S must require confirmation: %+v", dmCentron)
+	}
+	if !slices.Contains(dmCentron.ConfirmationReasons, "documents_media_host_insufficient") {
+		t.Fatalf("expected documents_media_host_insufficient reason, got %v", dmCentron.ConfirmationReasons)
+	}
+	hasSwitchProvider := false
+	for _, alt := range dmCentron.Alternatives {
+		if alt.Kind == "switch_provider" && alt.ProviderID == monthlyruntime.ProviderCentron && alt.OfferingID == "monthly-runtime-standard" {
+			hasSwitchProvider = true
+		}
+	}
+	if !hasSwitchProvider {
+		t.Fatalf("expected switch_provider alternative to Centron Standard, got %+v", dmCentron.Alternatives)
+	}
+
+	// 2. Basic Cube S (4 GiB) without Centron, with a capable 16 GiB owned server:
+	// documents-media surfaces use_owned_server and requires confirmation.
+	capableWorker := core.Worker{
+		ID:            "wrk-16g",
+		ServerID:      "srv-16g",
+		Name:          "capable-node",
+		Status:        "online",
+		UsageObserved: true,
+		Capabilities: core.WorkerCapabilities{
+			CPU: 4, RAM: 16384, Disk: 200, Arch: "amd64", AMD64MicroarchitectureLevel: 2,
+		},
+	}
+	ownedFallbackReq := centronReq
+	ownedFallbackReq.AdmittedProviders = []string{monthlyruntime.ProviderIONOS}
+	dmOwned := EvaluateProStarter(ProStarterDocumentsMedia, ownedFallbackReq, WizardRecommendationInventory{
+		State:   "fresh",
+		Workers: []core.Worker{capableWorker},
+	}, false)
+	if !dmOwned.RequiresConfirmation {
+		t.Fatalf("expected RequiresConfirmation on Basic Cube S with owned server fallback: %+v", dmOwned)
+	}
+	hasOwnedAlt := false
+	for _, alt := range dmOwned.Alternatives {
+		if alt.Kind == "use_owned_server" && alt.ServerID == "srv-16g" {
+			hasOwnedAlt = true
+		}
+	}
+	if !hasOwnedAlt {
+		t.Fatalf("expected use_owned_server alternative for srv-16g, got %+v", dmOwned.Alternatives)
+	}
+
+	// 3. excludeServerID: if baseRequest.ServerFit.ServerID is already "srv-lan-selected",
+	// evaluateFamilyStarter (even with LAN-reachable IP) and evaluateSelfEmployedStarter
+	// must not recommend "srv-lan-selected" again.
+	selectedLANOwned := core.Worker{
+		ID:            "wrk-16g-lan-selected",
+		ServerID:      "srv-lan-selected",
+		Name:          "lan-selected-16g",
+		Status:        "online",
+		UsageObserved: true,
+		Capabilities: core.WorkerCapabilities{
+			CPU: 4, RAM: 16384, Disk: 200, Arch: "amd64", AMD64MicroarchitectureLevel: 2,
+		},
+		Tags: map[string]string{"ip": "192.168.1.50"},
+	}
+	selectedOwnedReq := core.WizardRecommendationRequest{
+		KitSlug:        "basement-kit",
+		DeploymentLane: "self-hosted",
+		ServerFit: &core.WizardServerFitRequest{
+			ServerID: "srv-lan-selected",
+			Source:   "guard",
+		},
+	}
+	familySelected := EvaluateProStarter(ProStarterFamily, selectedOwnedReq, WizardRecommendationInventory{
+		State:   "fresh",
+		Workers: []core.Worker{selectedLANOwned},
+	}, false)
+	for _, alt := range familySelected.Alternatives {
+		if alt.Kind == "use_owned_server" && alt.ServerID == "srv-lan-selected" {
+			t.Fatalf("evaluateFamilyStarter must exclude already-selected ServerFit.ServerID %q, got %+v", "srv-lan-selected", familySelected.Alternatives)
+		}
+	}
+	selfEmpSelected := EvaluateProStarter(ProStarterSelfEmployed, selectedOwnedReq, WizardRecommendationInventory{
+		State:   "fresh",
+		Workers: []core.Worker{selectedLANOwned},
+	}, false)
+	for _, alt := range selfEmpSelected.Alternatives {
+		if alt.Kind == "use_owned_server" && alt.ServerID == "srv-lan-selected" {
+			t.Fatalf("evaluateSelfEmployedStarter must exclude already-selected ServerFit.ServerID %q, got %+v", "srv-lan-selected", selfEmpSelected.Alternatives)
+		}
+	}
+
+	// 4. evaluateFamilyStarter must not offer a non-LAN-reachable owned worker as
+	// a Smart Home use_owned_server alternative, and evaluateDocumentsMediaStarter
+	// must set RequiresConfirmation whenever fit != fits even with no alternatives.
+	nonLANWorker := core.Worker{
+		ID: "wrk-noip", ServerID: "srv-noip", Name: "noip-16g", Status: "online", UsageObserved: true,
+		Capabilities: core.WorkerCapabilities{CPU: 4, RAM: 16384, Disk: 200, Arch: "amd64", AMD64MicroarchitectureLevel: 2},
+	}
+	familyNoLAN := EvaluateProStarter(ProStarterFamily, centronReq, WizardRecommendationInventory{
+		State:   "fresh",
+		Workers: []core.Worker{nonLANWorker},
+	}, false)
+	for _, alt := range familyNoLAN.Alternatives {
+		if alt.Kind == "use_owned_server" && alt.ServerID == "srv-noip" {
+			t.Fatalf("evaluateFamilyStarter must require LAN reachability for smart-home use_owned_server, got %+v", familyNoLAN.Alternatives)
+		}
+	}
+
+	dmNoAlts := EvaluateProStarter(ProStarterDocumentsMedia, core.WizardRecommendationRequest{
+		KitSlug:        "basement-kit",
+		DeploymentLane: "self-hosted",
+		ServerFit: &core.WizardServerFitRequest{
+			Source: "substrate",
+			ObservedCapacity: &core.WizardObservedHostCapacity{
+				CPUCores: 2, MemoryMB: 2048, DiskGB: 40, Architecture: "amd64", AMD64Level: 2, Source: "substrate", UsageObserved: true,
+			},
+		},
+	}, WizardRecommendationInventory{}, false)
+	if dmNoAlts.RecommendedFull || !dmNoAlts.RequiresConfirmation || !slices.Contains(dmNoAlts.ConfirmationReasons, "documents_media_host_insufficient") {
+		t.Fatalf("evaluateDocumentsMediaStarter must set RequiresConfirmation when fit != fits even without alternatives: %+v", dmNoAlts)
+	}
+
+	// 5. Nil or pending fit must NOT claim documents_media_host_insufficient.
+	dmNilFit := EvaluateProStarter(ProStarterDocumentsMedia, core.WizardRecommendationRequest{
+		KitSlug:        "basement-kit",
+		DeploymentLane: "self-hosted",
+	}, WizardRecommendationInventory{}, false)
+	if dmNilFit.RecommendedFull || dmNilFit.RequiresConfirmation || slices.Contains(dmNilFit.ConfirmationReasons, "documents_media_host_insufficient") {
+		t.Fatalf("evaluateDocumentsMediaStarter with nil fit must not claim host insufficient: %+v", dmNilFit)
+	}
+	dmPendingFit := EvaluateProStarter(ProStarterDocumentsMedia, core.WizardRecommendationRequest{
+		KitSlug:        "basement-kit",
+		DeploymentLane: "self-hosted",
+		ServerFit:      &core.WizardServerFitRequest{Source: "install-command"},
+	}, WizardRecommendationInventory{}, false)
+	if dmPendingFit.RecommendedFull || dmPendingFit.RequiresConfirmation || slices.Contains(dmPendingFit.ConfirmationReasons, "documents_media_host_insufficient") {
+		t.Fatalf("evaluateDocumentsMediaStarter with pending fit must not claim host insufficient: %+v", dmPendingFit)
+	}
+
+	// 6. On a LAN-reachable host where 5 goals exceed capacity but 4 cloud goals
+	// fit, evaluateFamilyStarter must set RequiresConfirmation with a capacity reason
+	// instead of silently dropping smart-home.
+	tightLANWorker := core.Worker{
+		ID: "wrk-tight-lan", ServerID: "srv-tight-lan", Name: "tight-lan", Status: "online", UsageObserved: true,
+		Capabilities: core.WorkerCapabilities{CPU: 4, RAM: 6144, Disk: 120, Arch: "amd64", AMD64MicroarchitectureLevel: 2},
+		Usage:        core.WorkerUsage{CPU: 1, RAM: 3072, Disk: 10},
+		Tags:         map[string]string{"ip": "192.168.1.90"},
+	}
+	tightFullFit := EvaluateServerFit(core.WizardRecommendationRequest{
+		KitSlug:        "basement-kit",
+		DeploymentLane: "self-hosted",
+		Goals:          []string{"photos", "files", "media", "vault", "smart-home"},
+		ServerFit:      &core.WizardServerFitRequest{ServerID: "srv-tight-lan", Source: "guard"},
+	}, WizardRecommendationInventory{State: "fresh", Workers: []core.Worker{tightLANWorker}})
+	tightCloudFit := EvaluateServerFit(core.WizardRecommendationRequest{
+		KitSlug:        "basement-kit",
+		DeploymentLane: "self-hosted",
+		Goals:          []string{"photos", "files", "media", "vault"},
+		ServerFit:      &core.WizardServerFitRequest{ServerID: "srv-tight-lan", Source: "guard"},
+	}, WizardRecommendationInventory{State: "fresh", Workers: []core.Worker{tightLANWorker}})
+	if tightFullFit == nil || tightFullFit.Status == FitStatusFits || tightCloudFit == nil || tightCloudFit.Status != FitStatusFits {
+		t.Fatalf("precondition failed: full=%+v cloud=%+v", tightFullFit, tightCloudFit)
+	}
+	familyTightLAN := EvaluateProStarter(ProStarterFamily, core.WizardRecommendationRequest{
+		KitSlug:        "basement-kit",
+		DeploymentLane: "self-hosted",
+		ServerFit:      &core.WizardServerFitRequest{ServerID: "srv-tight-lan", Source: "guard"},
+	}, WizardRecommendationInventory{State: "fresh", Workers: []core.Worker{tightLANWorker}}, true)
+	if familyTightLAN.RecommendedFull || !slices.Equal(familyTightLAN.DeferredGoals, []string{"smart-home"}) ||
+		!familyTightLAN.RequiresConfirmation || !slices.Contains(familyTightLAN.ConfirmationReasons, "smart_home_deferred_host_capacity") {
+		t.Fatalf("evaluateFamilyStarter must require confirmation with capacity reason when smart-home overflows LAN host: %+v", familyTightLAN)
+	}
+}
+
+func TestBestOnlineObservedWorkerExcludesManagedLeasedAndStackBound(t *testing.T) {
+	caps := core.WorkerCapabilities{CPU: 8, RAM: 32768, Disk: 500, Arch: "amd64", AMD64MicroarchitectureLevel: 2}
+	managed := core.Worker{
+		ID: "wrk-managed", ServerID: "srv-managed", Status: "online", UsageObserved: true, Capabilities: caps,
+		Tags: map[string]string{"source": "managed-runtime", "ip": "192.168.1.10"},
+	}
+	leased := core.Worker{
+		ID: "wrk-leased", ServerID: "srv-leased", Status: "online", UsageObserved: true, Capabilities: caps,
+		Tags: map[string]string{"lease_id": "lease-123", "ip": "192.168.1.11"},
+	}
+	tagBound := core.Worker{
+		ID: "wrk-tag-bound", ServerID: "srv-tag-bound", Status: "online", UsageObserved: true, Capabilities: caps,
+		Tags: map[string]string{"stack_id": "stk-1", "ip": "192.168.1.12"},
+	}
+	fieldBound := core.Worker{
+		ID: "wrk-field-bound", ServerID: "srv-field-bound", StackID: "stk-2", Status: "online", UsageObserved: true, Capabilities: caps,
+		Tags: map[string]string{"ip": "192.168.1.13"},
+	}
+	if got, ok := bestOnlineObservedWorker(WizardRecommendationInventory{
+		State:   "fresh",
+		Workers: []core.Worker{managed, leased, tagBound, fieldBound},
+	}); ok {
+		t.Fatalf("bestOnlineObservedWorker must exclude managed, leased, and stack-bound workers, got %+v", got)
+	}
+
+	owned := core.Worker{
+		ID: "wrk-owned", ServerID: "srv-owned", Status: "online", UsageObserved: true,
+		Capabilities: core.WorkerCapabilities{CPU: 4, RAM: 16384, Disk: 200, Arch: "amd64", AMD64MicroarchitectureLevel: 2},
+		Tags:         map[string]string{"ip": "192.168.1.50"},
+	}
+	got, ok := bestOnlineObservedWorker(WizardRecommendationInventory{
+		State:   "fresh",
+		Workers: []core.Worker{managed, leased, tagBound, fieldBound, owned},
+	})
+	if !ok || got.ID != "wrk-owned" {
+		t.Fatalf("bestOnlineObservedWorker must select eligible owned unbound worker, got ok=%v worker=%+v", ok, got)
+	}
+}
+
+func TestRecommendDerivesLANReachServerSideAndIgnoresClientAssertion(t *testing.T) {
+	authority := NewWizardRecommendationAuthority(nil)
+	caps16G := core.WorkerCapabilities{CPU: 4, RAM: 16384, Disk: 200, Arch: "amd64", AMD64MicroarchitectureLevel: 2}
+
+	// 1. Managed target with client LANReachable=true must NOT admit full Family Smart Home.
+	managedResp := authority.Recommend(WizardRecommendationEvaluation{
+		TenantID: "t1", OwnerID: "u1",
+		Request: core.WizardRecommendationRequest{
+			KitSlug:            "cloud-kit",
+			DeploymentLane:     "saas",
+			ProviderID:         monthlyruntime.ProviderIONOS,
+			RuntimeOfferingID:  "monthly-runtime-standard",
+			IONOSMemoryEnabled: true,
+			LANReachable:       true,
+			Goals:              []string{"photos", "files", "media", "vault", "smart-home"},
+			Surface:            "easy",
+			ServerFit: &core.WizardServerFitRequest{
+				ProviderID: monthlyruntime.ProviderIONOS,
+				OfferingID: "monthly-runtime-standard",
+				Source:     "managed",
+			},
+		},
+	})
+	if fam := managedResp.ProStarters[ProStarterFamily]; fam.RecommendedFull || !slices.Contains(fam.DeferredGoals, "smart-home") {
+		t.Fatalf("managed target must ignore client LANReachable=true and defer smart-home: %+v", fam)
+	}
+
+	// 2. Missing owned target with client LANReachable=true must NOT admit full Family Smart Home.
+	missingResp := authority.Recommend(WizardRecommendationEvaluation{
+		TenantID: "t1", OwnerID: "u1",
+		Inventory: WizardRecommendationInventory{State: "fresh"},
+		Request: core.WizardRecommendationRequest{
+			KitSlug:        "basement-kit",
+			DeploymentLane: "self-hosted",
+			LANReachable:   true,
+			Goals:          []string{"photos", "files", "media", "vault", "smart-home"},
+			Surface:        "easy",
+		},
+	})
+	if fam := missingResp.ProStarters[ProStarterFamily]; fam.RecommendedFull || !slices.Contains(fam.DeferredGoals, "smart-home") {
+		t.Fatalf("missing owned target must ignore client LANReachable=true and defer smart-home: %+v", fam)
+	}
+
+	// 3. Managed worker in inventory with private IP + client LANReachable=true must be excluded.
+	managedWorkerResp := authority.Recommend(WizardRecommendationEvaluation{
+		TenantID: "t1", OwnerID: "u1",
+		Inventory: WizardRecommendationInventory{
+			State: "fresh",
+			Workers: []core.Worker{{
+				ID: "wrk-vps", ServerID: "srv-vps", Status: "online", UsageObserved: true, Capabilities: caps16G,
+				Tags: map[string]string{"source": "managed-runtime", "ip": "192.168.1.80"},
+			}},
+		},
+		Request: core.WizardRecommendationRequest{
+			KitSlug:        "basement-kit",
+			DeploymentLane: "self-hosted",
+			LANReachable:   true,
+			Goals:          []string{"photos", "files", "media", "vault", "smart-home"},
+			Surface:        "easy",
+		},
+	})
+	if fam := managedWorkerResp.ProStarters[ProStarterFamily]; fam.RecommendedFull || !slices.Contains(fam.DeferredGoals, "smart-home") {
+		t.Fatalf("managed-runtime worker must not count as owned LAN starter target: %+v", fam)
+	}
+
+	// 4. Owned worker with a public IP + client LANReachable=true must NOT count as LAN-reachable.
+	publicIPWorker := core.Worker{
+		ID: "wrk-pub", ServerID: "srv-pub", Status: "online", UsageObserved: true, Capabilities: caps16G,
+		Tags: map[string]string{"ip": "203.0.113.10"},
+	}
+	if hasOwnedLANReachable(publicIPWorker) {
+		t.Fatal("hasOwnedLANReachable must reject public IP 203.0.113.10")
+	}
+	publicResp := authority.Recommend(WizardRecommendationEvaluation{
+		TenantID: "t1", OwnerID: "u1",
+		Inventory: WizardRecommendationInventory{State: "fresh", Workers: []core.Worker{publicIPWorker}},
+		Request: core.WizardRecommendationRequest{
+			KitSlug:        "basement-kit",
+			DeploymentLane: "self-hosted",
+			LANReachable:   true,
+			Goals:          []string{"photos", "files", "media", "vault", "smart-home"},
+			Surface:        "easy",
+		},
+	})
+	if fam := publicResp.ProStarters[ProStarterFamily]; fam.RecommendedFull || !slices.Contains(fam.DeferredGoals, "smart-home") {
+		t.Fatalf("public-IP owned worker must ignore client LANReachable=true and defer smart-home: %+v", fam)
+	}
+
+	// 5. Owned worker with private RFC1918 / ULA IP admits full Family Smart Home via server derivation.
+	ulaWorker := core.Worker{
+		ID: "wrk-ula", ServerID: "srv-ula", Status: "online", UsageObserved: true, Capabilities: caps16G,
+		Tags: map[string]string{"ip": "fd00:1::10"},
+	}
+	if !hasOwnedLANReachable(ulaWorker) {
+		t.Fatal("hasOwnedLANReachable must accept IPv6 ULA fd00:1::10")
+	}
+	ulaResp := authority.Recommend(WizardRecommendationEvaluation{
+		TenantID: "t1", OwnerID: "u1",
+		Inventory: WizardRecommendationInventory{State: "fresh", Workers: []core.Worker{ulaWorker}},
+		Request: core.WizardRecommendationRequest{
+			KitSlug:        "basement-kit",
+			DeploymentLane: "self-hosted",
+			LANReachable:   false,
+			Goals:          []string{"photos", "files", "media", "vault", "smart-home"},
+			Surface:        "easy",
+		},
+	})
+	if fam := ulaResp.ProStarters[ProStarterFamily]; !fam.RecommendedFull || !slices.Contains(fam.StartsWith, "smart-home") {
+		t.Fatalf("server-derived ULA owned worker must recommend full Family including smart-home: %+v", fam)
+	}
+
+	// 6. Selected stack-bound owned worker (ServerFit.ServerID != "") with LAN IP
+	// counts as LAN-reachable for its own deployment, while unbound discovery still excludes it.
+	boundLANWorker := core.Worker{
+		ID: "wrk-bound-lan", ServerID: "srv-bound-lan", StackID: "stk-existing", Status: "online", UsageObserved: true, Capabilities: caps16G,
+		Tags: map[string]string{"stack_id": "stk-existing", "ip": "192.168.1.77"},
+	}
+	if _, ok := bestOnlineObservedWorker(WizardRecommendationInventory{State: "fresh", Workers: []core.Worker{boundLANWorker}}); ok {
+		t.Fatal("bestOnlineObservedWorker must still exclude stack-bound worker")
+	}
+	boundSelectedResp := authority.Recommend(WizardRecommendationEvaluation{
+		TenantID: "t1", OwnerID: "u1",
+		Inventory: WizardRecommendationInventory{State: "fresh", Workers: []core.Worker{boundLANWorker}},
+		Request: core.WizardRecommendationRequest{
+			KitSlug:        "basement-kit",
+			DeploymentLane: "self-hosted",
+			Goals:          []string{"photos", "files", "media", "vault", "smart-home"},
+			Surface:        "easy",
+			ServerFit:      &core.WizardServerFitRequest{ServerID: "srv-bound-lan", Source: "guard"},
+		},
+	})
+	if fam := boundSelectedResp.ProStarters[ProStarterFamily]; !fam.RecommendedFull || !slices.Contains(fam.StartsWith, "smart-home") {
+		t.Fatalf("selected stack-bound LAN owned worker must recommend full Family including smart-home: %+v", fam)
+	}
+
+	// 7. AvailableGoals filters ProStarter StartsWith and DeferredGoals so unoffered
+	// goals are never preselected or deferred.
+	filteredResp := authority.Recommend(WizardRecommendationEvaluation{
+		TenantID: "t1", OwnerID: "u1",
+		Inventory: WizardRecommendationInventory{State: "fresh", Workers: []core.Worker{ulaWorker}},
+		Request: core.WizardRecommendationRequest{
+			KitSlug:        "basement-kit",
+			DeploymentLane: "self-hosted",
+			AvailableGoals: []string{"files", "photos", "vault", "mail"},
+			Goals:          []string{"files"},
+			Surface:        "easy",
+		},
+	})
+	if dm := filteredResp.ProStarters[ProStarterDocumentsMedia]; slices.Contains(dm.StartsWith, "media") || !slices.Equal(dm.StartsWith, []string{"files", "photos"}) {
+		t.Fatalf("documents-media must filter unoffered media from StartsWith: %+v", dm)
+	}
+	if fam := filteredResp.ProStarters[ProStarterFamily]; slices.Contains(fam.StartsWith, "media") || slices.Contains(fam.StartsWith, "smart-home") || slices.Contains(fam.DeferredGoals, "smart-home") {
+		t.Fatalf("family must filter unoffered goals from StartsWith/DeferredGoals: %+v", fam)
+	}
+	if se := filteredResp.ProStarters[ProStarterSelfEmployed]; slices.Contains(se.StartsWith, "automation") || slices.Contains(se.DeferredGoals, "automation") || slices.Contains(se.DeferredGoals, "ai") {
+		t.Fatalf("self-employed must filter unoffered goals from StartsWith/DeferredGoals: %+v", se)
+	}
+}

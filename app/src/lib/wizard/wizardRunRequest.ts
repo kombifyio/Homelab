@@ -55,10 +55,21 @@ function profileExpansions(config: StackConfig, selected: readonly string[]) {
   const profiles = ["infinity", "self-employed", "family", "documents-media"] as const;
   const result = profiles
     .filter((profile) => config.creationProfiles?.[profile])
-    .map((profile) => ({
-      profile,
-      deferred_goals: profileExpansionGoals(profile).filter((goal) => !selected.includes(goal)),
-    }))
+    .map((profile) => {
+      const allowed = new Set<string>(profileExpansionGoals(profile));
+      const candidates = [
+        ...new Set([
+          ...profileExpansionGoals(profile),
+          ...(config.creationProfiles?.[profile]?.skipped ?? []).filter((goal) =>
+            allowed.has(goal),
+          ),
+        ]),
+      ];
+      return {
+        profile,
+        deferred_goals: candidates.filter((goal) => !selected.includes(goal)),
+      };
+    })
     .filter((entry) => entry.deferred_goals.length > 0);
   return result.length ? result : undefined;
 }

@@ -3,7 +3,7 @@
   "product": "homelab",
   "source": {
     "path": "api/openapi/homelab-v1.yaml",
-    "sha256": "d46141da469a930c95c8b9749eecfb08c2e070e9542661d4c7b6633e3c20ad74"
+    "sha256": "971d2ef461cdb6c83967348c7ff03e531343f5407ad8378f058313b34098ebc6"
   },
   "envelope": "data",
   "cli": {
@@ -33115,6 +33115,79 @@
           }
         },
         {
+          "name": "server_fit",
+          "in": "body",
+          "wireName": "server_fit",
+          "description": "Target server or managed offering for whole-stack fit evaluation.",
+          "schema": {
+            "additionalProperties": false,
+            "description": "Target server or managed offering for whole-stack fit evaluation.",
+            "properties": {
+              "host": {
+                "type": "string"
+              },
+              "observed_capacity": {
+                "additionalProperties": false,
+                "properties": {
+                  "amd64_level": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "architecture": {
+                    "type": "string"
+                  },
+                  "cpu_cores": {
+                    "maximum": 1024,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "disk_gb": {
+                    "maximum": 1048576,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "free_disk_gb": {
+                    "maximum": 1048576,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "memory_mb": {
+                    "maximum": 1048576,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "observed_at": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "stale": {
+                    "type": "boolean"
+                  },
+                  "usage_observed": {
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              },
+              "offering_id": {
+                "type": "string"
+              },
+              "provider_id": {
+                "type": "string"
+              },
+              "server_id": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        {
           "name": "services",
           "in": "body",
           "wireName": "services",
@@ -33342,6 +33415,57 @@
               },
               "type": "array"
             },
+            "pro_starters": {
+              "additionalProperties": {
+                "properties": {
+                  "alternatives": {
+                    "items": {
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "confirmation_reasons": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "default_settings": {
+                    "type": "object"
+                  },
+                  "deferred_goals": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "fit": {
+                    "type": "object"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "recommended_full": {
+                    "type": "boolean"
+                  },
+                  "requires_confirmation": {
+                    "type": "boolean"
+                  },
+                  "starts_with": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "workload_envelope": {
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              },
+              "description": "Explicit Pro starter evaluations keyed by starter preset id.",
+              "type": "object"
+            },
             "recommendations": {
               "items": {
                 "properties": {
@@ -33382,6 +33506,154 @@
             },
             "selection": {
               "description": "Preselection guidance when selection_intent is set.",
+              "type": "object"
+            },
+            "server_fit": {
+              "description": "Whole-stack fit evaluation for the selected managed offering or owned host.",
+              "properties": {
+                "advisories": {
+                  "items": {
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "budget": {
+                  "type": "object"
+                },
+                "capacity_origin": {
+                  "enum": [
+                    "catalog_sku",
+                    "observed_inventory",
+                    "unmeasured"
+                  ],
+                  "type": "string"
+                },
+                "catalog_source": {
+                  "type": "string"
+                },
+                "deficits": {
+                  "items": {
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "evidence": {
+                  "enum": [
+                    "projected",
+                    "observed"
+                  ],
+                  "type": "string"
+                },
+                "inventory_revision": {
+                  "type": "string"
+                },
+                "inventory_source": {
+                  "type": "string"
+                },
+                "location": {
+                  "type": "string"
+                },
+                "memory_peak": {
+                  "type": "object"
+                },
+                "offering_id": {
+                  "type": "string"
+                },
+                "pending_reason": {
+                  "type": "string"
+                },
+                "provider_id": {
+                  "type": "string"
+                },
+                "recovery": {
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "switch_offering",
+                        "switch_provider",
+                        "use_owned_server",
+                        "switch_profile",
+                        "omit_use_case",
+                        "refresh_inventory",
+                        "review_selection"
+                      ],
+                      "type": "string"
+                    },
+                    "goal": {
+                      "type": "string"
+                    },
+                    "offering_id": {
+                      "type": "string"
+                    },
+                    "offering_memory_mb": {
+                      "type": "integer"
+                    },
+                    "offering_name": {
+                      "type": "string"
+                    },
+                    "offering_sku": {
+                      "type": "string"
+                    },
+                    "profile": {
+                      "type": "string"
+                    },
+                    "provider_id": {
+                      "type": "string"
+                    },
+                    "reason_code": {
+                      "type": "string"
+                    },
+                    "server_id": {
+                      "type": "string"
+                    },
+                    "server_name": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "refusal_class": {
+                  "enum": [
+                    "hardware_fit",
+                    "unsupported_runtime",
+                    "unavailable_provider",
+                    "entitlement"
+                  ],
+                  "type": "string"
+                },
+                "scope": {
+                  "type": "string"
+                },
+                "server_id": {
+                  "type": "string"
+                },
+                "sku": {
+                  "type": "string"
+                },
+                "specs": {
+                  "type": "object"
+                },
+                "status": {
+                  "enum": [
+                    "fits",
+                    "tight",
+                    "does_not_fit",
+                    "pending",
+                    "unknown",
+                    "stale"
+                  ],
+                  "type": "string"
+                },
+                "template": {
+                  "type": "string"
+                },
+                "unknowns": {
+                  "items": {
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              },
               "type": "object"
             },
             "smart_home_recommendation": {

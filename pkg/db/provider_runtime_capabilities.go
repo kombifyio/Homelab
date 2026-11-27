@@ -21,6 +21,7 @@ var ProviderRuntimeTableGrants = []ProviderRuntimeTableGrant{
 	{Table: "managed_runtime_capacity_reservations", Privileges: "SELECT,INSERT"},
 	{Table: "managed_runtime_server_slots", Privileges: "SELECT,INSERT"},
 	{Table: "managed_runtime_server_slot_generations", Privileges: "SELECT,INSERT"},
+	{Table: "managed_runtime_support_replacements", Privileges: "SELECT,INSERT,UPDATE"},
 	{Table: "managed_runtime_capacity_release_facts", Privileges: "SELECT,INSERT"},
 	{Table: "managed_runtime_capacity_quarantine_retirements", Privileges: "SELECT"},
 	{Table: "provider_desired_spec_revisions", Privileges: "SELECT,INSERT,UPDATE"},

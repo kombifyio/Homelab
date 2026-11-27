@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net/netip"
 	"sort"
 	"strings"
 )
@@ -144,6 +145,7 @@ func eligibleNodes(snapshot Snapshot) ([]*nodeState, []Reason, bool) {
 	var states []*nodeState
 	var notes []Reason
 	excludedUnknown := false
+	multiNode := len(snapshot.Nodes) > 1 && snapshot.Scope != "selection-guidance"
 	for _, node := range snapshot.Nodes {
 		params := map[string]string{"node": node.Name}
 		switch {
@@ -152,6 +154,9 @@ func eligibleNodes(snapshot Snapshot) ([]*nodeState, []Reason, bool) {
 		case node.State != NodeConnected && node.State != NodePlanned:
 			notes = append(notes, reason("node_not_connected", params))
 			// It might host the selection once it is back; nothing is proven.
+			excludedUnknown = true
+		case node.State == NodeConnected && multiNode && !validNodeAddress(node.Address):
+			notes = append(notes, reason("node_address_unreachable", params))
 			excludedUnknown = true
 		case node.Capacity.RAMGB <= 0 || node.Capacity.CPUCores <= 0:
 			notes = append(notes, reason("node_capacity_unknown", params))
@@ -571,6 +576,19 @@ func merge(a, b map[string]string) map[string]string {
 		out[k] = v
 	}
 	return out
+}
+
+func validNodeAddress(raw string) bool {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return false
+	}
+	addr, err := netip.ParseAddr(trimmed)
+	if err != nil {
+		return false
+	}
+	addr = addr.Unmap().WithZone("")
+	return addr.IsGlobalUnicast() && !addr.IsLoopback()
 }
 
 func containsRole(roles []string, role string) bool {

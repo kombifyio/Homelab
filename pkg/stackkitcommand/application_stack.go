@@ -3,8 +3,10 @@ package stackkitcommand
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -28,12 +30,20 @@ const (
 	ApplicationStackResultVersion = "stackkit.own-application-adoption/v1"
 	// ApplicationStackRetention is the producer's restore window.
 	ApplicationStackRetention = 7 * 24 * time.Hour
+
+	StackItHTTPPortMin  = 1
+	StackItHTTPPortMax  = 65535
+	StackItMemoryMiBMin = 64
+	StackItMemoryMiBMax = 8192
+	StackItCPUsMin      = 0.1
+	StackItCPUsMax      = 4.0
 )
 
 var (
 	applicationStackRowCodePattern = regexp.MustCompile(`^[a-z][a-z0-9_]{0,63}$`)
 	ownApplicationNamePattern      = regexp.MustCompile(`^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$`)
 	ownApplicationNameCleaner      = regexp.MustCompile(`[^a-z0-9]+`)
+	stackItHTTPServicePattern      = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$`)
 )
 
 // ApplicationStackOperations are the producer catalog operations, in the
@@ -76,6 +86,64 @@ func ValidOwnApplicationName(name string) bool {
 	return len(name) <= 40 && ownApplicationNamePattern.MatchString(name) && !strings.HasPrefix(name, "kombify") && !strings.HasPrefix(name, "stackkit")
 }
 
+// ValidateStackItHTTPPort checks an optional --http-port override (0 means omitted).
+func ValidateStackItHTTPPort(port int) error {
+	if port == 0 {
+		return nil
+	}
+	if port < StackItHTTPPortMin || port > StackItHTTPPortMax {
+		return fmt.Errorf("http_port must be between %d and %d", StackItHTTPPortMin, StackItHTTPPortMax)
+	}
+	return nil
+}
+
+// ValidateStackItMemoryMiB checks an optional --memory-mib override (0 means omitted).
+func ValidateStackItMemoryMiB(mib int) error {
+	if mib == 0 {
+		return nil
+	}
+	if mib < StackItMemoryMiBMin || mib > StackItMemoryMiBMax {
+		return fmt.Errorf("memory_mib must be between %d and %d", StackItMemoryMiBMin, StackItMemoryMiBMax)
+	}
+	return nil
+}
+
+// FormatStackItCPUs validates an optional --cpus override and returns its
+// canonical decimal string (empty when omitted).
+func FormatStackItCPUs(cpus float64) (string, error) {
+	if math.IsNaN(cpus) || math.IsInf(cpus, 0) || cpus < StackItCPUsMin || cpus > StackItCPUsMax {
+		return "", fmt.Errorf("cpus must be between %.1f and %.1f", StackItCPUsMin, StackItCPUsMax)
+	}
+	return strconv.FormatFloat(cpus, 'f', -1, 64), nil
+}
+
+// ValidateStackItCPUsString validates a canonical --cpus string (empty means omitted).
+func ValidateStackItCPUsString(raw string) error {
+	if raw == "" {
+		return nil
+	}
+	if strings.HasPrefix(raw, "-") || strings.ContainsAny(raw, " \t\r\n") {
+		return fmt.Errorf("cpus must be between %.1f and %.1f", StackItCPUsMin, StackItCPUsMax)
+	}
+	v, err := strconv.ParseFloat(raw, 64)
+	if err != nil {
+		return fmt.Errorf("cpus must be a valid number between %.1f and %.1f", StackItCPUsMin, StackItCPUsMax)
+	}
+	_, err = FormatStackItCPUs(v)
+	return err
+}
+
+// ValidateStackItHTTPService checks an optional --http-service override (empty means omitted).
+func ValidateStackItHTTPService(service string) error {
+	if service == "" {
+		return nil
+	}
+	if !stackItHTTPServicePattern.MatchString(service) {
+		return fmt.Errorf("http_service must be a valid Compose service name")
+	}
+	return nil
+}
+
 func validateApplicationStackCommand(c *agentpb.StackKitCommand) error {
 	if !ReleaseAtLeast(c.Release.GetVersion(), MinApplicationStackRelease) {
 		return fmt.Errorf("stack it requires StackKits %s or newer", MinApplicationStackRelease)
@@ -85,6 +153,28 @@ func validateApplicationStackCommand(c *agentpb.StackKitCommand) error {
 	}
 	if !sha256Pattern.MatchString(c.ApplicationContainerId) || !ValidOwnApplicationName(c.OwnApplicationName) {
 		return fmt.Errorf("stack it requires a full container ID and a valid own application name")
+	}
+	hasOverrides := c.StackItHttpPort != 0 || c.StackItNoOutbound || c.StackItMemoryMib != 0 || c.StackItCpus != "" || c.StackItAdoptComposeProject || c.StackItHttpService != ""
+	if c.Operation != agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_STACK_PLAN && c.Operation != agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_STACK {
+		if hasOverrides {
+			return fmt.Errorf("stack it overrides are only valid for plan and adopt")
+		}
+	} else {
+		if err := ValidateStackItHTTPPort(int(c.StackItHttpPort)); err != nil {
+			return err
+		}
+		if err := ValidateStackItMemoryMiB(int(c.StackItMemoryMib)); err != nil {
+			return err
+		}
+		if err := ValidateStackItCPUsString(c.StackItCpus); err != nil {
+			return err
+		}
+		if err := ValidateStackItHTTPService(c.StackItHttpService); err != nil {
+			return err
+		}
+		if c.StackItHttpService != "" && !c.StackItAdoptComposeProject {
+			return fmt.Errorf("http_service requires adopt_compose_project")
+		}
 	}
 	if !applicationStackMutation(c.Operation) {
 		if c.OwnerApproved || c.ApplicationPlanDigest != "" || c.ApplicationOperationId != "" {
@@ -123,6 +213,7 @@ type ApplicationStackPort struct {
 }
 
 type ApplicationStackData struct {
+	Service   string `json:"service,omitempty"`
 	Source    string `json:"source"`
 	MountPath string `json:"mountPath"`
 	Volume    string `json:"volume"`
@@ -151,6 +242,7 @@ type ApplicationStackResult struct {
 	OutboundInternet bool                   `json:"outboundInternet"`
 	PublishedPorts   []ApplicationStackPort `json:"publishedPorts"`
 	Data             *ApplicationStackData  `json:"data,omitempty"`
+	ServiceData      []ApplicationStackData `json:"serviceData,omitempty"`
 	DowntimeSeconds  int64                  `json:"downtimeSeconds,omitempty"`
 	RetainUntil      *time.Time             `json:"retainUntil,omitempty"`
 	OriginalState    string                 `json:"originalState,omitempty"`

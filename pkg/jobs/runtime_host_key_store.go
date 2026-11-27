@@ -111,11 +111,6 @@ func runtimeHostKeyBindingFrom(ctx context.Context) RuntimeHostKeyBinding {
 
 const runtimeHostKeyBackendTimeout = 10 * time.Second
 
-// ErrRuntimeHostKeyPinStorePending reports that the durable pin store does not
-// exist yet (the binary runs before its schema). The store then keeps the
-// file-backed behavior for this process.
-var ErrRuntimeHostKeyPinStorePending = errors.New("runtime host key pin store is not rolled out yet")
-
 // NewRuntimeHostKeyStore creates a store persisted at path. An empty path
 // keeps the pins for the process lifetime only.
 func NewRuntimeHostKeyStore(path string) *RuntimeHostKeyStore {
@@ -198,11 +193,6 @@ func (s *RuntimeHostKeyStore) loadBackendLocked() error {
 	ctx, cancel := context.WithTimeout(context.Background(), runtimeHostKeyBackendTimeout)
 	durable, err := s.backend.LoadPins(ctx)
 	cancel()
-	if errors.Is(err, ErrRuntimeHostKeyPinStorePending) {
-		s.backend = nil
-		s.backendErr = nil
-		return nil
-	}
 	if err != nil {
 		s.backendErr = fmt.Errorf("%w: load runtime host key pins: %v", ErrRuntimeHostKeyUnverifiable, err)
 		return s.backendErr

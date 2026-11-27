@@ -565,6 +565,20 @@ func (h wizardRunHandlers) normalizeFoundRequest(e *httpx.Event, run *wizardRunS
 	return normalized, false
 }
 
+func isAllowedWizardOwnerOptionKey(key string) bool {
+	switch key {
+	case "owner_bootstrap_mode",
+		"owner_source",
+		"owner_email",
+		"owner_username",
+		"owner_display_name",
+		"recovery_passphrase_hash":
+		return true
+	default:
+		return false
+	}
+}
+
 // synthesizeCreateRequest maps the wizard run onto the legacy create-stack
 // wire shape so the create core (runtime fields, entitlement detection, kit
 // normalization) applies unchanged.
@@ -572,6 +586,9 @@ func (h wizardRunHandlers) synthesizeCreateRequest(run *wizardRunState) createSt
 	request := run.request
 	options := map[string]interface{}{}
 	for key, value := range request.Owner {
+		if !isAllowedWizardOwnerOptionKey(key) {
+			continue
+		}
 		options[key] = value
 	}
 	options[creationServerProvisionModeField] = wizardRunTransport(request)
@@ -839,8 +856,8 @@ func (h wizardRunHandlers) runWizardJoin(e *httpx.Event, run *wizardRunState) er
 		return nil
 	}
 	if existingServer {
-		if handled := h.resolveWizardJoinExistingServer(e, run, stack, base, projection, persisted); handled {
-			return nil
+		if handled, err := h.resolveWizardJoinExistingServer(e, run, stack, base, projection, persisted); handled {
+			return err
 		}
 	}
 	if homelabHandled := h.ensureWizardHomelab(e, run, stack.Name); homelabHandled {

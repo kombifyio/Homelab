@@ -40,7 +40,11 @@
   import { useCreationContext } from "#lib/creation/context.js";
   import type { GoalsSlice } from "#lib/creation/core/index.js";
   import SmartHomeAdvice from "./SmartHomeAdvice.svelte";
-  import type { SmartHomeRecommendation } from "#lib/api/unifier.js";
+  import ExistingAppTakeoverBanner from "./ExistingAppTakeoverBanner.svelte";
+  import type {
+    DetectedExistingApp,
+    SmartHomeRecommendation,
+  } from "#lib/api/unifier.js";
 
   /**
    * The large card of one use case: its painting, the application choice and
@@ -57,6 +61,9 @@
     hardware = {},
     oncomplete,
     smartHomeRecommendation,
+    detectedExistingApps = [],
+    onAdoptExistingApp,
+    onOverrideExistingApp,
   }: {
     card: CreationGoal;
     config: GoalsSlice;
@@ -72,6 +79,9 @@
     /** The guided setup was applied; the stage moves on. */
     oncomplete?: () => void;
     smartHomeRecommendation?: SmartHomeRecommendation;
+    detectedExistingApps?: DetectedExistingApp[];
+    onAdoptExistingApp?: (app: DetectedExistingApp) => void;
+    onOverrideExistingApp?: (app: DetectedExistingApp) => void;
   } = $props();
 
   const creation = useCreationContext();
@@ -109,6 +119,12 @@
   const chosen = $derived(selectedBackend(card.catalog, values.backend));
   const notInRelease = $derived(
     !reviewMode && runtimeCatalog.get(card.id)?.deliverable === false,
+  );
+  const matchingExistingApps = $derived(
+    detectedExistingApps.filter(
+      (app) =>
+        app.spectrum_tier === "first_class" && app.use_case_slug === card.id,
+    ),
   );
   /** Free-text settings (a mail domain) are not questions; they stay in the
    * settings drawer below the setup. */
@@ -288,8 +304,22 @@
               /></a
             >{/if}
         </div>
+        {#if matchingExistingApps.length > 0}
+          <ExistingAppTakeoverBanner
+            apps={matchingExistingApps}
+            smartHomeOrigin={config.useCaseSettings?.["smart-home"]?.[
+              "instance-origin"
+            ]}
+            onAdopt={onAdoptExistingApp}
+            onOverride={onOverrideExistingApp}
+            compact
+          />
+        {/if}
         {#if card.id === "smart-home" && smartHomeRecommendation}
-          <details class="smart-home-advice">
+          <details
+            class="smart-home-advice"
+            open={smartHomeRecommendation.auto_detected}
+          >
             <summary>{tr("wizard.smartHome.advice")}</summary>
             <SmartHomeAdvice recommendation={smartHomeRecommendation} compact />
           </details>

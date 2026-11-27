@@ -4,7 +4,7 @@
   "source": {
     "product": "homelab",
     "path": "api/openapi/homelab-v1.yaml",
-    "sha256": "d46141da469a930c95c8b9749eecfb08c2e070e9542661d4c7b6633e3c20ad74"
+    "sha256": "971d2ef461cdb6c83967348c7ff03e531343f5407ad8378f058313b34098ebc6"
   },
   "tools": [
     {
@@ -10578,6 +10578,73 @@
             "required": [
               "ram_mb"
             ],
+            "type": "object"
+          },
+          "server_fit": {
+            "additionalProperties": false,
+            "description": "Target server or managed offering for whole-stack fit evaluation.",
+            "properties": {
+              "host": {
+                "type": "string"
+              },
+              "observed_capacity": {
+                "additionalProperties": false,
+                "properties": {
+                  "amd64_level": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "architecture": {
+                    "type": "string"
+                  },
+                  "cpu_cores": {
+                    "maximum": 1024,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "disk_gb": {
+                    "maximum": 1048576,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "free_disk_gb": {
+                    "maximum": 1048576,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "memory_mb": {
+                    "maximum": 1048576,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "observed_at": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "stale": {
+                    "type": "boolean"
+                  },
+                  "usage_observed": {
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              },
+              "offering_id": {
+                "type": "string"
+              },
+              "provider_id": {
+                "type": "string"
+              },
+              "server_id": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              }
+            },
             "type": "object"
           },
           "services": {

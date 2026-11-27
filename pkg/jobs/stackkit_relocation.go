@@ -180,6 +180,10 @@ func normalizeNativeWorkloadRelocationRequest(req WorkloadRelocationRequest) (Wo
 		return req, fmt.Errorf("move individual applications one at a time")
 	}
 	for _, address := range []*string{&req.SourceAddress, &req.DestinationAddress} {
+		*address = strings.TrimSpace(*address)
+		if *address == "" {
+			continue
+		}
 		peer, err := stackkitcommand.ApplicationTransferPeer(*address)
 		if err != nil {
 			return req, err

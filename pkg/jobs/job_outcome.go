@@ -252,6 +252,8 @@ func jobOutcomeCapability(jobType JobType) string {
 		return "homelab.runtime.command"
 	case JobTypeStackKitLifecycle:
 		return "homelab.stackkit.lifecycle"
+	case JobTypeSupportIONOSMemoryReplacement:
+		return "homelab.support.ionos_memory_replacement"
 	default:
 		return "homelab.job.execute"
 	}

@@ -50,24 +50,3 @@ ORDER BY profile.provider_id`)
 	}
 	return out, nil
 }
-
-func IsProviderControlPlaneUnavailable(err error) bool {
-	if err == nil {
-		return false
-	}
-	if errors.Is(err, ErrProviderControlPlaneUnavailable) {
-		return true
-	}
-	msg := strings.ToLower(err.Error())
-	for _, needle := range []string{
-		"relation \"provider_catalog_versions\" does not exist",
-		"relation \"provider_catalog_profiles\" does not exist",
-		"undefined_table",
-		"no such table",
-	} {
-		if strings.Contains(msg, needle) {
-			return true
-		}
-	}
-	return false
-}

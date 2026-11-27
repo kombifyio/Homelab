@@ -229,6 +229,12 @@ type AdvancedOperationResult struct {
 	// Report is the operation's report payload: data.changeSetResult,
 	// data.driftReport, the drill report or the rollback result.
 	Report json.RawMessage
+	// ApplicationRecovery holds the embedded stackkit.application-recovery-receipt/v1
+	// payload when a restore drill executed with --workload.
+	ApplicationRecovery json.RawMessage
+	// BackupSurvival holds an optional Guard G backup survival receipt or bound
+	// survival envelope embedded in an Advanced report.
+	BackupSurvival json.RawMessage
 	// OriginRequest and OriginInstall carry the typed evidence of the two
 	// origin-certificate operations; the persisted Report omits the CSR body.
 	OriginRequest *OriginCertificateRequestEvidence
@@ -330,7 +336,22 @@ func admitAdvancedReport(operation string, data advancedData, raw json.RawMessag
 	if data.SchemaVersion != schemaVersion || data.Status != status {
 		return AdvancedOperationResult{}, fmt.Errorf("StackKit %s result is not a %s %s", operation, status, schemaVersion)
 	}
-	return AdvancedOperationResult{Operation: operation, Status: data.Status, Report: raw}, nil
+	res := AdvancedOperationResult{Operation: operation, Status: data.Status, Report: raw}
+	if schemaVersion == restoreDrillReportVersion {
+		var nested struct {
+			ApplicationRecovery json.RawMessage `json:"applicationRecovery"`
+			BackupSurvival      json.RawMessage `json:"backupSurvival"`
+		}
+		if json.Unmarshal(raw, &nested) == nil {
+			if len(bytes.TrimSpace(nested.ApplicationRecovery)) > 0 && !bytes.Equal(bytes.TrimSpace(nested.ApplicationRecovery), []byte("null")) {
+				res.ApplicationRecovery = nested.ApplicationRecovery
+			}
+			if len(bytes.TrimSpace(nested.BackupSurvival)) > 0 && !bytes.Equal(bytes.TrimSpace(nested.BackupSurvival), []byte("null")) {
+				res.BackupSurvival = nested.BackupSurvival
+			}
+		}
+	}
+	return res, nil
 }
 
 func reportStatus(raw json.RawMessage, schemaVersion string) (string, error) {

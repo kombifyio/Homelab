@@ -32,23 +32,67 @@ const (
 	specOperationTimeout = 30 * time.Second
 )
 
-// schemaPending maps a missing custody table (the binary runs before its
-// forward migration, D-2026-10-27-06) to the caller's "not rolled out yet"
-// sentinel, so it keeps its previous local behavior until the table exists.
-func schemaPending(err error, pending error) error {
+// errStackTenantDirectoryPending reports that the tenant directory of the
+// stacks table (migration 207) does not exist yet. The import then falls
+// back to the directory it had, so a binary that runs before its migration
+// keeps its previous behavior instead of failing the boot.
+var errStackTenantDirectoryPending = errors.New("stack tenant directory is not rolled out yet")
+
+// errControlPlaneArchiveDigestPending reports that the digest-only archive
+// verification routine (migration 207) does not exist yet on a pre-207
+// database.
+var errControlPlaneArchiveDigestPending = errors.New("control-plane disk archive digest routine is not rolled out yet")
+
+// routinePending maps missing migration-207 tables or routines (42P01 / 42883)
+// to the caller's pending sentinel, scoped to the specific migration-207 calls.
+func routinePending(err error, pending error) error {
 	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == "42P01" {
+	if errors.As(err, &pgErr) && (pgErr.Code == "42P01" || pgErr.Code == "42883") {
 		return fmt.Errorf("%w: %s", pending, pgErr.Message)
 	}
 	return err
 }
 
-func pgErrorCode(err error) string {
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) {
-		return pgErr.Code
+// listStackTenantDirectory pages the tenant directory of the stacks table
+// (migration 207), mapping 42P01/42883 to errStackTenantDirectoryPending so
+// pre-207 databases fall back to the drift-schedule directory.
+func listStackTenantDirectory(ctx context.Context, pool *sql.DB) ([]string, error) {
+	tenants, err := pageTenants(ctx, pool, `SELECT tenant_id FROM public.techstack_list_stack_tenant_ids($1, $2)`)
+	if err != nil {
+		return nil, routinePending(err, errStackTenantDirectoryPending)
 	}
-	return ""
+	return tenants, nil
+}
+
+type controlPlaneArchiveDigest struct {
+	OtherVersions int
+	ContentSHA256 string
+	ByteSize      int64
+	HasMatch      bool
+}
+
+// readControlPlaneArchiveDigest queries the bounded SECURITY DEFINER digest
+// routine (migration 207) so runtime roles verify archived control-plane and
+// remainder files without holding SELECT on control_plane_disk_archive.content.
+func readControlPlaneArchiveDigest(ctx context.Context, pool *sql.DB, source, digest string) (controlPlaneArchiveDigest, error) {
+	var out controlPlaneArchiveDigest
+	var matchedSHA sql.NullString
+	var byteSize sql.NullInt64
+	var archivedAt sql.NullTime
+	err := pool.QueryRowContext(ctx,
+		`SELECT other_versions, content_sha256, byte_size, archived_at
+		 FROM public.techstack_control_plane_disk_archive_digest($1, $2)`,
+		source, digest,
+	).Scan(&out.OtherVersions, &matchedSHA, &byteSize, &archivedAt)
+	if err != nil {
+		return out, routinePending(err, errControlPlaneArchiveDigestPending)
+	}
+	if matchedSHA.Valid && byteSize.Valid {
+		out.ContentSHA256 = matchedSHA.String
+		out.ByteSize = byteSize.Int64
+		out.HasMatch = true
+	}
+	return out, nil
 }
 
 // HostKeyPins is the runtime_host_key_pins table: one pin per normalized
@@ -68,7 +112,7 @@ func (p HostKeyPins) LoadPins(ctx context.Context) (map[string]string, error) {
 	}
 	rows, err := p.DB.QueryContext(ctx, `SELECT address, fingerprint FROM runtime_host_key_pins`)
 	if err != nil {
-		return nil, schemaPending(err, jobs.ErrRuntimeHostKeyPinStorePending)
+		return nil, err
 	}
 	defer rows.Close()
 	pins := map[string]string{}
@@ -102,8 +146,7 @@ func (p HostKeyPins) LookupPin(ctx context.Context, address string) (string, boo
 // returns the pin that holds. A bound pin is written in the lease's tenant
 // scope with the lease in app.runtime_host_key_lease; the admit trigger of
 // migration 176 keeps the binding only for that tenant's lease recording the
-// pinned host and refuses a lease already proven absent. Before migration 176
-// the setting is ignored and the pin is stored unbound.
+// pinned host and refuses a lease already proven absent.
 func (p HostKeyPins) PinFirst(ctx context.Context, address, fingerprint string, binding jobs.RuntimeHostKeyBinding) (string, error) {
 	if p.DB == nil {
 		return "", errors.New("host key pin database is not configured")
@@ -155,7 +198,7 @@ func (p HostKeyPins) warnUnbound(ctx context.Context, address string, binding jo
 }
 
 // RetiredPins returns the candidate addresses whose given fingerprint the
-// database retired. Before migration 176 no pin has ever been retired.
+// database retired.
 func (p HostKeyPins) RetiredPins(ctx context.Context, candidates map[string]string) (map[string]bool, error) {
 	retired := map[string]bool{}
 	if len(candidates) == 0 {
@@ -175,9 +218,6 @@ func (p HostKeyPins) RetiredPins(ctx context.Context, candidates map[string]stri
 		JOIN unnest($1::text[], $2::text[]) AS candidate(address, fingerprint)
 		  ON candidate.address = retired.address AND candidate.fingerprint = retired.fingerprint`,
 		addresses, fingerprints)
-	if pgErrorCode(err) == "42P01" {
-		return retired, nil
-	}
 	if err != nil {
 		return nil, err
 	}
@@ -286,7 +326,7 @@ func (s stackSpecFiles) LoadSpecFiles() (map[string][]byte, error) {
 		return rows.Err()
 	})
 	if err != nil {
-		return nil, schemaPending(err, unifier.ErrSpecMirrorPending)
+		return nil, err
 	}
 	return files, nil
 }

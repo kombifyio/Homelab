@@ -461,7 +461,7 @@ func provisionResolutionSnapshotMatches(
 }
 
 func validateProvisionResolutionHead(record OperationRecord) error {
-	if record.ExecutionAuthority != ExecutionAuthorityHomelabProviderControl ||
+	if !isHomelabProviderControlAuthority(record.ExecutionAuthority) ||
 		record.Command.Operation != providerexecutor.OperationProvision ||
 		record.ProvisionDispatch != ProvisionDispatchAtMostOnceManualReconcile ||
 		len(record.Head.Resources) != 0 {
@@ -479,7 +479,7 @@ func validateProvisionResolutionHead(record OperationRecord) error {
 }
 
 func isTerminalHandleFreeAMOProvisionHead(record OperationRecord) bool {
-	return record.ExecutionAuthority == ExecutionAuthorityHomelabProviderControl &&
+	return isHomelabProviderControlAuthority(record.ExecutionAuthority) &&
 		record.Command.Operation == providerexecutor.OperationProvision &&
 		record.ProvisionDispatch == ProvisionDispatchAtMostOnceManualReconcile &&
 		record.Head.Status == providerexecutor.StatusFailed &&

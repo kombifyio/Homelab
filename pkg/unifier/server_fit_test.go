@@ -13,12 +13,14 @@ func TestEvaluateServerFitWholeStackManagedSKUsIONOSAndCentron(t *testing.T) {
 	// must fail whole-stack fit, name photos as affected, classify as hardware_fit,
 	// and suggest switching to the fitting IONOS Premium Basic Cube M (8 GiB).
 	ionosStandard := EvaluateServerFit(core.WizardRecommendationRequest{
-		KitSlug:           "cloud-kit",
-		DeploymentLane:    "saas",
-		ProviderID:        monthlyruntime.ProviderIONOS,
-		RuntimeOfferingID: "monthly-runtime-standard",
-		Goals:             []string{"files", "media", "photos"},
-		UseCaseSettings:   map[string]map[string]any{"photos": {"backend": "immich"}},
+		KitSlug:                    "cloud-kit",
+		DeploymentLane:             "saas",
+		ProviderID:                 monthlyruntime.ProviderIONOS,
+		RuntimeOfferingID:          "monthly-runtime-standard",
+		Goals:                      []string{"files", "media", "photos"},
+		UseCaseSettings:            map[string]map[string]any{"photos": {"backend": "immich"}},
+		AllowedOfferings:           []string{"monthly-runtime-standard", "monthly-runtime-premium", "monthly-runtime-large"},
+		OfferingEntitlementChecked: true,
 		ServerFit: &core.WizardServerFitRequest{
 			ProviderID: monthlyruntime.ProviderIONOS,
 			OfferingID: "monthly-runtime-standard",
@@ -284,5 +286,221 @@ func TestEvaluateServerFitCatalogFeasibilityConstraintsAndDrivers(t *testing.T) 
 		if !codes[want] {
 			t.Fatalf("missing capacity driver %q in %+v", want, advice.Drivers)
 		}
+	}
+}
+
+func TestInfinityFitRecoveryOwnServerSameTierAndEntitlementGating(t *testing.T) {
+	now := time.Date(2026, 11, 27, 7, 30, 0, 0, time.UTC)
+	infinityGoals := []string{"files", "photos", "media", "vault", "smart-home", "ai", "dev", "network", "automation"}
+
+	// 1. Infinity on IONOS Standard Basic Cube S (4 GiB) without AYN and without
+	// Centron admitted and without own servers: names limiting workload and
+	// never suggests unentitled monthly-runtime-premium / monthly-runtime-large.
+	proNoAYN := EvaluateServerFit(core.WizardRecommendationRequest{
+		KitSlug:                    "cloud-kit",
+		DeploymentLane:             "saas",
+		ProviderID:                 monthlyruntime.ProviderIONOS,
+		RuntimeOfferingID:          "monthly-runtime-standard",
+		Goals:                      infinityGoals,
+		AllowedOfferings:           []string{"monthly-runtime-standard"},
+		OfferingEntitlementChecked: true,
+		AdmittedProviders:          []string{monthlyruntime.ProviderIONOS},
+		ProviderAdmissionChecked:   true,
+		ServerFit: &core.WizardServerFitRequest{
+			ProviderID: monthlyruntime.ProviderIONOS,
+			OfferingID: "monthly-runtime-standard",
+			Source:     "managed",
+		},
+	}, WizardRecommendationInventory{})
+	if proNoAYN == nil || proNoAYN.Status != FitStatusDoesNotFit {
+		t.Fatalf("Infinity on 4 GiB Basic Cube S must not fit: %+v", proNoAYN)
+	}
+	if len(proNoAYN.Deficits) == 0 || proNoAYN.Deficits[0].Goal == "" && proNoAYN.Deficits[0].Code == "" {
+		t.Fatalf("expected deficit naming limiting workload: %+v", proNoAYN.Deficits)
+	}
+	if proNoAYN.Recovery == nil || proNoAYN.Recovery.Action == "switch_offering" {
+		t.Fatalf("Pro user without AYN must NEVER be offered unentitled switch_offering upgrade: %+v", proNoAYN.Recovery)
+	}
+
+	// 2. When Centron Standard (8 GiB) IS admitted and fits the workload on the
+	// same tier (Standard), same-tier switch_provider is ranked BEFORE any
+	// paid tier upgrade even if AYN is entitled.
+	sameTierSelection := []string{"files", "photos", "media"}
+	sameTier := EvaluateServerFit(core.WizardRecommendationRequest{
+		KitSlug:                    "cloud-kit",
+		DeploymentLane:             "saas",
+		ProviderID:                 monthlyruntime.ProviderIONOS,
+		RuntimeOfferingID:          "monthly-runtime-standard",
+		Goals:                      sameTierSelection,
+		UseCaseSettings:            map[string]map[string]any{"photos": {"backend": "immich"}},
+		AllowedOfferings:           []string{"monthly-runtime-standard", "monthly-runtime-premium", "monthly-runtime-large"},
+		OfferingEntitlementChecked: true,
+		AdmittedProviders:          []string{monthlyruntime.ProviderIONOS, monthlyruntime.ProviderCentron},
+		ProviderAdmissionChecked:   true,
+		ServerFit: &core.WizardServerFitRequest{
+			ProviderID: monthlyruntime.ProviderIONOS,
+			OfferingID: "monthly-runtime-standard",
+			Source:     "managed",
+		},
+	}, WizardRecommendationInventory{})
+	if sameTier.Recovery == nil || sameTier.Recovery.Action != "switch_provider" || sameTier.Recovery.ProviderID != monthlyruntime.ProviderCentron || sameTier.Recovery.OfferingID != "monthly-runtime-standard" {
+		t.Fatalf("expected same-tier switch_provider to Centron Standard ahead of paid upgrade: %+v", sameTier.Recovery)
+	}
+
+	// 3. When a capable own server exists in inventory, Infinity deficit
+	// recommends use_owned_server without forcing a commerce upgrade.
+	capableWorker := core.Worker{
+		ID:            "wrk-big",
+		ServerID:      "srv-big",
+		Name:          "homelab-beast",
+		Status:        "online",
+		UsageObserved: true,
+		Capabilities: core.WorkerCapabilities{
+			CPU: 16, RAM: 65536, Disk: 1000, Arch: "amd64", AMD64MicroarchitectureLevel: 3,
+		},
+		Tags: map[string]string{"ip": "192.168.10.20"},
+	}
+	withOwnedServer := EvaluateServerFit(core.WizardRecommendationRequest{
+		KitSlug:                    "cloud-kit",
+		DeploymentLane:             "saas",
+		ProviderID:                 monthlyruntime.ProviderIONOS,
+		RuntimeOfferingID:          "monthly-runtime-standard",
+		Goals:                      infinityGoals,
+		AllowedOfferings:           []string{"monthly-runtime-standard", "monthly-runtime-premium", "monthly-runtime-large"},
+		OfferingEntitlementChecked: true,
+		AdmittedProviders:          []string{monthlyruntime.ProviderIONOS},
+		ProviderAdmissionChecked:   true,
+		ServerFit: &core.WizardServerFitRequest{
+			ProviderID: monthlyruntime.ProviderIONOS,
+			OfferingID: "monthly-runtime-standard",
+			Source:     "managed",
+		},
+	}, WizardRecommendationInventory{
+		State:      "fresh",
+		SnapshotID: "snap-big",
+		ObservedAt: now,
+		Workers:    []core.Worker{capableWorker},
+	})
+	if withOwnedServer.Recovery == nil || withOwnedServer.Recovery.Action != "use_owned_server" || withOwnedServer.Recovery.ServerID != "srv-big" {
+		t.Fatalf("expected capable own server recovery without forced commerce upgrade: %+v", withOwnedServer.Recovery)
+	}
+
+	// 4. Explicit selection of monthly-runtime-premium without AYN produces
+	// entitlement_required state and ALWAYS recovers to an entitled Standard
+	// offering first (never switch_profile/omit_use_case/monthly-runtime-large).
+	premiumDenied := EvaluateServerFit(core.WizardRecommendationRequest{
+		KitSlug:                    "cloud-kit",
+		DeploymentLane:             "saas",
+		ProviderID:                 monthlyruntime.ProviderIONOS,
+		RuntimeOfferingID:          "monthly-runtime-premium",
+		Goals:                      []string{"files", "photos", "media"},
+		AllowedOfferings:           []string{"monthly-runtime-standard"},
+		OfferingEntitlementChecked: true,
+		AdmittedProviders:          []string{monthlyruntime.ProviderIONOS},
+		ProviderAdmissionChecked:   true,
+		ServerFit: &core.WizardServerFitRequest{
+			ProviderID: monthlyruntime.ProviderIONOS,
+			OfferingID: "monthly-runtime-premium",
+			Source:     "managed",
+		},
+	}, WizardRecommendationInventory{})
+	if premiumDenied.Status != FitStatusDoesNotFit || premiumDenied.RefusalClass != RefusalClassEntitlement {
+		t.Fatalf("explicit premium without AYN must fail with entitlement refusal class: %+v", premiumDenied)
+	}
+	if premiumDenied.Recovery == nil || premiumDenied.Recovery.Action != "switch_offering" || premiumDenied.Recovery.OfferingID != "monthly-runtime-standard" {
+		t.Fatalf("unentitled premium must recover to monthly-runtime-standard first, got %+v", premiumDenied.Recovery)
+	}
+
+	// 4b. When no entitlement data is supplied on saas, offeringAllowedInRequest
+	// fails closed to Standard only (never surfaces unentitled premium/large).
+	uncheckedSaaS := EvaluateServerFit(core.WizardRecommendationRequest{
+		KitSlug:           "cloud-kit",
+		DeploymentLane:    "saas",
+		ProviderID:        monthlyruntime.ProviderIONOS,
+		RuntimeOfferingID: "monthly-runtime-standard",
+		Goals:             infinityGoals,
+		ServerFit: &core.WizardServerFitRequest{
+			ProviderID: monthlyruntime.ProviderIONOS,
+			OfferingID: "monthly-runtime-standard",
+			Source:     "managed",
+		},
+	}, WizardRecommendationInventory{})
+	if uncheckedSaaS.Recovery != nil && uncheckedSaaS.Recovery.Action == "switch_offering" && uncheckedSaaS.Recovery.OfferingID != "monthly-runtime-standard" {
+		t.Fatalf("unchecked saas fit must fail closed to standard only, got %+v", uncheckedSaaS.Recovery)
+	}
+
+	// 4c. bestCapableOwnedWorker excludes managed-runtime / leased / stack-bound workers.
+	managedWorker := core.Worker{
+		ID: "wrk-managed", ServerID: "srv-managed", Name: "managed-cube", Status: "online", UsageObserved: true,
+		Capabilities: core.WorkerCapabilities{CPU: 16, RAM: 65536, Disk: 1000, Arch: "amd64", AMD64MicroarchitectureLevel: 3},
+		Tags:         map[string]string{"source": "managed-runtime", "lease_id": "lease-1", "stack_id": "stk-1", "ip": "192.168.10.21"},
+	}
+	leasedWorker := core.Worker{
+		ID: "wrk-leased", ServerID: "srv-leased", Name: "leased-host", Status: "online", UsageObserved: true,
+		Capabilities: core.WorkerCapabilities{CPU: 16, RAM: 65536, Disk: 1000, Arch: "amd64", AMD64MicroarchitectureLevel: 3},
+		Tags:         map[string]string{"lease_id": "lease-2", "ip": "192.168.10.22"},
+	}
+	boundWorker := core.Worker{
+		ID: "wrk-bound", ServerID: "srv-bound", Name: "bound-host", Status: "online", UsageObserved: true, StackID: "stk-2",
+		Capabilities: core.WorkerCapabilities{CPU: 16, RAM: 65536, Disk: 1000, Arch: "amd64", AMD64MicroarchitectureLevel: 3},
+		Tags:         map[string]string{"ip": "192.168.10.23"},
+	}
+	if _, ok := bestCapableOwnedWorker(core.WizardRecommendationRequest{
+		KitSlug: "cloud-kit", DeploymentLane: "saas", Goals: infinityGoals,
+	}, "", WizardRecommendationInventory{
+		State:      "fresh",
+		ObservedAt: now,
+		Workers:    []core.Worker{managedWorker, leasedWorker, boundWorker},
+	}); ok {
+		t.Fatal("bestCapableOwnedWorker must exclude managed-runtime, leased, and stack-bound workers")
+	}
+
+	// 4d. DecisionContextHash distinguishes server-injected entitlement/LAN/lane inputs
+	// and binds to server-derived LAN reachability rather than raw client assertions.
+	auth := NewWizardRecommendationAuthority(nil)
+	baseEval := WizardRecommendationEvaluation{
+		TenantID: "t1", OwnerID: "u1",
+		Request: core.WizardRecommendationRequest{
+			Goals: []string{"files"}, DeploymentLane: "saas", Surface: "easy",
+			AllowedOfferings: []string{"monthly-runtime-standard"}, OfferingEntitlementChecked: true,
+			AdmittedProviders: []string{monthlyruntime.ProviderIONOS}, ProviderAdmissionChecked: true,
+			LANReachable: false,
+		},
+	}
+	aynEval := baseEval
+	aynEval.Request.AllowedOfferings = []string{"monthly-runtime-standard", "monthly-runtime-premium"}
+	if auth.Recommend(baseEval).DecisionContextHash == auth.Recommend(aynEval).DecisionContextHash {
+		t.Fatal("DecisionContextHash must differ when AllowedOfferings changes")
+	}
+	rawClientLANEval := baseEval
+	rawClientLANEval.Request.LANReachable = true
+	if auth.Recommend(baseEval).DecisionContextHash != auth.Recommend(rawClientLANEval).DecisionContextHash {
+		t.Fatal("DecisionContextHash must not change on raw client LANReachable without server inventory evidence")
+	}
+	serverDerivedLANEval := baseEval
+	serverDerivedLANEval.Inventory = WizardRecommendationInventory{
+		State:      "fresh",
+		ObservedAt: now,
+		Workers: []core.Worker{{
+			ID: "wrk-lan-ctx", ServerID: "srv-lan-ctx", Status: "online", UsageObserved: true,
+			Capabilities: core.WorkerCapabilities{CPU: 4, RAM: 16384, Disk: 200, Arch: "amd64", AMD64MicroarchitectureLevel: 2},
+			Tags:         map[string]string{"ip": "192.168.10.50"},
+		}},
+	}
+	if auth.Recommend(baseEval).DecisionContextHash == auth.Recommend(serverDerivedLANEval).DecisionContextHash {
+		t.Fatal("DecisionContextHash must differ when server-derived LAN reachability changes")
+	}
+
+	// 5. AssessWizardCapacity also suppresses unentitled SuggestedOfferingID.
+	capDenied := AssessWizardCapacity(core.WizardRecommendationRequest{
+		Goals:                      []string{"photos", "files", "vault"},
+		DeploymentLane:             "saas",
+		ProviderID:                 monthlyruntime.ProviderIONOS,
+		RuntimeOfferingID:          "monthly-runtime-standard",
+		AllowedOfferings:           []string{"monthly-runtime-standard"},
+		OfferingEntitlementChecked: true,
+	})
+	if capDenied.SuggestedOfferingID != "" {
+		t.Fatalf("AssessWizardCapacity must not suggest unentitled offering: %+v", capDenied)
 	}
 }

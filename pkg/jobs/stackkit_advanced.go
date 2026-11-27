@@ -1,17 +1,22 @@
 package jobs
 
 import (
+	"bytes"
 	"context"
+	"crypto/ed25519"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/kombifyio/homelab/internal/advancedissuer"
 	"github.com/kombifyio/homelab/internal/runtimeproduct/runtimeaction"
 	"github.com/kombifyio/homelab/internal/stackkitrelease"
 	"github.com/kombifyio/homelab/pkg/api/agentpb"
 	"github.com/kombifyio/homelab/pkg/auth/stackkitdecision"
+	"github.com/kombifyio/homelab/pkg/backupstore"
+	"github.com/kombifyio/homelab/pkg/recoveryproof"
 	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
@@ -130,6 +135,7 @@ func advancedFailureReason(err error) (string, string, bool) {
 // reconcile reject any other capability), so a change-set flow carries one
 // capability allowing exactly its create and its apply or reconcile step.
 type advancedDispatcher struct {
+	cfg      StackKitLifecycleConfig
 	sender   StackKitCommandSender
 	issuer   AdvancedIssuer
 	release  stackkitrelease.Release
@@ -255,8 +261,208 @@ func (d *advancedDispatcher) dispatch(ctx context.Context, commandID, step strin
 			return stackkitcommand.AdvancedOperationResult{}, normalized, err
 		}
 	}
+	if step == stackKitStepRestoreDrill {
+		proof, hasProof, proofErr := d.evaluateDispatchRecoveryProof(ctx, admitted, time.Now().UTC())
+		if hasProof {
+			normalized["recovery_proof"] = proof
+		}
+		if proofErr != nil {
+			return stackkitcommand.AdvancedOperationResult{}, normalized, proofErr
+		}
+	}
 	normalized[advancedResultField] = advancedResultMap(admitted)
 	return admitted, normalized, nil
+}
+
+func (d *advancedDispatcher) evaluateDispatchRecoveryProof(
+	ctx context.Context,
+	admitted stackkitcommand.AdvancedOperationResult,
+	now time.Time,
+) (recoveryproof.Report, bool, error) {
+	survivalRaw, err := selectBackupSurvivalReceipt(admitted.BackupSurvival, d.request.BackupSurvivalReceipt)
+	if err != nil {
+		return recoveryproof.Report{}, false, err
+	}
+	hasRecovery := len(admitted.ApplicationRecovery) > 0
+	hasSurvival := len(survivalRaw) > 0
+	if !hasRecovery && !hasSurvival {
+		return recoveryproof.Report{}, false, nil
+	}
+
+	policy := recoveryproof.DefaultPolicy()
+	if hasSurvival {
+		trustedKey, keyErr := d.resolveBackupSurvivalOwnerKey(ctx)
+		if keyErr != nil {
+			return recoveryproof.Report{}, false, keyErr
+		}
+		policy.SurvivalPublicKey = trustedKey
+		policy.RequireSurvivalSignature = true
+	}
+
+	if hasRecovery && !hasSurvival {
+		proof, evalErr := recoveryproof.Evaluate(admitted.Report, nil, now, policy)
+		if evalErr != nil {
+			return recoveryproof.Report{}, false, evalErr
+		}
+		if proof.Recovery.Status != recoveryproof.StatusVerified {
+			return proof, true, fmt.Errorf("application recovery receipt rejected (%s): %s", proof.Recovery.Status, proof.Recovery.Reason)
+		}
+		return proof, true, nil
+	}
+
+	if !hasRecovery && hasSurvival {
+		survClaim, survErr := recoveryproof.ProjectSurvival(survivalRaw, now, policy)
+		if survErr != nil {
+			return recoveryproof.Report{}, false, survErr
+		}
+		proof := recoveryproof.Report{
+			State:    recoveryproof.StateUnjoined,
+			Recovery: recoveryproof.Claim{Status: recoveryproof.StatusAbsent, Reason: "no application recovery receipt"},
+			Survival: survClaim,
+			JoinGaps: []string{"recovery proof is absent"},
+		}
+		if survClaim.Status != recoveryproof.StatusVerified {
+			return proof, true, fmt.Errorf("backup survival receipt rejected (%s): %s", survClaim.Status, survClaim.Reason)
+		}
+		if err := verifyExpectedSurvivalIdentity(d.request.NodeRef, d.request.WorkloadRef, survClaim); err != nil {
+			proof.JoinGaps = append(proof.JoinGaps, err.Error())
+			return proof, true, err
+		}
+		return proof, true, nil
+	}
+
+	recClaim, recErr := recoveryproof.ProjectRecovery(admitted.Report, now, policy)
+	if recErr != nil {
+		return recoveryproof.Report{}, false, recErr
+	}
+	if recClaim.Status != recoveryproof.StatusVerified {
+		return recoveryproof.Report{
+			State:    recoveryproof.StateUnjoined,
+			Recovery: recClaim,
+			Survival: recoveryproof.Claim{Status: recoveryproof.StatusAbsent},
+			JoinGaps: []string{fmt.Sprintf("recovery proof is %s", recClaim.Status)},
+		}, true, fmt.Errorf("application recovery receipt rejected (%s): %s", recClaim.Status, recClaim.Reason)
+	}
+	expectedNodeID, expectedWorkloadID, err := expectedRecoveryIdentity(d.request, recClaim)
+	if err != nil {
+		return recoveryproof.Report{
+			State:    recoveryproof.StateUnjoined,
+			Recovery: recClaim,
+			Survival: recoveryproof.Claim{Status: recoveryproof.StatusAbsent},
+			JoinGaps: []string{err.Error()},
+		}, true, err
+	}
+	expectedTargetID := ""
+	if d.request.BackupRenewal != nil && strings.TrimSpace(d.request.BackupRenewal.TargetRef) != "" {
+		expectedTargetID = strings.TrimSpace(d.request.BackupRenewal.TargetRef)
+	} else if delivery := managedBackupDeliveryOf(d.cfg.ManagedStackKitInventory); delivery != nil {
+		nb, nbErr := delivery.NodeBinding(ctx, d.request.TenantID, d.request.StackID)
+		switch {
+		case nbErr == nil:
+			expectedTargetID = strings.TrimSpace(nb.BackupTargetRef)
+		case errors.Is(nbErr, backupstore.ErrNodeBindingMissing), errors.Is(nbErr, backupstore.ErrCustodyNotFound):
+		default:
+			return recoveryproof.Report{}, false, fmt.Errorf("resolve backup target binding: %w", nbErr)
+		}
+	}
+
+	proof, evalErr := recoveryproof.EvaluateBound(admitted.Report, survivalRaw, recoveryproof.JoinBinding{
+		NodeID:           expectedNodeID,
+		WorkloadID:       expectedWorkloadID,
+		TargetID:         expectedTargetID,
+		SnapshotAnchorID: d.request.SnapshotAnchorID,
+	}, now, policy)
+	if evalErr != nil {
+		return recoveryproof.Report{}, false, evalErr
+	}
+	if proof.Recovery.Status != recoveryproof.StatusVerified {
+		return proof, true, fmt.Errorf("application recovery receipt rejected (%s): %s", proof.Recovery.Status, proof.Recovery.Reason)
+	}
+	if proof.Survival.Status != recoveryproof.StatusVerified {
+		return proof, true, fmt.Errorf("backup survival receipt rejected (%s): %s", proof.Survival.Status, proof.Survival.Reason)
+	}
+	if proof.Joined == nil {
+		return proof, true, fmt.Errorf("recovery and survival proofs could not be joined: %s", strings.Join(proof.JoinGaps, "; "))
+	}
+	return proof, true, nil
+}
+
+func selectBackupSurvivalReceipt(reportRaw, requestRaw []byte) ([]byte, error) {
+	rep := bytes.TrimSpace(reportRaw)
+	req := bytes.TrimSpace(requestRaw)
+	if len(rep) == 0 {
+		return req, nil
+	}
+	if len(req) == 0 {
+		return rep, nil
+	}
+	if !bytes.Equal(rep, req) {
+		var repCompact, reqCompact bytes.Buffer
+		if json.Compact(&repCompact, rep) != nil || json.Compact(&reqCompact, req) != nil || !bytes.Equal(repCompact.Bytes(), reqCompact.Bytes()) {
+			return nil, errors.New("backup survival receipt in report differs from request")
+		}
+	}
+	return rep, nil
+}
+
+func (d *advancedDispatcher) resolveBackupSurvivalOwnerKey(ctx context.Context) (ed25519.PublicKey, error) {
+	if d.cfg.BackupSurvivalOwnerKey != nil {
+		key, err := d.cfg.BackupSurvivalOwnerKey(ctx, d.request.TenantID, d.request.StackID)
+		if err != nil {
+			return nil, fmt.Errorf("resolve node owner key for backup survival receipt: %w", err)
+		}
+		if len(key) != ed25519.PublicKeySize {
+			return nil, errors.New("resolved node owner key for backup survival receipt is invalid")
+		}
+		return key, nil
+	}
+	if delivery := managedBackupDeliveryOf(d.cfg.ManagedStackKitInventory); delivery != nil {
+		if provider, ok := delivery.(ManagedBackupOwnerKeyProvider); ok {
+			raw, err := provider.NodeOwnerPublicKey(ctx, d.request.TenantID, d.request.StackID)
+			if err != nil {
+				return nil, fmt.Errorf("resolve node owner key for backup survival receipt: %w", err)
+			}
+			if len(raw) != ed25519.PublicKeySize {
+				return nil, errors.New("resolved node owner key for backup survival receipt is invalid")
+			}
+			return ed25519.PublicKey(raw), nil
+		}
+	}
+	return nil, errors.New("backup survival receipt cannot be verified without the node's trusted owner public key")
+}
+
+func expectedRecoveryIdentity(req StackKitLifecycleRequest, rec recoveryproof.Claim) (string, string, error) {
+	var recNode, recWorkload string
+	if rec.Subject != nil {
+		recNode, recWorkload = rec.Subject.NodeID, rec.Subject.WorkloadID
+	}
+	reqNode := strings.TrimSpace(req.NodeRef)
+	if reqNode != "" && recNode != "" && reqNode != recNode {
+		return "", "", fmt.Errorf("application recovery nodeId %q differs from expected nodeId %q", recNode, reqNode)
+	}
+	reqWorkload := strings.TrimSpace(req.WorkloadRef)
+	if reqWorkload != "" && recWorkload != "" && reqWorkload != recWorkload {
+		return "", "", fmt.Errorf("application recovery workloadId %q differs from expected workloadId %q", recWorkload, reqWorkload)
+	}
+	return firstNonEmpty(reqNode, recNode), firstNonEmpty(reqWorkload, recWorkload), nil
+}
+
+func verifyExpectedSurvivalIdentity(expectedNode, expectedWorkload string, surv recoveryproof.Claim) error {
+	expectedNode = strings.TrimSpace(expectedNode)
+	expectedWorkload = strings.TrimSpace(expectedWorkload)
+	if surv.Subject == nil {
+		if expectedNode != "" || expectedWorkload != "" {
+			return errors.New("backup survival receipt lacks subject identity")
+		}
+		return nil
+	}
+	if expectedNode != "" && surv.Subject.NodeID != expectedNode {
+		return fmt.Errorf("backup survival nodeId %q differs from expected nodeId %q", surv.Subject.NodeID, expectedNode)
+	}
+	if expectedWorkload != "" && surv.Subject.WorkloadID != expectedWorkload {
+		return fmt.Errorf("backup survival workloadId %q differs from expected workloadId %q", surv.Subject.WorkloadID, expectedWorkload)
+	}
+	return nil
 }
 
 func advancedResultMap(result stackkitcommand.AdvancedOperationResult) map[string]interface{} {
@@ -284,6 +490,7 @@ func runAdvancedStackKitLifecycle(ctx context.Context, cfg StackKitLifecycleConf
 	if err != nil {
 		return nil, err
 	}
+	dispatcher.cfg = cfg
 	if err := revalidateWizardExecutionBinding(ctx, cfg.Sender, release, request, dispatcher.binding.OwnerRef, jobID+"-binding-plan"); err != nil {
 		return nil, err
 	}
@@ -380,7 +587,7 @@ func runAdvancedStackKitLifecycle(ctx context.Context, cfg StackKitLifecycleConf
 		if normalized != nil {
 			stepResults = append(stepResults, normalized)
 			summary["steps"] = stepResults
-			for _, key := range []string{advancedResultField, advancedDenialField, "capability_id", "command_result", "events", "release", "stderr", "exit_code"} {
+			for _, key := range []string{advancedResultField, advancedDenialField, "capability_id", "command_result", "events", "release", "stderr", "exit_code", "recovery_proof"} {
 				if value, ok := normalized[key]; ok {
 					summary[key] = value
 				}
@@ -571,13 +778,19 @@ func (r *deployRollout) requireAdvancedRestoreDrill(release stackkitrelease.Rele
 func (r *deployRollout) runAdvancedRestoreDrill(ctx context.Context, request StackKitLifecycleRequest, release stackkitrelease.Release, planHash string) (map[string]interface{}, error) {
 	request.Operation = StackKitLifecycleRestoreDrill
 	request.OwnerApproved = true
-	summary, err := runAdvancedStackKitLifecycle(ctx, StackKitLifecycleConfig{Sender: r.cfg.StackKitCommander, AdvancedIssuer: r.cfg.AdvancedIssuer}, release, r.job.ID+"-restore-drill", request)
+	cfg := r.cfg.StackKitLifecycle
+	cfg.Sender = r.cfg.StackKitCommander
+	cfg.AdvancedIssuer = r.cfg.AdvancedIssuer
+	if cfg.ManagedStackKitInventory == nil {
+		cfg.ManagedStackKitInventory = r.cfg.ManagedStackKitInventory
+	}
+	summary, err := runAdvancedStackKitLifecycle(ctx, cfg, release, r.job.ID+"-restore-drill", request)
 	if err != nil {
 		return nil, err
 	}
 	advanced, _ := summary[advancedResultField].(map[string]interface{})
 	report, _ := advanced["report"].(map[string]interface{})
-	return map[string]interface{}{
+	out := map[string]interface{}{
 		resultActionField:       string(runtimeaction.ActionRestoreDrill),
 		resultStatusField:       string(runtimeaction.StatusVerified),
 		resultModeField:         "advanced-restore-drill",
@@ -587,5 +800,9 @@ func (r *deployRollout) runAdvancedRestoreDrill(ctx context.Context, request Sta
 		resultSnapshotAnchorKey: report["anchorId"],
 		"restore_result_id":     report["restoreResultId"],
 		"capability_id":         summary["capability_id"],
-	}, nil
+	}
+	if proof, ok := summary["recovery_proof"]; ok {
+		out["recovery_proof"] = proof
+	}
+	return out, nil
 }

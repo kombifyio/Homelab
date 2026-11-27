@@ -13,10 +13,16 @@ func TestLeaseExecutionAuthorityClosedValues(t *testing.T) {
 	for _, authority := range []LeaseExecutionAuthority{
 		LeaseExecutionAuthorityLegacySimulate,
 		LeaseExecutionAuthorityHomelabProviderControl,
+		LeaseExecutionAuthorityHomelabProviderControlForward,
 	} {
 		if err := validateLeaseExecutionAuthority(authority); err != nil {
 			t.Fatalf("validate %q: %v", authority, err)
 		}
+	}
+	if !IsHomelabProviderControlExecutionAuthority(LeaseExecutionAuthorityHomelabProviderControl) ||
+		!IsHomelabProviderControlExecutionAuthority(LeaseExecutionAuthorityHomelabProviderControlForward) ||
+		IsHomelabProviderControlExecutionAuthority(LeaseExecutionAuthorityLegacySimulate) {
+		t.Fatalf("IsHomelabProviderControlExecutionAuthority mismatch")
 	}
 	for _, authority := range []LeaseExecutionAuthority{"", "executor_ready", "simulate", "other"} {
 		if err := validateLeaseExecutionAuthority(authority); !errors.Is(err, ErrLeaseExecutionAuthorityUnbound) {
@@ -46,19 +52,21 @@ func TestPostgresStoreExecutionAuthorityUsesTenantTransaction(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = db.Close() })
 
-	mock.ExpectBegin()
-	mock.ExpectExec(`SELECT set_config\('app.tenant_id', \$1, true\)`).WithArgs("tenant-a").WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery(`SELECT execution_authority[\s\S]+FROM runtime_lease_execution_authorities[\s\S]+WHERE tenant_id = \$1 AND lease_id = \$2`).
-		WithArgs("tenant-a", vmlease.LeaseID("lease-a")).
-		WillReturnRows(sqlmock.NewRows([]string{"execution_authority"}).AddRow("techstack_provider_control"))
-	mock.ExpectCommit()
+	for _, rawAuthority := range []string{"techstack_provider_control", "homelab_provider_control"} {
+		mock.ExpectBegin()
+		mock.ExpectExec(`SELECT set_config\(\$1, \$2, true\), set_config\('kombify\.ctx_token', '', true\)`).WithArgs("app.tenant_id", "tenant-a").WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectQuery(`SELECT execution_authority[\s\S]+FROM runtime_lease_execution_authorities[\s\S]+WHERE tenant_id = \$1 AND lease_id = \$2`).
+			WithArgs("tenant-a", vmlease.LeaseID("lease-a")).
+			WillReturnRows(sqlmock.NewRows([]string{"execution_authority"}).AddRow(rawAuthority))
+		mock.ExpectCommit()
 
-	got, err := NewPostgresStore(db).ExecutionAuthority(context.Background(), "tenant-a", vmlease.LeaseID("lease-a"))
-	if err != nil || got != LeaseExecutionAuthorityHomelabProviderControl {
-		t.Fatalf("ExecutionAuthority = %q, %v", got, err)
-	}
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatal(err)
+		got, err := NewPostgresStore(db).ExecutionAuthority(context.Background(), "tenant-a", vmlease.LeaseID("lease-a"))
+		if err != nil || string(got) != rawAuthority || !IsHomelabProviderControlExecutionAuthority(got) {
+			t.Fatalf("ExecutionAuthority(%q) = %q, %v", rawAuthority, got, err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
@@ -70,7 +78,7 @@ func TestPostgresStoreExecutionAuthorityUnbound(t *testing.T) {
 	t.Cleanup(func() { _ = db.Close() })
 
 	mock.ExpectBegin()
-	mock.ExpectExec(`SELECT set_config\('app.tenant_id', \$1, true\)`).WithArgs("tenant-a").WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`SELECT set_config\(\$1, \$2, true\), set_config\('kombify\.ctx_token', '', true\)`).WithArgs("app.tenant_id", "tenant-a").WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`SELECT execution_authority[\s\S]+FROM runtime_lease_execution_authorities[\s\S]+WHERE tenant_id = \$1 AND lease_id = \$2`).
 		WithArgs("tenant-a", vmlease.LeaseID("lease-missing")).
 		WillReturnRows(sqlmock.NewRows([]string{"execution_authority"}))

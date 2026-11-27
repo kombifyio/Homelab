@@ -101,7 +101,7 @@ func (s *Service) CleanupStatus(ctx context.Context, tenantID, userID string, le
 	// A canceled native lease is intentionally native-inactive, but its
 	// provider-control custody remains the only valid cleanup authority. Only
 	// a different or absent authority is rejected here.
-	if record.ExecutionAuthority != vmleases.LeaseExecutionAuthorityHomelabProviderControl {
+	if !vmleases.IsHomelabProviderControlExecutionAuthority(record.ExecutionAuthority) {
 		return nil, ErrExecutionAuthorityInactive
 	}
 	return s.cleanupStatusForRecord(ctx, tenantID, lease)

@@ -42,3 +42,123 @@ func TestVerifyPlanEvidenceBindsAppliedPlan(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateRestoreActivationAdmitsCloudKitAndBasementKit(t *testing.T) {
+	pin := &agentpb.StackKitReleasePin{
+		Version:            "v0.61.11",
+		PlatformOs:         "linux",
+		PlatformArch:       "amd64",
+		ArchiveSha256:      strings.Repeat("a", 64),
+		ReleaseIndexSha256: strings.Repeat("b", 64),
+	}
+	digest := "sha256:" + strings.Repeat("c", 64)
+	for _, tc := range []struct {
+		name    string
+		kit     string
+		site    string
+		node    string
+		chanRef string
+	}{
+		{name: "cloud-kit", kit: "cloud-kit", site: "cloud", node: "cloud-main", chanRef: "host-channel-cloud-main"},
+		{name: "basement-kit", kit: "basement-kit", site: "home", node: "main", chanRef: "local-home-main"},
+	} {
+		cmd := &agentpb.StackKitCommand{
+			CommandId:                "sr-1-final-sync",
+			Operation:                agentpb.StackKitOperation_STACKKIT_OPERATION_BACKUP_RESTORE_ACTIVATE,
+			WorkingDirectory:         "/opt/stackkit",
+			Release:                  pin,
+			OwnerApproved:            true,
+			Stackkit:                 tc.kit,
+			StackkitInstanceId:       "stack-1",
+			ExpectedPlanHash:         digest,
+			RestoreResultId:          digest,
+			ActivationOperationId:    "sr-1-activate",
+			LocalSiteRef:             tc.site,
+			LocalNodeRef:             tc.node,
+			LocalExecutionChannelRef: tc.chanRef,
+		}
+		if err := ValidateCommand(cmd); err != nil {
+			t.Fatalf("%s ValidateCommand failed: %v", tc.name, err)
+		}
+	}
+
+	missingChannel := &agentpb.StackKitCommand{
+		CommandId:             "sr-1-bad",
+		Operation:             agentpb.StackKitOperation_STACKKIT_OPERATION_BACKUP_RESTORE_ACTIVATE,
+		WorkingDirectory:      "/opt/stackkit",
+		Release:               pin,
+		OwnerApproved:         true,
+		Stackkit:              "cloud-kit",
+		StackkitInstanceId:    "stack-1",
+		ExpectedPlanHash:      digest,
+		RestoreResultId:       digest,
+		ActivationOperationId: "sr-1-activate",
+	}
+	if err := ValidateCommand(missingChannel); err == nil {
+		t.Fatal("expected ValidateCommand to reject cloud-kit restore activation without local placement")
+	}
+
+	cloudRecover := &agentpb.StackKitCommand{
+		CommandId:                "sr-1-recover",
+		Operation:                agentpb.StackKitOperation_STACKKIT_OPERATION_BACKUP_RESTORE_RECOVER,
+		WorkingDirectory:         "/opt/stackkit",
+		Release:                  pin,
+		OwnerApproved:            true,
+		Stackkit:                 "cloud-kit",
+		StackkitInstanceId:       "stack-1",
+		ExpectedPlanHash:         digest,
+		RestoreResultId:          digest,
+		ActivationOperationId:    "sr-1-activate",
+		LocalSiteRef:             "cloud",
+		LocalNodeRef:             "cloud-main",
+		LocalExecutionChannelRef: "host-channel-cloud-main",
+	}
+	if err := ValidateCommand(cloudRecover); err == nil {
+		t.Fatal("expected ValidateCommand to reject cloud-kit BACKUP_RESTORE_RECOVER")
+	}
+
+	oldCloudPin := &agentpb.StackKitReleasePin{
+		Version:            "v0.61.10",
+		PlatformOs:         "linux",
+		PlatformArch:       "amd64",
+		ArchiveSha256:      strings.Repeat("a", 64),
+		ReleaseIndexSha256: strings.Repeat("b", 64),
+	}
+	oldCloudActivate := &agentpb.StackKitCommand{
+		CommandId:                "sr-1-old-pin",
+		Operation:                agentpb.StackKitOperation_STACKKIT_OPERATION_BACKUP_RESTORE_ACTIVATE,
+		WorkingDirectory:         "/opt/stackkit",
+		Release:                  oldCloudPin,
+		OwnerApproved:            true,
+		Stackkit:                 "cloud-kit",
+		StackkitInstanceId:       "stack-1",
+		ExpectedPlanHash:         digest,
+		RestoreResultId:          digest,
+		ActivationOperationId:    "sr-1-activate",
+		LocalSiteRef:             "cloud",
+		LocalNodeRef:             "cloud-main",
+		LocalExecutionChannelRef: "host-channel-cloud-main",
+	}
+	if err := ValidateCommand(oldCloudActivate); err == nil {
+		t.Fatal("expected ValidateCommand to reject cloud-kit BACKUP_RESTORE_ACTIVATE below MinCloudRestoreActivationRelease")
+	}
+
+	wrongCloudSite := &agentpb.StackKitCommand{
+		CommandId:                "sr-1-wrong-site",
+		Operation:                agentpb.StackKitOperation_STACKKIT_OPERATION_BACKUP_RESTORE_ACTIVATE,
+		WorkingDirectory:         "/opt/stackkit",
+		Release:                  pin,
+		OwnerApproved:            true,
+		Stackkit:                 "cloud-kit",
+		StackkitInstanceId:       "stack-1",
+		ExpectedPlanHash:         digest,
+		RestoreResultId:          digest,
+		ActivationOperationId:    "sr-1-activate",
+		LocalSiteRef:             "home",
+		LocalNodeRef:             "cloud-main",
+		LocalExecutionChannelRef: "host-channel-cloud-main",
+	}
+	if err := ValidateCommand(wrongCloudSite); err == nil {
+		t.Fatal("expected ValidateCommand to reject cloud-kit BACKUP_RESTORE_ACTIVATE outside cloud/cloud-main")
+	}
+}

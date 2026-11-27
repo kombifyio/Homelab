@@ -88,10 +88,26 @@ func TestApplicationPolicyGrantsTheNativeLoginAttempts(t *testing.T) {
 	mock.ExpectQuery("FROM pg_class c JOIN pg_namespace n").WillReturnRows(
 		sqlmock.NewRows([]string{"oid", "relname", "rls", "tenant"}).
 			AddRow(int64(41), "native_login_handoffs", false, false).
-			AddRow(int64(42), "an_unlisted_table_without_tenant", false, false))
+			AddRow(int64(42), "an_unlisted_table_without_tenant", false, false).
+			AddRow(int64(43), "control_plane_disk_archive", false, false))
 	mock.ExpectQuery("unnest").WillReturnRows(sqlmock.NewRows([]string{"oid", "relname"}))
-	for range applicationCapabilityFunctions {
-		mock.ExpectQuery("to_regprocedure").WillReturnRows(sqlmock.NewRows([]string{"oid"}).AddRow(nil))
+	const (
+		stackTenantIDsSignature   = "techstack_list_stack_tenant_ids(text,integer)"
+		archiveDigestSignature    = "techstack_control_plane_disk_archive_digest(text,text)"
+		stackTenantIDsFunctionOID = int64(101)
+		archiveDigestFunctionOID  = int64(102)
+	)
+	for _, signature := range applicationCapabilityFunctions {
+		row := sqlmock.NewRows([]string{"oid"})
+		switch signature {
+		case stackTenantIDsSignature:
+			row.AddRow(stackTenantIDsFunctionOID)
+		case archiveDigestSignature:
+			row.AddRow(archiveDigestFunctionOID)
+		default:
+			row.AddRow(nil)
+		}
+		mock.ExpectQuery("to_regprocedure").WithArgs("public." + signature).WillReturnRows(row)
 	}
 	mock.ExpectQuery("to_regnamespace").WillReturnRows(sqlmock.NewRows([]string{"oid"}).AddRow(nil))
 
@@ -110,6 +126,16 @@ func TestApplicationPolicyGrantsTheNativeLoginAttempts(t *testing.T) {
 	}
 	if _, ok := policy.Tables[42]; ok {
 		t.Fatal("a table the policy does not name must stay without privileges")
+	}
+	archive := policy.Tables[43]
+	if !archive["SELECT"] || !archive["INSERT"] || len(archive) != 2 {
+		t.Fatalf("control_plane_disk_archive privileges = %v, want SELECT, INSERT", archive)
+	}
+	if got := policy.Functions[stackTenantIDsFunctionOID]; got != stackTenantIDsSignature {
+		t.Fatalf("stack tenant directory function = %q, want %q", got, stackTenantIDsSignature)
+	}
+	if got := policy.Functions[archiveDigestFunctionOID]; got != archiveDigestSignature {
+		t.Fatalf("archive digest function = %q, want %q", got, archiveDigestSignature)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)

@@ -57,7 +57,8 @@ export class WizardPreviewController {
     this.cancelPending();
     const sequence = ++this.#sequence;
     const isObservedFit = Boolean(
-      normalized.server_fit && !("provider_id" in normalized.server_fit),
+      normalized.existing_server_id ||
+        (normalized.server_fit && !("provider_id" in normalized.server_fit)),
     );
     const cached =
       options?.force || isObservedFit ? undefined : this.#cache.get(key);
@@ -133,6 +134,9 @@ function normalizeRequest(
       : {}),
     ...(request.smart_home_settings
       ? { smart_home_settings: request.smart_home_settings }
+      : {}),
+    ...(request.existing_server_id?.trim()
+      ? { existing_server_id: request.existing_server_id.trim() }
       : {}),
     goals,
     services,

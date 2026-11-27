@@ -59,11 +59,42 @@ type ManagedBackupTargetDelivery interface {
 	AttestTarget(ctx context.Context, tenantID, stackID string) (string, error)
 }
 
+// ManagedBackupReplacementScope identifies an authorized replacement destination
+// node staging its own recipient pin and node binding prior to cutover.
+type ManagedBackupReplacementScope struct {
+	TenantID                      string
+	StackID                       string
+	OwnerID                       string
+	ReplacementID                 string
+	DestinationLeaseID            string
+	DestinationServerID           string
+	DestinationResourceGeneration string
+}
+
+// ManagedBackupReplacementDelivery extends ManagedBackupTargetDelivery for
+// replacement-scoped staging, pre-cutover rollback discard, and post-write
+// custody promotion. Non-replacement flows continue using AdmitRecipient and
+// RecordNodeBinding strictly.
+type ManagedBackupReplacementDelivery interface {
+	AdmitReplacementRecipient(ctx context.Context, scope ManagedBackupReplacementScope, challenge string, statement []byte) (ManagedBackupRecipient, error)
+	SealReplacement(ctx context.Context, scope ManagedBackupReplacementScope, recipient ManagedBackupRecipient, operation string) ([]byte, error)
+	RecordReplacementNodeBinding(ctx context.Context, scope ManagedBackupReplacementScope, binding ManagedBackupNodeBinding) error
+	ReplacementNodeBinding(ctx context.Context, tenantID, stackID, replacementID string) (ManagedBackupNodeBinding, error)
+	CommitReplacementCustody(ctx context.Context, tenantID, stackID, replacementID string) error
+	DiscardReplacementCustody(ctx context.Context, tenantID, stackID, replacementID string) error
+}
+
 // ManagedBackupDeliveryProvider is implemented by an Inventory authority that
 // can also deliver the backup credentials to the node. It returns nil when the
 // control plane has no backup custody configured.
 type ManagedBackupDeliveryProvider interface {
 	BackupDelivery() ManagedBackupTargetDelivery
+}
+
+// ManagedBackupOwnerKeyProvider resolves the pinned Ed25519 public key of the
+// node's Owner custody so signed node receipts can be verified fail-closed.
+type ManagedBackupOwnerKeyProvider interface {
+	NodeOwnerPublicKey(ctx context.Context, tenantID, stackID string) ([]byte, error)
 }
 
 // managedBackupDeliveryOf returns the delivery authority behind the Inventory
@@ -124,12 +155,29 @@ func deliverManagedBackupTarget(ctx context.Context, sender StackKitCommandSende
 	if err != nil {
 		return ManagedBackupNodeBinding{}, &typedStackKitOperationError{Operation: StackKitLifecycleBackupTargetRecipient, CommandID: commandID, Err: err}
 	}
-	recipient, err := delivery.AdmitRecipient(ctx, base.TenantID, base.StackID, challenge, statement.Statement)
+	var recipient ManagedBackupRecipient
+	var repDelivery ManagedBackupReplacementDelivery
+	if base.replacementBackupCustody != nil {
+		var ok bool
+		repDelivery, ok = delivery.(ManagedBackupReplacementDelivery)
+		if !ok {
+			return ManagedBackupNodeBinding{}, &typedStackKitOperationError{Operation: StackKitLifecycleBackupTargetRecipient, CommandID: commandID,
+				Err: errors.New("managed backup delivery authority does not support replacement recipient handoff")}
+		}
+		recipient, err = repDelivery.AdmitReplacementRecipient(ctx, *base.replacementBackupCustody, challenge, statement.Statement)
+	} else {
+		recipient, err = delivery.AdmitRecipient(ctx, base.TenantID, base.StackID, challenge, statement.Statement)
+	}
 	if err != nil {
 		return ManagedBackupNodeBinding{}, &typedStackKitOperationError{Operation: StackKitLifecycleBackupTargetRecipient, CommandID: commandID, Err: err}
 	}
 	recipient.AgentID = base.AgentID
-	sealed, err := delivery.Seal(ctx, base.TenantID, base.StackID, base.OwnerID, recipient, operation)
+	var sealed []byte
+	if base.replacementBackupCustody != nil {
+		sealed, err = repDelivery.SealReplacement(ctx, *base.replacementBackupCustody, recipient, operation)
+	} else {
+		sealed, err = delivery.Seal(ctx, base.TenantID, base.StackID, base.OwnerID, recipient, operation)
+	}
 	if err != nil {
 		return ManagedBackupNodeBinding{}, &typedStackKitOperationError{Operation: operation, CommandID: jobID + "-" + operation, Err: err}
 	}
@@ -145,7 +193,11 @@ func deliverManagedBackupTarget(ctx context.Context, sender StackKitCommandSende
 		return ManagedBackupNodeBinding{}, &typedStackKitOperationError{Operation: operation, CommandID: commandID, Err: err}
 	}
 	binding := ManagedBackupNodeBinding{BackupTargetRef: issued.BackupTargetRef, CustodyAttestationRef: issued.CustodyAttestationRef}
-	if err := delivery.RecordNodeBinding(ctx, base.TenantID, base.StackID, binding); err != nil {
+	if base.replacementBackupCustody != nil {
+		if err := repDelivery.RecordReplacementNodeBinding(ctx, *base.replacementBackupCustody, binding); err != nil {
+			return ManagedBackupNodeBinding{}, &typedStackKitOperationError{Operation: operation, CommandID: commandID, Err: fmt.Errorf("the node-issued replacement backup binding does not match the recorded one: %w", err)}
+		}
+	} else if err := delivery.RecordNodeBinding(ctx, base.TenantID, base.StackID, binding); err != nil {
 		return ManagedBackupNodeBinding{}, &typedStackKitOperationError{Operation: operation, CommandID: commandID, Err: fmt.Errorf("the node-issued backup binding does not match the recorded one: %w", err)}
 	}
 	return binding, nil

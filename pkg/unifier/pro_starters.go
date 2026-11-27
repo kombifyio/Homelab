@@ -1,6 +1,7 @@
 package unifier
 
 import (
+	"net/netip"
 	"slices"
 	"strings"
 
@@ -12,13 +13,7 @@ import (
 // DocumentsMediaWorkloadEnvelope documents the supported Pro Standard VPS
 // operating envelope for full Documents & Media (Cloudreve + full Immich with
 // smart search + Jellyfin) with zero surcharge.
-type DocumentsMediaWorkloadEnvelope struct {
-	SupportedPlaybackModes []string `json:"supported_playback_modes"`
-	MaxConcurrentWorkloads int      `json:"max_concurrent_workloads"`
-	MinRootDiskGB          int      `json:"min_root_disk_gb"`
-	BackupWorkingSpaceGB   int      `json:"backup_working_space_gb"`
-	RequiresFullImmich     bool     `json:"requires_full_immich"`
-}
+type DocumentsMediaWorkloadEnvelope = core.DocumentsMediaWorkloadEnvelope
 
 // DefaultDocumentsMediaProEnvelope returns the documented Pro Standard VPS
 // envelope for full Documents & Media (kombify-StackKits-8l2z.2).
@@ -33,7 +28,7 @@ func DefaultDocumentsMediaProEnvelope() DocumentsMediaWorkloadEnvelope {
 }
 
 // ProStarterID names a Creation Wizard Pro starter preset.
-type ProStarterID string
+type ProStarterID = string
 
 const (
 	ProStarterDocumentsMedia ProStarterID = "documents-media"
@@ -43,31 +38,11 @@ const (
 
 // ProStarterAlternative describes a concrete, explicit alternative when the
 // full starter preset does not fit the target host.
-type ProStarterAlternative struct {
-	Kind                 string         `json:"kind"` // "switch_profile" | "switch_offering" | "defer_goal"
-	Goal                 string         `json:"goal,omitempty"`
-	Profile              string         `json:"profile,omitempty"`
-	OfferingID           string         `json:"offering_id,omitempty"`
-	OfferingSKU          string         `json:"offering_sku,omitempty"`
-	RequiresConfirmation bool           `json:"requires_confirmation"`
-	LostFunctions        []string       `json:"lost_functions,omitempty"`
-	Settings             map[string]any `json:"settings,omitempty"`
-}
+type ProStarterAlternative = core.WizardProStarterAlternative
 
 // ProStarterEvaluation describes what starts now, what is deferred for later,
 // whether the full choice already fits, and concrete reversible alternatives.
-type ProStarterEvaluation struct {
-	ID                       ProStarterID            `json:"id"`
-	RecommendedFull          bool                    `json:"recommended_full"`
-	StartsWith               []string                `json:"starts_with"`
-	DeferredGoals            []string                `json:"deferred_goals,omitempty"`
-	DefaultSettings          map[string]map[string]any `json:"default_settings,omitempty"`
-	RequiresConfirmation     bool                    `json:"requires_confirmation,omitempty"`
-	ConfirmationReasons      []string                `json:"confirmation_reasons,omitempty"`
-	Fit                      *core.WizardServerFit   `json:"fit,omitempty"`
-	Alternatives             []ProStarterAlternative `json:"alternatives,omitempty"`
-	WorkloadEnvelope         *DocumentsMediaWorkloadEnvelope `json:"workload_envelope,omitempty"`
-}
+type ProStarterEvaluation = core.WizardProStarter
 
 // resolveManagedPackageForRequest is the single source of truth for resolving
 // the admitted managed provider package (e.g. IONOS Memory Cube S for full
@@ -104,6 +79,20 @@ func resolveManagedPackageForRequest(
 	return monthlyruntime.PackageForRecordedSKU(providerID, offeringID, sku)
 }
 
+// EvaluateProStarters evaluates all three Pro starter presets for the
+// recommendation response.
+func EvaluateProStarters(
+	baseRequest core.WizardRecommendationRequest,
+	inventory WizardRecommendationInventory,
+	lanReachable bool,
+) map[string]ProStarterEvaluation {
+	return map[string]ProStarterEvaluation{
+		ProStarterDocumentsMedia: EvaluateProStarter(ProStarterDocumentsMedia, baseRequest, inventory, lanReachable),
+		ProStarterFamily:         EvaluateProStarter(ProStarterFamily, baseRequest, inventory, lanReachable),
+		ProStarterSelfEmployed:   EvaluateProStarter(ProStarterSelfEmployed, baseRequest, inventory, lanReachable),
+	}
+}
+
 // EvaluateProStarter evaluates a Pro starter preset ("documents-media",
 // "family", or "self-employed") against the pinned StackKits catalog and target
 // server. When the full choice already fits (and satisfies placement reach),
@@ -129,6 +118,25 @@ func EvaluateProStarter(
 	}
 }
 
+func filterOfferedStarterGoals(goals, availableGoals []string) []string {
+	if len(availableGoals) == 0 {
+		return slices.Clone(goals)
+	}
+	allowed := make(map[string]struct{}, len(availableGoals))
+	for _, goal := range availableGoals {
+		if normalized := strings.ToLower(strings.TrimSpace(goal)); normalized != "" {
+			allowed[normalized] = struct{}{}
+		}
+	}
+	filtered := make([]string, 0, len(goals))
+	for _, goal := range goals {
+		if _, ok := allowed[strings.ToLower(strings.TrimSpace(goal))]; ok {
+			filtered = append(filtered, goal)
+		}
+	}
+	return filtered
+}
+
 func evaluateDocumentsMediaStarter(
 	catalog stackkitrelease.UseCaseCatalog,
 	catalogErr error,
@@ -136,14 +144,24 @@ func evaluateDocumentsMediaStarter(
 	inventory WizardRecommendationInventory,
 ) ProStarterEvaluation {
 	env := DefaultDocumentsMediaProEnvelope()
-	goals := []string{"files", "photos", "media"}
+	goals := filterOfferedStarterGoals([]string{"files", "photos", "media"}, baseRequest.AvailableGoals)
 	settings := cloneUseCaseSettings(baseRequest.UseCaseSettings)
 	// Preserve full default Immich (with smart search); never silently downgrade.
-	if settings["photos"] == nil {
-		settings["photos"] = map[string]any{}
+	if slices.Contains(goals, "photos") {
+		if settings["photos"] == nil {
+			settings["photos"] = map[string]any{}
+		}
+		if _, explicitlySet := settings["photos"]["backend"]; !explicitlySet {
+			settings["photos"]["backend"] = "immich"
+		}
 	}
-	if _, explicitlySet := settings["photos"]["backend"]; !explicitlySet {
-		settings["photos"]["backend"] = "immich"
+	if len(goals) == 0 {
+		return ProStarterEvaluation{
+			ID:               ProStarterDocumentsMedia,
+			StartsWith:       []string{},
+			DefaultSettings:  settings,
+			WorkloadEnvelope: &env,
+		}
 	}
 
 	req := baseRequest
@@ -162,7 +180,13 @@ func evaluateDocumentsMediaStarter(
 		eval.RecommendedFull = true
 		return eval
 	}
-	eval.Alternatives = photosLighterAlternatives(catalog, catalogErr, fit)
+	if fit != nil && (fit.Status == FitStatusDoesNotFit || fit.Status == FitStatusTight) {
+		if slices.Contains(goals, "photos") {
+			eval.Alternatives = photosLighterAlternatives(catalog, catalogErr, fit)
+		}
+		eval.RequiresConfirmation = true
+		eval.ConfirmationReasons = []string{"documents_media_host_insufficient"}
+	}
 	return eval
 }
 
@@ -173,50 +197,140 @@ func evaluateFamilyStarter(
 	inventory WizardRecommendationInventory,
 	lanReachable bool,
 ) ProStarterEvaluation {
-	fullGoals := []string{"photos", "files", "media", "vault", "smart-home"}
-	cloudGoals := []string{"photos", "files", "media", "vault"}
+	fullGoals := filterOfferedStarterGoals([]string{"photos", "files", "media", "vault", "smart-home"}, baseRequest.AvailableGoals)
+	cloudGoals := filterOfferedStarterGoals([]string{"photos", "files", "media", "vault"}, baseRequest.AvailableGoals)
 	settings := cloneUseCaseSettings(baseRequest.UseCaseSettings)
+	if len(fullGoals) == 0 {
+		return ProStarterEvaluation{
+			ID:              ProStarterFamily,
+			StartsWith:      []string{},
+			DefaultSettings: settings,
+		}
+	}
+	hasSmartHome := slices.Contains(fullGoals, "smart-home")
 
 	// 1. Where the full choice (including Smart Home on verified LAN reach)
 	// already fits, recommend it first.
-	if lanReachable {
+	var fullFit *core.WizardServerFit
+	if !hasSmartHome || lanReachable {
 		req := baseRequest
 		req.Goals = fullGoals
 		req.UseCaseSettings = settings
-		fit := EvaluateServerFit(req, inventory)
-		if fit != nil && fit.Status == FitStatusFits {
+		fullFit = EvaluateServerFit(req, inventory)
+		if fullFit != nil && fullFit.Status == FitStatusFits {
 			return ProStarterEvaluation{
 				ID:              ProStarterFamily,
 				RecommendedFull: true,
 				StartsWith:      fullGoals,
 				DefaultSettings: settings,
-				Fit:             fit,
+				Fit:             fullFit,
 			}
 		}
 	}
 
-	// 2. Without verified LAN reach (e.g. managed Pro VPS), start with photos +
-	// files + playback + vault and preserve smart-home as a deferred expansion.
-	req := baseRequest
-	req.Goals = cloudGoals
-	req.UseCaseSettings = settings
-	fit := EvaluateServerFit(req, inventory)
+	// 2. Without verified LAN reach (e.g. managed Pro VPS) or when the full
+	// 5-goal set exceeds host capacity, start with photos + files + playback +
+	// vault and preserve smart-home as a deferred expansion.
+	var fit *core.WizardServerFit
+	if len(cloudGoals) > 0 {
+		req := baseRequest
+		req.Goals = cloudGoals
+		req.UseCaseSettings = settings
+		fit = EvaluateServerFit(req, inventory)
+	}
 
+	deferred := []string{}
+	if hasSmartHome {
+		deferred = append(deferred, "smart-home")
+	}
 	eval := ProStarterEvaluation{
 		ID:              ProStarterFamily,
 		RecommendedFull: false,
 		StartsWith:      cloudGoals,
-		DeferredGoals:   []string{"smart-home"},
+		DeferredGoals:   deferred,
 		DefaultSettings: settings,
 		Fit:             fit,
 	}
-	if !lanReachable {
+	if hasSmartHome && !lanReachable {
+		eval.RequiresConfirmation = true
 		eval.ConfirmationReasons = append(eval.ConfirmationReasons, "smart_home_deferred_lan_reach")
+	} else if hasSmartHome && lanReachable && fullFit != nil && (fullFit.Status == FitStatusDoesNotFit || fullFit.Status == FitStatusTight) {
+		eval.RequiresConfirmation = true
+		eval.ConfirmationReasons = append(eval.ConfirmationReasons, "smart_home_deferred_host_capacity")
 	}
 	if fit != nil && fit.Status != FitStatusFits {
-		eval.Alternatives = photosLighterAlternatives(catalog, catalogErr, fit)
+		eval.RequiresConfirmation = true
+		if slices.Contains(cloudGoals, "photos") {
+			eval.Alternatives = append(eval.Alternatives, photosLighterAlternatives(catalog, catalogErr, fit)...)
+		}
+	}
+	if hasSmartHome {
+		excludeServerID := ""
+		if baseRequest.ServerFit != nil {
+			excludeServerID = strings.TrimSpace(baseRequest.ServerFit.ServerID)
+		}
+		lanInventory := ownedLANReachableInventory(inventory)
+		if worker, ok := bestCapableOwnedWorker(reqWithGoals(baseRequest, fullGoals, settings), excludeServerID, lanInventory); ok {
+			workerID := firstNonEmptyRecommendation(worker.ServerID, worker.ID)
+			alreadyOffered := false
+			for _, alt := range eval.Alternatives {
+				if alt.Kind == "use_owned_server" && alt.ServerID == workerID {
+					alreadyOffered = true
+					break
+				}
+			}
+			if !alreadyOffered {
+				eval.Alternatives = append(eval.Alternatives, ProStarterAlternative{
+					Kind:                 "use_owned_server",
+					Goal:                 "smart-home",
+					ServerID:             workerID,
+					ServerName:           firstNonEmptyRecommendation(worker.Name, worker.ServerID, worker.ID),
+					RequiresConfirmation: true,
+				})
+			}
+		}
 	}
 	return eval
+}
+
+func reqWithGoals(base core.WizardRecommendationRequest, goals []string, settings map[string]map[string]any) core.WizardRecommendationRequest {
+	out := base
+	out.Goals = goals
+	out.UseCaseSettings = settings
+	return out
+}
+
+func ownedLANReachableInventory(inventory WizardRecommendationInventory) WizardRecommendationInventory {
+	filtered := inventory
+	filtered.Workers = make([]core.Worker, 0, len(inventory.Workers))
+	for _, worker := range inventory.Workers {
+		if hasOwnedLANReachable(worker) {
+			filtered.Workers = append(filtered.Workers, worker)
+		}
+	}
+	return filtered
+}
+
+func hasOwnedLANReachable(worker core.Worker) bool {
+	if !isOwnedNonManagedWorker(worker) {
+		return false
+	}
+	switch strings.ToLower(strings.TrimSpace(worker.Tags["lan_reachable"])) {
+	case "false":
+		return false
+	case "true":
+		return true
+	}
+	ip := strings.TrimSpace(worker.Tags["ip"])
+	if ip == "" {
+		return false
+	}
+	addr, err := netip.ParseAddr(ip)
+	if err != nil {
+		return false
+	}
+	addr = addr.Unmap().WithZone("")
+	return addr.IsPrivate()
 }
 
 func evaluateSelfEmployedStarter(
@@ -226,15 +340,24 @@ func evaluateSelfEmployedStarter(
 	inventory WizardRecommendationInventory,
 ) ProStarterEvaluation {
 	settings := cloneUseCaseSettings(baseRequest.UseCaseSettings)
-	if settings["mail"] == nil {
-		settings["mail"] = map[string]any{}
+	fullGoals := filterOfferedStarterGoals([]string{"files", "vault", "mail", "automation", "ai"}, baseRequest.AvailableGoals)
+	if slices.Contains(fullGoals, "mail") {
+		if settings["mail"] == nil {
+			settings["mail"] = map[string]any{}
+		}
+		if _, set := settings["mail"]["hosting"]; !set {
+			settings["mail"]["hosting"] = "existing"
+		}
 	}
-	if _, set := settings["mail"]["hosting"]; !set {
-		settings["mail"]["hosting"] = "existing"
+	if len(fullGoals) == 0 {
+		return ProStarterEvaluation{
+			ID:              ProStarterSelfEmployed,
+			StartsWith:      []string{},
+			DefaultSettings: settings,
+		}
 	}
 
 	// 1. Check full choice first (files + vault + mail + automation + local AI).
-	fullGoals := []string{"files", "vault", "mail", "automation", "ai"}
 	fullReq := baseRequest
 	fullReq.Goals = fullGoals
 	fullReq.UseCaseSettings = settings
@@ -250,14 +373,16 @@ func evaluateSelfEmployedStarter(
 	}
 
 	// 2. Include automation only if the pinned catalog AND fit prove it fits.
-	starts := []string{"files", "vault", "mail"}
+	starts := filterOfferedStarterGoals([]string{"files", "vault", "mail"}, baseRequest.AvailableGoals)
 	deferred := []string{}
+	hasAutomation := slices.Contains(fullGoals, "automation")
+	hasAI := slices.Contains(fullGoals, "ai")
 	automationAdmitted := false
-	if catalogErr == nil {
+	if hasAutomation && catalogErr == nil {
 		if _, ok := catalog.FindUseCase("automation"); ok {
 			if _, fpErr := catalog.WorkloadFootprints("automation", "", "standard", ""); fpErr == nil {
 				autoReq := baseRequest
-				autoReq.Goals = []string{"files", "vault", "mail", "automation"}
+				autoReq.Goals = append(slices.Clone(starts), "automation")
 				autoReq.UseCaseSettings = settings
 				autoFit := EvaluateServerFit(autoReq, inventory)
 				if autoFit != nil && autoFit.Status == FitStatusFits {
@@ -267,28 +392,49 @@ func evaluateSelfEmployedStarter(
 			}
 		}
 	}
-	if !automationAdmitted {
+	if hasAutomation && !automationAdmitted {
 		deferred = append(deferred, "automation")
 	}
 	// Retain local AI for a suitable host (>=12 GiB RAM / 4 vCPU); never
 	// silently swap to provider inference.
-	deferred = append(deferred, "ai")
+	if hasAI {
+		deferred = append(deferred, "ai")
+	}
 
-	starterReq := baseRequest
-	starterReq.Goals = starts
-	starterReq.UseCaseSettings = settings
-	starterFit := EvaluateServerFit(starterReq, inventory)
+	var starterFit *core.WizardServerFit
+	if len(starts) > 0 {
+		starterReq := baseRequest
+		starterReq.Goals = starts
+		starterReq.UseCaseSettings = settings
+		starterFit = EvaluateServerFit(starterReq, inventory)
+	}
 
 	eval := ProStarterEvaluation{
-		ID:                  ProStarterSelfEmployed,
-		RecommendedFull:     false,
-		StartsWith:          starts,
-		DeferredGoals:       deferred,
-		DefaultSettings:     settings,
-		Fit:                 starterFit,
-		ConfirmationReasons: []string{"local_ai_requires_suitable_host"},
+		ID:                   ProStarterSelfEmployed,
+		RecommendedFull:      false,
+		StartsWith:           starts,
+		DeferredGoals:        deferred,
+		DefaultSettings:      settings,
+		RequiresConfirmation: hasAI || (starterFit != nil && starterFit.Status != FitStatusFits),
+		Fit:                  starterFit,
 	}
-	if fullFit != nil && fullFit.Recovery != nil && fullFit.Recovery.Action == "switch_offering" {
+	if hasAI {
+		eval.ConfirmationReasons = []string{"local_ai_requires_suitable_host"}
+	}
+	excludeServerID := ""
+	if baseRequest.ServerFit != nil {
+		excludeServerID = strings.TrimSpace(baseRequest.ServerFit.ServerID)
+	}
+	if worker, ok := bestCapableOwnedWorker(fullReq, excludeServerID, inventory); ok {
+		eval.Alternatives = append(eval.Alternatives, ProStarterAlternative{
+			Kind:                 "use_owned_server",
+			Goal:                 "ai",
+			ServerID:             firstNonEmptyRecommendation(worker.ServerID, worker.ID),
+			ServerName:           firstNonEmptyRecommendation(worker.Name, worker.ServerID, worker.ID),
+			RequiresConfirmation: true,
+		})
+	}
+	if fullFit != nil && fullFit.Recovery != nil && fullFit.Recovery.Action == "switch_offering" && fullFit.RefusalClass != RefusalClassEntitlement {
 		eval.Alternatives = append(eval.Alternatives, ProStarterAlternative{
 			Kind:                 "switch_offering",
 			OfferingID:           fullFit.Recovery.OfferingID,
@@ -305,13 +451,37 @@ func photosLighterAlternatives(
 	fit *core.WizardServerFit,
 ) []ProStarterAlternative {
 	var alts []ProStarterAlternative
-	if fit != nil && fit.Recovery != nil && fit.Recovery.Action == "switch_offering" {
-		alts = append(alts, ProStarterAlternative{
-			Kind:                 "switch_offering",
-			OfferingID:           fit.Recovery.OfferingID,
-			OfferingSKU:          fit.Recovery.OfferingSKU,
-			RequiresConfirmation: true,
-		})
+	if fit != nil && fit.Recovery != nil {
+		switch fit.Recovery.Action {
+		case "switch_provider":
+			if fit.Recovery.ProviderID != "" {
+				alts = append(alts, ProStarterAlternative{
+					Kind:                 "switch_provider",
+					ProviderID:           fit.Recovery.ProviderID,
+					OfferingID:           fit.Recovery.OfferingID,
+					OfferingSKU:          fit.Recovery.OfferingSKU,
+					RequiresConfirmation: true,
+				})
+			}
+		case "use_owned_server":
+			if fit.Recovery.ServerID != "" {
+				alts = append(alts, ProStarterAlternative{
+					Kind:                 "use_owned_server",
+					ServerID:             fit.Recovery.ServerID,
+					ServerName:           firstNonEmptyRecommendation(fit.Recovery.ServerName, fit.Recovery.ServerID),
+					RequiresConfirmation: true,
+				})
+			}
+		case "switch_offering":
+			if fit.Recovery.OfferingID != "" {
+				alts = append(alts, ProStarterAlternative{
+					Kind:                 "switch_offering",
+					OfferingID:           fit.Recovery.OfferingID,
+					OfferingSKU:          fit.Recovery.OfferingSKU,
+					RequiresConfirmation: true,
+				})
+			}
+		}
 	}
 	if catalogErr == nil {
 		if photos, ok := catalog.FindUseCase("photos"); ok {

@@ -852,6 +852,15 @@ message StackKitCommand {
   string own_application_checkpoint = 99;
   // APPLICATION_HOME_GRAPH_ADOPT only: stackkit.home-graph-adoption-request/v1.
   bytes home_graph_adoption_request = 100;
+  // APPLICATION_STACK_PLAN and APPLICATION_STACK only: optional user overrides
+  // matching the reviewed plan (--http-port, --no-outbound, --memory-mib, --cpus,
+  // --adopt-compose-project, --http-service).
+  int32 stack_it_http_port = 101;
+  bool stack_it_no_outbound = 102;
+  int32 stack_it_memory_mib = 103;
+  string stack_it_cpus = 104;
+  bool stack_it_adopt_compose_project = 105;
+  string stack_it_http_service = 106;
 }
 
 // Public, bounded Gateway proofs. No key material or authority URLs travel here.

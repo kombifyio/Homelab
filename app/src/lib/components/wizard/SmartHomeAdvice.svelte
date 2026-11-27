@@ -15,6 +15,11 @@
     {#if !compact}<p class="font-medium">
         {tr("wizard.smartHome.advice")}
       </p>{/if}
+    {#if recommendation.auto_detected}
+      <p class="font-medium text-primary" data-testid="smart-home-auto-detected">
+        {tr("wizard.smartHome.autoDetected")}
+      </p>
+    {/if}
     <p>
       {recommendation.management_scope === "observed"
         ? tr("wizard.smartHome.preserve")

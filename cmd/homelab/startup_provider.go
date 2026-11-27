@@ -76,7 +76,7 @@ func init() {
 			return providerRuntimeState{}, nil
 		}
 
-		providerRuntime, providerActions, err := composeProviderControl(
+		composedProvider, err := composeProviderControlParts(
 			providerDatabase.DB,
 			edition,
 			log,
@@ -93,6 +93,8 @@ func init() {
 			_ = providerDatabase.Close()
 			return providerRuntimeState{}, err
 		}
+		providerRuntime := composedProvider.runtime
+		providerActions := composedProvider.actions
 
 		// Queue timers are process-local. Keep provider-decommission wait
 		// recovery inside the same activation-gated runtime.
@@ -114,6 +116,7 @@ func init() {
 			database:        providerDatabase,
 			runner:          providerRuntime,
 			actions:         providerActions,
+			admission:       composedProvider.admission,
 			cleanupReadback: providerRuntime,
 			resolution:      providerRuntime,
 		}, nil

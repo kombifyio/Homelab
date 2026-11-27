@@ -776,6 +776,75 @@ paths:
         "409": {description: "ok false; a re-enrollment of this node is running, the server is not an active managed server, its lease is not active under provider control (result.reason lease_not_active: expired, cancelled or unbound), or the capability could not be issued (result.reason); nothing ran for this call"}
         "502": {description: "ok false; result.state failed when the node could not be reached or the installer failed (result.reason: channel_custody_missing, probe_failed, installer_download_failed, installer_invalid, installer_failed), or installed_unconfirmed when no accepted heartbeat of the new identity at the target version arrived in time (heartbeat_not_observed, installed_version_differs, guard_binary_missing, enrollment_missing)"}
         "503": {description: Route not configured on this installation}
+
+  /api/v1/internal/managed-runtime/support-replacements/authorize:
+    post:
+      operationId: authorizeInternalSupportMemoryReplacement
+      tags: [ManagedRuntime]
+      summary: Staff-authorize a free IONOS Memory Cube S replacement for an eligible Basic Cube S runtime
+      description: >-
+        Caller homelab-operations only, Ed25519 service token bound to this request,
+        scope homelab:support-replacement-authorize. Creates or replays a durable
+        no-charge Memory Cube S replacement authorization record without altering
+        public flags or customer self-scheduling.
+      responses:
+        "200": {description: Idempotent replay of an existing authorization record}
+        "201": {description: Created durable support replacement authorization}
+        "400": {description: Invalid authorization request or target mismatch}
+        "401": {description: Missing or invalid service token}
+        "403": {description: Caller or scope not admitted}
+        "409": {description: Conflicting authorization or ineligible source runtime}
+        "503": {description: Support replacement controller unavailable}
+
+  /api/v1/internal/managed-runtime/support-replacements/accept:
+    post:
+      operationId: acceptInternalSupportMemoryReplacement
+      tags: [ManagedRuntime]
+      summary: Record customer acceptance for an existing staff-authorized free Memory Cube S replacement
+      description: >-
+        Ed25519 service token (homelab-operations or gateway), scope homelab:support-replacement-accept.
+        Strictly requires an existing staff-authorized no-charge replacement record.
+      responses:
+        "200": {description: Acceptance recorded}
+        "400": {description: Invalid acceptance request}
+        "401": {description: Missing or invalid service token}
+        "403": {description: Caller or scope not admitted}
+        "404": {description: Authorization record not found}
+        "409": {description: Invalid state transition or owner mismatch}
+        "503": {description: Support replacement controller unavailable}
+
+  /api/v1/internal/managed-runtime/support-replacements/run:
+    post:
+      operationId: runInternalSupportMemoryReplacement
+      tags: [ManagedRuntime]
+      summary: Enqueue, pre-write roll back, or operator-reconcile a Memory Cube S support replacement
+      description: >-
+        Ed25519 service token (homelab-operations only), scope homelab:support-replacement-operate.
+        Customer scheduling via gateway remains disabled until provider test-window observations pass.
+      responses:
+        "200": {description: Conflict reconciled}
+        "202": {description: Support replacement workflow job enqueued}
+        "400": {description: Invalid run request}
+        "401": {description: Missing or invalid service token}
+        "403": {description: Caller or scope not admitted}
+        "404": {description: Support replacement record not found}
+        "409": {description: Rollback forbidden after destination writes or state conflict}
+        "503": {description: Support replacement controller unavailable}
+
+  /api/v1/internal/managed-runtime/support-replacements:
+    get:
+      operationId: listInternalSupportMemoryReplacements
+      tags: [ManagedRuntime]
+      summary: Inspect one or list durable Memory Cube S support replacement records
+      description: >-
+        Ed25519 service token (homelab-operations or gateway), scope homelab:support-replacement-read.
+      responses:
+        "200": {description: Support replacement record or list}
+        "400": {description: Missing tenantId}
+        "401": {description: Missing or invalid service token}
+        "403": {description: Caller, scope, or ownerSubjectId denied}
+        "404": {description: Support replacement record not found}
+        "503": {description: Support replacement controller unavailable}
 components:
   securitySchemes:
     servicecallAuth:

@@ -35,6 +35,13 @@ func unifierWorkerFromRecordAt(record controlplane.Worker, now time.Time) kscore
 	if ip := strings.TrimSpace(record.IP); ip != "" {
 		tags["ip"] = ip
 	}
+	if stackID := strings.TrimSpace(record.StackID); stackID != "" {
+		tags["stack_id"] = stackID
+	}
+	if leaseID := strings.TrimSpace(runtimeLeaseIDFromMetadata(record.Capabilities)); leaseID != "" {
+		tags["lease_id"] = leaseID
+		tags["source"] = managedRuntimeInventorySource
+	}
 	worker := kscore.Worker{
 		ID:       record.ID,
 		Name:     record.Hostname,
@@ -242,6 +249,19 @@ func (e unifierServerEvidence) apply(worker *kscore.Worker, record controlplane.
 	worker.ServerID = server.ID
 	if stack := strings.TrimSpace(server.StackID); stack != "" {
 		worker.StackID = stack
+		if worker.Tags == nil {
+			worker.Tags = map[string]string{}
+		}
+		worker.Tags["stack_id"] = stack
+	}
+	if leaseID := strings.TrimSpace(server.LeaseID); leaseID != "" {
+		if worker.Tags == nil {
+			worker.Tags = map[string]string{}
+		}
+		worker.Tags["lease_id"] = leaseID
+		if string(server.RuntimeTarget.EnvironmentClass) == "cloud" || worker.Tags["source"] == "" {
+			worker.Tags["source"] = managedRuntimeInventorySource
+		}
 	}
 	if !e.historyRead {
 		// The owner's word needs no history; an observation does.

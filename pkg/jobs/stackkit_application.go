@@ -34,9 +34,15 @@ type ApplicationLifecycleBinding struct {
 	Action                  string                               `json:"action,omitempty"`
 	// Profile selects the adoption profile: empty for the Home Assistant
 	// in-place profile, own-application-adopted/v1 for Stack it.
-	Profile            string                                  `json:"profile,omitempty"`
-	OwnApplicationName string                                  `json:"own_application_name,omitempty"`
-	ReviewedStack      *stackkitcommand.ApplicationStackResult `json:"reviewed_stack,omitempty"`
+	Profile             string                                  `json:"profile,omitempty"`
+	OwnApplicationName  string                                  `json:"own_application_name,omitempty"`
+	HTTPPort            int                                     `json:"http_port,omitempty"`
+	NoOutbound          bool                                    `json:"no_outbound,omitempty"`
+	MemoryMiB           int                                     `json:"memory_mib,omitempty"`
+	CPUs                string                                  `json:"cpus,omitempty"`
+	AdoptComposeProject bool                                    `json:"adopt_compose_project,omitempty"`
+	HTTPService         string                                  `json:"http_service,omitempty"`
+	ReviewedStack       *stackkitcommand.ApplicationStackResult `json:"reviewed_stack,omitempty"`
 }
 
 func applicationAgentOperation(op string) (agentpb.StackKitOperation, bool) {
@@ -55,7 +61,7 @@ func validateApplicationLifecycleRequest(req *StackKitLifecycleRequest) error {
 	if IsApplicationStackLifecycleOperation(req.Operation) {
 		return validateApplicationStackRequest(req)
 	}
-	if req.Application != nil && (req.Application.Profile != "" || req.Application.OwnApplicationName != "" || req.Application.ReviewedStack != nil) {
+	if req.Application != nil && (req.Application.Profile != "" || req.Application.OwnApplicationName != "" || req.Application.ReviewedStack != nil || req.Application.HTTPPort != 0 || req.Application.NoOutbound || req.Application.MemoryMiB != 0 || req.Application.CPUs != "" || req.Application.AdoptComposeProject || req.Application.HTTPService != "") {
 		return fmt.Errorf("the in-place application profile carries no Stack it binding")
 	}
 	if req.Application == nil || req.Application.ServerID == "" || req.Application.ExpectedServiceRevision <= 0 || req.ServiceID == "" || req.ServiceKey != "smart-home" {
