@@ -56,9 +56,8 @@ type Server struct {
 	agentsMu sync.RWMutex
 
 	// Command dispatch (S7: Backpressure-aware queues)
-	commandQueue     *CommandQueue      // Legacy command queue with backpressure
-	commandQueueChan chan *AgentCommand // Channel wrapper for backward compatibility
-	resultQueue      chan *CommandResult
+	commandQueue *CommandQueue
+	resultQueue  chan *CommandResult
 
 	// Typed StackKits lifecycle dispatch. This path never enters AgentCommand.
 	stackKitCommandQueue *StackKitCommandQueue
@@ -292,7 +291,6 @@ func newServer(cfg Config, log *logger.Logger) (*Server, error) {
 		heartbeatTimeout:     heartbeatTimeout,
 		agents:               make(map[string]*ConnectedAgent),
 		commandQueue:         cmdQueue,
-		commandQueueChan:     make(chan *AgentCommand, queueCfg.MaxSize), // For backward compatibility
 		resultQueue:          make(chan *CommandResult, 1000),
 		stackKitCommandQueue: stackKitQueue,
 		stackKitHandler:      NewStackKitCommandHandler(),

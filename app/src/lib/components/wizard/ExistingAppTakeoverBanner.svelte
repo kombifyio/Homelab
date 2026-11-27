@@ -2,6 +2,7 @@
   import { ArrowUpRight, Check, Layers, RefreshCw } from "@lucide/svelte";
   import type { DetectedExistingApp } from "#lib/api/unifier.js";
   import { tr } from "#lib/i18n.svelte.js";
+  import { isSmartHomeApp } from "#lib/wizard/existing-apps.js";
 
   let {
     apps,
@@ -22,12 +23,6 @@
     apps.filter((app) => app.spectrum_tier === "first_class"),
   );
 
-  function isSmartHome(app: DetectedExistingApp): boolean {
-    return (
-      app.use_case_slug === "smart-home" || app.app_id === "home-assistant"
-    );
-  }
-
   function appIcon(app: DetectedExistingApp): string | undefined {
     return app.logo?.url || app.icon_url || undefined;
   }
@@ -39,8 +34,9 @@
 
 {#if firstClassApps.length > 0}
   <section
-    class="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm space-y-3"
-    class:p-3={compact}
+    class="rounded-xl border border-primary/30 bg-primary/5 text-sm space-y-3 {compact
+      ? 'p-3'
+      : 'p-4'}"
     aria-label={tr("wizard.existingApps.title")}
     data-testid="existing-app-takeover-banner"
   >
@@ -66,7 +62,7 @@
       {#each firstClassApps as app (app.service_id || app.app_id)}
         {@const icon = appIcon(app)}
         {@const docs = appDocs(app)}
-        {@const smartHome = isSmartHome(app)}
+        {@const smartHome = isSmartHomeApp(app)}
         {@const adoptingExisting = smartHome && smartHomeOrigin !== "new"}
         <li
           class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card/80 px-3 py-2.5"
