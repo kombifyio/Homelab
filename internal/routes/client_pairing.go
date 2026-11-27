@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/pkg/clientpairing"
 	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/identity"
 	"github.com/kombifyio/homelab/pkg/outcome"
 )
 

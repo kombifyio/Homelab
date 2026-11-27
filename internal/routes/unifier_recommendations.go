@@ -11,6 +11,7 @@ import (
 	ksapi "github.com/kombifyio/homelab/pkg/api"
 	kscore "github.com/kombifyio/homelab/pkg/core"
 	"github.com/kombifyio/homelab/pkg/httpx"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
 	"github.com/kombifyio/homelab/pkg/specv2"
 	"github.com/kombifyio/homelab/pkg/unifier"
 )
@@ -53,21 +54,21 @@ func (api *UnifierAPI) handleRecommendations(e *httpx.Event) error {
 		return httpx.BadRequest(e, "invalid recommendation request: "+decodeErr.Error())
 	}
 	request := envelope.WizardRecommendationRequest
+	if api.features != nil {
+		if memoryEnabled, flagErr := api.features.IsEnabled(e.Request.Context(), "ionos_standard_photo_memory", ownerID); flagErr == nil {
+			request.IONOSMemoryEnabled = memoryEnabled
+		}
+	}
 	if request.ServerFit != nil {
-		fitEnabled, memoryEnabled := false, false
+		fitEnabled := false
 		if api.features != nil {
 			var err error
 			fitEnabled, err = api.features.IsEnabled(e.Request.Context(), "server_hardware_fit", ownerID)
 			if err != nil {
 				fitEnabled = false
 			}
-			memoryEnabled, err = api.features.IsEnabled(e.Request.Context(), "ionos_standard_photo_memory", ownerID)
-			if err != nil {
-				memoryEnabled = false
-			}
 		}
-		request.IONOSMemoryEnabled = memoryEnabled
-		if !fitEnabled && !memoryEnabled {
+		if !fitEnabled && !request.IONOSMemoryEnabled {
 			request.ServerFit = nil
 		}
 	}
@@ -101,12 +102,24 @@ func (api *UnifierAPI) handleRecommendations(e *httpx.Event) error {
 	})
 	if response.ServerFit != nil && response.ServerFit.Template == "Memory Cube S" &&
 		(api.memoryAvailability == nil || api.memoryAvailability.IONOSStandardMemoryAvailable(e.Request.Context()) != nil) {
-		response.ServerFit.Status = "unknown"
-		response.ServerFit.Template, response.ServerFit.Location = "", ""
+		response.ServerFit.Status = unifier.FitStatusPending
+		response.ServerFit.PendingReason = "provider_package_unavailable"
+		response.ServerFit.RefusalClass = unifier.RefusalClassUnavailableProvider
+		response.ServerFit.Template, response.ServerFit.SKU, response.ServerFit.Location = "", "", ""
 		response.ServerFit.Specs = kscore.WizardServerFitSpecs{}
 		response.ServerFit.MemoryPeak = kscore.WizardMemoryPeak{Status: "unknown"}
 		response.ServerFit.Deficits = nil
 		response.ServerFit.Unknowns = append(response.ServerFit.Unknowns, kscore.WizardServerFitFact{Code: "provider_package_unavailable"})
+		response.ServerFit.Recovery = &kscore.WizardServerFitRecovery{Action: "review_selection", ReasonCode: "provider_package_unavailable"}
+	}
+	if response.ServerFit != nil && response.ServerFit.ProviderID != "" && api.features != nil {
+		decision := monthlyruntime.EvaluateManagedRuntimeEntitlement(e.Request.Context(), api.features, ownerID, response.ServerFit.ProviderID)
+		if decision.Denied {
+			if response.ServerFit.RefusalClass == "" {
+				response.ServerFit.RefusalClass = unifier.RefusalClassEntitlement
+			}
+			response.ServerFit.Advisories = append(response.ServerFit.Advisories, kscore.WizardServerFitFact{Code: "entitlement_required"})
+		}
 	}
 	var smartHome *specv2.SmartHomeRecommendation
 	for _, goal := range request.Goals {
@@ -134,8 +147,20 @@ func validateWizardRecommendationRequest(request kscore.WizardRecommendationRequ
 	}
 	if fit := request.ServerFit; fit != nil {
 		provider, offering, server := strings.TrimSpace(fit.ProviderID), strings.TrimSpace(fit.OfferingID), strings.TrimSpace(fit.ServerID)
-		if (server == "" && (provider == "" || offering == "")) || (server != "" && (provider != "" || offering != "")) {
+		source := strings.ToLower(strings.TrimSpace(fit.Source))
+		managed := provider != "" || offering != ""
+		ownedSource := source == "guard" || source == "ssh" || source == "substrate" || source == "install-command" || source == "existing"
+		if managed {
+			if provider == "" || offering == "" || server != "" || fit.ObservedCapacity != nil {
+				return "server_fit requires either provider_id and offering_id or an owned server target"
+			}
+		} else if server == "" && !ownedSource {
 			return "server_fit requires either provider_id and offering_id or server_id"
+		}
+		if obs := fit.ObservedCapacity; obs != nil {
+			if obs.CPUCores < 0 || obs.CPUCores > 1024 || obs.MemoryMB < 0 || obs.MemoryMB > 1048576 || obs.DiskGB < 0 || obs.DiskGB > 1048576 || obs.FreeDiskGB < 0 || obs.FreeDiskGB > 1048576 {
+				return "server_fit observed_capacity must contain non-negative bounded cpu_cores, memory_mb, disk_gb and free_disk_gb"
+			}
 		}
 	}
 	if lane := strings.ToLower(strings.TrimSpace(request.DeploymentLane)); lane != "saas" && lane != "self-hosted" {

@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/internal/advancedissuer"
 	"github.com/kombifyio/homelab/internal/runtimeproduct/runtimeaction"
 	"github.com/kombifyio/homelab/internal/stackkitrelease"
 	"github.com/kombifyio/homelab/pkg/api/agentpb"
-	"github.com/kombifyio/homelab/pkg/identity"
 	"github.com/kombifyio/homelab/pkg/originca"
 	"github.com/kombifyio/homelab/pkg/specv2"
 	"github.com/kombifyio/homelab/pkg/stackkitcommand"

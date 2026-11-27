@@ -6,9 +6,9 @@ import (
 
 	commonauthlocal "github.com/kombifyio/homelab/internal/gocommon/authlocal"
 	"github.com/kombifyio/homelab/internal/gocommon/authsession"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/internal/routes"
 	"github.com/kombifyio/homelab/pkg/config"
-	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 // Local reveal reuses the current login authority and never issues another

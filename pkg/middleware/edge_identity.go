@@ -12,11 +12,11 @@ import (
 	"time"
 
 	commonedgeauth "github.com/kombifyio/homelab/internal/gocommon/edgeauth"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/internal/gocommon/tenantdb"
 	ksapi "github.com/kombifyio/homelab/pkg/api"
 	"github.com/kombifyio/homelab/pkg/config"
 	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 // userPlanContextKey is a context key for the user's subscription plan/tier.

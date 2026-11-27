@@ -17,11 +17,11 @@ import (
 	"testing"
 
 	"github.com/kombifyio/homelab/internal/gocommon/authsession"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/internal/routes/sessionreauth"
 	"github.com/kombifyio/homelab/pkg/config"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 func sessionReprojectionTestEvent(t *testing.T, mgr *authsession.Manager, claims authsession.Claims) (*httpx.Event, *httptest.ResponseRecorder) {

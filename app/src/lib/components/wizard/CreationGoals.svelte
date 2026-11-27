@@ -171,8 +171,10 @@
               (item) => item.question?.configKey === goal,
             );
             const values = config.useCaseSettings?.[goal] ?? {};
+            // Preserve full default Photos (Immich with smart search); never
+            // silently downgrade Photos to Immich Lite. Keep Smart Home in
+            // container mode and Mail on existing-mail access by default.
             const settings: Record<string, string> = {
-              ...(goal === "photos" ? { backend: "immich-lite" } : {}),
               ...(goal === "smart-home"
                 ? { "operating-form": "container" }
                 : {}),

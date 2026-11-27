@@ -8,9 +8,9 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/getsentry/sentry-go"
 	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/identity"
 	"go.opentelemetry.io/otel/trace"
 )
 

@@ -217,7 +217,7 @@ func DriftCheckHandler(cfg *DriftCheckConfig) JobHandler {
 			result.Status = DriftStatusFailed
 			result.ErrorMessage = "Drift check failed"
 			result.ErrorDetails = err.Error()
-			if ctx.Err() == context.DeadlineExceeded {
+			if errors.Is(err, context.DeadlineExceeded) || errors.Is(ctx.Err(), context.DeadlineExceeded) {
 				result.ErrorMessage = "Drift check timed out"
 				result.ErrorDetails = fmt.Sprintf("Operation exceeded %v timeout", cfg.DetectTimeout)
 			}

@@ -1,14 +1,14 @@
-// Package cloudlogin is a thin compatibility shim around the shared
-// [goCloudlogin] package in kombify-go-common.
+// Package cloudlogin holds Homelab's self-hosted cloud-login gate. The
+// enrollment-token evaluation lives in the shared
+// [goCloudlogin] package in kombify-go-common; this package keeps only the
+// Homelab-specific defaults and wrappers that differ from the shared defaults.
 //
 // Migration history: this package was the original donor of cloudlogin
-// (lifted 2026-05-03 as part of the kombify auth standardization). It now
-// re-exports the upstream surface so existing Homelab import paths
-// (`pkg/cloudlogin`) keep working without behavioral change.
-//
-// New code SHOULD import `github.com/kombifyio/homelab/internal/gocommon/cloudlogin`
-// directly. This shim will be removed once all call sites have been
-// migrated; track the cleanup in Beads.
+// (lifted 2026-05-03 as part of the kombify auth standardization). It used to
+// re-export the upstream surface so old import paths kept working; those
+// pass-through re-exports are gone, and callers that need only upstream
+// symbols import `github.com/kombifyio/homelab/internal/gocommon/cloudlogin`
+// directly.
 package cloudlogin
 
 import (
@@ -18,9 +18,6 @@ import (
 	"github.com/kombifyio/homelab/pkg/fulllocal"
 )
 
-// FeatureKey identifies the enrollment claim feature this gate consumes.
-const FeatureKey = goCloudlogin.FeatureKey
-
 // DefaultAudience preserves Homelab's historic audience constant
 // ("kombify-homelab:selfhosted-cloud-login") instead of the more generic
 // kombify default. Existing enrollment tokens continue to verify because
@@ -28,19 +25,13 @@ const FeatureKey = goCloudlogin.FeatureKey
 // override is missing.
 const DefaultAudience = "kombify-homelab:selfhosted-cloud-login"
 
-// Type aliases — Options and Result are upstream structs.
-type (
-	Options = goCloudlogin.Options
-	Result  = goCloudlogin.Result
-)
-
-// Evaluate is re-exported as a function value so callers that previously
-// took a function reference (e.g. for tests) continue to compile. Under the
-// Full Local data protection profile cloud login is a kombify service the
-// homelab may not reach, so the gate stays closed whatever the token says.
-var Evaluate = func(opts Options) Result {
+// Evaluate applies the Full Local data protection profile gate, then defers
+// to the shared evaluator. Under Full Local cloud login is a kombify service
+// the homelab may not reach, so the gate stays closed whatever the token
+// says.
+var Evaluate = func(opts goCloudlogin.Options) goCloudlogin.Result {
 	if fulllocal.Active() {
-		return Result{Enabled: false, Reason: fulllocal.ReasonCode}
+		return goCloudlogin.Result{Enabled: false, Reason: fulllocal.ReasonCode}
 	}
 	return goCloudlogin.Evaluate(opts)
 }
@@ -49,7 +40,7 @@ var Evaluate = func(opts Options) Result {
 // variables and overlays the deployment mode booleans expected by the
 // upstream evaluator. The signature is preserved from the donor so call
 // sites in `cmd/homelab` and `internal/routes/auth` need no changes.
-func OptionsFromEnv(mode config.DeploymentMode) Options {
+func OptionsFromEnv(mode config.DeploymentMode) goCloudlogin.Options {
 	opts := goCloudlogin.OptionsFromEnv("HOMELAB")
 	opts.IsSaaS = mode.IsSaaS()
 	opts.IsSelfHosted = mode.IsSelfHosted()

@@ -21,7 +21,17 @@ func initialManagedCapacityIntent(run *wizardRunState) (specv2.WizardIntent, err
 	if offering == "" {
 		offering = string(serverruntime.RuntimeOfferingStandard)
 	}
-	request := core.WizardRecommendationRequest{Goals: intent.Goals, KitSlug: intent.KitAssignment.KitSlug, DeploymentLane: "saas", ProviderID: managed.ProviderID, RuntimeOfferingID: offering, ComputeProfile: "standard", UseCaseSettings: intent.UseCaseSettings, UseCaseCapabilities: intent.UseCaseCapabilities}
+	request := core.WizardRecommendationRequest{
+		Goals:               intent.Goals,
+		KitSlug:             intent.KitAssignment.KitSlug,
+		DeploymentLane:      "saas",
+		ProviderID:          managed.ProviderID,
+		RuntimeOfferingID:   offering,
+		IONOSMemoryEnabled:  run.ionosMemoryEnabled,
+		ComputeProfile:      "standard",
+		UseCaseSettings:     intent.UseCaseSettings,
+		UseCaseCapabilities: intent.UseCaseCapabilities,
+	}
 	kept, failures, err := unifier.InitialCapacitySelection(request)
 	if err != nil {
 		return intent, err

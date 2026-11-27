@@ -221,6 +221,6 @@ func defaultAllowList() []string {
 		"dp.pt.test_token",
 		"dp." + "pt." + strings.Repeat("0", 40),
 		"AKIAIOSFODNN7EXAMPLE",
-		"ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+		"ghp_" + strings.Repeat("x", 36),
 	}
 }

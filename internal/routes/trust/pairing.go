@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/google/uuid"
 	"github.com/kombifyio/homelab/internal/routes/tenantguard"
 	ksapi "github.com/kombifyio/homelab/pkg/api"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/identity"
 	"github.com/kombifyio/homelab/pkg/nodehandoff"
 	"github.com/kombifyio/homelab/pkg/pairingtoken"
 	"github.com/kombifyio/homelab/pkg/runtimeidentity"

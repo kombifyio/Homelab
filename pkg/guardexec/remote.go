@@ -332,6 +332,19 @@ func (r *Remote) EnsureRuntime(ctx context.Context, cfg agentpkg.StackKitRuntime
 	return err
 }
 
+// InstalledRuntimeMatches reports whether the currently installed, verified
+// StackKits runtime matches pin without triggering a candidate download.
+func (r *Remote) InstalledRuntimeMatches(ctx context.Context, pin *agentpb.StackKitReleasePin) bool {
+	if r == nil || r.Client == nil || pin == nil {
+		return false
+	}
+	var description RuntimeDescription
+	if err := r.Client.CallInto(ctx, OpRuntimeDescribe, nil, &description); err != nil {
+		return false
+	}
+	return description.MatchesRelease(pin)
+}
+
 // EnsureRuntimeEvidence downloads the published bundle with the Guard's
 // credential and lets the executor install it.
 func (r *Remote) EnsureRuntimeEvidence(ctx context.Context, cfg agentpkg.StackKitRuntimeBootstrapConfig) (agentpkg.StackKitRuntimeConvergenceResult, error) {

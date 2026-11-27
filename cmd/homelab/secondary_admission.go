@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	commonauthlocal "github.com/kombifyio/homelab/internal/gocommon/authlocal"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/pkg/config"
 	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/identity"
 	"github.com/kombifyio/homelab/pkg/v2/auth/providers"
 )
 

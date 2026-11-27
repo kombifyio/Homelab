@@ -2,9 +2,12 @@ package providercontrol
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -48,13 +51,13 @@ type FlyMachineHandle struct {
 }
 
 type FlyMachineSpec struct {
-	Region         string
-	IsolationClass string
-	MemoryMB       int
-	Image          string
-	InternalPort   int
-	DockerSocket   bool
-	SharedDocker   bool
+	Region         string `json:"region"`
+	IsolationClass string `json:"isolation_class"`
+	MemoryMB       int    `json:"memory_mb"`
+	Image          string `json:"image"`
+	InternalPort   int    `json:"internal_port"`
+	DockerSocket   bool   `json:"docker_socket,omitempty"`
+	SharedDocker   bool   `json:"shared_docker,omitempty"`
 }
 
 type FlyMachineHealth string
@@ -76,8 +79,8 @@ type FlyMachineAbsence struct {
 }
 
 type FlyBackupArtifact struct {
-	Ref    string
-	SHA256 string
+	Ref    string `json:"ref"`
+	SHA256 string `json:"sha256"`
 }
 
 type FlyBackupManifest struct {
@@ -90,6 +93,18 @@ type FlyBackupManifest struct {
 type FlyMachineR2Store interface {
 	Backup(context.Context, FlyMachineHandle) (FlyBackupArtifact, error)
 	Restore(context.Context, FlyMachineHandle, FlyBackupArtifact) error
+}
+
+// FlyMachineR2Purger removes all EU R2 backup artifacts under a decommissioned
+// workload's tenant-confined prefix before slot release.
+type FlyMachineR2Purger interface {
+	PurgeWorkload(ctx context.Context, tenantID, workloadID string) error
+}
+
+// FlyMachineR2Availability reports whether a configured R2 store has an active
+// data-plane payload transport capable of moving workload state on backup/restore.
+type FlyMachineR2Availability interface {
+	BackupReady() bool
 }
 
 // FlyMachinesAdapter operates in one dedicated, privately routed Flycast app
@@ -138,6 +153,7 @@ func (a *FlyMachinesAdapter) Provision(ctx context.Context, spec FlyMachineSpec)
 		return FlyMachineHandle{}, ErrFlyMachineSpec
 	}
 	request := flyMachineCreate{
+		Name:   flyMachineDeterministicName(a.owner),
 		Region: FlyMachinesRegion,
 		Config: flyMachineConfig{
 			Image:    spec.Image,
@@ -270,6 +286,78 @@ func (a *FlyMachinesAdapter) machinesPath() string {
 
 func (a *FlyMachinesAdapter) machinePath(handle FlyMachineHandle) string {
 	return a.machinesPath() + "/" + handle.MachineID
+}
+
+// VerifyAppNetwork reads the Fly app metadata from Fly's API and proves that
+// the app actually runs on the expected dedicated non-default tenant network.
+func (a *FlyMachinesAdapter) VerifyAppNetwork(ctx context.Context, expectedNetwork string) error {
+	if !flyMachinePathID(expectedNetwork) || expectedNetwork == "default" {
+		return ErrFlyMachineIsolation
+	}
+	var info flyAppInfo
+	if err := a.client.request(ctx, http.MethodGet, "/apps/"+a.app, nil, &info); err != nil {
+		return err
+	}
+	if info.Name != a.app || info.Network != expectedNetwork || info.Network == "" || info.Network == "default" {
+		return ErrFlyMachineIsolation
+	}
+	return nil
+}
+
+// FindOwned reconciles an unconfirmed generation by querying Fly's machine list
+// filtered by ownership metadata and validating all four custody fields plus the
+// deterministic machine name. It fails closed if more than one active machine
+// matches the generation.
+func (a *FlyMachinesAdapter) FindOwned(ctx context.Context) (flyMachine, bool, error) {
+	query := url.Values{}
+	query.Set("metadata.tenant_id", a.owner.TenantID)
+	query.Set("metadata.workload_id", a.owner.WorkloadID)
+	var machines []flyMachine
+	if err := a.client.request(ctx, http.MethodGet, a.machinesPath()+"?"+query.Encode(), nil, &machines); err != nil {
+		return flyMachine{}, false, err
+	}
+	expectedName := flyMachineDeterministicName(a.owner)
+	expectedMeta := a.owner.metadata()
+	var active []flyMachine
+	var destroyed []flyMachine
+	for _, machine := range machines {
+		if !flyMachinePathID(machine.ID) {
+			continue
+		}
+		if machine.Name != "" && machine.Name != expectedName {
+			continue
+		}
+		matched := true
+		for key, value := range expectedMeta {
+			if machine.Config.Metadata[key] != value {
+				matched = false
+				break
+			}
+		}
+		if !matched {
+			continue
+		}
+		if flyMachineAbsent(machine) {
+			destroyed = append(destroyed, machine)
+		} else {
+			active = append(active, machine)
+		}
+	}
+	if len(active) > 1 {
+		return flyMachine{}, false, ErrFlyMachineOwnership
+	}
+	if len(active) == 1 {
+		return active[0], true, nil
+	}
+	if len(destroyed) > 0 {
+		return destroyed[0], true, nil
+	}
+	return flyMachine{}, false, nil
+}
+
+func flyMachineDeterministicName(owner FlyMachineOwner) string {
+	sum := sha256.Sum256([]byte(owner.TenantID + "\x00" + owner.WorkloadID + "\x00" + owner.CustodyHash))
+	return "km-" + hex.EncodeToString(sum[:12])
 }
 
 func (a *FlyMachinesAdapter) readOwned(ctx context.Context, handle FlyMachineHandle) (flyMachine, error) {

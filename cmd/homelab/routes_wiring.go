@@ -182,6 +182,7 @@ func registerCoreRoutes(router *httpx.Router, deps routeDeps, managedLeases jobs
 	}
 	healthDeps := coreHealthDependencies(cfg, grpcSrv, database)
 	healthDeps.IONOSSharedPool = registerIONOSSharedPool(router, deps)
+	healthDeps.FlyMachines = registerFlyMachines(router, deps)
 	if deps.secondaryExecution != nil {
 		healthDeps.ExecutionScope = deps.secondaryExecution.Snapshot
 	}

@@ -84,6 +84,7 @@ func loadApplicationPolicy(ctx context.Context, q PrivilegeQuerier, requireFunct
 	global := map[string]string{
 		"managed_app_slot_reservations": "SELECT,INSERT,UPDATE",
 		"ionos_pool_generations":        "SELECT,INSERT,UPDATE", "ionos_pool_commands": "SELECT,INSERT,UPDATE", "ionos_pool_capacity": "SELECT",
+		"fly_machine_generations": "SELECT,INSERT,UPDATE", "fly_machine_commands": "SELECT,INSERT,UPDATE",
 		"schema_migrations": "SELECT", "techstack_users": "SELECT,INSERT,UPDATE", "techstack_tenants": "SELECT,INSERT,UPDATE",
 		"identity_providers": "SELECT", "feature_rollouts": "SELECT", "provider_catalog_versions": "SELECT",
 		"provider_catalog_profiles": "SELECT", "guard_reach_cursors": "SELECT,INSERT,UPDATE",

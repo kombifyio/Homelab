@@ -74,12 +74,30 @@ func (h wizardRunHandlers) runWizardFound(e *httpx.Event, run *wizardRunState) e
 		}
 		intent := run.request.Intent
 		fit := unifier.EvaluateServerFit(core.WizardRecommendationRequest{
-			ServerFit:          &core.WizardServerFitRequest{ProviderID: managed.ProviderID, OfferingID: managed.RuntimeOfferingID},
-			IONOSMemoryEnabled: run.ionosMemoryEnabled,
-			Goals:              intent.Goals, Services: run.request.Services, UseCaseSettings: intent.UseCaseSettings, UseCaseCapabilities: intent.UseCaseCapabilities,
+			KitSlug:             intent.KitAssignment.KitSlug,
+			DeploymentLane:      "saas",
+			ProviderID:          managed.ProviderID,
+			RuntimeOfferingID:   managed.RuntimeOfferingID,
+			ServerFit:           &core.WizardServerFitRequest{ProviderID: managed.ProviderID, OfferingID: managed.RuntimeOfferingID, Source: "managed"},
+			IONOSMemoryEnabled:  run.ionosMemoryEnabled,
+			Goals:               intent.Goals,
+			Services:            run.request.Services,
+			UseCaseSettings:     intent.UseCaseSettings,
+			UseCaseCapabilities: intent.UseCaseCapabilities,
 		}, unifier.WizardRecommendationInventory{})
-		if fit == nil || fit.Template != sku || fit.Status == "does_not_fit" {
-			return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeValidation, "Selected workloads do not match an admitted server package", map[string]any{"reason_code": "server_hardware_incompatible", "retryable": false, "server_fit": fit})
+		if fit == nil || fit.Template != sku || fit.Status == unifier.FitStatusDoesNotFit {
+			refusalClass := unifier.RefusalClassHardwareFit
+			if fit != nil && fit.RefusalClass != "" {
+				refusalClass = fit.RefusalClass
+			}
+			return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeValidation, "Selected workloads do not match an admitted server package", map[string]any{
+				"reason_code":      "server_hardware_incompatible",
+				"refusal_class":    refusalClass,
+				"choices_retained": true,
+				"requested_intent": intent,
+				"retryable":        false,
+				"server_fit":       fit,
+			})
 		}
 		normalized.ProviderPackage = sku
 	}
@@ -333,7 +351,13 @@ func (h wizardRunHandlers) projectFoundSpec(e *httpx.Event, run *wizardRunState)
 	}
 	runtimeIntent, capacityErr := initialManagedCapacityIntent(run)
 	if errors.Is(capacityErr, unifier.ErrInitialCapacityCore) {
-		_ = httpx.Error(e, http.StatusUnprocessableEntity, ksapi.ErrCodeValidation, "The chosen server cannot host the required StackKit core", map[string]any{"reason_code": "capacity_core_memory"})
+		_ = httpx.Error(e, http.StatusUnprocessableEntity, ksapi.ErrCodeValidation, "The chosen server cannot host the required StackKit core", map[string]any{
+			"reason_code":      "capacity_core_memory",
+			"refusal_class":    unifier.RefusalClassHardwareFit,
+			"choices_retained": true,
+			"requested_intent": run.request.Intent,
+			"retryable":        false,
+		})
 		return nil, true
 	}
 	if capacityErr != nil {
@@ -417,6 +441,8 @@ func (h wizardRunHandlers) projectAndValidate(e *httpx.Event, seed map[string]an
 			"This Node could not be added",
 			"The wizard intent cannot be projected onto the kit spec.",
 		)
+		details["refusal_class"] = unifier.RefusalClassUnsupportedRuntime
+		details["choices_retained"] = true
 		details["projection_error"] = projErr.Error()
 		addWizardRejectedIntent(details, intent, nil, h.cfg.ReleaseVersion)
 		_ = httpx.Error(e, http.StatusBadRequest, ksapi.ErrCodeValidation,
@@ -469,6 +495,8 @@ func (h wizardRunHandlers) projectAndValidate(e *httpx.Event, seed map[string]an
 			"Spec rejected by StackKits",
 			"The selected configuration was rejected by the pinned StackKits release. Your choices are retained; review them and submit again. Nothing was persisted or applied.",
 		)
+		details["refusal_class"] = unifier.RefusalClassUnsupportedRuntime
+		details["choices_retained"] = true
 		details["validate_error"] = validateErr.Error()
 		addWizardRejectedIntent(details, intent, projection.UnmappedGoals, h.cfg.ReleaseVersion)
 		_ = httpx.Error(e, http.StatusUnprocessableEntity, ksapi.ErrCodeValidation,

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	agentpkg "github.com/kombifyio/homelab/pkg/agent"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 	"github.com/kombifyio/homelab/pkg/guardrelease"
 )
 
@@ -35,6 +36,28 @@ func (e *runtimeRetry) Error() string {
 	return fmt.Sprintf("runtime retry after %s: %v", e.After.UTC().Format(time.RFC3339), e.Cause)
 }
 func (e *runtimeRetry) Unwrap() error { return e.Cause }
+
+// IsRuntimeRetry reports whether err came from the bounded runtime convergence
+// backoff window (for example a candidate upgrade waiting for its next retry
+// while an earlier verified StackKits runtime is already installed).
+func IsRuntimeRetry(err error) bool {
+	var retry *runtimeRetry
+	return errors.As(err, &retry)
+}
+
+// MatchesRelease reports whether the described installed StackKits runtime is
+// valid and matches every field of the pinned command release.
+func (d RuntimeDescription) MatchesRelease(pin *agentpb.StackKitReleasePin) bool {
+	if !d.Available || !d.Valid || pin == nil {
+		return false
+	}
+	return strings.TrimSpace(pin.Version) != "" &&
+		strings.TrimSpace(pin.Version) == d.Version &&
+		strings.TrimSpace(pin.PlatformOs) == d.PlatformOS &&
+		strings.TrimSpace(pin.PlatformArch) == d.PlatformArch &&
+		strings.TrimSpace(pin.ArchiveSha256) == d.ArchiveSHA256 &&
+		strings.TrimSpace(pin.ReleaseIndexSha256) == d.IndexSHA256
+}
 
 // One record/file per Guard. No credential, raw peer identity or admission token
 // is persisted. Fresh signed policy and worker admission precede every attempt.

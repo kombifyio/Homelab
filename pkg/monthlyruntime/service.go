@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/internal/guardbootstrap"
 	"github.com/kombifyio/homelab/internal/providercatalog"
 	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
 	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
 	"github.com/kombifyio/homelab/pkg/auth"
-	"github.com/kombifyio/homelab/pkg/identity"
 	"github.com/kombifyio/homelab/pkg/vmleases"
 )
 
@@ -302,7 +302,14 @@ func (s *Service) Offerings() []Offering {
 			if region == "" {
 				region = offering.Region
 			}
-			offering.ProviderPackages[provider] = OfferingPackage{VCPUs: pkg.VCPUs, MemoryMB: pkg.MemoryMB, DiskGB: pkg.DiskGB, Region: region}
+			offering.ProviderPackages[provider] = OfferingPackage{
+				Template: pkg.Template,
+				SKU:      pkg.DisplaySKU(),
+				VCPUs:    pkg.VCPUs,
+				MemoryMB: pkg.MemoryMB,
+				DiskGB:   pkg.DiskGB,
+				Region:   region,
+			}
 		}
 	}
 	return offerings

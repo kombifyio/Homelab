@@ -874,18 +874,68 @@ export class CreationFrame {
           allowManagedOffering,
           selectedServerRamMb,
         }),
-        ...(fitEnabled && selectedServer
-          ? { server_fit: { server_id: selectedServer } }
-          : fitEnabled &&
-              server.mode === "kombify-cloud" &&
-              config.runtimeOfferingId
+        ...(fitEnabled
+          ? selectedServer
             ? {
                 server_fit: {
-                  provider_id: config.providerId,
-                  offering_id: config.runtimeOfferingId,
+                  server_id: selectedServer,
+                  source: "guard" as const,
                 },
               }
-            : {}),
+            : server.mode === "kombify-cloud" && config.runtimeOfferingId
+              ? {
+                  server_fit: {
+                    provider_id: config.providerId,
+                    offering_id: config.runtimeOfferingId,
+                    source: "managed",
+                  },
+                }
+              : server.mode === "hypervisor"
+                ? {
+                    server_fit: {
+                      source: "substrate" as const,
+                      ...(server.substrate?.serverId
+                        ? { host: server.substrate.serverId }
+                        : {}),
+                      ...(server.substrate &&
+                      (server.substrate.memoryMiB > 0 ||
+                        server.substrate.advisoryInventory)
+                        ? {
+                            observed_capacity: {
+                              cpu_cores:
+                                server.substrate.cpu ||
+                                server.substrate.advisoryInventory?.cpu ||
+                                0,
+                              memory_mb:
+                                server.substrate.memoryMiB ||
+                                server.substrate.advisoryInventory?.memoryMiB ||
+                                0,
+                              disk_gb:
+                                server.substrate.diskGiB ||
+                                server.substrate.advisoryInventory?.diskGiB ||
+                                0,
+                              source: "substrate",
+                              usage_observed: true,
+                            },
+                          }
+                        : {}),
+                    },
+                  }
+                : server.mode === "connect-remote"
+                  ? {
+                      server_fit: {
+                        source: "ssh" as const,
+                        ...(server.remote.host.trim()
+                          ? { host: server.remote.host.trim() }
+                          : {}),
+                      },
+                    }
+                  : {
+                      server_fit: {
+                        source: "install-command" as const,
+                      },
+                    }
+          : {}),
         surface: "easy",
       };
     });
@@ -951,6 +1001,52 @@ export class CreationFrame {
       (key) => key === goal,
     );
     if (selected) this.setGoal(selected, false);
+  };
+  /** Re-runs the current server capacity check, bypassing any cached answer. */
+  recheckServerFit = () => {
+    const request = this.#recommendationRequest;
+    if (request) this.#recommendations.refresh(request);
+  };
+  /** Applies one actionable fit recovery without erasing the user's choices. */
+  applyFitRecovery = (recovery: {
+    action: string;
+    offering_id?: string;
+    profile?: string;
+    goal?: string;
+  }) => {
+    if (this.interacted) this.userEdited = true;
+    switch (recovery.action) {
+      case "switch_offering":
+        if (
+          recovery.offering_id === "monthly-runtime-standard" ||
+          recovery.offering_id === "monthly-runtime-premium" ||
+          recovery.offering_id === "monthly-runtime-large"
+        ) {
+          this.config.runtimeOfferingId = recovery.offering_id;
+        }
+        break;
+      case "switch_profile":
+        if (
+          recovery.goal === "photos" &&
+          (recovery.profile === "immich-lite" || recovery.profile === "ente-photos")
+        ) {
+          this.setUseCaseSetting("photos", "backend", recovery.profile);
+        } else {
+          this.goalsStage = "configure";
+          this.session.open("goals");
+        }
+        break;
+      case "omit_use_case":
+        if (recovery.goal) this.leaveOutForCapacity(recovery.goal);
+        break;
+      case "refresh_inventory":
+        this.recheckServerFit();
+        break;
+      case "review_selection":
+        this.goalsStage = "configure";
+        this.session.open("goals");
+        break;
+    }
   };
 
   get recommendedStackKit(): string | undefined {

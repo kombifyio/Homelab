@@ -9,10 +9,12 @@ import (
 
 	ksapi "github.com/kombifyio/homelab/pkg/api"
 	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/core"
 	"github.com/kombifyio/homelab/pkg/httpx"
 	"github.com/kombifyio/homelab/pkg/jobs"
 	"github.com/kombifyio/homelab/pkg/orchestrator"
 	"github.com/kombifyio/homelab/pkg/specv2"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 // WizardExistingServers adapts the existing canonical server assignment
@@ -72,6 +74,9 @@ func (h wizardRunHandlers) runWizardExistingServer(e *httpx.Event, run *wizardRu
 	}
 	if err := h.cfg.ExistingServers.Resolve(e.Request.Context(), target); err != nil {
 		return writeWizardExistingServerError(e, err)
+	}
+	if handled, err := h.recheckExistingServerAttestedCapacity(e, run, target.ServerID); handled {
+		return err
 	}
 	if err := h.crud.requireWalletCreateRight(e, run.ownerID); err != nil {
 		return err
@@ -309,4 +314,78 @@ func writeWizardExistingServerError(e *httpx.Event, err error) error {
 	return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable,
 		"Existing-server installation could not be admitted; retry with the same Idempotency-Key", wizardRunDetails(
 			"wizard_existing_server_unavailable", true, "Installation unavailable", "The server was retained. Retry this installation with the same attempt key."))
+}
+
+// recheckExistingServerAttestedCapacity revalidates attested Guard inventory
+// for an enrolled owned host before assignment/Apply. Unknown or stale facts
+// never fabricate a block; a proven hardware/runtime deficit refuses cleanly
+// while retaining all user selections.
+func (h wizardRunHandlers) recheckExistingServerAttestedCapacity(e *httpx.Event, run *wizardRunState, serverID string) (bool, error) {
+	if h.crud.runtimeFeatures == nil || h.crud.serverStore == nil || strings.TrimSpace(serverID) == "" {
+		return false, nil
+	}
+	enabled, err := h.crud.runtimeFeatures.IsEnabled(e.Request.Context(), "server_hardware_fit", run.ownerID)
+	if err != nil || !enabled {
+		return false, nil
+	}
+	workerStore, ok := h.crud.serverStore.(controlplane.WorkerStore)
+	if !ok {
+		return false, nil
+	}
+	records, err := workerStore.ListWorkersByTenant(e.Request.Context(), run.tenantID)
+	if err != nil {
+		return false, nil
+	}
+	server, serverErr := h.crud.serverStore.GetServerRuntime(e.Request.Context(), run.tenantID, serverID)
+	var workers []core.Worker
+	for _, record := range records {
+		if strings.TrimSpace(record.OwnerSubjectID) != strings.TrimSpace(run.ownerID) {
+			continue
+		}
+		mappedServerID := ""
+		if serverErr == nil && server != nil && strings.TrimSpace(server.WorkerID) == record.ID {
+			mappedServerID = server.ID
+		}
+		workers = append(workers, core.Worker{
+			ID:       record.ID,
+			ServerID: mappedServerID,
+			Name:     record.Hostname,
+			Status:   record.Status,
+			Capabilities: core.WorkerCapabilities{
+				CPU:  record.CPUCores,
+				RAM:  record.RAMMB,
+				Disk: record.DiskGB,
+				Arch: record.Arch,
+				OS:   record.OS,
+			},
+		})
+	}
+	intent := run.request.Intent
+	fit := unifier.EvaluateServerFit(core.WizardRecommendationRequest{
+		KitSlug:             intent.KitAssignment.KitSlug,
+		DeploymentLane:      "self-hosted",
+		ServerFit:           &core.WizardServerFitRequest{ServerID: serverID, Source: "guard"},
+		Goals:               intent.Goals,
+		Services:            run.request.Services,
+		UseCaseSettings:     intent.UseCaseSettings,
+		UseCaseCapabilities: intent.UseCaseCapabilities,
+	}, unifier.WizardRecommendationInventory{
+		State:   "fresh",
+		Workers: workers,
+	})
+	if fit != nil && fit.Status == unifier.FitStatusDoesNotFit {
+		refusalClass := fit.RefusalClass
+		if refusalClass == "" {
+			refusalClass = unifier.RefusalClassHardwareFit
+		}
+		return true, httpx.Error(e, http.StatusConflict, ksapi.ErrCodeValidation, "Selected workloads exceed the selected server capacity", map[string]any{
+			"reason_code":      "server_hardware_incompatible",
+			"refusal_class":    refusalClass,
+			"choices_retained": true,
+			"requested_intent": intent,
+			"retryable":        false,
+			"server_fit":       fit,
+		})
+	}
+	return false, nil
 }

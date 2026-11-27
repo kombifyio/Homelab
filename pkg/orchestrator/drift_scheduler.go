@@ -9,8 +9,10 @@ import (
 	"time"
 
 	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/guardcompat"
 	"github.com/kombifyio/homelab/pkg/jobs"
 	"github.com/kombifyio/homelab/pkg/releasechannel"
+	"github.com/kombifyio/homelab/pkg/serverregistry"
 )
 
 const (
@@ -149,11 +151,22 @@ func (s *DriftScheduler) ScheduleOnce(ctx context.Context) ([]string, error) {
 				}
 				continue
 			}
+			var runtimes []controlplane.ServerRuntime
+			hasServerStore := false
+			if serverStore := s.orch.canonicalServerRuntimeStore(); serverStore != nil {
+				if loaded, loadErr := serverStore.ListServerRuntimesByTenant(ctx, tenantID, ""); loadErr == nil {
+					runtimes = loaded
+					hasServerStore = true
+				}
+			}
 			for _, stack := range stacks {
 				if len(started) >= driftScheduleMaxDispatches {
 					return started, nil
 				}
 				if !s.due(stack, now) {
+					continue
+				}
+				if hasServerStore && !stackHasConnectedGuard(stack, runtimes, now) {
 					continue
 				}
 				jobID, err := s.orch.TriggerDriftCheck(DriftLifecycleRequest{
@@ -184,4 +197,27 @@ func (s *DriftScheduler) due(stack controlplane.Stack, now time.Time) bool {
 		return false
 	}
 	return stack.DriftCheckedAt == nil || now.Sub(*stack.DriftCheckedAt) >= s.cfg.Interval
+}
+
+// stackHasConnectedGuard reports whether the stack has an active, connected
+// server with a fresh Guard heartbeat. Scheduling periodic drift detection
+// against an offline, stale, or decommissioning Guard only waits out the
+// 5-minute command deadline and fires spurious timeout errors on every pass.
+func stackHasConnectedGuard(stack controlplane.Stack, runtimes []controlplane.ServerRuntime, now time.Time) bool {
+	freshAfter := now.Add(-guardcompat.StaleAfter)
+	for _, rt := range runtimes {
+		if rt.StackID != stack.ID || rt.OwnerSubjectID != stack.OwnerSubjectID {
+			continue
+		}
+		if strings.TrimSpace(rt.WorkerID) == "" ||
+			rt.ConnectionState != string(serverregistry.ConnectionConnected) ||
+			rt.LifecycleState == string(serverregistry.LifecycleDecommissioning) ||
+			rt.LifecycleState == string(serverregistry.LifecycleDecommissioned) ||
+			rt.LastHeartbeatAt == nil ||
+			rt.LastHeartbeatAt.Before(freshAfter) {
+			continue
+		}
+		return true
+	}
+	return false
 }

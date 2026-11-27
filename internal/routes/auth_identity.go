@@ -3,10 +3,10 @@ package routes
 import (
 	"net/http"
 
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/internal/routes/tenantguard"
 	"github.com/kombifyio/homelab/pkg/api"
 	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 func authenticatedUserID(e *httpx.Event) (string, bool) {

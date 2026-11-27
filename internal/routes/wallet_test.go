@@ -12,10 +12,10 @@ import (
 	"time"
 
 	"github.com/kombifyio/homelab/internal/gocommon/authsession"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/pkg/auth"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 func TestWalletRevealRequiresFreshReauth(t *testing.T) {

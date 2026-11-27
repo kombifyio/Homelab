@@ -156,7 +156,24 @@ export interface WizardRecommendationRequest {
   selection_intent?: "all";
   available_goals?: string[];
   server_fit?:
-    { provider_id: string; offering_id: string } | { server_id: string };
+    | { provider_id: string; offering_id: string; source?: string }
+    | {
+        server_id?: string;
+        source?: "guard" | "ssh" | "substrate" | "install-command" | "existing";
+        host?: string;
+        observed_capacity?: {
+          cpu_cores?: number;
+          memory_mb?: number;
+          disk_gb?: number;
+          free_disk_gb?: number;
+          architecture?: string;
+          amd64_level?: number;
+          source?: string;
+          observed_at?: string;
+          stale?: boolean;
+          usage_observed?: boolean;
+        };
+      };
   compute_profile?: string;
   use_case_settings?: Record<string, Record<string, string | boolean>>;
   use_case_capabilities?: Record<string, Record<string, string>>;
@@ -173,6 +190,14 @@ export interface WizardRecommendationRequest {
  * MiB; it never gates a run (a use case that cannot be installed fails alone
  * at rollout). `unknown` means the released facts or the server size are missing.
  */
+export interface WizardCapacityDriver {
+  goal: string;
+  code: string;
+  setting?: string;
+  value?: string;
+  ram_mb?: number;
+}
+
 export interface WizardCapacity {
   status: "fits" | "warning" | "unknown";
   advisory: true;
@@ -201,6 +226,7 @@ export interface WizardCapacity {
     working_increment_ram_mb: number | null;
     required_ram_mb: number;
   }>;
+  drivers?: WizardCapacityDriver[];
 }
 
 /** Server guidance for a selection; never blocks one. */
@@ -235,26 +261,76 @@ export interface ServerFitReason {
   unit?: string;
 }
 
+export interface ServerFitBudget {
+  kit_slug?: string;
+  base_cpu_cores: number;
+  base_ram_gib: number;
+  base_storage_gb: number;
+  workload_cpu_cores: number;
+  workload_ram_gib: number;
+  workload_storage_gb: number;
+  total_cpu_cores: number;
+  total_ram_gib: number;
+  total_storage_gb: number;
+  data_volume_storage_gb?: number;
+  kit_floor_cpu_cores?: number;
+  kit_floor_ram_gib?: number;
+  kit_floor_storage_gb?: number;
+  external_data_volume_gb?: number;
+  external_data_mount?: string;
+}
+
+export interface ServerFitRecovery {
+  action:
+    | "switch_offering"
+    | "switch_profile"
+    | "omit_use_case"
+    | "refresh_inventory"
+    | "review_selection";
+  reason_code?: string;
+  offering_id?: string;
+  offering_name?: string;
+  offering_sku?: string;
+  offering_memory_mb?: number;
+  profile?: string;
+  goal?: string;
+}
+
 export interface ServerFit {
-  status: "fits" | "does_not_fit" | "unknown" | "stale";
+  status: "fits" | "tight" | "does_not_fit" | "pending" | "unknown" | "stale";
+  scope?: string;
   evidence: "projected" | "observed";
+  capacity_origin?: "catalog_sku" | "observed_inventory" | "unmeasured";
+  inventory_source?: "catalog_sku" | "guard" | "ssh" | "substrate" | "unknown";
+  inventory_revision?: string;
+  pending_reason?: string;
+  refusal_class?:
+    | "hardware_fit"
+    | "unsupported_runtime"
+    | "unavailable_provider"
+    | "entitlement";
   provider_id?: string;
   offering_id?: string;
   server_id?: string;
   template?: string;
+  sku?: string;
+  location?: string;
   catalog_source?: string;
+  budget?: ServerFitBudget;
+  recovery?: ServerFitRecovery;
   specs: {
     cpu_cores: number;
     memory_mb: number;
     disk_gb: number;
     architecture?: string;
-    amd64_level?: string;
+    amd64_level?: number;
   };
   memory_peak:
     | { status: "available"; estimated_gib: number; available_gib: number; warning: boolean }
     | { status: "unknown"; warning: false };
   deficits: ServerFitReason[];
   unknowns: ServerFitReason[];
+  advisories?: ServerFitReason[];
 }
 
 export interface WizardRecommendationResult {

@@ -490,9 +490,48 @@ func (c *Client) accessToken(ctx context.Context, force bool) (string, error) {
 	return token, nil
 }
 
+// refreshAccessToken exchanges the credential for a fresh access token after
+// the control plane rejected rejectedToken. If another goroutine already
+// replaced rejectedToken with a valid token, that token is returned without a
+// second exchange.
+func (c *Client) refreshAccessToken(ctx context.Context, rejectedToken string) (string, error) {
+	c.exchangeMu.Lock()
+	defer c.exchangeMu.Unlock()
+	c.mu.Lock()
+	if c.token != "" && c.token != rejectedToken && c.cfg.Now().Before(c.expires.Add(-time.Minute)) {
+		token := c.token
+		c.mu.Unlock()
+		return token, nil
+	}
+	if c.token == rejectedToken {
+		c.token, c.expires = "", time.Time{}
+	}
+	c.mu.Unlock()
+	token, expires, err := c.exchange(ctx)
+	if err != nil {
+		var apiErr *APIError
+		if errors.As(err, &apiErr) && apiErr.Code == guardidentity.CodeIdentityRevoked {
+			_ = c.cfg.Manager.SetState(StateRevoked, guardidentity.CodeIdentityRevoked)
+		}
+		return "", err
+	}
+	c.mu.Lock()
+	c.token, c.expires = token, expires
+	c.mu.Unlock()
+	return token, nil
+}
+
 func (c *Client) dropToken() {
 	c.mu.Lock()
 	c.token, c.expires = "", time.Time{}
+	c.mu.Unlock()
+}
+
+func (c *Client) dropTokenIf(rejectedToken string) {
+	c.mu.Lock()
+	if c.token == rejectedToken {
+		c.token, c.expires = "", time.Time{}
+	}
 	c.mu.Unlock()
 }
 

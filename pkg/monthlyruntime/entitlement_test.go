@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 )
 
 type managedRuntimeEntitlementChecker struct {

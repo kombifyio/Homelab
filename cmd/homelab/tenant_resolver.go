@@ -7,12 +7,12 @@ import (
 	"strings"
 
 	commonauthflow "github.com/kombifyio/homelab/internal/gocommon/authflow"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/internal/gocommon/oidcclient"
 
 	"github.com/kombifyio/homelab/pkg/auth/testidentity"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/demoguard"
-	"github.com/kombifyio/homelab/pkg/identity"
 	"github.com/kombifyio/homelab/pkg/logger"
 )
 

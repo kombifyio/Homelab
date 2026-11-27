@@ -45,15 +45,27 @@ func (c *Client) applies(req *http.Request) bool {
 }
 
 // authorizedRoundTrip sends req with a DPoP authorization. A token the control
-// plane reports as expired (superseded credential, finished key overlap) is
-// replaced once and the request replayed when its body can be re-read.
+// plane reports as expired or invalid (e.g. after a server restart with a new
+// ephemeral or rotated signing key, superseded credential, or finished key
+// overlap) is dropped immediately, exchanged once, and the request replayed
+// when its body can be re-read. At most one retry is attempted so a persistent
+// denial never loops.
 func (c *Client) authorizedRoundTrip(base http.RoundTripper, req *http.Request) (*http.Response, error) {
 	if base == nil {
 		base = http.DefaultTransport
 	}
 	ctx := req.Context()
+	var rejectedToken string
 	for attempt := 0; ; attempt++ {
-		token, err := c.accessToken(ctx, attempt > 0)
+		var (
+			token string
+			err   error
+		)
+		if attempt == 0 {
+			token, err = c.accessToken(ctx, false)
+		} else {
+			token, err = c.refreshAccessToken(ctx, rejectedToken)
+		}
 		if err != nil {
 			closeRequestBody(req)
 			return nil, err
@@ -85,15 +97,28 @@ func (c *Client) authorizedRoundTrip(base http.RoundTripper, req *http.Request) 
 		apiErr := peekAPIError(response)
 		switch {
 		case apiErr != nil && apiErr.Code == guardidentity.CodeIdentityRevoked:
+			c.dropTokenIf(token)
 			_ = c.cfg.Manager.SetState(StateRevoked, guardidentity.CodeIdentityRevoked)
 			return response, nil
-		case apiErr != nil && apiErr.Code == guardidentity.CodeTokenExpired && attempt == 0 && replayable(req):
-			_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 64<<10))
-			_ = response.Body.Close()
-			continue
+		case isRetryableAccessTokenDenial(apiErr):
+			c.dropTokenIf(token)
+			if attempt == 0 && replayable(req) {
+				_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 64<<10))
+				_ = response.Body.Close()
+				rejectedToken = token
+				continue
+			}
 		}
 		return response, nil
 	}
+}
+
+func isRetryableAccessTokenDenial(apiErr *APIError) bool {
+	if apiErr == nil {
+		return false
+	}
+	return apiErr.Code == guardidentity.CodeTokenExpired ||
+		(apiErr.Code == guardidentity.CodeProofInvalid && apiErr.Reason == guardidentity.ReasonTokenInvalid)
 }
 
 func replayable(req *http.Request) bool {

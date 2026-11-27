@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 // TestCreateStorePairingJobReturnsCreationJob covers the BYOS add-server fix:

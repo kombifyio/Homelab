@@ -14,7 +14,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"github.com/kombifyio/homelab/internal/gocommon/edgeauth"
-	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/pkg/middleware"
 
 	"math/big"

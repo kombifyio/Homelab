@@ -3,9 +3,9 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/pkg/config"
 	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/identity"
 	"github.com/kombifyio/homelab/pkg/kombifywallet"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

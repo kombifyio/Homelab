@@ -14,6 +14,16 @@ type WizardCapacityUseCase struct {
 	RequiredRAMMB         int    `json:"required_ram_mb"`
 }
 
+// WizardCapacityDriver names a concrete use case or setting choice that
+// materially changes capacity demand (for Goals Configure explanations).
+type WizardCapacityDriver struct {
+	Goal    string `json:"goal"`
+	Code    string `json:"code"`
+	Setting string `json:"setting,omitempty"`
+	Value   string `json:"value,omitempty"`
+	RAMMB   int    `json:"ram_mb,omitempty"`
+}
+
 type WizardCapacityAssessment struct {
 	Status                 string                       `json:"status"`
 	Advisory               bool                         `json:"advisory"`
@@ -30,4 +40,5 @@ type WizardCapacityAssessment struct {
 	OmitGoals              []string                     `json:"omit_goals"`
 	Reasons                []WizardRecommendationReason `json:"reasons"`
 	PerUseCase             []WizardCapacityUseCase      `json:"per_use_case"`
+	Drivers                []WizardCapacityDriver       `json:"drivers,omitempty"`
 }

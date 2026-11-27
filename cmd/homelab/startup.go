@@ -18,6 +18,7 @@ import (
 
 	commonauthflow "github.com/kombifyio/homelab/internal/gocommon/authflow"
 	"github.com/kombifyio/homelab/internal/gocommon/authsession"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	commonobservability "github.com/kombifyio/homelab/internal/gocommon/observability"
 	"github.com/kombifyio/homelab/internal/gocommon/oidcclient"
 
@@ -48,7 +49,6 @@ import (
 	"github.com/kombifyio/homelab/pkg/guardposture"
 	"github.com/kombifyio/homelab/pkg/guardreach"
 	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/identity"
 	"github.com/kombifyio/homelab/pkg/instance"
 	"github.com/kombifyio/homelab/pkg/jobs"
 	"github.com/kombifyio/homelab/pkg/kombifywallet"
@@ -85,7 +85,7 @@ type v2Boot struct {
 	systemDB              *db.DB
 	advancedIssuerCustody *db.DB
 	server                *v2.Server
-	session               *session.Manager
+	session               *authsession.Manager
 	browserSessions       *sessionpolicy.Browser
 	registry              *providers.Registry
 	authStore             controlplane.AuthStore
@@ -427,18 +427,23 @@ func runHomelab(ctx context.Context) error {
 			}
 		}()
 	}
+	serverOwnerFGAProjector, serverOwnerFGAEvents := bootServerOwnerFGAProjection(startup.cfg, v2Boot, log)
 	notificationOutbox := bootProductNotificationOutbox(v2Boot, startup.cfg.Edition, log)
+	var changeHints changeHintAnnouncer
 	if notificationOutbox != nil {
 		// Change hints reuse the engine destination of the notification outbox;
 		// they are best-effort and fire only after the change is committed.
-		changeHints := notifications.NewHintAnnouncer(notifications.NewEngineFromEnv(), log.Logger)
-		v2Boot.serverEventProjector = serverEventHintProjector{
-			nodeLifecycleNotificationProjector: nodeLifecycleNotificationProjector{outbox: notificationOutbox},
-			hints:                              changeHints,
-		}
+		changeHints = notifications.NewHintAnnouncer(notifications.NewEngineFromEnv(), log.Logger)
 		orch.AddTerminalJobObserver(stackKitLifecycleNotifier{outbox: notificationOutbox})
 		orch.AddTerminalJobObserver(destroyJobFailureNotifier{outbox: notificationOutbox})
 		orch.AddTerminalJobObserver(terminalJobHintObserver{hints: changeHints})
+	}
+	if notificationOutbox != nil || serverOwnerFGAEvents != nil {
+		v2Boot.serverEventProjector = serverEventHintProjector{
+			nodeLifecycleNotificationProjector: nodeLifecycleNotificationProjector{outbox: notificationOutbox},
+			hints:                              changeHints,
+			fgaOwners:                          serverOwnerFGAEvents,
+		}
 	}
 	if store := controlPlanePostgresStore(v2Boot); store != nil {
 		orch.AddTerminalJobObserver(guardHeartbeatTimeoutProjector{store: store})
@@ -555,6 +560,12 @@ func runHomelab(ctx context.Context) error {
 		handles.background.run(func(ctx context.Context) {
 			runDeletedStackBindingReconciliation(ctx, controlPlanePostgresStore(v2Boot), log)
 		})
+	}
+	if serverOwnerFGAProjector != nil {
+		handles.background.run(serverOwnerFGAProjector.Run)
+	}
+	if serverOwnerFGAEvents != nil {
+		handles.background.run(serverOwnerFGAEvents.Run)
 	}
 	if feed != nil && feed.digest != nil {
 		handles.background.run(feed.digest.Run)
@@ -846,7 +857,7 @@ func configureV2Auth(ctx context.Context, cfg *config.Config, log *logger.Logger
 		v2SessionAudienceFromEnv(),
 		[]byte(secret),
 	)
-	mgr, err := session.NewManager(session.Config(sessionCfg))
+	mgr, err := session.NewManager(sessionCfg)
 	if err != nil {
 		log.Error("v2_session_manager_invalid", "error", err)
 		return
@@ -1542,7 +1553,7 @@ func v2SessionTokenFromRequest(r *http.Request, cookieName string) (string, bool
 	return token, token != ""
 }
 
-func identityFromV2SessionClaims(claims *session.Claims) *identity.Identity {
+func identityFromV2SessionClaims(claims *authsession.Claims) *identity.Identity {
 	if claims == nil {
 		return &identity.Identity{}
 	}
@@ -1560,7 +1571,7 @@ func identityFromV2SessionClaims(claims *session.Claims) *identity.Identity {
 	}
 }
 
-func enrichV2SessionIdentityFromMembership(ctx context.Context, store controlplane.AuthStore, defaultTenant string, saasMode bool, claims *session.Claims, id *identity.Identity) (*controlplane.Membership, error) {
+func enrichV2SessionIdentityFromMembership(ctx context.Context, store controlplane.AuthStore, defaultTenant string, saasMode bool, claims *authsession.Claims, id *identity.Identity) (*controlplane.Membership, error) {
 	if claims == nil {
 		return nil, nil
 	}
@@ -1706,7 +1717,7 @@ func uniqueNonEmptyStrings(values ...string) []string {
 // v2CloudUserUpsert). The legacy "pocketbase:" prefix from pre-retirement
 // sessions is stripped for backward compatibility during the session-cookie
 // rollover window.
-func v2SessionOwnerID(claims *session.Claims) string {
+func v2SessionOwnerID(claims *authsession.Claims) string {
 	if claims == nil {
 		return ""
 	}
@@ -1717,7 +1728,7 @@ func v2SessionOwnerID(claims *session.Claims) string {
 	return subject
 }
 
-func v2SessionTenantID(claims *session.Claims) string {
+func v2SessionTenantID(claims *authsession.Claims) string {
 	if claims == nil {
 		return ""
 	}

@@ -649,6 +649,8 @@ export interface StackPruneResponse {
 
 /** The server a provider really provisions for one offering. */
 export interface MonthlyRuntimePackage {
+  template?: string;
+  sku?: string;
   vcpus?: number;
   memory_mb?: number;
   disk_gb?: number;

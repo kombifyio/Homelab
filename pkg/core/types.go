@@ -650,11 +650,32 @@ type WizardRecommendationRequest struct {
 	UseCaseCapabilities map[string]map[string]string `json:"use_case_capabilities,omitempty"`
 }
 
-// WizardServerFitRequest names exactly one server; capacity is always resolved by the server.
+// WizardObservedHostCapacity carries scoped, observed inventory from a
+// substrate or SSH probe when a host is not yet enrolled as a Guard worker.
+// Managed provider packages never read this field.
+type WizardObservedHostCapacity struct {
+	CPUCores      int    `json:"cpu_cores,omitempty"`
+	MemoryMB      int    `json:"memory_mb,omitempty"`
+	DiskGB        int    `json:"disk_gb,omitempty"`
+	FreeDiskGB    int    `json:"free_disk_gb,omitempty"`
+	Architecture  string `json:"architecture,omitempty"`
+	AMD64Level    int    `json:"amd64_level,omitempty"`
+	Source        string `json:"source,omitempty"`
+	ObservedAt    string `json:"observed_at,omitempty"`
+	Stale         bool   `json:"stale,omitempty"`
+	UsageObserved bool   `json:"usage_observed,omitempty"`
+}
+
+// WizardServerFitRequest names exactly one server; capacity is resolved by the
+// server from provider catalog SKUs, scoped Guard registry inventory, or fresh
+// scoped substrate/SSH inventory.
 type WizardServerFitRequest struct {
-	ProviderID string `json:"provider_id,omitempty"`
-	OfferingID string `json:"offering_id,omitempty"`
-	ServerID   string `json:"server_id,omitempty"`
+	ProviderID       string                      `json:"provider_id,omitempty"`
+	OfferingID       string                      `json:"offering_id,omitempty"`
+	ServerID         string                      `json:"server_id,omitempty"`
+	Source           string                      `json:"source,omitempty"`
+	Host             string                      `json:"host,omitempty"`
+	ObservedCapacity *WizardObservedHostCapacity `json:"observed_capacity,omitempty"`
 }
 
 type WizardServerFitSpecs struct {
@@ -675,7 +696,43 @@ type WizardServerFitFact struct {
 	Unit      string  `json:"unit,omitempty"`
 }
 
-// WizardMemoryPeak is a forecast for selected workloads, not a whole-stack measurement.
+// WizardServerFitBudget breaks down whole-stack demand across the Advanced
+// base/shared runtime, per-module reservations, kit host floors, and data
+// volume storage.
+type WizardServerFitBudget struct {
+	KitSlug              string  `json:"kit_slug,omitempty"`
+	BaseCPUCores         float64 `json:"base_cpu_cores"`
+	BaseRAMGiB           float64 `json:"base_ram_gib"`
+	BaseStorageGB        float64 `json:"base_storage_gb"`
+	WorkloadCPUCores     float64 `json:"workload_cpu_cores"`
+	WorkloadRAMGiB       float64 `json:"workload_ram_gib"`
+	WorkloadStorageGB    float64 `json:"workload_storage_gb"`
+	TotalCPUCores        float64 `json:"total_cpu_cores"`
+	TotalRAMGiB          float64 `json:"total_ram_gib"`
+	TotalStorageGB       float64 `json:"total_storage_gb"`
+	DataVolumeStorageGB  float64 `json:"data_volume_storage_gb,omitempty"`
+	KitFloorCPUCores     float64 `json:"kit_floor_cpu_cores,omitempty"`
+	KitFloorRAMGiB       float64 `json:"kit_floor_ram_gib,omitempty"`
+	KitFloorStorageGB    float64 `json:"kit_floor_storage_gb,omitempty"`
+	ExternalDataVolumeGB int     `json:"external_data_volume_gb,omitempty"`
+	ExternalDataMount    string  `json:"external_data_mount,omitempty"`
+}
+
+// WizardServerFitRecovery names one concrete actionable recovery for the
+// current selection without erasing user choices.
+type WizardServerFitRecovery struct {
+	Action           string `json:"action"` // switch_offering, switch_profile, omit_use_case, refresh_inventory, review_selection
+	ReasonCode       string `json:"reason_code,omitempty"`
+	OfferingID       string `json:"offering_id,omitempty"`
+	OfferingName     string `json:"offering_name,omitempty"`
+	OfferingSKU      string `json:"offering_sku,omitempty"`
+	OfferingMemoryMB int    `json:"offering_memory_mb,omitempty"`
+	Profile          string `json:"profile,omitempty"`
+	Goal             string `json:"goal,omitempty"`
+}
+
+// WizardMemoryPeak is a whole-stack memory peak estimate combining base/shared
+// runtime overhead (or observed usage) with source-bound workload peaks.
 type WizardMemoryPeak struct {
 	Status       string  `json:"status"` // available or unknown
 	EstimatedGiB float64 `json:"estimated_gib,omitempty"`
@@ -683,22 +740,33 @@ type WizardMemoryPeak struct {
 	Warning      bool    `json:"warning"`
 }
 
-// WizardServerFit evaluates only released selected-workload footprints. It is not runtime acceptance.
+// WizardServerFit evaluates the whole target stack (Advanced base/shared
+// runtime, per-module reservations, data volumes, and pinned StackKits
+// feasibility constraints) against either a catalog-declared future managed
+// SKU or observed owned-host inventory.
 type WizardServerFit struct {
-	Status        string                `json:"status"`
-	Scope         string                `json:"scope"`
-	Advisories    []WizardServerFitFact `json:"advisories"`
-	Evidence      string                `json:"evidence"`
-	ProviderID    string                `json:"provider_id,omitempty"`
-	OfferingID    string                `json:"offering_id,omitempty"`
-	Template      string                `json:"template,omitempty"`
-	Location      string                `json:"location,omitempty"`
-	ServerID      string                `json:"server_id,omitempty"`
-	CatalogSource string                `json:"catalog_source,omitempty"`
-	MemoryPeak    WizardMemoryPeak      `json:"memory_peak"`
-	Specs         WizardServerFitSpecs  `json:"specs"`
-	Deficits      []WizardServerFitFact `json:"deficits"`
-	Unknowns      []WizardServerFitFact `json:"unknowns"`
+	Status            string                   `json:"status"` // fits, tight, does_not_fit, pending, unknown, stale
+	Scope             string                   `json:"scope"`
+	Advisories        []WizardServerFitFact    `json:"advisories"`
+	Evidence          string                   `json:"evidence"`                   // projected or observed
+	CapacityOrigin    string                   `json:"capacity_origin,omitempty"`  // catalog_sku, observed_inventory, unmeasured
+	InventorySource   string                   `json:"inventory_source,omitempty"` // catalog_sku, guard, ssh, substrate, unknown
+	InventoryRevision string                   `json:"inventory_revision,omitempty"`
+	PendingReason     string                   `json:"pending_reason,omitempty"`
+	RefusalClass      string                   `json:"refusal_class,omitempty"` // hardware_fit, unsupported_runtime, unavailable_provider, entitlement
+	ProviderID        string                   `json:"provider_id,omitempty"`
+	OfferingID        string                   `json:"offering_id,omitempty"`
+	Template          string                   `json:"template,omitempty"`
+	SKU               string                   `json:"sku,omitempty"`
+	Location          string                   `json:"location,omitempty"`
+	ServerID          string                   `json:"server_id,omitempty"`
+	CatalogSource     string                   `json:"catalog_source,omitempty"`
+	Budget            *WizardServerFitBudget   `json:"budget,omitempty"`
+	Recovery          *WizardServerFitRecovery `json:"recovery,omitempty"`
+	MemoryPeak        WizardMemoryPeak         `json:"memory_peak"`
+	Specs             WizardServerFitSpecs     `json:"specs"`
+	Deficits          []WizardServerFitFact    `json:"deficits"`
+	Unknowns          []WizardServerFitFact    `json:"unknowns"`
 }
 
 // WizardRecommendationStatus is the explicit state of a recommendation

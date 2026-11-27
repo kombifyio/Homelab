@@ -106,13 +106,20 @@ func flyMachinePathID(value string) bool {
 	return flyMachinePathIDPattern.MatchString(value)
 }
 
+type flyAppInfo struct {
+	Name    string `json:"name"`
+	Network string `json:"network"`
+}
+
 type flyMachineCreate struct {
+	Name   string           `json:"name,omitempty"`
 	Region string           `json:"region"`
 	Config flyMachineConfig `json:"config"`
 }
 
 type flyMachine struct {
 	ID     string                  `json:"id"`
+	Name   string                  `json:"name,omitempty"`
 	Region string                  `json:"region"`
 	State  string                  `json:"state"`
 	Config flyMachineConfig        `json:"config"`

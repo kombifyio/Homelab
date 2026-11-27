@@ -74,10 +74,21 @@ func (h workerRouteHandlers) guardAccessSecret() []byte {
 // verifyGuardAccessToken verifies a key-bound access token against the current
 // worker secret and, while a SERVICE_AUTH_SECRET rotation is open, against the
 // key derived from its successor. Tokens are only ever signed with the current
-// one.
+// one. When a deployment runs without a configured worker secret (process-local
+// ephemeral signing key), a structurally valid access token whose MAC no longer
+// matches after a server restart is answered as CodeTokenExpired so even older
+// Guards re-exchange transparently instead of looping on 401.
 func (h workerRouteHandlers) verifyGuardAccessToken(token string, now time.Time) (guardidentity.AccessClaims, error) {
 	claims, err := guardidentity.VerifyAccessToken(h.guardAccessSecret(), token, now)
-	if err == nil || len(h.configuredWorkerCredentialSecret()) == 0 {
+	if err == nil {
+		return claims, nil
+	}
+	if len(h.configuredWorkerCredentialSecret()) == 0 {
+		var denied *guardidentity.Error
+		if errors.As(err, &denied) && denied.Code == guardidentity.CodeProofInvalid &&
+			denied.Reason == guardidentity.ReasonTokenInvalid && hasGuardAccessTokenShape(token) {
+			return guardidentity.AccessClaims{}, guardidentity.Denied(guardidentity.CodeTokenExpired, "")
+		}
 		return claims, err
 	}
 	if next := workerauth.NextSecretFromEnv(); len(next) > 0 {
@@ -88,6 +99,11 @@ func (h workerRouteHandlers) verifyGuardAccessToken(token string, now time.Time)
 		}
 	}
 	return claims, err
+}
+
+func hasGuardAccessTokenShape(token string) bool {
+	parts := strings.Split(strings.TrimSpace(token), ".")
+	return len(parts) == 3 && parts[0] == "tsga" && parts[1] != "" && parts[2] != ""
 }
 
 type guardGuidance struct {
@@ -312,8 +328,12 @@ func (h workerRouteHandlers) authenticateKeyBoundRuntimeAgent(e *httpx.Event, id
 	}
 	ctx := e.Request.Context()
 	worker, workerErr := h.wst.GetWorker(ctx, claims.TenantID, id)
-	if workerErr != nil || worker == nil {
+	switch {
+	case errors.Is(workerErr, controlplane.ErrNotFound), workerErr == nil && worker == nil:
 		denyGuard(e, guardidentity.CodeProofInvalid, guardidentity.ReasonTokenInvalid)
+		return out, false
+	case workerErr != nil:
+		denyGuard(e, guardidentity.CodeIdentityUnavailable, "")
 		return out, false
 	}
 	if !h.workerStatusAllowsAuthentication(e, *worker) {

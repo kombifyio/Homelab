@@ -14,6 +14,7 @@ import (
 	"time"
 
 	agentpkg "github.com/kombifyio/homelab/pkg/agent"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 // legacyHandoffDir is where a root Guard stages a downloaded release before it
@@ -181,6 +182,21 @@ func stageSignedRelease(ctx context.Context, updater *Updater, handoffDir string
 func (l *LegacyRoot) EnsureRuntime(ctx context.Context, cfg agentpkg.StackKitRuntimeBootstrapConfig) error {
 	_, err := l.EnsureRuntimeEvidence(ctx, cfg)
 	return err
+}
+
+// InstalledRuntimeMatches reports whether the currently installed, verified
+// StackKits runtime matches pin without triggering a candidate download.
+func (l *LegacyRoot) InstalledRuntimeMatches(ctx context.Context, pin *agentpb.StackKitReleasePin) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.hostErr != nil || l.host == nil || pin == nil {
+		return false
+	}
+	description, err := l.host.RuntimeDescribe(ctx)
+	if err != nil {
+		return false
+	}
+	return description.MatchesRelease(pin)
 }
 func (l *LegacyRoot) EnsureRuntimeEvidence(ctx context.Context, cfg agentpkg.StackKitRuntimeBootstrapConfig) (agentpkg.StackKitRuntimeConvergenceResult, error) {
 	l.mu.Lock()

@@ -16,10 +16,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/guardrelease"
 	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/identity"
 	"github.com/kombifyio/homelab/pkg/pairingtoken"
 	"github.com/kombifyio/homelab/pkg/runtimeidentity"
 )

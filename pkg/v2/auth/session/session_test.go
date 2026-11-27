@@ -3,17 +3,18 @@ package session
 import (
 	"testing"
 
+	"github.com/kombifyio/homelab/internal/gocommon/authsession"
 	"github.com/golang-jwt/jwt/v5"
 )
 
 var testSecret = []byte("0123456789abcdef0123456789abcdef")
 
 func TestNewManagerDefaultsToHomelabIssuer(t *testing.T) {
-	manager, err := NewManager(Config{Audience: "frontend", Secret: testSecret})
+	manager, err := NewManager(authsession.Config{Audience: "frontend", Secret: testSecret})
 	if err != nil {
 		t.Fatalf("NewManager returned error: %v", err)
 	}
-	token, err := manager.Issue(Claims{Subject: "user-1", TenantID: "tenant-1"})
+	token, err := manager.Issue(authsession.Claims{Subject: "user-1", TenantID: "tenant-1"})
 	if err != nil {
 		t.Fatalf("Issue returned error: %v", err)
 	}
@@ -29,7 +30,7 @@ func TestNewManagerDefaultsToHomelabIssuer(t *testing.T) {
 }
 
 func TestNewManagerPreservesExplicitIssuer(t *testing.T) {
-	manager, err := NewManager(Config{
+	manager, err := NewManager(authsession.Config{
 		Issuer:   "custom",
 		Audience: "frontend",
 		Secret:   testSecret,
@@ -37,7 +38,7 @@ func TestNewManagerPreservesExplicitIssuer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewManager returned error: %v", err)
 	}
-	token, err := manager.Issue(Claims{Subject: "user-1", TenantID: "tenant-1"})
+	token, err := manager.Issue(authsession.Claims{Subject: "user-1", TenantID: "tenant-1"})
 	if err != nil {
 		t.Fatalf("Issue returned error: %v", err)
 	}

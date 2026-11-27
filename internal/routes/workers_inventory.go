@@ -14,6 +14,7 @@ import (
 	ksapi "github.com/kombifyio/homelab/pkg/api"
 	"github.com/kombifyio/homelab/pkg/appcatalog"
 	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/guardidentity"
 	"github.com/kombifyio/homelab/pkg/guardlayout"
 	"github.com/kombifyio/homelab/pkg/httpx"
 	"github.com/kombifyio/homelab/pkg/releasechannel"
@@ -500,8 +501,12 @@ func (h workerRouteHandlers) authenticateSignedRuntimeAgent(e *httpx.Event, id s
 		return out, false
 	}
 	worker, getErr := h.wst.GetWorker(e.Request.Context(), claims.TenantID, id)
-	if getErr != nil || worker == nil {
+	switch {
+	case errors.Is(getErr, controlplane.ErrNotFound), getErr == nil && worker == nil:
 		_ = httpx.Unauthorized(e, "Invalid runtime agent token")
+		return out, false
+	case getErr != nil:
+		denyGuard(e, guardidentity.CodeIdentityUnavailable, "")
 		return out, false
 	}
 	if !h.workerStatusAllowsAuthentication(e, *worker) {
@@ -547,8 +552,12 @@ func (h workerRouteHandlers) authenticateOpaqueOrLegacyRuntimeAgent(e *httpx.Eve
 		return out, false
 	}
 	worker, err := h.wst.GetWorker(e.Request.Context(), tenantID, id)
-	if err != nil || worker == nil {
+	switch {
+	case errors.Is(err, controlplane.ErrNotFound), err == nil && worker == nil:
 		_ = httpx.Unauthorized(e, "Invalid runtime agent token")
+		return out, false
+	case err != nil:
+		denyGuard(e, guardidentity.CodeIdentityUnavailable, "")
 		return out, false
 	}
 	tokenHash := workerauth.SHA256Hex(token)
