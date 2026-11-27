@@ -73,6 +73,7 @@ import {
 import { OwnerStepState } from "#lib/wizard/owner-state.svelte.js";
 import type { WizardIssue } from "#lib/wizard/validation-context.js";
 import { tr } from "#lib/i18n.svelte.js";
+import { isSmartHomeApp } from "#lib/wizard/existing-apps.js";
 import { managedProviders } from "#lib/wizard/managed-providers.js";
 import {
   managedCreationPauses,
@@ -1004,10 +1005,7 @@ export class CreationFrame {
     $effect(() => {
       const selected = this.options.homelab?.selected;
       const detected = this.detectedExistingApps;
-      const hasSmartHome = detected.some(
-        (app) =>
-          app.use_case_slug === "smart-home" || app.app_id === "home-assistant",
-      );
+      const hasSmartHome = detected.some(isSmartHomeApp);
       untrack(() => {
         const auto = this.#autoOriginServer;
         if (auto !== undefined && (auto !== selected || !hasSmartHome)) {
@@ -1033,13 +1031,13 @@ export class CreationFrame {
   }
 
   adoptExistingApp = (app: DetectedExistingApp) => {
-    if (app.use_case_slug === "smart-home" || app.app_id === "home-assistant") {
+    if (isSmartHomeApp(app)) {
       this.setUseCaseSetting("smart-home", "instance-origin", "existing");
     }
   };
 
   overrideExistingApp = (app: DetectedExistingApp) => {
-    if (app.use_case_slug === "smart-home" || app.app_id === "home-assistant") {
+    if (isSmartHomeApp(app)) {
       this.setUseCaseSetting("smart-home", "instance-origin", "new");
     }
   };

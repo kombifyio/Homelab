@@ -17,7 +17,18 @@ func composeProviderControl(database *sql.DB, edition config.Edition, log *logge
 	_ *productnotifications.Outbox, onParkedOperation func(providercontrol.OperationRef),
 	_ ...*workflow.Engine,
 ) (*providercontrol.Runtime, jobs.RuntimeActions, error) {
-	return composeNativeProviderControl(database, edition, log, nil, onParkedOperation, nil)
+	composed, err := composeProviderControlParts(database, edition, log, nil, onParkedOperation)
+	return composed.runtime, composed.actions, err
+}
+
+// composeProviderControlParts is the startup composition the private wrapper
+// also provides (startup_provider.go). Selfhost injects no commercial adapter
+// registration and no incident or capacity observer.
+func composeProviderControlParts(database *sql.DB, edition config.Edition, log *logger.Logger,
+	_ *productnotifications.Outbox, onParkedOperation func(providercontrol.OperationRef),
+	_ ...*workflow.Engine,
+) (nativeProviderControl, error) {
+	return composeNativeProviderControlParts(database, edition, log, nil, onParkedOperation, nil)
 }
 
 // composeProviderControlForRetenant composes the same provider control for the

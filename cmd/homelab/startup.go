@@ -1753,18 +1753,12 @@ func uniqueNonEmptyStrings(values ...string) []string {
 
 // v2SessionOwnerID returns the canonical control-plane user id carried by the
 // session subject. The OIDC subject is used directly as the user id (see
-// v2CloudUserUpsert). The legacy "pocketbase:" prefix from pre-retirement
-// sessions is stripped for backward compatibility during the session-cookie
-// rollover window.
+// v2CloudUserUpsert).
 func v2SessionOwnerID(claims *authsession.Claims) string {
 	if claims == nil {
 		return ""
 	}
-	subject := strings.TrimSpace(claims.Subject)
-	if localID, ok := strings.CutPrefix(subject, "pocketbase:"); ok {
-		return strings.TrimSpace(localID)
-	}
-	return subject
+	return strings.TrimSpace(claims.Subject)
 }
 
 func v2SessionTenantID(claims *authsession.Claims) string {

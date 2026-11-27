@@ -14,7 +14,7 @@ import (
 )
 
 // The reviewed immutable reusable producer is the only admitted authority.
-const schemaExpandProducerSHA = "3a62c4c4c3f053d693d9d6d839fefb63991e19ba"
+const schemaExpandProducerSHA = "08e76b8c46482417d73eab3df5f5cbac974fa79b"
 const schemaExpandIssuer = "https://token.actions.githubusercontent.com"
 const schemaExpandProducer = "public-schema-producer-unavailable/.github/.github/workflows/homelab-schema-expand.yml"
 const schemaExpandRepository = "kombifyio/Homelab"
