@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/pkg/auth/localcloud"
-	"github.com/kombifyio/homelab/pkg/identity"
 	"github.com/kombifyio/homelab/pkg/middleware"
 )
 

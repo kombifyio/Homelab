@@ -1,8 +1,10 @@
 package routes
 
 import (
+	"context"
 	"crypto/ed25519"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -673,5 +675,73 @@ func TestLeaseBoundReenrollmentReplacesTheHostIdentityOfTheExistingWorker(t *tes
 	want, _ := json.Marshal(signer.PublicKeys())
 	if string(got) != string(want) {
 		t.Fatalf("re-enrollment pins = %s, want the current derivation %s", got, want)
+	}
+}
+
+type failingWorkerLookupStore struct {
+	controlplane.WorkerStore
+	err error
+}
+
+func (s failingWorkerLookupStore) GetWorker(context.Context, string, string) (*controlplane.Worker, error) {
+	return nil, s.err
+}
+
+// A transient worker-store failure during a server or database restart must
+// answer 503 guard_identity_unavailable (retryable), never 401 Unauthorized:
+// a bare 401 on /identity/token would lock the Guard into recovery_needed
+// until re-enrolled (platform-0oscgv).
+func TestTransientWorkerStoreFailureReturnsUnavailableNotUnauthorized(t *testing.T) {
+	g := newGuardHarness(t)
+	key := newGuardKey(t)
+	id, credential, _ := g.register(g.pairing(), "attempt-0123456789ab", key)
+	token := g.exchange(id, credential, key, time.Now()).Data["access_token"].(string)
+
+	g.handler.wst = failingWorkerLookupStore{WorkerStore: g.store, err: errors.New("connection refused")}
+
+	if reply := g.keyBoundHeartbeat(id, token, key, "", time.Now()); reply.Code != http.StatusServiceUnavailable || reply.Err.Code != guardidentity.CodeIdentityUnavailable {
+		t.Fatalf("key-bound heartbeat on transient DB error = %d %+v, want 503 %s", reply.Code, reply.Err, guardidentity.CodeIdentityUnavailable)
+	}
+	if reply := g.exchange(id, credential, key, time.Now()); reply.Code != http.StatusServiceUnavailable || reply.Err.Code != guardidentity.CodeIdentityUnavailable {
+		t.Fatalf("identity/token on transient DB error = %d %+v, want 503 %s", reply.Code, reply.Err, guardidentity.CodeIdentityUnavailable)
+	}
+	if reply := g.heartbeat(id, map[string]string{"Authorization": "Bearer " + credential}); reply.Code != http.StatusServiceUnavailable || reply.Err.Code != guardidentity.CodeIdentityUnavailable {
+		t.Fatalf("opaque bearer heartbeat on transient DB error = %d %+v, want 503 %s", reply.Code, reply.Err, guardidentity.CodeIdentityUnavailable)
+	}
+
+	g.handler.wst = failingWorkerLookupStore{WorkerStore: g.store, err: controlplane.ErrNotFound}
+	if reply := g.keyBoundHeartbeat(id, token, key, "", time.Now()); reply.Code != http.StatusUnauthorized || reply.Err.Code != guardidentity.CodeProofInvalid {
+		t.Fatalf("key-bound heartbeat on missing worker = %d %+v, want 401 %s", reply.Code, reply.Err, guardidentity.CodeProofInvalid)
+	}
+	if reply := g.exchange(id, credential, key, time.Now()); reply.Code != http.StatusUnauthorized {
+		t.Fatalf("identity/token on missing worker = %d %+v, want 401", reply.Code, reply.Err)
+	}
+}
+
+// Without a configured worker secret, access tokens are signed with a
+// process-local ephemeral key. A token signed before a restart must be
+// answered with guard_token_expired so enrolled Guards re-exchange
+// transparently instead of looping on 401 (platform-0oscgv).
+func TestEphemeralSecretRestartTreatsPriorAccessTokenAsExpired(t *testing.T) {
+	t.Setenv("HOMELAB_WORKER_AGENT_TOKEN_SECRET", "")
+	t.Setenv("HOMELAB_WORKER_TOKEN_SECRET", "")
+	t.Setenv("SERVICE_AUTH_SECRET", "")
+	g := newGuardHarness(t)
+	key := newGuardKey(t)
+	id, credential, _ := g.register(g.pairing(), "attempt-0123456789ab", key)
+	if reply := g.exchange(id, credential, key, time.Now()); reply.Code != http.StatusOK {
+		t.Fatalf("initial exchange = %d %+v", reply.Code, reply.Err)
+	}
+	priorSecret := []byte("prior-process-ephemeral-signing-key!")
+	priorToken, _, err := guardidentity.IssueAccessToken(priorSecret, guardidentity.AccessClaims{
+		TenantID: "tenant-1", WorkerID: id, JKT: mustThumbprint(t, key),
+		Cred: guardidentity.CredentialFingerprint(workerauth.SHA256Hex(credential)),
+	}, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	reply := g.keyBoundHeartbeat(id, priorToken, key, "", time.Now())
+	if reply.Code != http.StatusUnauthorized || reply.Err.Code != guardidentity.CodeTokenExpired {
+		t.Fatalf("heartbeat with pre-restart ephemeral token = %d %+v, want 401 %s", reply.Code, reply.Err, guardidentity.CodeTokenExpired)
 	}
 }

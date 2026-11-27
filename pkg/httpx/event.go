@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 )
 
 // headerContentType is the canonical Content-Type header key.

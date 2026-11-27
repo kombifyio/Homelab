@@ -9,7 +9,7 @@ import (
 	"time"
 
 	commonedgeauth "github.com/kombifyio/homelab/internal/gocommon/edgeauth"
-	"github.com/kombifyio/homelab/pkg/identity"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"golang.org/x/time/rate"
 )
 

@@ -15,11 +15,11 @@ import (
 	"github.com/kombifyio/homelab/internal/gocommon/authsession"
 	commonedgeauth "github.com/kombifyio/homelab/internal/gocommon/edgeauth"
 	"github.com/kombifyio/homelab/internal/gocommon/edgeauth/edgeauthtest"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/pkg/config"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/features"
 	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/identity"
 	"github.com/kombifyio/homelab/pkg/middleware"
 )
 

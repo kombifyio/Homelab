@@ -28,6 +28,7 @@ import (
 	"github.com/kombifyio/homelab/pkg/privatechannel"
 	"github.com/kombifyio/homelab/pkg/runtimeconvergence"
 	"github.com/kombifyio/homelab/pkg/sdnotify"
+	"github.com/kombifyio/homelab/pkg/stackkitcommand"
 )
 
 const maxAgentSecretFileBytes = 1 << 20
@@ -85,8 +86,15 @@ func (executor currentStackKitCommandExecutor) ExecuteStreaming(ctx context.Cont
 	if executor.ready != nil && !executor.ready() {
 		return executor.runtime.FailureResult(command, errors.New("runtime convergence is pending; retry after the Guard reports runtime readiness"))
 	}
-	if err := executor.runtime.EnsureRuntime(ctx, executor.cfg); err != nil {
-		return executor.runtime.FailureResult(command, fmt.Errorf("converge current StackKits release before command: %w", err))
+	if command == nil || !stackkitcommand.IsGuardHostOperation(command.Operation) {
+		if err := executor.runtime.EnsureRuntime(ctx, executor.cfg); err != nil {
+			// A candidate upgrade in bounded backoff must not block commands
+			// whose exact pinned StackKits release is already validly installed
+			// on the node; the executor still verifies the release pin before run.
+			if !guardexec.IsRuntimeRetry(err) || !installedRuntimeMatches(ctx, executor.runtime, command.GetRelease()) {
+				return executor.runtime.FailureResult(command, fmt.Errorf("converge current StackKits release before command: %w", err))
+			}
+		}
 	}
 	var result *agentpb.StackKitResult
 	if streaming, ok := executor.runtime.(interface {
@@ -100,6 +108,16 @@ func (executor currentStackKitCommandExecutor) ExecuteStreaming(ctx context.Cont
 		executor.upgraded(ctx, command.GetRelease().GetVersion())
 	}
 	return result
+}
+
+func installedRuntimeMatches(ctx context.Context, runtime currentStackKitCommandRuntime, pin *agentpb.StackKitReleasePin) bool {
+	if pin == nil {
+		return false
+	}
+	matcher, ok := runtime.(interface {
+		InstalledRuntimeMatches(context.Context, *agentpb.StackKitReleasePin) bool
+	})
+	return ok && matcher.InstalledRuntimeMatches(ctx, pin)
 }
 
 type agentEnrollmentFile struct {

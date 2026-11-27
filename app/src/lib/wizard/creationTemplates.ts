@@ -1,5 +1,4 @@
 import {
-  supportsCreationChoice,
   type CreationGoal,
   type CreationGoalId,
 } from "./creationGoals.js";
@@ -69,13 +68,13 @@ export const STANDARD_STARTS: Record<
   }
 > = {
   family: {
-    goals: ["files", "photos", "media", "vault", "smart-home"],
-    expansion: [],
+    goals: ["photos", "files", "media", "vault"],
+    expansion: ["smart-home"],
   },
   "documents-media": { goals: ["files", "photos", "media"], expansion: [] },
   "self-employed": {
-    goals: ["files", "vault", "mail"],
-    expansion: ["automation", "ai"],
+    goals: ["files", "vault", "mail", "automation"],
+    expansion: ["ai"],
   },
   infinity: {
     goals: ["files", "vault", "mail", "dev"],
@@ -108,14 +107,32 @@ export interface TemplateSelection {
   skipped: CreationGoalId[];
 }
 
+export interface TemplateStartOptions {
+  /** Target host has verified LAN/device reach for local Smart Home. */
+  lanReachable?: boolean;
+  /** Target host meets the >=12 GiB / 4 vCPU local AI floor. */
+  supportsLocalAI?: boolean;
+}
+
 export function templateSelection(
   template: CreationTemplate,
   cards: CreationGoal[],
   standardStart = false,
+  options: TemplateStartOptions = {},
 ): TemplateSelection {
+  const startGoals = (id: CreationTemplateId): readonly CreationGoalId[] => {
+    const base = STANDARD_STARTS[id].goals;
+    if (id === "family" && options.lanReachable) {
+      return [...base, "smart-home"];
+    }
+    if (id === "self-employed" && options.supportsLocalAI) {
+      return [...base, "ai"];
+    }
+    return base;
+  };
   const wanted = (id: CreationGoalId) =>
     standardStart
-      ? STANDARD_STARTS[template.id].goals.includes(id)
+      ? startGoals(template.id).includes(id)
       : template.goals === "all" ||
         (template.goals as readonly CreationGoalId[]).includes(id);
   const eligible = (card: CreationGoal) =>
@@ -123,11 +140,7 @@ export function templateSelection(
     !!card.question &&
     (!standardStart ||
       card.id !== "photos" ||
-      (supportsCreationChoice(card.catalog, "backend", "immich-lite") &&
-        card.catalog?.components.some(
-          (component) =>
-            component.id === "immich-lite" && installsService(component),
-        )));
+      card.catalog?.components.some((component) => installsService(component)));
   const goals = cards
     .filter((card) => eligible(card) && wanted(card.id))
     .flatMap((card) => (card.question ? [card.question.configKey] : []));

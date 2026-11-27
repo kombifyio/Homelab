@@ -53,6 +53,8 @@ type Offering struct {
 // OfferingPackage is the actual machine advertised for a chosen provider.
 // These fields are resolved from PackageForProvider, never the generic row.
 type OfferingPackage struct {
+	Template string `json:"template,omitempty"`
+	SKU      string `json:"sku,omitempty"`
 	VCPUs    int    `json:"vcpus"`
 	MemoryMB int    `json:"memory_mb"`
 	DiskGB   int    `json:"disk_gb"`
@@ -106,12 +108,32 @@ type ProviderPackage struct {
 	ProviderID string
 	OfferingID serverruntime.RuntimeOfferingID
 	Template   string
+	// SKU is the customer-facing exact package identifier for both fixed
+	// templates (IONOS Cubes) and custom provider packages (Centron).
+	SKU string
 	// Location pins where the package can be created; empty means the lease's
 	// region.
-	Location string
-	VCPUs    int
-	MemoryMB int
-	DiskGB   int
+	Location     string
+	VCPUs        int
+	MemoryMB     int
+	DiskGB       int
+	Architecture string
+	AMD64Level   int
+}
+
+// DisplaySKU returns the exact customer-facing SKU label for a provider
+// package without altering Template (which provider adapters inspect).
+func (p ProviderPackage) DisplaySKU() string {
+	if s := strings.TrimSpace(p.SKU); s != "" {
+		return s
+	}
+	if t := strings.TrimSpace(p.Template); t != "" {
+		return t
+	}
+	if p.VCPUs > 0 && p.MemoryMB > 0 && p.DiskGB > 0 {
+		return fmt.Sprintf("%s %d vCPU / %d GiB / %d GB", strings.ToUpper(strings.TrimSpace(p.ProviderID)), p.VCPUs, p.MemoryMB/1024, p.DiskGB)
+	}
+	return string(p.OfferingID)
 }
 
 // IONOSCubeDatacenter is where Basic Cubes are created. IONOS location de/fra
@@ -125,15 +147,18 @@ const IONOSCubeDatacenter = "de/fra/2"
 var ionosBasicCubes = map[serverruntime.RuntimeOfferingID]ProviderPackage{
 	serverruntime.RuntimeOfferingStandard: {
 		ProviderID: ProviderIONOS, OfferingID: serverruntime.RuntimeOfferingStandard,
-		Template: "Basic Cube S", Location: IONOSCubeDatacenter, VCPUs: 2, MemoryMB: 4096, DiskGB: 120,
+		Template: "Basic Cube S", SKU: "Basic Cube S", Location: IONOSCubeDatacenter,
+		VCPUs: 2, MemoryMB: 4096, DiskGB: 120, Architecture: "amd64", AMD64Level: 2,
 	},
 	serverruntime.RuntimeOfferingPremium: {
 		ProviderID: ProviderIONOS, OfferingID: serverruntime.RuntimeOfferingPremium,
-		Template: "Basic Cube M", Location: IONOSCubeDatacenter, VCPUs: 4, MemoryMB: 8192, DiskGB: 240,
+		Template: "Basic Cube M", SKU: "Basic Cube M", Location: IONOSCubeDatacenter,
+		VCPUs: 4, MemoryMB: 8192, DiskGB: 240, Architecture: "amd64", AMD64Level: 2,
 	},
 	serverruntime.RuntimeOfferingLarge: {
 		ProviderID: ProviderIONOS, OfferingID: serverruntime.RuntimeOfferingLarge,
-		Template: "Basic Cube L", Location: IONOSCubeDatacenter, VCPUs: 8, MemoryMB: 16384, DiskGB: 480,
+		Template: "Basic Cube L", SKU: "Basic Cube L", Location: IONOSCubeDatacenter,
+		VCPUs: 8, MemoryMB: 16384, DiskGB: 480, Architecture: "amd64", AMD64Level: 2,
 	},
 }
 
@@ -148,7 +173,7 @@ func PackageForRecordedSKU(providerID, offeringID, sku string) (ProviderPackage,
 		return pkg, nil
 	}
 	if providerID == ProviderIONOS && offeringID == string(serverruntime.RuntimeOfferingStandard) && sku == "Memory Cube S" {
-		pkg.Template, pkg.MemoryMB = "Memory Cube S", 8192
+		pkg.Template, pkg.SKU, pkg.MemoryMB = "Memory Cube S", "Memory Cube S", 8192
 		return pkg, nil
 	}
 	return ProviderPackage{}, fmt.Errorf("monthlyruntime: package %q is not admitted for provider %q offering %q", sku, providerID, offeringID)
@@ -175,8 +200,15 @@ func PackageForProvider(providerID, offeringID string) (ProviderPackage, error) 
 			return ProviderPackage{}, fmt.Errorf("monthlyruntime: offering %q has no Centron package", offering.ID)
 		}
 		return ProviderPackage{
-			ProviderID: ProviderCentron, OfferingID: offering.ID,
-			VCPUs: offering.VCPUs, MemoryMB: offering.MemoryMB, DiskGB: offering.DiskGB,
+			ProviderID:   ProviderCentron,
+			OfferingID:   offering.ID,
+			SKU:          fmt.Sprintf("Centron %d vCPU / %d GiB / %d GB", offering.VCPUs, offering.MemoryMB/1024, offering.DiskGB),
+			Location:     offering.Region,
+			VCPUs:        offering.VCPUs,
+			MemoryMB:     offering.MemoryMB,
+			DiskGB:       offering.DiskGB,
+			Architecture: "amd64",
+			AMD64Level:   2,
 		}, nil
 	default:
 		return ProviderPackage{}, fmt.Errorf("monthlyruntime: provider %q has no package for offering %q", providerID, offering.ID)

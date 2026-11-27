@@ -256,11 +256,11 @@
   "configured": true,
   "deliverability_known": true,
   "release": {
-    "tag": "v0.61.8",
-    "version": "0.61.8",
-    "sourceSha": "e43b997928e46b80e2f1f91d5245d6e36bf79408",
-    "publicSourceSha": "3273ba0665d62d01588ecdaf63918c6e158501cf",
-    "releaseUrl": "https://github.com/kombifyio/StackKits/releases/tag/v0.61.8"
+    "tag": "v0.61.10",
+    "version": "0.61.10",
+    "sourceSha": "470c5b149acf0a3982efdaf9b1494ba197b749c0",
+    "publicSourceSha": "7a96c5c33a969d1a113e02b6860cb174d7a0ed1c",
+    "releaseUrl": "https://github.com/kombifyio/StackKits/releases/tag/v0.61.10"
   },
   "use_cases": [
     {

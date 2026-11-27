@@ -57,10 +57,11 @@ type UseCaseResourceProvenance struct {
 }
 
 type UseCaseHostFloor struct {
-	MinCPUCores                    float64 `json:"minCpuCores,omitempty"`
-	MinRAMGB                       float64 `json:"minRamGB,omitempty"`
-	MinStorageGB                   float64 `json:"minStorageGB,omitempty"`
-	MinAMD64MicroarchitectureLevel int     `json:"minAMD64MicroarchitectureLevel,omitempty"`
+	MinCPUCores                    float64  `json:"minCpuCores,omitempty"`
+	MinRAMGB                       float64  `json:"minRamGB,omitempty"`
+	MinStorageGB                   float64  `json:"minStorageGB,omitempty"`
+	MinAMD64MicroarchitectureLevel int      `json:"minAMD64MicroarchitectureLevel,omitempty"`
+	AllowedArchitectures           []string `json:"allowedArchitectures,omitempty"`
 }
 
 type UseCaseAcceleratorFacts struct {

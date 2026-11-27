@@ -41,6 +41,27 @@
     have: gb(hint.haveGb),
     existing: gb(hint.existingHaveGb ?? 0),
   });
+  const driverKeys: Record<string, string> = {
+    photos_smart_search: "capacity.driver.photosSmartSearch",
+    photos_lite: "capacity.driver.photosLite",
+    photos_ente: "capacity.driver.photosEnte",
+    files_paperless: "capacity.driver.filesPaperless",
+    files_nextcloud: "capacity.driver.filesNextcloud",
+    files_opencloud: "capacity.driver.filesOpencloud",
+    media_transcoding: "capacity.driver.mediaTranscoding",
+    media_library: "capacity.driver.mediaLibrary",
+    ai_local_models: "capacity.driver.aiLocalModels",
+    smart_home_haos: "capacity.driver.smartHomeHaos",
+    marketplace_runtime: "capacity.driver.marketplaceRuntime",
+    compute_profile_low: "capacity.driver.profileLow",
+    compute_profile_high: "capacity.driver.profileHigh",
+  };
+  const driverLabels = $derived(
+    (hint.drivers ?? [])
+      .map((driver) => driverKeys[driver.code])
+      .filter((key): key is string => Boolean(key))
+      .map((key) => tr(key)),
+  );
 </script>
 
 <div
@@ -87,6 +108,13 @@
       >
         <span style:width={`${Math.round(hint.share * 100)}%`}></span>
       </div>
+    {/if}
+    {#if driverLabels.length > 0 && !unknown}
+      <ul class="drivers" data-testid="capacity-drivers">
+        {#each driverLabels as label (label)}
+          <li>{label}</li>
+        {/each}
+      </ul>
     {/if}
   </div>
   {#if tight && ((hint.size && onsize) || (hint.omit.length > 0 && onomit))}
@@ -156,5 +184,13 @@
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+  }
+  .drivers {
+    margin: 2px 0 0;
+    padding-inline-start: 16px;
+    list-style: disc;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--muted-foreground);
   }
 </style>

@@ -16,7 +16,10 @@
     CapacityHint as CapacityHintModel,
     CapacitySize,
   } from "#lib/wizard/capacity-view.js";
-  import ServerFitNotice from "../ServerFitNotice.svelte";
+  import ServerFitNotice, {
+    type ServerFitTarget,
+  } from "../ServerFitNotice.svelte";
+  import type { ServerFitRecovery } from "#lib/api/unifier.js";
   import type { WizardPreviewState } from "#lib/wizard/WizardPreviewController.js";
   import type { HomelabServerSelection } from "#lib/creation/homelab-servers.js";
   import type { ManagedProviderID, StackConfig } from "#lib/wizard/index.js";
@@ -47,6 +50,8 @@
     onCapacityOmit?: (goal: string) => void;
     fitEnabled?: boolean;
     recommendationState?: WizardPreviewState;
+    onFitRecovery?: (recovery: ServerFitRecovery) => void;
+    onFitRecheck?: () => void;
   }
 
   let {
@@ -69,7 +74,37 @@
     onCapacityOmit,
     fitEnabled = false,
     recommendationState,
+    onFitRecovery,
+    onFitRecheck,
   }: Props = $props();
+  const resolvedServerFit = $derived(
+    recommendationState?.phase === "resolved"
+      ? recommendationState.result.server_fit
+      : undefined,
+  );
+  const fitTarget = $derived.by<ServerFitTarget | undefined>(() => {
+    if (homelab?.selected) return { server_id: homelab.selected };
+    const mode = config.serverProvisioning.mode;
+    if (mode === "kombify-cloud") {
+      return {
+        provider_id: config.providerId,
+        offering_id: config.runtimeOfferingId,
+      };
+    }
+    if (mode === "hypervisor") {
+      return {
+        source: "substrate",
+        host: config.serverProvisioning.substrate?.serverId,
+      };
+    }
+    if (mode === "connect-remote") {
+      return {
+        source: "ssh",
+        host: config.serverProvisioning.remote.host.trim(),
+      };
+    }
+    return { source: "install-command" };
+  });
   // A chosen existing server is a complete answer; nothing new is set up.
   const existingChosen = $derived(Boolean(homelab?.selected));
   const homelabShown = $derived(
@@ -134,6 +169,7 @@
         {reviewMode}
         {joinSurface}
         substepOffset={homelabShown ? 1 : 0}
+        serverFit={resolvedServerFit}
       />
     {/if}
 
@@ -148,14 +184,9 @@
     {#if fitEnabled}
       <ServerFitNotice
         state={recommendationState}
-        target={homelab?.selected
-          ? { server_id: homelab.selected }
-          : config.serverProvisioning.mode === "kombify-cloud"
-            ? {
-                provider_id: config.providerId,
-                offering_id: config.runtimeOfferingId,
-              }
-            : undefined}
+        target={fitTarget}
+        onrecovery={onFitRecovery}
+        onrecheck={onFitRecheck}
       />
     {/if}
 
@@ -201,6 +232,8 @@
     <ServerFitNotice
       state={recommendationState}
       target={homelab?.selected ? { server_id: homelab.selected } : undefined}
+      onrecovery={onFitRecovery}
+      onrecheck={onFitRecheck}
     />
   {/if}
 </div>

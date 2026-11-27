@@ -8,7 +8,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/kombifyio/homelab/pkg/guardidentity"
@@ -18,7 +20,7 @@ func establishAgainst(t *testing.T, bound bool, handler http.HandlerFunc) (*Clie
 	t.Helper()
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
-	manager, err := Open(t.TempDir())
+	manager, err := Open(filepath.Join(t.TempDir(), "state"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,7 +135,7 @@ func TestDecommissionEmptiesAnEnrollmentFileInAReadOnlyDirectory(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("root ignores directory permissions")
 	}
-	manager, err := Open(t.TempDir())
+	manager, err := Open(filepath.Join(t.TempDir(), "state"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -234,7 +236,7 @@ func TestRotationWithLostAnswerKeepsTheAcceptedKey(t *testing.T) {
 	t.Cleanup(server.Close)
 	tokenURL = server.URL + "/token"
 
-	manager, err := Open(t.TempDir())
+	manager, err := Open(filepath.Join(t.TempDir(), "state"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -270,5 +272,121 @@ func TestRotationWithLostAnswerKeepsTheAcceptedKey(t *testing.T) {
 	defer mu.Unlock()
 	if held, _ := guardidentity.PublicJWK(manager.Key()).Thumbprint(); held != current {
 		t.Fatal("the Guard does not hold the key the control plane accepted")
+	}
+}
+
+// After a control-plane restart or secret change rejects a cached access token
+// with guard_proof_invalid (access_token_invalid) or guard_token_expired, the
+// Guard drops the stale token, re-exchanges once, and retries a replayable
+// request without entering a 401 loop. A non-replayable request still drops the
+// stale token so the next request succeeds, and a persistent 401 stops after
+// one retry (platform-0oscgv).
+func TestTransportRecoversInOneRetryAfterServerRestartInvalidatesToken(t *testing.T) {
+	var (
+		activeToken atomic.Value
+		exchanges   atomic.Int32
+		calls       atomic.Int32
+		rejectCode  atomic.Value
+	)
+	activeToken.Store("tsga.before-restart.sig")
+	rejectCode.Store("invalid")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/token" {
+			n := exchanges.Add(1)
+			tok := "tsga.token-" + string(rune('a'+n)) + ".sig"
+			activeToken.Store(tok)
+			_, _ = w.Write([]byte(`{"data":{"access_token":"` + tok + `","expires_in":600}}`))
+			return
+		}
+		calls.Add(1)
+		want := "DPoP " + activeToken.Load().(string)
+		if r.Header.Get("Authorization") != want || rejectCode.Load().(string) == "always_invalid" {
+			w.WriteHeader(http.StatusUnauthorized)
+			_, _ = w.Write([]byte(`{"error":{"code":"` + guardidentity.CodeProofInvalid + `","details":{"reason":"` + guardidentity.ReasonTokenInvalid + `"}}}`))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data":{"ok":true}}`))
+	}))
+	t.Cleanup(server.Close)
+
+	manager, err := Open(filepath.Join(t.TempDir(), "state"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := manager.EnsureKey(); err != nil {
+		t.Fatal(err)
+	}
+	if err := manager.SetState(StateBound, ""); err != nil {
+		t.Fatal(err)
+	}
+	client, err := NewClient(ClientConfig{
+		Manager: manager, AgentToken: "credential",
+		Endpoints: Endpoints{TokenURL: server.URL + "/token", BindURL: server.URL + "/bind", RotateURL: server.URL + "/rotate"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mode, err := client.Establish(context.Background()); err != nil || mode != ModeHostKey {
+		t.Fatalf("Establish = %v, %v", mode, err)
+	}
+	httpClient := &http.Client{Transport: client.Transport(nil)}
+
+	// Simulate server restart: previously issued token is no longer accepted.
+	activeToken.Store("tsga.post-restart-mismatch.sig")
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, server.URL+"/heartbeat", strings.NewReader(`{"seq":1}`))
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		t.Fatalf("heartbeat after restart: %v", err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("heartbeat after restart = %d, want 200 after one re-exchange", resp.StatusCode)
+	}
+	if got := calls.Load(); got != 2 {
+		t.Fatalf("heartbeat attempts = %d, want 2 (1 rejected + 1 retry)", got)
+	}
+	if got := exchanges.Load(); got != 2 {
+		t.Fatalf("token exchanges = %d, want 2 (initial + 1 recovery)", got)
+	}
+
+	// Non-replayable request still drops the rejected token so the next request succeeds.
+	activeToken.Store("tsga.second-restart-mismatch.sig")
+	nonReplayReq, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, server.URL+"/heartbeat", struct{ *strings.Reader }{strings.NewReader(`{"seq":2}`)})
+	nonReplayReq.GetBody = nil
+	resp, err = httpClient.Do(nonReplayReq)
+	if err != nil {
+		t.Fatalf("non-replayable heartbeat: %v", err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("non-replayable heartbeat = %d, want 401", resp.StatusCode)
+	}
+	followUp, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, server.URL+"/heartbeat", strings.NewReader(`{"seq":3}`))
+	resp, err = httpClient.Do(followUp)
+	if err != nil {
+		t.Fatalf("follow-up heartbeat: %v", err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("follow-up after non-replayable 401 = %d, want 200", resp.StatusCode)
+	}
+
+	// Persistent 401 stops after at most one retry (no loop).
+	calls.Store(0)
+	rejectCode.Store("always_invalid")
+	loopReq, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, server.URL+"/heartbeat", strings.NewReader(`{"seq":4}`))
+	resp, err = httpClient.Do(loopReq)
+	if err != nil {
+		t.Fatalf("persistent 401 heartbeat: %v", err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("persistent 401 status = %d, want 401", resp.StatusCode)
+	}
+	if got := calls.Load(); got != 2 {
+		t.Fatalf("persistent 401 attempts = %d, want exactly 2 (no loop)", got)
 	}
 }

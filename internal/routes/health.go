@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/kombifyio/homelab/internal/ionospooltunnel"
+	"github.com/kombifyio/homelab/internal/providercontrol"
 	"github.com/kombifyio/homelab/internal/stackkitrelease"
 	ksapi "github.com/kombifyio/homelab/pkg/api"
 	"github.com/kombifyio/homelab/pkg/config"
@@ -37,6 +38,7 @@ type HealthDependencies struct {
 	// declared in-process Stable mode is visible, never silent.
 	BackupOwner     string
 	IONOSSharedPool func() ionospooltunnel.Status
+	FlyMachines     func() providercontrol.FlyMachinesStatus
 }
 
 // dbHealthStatus captures control-plane Postgres connectivity and schema state.
@@ -146,6 +148,9 @@ func RegisterHealthRoutesWithDeps(r *httpx.Router, version string, buildRevision
 		if deps != nil && deps.IONOSSharedPool != nil {
 			payload["ionos_shared_pool"] = deps.IONOSSharedPool()
 		}
+		if deps != nil && deps.FlyMachines != nil {
+			payload["fly_machines"] = deps.FlyMachines()
+		}
 		if deps != nil && deps.BackupOwner != "" {
 			payload["backup_owner"] = deps.BackupOwner
 		}
@@ -197,6 +202,12 @@ func RegisterHealthRoutesWithDeps(r *httpx.Router, version string, buildRevision
 			poolStatus = &status
 		}
 
+		var flyStatus *providercontrol.FlyMachinesStatus
+		if deps != nil && deps.FlyMachines != nil {
+			status := deps.FlyMachines()
+			flyStatus = &status
+		}
+
 		// Determine overall readiness
 		allReady := true
 		for _, ready := range checks {
@@ -220,6 +231,9 @@ func RegisterHealthRoutesWithDeps(r *httpx.Router, version string, buildRevision
 		payload["database_detail"] = dbStatus
 		if poolStatus != nil {
 			payload["ionos_shared_pool"] = poolStatus
+		}
+		if flyStatus != nil {
+			payload["fly_machines"] = flyStatus
 		}
 		return httpx.Success(e, statusCode, payload)
 	})

@@ -52,11 +52,14 @@ export class WizardInputError extends Error {
 
 /** Save profile wishes separately; selecting a profile never installs them. */
 function profileExpansions(config: StackConfig, selected: readonly string[]) {
-  const profiles = ["infinity", "self-employed"] as const;
-  const result = profiles.filter((profile) => config.creationProfiles?.[profile]).map((profile) => ({
-    profile,
-    deferred_goals: profileExpansionGoals(profile).filter((goal) => !selected.includes(goal)),
-  }));
+  const profiles = ["infinity", "self-employed", "family", "documents-media"] as const;
+  const result = profiles
+    .filter((profile) => config.creationProfiles?.[profile])
+    .map((profile) => ({
+      profile,
+      deferred_goals: profileExpansionGoals(profile).filter((goal) => !selected.includes(goal)),
+    }))
+    .filter((entry) => entry.deferred_goals.length > 0);
   return result.length ? result : undefined;
 }
 

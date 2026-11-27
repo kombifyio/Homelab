@@ -11,6 +11,8 @@ import (
 	"os"
 	"strings"
 
+	goCloudlogin "github.com/kombifyio/homelab/internal/gocommon/cloudlogin"
+
 	"github.com/kombifyio/homelab/pkg/cloudlogin"
 	"github.com/kombifyio/homelab/pkg/config"
 	"github.com/kombifyio/homelab/pkg/db"
@@ -164,9 +166,9 @@ func v2AuthRegistry(ctx context.Context, database *db.DB) (*providers.Registry, 
 	return registry, "env", nil
 }
 
-func applySelfHostedCloudLoginGate(mode config.DeploymentMode, registry *providers.Registry) (*providers.Registry, cloudlogin.Result) {
+func applySelfHostedCloudLoginGate(mode config.DeploymentMode, registry *providers.Registry) (*providers.Registry, goCloudlogin.Result) {
 	if registry == nil || registry.Len() == 0 || !mode.IsSelfHosted() {
-		return registry, cloudlogin.Result{Enabled: true, Reason: "not_applicable"}
+		return registry, goCloudlogin.Result{Enabled: true, Reason: "not_applicable"}
 	}
 	result := cloudlogin.Evaluate(cloudlogin.OptionsFromEnv(mode))
 	if !result.Enabled {

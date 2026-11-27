@@ -689,7 +689,9 @@ func (o *Orchestrator) approvedStackKitLifecycleAgentBindings(ctx context.Contex
 	}
 	bindings := make([]stackKitLifecycleAgentBinding, 0, len(workers))
 	for _, worker := range workers {
-		if worker.StackID != stack.id || worker.OwnerSubjectID != stack.ownerID || !worker.Approved {
+		if worker.StackID != stack.id || worker.OwnerSubjectID != stack.ownerID || !worker.Approved ||
+			strings.EqualFold(strings.TrimSpace(worker.Status), "revoked") ||
+			strings.EqualFold(strings.TrimSpace(worker.Status), "rejected") {
 			continue
 		}
 		serverID := strings.TrimSpace(stringFromAny(worker.Capabilities["server_id"]))

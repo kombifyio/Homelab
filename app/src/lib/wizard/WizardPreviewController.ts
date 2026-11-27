@@ -51,12 +51,16 @@ export class WizardPreviewController {
     this.#debounceMs = debounceMs;
   }
 
-  update(request: WizardRecommendationRequest): void {
+  update(request: WizardRecommendationRequest, options?: { force?: boolean }): void {
     const normalized = normalizeRequest(request);
     const key = JSON.stringify(normalized);
     this.cancelPending();
     const sequence = ++this.#sequence;
-    const cached = request.server_fit ? undefined : this.#cache.get(key);
+    const isObservedFit = Boolean(
+      normalized.server_fit && !("provider_id" in normalized.server_fit),
+    );
+    const cached =
+      options?.force || isObservedFit ? undefined : this.#cache.get(key);
     if (cached) {
       this.#current = cached;
       this.#onchange({ phase: "resolved", key, result: cached });
@@ -64,6 +68,7 @@ export class WizardPreviewController {
     }
 
     this.#onchange({ phase: "loading", key, previous: this.#current });
+    const delay = options?.force ? 0 : this.#debounceMs;
     this.#timer = setTimeout(() => {
       this.#timer = null;
       const controller = new AbortController();
@@ -71,7 +76,7 @@ export class WizardPreviewController {
       void this.#load(normalized, controller.signal)
         .then((result) => {
           if (controller.signal.aborted || sequence !== this.#sequence) return;
-          if (!normalized.server_fit) this.#cache.set(key, result);
+          if (!isObservedFit) this.#cache.set(key, result);
           this.#current = result;
           this.#onchange({ phase: "resolved", key, result });
         })
@@ -92,7 +97,11 @@ export class WizardPreviewController {
         .finally(() => {
           if (this.#request === controller) this.#request = null;
         });
-    }, this.#debounceMs);
+    }, delay);
+  }
+
+  refresh(request: WizardRecommendationRequest): void {
+    this.update(request, { force: true });
   }
 
   destroy(): void {

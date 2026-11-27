@@ -33,6 +33,7 @@
   import { revealWizardDetails } from "#lib/wizard/reveal-details.js";
   import { NODE_GUIDES } from "#lib/docs-links.js";
   import { NEW_SERVER_CREATION_HREF } from "#lib/server-links.js";
+  import type { ServerFit } from "#lib/api/unifier.js";
 
   let {
     config = $bindable(),
@@ -42,6 +43,7 @@
     reviewMode = false,
     joinSurface = false,
     substepOffset = 0,
+    serverFit,
   }: {
     config: StackConfig;
     selectionReady?: boolean;
@@ -55,6 +57,7 @@
      * CSS counters, so it cannot continue the count of the step on its own.
      */
     substepOffset?: number;
+    serverFit?: ServerFit;
   } = $props();
   const provisioningModes = getServerProvisioningModeChoices();
   const sourceTips: Record<string, { text: string; docs: string }> = {
@@ -478,6 +481,7 @@
           bind:config
           providers={visibleManagedProviders}
           onselect={selectManagedProvider}
+          {serverFit}
         />
       {:else}
         {#if systemDetailsOpen}

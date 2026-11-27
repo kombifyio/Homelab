@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/kombifyio/homelab/internal/gocommon/authlocal"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/internal/routes"
 	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 const walletDeviceChallengeLifetime = 2 * time.Minute

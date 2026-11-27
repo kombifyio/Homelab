@@ -172,6 +172,10 @@
     {
       "version": "203_guard_paperwork_sign_in.additive.sql",
       "sha256": "bfc3df93fafeb4597e72b74d9e868835611c7f344da03ed29f21a84dce7c0316"
+    },
+    {
+      "version": "204_fly_machines_custody.sql",
+      "sha256": "11dcac66c054926696c4983b18ecd9fc3cf818ccd0e98d51e70a330f3849d7e0"
     }
   ],
   "database_target": "core",

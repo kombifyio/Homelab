@@ -256,8 +256,10 @@ func (intent WizardIntent) Validate() error {
 		return fmt.Errorf("specv2: kit_assignment.mode must be %q, %q or %q", KitAssignmentFound, KitAssignmentJoin, KitAssignmentExtend)
 	}
 	profiles := map[string][]string{
-		"infinity":      {"photos", "media", "smart-home", "ai", "game", "network", "automation", "marketplace"},
-		"self-employed": {"automation", "ai"},
+		"infinity":        {"photos", "media", "smart-home", "ai", "game", "network", "automation", "marketplace"},
+		"self-employed":   {"automation", "ai"},
+		"family":          {"smart-home", "photos", "media"},
+		"documents-media": {"photos", "media"},
 	}
 	seenProfiles := map[string]bool{}
 	for _, expansion := range intent.ProfileExpansions {

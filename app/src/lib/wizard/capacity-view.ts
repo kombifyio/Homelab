@@ -7,6 +7,7 @@
  */
 import type {
   WizardCapacity,
+  WizardCapacityDriver,
   WizardRecommendationRequest,
 } from "#lib/api/unifier.js";
 import { normalizeInstallableKitSlug } from "#lib/wizard/standardBundle.js";
@@ -41,6 +42,8 @@ export interface CapacityHint {
   omit: string[];
   /** Combined RAM of approved existing servers, when Step 1 has no chosen host. */
   existingHaveGb?: number;
+  /** Use cases and settings that materially change capacity demand. */
+  drivers: WizardCapacityDriver[];
 }
 
 export function toGb(mib: number): number {
@@ -82,6 +85,7 @@ const NOT_ASSESSED: CapacityHint = {
   share: 0,
   atLeast: false,
   omit: [],
+  drivers: [],
 };
 
 /**
@@ -124,6 +128,7 @@ export function capacityHint(
       atLeast,
       omit: [],
       existingHaveGb,
+      drivers: (capacity.drivers ?? []).slice(0, 3),
     };
   }
   if (atLeast && capacity.status !== "warning") return silent;
@@ -139,6 +144,7 @@ export function capacityHint(
         : undefined,
     atLeast,
     omit: tight && !atLeast ? (capacity.omit_goals ?? []) : [],
+    drivers: (capacity.drivers ?? []).slice(0, 3),
   };
 }
 

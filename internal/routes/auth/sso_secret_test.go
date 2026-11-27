@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kombifyio/homelab/internal/gocommon/authsession"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/httpx"
@@ -79,7 +80,7 @@ func portalSessionCookie(recorder *httptest.ResponseRecorder) *http.Cookie {
 
 func newPortalTestSession(t *testing.T) PortalSession {
 	t.Helper()
-	manager, err := session.NewManager(session.Config{
+	manager, err := session.NewManager(authsession.Config{
 		Audience: "portal-verify-test",
 		Secret:   []byte(strings.Repeat("s", 32)),
 	})

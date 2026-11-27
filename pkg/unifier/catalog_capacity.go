@@ -137,6 +137,22 @@ func footprintFits(footprint stackkitrelease.WorkloadFootprint, worker core.Work
 	if footprint.CPUReservationUnspecified {
 		unknown = append(unknown, "cpu_reservation")
 	}
+	if len(floor.AllowedArchitectures) > 0 {
+		if capacity.Arch == "" {
+			unknown = append(unknown, "cpu_architecture")
+		} else {
+			allowed := false
+			for _, arch := range floor.AllowedArchitectures {
+				if strings.EqualFold(strings.TrimSpace(arch), strings.TrimSpace(capacity.Arch)) {
+					allowed = true
+					break
+				}
+			}
+			if !allowed {
+				shortfall = append(shortfall, "cpu_architecture")
+			}
+		}
+	}
 	if floor.MinAMD64MicroarchitectureLevel > 0 {
 		if capacity.Arch == "" {
 			unknown = append(unknown, "cpu_architecture")

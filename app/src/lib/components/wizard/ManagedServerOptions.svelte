@@ -14,6 +14,7 @@
     getMonthlyRuntimeOfferings,
     type MonthlyRuntimeOffering,
   } from "#lib/api/stacks.js";
+  import type { ServerFit } from "#lib/api/unifier.js";
   import {
     getIonosDatacenterChoices,
     readRuntimeOfferingID,
@@ -35,10 +36,12 @@
     config = $bindable(),
     providers,
     onselect,
+    serverFit,
   }: {
     config: StackConfig;
     providers: ReadonlyArray<(typeof managedProviders)[number]>;
     onselect: (provider: ManagedProviderID) => void;
+    serverFit?: ServerFit;
   } = $props();
   const creation = useCreationContext();
   const fitEnabled = $derived(
@@ -50,6 +53,13 @@
   const provider = $derived(
     providers.find((item) => item.value === config.providerId),
   );
+  const availableOfferings = $derived(
+    offerings.filter((item) =>
+      config.providerId
+        ? Boolean(item.provider_packages?.[config.providerId])
+        : true,
+    ),
+  );
   const offering = $derived(
     offerings.find((item) => item.id === config.runtimeOfferingId),
   );
@@ -59,18 +69,39 @@
   const providerPackage = $derived(
     config.providerId ? offering?.provider_packages?.[config.providerId] : undefined,
   );
+  const matchingFit = $derived(
+    serverFit &&
+      serverFit.provider_id === config.providerId &&
+      serverFit.offering_id === config.runtimeOfferingId &&
+      serverFit.specs?.memory_mb > 0
+      ? serverFit
+      : undefined,
+  );
+  const exactSpecs = $derived({
+    sku:
+      matchingFit?.sku ||
+      matchingFit?.template ||
+      providerPackage?.sku ||
+      providerPackage?.template,
+    vcpus: matchingFit?.specs.cpu_cores ?? providerPackage?.vcpus,
+    memory_mb: matchingFit?.specs.memory_mb ?? providerPackage?.memory_mb,
+    disk_gb: matchingFit?.specs.disk_gb ?? providerPackage?.disk_gb,
+  });
   const datacenters = getIonosDatacenterChoices();
   const region = $derived(
-    config.providerId === "ionos"
-      ? datacenters.find((item) => item.value === config.ionosDatacenter)?.label
-      : providerPackage?.region,
+    matchingFit?.location ||
+      (config.providerId === "ionos"
+        ? datacenters.find((item) => item.value === config.ionosDatacenter)?.label ||
+          providerPackage?.region
+        : providerPackage?.region),
   );
 
   const showsSpecs = $derived(
     Boolean(
-      providerPackage?.vcpus ||
-        providerPackage?.memory_mb ||
-        providerPackage?.disk_gb ||
+      exactSpecs.sku ||
+        exactSpecs.vcpus ||
+        exactSpecs.memory_mb ||
+        exactSpecs.disk_gb ||
         region,
     ),
   );
@@ -107,11 +138,12 @@
       <span>{tr("layout.expansion.size")}</span>
       <select class="w-full rounded-md border border-border bg-background p-2" value={config.runtimeOfferingId}
         onchange={(event) => { config.runtimeOfferingId = readRuntimeOfferingID(event.currentTarget.value); }}>
-        {#if !offerings.some((item) => item.id === config.runtimeOfferingId && (item.id === "monthly-runtime-standard" || item.id === "monthly-runtime-premium"))}
+        {#if !availableOfferings.some((item) => item.id === config.runtimeOfferingId)}
           <option value={config.runtimeOfferingId}>{config.runtimeOfferingId}</option>
         {/if}
-        {#each offerings.filter((item) => item.id === "monthly-runtime-standard" || item.id === "monthly-runtime-premium") as item (item.id)}
-          <option value={item.id}>{item.name}</option>
+        {#each availableOfferings as item (item.id)}
+          {@const pkg = config.providerId ? item.provider_packages?.[config.providerId] : undefined}
+          <option value={item.id}>{item.name}{pkg?.sku ? ` · ${pkg.sku}` : ""}</option>
         {/each}
       </select>
       <span class="block text-muted-foreground">{tr("layout.expansion.entitlement")}</span>
@@ -133,6 +165,9 @@
         <h4>
           {offering?.name || config.runtimeOfferingId}
         </h4>
+        {#if exactSpecs.sku}
+          <p class="sku-label" data-testid="managed-server-sku">{exactSpecs.sku}</p>
+        {/if}
         {#if provider}<a
             href={provider.website}
             target="_blank"
@@ -150,27 +185,27 @@
       <p class="loading" role="status">
         {tr("wizard.server.managed.loadingSpecs")}
       </p>
-    {:else if showsSpecs && !fitEnabled}
-      <dl class="server-specs">
-        {#if providerPackage?.vcpus}<div>
+    {:else if showsSpecs}
+      <dl class="server-specs" data-testid="managed-server-specs">
+        {#if exactSpecs.vcpus}<div>
             <dt><Cpu size={15} aria-hidden="true" />vCPU</dt>
-            <dd>{providerPackage.vcpus}</dd>
+            <dd>{exactSpecs.vcpus}</dd>
           </div>{/if}
-        {#if providerPackage?.memory_mb}<div>
+        {#if exactSpecs.memory_mb}<div>
             <dt><MemoryStick size={15} aria-hidden="true" />RAM</dt>
             <dd>
               {tr("ui.managed.sizeGiB", {
-                size: providerPackage.memory_mb / 1024,
+                size: exactSpecs.memory_mb / 1024,
               })}
             </dd>
           </div>{/if}
-        {#if providerPackage?.disk_gb}<div>
+        {#if exactSpecs.disk_gb}<div>
             <dt>
               <HardDrive size={15} aria-hidden="true" />{tr(
                 "wizard.server.hypervisor.disk",
               )}
             </dt>
-            <dd>{tr("ui.managed.sizeGB", { size: providerPackage.disk_gb })}</dd>
+            <dd>{tr("ui.managed.sizeGB", { size: exactSpecs.disk_gb })}</dd>
           </div>{/if}
         {#if region}<div>
             <dt>
@@ -280,6 +315,12 @@
     font-size: 17px;
     font-weight: 550;
     letter-spacing: -0.02em;
+  }
+  .sku-label {
+    font-size: 12px;
+    font-weight: 550;
+    color: var(--foreground);
+    margin-top: 2px;
   }
   .server-identity a {
     display: inline-flex;

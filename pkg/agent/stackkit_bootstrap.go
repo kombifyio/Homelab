@@ -21,6 +21,7 @@ import (
 
 	"github.com/kombifyio/homelab/internal/privatefs"
 	"github.com/kombifyio/homelab/internal/stackkitrelease"
+	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
 
 const (
@@ -56,6 +57,24 @@ type StackKitRuntimeConvergenceResult struct {
 func (executor *StackKitExecutor) EnsureRuntime(ctx context.Context, cfg StackKitRuntimeBootstrapConfig) error {
 	_, err := executor.EnsureRuntimeEvidence(ctx, cfg)
 	return err
+}
+
+// InstalledRuntimeMatches reports whether the locally verified StackKits
+// runtime matches every field of pin without contacting the control plane.
+func (executor *StackKitExecutor) InstalledRuntimeMatches(_ context.Context, pin *agentpb.StackKitReleasePin) bool {
+	if executor == nil || pin == nil {
+		return false
+	}
+	installed, err := executor.ConfirmInstalledRuntime()
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(pin.Version) != "" &&
+		strings.TrimSpace(pin.Version) == installed.Version &&
+		strings.TrimSpace(pin.PlatformOs) == installed.OS &&
+		strings.TrimSpace(pin.PlatformArch) == installed.Arch &&
+		strings.TrimSpace(pin.ArchiveSha256) == installed.SHA256 &&
+		strings.TrimSpace(pin.ReleaseIndexSha256) == installed.IndexSHA256
 }
 
 // EnsureRuntimeEvidence returns the exact StackKits artifact identity that is

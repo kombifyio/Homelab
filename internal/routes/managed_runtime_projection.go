@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
 	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
 	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/identity"
 	"github.com/kombifyio/homelab/pkg/monthlyruntime"
 	"github.com/kombifyio/homelab/pkg/runtimeidentity"
 	"github.com/kombifyio/homelab/pkg/vmleases"

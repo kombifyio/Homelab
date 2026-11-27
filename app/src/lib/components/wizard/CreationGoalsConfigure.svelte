@@ -223,6 +223,13 @@
       </p>
     {/if}
   </section>
+  {#if single && capacityHint}
+    <CapacityHint
+      hint={capacityHint}
+      onsize={onCapacitySize}
+      onomit={onCapacityOmit}
+    />
+  {/if}
 </div>
 
 <style>

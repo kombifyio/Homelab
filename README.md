@@ -1,13 +1,23 @@
 # Homelab Runtime
 
-**One command puts your homelab under Homelab.**
+**Homelab Runtime is the open-core orchestrator and operator UI for
+[StackKits](https://github.com/kombifyio/StackKits) — discover your servers,
+reconcile drift, and run approved changes from one browser tab, self-hosted or
+via <https://homelab.kombify.io>.**
 
-Homelab Runtime is the orchestration UI and control plane for
-[StackKits](https://github.com/kombifyio/StackKits). It keeps the servers and
-applications of a homelab in one inventory, plans each change across servers as a
-Terramate change set, reconciles drift, and executes the operations you approve
-through the pinned StackKits release. Run it from this repository on your own
-hardware, or use the hosted service at <https://homelab.kombify.io>.
+## Install
+
+On a Linux machine:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kombifyio/Homelab/main/install.sh | sh
+```
+
+On Proxmox VE, Homelab creates the guest VM through the node's API and runs the
+StackKit inside that guest; the hypervisor host is never the install target. See
+[Run kombify on Proxmox VE](https://docs.kombify.io/guides/stackkits/proxmox).
+
+![Photos running in the homelab after setup](https://docs.kombify.io/images/guides/photos/immich/web-01-photo.webp)
 
 ## Connect a homelab
 
@@ -92,20 +102,16 @@ kombify account is required. Windows releases are intentionally unsigned and
 include `UNSIGNED-WINDOWS-RELEASE.txt`; Windows SmartScreen may ask for
 confirmation. A code-signing certificate is not a release prerequisite.
 
-## Build from source
+## Contributing and building from source
 
-```bash
-go build ./...
-cd app && corepack enable && pnpm install --frozen-lockfile && pnpm build
-cd .. && docker build -t homelab:selfhost .
-```
-
-No private registry, token, or account is needed. See `BUNDLED-PACKAGES.md`
-for the licenses of the bundled packages and `CONTRIBUTING.md` for how
-contributions land.
+Local development, building from source (with no private registry, token, or
+account required) and pull request rules live in
+[CONTRIBUTING.md](CONTRIBUTING.md). See `BUNDLED-PACKAGES.md` for the
+licenses of the bundled packages.
 
 ## Support, security, and license
 
+- Documentation: [docs.kombify.io](https://docs.kombify.io)
 - Support: `SUPPORT.md`
 - Security reports: `SECURITY.md` (private vulnerability reporting or e-mail, never a public issue)
 - License: `LICENSE` (dual Apache 2.0 / GPLv3, at your choice); the bundled

@@ -1,8 +1,8 @@
 package stacks
 
 import (
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 func authenticatedStackUserID(e *httpx.Event) (string, bool) {

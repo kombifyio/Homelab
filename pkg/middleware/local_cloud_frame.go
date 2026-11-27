@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/pkg/auth/localcloud"
-	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 // ApplyLocalCloudFrame runs after browser identity resolution. A frame grant

@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/kombifyio/homelab/internal/gocommon/edgeauth"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
 	"github.com/kombifyio/homelab/pkg/config"
-	"github.com/kombifyio/homelab/pkg/identity"
 	"github.com/kombifyio/homelab/pkg/logger"
 )
 
@@ -120,6 +120,11 @@ var betaFeatures = map[string]FeatureDefinition{
 		Key: "homelab.managed.apps.ionos.pool", Name: "IONOS Managed Apps", DefaultValue: false,
 		RiskLevel: RiskLevelHigh, Category: CategoryBeta,
 		Description: "Run curated tenant-isolated Managed Apps on an admitted IONOS worker.",
+	},
+	"homelab.managed.apps.fly.machines": {
+		Key: "homelab.managed.apps.fly.machines", Name: "Fly.io Managed Apps", DefaultValue: false,
+		RiskLevel: RiskLevelHigh, Category: CategoryBeta,
+		Description: "Run curated tenant-isolated Managed Apps on Fly.io Firecracker microVMs in Frankfurt (fra).",
 	},
 	"ionos_standard_photo_memory": {
 		Key: "ionos_standard_photo_memory", Name: "IONOS Standard photo memory", DefaultValue: false,

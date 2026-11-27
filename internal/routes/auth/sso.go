@@ -21,7 +21,6 @@ import (
 	"github.com/kombifyio/homelab/pkg/demoguard"
 	"github.com/kombifyio/homelab/pkg/httpx"
 	"github.com/kombifyio/homelab/pkg/middleware"
-	session "github.com/kombifyio/homelab/pkg/v2/auth/session"
 )
 
 // PortalVerifyRequest is the request body for POST /api/v1/auth/portal-verify
@@ -51,7 +50,7 @@ type CloudUserInfo struct {
 // homelab_session session that the interactive OIDC login issues. Without
 // it the exchange cannot establish authenticated embedded requests.
 type PortalSession struct {
-	Manager *session.Manager
+	Manager *authsession.Manager
 	// Browser stamps the idle Max-Age and the absolute-cap anchor onto the
 	// issued cookie (nil leaves the plain session cookie).
 	Browser    *sessionpolicy.Browser
@@ -247,7 +246,7 @@ func mintPortalSessionToken(ps PortalSession, payload *sso.SSOTokenPayload) (str
 	if err != nil {
 		return "", err
 	}
-	token, err := ps.Manager.Issue(session.Claims{
+	token, err := ps.Manager.Issue(authsession.Claims{
 		Subject:  strings.TrimSpace(payload.Sub),
 		TenantID: tenant,
 		Email:    strings.TrimSpace(payload.Email),

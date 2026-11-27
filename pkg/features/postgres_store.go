@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
-	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 type PostgresStore struct{ db *sql.DB }

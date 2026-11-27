@@ -12,11 +12,11 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/pkg/auth/testidentity"
 	"github.com/kombifyio/homelab/pkg/config"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/db"
-	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 var errDatabaseDeliveryAdmission = errors.New("database delivery requires the owning compiled production publish authority")

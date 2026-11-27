@@ -1,8 +1,24 @@
 {
   "schemaVersion": "stackkits.release-notes/v1",
-  "version": "v0.61.8",
+  "version": "v0.61.10",
   "changelogUrl": "https://stackkit.cc/changelog",
   "releases": [
+    {
+      "version": "v0.61.10",
+      "date": "2026-11-26",
+      "entries": []
+    },
+    {
+      "version": "v0.61.9",
+      "date": "2026-11-26",
+      "entries": [
+        {
+          "kind": "added",
+          "scope": "lan",
+          "text": "rack-capture-relay lane for rack RUN browser captures"
+        }
+      ]
+    },
     {
       "version": "v0.61.8",
       "date": "2026-11-26",
@@ -1467,273 +1483,6 @@
           "kind": "fixed",
           "scope": "test-window",
           "text": "route the managed Cloud Advanced Core's Stage database through the fixed egress"
-        }
-      ]
-    },
-    {
-      "version": "v0.56.1",
-      "date": "2026-11-06",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "test-window",
-          "text": "cleanup proof for a failed managed Cloud Advanced window run"
-        }
-      ]
-    },
-    {
-      "version": "v0.56.0",
-      "date": "2026-11-06",
-      "entries": [
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "access contracts for the homelab identity target; WireGuard overlay out of the default"
-        },
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "enrollment by the person with LAN-listener home, step-up classes and the local removal chain"
-        },
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "homelab identity and access P0 (..igti.7)"
-        },
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "host-side identity signer, browser sessions, app passes and away confirmation"
-        },
-        {
-          "kind": "added",
-          "scope": "identity",
-          "text": "key-bound device credential with DPoP renewal and verifier rework; retire the X.509 device certificate"
-        },
-        {
-          "kind": "added",
-          "scope": "lifecycle",
-          "text": "scoped application release change with retained-data rollback"
-        },
-        {
-          "kind": "added",
-          "scope": "mcp",
-          "text": "use-case add, configure and scoped release change tools"
-        },
-        {
-          "kind": "added",
-          "scope": "paas",
-          "text": "Coolify restore activation, removal and drift; Files on Runtipi"
-        },
-        {
-          "kind": "added",
-          "scope": "paas",
-          "text": "Dokploy Layer-2 platform on Basement with bootstrap, login, data operations and removal"
-        },
-        {
-          "kind": "added",
-          "scope": "rack-android",
-          "text": "ephemeral Android emulator runner VM 9001 on rack-pve"
-        },
-        {
-          "kind": "added",
-          "scope": "runtipi",
-          "text": "shared backup, restore and removal for Runtipi workloads and the Runtipi Marketplace"
-        },
-        {
-          "kind": "added",
-          "scope": "speechkit",
-          "text": "Parakeet STT, LAN listener and mDNS announcer for the homelab speech module"
-        },
-        {
-          "kind": "added",
-          "scope": "speechkit",
-          "text": "the module describes the real homelab voice runtime and listens on 18080"
-        },
-        {
-          "kind": "added",
-          "scope": "techstack",
-          "text": "plan layouts across every server of the homelab"
-        },
-        {
-          "kind": "added",
-          "scope": "techstack",
-          "text": "reach, security repair, auto-repair and outcome release as agent tools for the person's acting agent"
-        },
-        {
-          "kind": "added",
-          "scope": "techstack",
-          "text": "StackKits update setting, proposal with highlights and security patches without approval"
-        },
-        {
-          "kind": "added",
-          "scope": "transfer",
-          "text": "managed native application move with Techstack receive grants and verified destination readback"
-        },
-        {
-          "kind": "added",
-          "scope": "vpn",
-          "text": "optional VPN add-on with WireGuard, Headscale, Tailscale and Pangolin; peers at enrollment, removed on revocation"
-        },
-        {
-          "kind": "added",
-          "scope": "window-lanes",
-          "text": "lane runs the Workbench M06 performance proof on the EliteDesk G6"
-        },
-        {
-          "kind": "fixed",
-          "scope": "b3",
-          "text": "the cleanup proof proves a retired Techstack run and accepts the owner's product readback after a refused removal"
-        },
-        {
-          "kind": "fixed",
-          "scope": "cli",
-          "text": "name generate+apply when the stored plan is older than the CLI"
-        },
-        {
-          "kind": "fixed",
-          "scope": "coolify",
-          "text": "workloads fail fast when the Marketplace fails; released Vault lanes leave main"
-        },
-        {
-          "kind": "fixed",
-          "scope": "dokploy",
-          "text": "quiesce backup writers through the Compose process contract"
-        },
-        {
-          "kind": "fixed",
-          "scope": "dokploy",
-          "text": "UI route behind TinyAuth, bound for verify through the Dokploy service control"
-        },
-        {
-          "kind": "fixed",
-          "scope": "generator",
-          "text": "preserve custom module journeys"
-        },
-        {
-          "kind": "fixed",
-          "scope": "guard-qualification",
-          "text": "read the durable outcome_unknown revision behind the operator escalation"
-        },
-        {
-          "kind": "fixed",
-          "scope": "guard",
-          "text": "adopt an update trial whose supervisor a reboot or failure ended"
-        },
-        {
-          "kind": "fixed",
-          "scope": "guard",
-          "text": "back off a persistent server fault on result redelivery to 5 min"
-        },
-        {
-          "kind": "fixed",
-          "scope": "",
-          "text": "include the native window proof import in sparse checkout"
-        },
-        {
-          "kind": "fixed",
-          "scope": "lifecycle",
-          "text": "selected Vaultwarden release in the executor and a non-nested release checkpoint lock"
-        },
-        {
-          "kind": "fixed",
-          "scope": "localowner",
-          "text": "refuse either admin group and re-judge the CAS snapshot before a legacy delete"
-        },
-        {
-          "kind": "fixed",
-          "scope": "localowner",
-          "text": "the legacy replacement lists household custody through the transaction walk"
-        },
-        {
-          "kind": "fixed",
-          "scope": "release-guard",
-          "text": "admit the release volume probe in the closed Compose runner"
-        },
-        {
-          "kind": "fixed",
-          "scope": "remove",
-          "text": "keep a Techstack-managed workspace's intent so every destroy removal resolves the applied plan"
-        },
-        {
-          "kind": "fixed",
-          "scope": "speechkit",
-          "text": "keep the hosted origin out of the public CLI"
-        },
-        {
-          "kind": "fixed",
-          "scope": "techstack",
-          "text": "admit Proxmox substrate absence observations"
-        },
-        {
-          "kind": "fixed",
-          "scope": "techstack",
-          "text": "end the RIL key refresh cleanly on a host without a hosted profile"
-        },
-        {
-          "kind": "fixed",
-          "scope": "techstack",
-          "text": "governed decommission for leases of a deleted account"
-        },
-        {
-          "kind": "fixed",
-          "scope": "techstack",
-          "text": "let a key-bound Guard booted offline observe without a grant"
-        },
-        {
-          "kind": "fixed",
-          "scope": "techstack",
-          "text": "let agents acting for the person pass fresh-MFA step-ups per §5e"
-        },
-        {
-          "kind": "fixed",
-          "scope": "techstack",
-          "text": "measure guard-disconnect stale/offline from the last heartbeat"
-        },
-        {
-          "kind": "fixed",
-          "scope": "techstack",
-          "text": "name the lease's own provider in managed decommission refusals"
-        },
-        {
-          "kind": "fixed",
-          "scope": "techstack",
-          "text": "publish Kombify.Client.Shell 0.1.0-alpha.4 from current source"
-        },
-        {
-          "kind": "fixed",
-          "scope": "techstack",
-          "text": "qualify public mirror App access"
-        },
-        {
-          "kind": "fixed",
-          "scope": "techstack",
-          "text": "release-authored seeds and spec templates follow the identity origin rule"
-        },
-        {
-          "kind": "fixed",
-          "scope": "techstack",
-          "text": "sign Early Access notifications calls with a scoped Ed25519 key"
-        },
-        {
-          "kind": "fixed",
-          "scope": "techstack",
-          "text": "Techstack manages StackKits updates, the Guard never moves the CLI under a stored plan"
-        },
-        {
-          "kind": "fixed",
-          "scope": "upgrade",
-          "text": "an upgrade interrupted after target Apply recovers: claimant proof and owner-approved forward completion"
-        },
-        {
-          "kind": "fixed",
-          "scope": "upgrade",
-          "text": "an upgrade stopped at prepared is released by explicit recovery without replaying the prior Apply"
-        },
-        {
-          "kind": "fixed",
-          "scope": "upgrade",
-          "text": "forward recovery can finish with a newer verified release when the signed target cannot"
         }
       ]
     }

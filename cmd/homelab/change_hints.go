@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/kombifyio/homelab/pkg/auth/serverownerfga"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/jobs"
 )
@@ -16,18 +17,42 @@ type changeHintAnnouncer interface {
 }
 
 // serverEventHintProjector keeps the in-transaction node-lifecycle projection
-// and adds the post-commit hint: controlplane calls ServerEventCommitted only
+// and adds post-commit notifications (change hints and Administration FGA
+// server-owner reconciliation): controlplane calls ServerEventCommitted only
 // after the server event's transaction committed.
 type serverEventHintProjector struct {
 	nodeLifecycleNotificationProjector
-	hints changeHintAnnouncer
+	hints     changeHintAnnouncer
+	fgaOwners *serverownerfga.EventDispatcher
 }
 
 func (p serverEventHintProjector) ServerEventCommitted(result *controlplane.ServerEventResult) {
-	if p.hints == nil || !serverEventChangesLists(result) {
-		return
+	if p.hints != nil && serverEventChangesLists(result) {
+		p.hints.Announce(result.Server.OwnerSubjectID)
 	}
-	p.hints.Announce(result.Server.OwnerSubjectID)
+	if p.fgaOwners != nil && serverEventReconcilesOwnerFGA(result) {
+		input, err := serverownerfga.InputFromProjectedServer(projectedServerForFGA(*result.Server))
+		if err != nil {
+			// Pass through Enqueue so invalid aggregate states are logged, never silently dropped.
+			p.fgaOwners.Enqueue(serverownerfga.ServerOwnerInput{
+				TenantID: result.Server.TenantID,
+				ServerID: result.Server.ID,
+				OwnerSub: result.Server.OwnerSubjectID,
+			})
+			return
+		}
+		p.fgaOwners.Enqueue(input)
+	}
+}
+
+// serverEventReconcilesOwnerFGA skips plain heartbeats while reconciling new
+// servers, lifecycle/state transitions, and decommission/detach commits.
+// Periodic full-aggregate resync covers any missed or retried transitions.
+func serverEventReconcilesOwnerFGA(result *controlplane.ServerEventResult) bool {
+	if result == nil || !result.Applied || result.Server == nil {
+		return false
+	}
+	return result.Server.Revision <= 1 || len(result.Transitions) > 0 || result.Server.DecommissionedAt != nil
 }
 
 // serverEventChangesLists is false for a plain heartbeat and for an

@@ -10,7 +10,6 @@ import (
 	"github.com/kombifyio/homelab/internal/gocommon/authsession"
 	"github.com/kombifyio/homelab/pkg/db"
 	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/v2/auth/session"
 )
 
 // DefaultSessionCookieName preserves the established Homelab browser wire.
@@ -27,7 +26,7 @@ const DefaultSessionCookieName = "homelab_session"
 type Server struct {
 	startedAt time.Time
 	db        *db.DB
-	sessions  *session.Manager
+	sessions  *authsession.Manager
 	auth      AuthHandlers
 	cookie    string
 }
@@ -62,7 +61,7 @@ func WithDB(d *db.DB) Option {
 
 // WithSession attaches a session manager so authenticated routes
 // (/api/v2/whoami and friends) become available.
-func WithSession(m *session.Manager) Option {
+func WithSession(m *authsession.Manager) Option {
 	return func(s *Server) { s.sessions = m }
 }
 

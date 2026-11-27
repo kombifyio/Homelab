@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/getsentry/sentry-go"
-	"github.com/kombifyio/homelab/pkg/identity"
 	"github.com/kombifyio/homelab/pkg/secrets"
 )
 

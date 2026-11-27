@@ -76,6 +76,7 @@ func AssessWizardCapacity(request core.WizardRecommendationRequest) *core.Wizard
 		need, _, _, _ := memoryNeed([]goalMemory{goal}, result.ConcurrentWorkloads, kitFloor)
 		result.PerUseCase = append(result.PerUseCase, core.WizardCapacityUseCase{Goal: goal.goal, ResidentRAMMB: mib(goal.resident), WorkingIncrementRAMMB: knownMemoryIncrement(goal.increment, goal.peakKnown), RequiredRAMMB: need})
 	}
+	result.Drivers = wizardCapacityDrivers(request, result.PerUseCase)
 	switch {
 	case host <= 0:
 		result.Reasons = append(result.Reasons, core.WizardRecommendationReason{Code: "capacity_host_unknown", Message: "Choose a server size to assess memory", Source: result.Source})
@@ -117,9 +118,8 @@ func wizardCapacityHost(request core.WizardRecommendationRequest) (int, error) {
 	if request.DeploymentLane != "saas" || request.RuntimeOfferingID == "" || request.ProviderID == "" {
 		return 0, nil
 	}
-	offering := request.RuntimeOfferingID
-	provider := request.ProviderID
-	pkg, err := monthlyruntime.PackageForProvider(provider, offering)
+	catalog, catalogErr := stackkitrelease.ResolveUseCaseCatalog()
+	pkg, err := resolveManagedPackageForRequest(catalog, catalogErr, request, request.ProviderID, request.RuntimeOfferingID)
 	return pkg.MemoryMB, err
 }
 
@@ -354,4 +354,61 @@ func knownMemoryIncrement(gib float64, known bool) *int {
 	}
 	value := mib(gib)
 	return &value
+}
+
+// wizardCapacityDrivers summarizes which selected use cases and settings
+// materially change memory/compute requirements (for Goals Configure).
+func wizardCapacityDrivers(request core.WizardRecommendationRequest, perUseCase []core.WizardCapacityUseCase) []core.WizardCapacityDriver {
+	ramByGoal := make(map[string]int, len(perUseCase))
+	for _, item := range perUseCase {
+		ramByGoal[item.Goal] = item.ResidentRAMMB
+	}
+	drivers := []core.WizardCapacityDriver{}
+	add := func(driver core.WizardCapacityDriver) {
+		drivers = append(drivers, driver)
+	}
+	for _, goal := range request.Goals {
+		settings := request.UseCaseSettings[goal]
+		switch goal {
+		case "photos":
+			backend, _ := settings["backend"].(string)
+			ml, mlSet := settings["machine-learning"].(bool)
+			if backend == "immich-lite" {
+				add(core.WizardCapacityDriver{Goal: "photos", Code: "photos_lite", Setting: "backend", Value: "immich-lite", RAMMB: ramByGoal["photos"]})
+			} else if backend == "ente-photos" {
+				add(core.WizardCapacityDriver{Goal: "photos", Code: "photos_ente", Setting: "backend", Value: "ente-photos", RAMMB: ramByGoal["photos"]})
+			} else if !mlSet || ml {
+				add(core.WizardCapacityDriver{Goal: "photos", Code: "photos_smart_search", Setting: "machine-learning", Value: "true", RAMMB: ramByGoal["photos"]})
+			}
+		case "files":
+			backend, _ := settings["backend"].(string)
+			if paperless, _ := settings["paperless"].(bool); paperless {
+				add(core.WizardCapacityDriver{Goal: "files", Code: "files_paperless", Setting: "paperless", Value: "true", RAMMB: ramByGoal["files"]})
+			}
+			if backend == "nextcloud" {
+				add(core.WizardCapacityDriver{Goal: "files", Code: "files_nextcloud", Setting: "backend", Value: "nextcloud", RAMMB: ramByGoal["files"]})
+			} else if backend == "opencloud" {
+				add(core.WizardCapacityDriver{Goal: "files", Code: "files_opencloud", Setting: "backend", Value: "opencloud", RAMMB: ramByGoal["files"]})
+			}
+		case "media":
+			transcode, _ := settings["hardware-transcoding"].(string)
+			if transcode == "on" || transcode == "auto" {
+				add(core.WizardCapacityDriver{Goal: "media", Code: "media_transcoding", Setting: "hardware-transcoding", Value: transcode, RAMMB: ramByGoal["media"]})
+			} else {
+				add(core.WizardCapacityDriver{Goal: "media", Code: "media_library", RAMMB: ramByGoal["media"]})
+			}
+		case "ai":
+			add(core.WizardCapacityDriver{Goal: "ai", Code: "ai_local_models", RAMMB: ramByGoal["ai"]})
+		case "smart-home":
+			if form, _ := settings["operating-form"].(string); form == "haos" {
+				add(core.WizardCapacityDriver{Goal: "smart-home", Code: "smart_home_haos", Setting: "operating-form", Value: "haos", RAMMB: ramByGoal["smart-home"]})
+			}
+		case "marketplace":
+			add(core.WizardCapacityDriver{Goal: "marketplace", Code: "marketplace_runtime", RAMMB: ramByGoal["marketplace"]})
+		}
+	}
+	if profile := strings.TrimSpace(request.ComputeProfile); profile == "low" || profile == "high" {
+		add(core.WizardCapacityDriver{Goal: "", Code: "compute_profile_" + profile, Setting: "compute_profile", Value: profile})
+	}
+	return drivers
 }

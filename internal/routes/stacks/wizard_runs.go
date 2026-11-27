@@ -362,7 +362,13 @@ func (h wizardRunHandlers) createWizardRun(e *httpx.Event) error {
 		photos, ok := catalog.FindUseCase("photos")
 		_, installable := photos.InstallingAlternative(backend)
 		if !ok || !installable {
-			return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeValidation, "Ente Photos is not yet available for installation", map[string]any{"reason_code": "photo_backend_unavailable", "retryable": false})
+			return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeValidation, "Ente Photos is not yet available for installation", map[string]any{
+				"reason_code":      "photo_backend_unavailable",
+				"refusal_class":    unifier.RefusalClassUnsupportedRuntime,
+				"choices_retained": true,
+				"requested_intent": run.request.Intent,
+				"retryable":        false,
+			})
 		}
 	}
 	if h.crud.runtimeFeatures != nil {
@@ -375,12 +381,30 @@ func (h wizardRunHandlers) createWizardRun(e *httpx.Event) error {
 		if (flagErr == nil && enabled) || run.ionosMemoryEnabled {
 			intent := run.request.Intent
 			fit := unifier.EvaluateServerFit(core.WizardRecommendationRequest{
-				ServerFit:          &core.WizardServerFitRequest{ProviderID: managed.ProviderID, OfferingID: managed.RuntimeOfferingID},
-				IONOSMemoryEnabled: run.ionosMemoryEnabled,
-				Goals:              intent.Goals, Services: run.request.Services, UseCaseSettings: intent.UseCaseSettings, UseCaseCapabilities: intent.UseCaseCapabilities,
+				KitSlug:             intent.KitAssignment.KitSlug,
+				DeploymentLane:      "saas",
+				ProviderID:          managed.ProviderID,
+				RuntimeOfferingID:   managed.RuntimeOfferingID,
+				ServerFit:           &core.WizardServerFitRequest{ProviderID: managed.ProviderID, OfferingID: managed.RuntimeOfferingID, Source: "managed"},
+				IONOSMemoryEnabled:  run.ionosMemoryEnabled,
+				Goals:               intent.Goals,
+				Services:            run.request.Services,
+				UseCaseSettings:     intent.UseCaseSettings,
+				UseCaseCapabilities: intent.UseCaseCapabilities,
 			}, unifier.WizardRecommendationInventory{})
-			if fit.Status == "does_not_fit" {
-				return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeValidation, "Selected workloads exceed the selected server package", map[string]any{"reason_code": "server_hardware_incompatible", "retryable": false, "server_fit": fit})
+			if fit != nil && fit.Status == unifier.FitStatusDoesNotFit {
+				refusalClass := fit.RefusalClass
+				if refusalClass == "" {
+					refusalClass = unifier.RefusalClassHardwareFit
+				}
+				return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeValidation, "Selected workloads exceed the selected server package", map[string]any{
+					"reason_code":      "server_hardware_incompatible",
+					"refusal_class":    refusalClass,
+					"choices_retained": true,
+					"requested_intent": intent,
+					"retryable":        false,
+					"server_fit":       fit,
+				})
 			}
 		}
 	}

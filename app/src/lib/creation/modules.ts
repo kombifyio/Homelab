@@ -128,6 +128,8 @@ export const CREATION_MODULES: Record<CreationStepKey, CreationStepModule> = {
         homelab: frame.options.homelab,
         fitEnabled: frame.context.features.isEnabled("server_hardware_fit"),
         recommendationState: frame.recommendationState,
+        onFitRecovery: frame.applyFitRecovery,
+        onFitRecheck: frame.recheckServerFit,
         onmanagedproviderselect: frame.options.onmanagedproviderselect,
         recommendedStackKit: frame.recommendedStackKit,
         capacityHint: frame.capacityHint,

@@ -8,10 +8,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/kombifyio/homelab/internal/gocommon/tenantdb"
 	"github.com/kombifyio/homelab/internal/routes/tenantguard"
 	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/identity"
 )
 
 func TestRequireAuthAcceptsSignedEdgeIdentity(t *testing.T) {

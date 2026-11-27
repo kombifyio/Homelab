@@ -259,3 +259,100 @@ func TestGuardAgentKeyRotationKeepsTheWorkerAuthenticated(t *testing.T) {
 		t.Fatalf("heartbeat after rotation = %d", response.StatusCode)
 	}
 }
+
+// An enrolled Guard recovers transparently within one retry after the control
+// plane restarts with a new access-token signing secret, without re-enrolling
+// or entering a 401 loop (platform-0oscgv).
+func TestGuardAgentRecoversAcrossControlPlaneSecretRestartWithoutReenrolling(t *testing.T) {
+	store := controlplane.NewMemoryStore()
+	raw, hash, err := pairingtoken.Generate("tenant-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expires := time.Now().Add(time.Hour)
+	if _, err := store.UpsertPairingToken(t.Context(), controlplane.PairingToken{
+		ID: "restart-pairing", TenantID: "tenant-1", OwnerSubjectID: "owner-1", StackID: "stack-1",
+		TokenHash: hash, Status: "active", ExpiresAt: &expires,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("HOMELAB_WORKER_AGENT_TOKEN_SECRET", "secret-before-control-plane-restart")
+	routerBefore := httpx.NewRouter()
+	RegisterWorkerRoutesWithStore(routerBefore, WorkerRouteConfig{Store: store, Servers: store})
+
+	t.Setenv("HOMELAB_WORKER_AGENT_TOKEN_SECRET", "secret-after-control-plane-restart!")
+	routerAfter := httpx.NewRouter()
+	RegisterWorkerRoutesWithStore(routerAfter, WorkerRouteConfig{Store: store, Servers: store})
+
+	var restarted atomic.Bool
+	var heartbeatAttempts atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/heartbeat") && restarted.Load() {
+			heartbeatAttempts.Add(1)
+		}
+		if restarted.Load() {
+			routerAfter.ServeHTTP(w, r)
+			return
+		}
+		routerBefore.ServeHTTP(w, r)
+	}))
+	defer server.Close()
+
+	manager, err := hostidentity.Open(filepath.Join(t.TempDir(), "state"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	enrollmentPath := filepath.Join(t.TempDir(), "agent-enrollment.json")
+	if _, err := hostidentity.Enroll(t.Context(), hostidentity.EnrollOptions{
+		Manager: manager, EnrollmentPath: enrollmentPath, ResiduePaths: []string{},
+		Bootstrap: hostidentity.Bootstrap{Server: server.URL, Token: raw, Hostname: "node-1", OS: "linux", Arch: "x86_64"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	enrollment, _ := os.ReadFile(enrollmentPath)
+	view, _ := hostidentity.ParseEnrollment(enrollment)
+	identity, err := hostidentity.NewClient(hostidentity.ClientConfig{
+		Manager: manager, Endpoints: view.Endpoints, AgentToken: view.AgentToken, TenantID: view.TenantID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := identity.Establish(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	client := &http.Client{Transport: identity.Transport(nil)}
+	sendHeartbeat := func(seq string) int {
+		body := `{"source_epoch":"restart-e2e","source_sequence":` + seq + `,"observed_at":"` + time.Now().UTC().Format(time.RFC3339Nano) + `"}`
+		req, _ := http.NewRequestWithContext(t.Context(), http.MethodPost, view.HeartbeatURL, strings.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+view.AgentToken)
+		req.Header.Set("X-Kombify-Tenant-ID", view.TenantID)
+		resp, doErr := client.Do(req)
+		if doErr != nil {
+			t.Fatal(doErr)
+		}
+		_ = resp.Body.Close()
+		return resp.StatusCode
+	}
+	if status := sendHeartbeat("1"); status != http.StatusOK {
+		t.Fatalf("heartbeat before restart = %d", status)
+	}
+
+	// Simulate control-plane restart with a fresh signing secret.
+	restarted.Store(true)
+	if status := sendHeartbeat("2"); status != http.StatusOK {
+		t.Fatalf("heartbeat after restart = %d, want 200 after single re-exchange", status)
+	}
+	if got := heartbeatAttempts.Load(); got != 2 {
+		t.Fatalf("post-restart heartbeat attempts = %d, want 2 (1 rejected + 1 retry)", got)
+	}
+	if status := sendHeartbeat("3"); status != http.StatusOK {
+		t.Fatalf("subsequent heartbeat after recovery = %d, want 200", status)
+	}
+	if got := heartbeatAttempts.Load(); got != 3 {
+		t.Fatalf("subsequent heartbeat triggered extra retries: attempts = %d, want 3", got)
+	}
+	if state := manager.Record().State; state != hostidentity.StateBound {
+		t.Fatalf("Guard identity state = %q, want %q", state, hostidentity.StateBound)
+	}
+}

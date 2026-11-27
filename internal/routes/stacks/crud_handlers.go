@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/kombifyio/homelab/internal/gocommon/denial"
+	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/google/uuid"
 
 	productnotifications "github.com/kombifyio/homelab/internal/notifications"
@@ -22,13 +23,13 @@ import (
 	"github.com/kombifyio/homelab/pkg/config"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/httpx"
-	"github.com/kombifyio/homelab/pkg/identity"
 	"github.com/kombifyio/homelab/pkg/jobs"
 	"github.com/kombifyio/homelab/pkg/kombifywallet"
 	"github.com/kombifyio/homelab/pkg/logger"
 	"github.com/kombifyio/homelab/pkg/monthlyruntime"
 	"github.com/kombifyio/homelab/pkg/orchestrator"
 	"github.com/kombifyio/homelab/pkg/stackrouting"
+	"github.com/kombifyio/homelab/pkg/unifier"
 )
 
 const (
@@ -227,7 +228,10 @@ func (h crudRouteHandlers) ownerBootstrapContextForCreate(e *httpx.Event, ownerI
 
 func (h crudRouteHandlers) rejectUnauthorizedManagedRuntime(e *httpx.Event, ownerID string, normalized normalizedCreateStackRequest) (bool, error) {
 	if decision := evaluateManagedRuntimeEntitlement(e.Request.Context(), normalized, ownerID, h.runtimeFeatures); decision.Denied {
-		return true, httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden, decision.Message, decision.Details())
+		details := decision.Details()
+		details["refusal_class"] = unifier.RefusalClassEntitlement
+		details["choices_retained"] = true
+		return true, httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden, decision.Message, details)
 	}
 	return false, nil
 }
@@ -360,7 +364,11 @@ func (h crudRouteHandlers) writeManagedCreateAdmissionError(e *httpx.Event, stac
 	if refusal := tenantguard.ExecutionRefusal(err); refusal != nil {
 		return refusal
 	}
-	details := map[string]any{creationStackIDField: stackID, "admission_phase": phase}
+	details := map[string]any{
+		creationStackIDField: stackID,
+		"admission_phase":    phase,
+		"choices_retained":   true,
+	}
 	var policyDenial *monthlyruntime.CapacityPolicyDenialError
 	if errors.As(err, &policyDenial) && policyDenial != nil &&
 		policyDenial.TenantID == request.TenantID && policyDenial.OwnerSubjectID == request.OwnerID &&
@@ -368,16 +376,20 @@ func (h crudRouteHandlers) writeManagedCreateAdmissionError(e *httpx.Event, stac
 		policyDetails := policyDenial.Details()
 		policyDetails[creationStackIDField] = stackID
 		policyDetails["admission_phase"] = phase
+		policyDetails["refusal_class"] = unifier.RefusalClassEntitlement
+		policyDetails["choices_retained"] = true
 		return httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden, policyDenial.Error(), policyDetails)
 	}
 	var capacity *providercontrol.ManagedRuntimeCapacityExceededError
 	if errors.As(err, &capacity) {
 		h.enqueueManagedRuntimeCapacityNotification(e.Request.Context(), stackID, request, capacity)
+		details["refusal_class"] = unifier.RefusalClassUnavailableProvider
 		return writeManagedRuntimeCapacityDenial(e, request.Provider, capacity, details)
 	}
 	var protection providercontrol.CreateProtectionError
 	if errors.As(err, &protection) {
 		details["reason_code"] = protection.Protection.ReasonCode
+		details["refusal_class"] = unifier.RefusalClassUnavailableProvider
 		details["retryable"] = protection.Protection.State == "paused"
 		details["create_protection"] = protection.Protection
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "New VM creation is temporarily protected", details)
@@ -385,9 +397,11 @@ func (h crudRouteHandlers) writeManagedCreateAdmissionError(e *httpx.Event, stac
 	var createBlocked providercontrol.ProviderCreateBlockedError
 	if errors.As(err, &createBlocked) {
 		details["reason_code"] = createBlocked.ReasonCode
+		details["refusal_class"] = unifier.RefusalClassUnavailableProvider
 		details["retryable"] = false
 		return httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable, "New managed servers are temporarily paused for this provider", details)
 	}
+	details["refusal_class"] = unifier.RefusalClassUnavailableProvider
 	switch {
 	case errors.Is(err, providercontrol.ErrMutationActivationBlocked):
 		details["reason_code"] = "provider_control_not_activated"
