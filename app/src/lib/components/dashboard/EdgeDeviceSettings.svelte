@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { Button, SegmentedControl } from "@kombiverselabs/ui/primitives";
   import { SettingsSection, SettingsRow } from "@kombiverselabs/ui/settings";
-  import { tr } from "#lib/i18n.svelte.js";
+  import { isMessageKey, tr, type MessageKey } from "#lib/i18n.svelte.js";
   import {
     listEdgeDevices,
     readEdgeSettings,
@@ -26,7 +26,7 @@
   let live = $state<EdgeDevice>(device);
   let current = $state<SettingsRead | null>(null);
   let busy = $state(false);
-  let message = $state("");
+  let message = $state<MessageKey | "">("");
   let pollError = $state(false);
   let pending = $state<{ section: string; key: string; value: unknown } | null>(
     null,
@@ -87,6 +87,12 @@
       "hi",
     ]),
   });
+
+  function optionLabel(option: string, translated: boolean): string {
+    if (!translated) return option;
+    const key = `box.option.${option}`;
+    return isMessageKey(key) ? tr(key) : option;
+  }
 
   function value(section: string, key: string): unknown {
     if (pending?.section === section && pending.key === key)
@@ -277,7 +283,7 @@
           class="flex-wrap"
           items={offered.map((option) => ({
             value: option,
-            label: translated ? tr(`box.option.${option}`) : option,
+            label: optionLabel(option, translated),
           }))}
           value={text(section, key)}
           {label}
@@ -296,9 +302,7 @@
         >
           <option value="" disabled>{tr("box.choose")}</option>
           {#each offered as option (option)}
-            <option value={option}
-              >{translated ? tr(`box.option.${option}`) : option}</option
-            >
+            <option value={option}>{optionLabel(option, translated)}</option>
           {/each}
         </select>
       {/if}

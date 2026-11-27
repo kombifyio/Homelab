@@ -32,7 +32,7 @@
   } from "#lib/api/useCaseCatalog.js";
   import { brandDomainForTool } from "#lib/brand-logo.js";
   import { useCaseGuideUrl } from "#lib/docs-links.js";
-  import { getLocale, tr } from "#lib/i18n.svelte.js";
+  import { getLocale, isMessageKey, tr, type MessageKey } from "#lib/i18n.svelte.js";
   import UseCaseServicePicker from "./UseCaseServicePicker.svelte";
   import UseCaseSettings from "./UseCaseSettings.svelte";
   import BrandLogoIcon from "../BrandLogoIcon.svelte";
@@ -207,12 +207,24 @@
     await tick();
     trigger?.focus();
   }
+  const ROLE_HELP_KEYS: Record<string, MessageKey> = {
+    primary: "wizard.preview.roleHelp.primary",
+    alternative: "wizard.preview.roleHelp.alternative",
+    supporting: "wizard.preview.roleHelp.supporting",
+    bridge: "wizard.preview.roleHelp.bridge",
+    connector: "wizard.preview.roleHelp.connector",
+  };
+  const PREVIEW_HELP_KEYS: Partial<Record<CreationGoal["id"], MessageKey>> = {
+    files: "wizard.preview.files.help",
+    mail: "wizard.preview.mail.help",
+    game: "wizard.preview.game.help",
+    dev: "wizard.preview.dev.help",
+  };
   function serviceDescription(id: string, role: string) {
     const key = `wizard.preview.service.${id}`;
-    const description = tr(key);
-    return description === key
-      ? tr(`wizard.preview.roleHelp.${role}`)
-      : description;
+    if (isMessageKey(key)) return tr(key);
+    const roleKey = ROLE_HELP_KEYS[role];
+    return roleKey ? tr(roleKey) : "";
   }
 </script>
 
@@ -283,8 +295,8 @@
         <div class="detail-story">
           <p class="eyebrow">{tr("wizard.preview.aboutUseCase")}</p>
           <p>
-            {["files", "mail", "game", "dev"].includes(card.id)
-              ? tr(`wizard.preview.${card.id}.help`)
+            {PREVIEW_HELP_KEYS[card.id]
+              ? tr(PREVIEW_HELP_KEYS[card.id]!)
               : card.question?.helpKey
                 ? tr(card.question.helpKey)
                 : goalDescription(card)}

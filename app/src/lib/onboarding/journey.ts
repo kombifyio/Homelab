@@ -9,20 +9,19 @@
  */
 import type { ResolvedStep } from "@kombiverselabs/onboarding-core";
 
-import { t } from "#lib/i18n.js";
+import { isMessageKey, t } from "#lib/i18n.js";
 
 /**
  * Resolve one message id for a component. A missing key returns the id, so a
  * gap shows up as an obviously wrong string rather than as an empty card.
  */
 export function resolveOnboardingMessage(messageId: string): string {
-  return t(messageId);
+  return isMessageKey(messageId) ? t(messageId) : messageId;
 }
 
 /** Empty when this locale has no entry — the caller then uses a fallback. */
 function localized(messageId: string): string {
-  const translated = t(messageId);
-  return translated === messageId ? "" : translated;
+  return isMessageKey(messageId) ? t(messageId) : "";
 }
 
 /** The i18n key a denial reason maps to, e.g. `policy.selfhost_byos`. */

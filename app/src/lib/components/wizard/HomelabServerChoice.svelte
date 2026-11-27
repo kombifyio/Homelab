@@ -9,12 +9,12 @@
   import { Check, Layers, Plus, Server } from "@lucide/svelte";
   import type { HomelabServerSelection } from "#lib/creation/homelab-servers.js";
   import LoadingNote from "#lib/components/ui/LoadingNote.svelte";
-  import { tr } from "#lib/i18n.svelte.js";
+  import { tr, type MessageKey } from "#lib/i18n.svelte.js";
 
   let { homelab }: { homelab: HomelabServerSelection } = $props();
 
-  const NOTE_DEFAULT = "wizard.server.homelab.disconnected";
-  const NOTE: Record<string, string> = {
+  const NOTE_DEFAULT: MessageKey = "wizard.server.homelab.disconnected";
+  const NOTE: Record<string, MessageKey> = {
     disconnected: "wizard.server.homelab.disconnected",
     leased: "wizard.server.homelab.leased",
     restricted: "wizard.server.homelab.restricted",

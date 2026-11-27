@@ -18,7 +18,7 @@
    * Wallet and has no value to send, unless an existing key is imported.
    */
   import { onDestroy, onMount, tick } from "svelte";
-  import { tr } from "#lib/i18n.svelte.js";
+  import { tr, type MessageKey } from "#lib/i18n.svelte.js";
   import Button from "#lib/components/ui/Button.svelte";
   import {
     EDITOR_ITEM_TYPES,
@@ -122,7 +122,7 @@
     ["environment", "kwallet.scope_option.environment"],
   ] as const;
 
-  const TYPE_HINTS: Record<EditorItemType, string> = {
+  const TYPE_HINTS: Record<EditorItemType, MessageKey> = {
     generic_secret: "kwallet.type_hint.generic_secret",
     login: "kwallet.type_hint.login",
     variable: "kwallet.type_hint.variable",

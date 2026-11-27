@@ -24,7 +24,7 @@
   import ErrorCallout from "#lib/components/ui/ErrorCallout.svelte";
   import LoadingNote from "#lib/components/ui/LoadingNote.svelte";
   import { acceptableLayoutRecommendation } from "#lib/api/layout.js";
-  import { formatNumber, getLocale, tr } from "#lib/i18n.svelte.js";
+  import { formatNumber, getLocale, tr, type MessageKey } from "#lib/i18n.svelte.js";
   import {
     layoutPreviewView,
     type LayoutPreviewState,
@@ -146,7 +146,17 @@
     onpin?.(assignment.goal, serverId);
   }
 
-  const verificationKey = $derived(`layout.verification.${view?.verification.status ?? "unavailable"}`);
+  const VERIFICATION_KEYS: Record<string, MessageKey> = {
+    verified: "layout.verification.verified",
+    infeasible: "layout.verification.infeasible",
+    skipped: "layout.verification.skipped",
+    unavailable: "layout.verification.unavailable",
+    unknown: "layout.verification.unknown",
+  };
+  const verificationKey = $derived<MessageKey>(
+    VERIFICATION_KEYS[view?.verification.status ?? "unavailable"] ??
+      "layout.verification.unavailable",
+  );
 </script>
 
 {#snippet serverOption(server: LayoutServerChoice)}

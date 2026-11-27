@@ -1,6 +1,11 @@
 <script lang="ts">
   import { untrack } from "svelte";
-  import { tr, formatDateTime, formatNumber } from "#lib/i18n.svelte.js";
+  import {
+    tr,
+    formatDateTime,
+    formatNumber,
+    type MessageKey,
+  } from "#lib/i18n.svelte.js";
   import {
     getStorageForecast,
     type StorageForecast as Forecast,
@@ -186,40 +191,40 @@
     return tr("storage.range", { low, high: formatNumber(Math.ceil(latest)) });
   }
 
-  const reasonKeys: Record<string, string> = {
-    no_history: "history",
-    insufficient_history: "history",
-    sparse_history: "sparse",
-    capacity_unknown: "capacity",
-    invalid_measurements: "invalid",
-    conflicting_measurements: "invalid",
-    measurement_timestamp_unpaired: "invalid",
-    capacity_measurement_unpaired: "invalid",
-    stale_measurement: "staleMeasurement",
-    capacity_changed: "changed",
-    recent_outlier: "outlier",
-    unstable_growth: "variable",
+  const reasonKeys: Record<string, MessageKey> = {
+    no_history: "storage.note.history",
+    insufficient_history: "storage.note.history",
+    sparse_history: "storage.note.sparse",
+    capacity_unknown: "storage.note.capacity",
+    invalid_measurements: "storage.note.invalid",
+    conflicting_measurements: "storage.note.invalid",
+    measurement_timestamp_unpaired: "storage.note.invalid",
+    capacity_measurement_unpaired: "storage.note.invalid",
+    stale_measurement: "storage.note.staleMeasurement",
+    capacity_changed: "storage.note.changed",
+    recent_outlier: "storage.note.outlier",
+    unstable_growth: "storage.note.variable",
   };
-  const noteKeys: Record<string, string> = {
-    capacity_changed: "changed",
-    robust_trend: "robust",
-    variable_growth: "variable",
-    limited_horizon: "horizon",
-    effective_capacity: "effective",
-    collection_timestamps: "collected",
-    hourly_sampled: "hourly",
-    duplicate_streams: "duplicates",
-    measurement_timestamp_unpaired: "invalid",
-    capacity_measurement_unpaired: "capacityGap",
-    conflicting_measurements: "invalid",
+  const noteKeys: Record<string, MessageKey> = {
+    capacity_changed: "storage.note.changed",
+    robust_trend: "storage.note.robust",
+    variable_growth: "storage.note.variable",
+    limited_horizon: "storage.note.horizon",
+    effective_capacity: "storage.note.effective",
+    collection_timestamps: "storage.note.collected",
+    hourly_sampled: "storage.note.hourly",
+    duplicate_streams: "storage.note.duplicates",
+    measurement_timestamp_unpaired: "storage.note.invalid",
+    capacity_measurement_unpaired: "storage.note.capacityGap",
+    conflicting_measurements: "storage.note.invalid",
   };
 
   function explanations(forecast: Forecast): string[] {
     const keys = [
       reasonKeys[forecast.reason ?? ""],
       ...(forecast.notes ?? []).map((note) => noteKeys[note]),
-    ].filter(Boolean);
-    return [...new Set(keys)].map((key) => tr(`storage.note.${key}`));
+    ].filter((key): key is MessageKey => Boolean(key));
+    return [...new Set(keys)].map((key) => tr(key));
   }
 
   function hostVolumes(service: CanonicalService): StorageForecastResource[] {

@@ -7,9 +7,10 @@
 -->
 <script module lang="ts">
   import type { ActiveWizardRun } from "#lib/api/wizardRuns.js";
+  import type { MessageKey } from "#lib/i18n.js";
 
   /** The banner's headline message key; the compact status line reuses it. */
-  export function wizardRunTitleKey(run: ActiveWizardRun): string {
+  export function wizardRunTitleKey(run: ActiveWizardRun): MessageKey {
     if (run.status === "failed") return "wizard.run.banner.failedTitle";
     return typeof run.result?.state === "string" &&
       run.result.state === "awaiting_pairing"
@@ -48,7 +49,7 @@
     jobLive && Boolean(run.kit_deployment_id) && Boolean(run.job?.id),
   );
 
-  function errorText(error: unknown, fallbackKey: string): string {
+  function errorText(error: unknown, fallbackKey: MessageKey): string {
     const message = error instanceof Error ? error.message.trim() : "";
     return message ? `${tr(fallbackKey)}: ${message}` : tr(fallbackKey);
   }

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { AlertTriangle, Info } from "@lucide/svelte";
-  import { tr } from "#lib/i18n.svelte.js";
+  import { tr, type MessageKey } from "#lib/i18n.svelte.js";
   import Modal from "#lib/components/Modal.svelte";
   import Button from "#lib/components/ui/Button.svelte";
   import { getJob } from "#lib/api/jobs.js";
@@ -78,18 +78,20 @@
       busy = false;
     }
   }
-  const KNOWN_NOTICE_CODES = new Set([
-    "custom_components_preserved",
-    "external_recorder_preserved",
-    "image_version_drift",
-    "usb_serial_devices_preserved",
-    "host_network_preserved",
-  ]);
+  const KNOWN_NOTICE_KEYS: Record<string, MessageKey> = {
+    custom_components_preserved:
+      "ui.services.adoptionNotice.custom_components_preserved",
+    external_recorder_preserved:
+      "ui.services.adoptionNotice.external_recorder_preserved",
+    image_version_drift: "ui.services.adoptionNotice.image_version_drift",
+    usb_serial_devices_preserved:
+      "ui.services.adoptionNotice.usb_serial_devices_preserved",
+    host_network_preserved: "ui.services.adoptionNotice.host_network_preserved",
+  };
 
   function noticeText(notice: ApplicationAdoptionNotice): string {
-    return KNOWN_NOTICE_CODES.has(notice.code)
-      ? tr(`ui.services.adoptionNotice.${notice.code}`)
-      : notice.message;
+    const key = KNOWN_NOTICE_KEYS[notice.code];
+    return key ? tr(key) : notice.message;
   }
 
   onMount(() => {

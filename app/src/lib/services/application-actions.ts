@@ -12,7 +12,7 @@ import type {
   ServiceVersionInfo,
 } from "../api/services";
 import { confirmInApp } from "../dialogs/in-app-dialog";
-import { tr } from "../i18n.svelte";
+import { isMessageKey, tr } from "../i18n.svelte";
 import {
   advisorySeverityLabel,
   serviceCardActions,
@@ -56,8 +56,7 @@ export function applicationActionTargets(
 
 export function actionLabel(action: string): string {
   const key = `ui.services.action.${action}`;
-  const label = tr(key);
-  return label === key ? action : label;
+  return isMessageKey(key) ? tr(key) : action;
 }
 
 async function confirmApplicationAction(

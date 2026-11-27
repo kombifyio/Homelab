@@ -1,7 +1,27 @@
 <script lang="ts">
   import { onDestroy, untrack } from "svelte";
   import { RefreshCw, Wrench } from "@lucide/svelte";
-  import { tr, formatDateTime, stateLabel } from "#lib/i18n.svelte.js";
+  import {
+    tr,
+    formatDateTime,
+    stateLabel,
+    type MessageKey,
+  } from "#lib/i18n.svelte.js";
+
+  const MAINTENANCE_STATE_KEYS: Record<string, MessageKey> = {
+    awaiting_node_return: "maintenance.state.awaiting_node_return",
+    cancelled: "maintenance.state.cancelled",
+    completed: "maintenance.state.completed",
+    failed: "maintenance.state.failed",
+    queued: "maintenance.state.queued",
+    running: "maintenance.state.running",
+    waiting: "maintenance.state.waiting",
+  };
+
+  function maintenanceStateLabel(state: string): string {
+    const key = MAINTENANCE_STATE_KEYS[state];
+    return key ? tr(key) : state;
+  }
   import Button from "#lib/components/ui/Button.svelte";
   import { Button as LinkButton } from "@kombiverselabs/ui/primitives";
   import {
@@ -564,7 +584,7 @@
       data-testid="maintenance-job"
       data-state={job.state}
     >
-      <p class="text-sm font-medium">{tr(`maintenance.state.${job.state}`)}</p>
+      <p class="text-sm font-medium">{maintenanceStateLabel(job.state)}</p>
       {#if job.failure}<p class="mt-2 text-sm">
           {job.failure.user_guidance.body}
         </p>{/if}

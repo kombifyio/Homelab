@@ -1,6 +1,12 @@
 <script lang="ts">
   import LoadingNote from "#lib/components/ui/LoadingNote.svelte";
-  import { tr, trn, formatDateTime, stateLabel } from "#lib/i18n.svelte.js";
+  import {
+    tr,
+    trn,
+    formatDateTime,
+    stateLabel,
+    type MessageKey,
+  } from "#lib/i18n.svelte.js";
   import { onMount, untrack } from "svelte";
   import { page } from "$app/state";
   import { goto, replaceState } from "$app/navigation";
@@ -13,7 +19,7 @@
     Server,
   } from "@lucide/svelte";
   import { PageHeader } from "@kombiverselabs/ui/shell";
-  import { ServiceCard } from "@kombiverselabs/ui/service";
+  import { ServiceCard, type ServicePlacement } from "@kombiverselabs/ui/service";
   import { KfCardShell } from "@kombiverselabs/ui/card";
   import { SegmentedControl, Tabs } from "@kombiverselabs/ui/primitives";
   import { EmptyState } from "@kombiverselabs/ui/states";
@@ -993,7 +999,19 @@
               <dt class="text-muted-foreground">
                 {tr("ui.serviceDetail.facts.placement")}
               </dt>
-              <dd>{tr(`ui.services.placement.${placement}`)}</dd>
+              <dd>
+                {tr(
+                  (
+                    {
+                      cloud: "ui.services.placement.cloud",
+                      local: "ui.services.placement.local",
+                      managed: "ui.services.placement.managed",
+                      serverless: "ui.services.placement.managed",
+                      unknown: "ui.services.placement.unknown",
+                    } satisfies Record<ServicePlacement, MessageKey>
+                  )[placement],
+                )}
+              </dd>
             </div>
             <div>
               <dt class="text-muted-foreground">

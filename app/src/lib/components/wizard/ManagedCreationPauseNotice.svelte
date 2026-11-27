@@ -6,7 +6,7 @@
 <script lang="ts">
   import { CirclePause, RefreshCw } from "@lucide/svelte";
   import type { ManagedCreationPause } from "#lib/api/stacks.js";
-  import { formatDateTime, tr } from "#lib/i18n.svelte.js";
+  import { formatDateTime, tr, type MessageKey } from "#lib/i18n.svelte.js";
 
   let {
     pause,
@@ -18,13 +18,13 @@
     onrefresh: () => Promise<void>;
   } = $props();
 
-  const PAUSED_TITLE = "wizard.server.managed.pause.title.paused";
-  const TITLES: Record<string, string> = {
+  const PAUSED_TITLE: MessageKey = "wizard.server.managed.pause.title.paused";
+  const TITLES: Record<string, MessageKey> = {
     paused: PAUSED_TITLE,
     probe_in_flight: "wizard.server.managed.pause.title.probeInFlight",
     outcome_unknown: "wizard.server.managed.pause.title.outcomeUnknown",
   };
-  const FAILURES: Record<string, string> = {
+  const FAILURES: Record<string, MessageKey> = {
     "provider.auth": "wizard.server.managed.pause.failure.auth",
     "provider.permission": "wizard.server.managed.pause.failure.permission",
     "provider.quota": "wizard.server.managed.pause.failure.quota",

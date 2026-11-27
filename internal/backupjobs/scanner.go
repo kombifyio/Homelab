@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kombifyio/homelab/pkg/db/backgroundlock"
 	"github.com/kombifyio/homelab/pkg/jobs"
 	"github.com/kombifyio/homelab/pkg/releasechannel"
 )
@@ -15,6 +16,7 @@ const (
 	defaultScanInterval = 60 * time.Second
 	defaultBatchSize    = 50
 	maximumPerPass      = 500
+	scannerLock         = "backupjobs/scanner"
 )
 
 // ScheduleStore is the slice of the projection the scanner needs. It is an
@@ -22,6 +24,8 @@ const (
 // scanner cannot reach any part of the store it has no business touching.
 type ScheduleStore interface {
 	ListDue(ctx context.Context, now time.Time, afterTenant, afterStack string, limit int) ([]Due, error)
+	// MarkRan claims and advances the slot that is due at now. It returns
+	// ErrSlotClaimed when another worker already owns that slot.
 	MarkRan(ctx context.Context, tenantID, stackID string, now time.Time) error
 }
 
@@ -46,6 +50,10 @@ type ScannerConfig struct {
 	// DispatchDue is the private worker's atomic scheduler/job transaction.
 	// Nil keeps the existing native combined-mode scheduling lifecycle.
 	DispatchDue func(context.Context, Due, time.Time) error
+	// Lock serializes passes across replicas that overlap in a rolling
+	// deploy. The slot claim (MarkRan, or the row lock of DispatchDue) still
+	// keeps a backup single without it; nil runs passes unlocked.
+	Lock *backgroundlock.Locker
 }
 
 // Scanner selects due stacks, resolves the entitlement and quota gate for each,
@@ -100,7 +108,18 @@ func (s *Scanner) Run(ctx context.Context) {
 }
 
 func (s *Scanner) pass(ctx context.Context) {
-	if err := s.ScanOnce(ctx); err != nil && !errors.Is(err, context.Canceled) && s.cfg.OnError != nil {
+	var err error
+	ran, lockErr := s.cfg.Lock.Run(ctx, scannerLock, func(passCtx context.Context) { err = s.ScanOnce(passCtx) })
+	if lockErr != nil {
+		err = lockErr
+	} else if !ran {
+		// Another replica scanned past this one's position; restart from the
+		// beginning. A slot it already claimed is skipped by the claim.
+		s.cursorMu.Lock()
+		s.afterTenant, s.afterStack = "", ""
+		s.cursorMu.Unlock()
+	}
+	if err != nil && !errors.Is(err, context.Canceled) && s.cfg.OnError != nil {
 		s.cfg.OnError(err)
 	}
 }
@@ -156,13 +175,24 @@ func (s *Scanner) ScanOnce(ctx context.Context) error {
 }
 
 func (s *Scanner) handle(ctx context.Context, item Due, now time.Time) error {
+	// The slot is claimed before the gate and advances whether the gate admits,
+	// denies or fails. A denied stack whose slot never moves is re-selected on
+	// every pass, which turns one over-quota tenant into an unbounded retry
+	// loop against the entitlement chain. The claim is conditional, so a slot
+	// another replica already claimed is neither gated nor enqueued again.
+	markErr := s.cfg.Store.MarkRan(ctx, item.TenantID, item.StackID, now)
+	if errors.Is(markErr, ErrSlotClaimed) {
+		return nil
+	}
 	subject := item.OwnerID
 	if subject == "" {
 		// Without a subject the entitlement chain has nobody to resolve, and
 		// AdmitBackup denies. Advancing the slot keeps the stack from being
 		// re-selected forever over a projection defect.
-		_ = s.cfg.Store.MarkRan(ctx, item.TenantID, item.StackID, now)
 		return fmt.Errorf("backupjobs: stack %s has no owner subject to gate against", item.StackID)
+	}
+	if markErr != nil {
+		return fmt.Errorf("backupjobs: advance schedule for %s: %w", item.StackID, markErr)
 	}
 
 	decision, err := jobs.AdmitBackup(ctx, s.cfg.Admission, jobs.BackupAdmissionRequest{
@@ -171,13 +201,6 @@ func (s *Scanner) handle(ctx context.Context, item Due, now time.Time) error {
 		UserID:         subject,
 		IncludeContent: item.IncludeContent,
 	})
-	// The slot advances whether the gate admitted or denied. A denied stack
-	// whose slot never moves is re-selected on every pass, which turns one
-	// over-quota tenant into an unbounded retry loop against the entitlement
-	// chain.
-	if markErr := s.cfg.Store.MarkRan(ctx, item.TenantID, item.StackID, now); markErr != nil {
-		return fmt.Errorf("backupjobs: advance schedule for %s: %w", item.StackID, markErr)
-	}
 	if err != nil {
 		return fmt.Errorf("backupjobs: admission for %s: %w", item.StackID, err)
 	}

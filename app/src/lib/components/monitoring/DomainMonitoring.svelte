@@ -1,6 +1,11 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
-  import { tr, formatDateTime, formatNumber } from "#lib/i18n.svelte.js";
+  import {
+    isMessageKey,
+    tr,
+    formatDateTime,
+    formatNumber,
+  } from "#lib/i18n.svelte.js";
   import {
     getDomainMonitoring,
     type DomainMonitoringReport,
@@ -71,7 +76,9 @@
       : tr("domains.unknown");
   }
 
-  function freshness(fact: ExpiryEvidence | DriftEvidence): string {
+  function freshness(
+    fact: ExpiryEvidence | DriftEvidence,
+  ): "fresh" | "stale" | "unknown" {
     if (unavailable || fact.freshness === "stale") return "stale";
     if (fact.state === "unknown") return "unknown";
     if (fact.freshness !== "fresh" || !fact.observed_at || !fact.fresh_until)
@@ -142,22 +149,20 @@
   function codeLabel(group: "kind" | "reason" | "field", code: string): string {
     const base = group === "kind" ? code.split(":")[0] : code;
     const key = `domains.${group}.${base}`;
-    const label = tr(key);
-    return label === key ? code : label;
+    return isMessageKey(key) ? tr(key) : code;
   }
 
   function expectationSource(fact: DriftEvidence): string {
     const key = `domains.source.${fact.expected_source || "unknown"}`;
-    const label = tr(key);
-    return label === key
-      ? fact.expected_source || tr("domains.unknown")
-      : label;
+    return isMessageKey(key)
+      ? tr(key)
+      : fact.expected_source || tr("domains.unknown");
   }
 
   function conditionFreshness(
     domain: DomainMonitoringRow,
     condition: DomainCondition,
-  ): string {
+  ): "fresh" | "stale" | "unknown" {
     if (
       condition.kind.startsWith("registration") ||
       condition.kind === "stale_observation:registration"

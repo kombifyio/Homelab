@@ -1,9 +1,11 @@
 <script lang="ts">
   import {
+    isMessageKey,
     tr,
     formatDateTime,
     getLocale,
     localeDirection,
+    type MessageKey,
   } from "#lib/i18n.svelte.js";
   import { formatRelative } from "#lib/dashboard/time.js";
   import {
@@ -155,8 +157,29 @@
     );
   }
   function labelOr(id: string, raw: string): string {
-    const known = tr(id);
-    return known !== id ? known : raw.replace(/[-_]/g, " ");
+    return isMessageKey(id) ? tr(id) : raw.replace(/[-_]/g, " ");
+  }
+
+  const POWER_STATE_KEYS: Record<string, MessageKey> = {
+    canceled: "guard.power.state.canceled",
+    line: "guard.power.state.line",
+    on_battery: "guard.power.state.on_battery",
+    shutdown: "guard.power.state.shutdown",
+    unknown: "guard.power.state.unknown",
+  };
+
+  const POWER_OUTCOME_KEYS: Record<string, MessageKey> = {
+    canceled: "guard.power.outcome.canceled",
+    failed: "guard.power.outcome.failed",
+    pending: "guard.power.outcome.pending",
+    running: "guard.power.outcome.running",
+    skipped: "guard.power.outcome.skipped",
+    succeeded: "guard.power.outcome.succeeded",
+  };
+
+  function powerOutcomeLabel(outcome: string): string {
+    const key = POWER_OUTCOME_KEYS[outcome];
+    return key ? tr(key) : outcome;
   }
   function exceptionText(finding: GuardFinding): string {
     const exception = finding.exception;
@@ -1374,7 +1397,7 @@
     <section class="mt-5" data-testid="guard-power">
       <h3 class="text-sm font-semibold">{tr("guard.power.title")}</h3>
       <p class="mt-1 text-sm text-muted-foreground">
-        {tr(`guard.power.state.${power.state}`)}
+        {tr(POWER_STATE_KEYS[power.state] ?? "guard.power.state.unknown")}
         {#if power.observed_at}
           · {tr("guard.power.observed", {
             when: formatTime(power.observed_at),
@@ -1404,7 +1427,7 @@
                 {labelOr(`guard.power.step.${step.name}`, step.name)}
               </span>
               <span class="text-muted-foreground">
-                {tr(`guard.power.outcome.${step.outcome}`)}
+                {powerOutcomeLabel(step.outcome)}
               </span>
               {#if step.detail}
                 <span class="text-xs text-muted-foreground">{step.detail}</span>

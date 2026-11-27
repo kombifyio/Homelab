@@ -41,6 +41,7 @@ import (
 	"github.com/kombifyio/homelab/pkg/config"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/db"
+	"github.com/kombifyio/homelab/pkg/db/backgroundlock"
 	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 	"github.com/kombifyio/homelab/pkg/demoguard"
 	"github.com/kombifyio/homelab/pkg/diskcustody"
@@ -96,6 +97,9 @@ type v2Boot struct {
 	cookieName            string
 	defaultTenant         string
 	saasMode              bool
+	// backgroundLock serializes the single-instance background loops across
+	// replicas that overlap during a rolling deploy. Nil runs them unlocked.
+	backgroundLock *backgroundlock.Locker
 }
 
 type grpcBoot struct {
@@ -350,6 +354,10 @@ func runHomelab(ctx context.Context) error {
 	// Edge-signed context: from here they run as system work. HTTP requests
 	// derive from their own base context and never inherit this route.
 	ctx = v2Boot.systemContext(ctx)
+	// The loops are system work, so their lock session uses the pool system
+	// transactions use: the hosted system login, or the single Local login.
+	// Both address the one pinned database every replica shares.
+	v2Boot.backgroundLock = backgroundlock.New(tenantcontext.Database(ctx, v2Boot.db.DB))
 	tenantErr := ensureDefaultControlPlaneTenant(ctx, startup.cfg, v2Boot)
 	if tenantErr != nil {
 		return fmt.Errorf("bootstrap control-plane tenant: %w", tenantErr)
@@ -575,9 +583,11 @@ func runHomelab(ctx context.Context) error {
 	handles := startRuntimeLifecycle(ctx, startup.cfg, orch, grpcState, monitorState, workflowEngine, rilSignalWorker, guardReach, providerState.runner, registrySweeper, jobReclaimer, backupScanner, backupRetention, serverMaintenance, driftScheduler, log, secondaryExecution)
 	handles.transferRelay = transferRelay
 	if config.RunsSharedWork() && v2Boot.db != nil && v2Boot.db.DB != nil {
-		handles.background.run(func(ctx context.Context) { actions.RunIssuedLeaseReaper(ctx, v2Boot.db.DB) })
 		handles.background.run(func(ctx context.Context) {
-			runDeletedStackBindingReconciliation(ctx, controlPlanePostgresStore(v2Boot), log)
+			actions.RunIssuedLeaseReaper(ctx, v2Boot.db.DB, v2Boot.backgroundLock)
+		})
+		handles.background.run(func(ctx context.Context) {
+			runDeletedStackBindingReconciliation(ctx, controlPlanePostgresStore(v2Boot), v2Boot.backgroundLock, log)
 		})
 	}
 	if serverOwnerFGAProjector != nil {

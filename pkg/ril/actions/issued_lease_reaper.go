@@ -4,23 +4,34 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 	"log/slog"
 	"time"
+
+	"github.com/kombifyio/homelab/pkg/db/backgroundlock"
+	"github.com/kombifyio/homelab/pkg/db/tenantcontext"
 )
+
+const issuedLeaseReaperLock = "ril/issued-lease-reaper"
 
 // RunIssuedLeaseReaper resumes both secret-free due indexes after restart.
 // Each deletion remains fenced by exact tenant, identity and database clock.
-func RunIssuedLeaseReaper(ctx context.Context, db *sql.DB) {
+// lock keeps one replica sweeping at a time during a rolling deploy; a nil
+// lock sweeps unlocked.
+func RunIssuedLeaseReaper(ctx context.Context, db *sql.DB, lock *backgroundlock.Locker) {
 	if db == nil {
 		return
 	}
 	pass := func() {
-		if err := reapIssuedLeases(ctx, db); err != nil && ctx.Err() == nil {
-			slog.Error("ril_issued_lease_reaper_failed", "error", err)
-		}
-		if err := reapQueuedProofs(ctx, db); err != nil && ctx.Err() == nil {
-			slog.Error("ril_queued_proof_reaper_failed", "error", err)
+		_, lockErr := lock.Run(ctx, issuedLeaseReaperLock, func(passCtx context.Context) {
+			if err := reapIssuedLeases(passCtx, db); err != nil && passCtx.Err() == nil {
+				slog.Error("ril_issued_lease_reaper_failed", "error", err)
+			}
+			if err := reapQueuedProofs(passCtx, db); err != nil && passCtx.Err() == nil {
+				slog.Error("ril_queued_proof_reaper_failed", "error", err)
+			}
+		})
+		if lockErr != nil && ctx.Err() == nil {
+			slog.Error("ril_issued_lease_reaper_lock_failed", "error", lockErr)
 		}
 	}
 	pass()

@@ -1,8 +1,9 @@
+import type { MessageKey, MessageParams } from "#lib/i18n.js";
 import type { GuardFact, GuardMessage } from "./facts";
 
 export type Translate = (
-  id: string,
-  params?: Record<string, string | number>,
+  id: MessageKey,
+  params?: MessageParams,
 ) => string;
 
 /**
@@ -20,10 +21,10 @@ export function renderGuardMessage(
 }
 
 /** The seven facts in display order with their resource for icon lookup. */
-export function factTitleId(key: GuardFact["key"]): string {
+export function factTitleId(key: GuardFact["key"]): MessageKey {
   return `guard.fact.${key}.title`;
 }
 
-export function factStateId(state: GuardFact["state"]): string {
+export function factStateId(state: GuardFact["state"]): MessageKey {
   return `guard.state.${state}`;
 }

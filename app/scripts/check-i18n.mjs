@@ -75,7 +75,7 @@ for (const code of locales) {
 // key renders as the raw key in the product ("common.retry"), which no locale
 // parity check can see because the key is absent from every locale alike.
 const MESSAGE_KEY = /^[A-Za-z][\w-]*(\.[\w-]+)+$/;
-const HELPER_CALL = /(?<![\w$.])(tr|t|trn|trParts)\(\s*/g;
+const HELPER_CALL = /(?<![\w$])(tr|trn|trParts)\(\s*|(?<![\w$.])(t)\(\s*/g;
 const sourceRoot = path.resolve(import.meta.dirname, "../src");
 
 function* sourceFiles(dir) {
@@ -143,11 +143,12 @@ for (const file of sourceFiles(sourceRoot)) {
   for (const call of text.matchAll(HELPER_CALL)) {
     const line = text.slice(0, call.index).split("\n").length;
     const literals = firstArgumentLiterals(text, call.index + call[0].length);
+    const helper = call[1] ?? call[2];
     for (const key of literals) {
-      const candidates = call[1] === "trn" ? [`${key}.other`] : [key];
+      const candidates = helper === "trn" ? [`${key}.other`] : [key];
       if (candidates.some((candidate) => candidate in en)) continue;
       const where = `${path.relative(sourceRoot, file)}:${line}`;
-      missingKeys.set(`${key}@${where}`, `${call[1]}("${key}") at ${where}`);
+      missingKeys.set(`${key}@${where}`, `${helper}("${key}") at ${where}`);
     }
   }
 }

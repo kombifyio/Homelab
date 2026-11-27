@@ -18,6 +18,7 @@
  */
 
 import type { GuardEvidence } from "#lib/api/guard.js";
+import type { MessageKey } from "#lib/i18n.js";
 
 export type GuardFactKey =
   | "bound"
@@ -42,7 +43,7 @@ export const GUARD_FACT_KEYS: readonly GuardFactKey[] = [
 export type GuardFactState = "ok" | "attention" | "unknown";
 
 export interface GuardMessage {
-  id: string;
+  id: MessageKey;
   params?: Record<string, string | number>;
 }
 
@@ -149,7 +150,7 @@ export function parsePolicyAgeMs(
 }
 
 function msg(
-  id: string,
+  id: MessageKey,
   params?: Record<string, string | number>,
 ): GuardMessage {
   return params ? { id, params } : { id };
@@ -739,23 +740,25 @@ function recoverableFact(evidence: GuardEvidence, now: number): GuardFact {
   });
 }
 
-const REACH_REASON_PREFIX = "guard.reach.reason.";
+const GUARD_REACH_REASON_KEYS: Record<string, MessageKey> = {
+  guard_key_not_bound: "guard.reach.reason.guard_key_not_bound",
+  connect_tenant_unmappable: "guard.reach.reason.connect_tenant_unmappable",
+  host_proof_pending: "guard.reach.reason.host_proof_pending",
+  host_proof_rejected: "guard.reach.reason.host_proof_rejected",
+  kombify_me_unavailable: "guard.reach.reason.kombify_me_unavailable",
+  kombify_me_denied: "guard.reach.reason.kombify_me_denied",
+  connect_unavailable: "guard.reach.reason.connect_unavailable",
+  connect_not_enabled: "guard.reach.reason.connect_not_enabled",
+  connect_denied: "guard.reach.reason.connect_denied",
+  reach_layout_unsupported: "guard.reach.reason.reach_layout_unsupported",
+  revocation_incomplete: "guard.reach.reason.revocation_incomplete",
+  identity_unresolved: "guard.reach.reason.identity_unresolved",
+};
 
 /** Reason codes the control plane records on a reach target, each with guidance. */
-export const GUARD_REACH_REASON_CODES: ReadonlySet<string> = new Set([
-  "guard_key_not_bound",
-  "connect_tenant_unmappable",
-  "host_proof_pending",
-  "host_proof_rejected",
-  "kombify_me_unavailable",
-  "kombify_me_denied",
-  "connect_unavailable",
-  "connect_not_enabled",
-  "connect_denied",
-  "reach_layout_unsupported",
-  "revocation_incomplete",
-  "identity_unresolved",
-]);
+export const GUARD_REACH_REASON_CODES: ReadonlySet<string> = new Set(
+  Object.keys(GUARD_REACH_REASON_KEYS),
+);
 
 function reachReasonMessage(code: string | undefined): GuardMessage[] {
   return code ? [msg("guard.detail.reasonCode", { code })] : [];
@@ -792,10 +795,8 @@ function reachableFact(evidence: GuardEvidence, now: number): GuardFact {
   ];
   const code = failedTarget?.reason_code ?? codes.find(Boolean);
   const reasonDetails = reachReasonMessage(code);
-  const reasonNext =
-    code && GUARD_REACH_REASON_CODES.has(code)
-      ? msg(`${REACH_REASON_PREFIX}${code}`)
-      : undefined;
+  const reasonNextKey = code ? GUARD_REACH_REASON_KEYS[code] : undefined;
+  const reasonNext = reasonNextKey ? msg(reasonNextKey) : undefined;
 
   switch (reach.state) {
     case "ready": {

@@ -8,8 +8,15 @@
 
 import { m } from "#lib/paraglide/messages.js";
 import { defineCustomClientStrategy } from "#lib/paraglide/runtime.js";
+import type enMessages from "../../messages/en.json";
 
 export type Locale = "en" | "de" | "es" | "zh-Hans" | "hi" | "ar";
+export type MessageKey = Exclude<keyof typeof enMessages, "$schema">;
+export type PluralMessageKey = MessageKey extends infer K
+  ? K extends `${infer Base}.other`
+    ? Base
+    : never
+  : never;
 
 export const defaultLocale: Locale = "en";
 
@@ -143,8 +150,15 @@ function buildMessageInputs(
   });
 }
 
+export function isMessageKey(key: string): key is MessageKey {
+  return (
+    Object.hasOwn(messageCatalog, key) &&
+    typeof messageCatalog[key] === "function"
+  );
+}
+
 export function t(
-  key: string,
+  key: MessageKey,
   locale?: Locale,
   params?: MessageParams,
 ): string {

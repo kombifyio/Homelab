@@ -49,25 +49,26 @@ func GuideWizardSelection(request core.WizardRecommendationRequest, input Wizard
 	}
 	workers := onlineWorkers(input.Inventory)
 	if len(workers) == 0 && request.OfferingEntitlementChecked && request.DeploymentLane == wizardRecommendationDeploymentSaaS && providerID != "" {
-		if offeringID == "" {
+		if offeringID == "" || !offeringAllowedInRequest(request, offeringID) {
 			offeringID = string(monthlyruntime.DefaultOfferingID())
 		}
-		if !offeringAllowedInRequest(request, offeringID) {
-			offeringID = string(monthlyruntime.DefaultOfferingID())
-		}
-		if pkg, err := resolveManagedPackageForRequest(catalog, catalogErr, request, providerID, offeringID); err == nil {
-			workers = []core.Worker{{
-				ID:            "planned:" + providerID + ":" + offeringID,
-				Status:        "online",
-				UsageObserved: true,
-				Capabilities: core.WorkerCapabilities{
-					CPU:                         pkg.VCPUs,
-					RAM:                         pkg.MemoryMB,
-					Disk:                        pkg.DiskGB,
-					Arch:                        pkg.Architecture,
-					AMD64MicroarchitectureLevel: pkg.AMD64Level,
-				},
-			}}
+		// The default offering is subject to the same entitlement as any other
+		// offering, so a default the request excludes is never selected silently.
+		if offeringAllowedInRequest(request, offeringID) {
+			if pkg, err := resolveManagedPackageForRequest(catalog, catalogErr, request, providerID, offeringID); err == nil {
+				workers = []core.Worker{{
+					ID:            "planned:" + providerID + ":" + offeringID,
+					Status:        "online",
+					UsageObserved: true,
+					Capabilities: core.WorkerCapabilities{
+						CPU:                         pkg.VCPUs,
+						RAM:                         pkg.MemoryMB,
+						Disk:                        pkg.DiskGB,
+						Arch:                        pkg.Architecture,
+						AMD64MicroarchitectureLevel: pkg.AMD64Level,
+					},
+				}}
+			}
 		}
 	}
 	experience := -1

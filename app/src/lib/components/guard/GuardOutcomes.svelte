@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tr, formatDateTime } from "#lib/i18n.svelte.js";
+  import { tr, formatDateTime, type MessageKey } from "#lib/i18n.svelte.js";
   import { untrack } from "svelte";
   import { TriangleAlert } from "@lucide/svelte";
   import Button from "#lib/components/ui/Button.svelte";
@@ -128,6 +128,17 @@
     }
   }
 
+  const DISPOSITION_KEYS: Record<string, MessageKey> = {
+    verified_applied: "guard.outcomes.disposition.verified_applied",
+    verified_not_applied: "guard.outcomes.disposition.verified_not_applied",
+    accept_unknown: "guard.outcomes.disposition.accept_unknown",
+  };
+
+  function dispositionLabel(value: string): string {
+    const key = DISPOSITION_KEYS[value];
+    return key ? tr(key) : value;
+  }
+
   function since(iso: string): string {
     return formatDateTime(iso, { dateStyle: "medium", timeStyle: "short" });
   }
@@ -155,7 +166,7 @@
         {tr("guard.outcomes.receipt", {
           command: receipt.command_id,
           revision: receipt.revision,
-          disposition: tr(`guard.outcomes.disposition.${receipt.disposition}`),
+          disposition: dispositionLabel(receipt.disposition),
           actor: receipt.actor,
         })}
         {receipt.fence_released ? tr("guard.outcomes.fenceReleased") : ""}

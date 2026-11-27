@@ -1,4 +1,4 @@
-import { tr } from "#lib/i18n.svelte.js";
+import { tr, type MessageKey } from "#lib/i18n.svelte.js";
 /** Homelab wizard questions and intent preferences. StackKits authoring and service composition belong to the pinned release CLI. */
 
 /**
@@ -11,7 +11,7 @@ export interface WizardStepDefinition {
   id: number;
   key: string;
   label: string;
-  labelKey?: string;
+  labelKey?: MessageKey;
 }
 
 export const CANONICAL_USE_CASE_GOALS = [
@@ -75,10 +75,10 @@ export interface BundleQuestionDefinition<TKey extends string = string> {
   key: string;
   configKey: TKey;
   surface?: GoalSurface;
-  titleKey: string;
-  descriptionKey: string;
-  helpKey?: string;
-  tipKey?: string;
+  titleKey: MessageKey;
+  descriptionKey: MessageKey;
+  helpKey?: MessageKey;
+  tipKey?: MessageKey;
   testId: string;
 }
 
@@ -86,11 +86,11 @@ export interface BundleChoiceDefinition<TValue extends string = string> {
   value: TValue;
   label?: string;
   description?: string;
-  titleKey: string;
-  descriptionKey: string;
-  helpKey?: string;
-  tipKey?: string;
-  badgeKey?: string;
+  titleKey: MessageKey;
+  descriptionKey: MessageKey;
+  helpKey?: MessageKey;
+  tipKey?: MessageKey;
+  badgeKey?: MessageKey;
   testId: string;
 }
 

@@ -3,6 +3,7 @@
  * names what it cannot change and which run it ends in. A frame mounts a
  * process; it never decides which steps exist.
  */
+import type { MessageKey } from "#lib/i18n.js";
 import { CREATION_STEP_KEYS, type CreationStepKey } from "./steps";
 
 export type CreationRunKind = "found" | "join" | "extend" | "none";
@@ -22,7 +23,7 @@ export interface CreationProcess {
     | "add-use-case"
     | "homelab-settings";
   /** Steps stay visible but cannot be opened; the value is the reason's message key. */
-  inactive: Partial<Record<CreationStepKey, string>>;
+  inactive: Partial<Record<CreationStepKey, MessageKey>>;
   run: CreationRunKind;
   operation: CreationOperation | null;
   /** The run needs at least one selected use case. */

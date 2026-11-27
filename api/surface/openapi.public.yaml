@@ -2760,6 +2760,56 @@ paths:
                     $ref: "#/components/schemas/ResponseMeta"
         "404":
           $ref: "#/components/responses/NotFound"
+  /api/v1/services/{serviceId}/enrichment:
+    get:
+      operationId: getServiceEnrichment
+      tags: [Services]
+      summary: Read the catalog proposal (display name, vendor, links, logo) for one service
+      description: >-
+        Resolves the application metadata kombify proposes for one service of the caller's own stacks: the recognized catalog entry when the image, container name or labels match one, otherwise a fallback proposal that a connected-mode web lookup may complete (homepage and documentation links). The lookup is read-only and cached; it never changes the service. A service of another owner reads as not found.
+      parameters:
+        - $ref: "#/components/parameters/serviceId"
+      responses:
+        "200":
+          description: Catalog proposal for this service
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: {$ref: "#/components/schemas/CatalogEnrichedMetadata"}
+                  meta:
+                    $ref: "#/components/schemas/ResponseMeta"
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "500": {$ref: "#/components/responses/InternalServerError"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
+  /api/v1/catalog/enrich:
+    post:
+      operationId: enrichCatalogEntry
+      tags: [Services]
+      summary: Read the catalog proposal for an application that is not yet a service
+      description: >-
+        Same proposal as `getServiceEnrichment`, for a free-text query, an image reference or a container name before any service exists (for example while a container is reviewed for Stack it). At least one of the three fields is required. It changes nothing and needs no idempotency key.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/CatalogEnrichRequest"}
+      responses:
+        "200":
+          description: Catalog proposal for the query
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: {$ref: "#/components/schemas/CatalogEnrichedMetadata"}
+                  meta:
+                    $ref: "#/components/schemas/ResponseMeta"
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
   /api/v1/services/{serviceId}/connector:
     get:
       operationId: readApplicationConnector
@@ -6542,6 +6592,10 @@ paths:
                             deep_link: {type: object}
                       selection: {type: object, description: Preselection guidance when selection_intent is set.}
                       smart_home_recommendation: {type: object}
+                      detected_existing_apps:
+                        type: array
+                        description: Applications already observed on the selected existing server, classified on the 3-tier recognition spectrum for the takeover step. Omitted when none are found or no existing server is selected.
+                        items: {$ref: "#/components/schemas/DetectedExistingApp"}
                       server_fit:
                         type: object
                         description: Whole-stack fit evaluation for the selected managed offering or owned host.
@@ -6988,6 +7042,10 @@ paths:
                       intent_adjustments: {type: array, items: {type: object}}
                       effective_intent: {type: object}
                       smart_home_recommendation: {type: object}
+                      detected_existing_apps:
+                        type: array
+                        description: Applications already observed on the intent's existing server, classified on the 3-tier recognition spectrum for the takeover step. Omitted when none are found or no existing server is selected.
+                        items: {$ref: "#/components/schemas/DetectedExistingApp"}
                       release_version: {type: string}
                       validate_error: {type: string}
                   meta: {$ref: "#/components/schemas/ResponseMeta"}
@@ -11962,14 +12020,13 @@ components:
         move:
           type: object
           description: >-
-            Present only when this one application can be moved now with POST /api/v1/stacks/{kit_deployment_id}/relocations (engine native, workloads [workload_ref]); absent otherwise.
+            Present when the Placement Board has move eligibility facts for this one application: `destinations` are the servers it can be moved to now with POST /api/v1/stacks/{kit_deployment_id}/relocations (engine native, workloads [workload_ref]), `ineligible_destinations` are the other servers with the reason a drop there is blocked, and `warnings` are non-blocking pre-flight notices for the admitted destinations. `destinations` is empty when every other server is blocked. Absent when the application cannot move at all.
           required: [workload_ref, source_agent_id, destinations]
           properties:
             workload_ref: {type: string}
             source_agent_id: {type: string}
             destinations:
               type: array
-              minItems: 1
               items:
                 type: object
                 required: [kit_deployment_id, server_id, agent_id]
@@ -11977,6 +12034,33 @@ components:
                   kit_deployment_id: {type: string}
                   server_id: {type: string}
                   agent_id: {type: string}
+            ineligible_destinations:
+              type: array
+              items:
+                type: object
+                required: [server_id, code, reason]
+                properties:
+                  server_id: {type: string}
+                  code:
+                    type: string
+                    enum:
+                      - unsupported_adapter
+                      - multi_app_use_case
+                      - local_hardware_bound
+                      - insufficient_capacity
+                      - same_stack_deployment
+                      - destination_not_relocatable
+                      - server_not_ready
+                  reason: {type: string, description: Human-readable explanation of the blocked drop.}
+            warnings:
+              type: array
+              items:
+                type: object
+                required: [code, message]
+                properties:
+                  code: {type: string, enum: [direct_transfer_network_required, encrypted_relay_transport]}
+                  message: {type: string}
+                  server_id: {type: string, description: The admitted destination the notice is about.}
         allowed_actions:
           $ref: "#/components/schemas/ServiceRuntime/properties/allowed_actions"
         inventory_revision: {type: integer, format: int64}
@@ -12102,6 +12186,24 @@ components:
             icon_url: {type: string, format: uri, description: Kombify-hosted PNG logo or generic service icon.}
             brand_domain: {type: string}
             web_port: {type: integer}
+            homepage_url: {type: string, format: uri}
+            guide_url: {type: string, format: uri}
+            spectrum_tier:
+              type: string
+              enum: [first_class, known_catalog, custom_app]
+              description: >-
+                Recognition spectrum of the application: a StackKits first-class use case, a known catalog application or a custom application.
+            use_case_slug: {type: string, description: StackKits first-class use case slug when spectrum_tier is first_class.}
+            first_class_package: {type: string, description: Canonical StackKits package id when spectrum_tier is first_class.}
+            adoption_mode:
+              type: string
+              enum: [adopt_in_place, stack_it, connect_existing]
+              description: Recommended adoption path for an observed application.
+            vendor_name: {type: string, description: Human-readable upstream vendor or project name.}
+            docs_url: {type: string, format: uri, description: Upstream documentation or guide URL.}
+            logo: {$ref: "#/components/schemas/CatalogLogo"}
+            logo_removed: {type: boolean, description: kombify removed the logo on request; clients must not draw it from another source.}
+            evidence: {type: string, enum: [label, image, name, http_fingerprint, released_catalog], description: The recognition layer that named the application.}
         version:
           type: object
           description: >-
@@ -12211,6 +12313,41 @@ components:
         mode: {type: string, enum: [adopt_in_place, stack_it, restore_original, release_original]}
         plan_digest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
         owner_approved: {type: boolean, default: false}
+        own_application_name:
+          type: string
+          minLength: 1
+          maxLength: 40
+          pattern: '^[a-z][a-z0-9]*(-[a-z0-9]+)*$'
+          description: >-
+            Stack it plan only (mode stack_it): the own application name the container becomes. Lowercase letters, digits and single hyphens, starting with a letter, and not starting with kombify or stackkit. Omitted keeps the name derived from the container.
+        http_port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: "Stack it plan only: the container port the web UI listens on. Omitted keeps the detected port."
+        no_outbound:
+          type: boolean
+          default: false
+          description: "Stack it plan only: block outbound network access of the rebuilt application."
+        memory_mib:
+          type: integer
+          minimum: 64
+          maximum: 8192
+          description: "Stack it plan only: memory limit of the rebuilt application in MiB. Omitted keeps the proposed limit."
+        cpus:
+          type: number
+          minimum: 0.1
+          maximum: 4
+          description: "Stack it plan only: CPU limit of the rebuilt application in cores. Omitted keeps the proposed limit."
+        adopt_compose_project:
+          type: boolean
+          default: false
+          description: "Stack it plan only: adopt the whole Compose project the container belongs to instead of the single container."
+        http_service:
+          type: string
+          maxLength: 63
+          pattern: '^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$'
+          description: "Stack it plan only, with adopt_compose_project true: the Compose service that serves the web UI."
     OwnApplicationOperationRequest:
       type: object
       additionalProperties: false
@@ -12281,11 +12418,87 @@ components:
           description: >-
             Secret-free projection of stackkit.own-application-adoption/v1: rows kept, changed or refused with their reason, plan digest, downtime, data size against free disk, published ports and secret names only.
           additionalProperties: true
+        catalog_proposal:
+          description: >-
+            Mode stack_it only: the catalog proposal (display name, vendor, links, logo) kombify derived for the source container, so the review step can show it next to the plan.
+          $ref: "#/components/schemas/CatalogEnrichedMetadata"
         source_binding:
           type: object
           description: Tenant and source-bound retained dispatch authority.
           additionalProperties: true
         error: {type: string}
+    CatalogLogo:
+      type: object
+      required: [url, source]
+      properties:
+        url: {type: string}
+        light_url: {type: string}
+        dark_url: {type: string}
+        source: {type: string}
+    DetectedExistingApp:
+      type: object
+      required: [service_id, app_id, display_name, spectrum_tier, adoption_mode]
+      description: One application observed on an existing server and where it sits on the recognition spectrum.
+      properties:
+        service_id: {type: string}
+        app_id: {type: string}
+        display_name: {type: string}
+        spectrum_tier:
+          type: string
+          enum: [first_class, known_catalog, custom_app]
+        use_case_slug: {type: string, description: StackKits first-class use case slug when spectrum_tier is first_class.}
+        first_class_package: {type: string, description: Canonical StackKits package id when spectrum_tier is first_class.}
+        adoption_mode:
+          type: string
+          enum: [adopt_in_place, stack_it, connect_existing]
+          description: Recommended adoption path.
+        container_id: {type: string}
+        compose_project: {type: string}
+        icon_url: {type: string}
+        logo: {$ref: "#/components/schemas/CatalogLogo"}
+        vendor_name: {type: string}
+        docs_url: {type: string}
+        homepage_url: {type: string}
+        ports: {type: array, items: {type: integer}}
+    CatalogEnrichRequest:
+      type: object
+      additionalProperties: false
+      description: At least one of query, image or container_name is required and must contain a non-whitespace character.
+      anyOf:
+        - required: [query]
+          properties:
+            query: {pattern: "\\S"}
+        - required: [image]
+          properties:
+            image: {pattern: "\\S"}
+        - required: [container_name]
+          properties:
+            container_name: {pattern: "\\S"}
+      properties:
+        query: {type: string, maxLength: 200, description: Free-text application name.}
+        image: {type: string, maxLength: 300, description: Container image reference.}
+        container_name: {type: string, maxLength: 200}
+    CatalogEnrichedMetadata:
+      type: object
+      required: [source]
+      description: Application metadata kombify proposes for a service or query; every fact except source is omitted when unknown.
+      properties:
+        catalog_id: {type: string}
+        display_name: {type: string}
+        category: {type: string}
+        brand_domain: {type: string}
+        vendor_name: {type: string}
+        homepage_url: {type: string}
+        docs_url: {type: string}
+        source_repo: {type: string}
+        icon_url: {type: string}
+        logo: {$ref: "#/components/schemas/CatalogLogo"}
+        logo_removed: {type: boolean, description: kombify removed the logo on request; clients must not draw it from another source.}
+        web_port: {type: integer}
+        source:
+          type: string
+          description: >-
+            Where the proposal comes from: `catalog` for a recognized entry, `fallback` for a derived guess, or the name of the connected-mode lookup provider that completed it (for example `tinyfish`, `exa` or `parallel`).
     ServiceActionRequest:
       description: >-
         Either an agent-executed runtime action bound to a fresh inventory revision, or an owner lock action executed entirely in the control plane. The lock is not bound to an inventory observation: an owner must be able to freeze a service whose agent is unreachable.

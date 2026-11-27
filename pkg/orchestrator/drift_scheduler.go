@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/db/backgroundlock"
 	"github.com/kombifyio/homelab/pkg/guardcompat"
 	"github.com/kombifyio/homelab/pkg/jobs"
 	"github.com/kombifyio/homelab/pkg/releasechannel"
@@ -29,6 +30,7 @@ const (
 	driftScheduleRunningStatus   = persistentStateRunning
 	driftScheduleCheckingStatus  = "checking"
 	driftScheduleAdvancedModeKey = jobs.StackKitModeField
+	driftScheduleLock            = "orchestrator/drift-scheduler"
 )
 
 // BoundedDriftScheduleInterval clamps a configured interval into the
@@ -50,6 +52,10 @@ type DriftSchedulerConfig struct {
 	Interval  time.Duration
 	Now       func() time.Time
 	OnError   func(error)
+	// Lock serializes passes across replicas, so two replicas overlapping in
+	// a rolling deploy never dispatch the same due stack twice. Nil keeps the
+	// in-process mutex only.
+	Lock *backgroundlock.Locker
 }
 
 // DriftScheduler enumerates the tenants of the drift schedule directory and
@@ -97,7 +103,13 @@ func (s *DriftScheduler) Run(ctx context.Context) {
 }
 
 func (s *DriftScheduler) pass(ctx context.Context) {
-	if _, err := s.ScheduleOnce(ctx); err != nil && !errors.Is(err, context.Canceled) {
+	var err error
+	if _, lockErr := s.cfg.Lock.Run(ctx, driftScheduleLock, func(passCtx context.Context) {
+		_, err = s.ScheduleOnce(passCtx)
+	}); lockErr != nil {
+		err = lockErr
+	}
+	if err != nil && !errors.Is(err, context.Canceled) {
 		s.report(err)
 	}
 }

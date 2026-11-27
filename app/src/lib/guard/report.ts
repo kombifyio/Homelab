@@ -10,6 +10,7 @@
  */
 
 import type { GuardEvidence, GuardFinding } from "#lib/api/guard.js";
+import type { MessageKey, MessageParams } from "#lib/i18n.js";
 import {
   protectionNotices,
   type GuardAssessment,
@@ -251,7 +252,7 @@ export function renderGuardReportHtml(
   translate: Translate,
   dir: "ltr" | "rtl",
 ): string {
-  const t = (id: string, params?: Record<string, string | number>) =>
+  const t = (id: MessageKey, params?: MessageParams) =>
     escapeHtml(translate(id, params));
   const factRows = report.facts
     .map((fact) => {

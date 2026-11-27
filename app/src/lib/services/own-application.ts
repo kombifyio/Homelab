@@ -23,7 +23,7 @@ import {
   noticeInApp,
   promptInApp,
 } from "../dialogs/in-app-dialog";
-import { tr } from "../i18n.svelte";
+import { isMessageKey, tr, type MessageKey } from "../i18n.svelte";
 import { byteSize } from "./stack-it-plan";
 
 /** Own-application actions a card or the detail page offers. */
@@ -40,25 +40,25 @@ export function ownApplicationGrants(
   return ownApplicationActions(service).includes(action);
 }
 
-const KNOWN_REASONS = new Set([
-  "tag_not_versioned",
-  "variant_change",
-  "not_newer",
-  "resolve_failed",
-  "tag_moved",
-  "checkpoint_failed",
-  "checkpoint_space_insufficient",
-  "checkpoint_unrestored",
-  "checkpoint_in_flight",
-  "project_unsupported",
-  "operation_pending",
-  "application_not_found",
-  "verify_failed",
-  "action_refused",
-  "service_locked",
-  "own_application_review_mismatch",
-  "node_outcome_unknown",
-]);
+const KNOWN_REASON_KEYS: Record<string, MessageKey> = {
+  tag_not_versioned: "ui.ownApp.reason.tag_not_versioned",
+  variant_change: "ui.ownApp.reason.variant_change",
+  not_newer: "ui.ownApp.reason.not_newer",
+  resolve_failed: "ui.ownApp.reason.resolve_failed",
+  tag_moved: "ui.ownApp.reason.tag_moved",
+  checkpoint_failed: "ui.ownApp.reason.checkpoint_failed",
+  checkpoint_space_insufficient: "ui.ownApp.reason.checkpoint_space_insufficient",
+  checkpoint_unrestored: "ui.ownApp.reason.checkpoint_unrestored",
+  checkpoint_in_flight: "ui.ownApp.reason.checkpoint_in_flight",
+  project_unsupported: "ui.ownApp.reason.project_unsupported",
+  operation_pending: "ui.ownApp.reason.operation_pending",
+  application_not_found: "ui.ownApp.reason.application_not_found",
+  verify_failed: "ui.ownApp.reason.verify_failed",
+  action_refused: "ui.ownApp.reason.action_refused",
+  service_locked: "ui.ownApp.reason.service_locked",
+  own_application_review_mismatch: "ui.ownApp.reason.own_application_review_mismatch",
+  node_outcome_unknown: "ui.ownApp.reason.node_outcome_unknown",
+};
 
 /** One localized line for a refused or failed step, by reason code. */
 export function ownApplicationReason(code?: string): string {
@@ -71,12 +71,9 @@ export function ownApplicationReason(code?: string): string {
   }
   if (code.startsWith("own_application_") && code.endsWith("_unavailable")) {
     const key = `ui.ownApp.unavailable.${code}`;
-    const text = tr(key);
-    if (text !== key) return text;
+    if (isMessageKey(key)) return tr(key);
   }
-  return KNOWN_REASONS.has(code)
-    ? tr(`ui.ownApp.reason.${code}`)
-    : tr("ui.ownApp.reason.other");
+  return tr(KNOWN_REASON_KEYS[code] ?? "ui.ownApp.reason.other");
 }
 
 function requestError(error: unknown): string {
@@ -177,8 +174,8 @@ async function reviewAndApprove(
 
 function actionTitle(action: string, name: string): string {
   const key = `ui.services.action.${action}`;
-  const label = tr(key);
-  return tr("ui.ownApp.confirm.title", { action: label === key ? action : label, name });
+  const label = isMessageKey(key) ? tr(key) : action;
+  return tr("ui.ownApp.confirm.title", { action: label, name });
 }
 
 /**

@@ -9,7 +9,7 @@ import GoalsStep from "#lib/components/wizard/steps/GoalsStep.svelte";
 import LoginStep from "#lib/components/wizard/steps/LoginStep.svelte";
 import ServerStep from "#lib/components/wizard/steps/ServerStep.svelte";
 import UsersStep from "#lib/components/wizard/steps/UsersStep.svelte";
-import { tr, trn } from "#lib/i18n.svelte.js";
+import { tr, trn, type MessageKey } from "#lib/i18n.svelte.js";
 import { selectedCanonicalUseCasesFromGoals } from "#lib/wizard/index.js";
 import type { StackConfig } from "#lib/wizard/types.js";
 import type { CreationStage } from "#lib/wizard/creationGoals.js";
@@ -32,7 +32,7 @@ export interface CreationStepModule {
   props(frame: CreationFrame): Record<string, unknown>;
 }
 
-const SERVER_SUMMARY: Record<string, string> = {
+const SERVER_SUMMARY: Record<string, MessageKey> = {
   "install-command": "wizard.summary.server.installCommand",
   "connect-remote": "wizard.summary.server.connectRemote",
   "kombify-cloud": "wizard.summary.server.managed",

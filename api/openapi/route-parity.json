@@ -1,0 +1,183 @@
+{
+  "$comment": [
+    "Go route and wire-struct parity with api/openapi/homelab-v1.yaml, checked by scripts/check-openapi-route-parity.mjs (mise run api:surface:check, affected gate openapi-route-parity).",
+    "undocumentedRoutes is the frozen baseline of literal /api/... registrations in internal/routes that homelab-v1.yaml does not describe yet. It only shrinks: a new route must be documented in the OpenAPI contract (then mise run api:surface), an entry that becomes documented or unregistered must be removed here. Never add a new route to this list to get past the check.",
+    "structs pins the JSON fields of a Go wire struct to the OpenAPI schema it is published as, in both directions. undocumentedFields lists the fields of that struct the schema does not describe yet; it only shrinks the same way."
+  ],
+  "spec": "api/openapi/homelab-v1.yaml",
+  "routeSources": [
+    "internal/routes"
+  ],
+  "structs": [
+    {
+      "go": "internal/routes/service_adoption.go",
+      "struct": "adoptionRequest",
+      "schemaPath": [
+        "ApplicationAdoptionRequest"
+      ]
+    },
+    {
+      "go": "internal/routes/service_enrichment.go",
+      "struct": "catalogEnrichRequest",
+      "schemaPath": [
+        "CatalogEnrichRequest"
+      ]
+    },
+    {
+      "go": "pkg/appcatalog/enrichment.go",
+      "struct": "EnrichedMetadata",
+      "schemaPath": [
+        "CatalogEnrichedMetadata"
+      ]
+    },
+    {
+      "go": "pkg/appcatalog/icons.go",
+      "struct": "Logo",
+      "schemaPath": [
+        "CatalogLogo"
+      ]
+    },
+    {
+      "go": "pkg/appcatalog/catalog.go",
+      "struct": "Entry",
+      "schemaPath": [
+        "ServiceRuntime",
+        "properties",
+        "catalog"
+      ],
+      "undocumentedFields": [
+        "clients",
+        "vendor"
+      ]
+    },
+    {
+      "go": "internal/routes/wizard_detected_apps.go",
+      "struct": "DetectedExistingApp",
+      "schemaPath": [
+        "DetectedExistingApp"
+      ]
+    },
+    {
+      "go": "internal/routes/registry_moves.go",
+      "struct": "registryServiceMove",
+      "schemaPath": [
+        "RegistryService",
+        "properties",
+        "move"
+      ]
+    },
+    {
+      "go": "internal/routes/registry_moves.go",
+      "struct": "registryMoveDestination",
+      "schemaPath": [
+        "RegistryService",
+        "properties",
+        "move",
+        "properties",
+        "destinations",
+        "items"
+      ]
+    },
+    {
+      "go": "internal/routes/registry_moves.go",
+      "struct": "registryMoveIneligibleDestination",
+      "schemaPath": [
+        "RegistryService",
+        "properties",
+        "move",
+        "properties",
+        "ineligible_destinations",
+        "items"
+      ]
+    },
+    {
+      "go": "internal/routes/registry_moves.go",
+      "struct": "registryMoveWarning",
+      "schemaPath": [
+        "RegistryService",
+        "properties",
+        "move",
+        "properties",
+        "warnings",
+        "items"
+      ]
+    }
+  ],
+  "undocumentedRoutes": [
+    "GET /api/internal/stacks/{id}/ingress",
+    "GET /api/v1/activity",
+    "GET /api/v1/auth/cloud-link/callback",
+    "GET /api/v1/auth/cloud-link/status",
+    "GET /api/v1/client/lan-bridge",
+    "GET /api/v1/discovery/capabilities",
+    "GET /api/v1/home-assistant/migrations/{id}",
+    "GET /api/v1/home-assistant/owners",
+    "GET /api/v1/internal/onboarding/facts/{authority}",
+    "GET /api/v1/internal/runtime/backups",
+    "GET /api/v1/internal/runtime/events",
+    "GET /api/v1/internal/runtime/history",
+    "GET /api/v1/internal/runtime/ports",
+    "GET /api/v1/internal/runtime/summary",
+    "GET /api/v1/internal/runtime/updates",
+    "GET /api/v1/internal/usage/budgets",
+    "GET /api/v1/internal/vm-leases/{id}",
+    "GET /api/v1/mcp",
+    "GET /api/v1/monitor/cockpit",
+    "GET /api/v1/notifications/feed",
+    "GET /api/v1/notifications/preferences",
+    "GET /api/v1/onboarding/{journeyId}",
+    "GET /api/v1/provider-incidents/{key}",
+    "GET /api/v1/ril/heal/audit",
+    "GET /api/v1/runtime/logs/stream",
+    "GET /api/v1/servers/{serverId}/access",
+    "GET /api/v1/service-applications",
+    "GET /api/v1/service-applications/{applicationId}",
+    "GET /api/v1/services/{serviceId}/managed-migration/eligibility",
+    "GET /api/v1/stackkits/use-cases",
+    "GET /api/v1/stacks/{id}",
+    "GET /api/v1/stacks/{id}/identity",
+    "GET /api/v1/stacks/{id}/relocations/{jobId}",
+    "GET /api/v1/stacks/{id}/servers/{serverId}",
+    "GET /api/v1/stacks/{id}/use-cases/configuration",
+    "GET /api/v1/substrates",
+    "GET /api/v1/substrates/profiles",
+    "GET /api/v1/substrates/{id}/appliances/{lease}",
+    "GET /api/v1/substrates/{id}/inventory",
+    "GET /api/v1/terminal-sessions/{sessionId}/stream",
+    "GET /api/v1/tool-manifest.json",
+    "GET /api/v1/unifier/layout/recommendations",
+    "GET /api/v1/unifier/layout/recommendations/{id}",
+    "GET /api/v1/wizard/runs/active",
+    "GET /api/v1/workers/install-pins",
+    "GET /auth/cloud-logout",
+    "GET /docs",
+    "GET /docs/{rest...}",
+    "GET /internal/v1/runtime/creation-pauses",
+    "GET /v1/mcp/public/homelab",
+    "GET /v1/ril/action-cards",
+    "POST /api/internal/demo/reset",
+    "POST /api/internal/stacks/domain-attach",
+    "POST /api/v1/agent/binary/{os}/{arch}",
+    "POST /api/v1/agent/release-evidence/{os}/{arch}",
+    "POST /api/v1/agent/stackkit-release/{os}/{arch}",
+    "POST /api/v1/internal/ril-host-identity",
+    "POST /api/v1/mcp",
+    "POST /api/v1/runtime/managed-workloads/fly/commands",
+    "POST /api/v1/services/{serviceId}/managed-migration",
+    "POST /api/v1/wallet/{id}/device-reauth/challenge",
+    "POST /api/v1/workers/bootstrap/logs",
+    "POST /api/v1/workers/{id}/commands/next",
+    "POST /api/v1/workers/{id}/commands/result",
+    "POST /api/v1/workers/{id}/provider/bootstrap",
+    "POST /api/v1/workers/{id}/provider/next",
+    "POST /api/v1/workers/{id}/provider/result",
+    "POST /api/v1/workers/{id}/runtime/logs",
+    "POST /api/v1/workers/{id}/stackkit/operations",
+    "POST /api/v1/workers/{id}/user-notification",
+    "POST /v1/mcp/public/homelab",
+    "POST /v1/ril/action-cards/{cardId}/approve",
+    "POST /v1/ril/action-cards/{cardId}/decision",
+    "POST /v1/ril/action-cards/{cardId}/deny",
+    "PUT /api/v1/client/lan-bridge"
+  ]
+}

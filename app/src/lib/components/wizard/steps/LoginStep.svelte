@@ -17,7 +17,7 @@
   import type { OwnerStepState } from "#lib/wizard/owner-state.svelte.js";
   import { ownerUsernameFromEmail } from "#lib/wizard/session-owner.js";
   import { revealWizardDetails } from "#lib/wizard/reveal-details.js";
-  import { tr } from "#lib/i18n.svelte.js";
+  import { tr, type MessageKey } from "#lib/i18n.svelte.js";
   import BrandLogoScope from "#lib/components/BrandLogoScope.svelte";
   import BrandLogoIcon from "#lib/components/BrandLogoIcon.svelte";
   import OwnerSourceSelector from "../owner/OwnerSourceSelector.svelte";
@@ -57,8 +57,8 @@
 {#snippet tool(
   domain: string,
   name: string,
-  label: string,
-  description: string,
+  label: MessageKey,
+  description: MessageKey,
 )}
   <div class="tool-row">
     <BrandLogoScope {domain}
