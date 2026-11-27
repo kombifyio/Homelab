@@ -16,7 +16,7 @@ import type {
   NavItem as ProductNavItem,
 } from "#lib/navigation.js";
 import { visibleNavItems } from "#lib/navigation.js";
-import { tr } from "#lib/i18n.svelte.js";
+import { tr, type MessageKey } from "#lib/i18n.svelte.js";
 import { navPreview } from "#lib/stores/navPreview.svelte.js";
 
 export function navLabel(
@@ -26,7 +26,7 @@ export function navLabel(
   return translated !== item.labelKey ? translated : item.labelFallback;
 }
 
-function text(key: string, fallback: string): string {
+function text(key: MessageKey, fallback: string): string {
   const translated = tr(key);
   return translated !== key ? translated : fallback;
 }

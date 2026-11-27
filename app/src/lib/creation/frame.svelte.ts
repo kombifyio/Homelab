@@ -429,7 +429,7 @@ export class CreationFrame {
   readonly stepIssues: WizardIssue[] = $derived.by(() =>
     creationStepIssues(this.nav.current, this.facts).map((issue) => ({
       field: issue.field,
-      message: issue.text ?? tr(issue.messageKey ?? ""),
+      message: issue.text ?? (issue.messageKey ? tr(issue.messageKey) : ""),
     })),
   );
   readonly canGoNext = $derived.by(() =>

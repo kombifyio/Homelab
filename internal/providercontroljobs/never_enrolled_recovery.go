@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kombifyio/homelab/pkg/db/backgroundlock"
 	"github.com/kombifyio/homelab/pkg/jobs"
 	"github.com/kombifyio/homelab/pkg/releasechannel"
 )
@@ -47,6 +48,7 @@ type NeverEnrolledRecovery struct {
 	interval       time.Duration
 	onReap         func(NeverEnrolledRecoveryCandidate)
 	onError        func(error)
+	lock           *backgroundlock.Locker
 	cursorMu       sync.Mutex
 	afterTenant    string
 	afterLease     string
@@ -64,6 +66,8 @@ type NeverEnrolledRecoveryConfig struct {
 	// observable (log/alert) even when the decommission later fails.
 	OnReap  func(NeverEnrolledRecoveryCandidate)
 	OnError func(error)
+	// Lock serializes passes across replicas. Nil runs them unlocked.
+	Lock *backgroundlock.Locker
 }
 
 func NewNeverEnrolledRecovery(cfg NeverEnrolledRecoveryConfig) (*NeverEnrolledRecovery, error) {
@@ -89,7 +93,7 @@ func NewNeverEnrolledRecovery(cfg NeverEnrolledRecoveryConfig) (*NeverEnrolledRe
 	return &NeverEnrolledRecovery{
 		database: cfg.Database, decommissioner: cfg.Decommissioner,
 		window: window, batchSize: cfg.BatchSize, interval: cfg.Interval,
-		onReap: cfg.OnReap, onError: cfg.OnError,
+		onReap: cfg.OnReap, onError: cfg.OnError, lock: cfg.Lock,
 	}, nil
 }
 
@@ -113,9 +117,13 @@ func (r *NeverEnrolledRecovery) Run(ctx context.Context) {
 }
 
 func (r *NeverEnrolledRecovery) runPass(ctx context.Context) {
-	if err := r.RecoverOnce(ctx); err != nil && !errors.Is(err, context.Canceled) && r.onError != nil {
-		r.onError(err)
-	}
+	runLockedPass(ctx, r.lock, neverEnrolledRecoveryLock, r.RecoverOnce, r.resetCursor, r.onError)
+}
+
+func (r *NeverEnrolledRecovery) resetCursor() {
+	r.cursorMu.Lock()
+	defer r.cursorMu.Unlock()
+	r.afterTenant, r.afterLease = "", ""
 }
 
 // RecoverOnce reaps at most the bounded per-pass budget. Candidates are

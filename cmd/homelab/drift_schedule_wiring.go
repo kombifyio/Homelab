@@ -20,6 +20,7 @@ func bootDriftScheduler(boot *v2Boot, cfg *config.Config, orch *orchestrator.Orc
 	scheduler, err := orch.NewDriftScheduler(orchestrator.DriftSchedulerConfig{
 		Directory: store,
 		Interval:  cfg.Drift.DriftIntervalDuration(),
+		Lock:      boot.backgroundLock,
 		OnError: func(err error) {
 			if log != nil {
 				log.Warn("drift_schedule_pass_error", "error", err)

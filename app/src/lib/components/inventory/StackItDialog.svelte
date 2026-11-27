@@ -475,7 +475,11 @@
                   : row.status === 'changed'
                     ? 'bg-warning/15 text-warning'
                     : 'bg-muted text-muted-foreground'}"
-                >{tr(`ui.services.stackItRow.${row.status}`)}</span
+                >{row.status === "changed" ||
+                row.status === "kept" ||
+                row.status === "refused"
+                  ? tr(`ui.services.stackItRow.${row.status}`)
+                  : row.status}</span
               >
               <div class="min-w-0">
                 <p class="text-xs text-foreground" data-row-code={row.code}>

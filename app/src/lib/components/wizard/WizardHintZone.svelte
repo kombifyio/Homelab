@@ -4,7 +4,7 @@
     WizardRecommendationResult,
   } from "#lib/api/unifier.js";
   import type { WizardPreviewState } from "#lib/wizard/WizardPreviewController.js";
-  import { tr } from "#lib/i18n.svelte.js";
+  import { tr, type MessageKey } from "#lib/i18n.svelte.js";
   import { hintReasonText } from "#lib/wizard/layout-reasons.js";
   import { useCreationEntry } from "#lib/creation/host.js";
 
@@ -29,7 +29,13 @@
       result?.recommendations[0],
   );
 
+  const TIP_KEYS: Record<string, MessageKey> = {
+    local_ai_needs_stronger_device:
+      "wizard.hints.tip.local_ai_needs_stronger_device",
+    more_devices: "wizard.hints.tip.more_devices",
+  };
   const tip = $derived(result?.selection?.tip);
+  const tipKey = $derived(tip ? TIP_KEYS[tip.code] : undefined);
 
   // Why the recommended setup fits: the decision trace and the capacity
   // reasons, one sentence per code. A code without a message of its own shows
@@ -143,9 +149,9 @@
             {tr("wizard.hints.evaluating")}
           </p>
         {/if}
-        {#if tip}
+        {#if tip && tipKey}
           <p class="mt-2 text-sm text-muted-foreground" data-testid="wizard-selection-tip">
-            {tr(`wizard.hints.tip.${tip.code}`, tip.params)}
+            {tr(tipKey, tip.params)}
           </p>
         {/if}
       </div>

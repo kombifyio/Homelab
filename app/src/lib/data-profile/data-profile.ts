@@ -8,6 +8,7 @@
 import { writable } from "svelte/store";
 import { get } from "#lib/api/client.js";
 import { parseApiError } from "#lib/api/errors.js";
+import type { MessageKey } from "#lib/i18n.js";
 
 export interface DataProfile {
   res: "global" | "eu";
@@ -45,9 +46,9 @@ function parseProfile(value: unknown): DataProfile | null {
 }
 
 /** Message keys of the active profile, strictest axes first. */
-export function dataProfileLabelKeys(profile: DataProfile): string[] {
+export function dataProfileLabelKeys(profile: DataProfile): MessageKey[] {
   if (profile.loc === "local") return ["dataProfile.local"];
-  const keys: string[] = [];
+  const keys: MessageKey[] = [];
   if (profile.res === "eu") keys.push("dataProfile.eu");
   if (profile.ret === "zero") keys.push("dataProfile.zero");
   return keys.length > 0 ? keys : ["dataProfile.standard"];

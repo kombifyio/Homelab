@@ -4,7 +4,7 @@
   "source": {
     "product": "homelab",
     "path": "api/openapi/homelab-v1.yaml",
-    "sha256": "971d2ef461cdb6c83967348c7ff03e531343f5407ad8378f058313b34098ebc6"
+    "sha256": "d8d0d5264ca1a5b03b38dc5a4c64c4d600efd098ea3f2de829c9bb4e4c48df69"
   },
   "tools": [
     {
@@ -3476,9 +3476,38 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "adopt_compose_project": {
+            "default": false,
+            "description": "Stack it plan only: adopt the whole Compose project the container belongs to instead of the single container.",
+            "type": "boolean"
+          },
+          "cpus": {
+            "description": "Stack it plan only: CPU limit of the rebuilt application in cores. Omitted keeps the proposed limit.",
+            "maximum": 4,
+            "minimum": 0.1,
+            "type": "number"
+          },
           "expected_inventory_revision": {
             "format": "int64",
             "minimum": 1,
+            "type": "integer"
+          },
+          "http_port": {
+            "description": "Stack it plan only: the container port the web UI listens on. Omitted keeps the detected port.",
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "http_service": {
+            "description": "Stack it plan only, with adopt_compose_project true: the Compose service that serves the web UI.",
+            "maxLength": 63,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$",
+            "type": "string"
+          },
+          "memory_mib": {
+            "description": "Stack it plan only: memory limit of the rebuilt application in MiB. Omitted keeps the proposed limit.",
+            "maximum": 8192,
+            "minimum": 64,
             "type": "integer"
           },
           "mode": {
@@ -3488,6 +3517,18 @@
               "restore_original",
               "release_original"
             ],
+            "type": "string"
+          },
+          "no_outbound": {
+            "default": false,
+            "description": "Stack it plan only: block outbound network access of the rebuilt application.",
+            "type": "boolean"
+          },
+          "own_application_name": {
+            "description": "Stack it plan only (mode stack_it): the own application name the container becomes. Lowercase letters, digits and single hyphens, starting with a letter, and not starting with kombify or stackkit. Omitted keeps the name derived from the container.",
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
             "type": "string"
           },
           "owner_approved": {
@@ -6004,6 +6045,60 @@
       "costBearing": false,
       "upstreamKind": "product-native",
       "liveEnabled": true
+    },
+    {
+      "toolId": "homelab.get_service_enrichment",
+      "connectorFamily": "homelab",
+      "serverKey": "homelab",
+      "toolName": "get_service_enrichment",
+      "alias": "homelab.get_service_enrichment",
+      "title": "Read the catalog proposal (display name, vendor, links, logo) for one service",
+      "description": "Resolves the application metadata kombify proposes for one service of the caller's own stacks: the recognized catalog entry when the image, container name or labels match one, otherwise a fallback proposal that a connected-mode web lookup may complete (homepage and documentation links). The lookup is read-only and cached; it never changes the service. A service of another owner reads as not found.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "service_id": {
+            "description": "Canonical service runtime ID",
+            "type": "string"
+          }
+        },
+        "required": [
+          "service_id"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "featureKey": "mcp.customer.homelab.inventory.read",
+      "entitlementKey": "homelab.inventory.read",
+      "fgaObject": "tool:homelab/get_service_enrichment",
+      "auditEvent": "mcp.customer.homelab.inventory.get_service_enrichment",
+      "operationIds": [
+        "homelab.getServiceEnrichment"
+      ],
+      "risk": "low",
+      "approvalPolicy": "none",
+      "actionClass": "read",
+      "quotaKey": "mcp.usage.homelab.inventory.read",
+      "upstream": {
+        "kind": "product-native",
+        "ref": "homelab"
+      },
+      "portalVisibilityGroup": "customer-build-preview",
+      "requiredScopes": [
+        "mcp:connect"
+      ],
+      "capabilityBundle": "homelab.inventory.read",
+      "requiredCapabilities": [
+        "homelab.inventory.read"
+      ],
+      "costBearing": false,
+      "upstreamKind": "product-native",
+      "liveEnabled": false
     },
     {
       "toolId": "homelab.get_service_logs",
@@ -9291,9 +9386,38 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "adopt_compose_project": {
+            "default": false,
+            "description": "Stack it plan only: adopt the whole Compose project the container belongs to instead of the single container.",
+            "type": "boolean"
+          },
+          "cpus": {
+            "description": "Stack it plan only: CPU limit of the rebuilt application in cores. Omitted keeps the proposed limit.",
+            "maximum": 4,
+            "minimum": 0.1,
+            "type": "number"
+          },
           "expected_inventory_revision": {
             "format": "int64",
             "minimum": 1,
+            "type": "integer"
+          },
+          "http_port": {
+            "description": "Stack it plan only: the container port the web UI listens on. Omitted keeps the detected port.",
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "http_service": {
+            "description": "Stack it plan only, with adopt_compose_project true: the Compose service that serves the web UI.",
+            "maxLength": 63,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$",
+            "type": "string"
+          },
+          "memory_mib": {
+            "description": "Stack it plan only: memory limit of the rebuilt application in MiB. Omitted keeps the proposed limit.",
+            "maximum": 8192,
+            "minimum": 64,
             "type": "integer"
           },
           "mode": {
@@ -9303,6 +9427,18 @@
               "restore_original",
               "release_original"
             ],
+            "type": "string"
+          },
+          "no_outbound": {
+            "default": false,
+            "description": "Stack it plan only: block outbound network access of the rebuilt application.",
+            "type": "boolean"
+          },
+          "own_application_name": {
+            "description": "Stack it plan only (mode stack_it): the own application name the container becomes. Lowercase letters, digits and single hyphens, starting with a letter, and not starting with kombify or stackkit. Omitted keeps the name derived from the container.",
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
             "type": "string"
           },
           "owner_approved": {
@@ -11008,9 +11144,38 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "adopt_compose_project": {
+            "default": false,
+            "description": "Stack it plan only: adopt the whole Compose project the container belongs to instead of the single container.",
+            "type": "boolean"
+          },
+          "cpus": {
+            "description": "Stack it plan only: CPU limit of the rebuilt application in cores. Omitted keeps the proposed limit.",
+            "maximum": 4,
+            "minimum": 0.1,
+            "type": "number"
+          },
           "expected_inventory_revision": {
             "format": "int64",
             "minimum": 1,
+            "type": "integer"
+          },
+          "http_port": {
+            "description": "Stack it plan only: the container port the web UI listens on. Omitted keeps the detected port.",
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "http_service": {
+            "description": "Stack it plan only, with adopt_compose_project true: the Compose service that serves the web UI.",
+            "maxLength": 63,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$",
+            "type": "string"
+          },
+          "memory_mib": {
+            "description": "Stack it plan only: memory limit of the rebuilt application in MiB. Omitted keeps the proposed limit.",
+            "maximum": 8192,
+            "minimum": 64,
             "type": "integer"
           },
           "mode": {
@@ -11020,6 +11185,18 @@
               "restore_original",
               "release_original"
             ],
+            "type": "string"
+          },
+          "no_outbound": {
+            "default": false,
+            "description": "Stack it plan only: block outbound network access of the rebuilt application.",
+            "type": "boolean"
+          },
+          "own_application_name": {
+            "description": "Stack it plan only (mode stack_it): the own application name the container becomes. Lowercase letters, digits and single hyphens, starting with a letter, and not starting with kombify or stackkit. Omitted keeps the name derived from the container.",
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
             "type": "string"
           },
           "owner_approved": {
@@ -11897,9 +12074,38 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "adopt_compose_project": {
+            "default": false,
+            "description": "Stack it plan only: adopt the whole Compose project the container belongs to instead of the single container.",
+            "type": "boolean"
+          },
+          "cpus": {
+            "description": "Stack it plan only: CPU limit of the rebuilt application in cores. Omitted keeps the proposed limit.",
+            "maximum": 4,
+            "minimum": 0.1,
+            "type": "number"
+          },
           "expected_inventory_revision": {
             "format": "int64",
             "minimum": 1,
+            "type": "integer"
+          },
+          "http_port": {
+            "description": "Stack it plan only: the container port the web UI listens on. Omitted keeps the detected port.",
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "http_service": {
+            "description": "Stack it plan only, with adopt_compose_project true: the Compose service that serves the web UI.",
+            "maxLength": 63,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$",
+            "type": "string"
+          },
+          "memory_mib": {
+            "description": "Stack it plan only: memory limit of the rebuilt application in MiB. Omitted keeps the proposed limit.",
+            "maximum": 8192,
+            "minimum": 64,
             "type": "integer"
           },
           "mode": {
@@ -11909,6 +12115,18 @@
               "restore_original",
               "release_original"
             ],
+            "type": "string"
+          },
+          "no_outbound": {
+            "default": false,
+            "description": "Stack it plan only: block outbound network access of the rebuilt application.",
+            "type": "boolean"
+          },
+          "own_application_name": {
+            "description": "Stack it plan only (mode stack_it): the own application name the container becomes. Lowercase letters, digits and single hyphens, starting with a letter, and not starting with kombify or stackkit. Omitted keeps the name derived from the container.",
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
             "type": "string"
           },
           "owner_approved": {

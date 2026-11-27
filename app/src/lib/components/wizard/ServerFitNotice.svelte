@@ -2,7 +2,7 @@
   import { Button } from "@kombiverselabs/ui/primitives";
   import type { ServerFit, ServerFitRecovery } from "#lib/api/unifier.js";
   import type { WizardPreviewState } from "#lib/wizard/WizardPreviewController.js";
-  import { formatNumber, tr } from "#lib/i18n.svelte.js";
+  import { formatNumber, tr, type MessageKey } from "#lib/i18n.svelte.js";
   import { getEasyGoalQuestions } from "#lib/wizard/index.js";
   import { useCaseTitle } from "#lib/wizard/creationGoalText.js";
 
@@ -61,7 +61,7 @@
     return "wizard.server.fit.estimate";
   });
 
-  const pendingKeys: Record<string, string> = {
+  const pendingKeys: Record<string, MessageKey> = {
     inventory_stale: "wizard.server.fit.pending.inventory_stale",
     inventory_unavailable: "wizard.server.fit.pending.inventory_unavailable",
     host_offline: "wizard.server.fit.pending.host_offline",
@@ -76,39 +76,39 @@
 
   const pendingMessage = $derived.by(() => {
     if (status !== "pending" || !fit) return undefined;
-    const key = fit.pending_reason
+    const key: MessageKey = fit.pending_reason
       ? (pendingKeys[fit.pending_reason] ?? "wizard.server.fit.pending.default")
       : "wizard.server.fit.pending.default";
     return tr(key);
   });
 
   const questions = getEasyGoalQuestions();
-  const reasonKeys: Record<string, string> = {
-    cpu: "cpu",
-    selection_cpu: "cpu",
-    memory: "memory",
-    selection_memory: "memory",
-    storage: "storage",
-    selection_storage: "storage",
-    cpu_architecture: "architecture",
-    cpu_microarchitecture: "architecture",
-    cpu_reservation: "cpu",
-    accelerator: "accelerator",
-    accelerator_vendor: "accelerator",
-    accelerator_driver: "accelerator",
-    catalog_footprint_unavailable: "footprint",
-    selected_services: "footprint",
-    base_stack_capacity: "foundation",
-    usage: "usage",
-    server_unavailable: "observation",
-    host_unmeasured: "observation",
-    ssh_unmeasured: "observation",
-    substrate_unmeasured: "observation",
-    no_goals: "goals",
-    provider_package_unavailable: "package",
-    profile_unsupported: "profile",
-    photo_backend_unavailable: "backend",
-    entitlement_required: "entitlement",
+  const reasonKeys: Record<string, MessageKey> = {
+    cpu: "wizard.server.fit.reason.cpu",
+    selection_cpu: "wizard.server.fit.reason.cpu",
+    memory: "wizard.server.fit.reason.memory",
+    selection_memory: "wizard.server.fit.reason.memory",
+    storage: "wizard.server.fit.reason.storage",
+    selection_storage: "wizard.server.fit.reason.storage",
+    cpu_architecture: "wizard.server.fit.reason.architecture",
+    cpu_microarchitecture: "wizard.server.fit.reason.architecture",
+    cpu_reservation: "wizard.server.fit.reason.cpu",
+    accelerator: "wizard.server.fit.reason.accelerator",
+    accelerator_vendor: "wizard.server.fit.reason.accelerator",
+    accelerator_driver: "wizard.server.fit.reason.accelerator",
+    catalog_footprint_unavailable: "wizard.server.fit.reason.footprint",
+    selected_services: "wizard.server.fit.reason.footprint",
+    base_stack_capacity: "wizard.server.fit.reason.foundation",
+    usage: "wizard.server.fit.reason.usage",
+    server_unavailable: "wizard.server.fit.reason.observation",
+    host_unmeasured: "wizard.server.fit.reason.observation",
+    ssh_unmeasured: "wizard.server.fit.reason.observation",
+    substrate_unmeasured: "wizard.server.fit.reason.observation",
+    no_goals: "wizard.server.fit.reason.goals",
+    provider_package_unavailable: "wizard.server.fit.reason.package",
+    profile_unsupported: "wizard.server.fit.reason.profile",
+    photo_backend_unavailable: "wizard.server.fit.reason.backend",
+    entitlement_required: "wizard.server.fit.reason.entitlement",
   };
 
   const reasons = $derived.by(() => {
@@ -116,11 +116,11 @@
       ? [
           ...(fit.deficits ?? []).map((reason) => ({
             ...reason,
-            kind: "deficit",
+            kind: "deficit" as const,
           })),
           ...(fit.unknowns ?? []).map((reason) => ({
             ...reason,
-            kind: "unconfirmed",
+            kind: "unconfirmed" as const,
           })),
         ]
       : [];
@@ -128,7 +128,7 @@
     return facts.filter((reason) => {
       const key = JSON.stringify([
         reason.kind,
-        reasonKeys[reason.code] ?? "other",
+        reasonKeys[reason.code] ?? "wizard.server.fit.reason.other",
         reason.goal,
         reason.required,
         reason.available,
@@ -287,19 +287,16 @@
     {#if reasons.length}
       <ul>
         {#each reasons as reason (reason)}
+          {@const goalQuestion = reason.goal
+            ? questions.find((question) => question.configKey === reason.goal)
+            : undefined}
           <li>
-            {#if reason.goal && questions.find((question) => question.configKey === reason.goal)}
-              <strong
-                >{tr(
-                  questions.find(
-                    (question) => question.configKey === reason.goal,
-                  )?.titleKey ?? "",
-                )}:</strong
-              >
+            {#if goalQuestion}
+              <strong>{tr(goalQuestion.titleKey)}:</strong>
             {/if}
             {tr(`wizard.server.fit.${reason.kind}`, {
               reason: tr(
-                `wizard.server.fit.reason.${reasonKeys[reason.code] ?? "other"}`,
+                reasonKeys[reason.code] ?? "wizard.server.fit.reason.other",
               ),
             })}
             {#if reason.required != null && reason.available != null}

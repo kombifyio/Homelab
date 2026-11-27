@@ -15,7 +15,7 @@ import type {
   StackIdentityEditorLabels,
   StackIdentityLabelFor,
 } from "@kombiverselabs/ui/identity";
-import { tr } from "#lib/i18n.svelte.js";
+import { isMessageKey, tr } from "#lib/i18n.svelte.js";
 
 /**
  * Chrome of the identity editor: name field, section heads, buttons and the
@@ -62,6 +62,5 @@ export function stackIdentityLabelFor(
   fallback: string,
 ): string {
   const key = catalogKey(kind, id);
-  const label = tr(key);
-  return label === key ? fallback : label;
+  return isMessageKey(key) ? tr(key) : fallback;
 }

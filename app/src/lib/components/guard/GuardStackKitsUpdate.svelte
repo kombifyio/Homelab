@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tr, trn } from "#lib/i18n.svelte.js";
+  import { isMessageKey, tr, trn } from "#lib/i18n.svelte.js";
   import { ExternalLink, ShieldAlert } from "@lucide/svelte";
   import Button from "#lib/components/ui/Button.svelte";
   import { parseApiError } from "#lib/api/errors.js";
@@ -166,8 +166,7 @@
 
   function kindLabel(change: StackKitsUpdateChange): string {
     const key = `guard.updates.kind.${change.kind}`;
-    const label = tr(key);
-    return label === key ? change.kind : label;
+    return isMessageKey(key) ? tr(key) : change.kind;
   }
 </script>
 

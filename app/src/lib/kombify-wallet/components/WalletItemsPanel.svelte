@@ -690,7 +690,12 @@
     const active = item.state === "active";
     const sshCa = isSshCa(item.itemType);
     const useOnly = itemValueAccess(item) === "use_only";
-    const word = (key: string) =>
+    type WalletActionKey =
+      | "kwallet.action.sign"
+      | "kwallet.action.reveal"
+      | "kwallet.action.settings"
+      | "kwallet.action.new_version";
+    const word = (key: WalletActionKey) =>
       named ? tr(`${key}_named`, { name: item.displayName }) : tr(key);
     const ownerOnly = canUseValues
       ? {}

@@ -111,7 +111,7 @@
   );
 </script>
 
-{#snippet body(group: string)}
+{#snippet body(group: UseCaseSettingGroup)}
   {@const fields = settings.filter((setting) => setting.group === group)}
   <fieldset {disabled} class="settings-fields">
     <legend class="sr-only">{tr(`wizard.goals.group.${group}`)}</legend>

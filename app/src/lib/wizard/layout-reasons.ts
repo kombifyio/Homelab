@@ -4,7 +4,7 @@
  * client has a message for is rendered from the catalog; any other code (for
  * example a StackKits `stackkits:*` reason) renders the server's English text.
  */
-import { formatNumber, getLocale, tr } from "#lib/i18n.svelte.js";
+import { formatNumber, getLocale, isMessageKey, tr } from "#lib/i18n.svelte.js";
 
 interface CodedReason {
   code: string;
@@ -22,8 +22,7 @@ function missingFacts(value: string): string {
     .filter(Boolean)
     .map((axis) => {
       const key = `layout.axis.${axis}`;
-      const label = tr(key);
-      return label === key ? axis.replace(/[-_]/g, " ") : label;
+      return isMessageKey(key) ? tr(key) : axis.replace(/[-_]/g, " ");
     });
   try {
     return new Intl.ListFormat(getLocale(), {
@@ -61,8 +60,9 @@ export function layoutReasonText(
   reason: CodedReason & { text?: string },
 ): string {
   const key = `layout.reason.${reason.code}`;
-  const message = tr(key, localizedParams(reason.params ?? {}));
-  return message === key ? reason.text || reason.code : message;
+  return isMessageKey(key)
+    ? tr(key, localizedParams(reason.params ?? {}))
+    : reason.text || reason.code;
 }
 
 /** One wizard recommendation reason (decision trace or capacity) as a sentence. */
@@ -70,6 +70,7 @@ export function hintReasonText(
   reason: CodedReason & { message?: string },
 ): string {
   const key = `wizard.hints.reason.${reason.code}`;
-  const message = tr(key, localizedParams(reason.params ?? {}));
-  return message === key ? reason.message || "" : message;
+  return isMessageKey(key)
+    ? tr(key, localizedParams(reason.params ?? {}))
+    : reason.message || "";
 }

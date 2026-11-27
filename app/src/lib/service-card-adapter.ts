@@ -25,7 +25,7 @@ import {
 } from "#lib/app-logo-overrides.svelte.js";
 import { logoTheme } from "#lib/stores/logo-theme.svelte.js";
 
-import { tr } from "#lib/i18n.svelte.js";
+import { tr, type MessageKey } from "#lib/i18n.svelte.js";
 export type HomelabServiceCardSource = {
   id?: string;
   name?: string;
@@ -635,10 +635,16 @@ export function highestAdvisorySeverity(
     .sort((a, b) => rank(a) - rank(b))[0];
 }
 
+const SEVERITY_KEYS: Record<string, MessageKey> = {
+  critical: "ui.serviceCards.severity.critical",
+  high: "ui.serviceCards.severity.high",
+  medium: "ui.serviceCards.severity.medium",
+  low: "ui.serviceCards.severity.low",
+  unknown: "ui.serviceCards.severity.unknown",
+};
+
 export function advisorySeverityLabel(severity: string): string {
-  const key = `ui.serviceCards.severity.${severity}`;
-  const label = tr(key);
-  return label === key ? tr("ui.serviceCards.severity.unknown") : label;
+  return tr(SEVERITY_KEYS[severity] ?? "ui.serviceCards.severity.unknown");
 }
 
 /** Vendor domain for the logo: the backend catalog first, then the name map. */

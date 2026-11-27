@@ -7,9 +7,12 @@
 
 import {
   type Locale,
+  type MessageKey,
   type MessageParams,
+  type PluralMessageKey,
   defaultLocale,
   getStoredLocale,
+  isMessageKey,
   localeDirection,
   setStoredLocale,
   t,
@@ -63,7 +66,7 @@ export function setLocale(locale: Locale): void {
 /**
  * Translate a key using the current locale (reactive)
  */
-export function tr(key: string, params?: MessageParams): string {
+export function tr(key: MessageKey, params?: MessageParams): string {
   return t(key, currentLocale, params);
 }
 
@@ -72,14 +75,15 @@ export function tr(key: string, params?: MessageParams): string {
  * for the active locale and falls back to `<key>.other`; `{count}` is filled in.
  */
 export function trn(
-  key: string,
+  key: PluralMessageKey,
   count: number,
   params: MessageParams = {},
 ): string {
   const category = new Intl.PluralRules(currentLocale).select(count);
   const specific = `${key}.${category}`;
-  const resolved =
-    t(specific, currentLocale) !== specific ? specific : `${key}.other`;
+  const resolved: MessageKey = isMessageKey(specific)
+    ? specific
+    : `${key}.other`;
   return t(resolved, currentLocale, { count, ...params });
 }
 
@@ -88,7 +92,7 @@ export function trn(
  * The message carries one `{slot}` token per element; the text parts around
  * them are returned so the caller can render the elements in between.
  */
-export function trParts(key: string, params?: MessageParams): string[] {
+export function trParts(key: MessageKey, params?: MessageParams): string[] {
   return t(key, currentLocale, params).split("{slot}");
 }
 
@@ -100,8 +104,7 @@ export function trParts(key: string, params?: MessageParams): string[] {
 export function stateLabel(value: string | null | undefined): string {
   const raw = value || "unknown";
   const key = `state.${raw}`;
-  const known = t(key, currentLocale);
-  return known !== key ? known : raw.replace(/[-_]/g, " ");
+  return isMessageKey(key) ? t(key, currentLocale) : raw.replace(/[-_]/g, " ");
 }
 
 /** Format a date/time in the active locale. Invalid input renders as-is. */
@@ -133,8 +136,12 @@ export function formatNumber(
 // Re-export types and utilities
 export {
   type Locale,
+  type MessageKey,
+  type MessageParams,
+  type PluralMessageKey,
   getAvailableLocales,
   isLocale,
+  isMessageKey,
   localeDirection,
   t,
 } from "./i18n";

@@ -11,7 +11,7 @@
     ProStarterEvaluation,
   } from "#lib/api/unifier.js";
   import type { CreationGoal } from "#lib/wizard/creationGoals.js";
-  import { tr } from "#lib/i18n.svelte.js";
+  import { isMessageKey, tr, type MessageKey } from "#lib/i18n.svelte.js";
 
   /**
    * The profile row above the use cases. Each profile switches its own fixed
@@ -72,7 +72,7 @@
     void confirmationResetKey;
     confirmedProfiles = {};
   });
-  const reasonMessages: Record<string, string> = {
+  const reasonMessages: Record<string, MessageKey> = {
     documents_media_host_insufficient:
       "wizard.templates.reason.documents_media_host_insufficient",
     smart_home_deferred_lan_reach:
@@ -84,6 +84,11 @@
     provider_package_unavailable:
       "wizard.templates.reason.provider_package_unavailable",
   };
+
+  function previewTitle(id: string): string {
+    const key = `wizard.preview.${id}.title`;
+    return isMessageKey(key) ? tr(key) : id;
+  }
 
   function providerDisplayName(providerId?: string): string {
     if (providerId === "centron") return "Centron";
@@ -163,7 +168,7 @@
                 const card = cards.find((item) => item.id === id);
                 return card?.question
                   ? tr(card.question.titleKey)
-                  : tr(`wizard.preview.${id}.title`);
+                  : previewTitle(id);
               })
               .join(", ")}
           </p>
@@ -174,8 +179,9 @@
             data-testid={`creation-template-confirmation-${template.id}`}
           >
             {#each starter.confirmation_reasons ?? [] as reason (reason)}
-              {#if reasonMessages[reason]}
-                <p class="expansion-note">{tr(reasonMessages[reason])}</p>
+              {@const reasonKey = reasonMessages[reason]}
+              {#if reasonKey}
+                <p class="expansion-note">{tr(reasonKey)}</p>
               {/if}
             {/each}
             <label class="confirm-toggle">

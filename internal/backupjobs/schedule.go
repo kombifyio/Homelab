@@ -113,6 +113,10 @@ type Due struct {
 	IncludeContent bool
 }
 
+// ErrSlotClaimed reports a schedule slot that is no longer this worker's to
+// run: another worker advanced it, holds its row, or it was disabled.
+var ErrSlotClaimed = errors.New("backupjobs: schedule slot claimed by another worker")
+
 // Store persists and reads the projection.
 type Store struct{ db *sql.DB }
 
@@ -244,10 +248,14 @@ func (s *Store) ListDue(ctx context.Context, now time.Time, afterTenant, afterSt
 	return due, rows.Err()
 }
 
-// MarkRan advances a stack past its current slot. It runs whether the backup
-// succeeded or was denied: a stack whose slot is never advanced is re-selected
-// on every pass, which turns one denied tenant into an unbounded retry loop
-// against the entitlement chain.
+// MarkRan claims a stack's current slot and advances it. It runs whether the
+// backup is admitted or denied: a stack whose slot is never advanced is
+// re-selected on every pass, which turns one denied tenant into an unbounded
+// retry loop against the entitlement chain.
+//
+// The claim is conditional: only an enabled row that is still due at now and
+// not locked by another worker advances. A slot another replica claimed (or
+// is claiming) returns ErrSlotClaimed, so its backup is enqueued once.
 func (s *Store) MarkRan(ctx context.Context, tenantID, stackID string, now time.Time) error {
 	tenantID, stackID = strings.TrimSpace(tenantID), strings.TrimSpace(stackID)
 	if tenantID == "" || stackID == "" {
@@ -256,14 +264,20 @@ func (s *Store) MarkRan(ctx context.Context, tenantID, stackID string, now time.
 	return s.withTenant(ctx, tenantID, func(tx *sql.Tx) error {
 		var schedule Schedule
 		var cadence string
-		if err := tx.QueryRowContext(ctx, `
+		err := tx.QueryRowContext(ctx, `
 			SELECT cadence, hour_utc, minute_utc, weekday_utc
-			FROM stack_backup_schedules WHERE tenant_id = $1 AND stack_id = $2
-		`, tenantID, stackID).Scan(&cadence, &schedule.HourUTC, &schedule.MinuteUTC, &schedule.WeekdayUTC); err != nil {
+			FROM stack_backup_schedules
+			WHERE tenant_id = $1 AND stack_id = $2 AND enabled AND next_due_at <= $3
+			FOR UPDATE SKIP LOCKED
+		`, tenantID, stackID, now.UTC()).Scan(&cadence, &schedule.HourUTC, &schedule.MinuteUTC, &schedule.WeekdayUTC)
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrSlotClaimed
+		}
+		if err != nil {
 			return err
 		}
 		schedule.Cadence = Cadence(cadence)
-		_, err := tx.ExecContext(ctx, `
+		_, err = tx.ExecContext(ctx, `
 			UPDATE stack_backup_schedules
 			SET last_run_at = $3, next_due_at = $4, updated_at = now()
 			WHERE tenant_id = $1 AND stack_id = $2

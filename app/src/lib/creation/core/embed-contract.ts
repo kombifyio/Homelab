@@ -3,6 +3,7 @@
  * owns this contract; a host reads the event schema and ignores any other. JSON
  * schemas: docs/contracts/homelab.creation-*.v1.schema.json.
  */
+import type { MessageKey } from "#lib/i18n.js";
 import { CREATION_STEP_KEYS, type CreationStepKey } from "./steps";
 
 export const CREATION_ENTRY_SCHEMA = "homelab.creation-entry/v1";
@@ -90,8 +91,8 @@ export function creationFullPath(entry: CreationEntry): string {
 
 /** Keeps one step of a process; the module asks nothing else. */
 export function creationStepOnly<
-  Process extends { inactive: Partial<Record<CreationStepKey, string>> },
->(process: Process, step: CreationStepKey, reasonKey: string): Process {
+  Process extends { inactive: Partial<Record<CreationStepKey, MessageKey>> },
+>(process: Process, step: CreationStepKey, reasonKey: MessageKey): Process {
   const inactive = Object.fromEntries(
     CREATION_STEP_KEYS.filter((key) => key !== step).map((key) => [
       key,

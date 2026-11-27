@@ -14,6 +14,7 @@ import (
 	"github.com/kombifyio/homelab/pkg/agentcontrol"
 	"github.com/kombifyio/homelab/pkg/config"
 	"github.com/kombifyio/homelab/pkg/controlplane"
+	"github.com/kombifyio/homelab/pkg/db/backgroundlock"
 	"github.com/kombifyio/homelab/pkg/grpcserver"
 	"github.com/kombifyio/homelab/pkg/guardcompat"
 	"github.com/kombifyio/homelab/pkg/jobs"
@@ -31,6 +32,7 @@ const (
 	guardRoundTripProbesPerPass   = 16
 	guardRoundTripProbeConcurrent = 4
 	guardRoundTripProbeTenantPage = 100
+	guardRoundTripProbeLock       = "homelab/guard-round-trip-probe"
 )
 
 // guardRoundTripProbeTarget is one connected Guard that may need a probe.
@@ -62,6 +64,10 @@ type guardRoundTripProbe struct {
 	interval   time.Duration
 	now        func() time.Time
 	log        *slog.Logger
+	// lock keeps one replica probing the database-listed HTTPS Guards at a
+	// time. It stays nil for the mTLS listener: those candidates are the
+	// agents connected to this process, which no other replica can reach.
+	lock *backgroundlock.Locker
 
 	// sent holds the probe command IDs of the current window that this
 	// process sent or found sent, so a spent window takes no slot of a pass.
@@ -93,6 +99,7 @@ func bootGuardRoundTripProbe(cfg *config.Config, boot *v2Boot, orch *orchestrato
 		probe.candidates = mtlsRoundTripProbeCandidates(grpcSrv)
 	} else {
 		probe.candidates = httpsRoundTripProbeCandidates(controlPlanePostgresStore(boot), grpcState)
+		probe.lock = boot.backgroundLock
 	}
 	return probe
 }
@@ -188,7 +195,12 @@ func (p *guardRoundTripProbe) Run(ctx context.Context) {
 	ticker := time.NewTicker(p.interval)
 	defer ticker.Stop()
 	for {
-		p.pass(ctx)
+		// The deterministic command ID already lets the durable hub refuse a
+		// second probe per window; the lock also keeps two overlapping replicas
+		// from spending their pass budget and command slots on the same Guards.
+		if _, err := p.lock.Run(ctx, guardRoundTripProbeLock, p.pass); err != nil && ctx.Err() == nil {
+			p.log.Warn("guard_round_trip_probe_lock_failed", "error", err.Error())
+		}
 		select {
 		case <-ctx.Done():
 			return

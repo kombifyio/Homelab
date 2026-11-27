@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/kombifyio/homelab/internal/runtimeproduct/vmlease"
+	"github.com/kombifyio/homelab/pkg/db/backgroundlock"
 	"github.com/kombifyio/homelab/pkg/monthlyruntime"
 	"github.com/kombifyio/homelab/pkg/releasechannel"
 	"github.com/kombifyio/homelab/pkg/vmleases"
@@ -94,6 +95,7 @@ type ManagedLeaseRenewal struct {
 	interval     time.Duration
 	onEvent      func(ManagedLeaseRenewalEvent)
 	onError      func(error)
+	lock         *backgroundlock.Locker
 	cursorMu     sync.Mutex
 	afterTenant  string
 	afterLease   string
@@ -113,6 +115,9 @@ type ManagedLeaseRenewalConfig struct {
 	Interval  time.Duration
 	OnEvent   func(ManagedLeaseRenewalEvent)
 	OnError   func(error)
+	// Lock holds one bounded sweep per replica set at a time. Nil runs the
+	// sweep unlocked.
+	Lock *backgroundlock.Locker
 }
 
 func NewManagedLeaseRenewal(cfg ManagedLeaseRenewalConfig) (*ManagedLeaseRenewal, error) {
@@ -142,7 +147,7 @@ func NewManagedLeaseRenewal(cfg ManagedLeaseRenewalConfig) (*ManagedLeaseRenewal
 	return &ManagedLeaseRenewal{
 		database: cfg.Database, renewer: cfg.Renewer, entitlements: cfg.Entitlements,
 		horizon: cfg.Horizon, validFor: cfg.ValidFor, batchSize: cfg.BatchSize, interval: cfg.Interval,
-		onEvent: cfg.OnEvent, onError: cfg.OnError,
+		onEvent: cfg.OnEvent, onError: cfg.OnError, lock: cfg.Lock,
 	}, nil
 }
 
@@ -166,10 +171,18 @@ func (r *ManagedLeaseRenewal) Run(ctx context.Context) {
 	}
 }
 
+// runPass holds the lock across the whole bounded sweep, so the in-memory
+// keyset cursor advances only while this replica is the one sweeping. A pass
+// skipped because another replica swept resets the cursor; a renewal repeated
+// from the start is fenced by its exact lease generation and is idempotent.
 func (r *ManagedLeaseRenewal) runPass(ctx context.Context) {
-	if err := r.RenewOnce(ctx); err != nil && !errors.Is(err, context.Canceled) && r.onError != nil {
-		r.onError(err)
-	}
+	runLockedPass(ctx, r.lock, managedLeaseRenewalLock, r.RenewOnce, r.resetCursor, r.onError)
+}
+
+func (r *ManagedLeaseRenewal) resetCursor() {
+	r.cursorMu.Lock()
+	defer r.cursorMu.Unlock()
+	r.afterTenant, r.afterLease = "", ""
 }
 
 type managedLeaseEntitlementAnswer struct {

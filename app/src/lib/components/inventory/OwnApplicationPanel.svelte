@@ -5,7 +5,12 @@
   change is reviewed on the server first and approved once.
 -->
 <script lang="ts">
-  import { tr, formatDateTime } from "#lib/i18n.svelte.js";
+  import {
+    isMessageKey,
+    tr,
+    formatDateTime,
+    type MessageKey,
+  } from "#lib/i18n.svelte.js";
   import Button from "#lib/components/ui/Button.svelte";
   import ErrorCallout from "#lib/components/ui/ErrorCallout.svelte";
   import type { CanonicalService } from "#lib/api/services.js";
@@ -50,11 +55,31 @@
     }
   }
 
+  const HEALTH_KEYS: Record<string, MessageKey> = {
+    healthy: "ui.ownApp.health.healthy",
+    running: "ui.ownApp.health.running",
+    starting: "ui.ownApp.health.starting",
+    stopped: "ui.ownApp.health.stopped",
+    unhealthy: "ui.ownApp.health.unhealthy",
+    unknown: "ui.ownApp.health.unknown",
+  };
+  const CHECKPOINT_STATE_KEYS: Record<string, MessageKey> = {
+    kept: "ui.ownApp.checkpointState.kept",
+    restored: "ui.ownApp.checkpointState.restored",
+    restoring: "ui.ownApp.checkpointState.restoring",
+    retained: "ui.ownApp.checkpointState.retained",
+    taken: "ui.ownApp.checkpointState.taken",
+  };
+
+  function checkpointStateLabel(state: string): string {
+    const key = CHECKPOINT_STATE_KEYS[state];
+    return key ? tr(key) : state;
+  }
+
   function stateLabel(state?: string): string {
     if (!state) return tr("ui.ownApp.health.unknown");
     const key = `ui.ownApp.state.${state}`;
-    const text = tr(key);
-    return text === key ? state : text;
+    return isMessageKey(key) ? tr(key) : state;
   }
 </script>
 
@@ -85,7 +110,7 @@
       <dd>{stateLabel(status?.state)}</dd>
       <dt class="text-muted-foreground">{tr("ui.ownApp.health")}</dt>
       <dd data-testid="own-app-health">
-        {tr(`ui.ownApp.health.${health}`)}
+        {tr(HEALTH_KEYS[health] ?? "ui.ownApp.health.unknown")}
         {#if status?.at}<span class="text-xs text-muted-foreground">
             · {formatDateTime(status.at)}</span
           >{/if}
@@ -109,7 +134,7 @@
           })}
         </p>
         <p class="text-xs text-muted-foreground">
-          {tr(`ui.ownApp.checkpointState.${checkpoint.state}`)}
+          {checkpointStateLabel(checkpoint.state)}
         </p>
         <div class="flex flex-wrap gap-2">
           {#if ownApplicationGrants(component, "checkpoint_rollback")}

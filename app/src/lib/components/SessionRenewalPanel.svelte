@@ -6,12 +6,12 @@
    * renews in place and then runs the page's action again.
    */
   import { sessionRenewal } from "#lib/auth/session-renewal.svelte.js";
-  import { tr } from "#lib/i18n.svelte.js";
+  import { tr, type MessageKey } from "#lib/i18n.svelte.js";
   import Button from "#lib/components/ui/Button.svelte";
 
   interface Props {
     /** Message id for the body copy; defaults to the pending explanation. */
-    bodyKey?: string;
+    bodyKey?: MessageKey;
     /** Runs the page's action again once the session is renewed. */
     onRenewed?: () => void | Promise<void>;
   }

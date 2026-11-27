@@ -4518,9 +4518,38 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "adopt_compose_project": {
+            "default": false,
+            "description": "Stack it plan only: adopt the whole Compose project the container belongs to instead of the single container.",
+            "type": "boolean"
+          },
+          "cpus": {
+            "description": "Stack it plan only: CPU limit of the rebuilt application in cores. Omitted keeps the proposed limit.",
+            "maximum": 4,
+            "minimum": 0.1,
+            "type": "number"
+          },
           "expected_inventory_revision": {
             "format": "int64",
             "minimum": 1,
+            "type": "integer"
+          },
+          "http_port": {
+            "description": "Stack it plan only: the container port the web UI listens on. Omitted keeps the detected port.",
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "http_service": {
+            "description": "Stack it plan only, with adopt_compose_project true: the Compose service that serves the web UI.",
+            "maxLength": 63,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$",
+            "type": "string"
+          },
+          "memory_mib": {
+            "description": "Stack it plan only: memory limit of the rebuilt application in MiB. Omitted keeps the proposed limit.",
+            "maximum": 8192,
+            "minimum": 64,
             "type": "integer"
           },
           "mode": {
@@ -4530,6 +4559,18 @@
               "restore_original",
               "release_original"
             ],
+            "type": "string"
+          },
+          "no_outbound": {
+            "default": false,
+            "description": "Stack it plan only: block outbound network access of the rebuilt application.",
+            "type": "boolean"
+          },
+          "own_application_name": {
+            "description": "Stack it plan only (mode stack_it): the own application name the container becomes. Lowercase letters, digits and single hyphens, starting with a letter, and not starting with kombify or stackkit. Omitted keeps the name derived from the container.",
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
             "type": "string"
           },
           "owner_approved": {
@@ -12578,6 +12619,104 @@
       }
     },
     {
+      "name": "get_service_enrichment",
+      "title": "Read the catalog proposal (display name, vendor, links, logo) for one service",
+      "description": "Resolves the application metadata kombify proposes for one service of the caller's own stacks: the recognized catalog entry when the image, container name or labels match one, otherwise a fallback proposal that a connected-mode web lookup may complete (homepage and documentation links). The lookup is read-only and cached; it never changes the service. A service of another owner reads as not found.",
+      "requiredCapability": "homelab.inventory.read",
+      "operationId": "getServiceEnrichment",
+      "http": {
+        "method": "GET",
+        "path": "/api/v1/services/{serviceId}/enrichment"
+      },
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "service_id": {
+            "description": "Canonical service runtime ID",
+            "type": "string"
+          }
+        },
+        "required": [
+          "service_id"
+        ],
+        "type": "object"
+      },
+      "outputSchema": {
+        "description": "Application metadata kombify proposes for a service or query; every fact except source is omitted when unknown.",
+        "properties": {
+          "brand_domain": {
+            "type": "string"
+          },
+          "catalog_id": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "docs_url": {
+            "type": "string"
+          },
+          "homepage_url": {
+            "type": "string"
+          },
+          "icon_url": {
+            "type": "string"
+          },
+          "logo": {
+            "properties": {
+              "dark_url": {
+                "type": "string"
+              },
+              "light_url": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "url",
+              "source"
+            ],
+            "type": "object"
+          },
+          "logo_removed": {
+            "description": "kombify removed the logo on request; clients must not draw it from another source.",
+            "type": "boolean"
+          },
+          "source": {
+            "description": "Where the proposal comes from: `catalog` for a recognized entry, `fallback` for a derived guess, or the name of the connected-mode lookup provider that completed it (for example `tinyfish`, `exa` or `parallel`).",
+            "type": "string"
+          },
+          "source_repo": {
+            "type": "string"
+          },
+          "vendor_name": {
+            "type": "string"
+          },
+          "web_port": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
       "name": "get_service_logs",
       "title": "Read service logs",
       "description": "Returns the newest page that `request_service_logs` collected for this service and cursor: `queued` or `running` while the node is still collecting it, `completed` with redacted entries and `next_cursor`, or `empty` when no page was requested yet. Reading never contacts the node.",
@@ -12853,6 +12992,15 @@
           "catalog": {
             "description": "Recognized application facts, or category unknown with the generic Kombify icon.",
             "properties": {
+              "adoption_mode": {
+                "description": "Recommended adoption path for an observed application.",
+                "enum": [
+                  "adopt_in_place",
+                  "stack_it",
+                  "connect_existing"
+                ],
+                "type": "string"
+              },
               "brand_domain": {
                 "type": "string"
               },
@@ -12862,12 +13010,82 @@
               "display_name": {
                 "type": "string"
               },
+              "docs_url": {
+                "description": "Upstream documentation or guide URL.",
+                "format": "uri",
+                "type": "string"
+              },
+              "evidence": {
+                "description": "The recognition layer that named the application.",
+                "enum": [
+                  "label",
+                  "image",
+                  "name",
+                  "http_fingerprint",
+                  "released_catalog"
+                ],
+                "type": "string"
+              },
+              "first_class_package": {
+                "description": "Canonical StackKits package id when spectrum_tier is first_class.",
+                "type": "string"
+              },
+              "guide_url": {
+                "format": "uri",
+                "type": "string"
+              },
+              "homepage_url": {
+                "format": "uri",
+                "type": "string"
+              },
               "icon_url": {
                 "description": "Kombify-hosted PNG logo or generic service icon.",
                 "format": "uri",
                 "type": "string"
               },
               "id": {
+                "type": "string"
+              },
+              "logo": {
+                "properties": {
+                  "dark_url": {
+                    "type": "string"
+                  },
+                  "light_url": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "url",
+                  "source"
+                ],
+                "type": "object"
+              },
+              "logo_removed": {
+                "description": "kombify removed the logo on request; clients must not draw it from another source.",
+                "type": "boolean"
+              },
+              "spectrum_tier": {
+                "description": "Recognition spectrum of the application: a StackKits first-class use case, a known catalog application or a custom application.",
+                "enum": [
+                  "first_class",
+                  "known_catalog",
+                  "custom_app"
+                ],
+                "type": "string"
+              },
+              "use_case_slug": {
+                "description": "StackKits first-class use case slug when spectrum_tier is first_class.",
+                "type": "string"
+              },
+              "vendor_name": {
+                "description": "Human-readable upstream vendor or project name.",
                 "type": "string"
               },
               "web_port": {
@@ -14678,6 +14896,15 @@
               "catalog": {
                 "description": "Recognized application facts, or category unknown with the generic Kombify icon.",
                 "properties": {
+                  "adoption_mode": {
+                    "description": "Recommended adoption path for an observed application.",
+                    "enum": [
+                      "adopt_in_place",
+                      "stack_it",
+                      "connect_existing"
+                    ],
+                    "type": "string"
+                  },
                   "brand_domain": {
                     "type": "string"
                   },
@@ -14687,12 +14914,82 @@
                   "display_name": {
                     "type": "string"
                   },
+                  "docs_url": {
+                    "description": "Upstream documentation or guide URL.",
+                    "format": "uri",
+                    "type": "string"
+                  },
+                  "evidence": {
+                    "description": "The recognition layer that named the application.",
+                    "enum": [
+                      "label",
+                      "image",
+                      "name",
+                      "http_fingerprint",
+                      "released_catalog"
+                    ],
+                    "type": "string"
+                  },
+                  "first_class_package": {
+                    "description": "Canonical StackKits package id when spectrum_tier is first_class.",
+                    "type": "string"
+                  },
+                  "guide_url": {
+                    "format": "uri",
+                    "type": "string"
+                  },
+                  "homepage_url": {
+                    "format": "uri",
+                    "type": "string"
+                  },
                   "icon_url": {
                     "description": "Kombify-hosted PNG logo or generic service icon.",
                     "format": "uri",
                     "type": "string"
                   },
                   "id": {
+                    "type": "string"
+                  },
+                  "logo": {
+                    "properties": {
+                      "dark_url": {
+                        "type": "string"
+                      },
+                      "light_url": {
+                        "type": "string"
+                      },
+                      "source": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "url",
+                      "source"
+                    ],
+                    "type": "object"
+                  },
+                  "logo_removed": {
+                    "description": "kombify removed the logo on request; clients must not draw it from another source.",
+                    "type": "boolean"
+                  },
+                  "spectrum_tier": {
+                    "description": "Recognition spectrum of the application: a StackKits first-class use case, a known catalog application or a custom application.",
+                    "enum": [
+                      "first_class",
+                      "known_catalog",
+                      "custom_app"
+                    ],
+                    "type": "string"
+                  },
+                  "use_case_slug": {
+                    "description": "StackKits first-class use case slug when spectrum_tier is first_class.",
+                    "type": "string"
+                  },
+                  "vendor_name": {
+                    "description": "Human-readable upstream vendor or project name.",
                     "type": "string"
                   },
                   "web_port": {
@@ -14737,7 +15034,7 @@
                 "type": "string"
               },
               "move": {
-                "description": "Present only when this one application can be moved now with POST /api/v1/stacks/{kit_deployment_id}/relocations (engine native, workloads [workload_ref]); absent otherwise.",
+                "description": "Present when the Placement Board has move eligibility facts for this one application: `destinations` are the servers it can be moved to now with POST /api/v1/stacks/{kit_deployment_id}/relocations (engine native, workloads [workload_ref]), `ineligible_destinations` are the other servers with the reason a drop there is blocked, and `warnings` are non-blocking pre-flight notices for the admitted destinations. `destinations` is empty when every other server is blocked. Absent when the application cannot move at all.",
                 "properties": {
                   "destinations": {
                     "items": {
@@ -14759,11 +15056,68 @@
                       ],
                       "type": "object"
                     },
-                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "ineligible_destinations": {
+                    "items": {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "unsupported_adapter",
+                            "multi_app_use_case",
+                            "local_hardware_bound",
+                            "insufficient_capacity",
+                            "same_stack_deployment",
+                            "destination_not_relocatable",
+                            "server_not_ready"
+                          ],
+                          "type": "string"
+                        },
+                        "reason": {
+                          "description": "Human-readable explanation of the blocked drop.",
+                          "type": "string"
+                        },
+                        "server_id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "server_id",
+                        "code",
+                        "reason"
+                      ],
+                      "type": "object"
+                    },
                     "type": "array"
                   },
                   "source_agent_id": {
                     "type": "string"
+                  },
+                  "warnings": {
+                    "items": {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "direct_transfer_network_required",
+                            "encrypted_relay_transport"
+                          ],
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "server_id": {
+                          "description": "The admitted destination the notice is about.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
                   },
                   "workload_ref": {
                     "type": "string"
@@ -15196,6 +15550,15 @@
               "catalog": {
                 "description": "Recognized application facts, or category unknown with the generic Kombify icon.",
                 "properties": {
+                  "adoption_mode": {
+                    "description": "Recommended adoption path for an observed application.",
+                    "enum": [
+                      "adopt_in_place",
+                      "stack_it",
+                      "connect_existing"
+                    ],
+                    "type": "string"
+                  },
                   "brand_domain": {
                     "type": "string"
                   },
@@ -15205,12 +15568,82 @@
                   "display_name": {
                     "type": "string"
                   },
+                  "docs_url": {
+                    "description": "Upstream documentation or guide URL.",
+                    "format": "uri",
+                    "type": "string"
+                  },
+                  "evidence": {
+                    "description": "The recognition layer that named the application.",
+                    "enum": [
+                      "label",
+                      "image",
+                      "name",
+                      "http_fingerprint",
+                      "released_catalog"
+                    ],
+                    "type": "string"
+                  },
+                  "first_class_package": {
+                    "description": "Canonical StackKits package id when spectrum_tier is first_class.",
+                    "type": "string"
+                  },
+                  "guide_url": {
+                    "format": "uri",
+                    "type": "string"
+                  },
+                  "homepage_url": {
+                    "format": "uri",
+                    "type": "string"
+                  },
                   "icon_url": {
                     "description": "Kombify-hosted PNG logo or generic service icon.",
                     "format": "uri",
                     "type": "string"
                   },
                   "id": {
+                    "type": "string"
+                  },
+                  "logo": {
+                    "properties": {
+                      "dark_url": {
+                        "type": "string"
+                      },
+                      "light_url": {
+                        "type": "string"
+                      },
+                      "source": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "url",
+                      "source"
+                    ],
+                    "type": "object"
+                  },
+                  "logo_removed": {
+                    "description": "kombify removed the logo on request; clients must not draw it from another source.",
+                    "type": "boolean"
+                  },
+                  "spectrum_tier": {
+                    "description": "Recognition spectrum of the application: a StackKits first-class use case, a known catalog application or a custom application.",
+                    "enum": [
+                      "first_class",
+                      "known_catalog",
+                      "custom_app"
+                    ],
+                    "type": "string"
+                  },
+                  "use_case_slug": {
+                    "description": "StackKits first-class use case slug when spectrum_tier is first_class.",
+                    "type": "string"
+                  },
+                  "vendor_name": {
+                    "description": "Human-readable upstream vendor or project name.",
                     "type": "string"
                   },
                   "web_port": {
@@ -15255,7 +15688,7 @@
                 "type": "string"
               },
               "move": {
-                "description": "Present only when this one application can be moved now with POST /api/v1/stacks/{kit_deployment_id}/relocations (engine native, workloads [workload_ref]); absent otherwise.",
+                "description": "Present when the Placement Board has move eligibility facts for this one application: `destinations` are the servers it can be moved to now with POST /api/v1/stacks/{kit_deployment_id}/relocations (engine native, workloads [workload_ref]), `ineligible_destinations` are the other servers with the reason a drop there is blocked, and `warnings` are non-blocking pre-flight notices for the admitted destinations. `destinations` is empty when every other server is blocked. Absent when the application cannot move at all.",
                 "properties": {
                   "destinations": {
                     "items": {
@@ -15277,11 +15710,68 @@
                       ],
                       "type": "object"
                     },
-                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "ineligible_destinations": {
+                    "items": {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "unsupported_adapter",
+                            "multi_app_use_case",
+                            "local_hardware_bound",
+                            "insufficient_capacity",
+                            "same_stack_deployment",
+                            "destination_not_relocatable",
+                            "server_not_ready"
+                          ],
+                          "type": "string"
+                        },
+                        "reason": {
+                          "description": "Human-readable explanation of the blocked drop.",
+                          "type": "string"
+                        },
+                        "server_id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "server_id",
+                        "code",
+                        "reason"
+                      ],
+                      "type": "object"
+                    },
                     "type": "array"
                   },
                   "source_agent_id": {
                     "type": "string"
+                  },
+                  "warnings": {
+                    "items": {
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "direct_transfer_network_required",
+                            "encrypted_relay_transport"
+                          ],
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "server_id": {
+                          "description": "The admitted destination the notice is about.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
                   },
                   "workload_ref": {
                     "type": "string"
@@ -17191,6 +17681,15 @@
                 "catalog": {
                   "description": "Recognized application facts, or category unknown with the generic Kombify icon.",
                   "properties": {
+                    "adoption_mode": {
+                      "description": "Recommended adoption path for an observed application.",
+                      "enum": [
+                        "adopt_in_place",
+                        "stack_it",
+                        "connect_existing"
+                      ],
+                      "type": "string"
+                    },
                     "brand_domain": {
                       "type": "string"
                     },
@@ -17200,12 +17699,82 @@
                     "display_name": {
                       "type": "string"
                     },
+                    "docs_url": {
+                      "description": "Upstream documentation or guide URL.",
+                      "format": "uri",
+                      "type": "string"
+                    },
+                    "evidence": {
+                      "description": "The recognition layer that named the application.",
+                      "enum": [
+                        "label",
+                        "image",
+                        "name",
+                        "http_fingerprint",
+                        "released_catalog"
+                      ],
+                      "type": "string"
+                    },
+                    "first_class_package": {
+                      "description": "Canonical StackKits package id when spectrum_tier is first_class.",
+                      "type": "string"
+                    },
+                    "guide_url": {
+                      "format": "uri",
+                      "type": "string"
+                    },
+                    "homepage_url": {
+                      "format": "uri",
+                      "type": "string"
+                    },
                     "icon_url": {
                       "description": "Kombify-hosted PNG logo or generic service icon.",
                       "format": "uri",
                       "type": "string"
                     },
                     "id": {
+                      "type": "string"
+                    },
+                    "logo": {
+                      "properties": {
+                        "dark_url": {
+                          "type": "string"
+                        },
+                        "light_url": {
+                          "type": "string"
+                        },
+                        "source": {
+                          "type": "string"
+                        },
+                        "url": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "url",
+                        "source"
+                      ],
+                      "type": "object"
+                    },
+                    "logo_removed": {
+                      "description": "kombify removed the logo on request; clients must not draw it from another source.",
+                      "type": "boolean"
+                    },
+                    "spectrum_tier": {
+                      "description": "Recognition spectrum of the application: a StackKits first-class use case, a known catalog application or a custom application.",
+                      "enum": [
+                        "first_class",
+                        "known_catalog",
+                        "custom_app"
+                      ],
+                      "type": "string"
+                    },
+                    "use_case_slug": {
+                      "description": "StackKits first-class use case slug when spectrum_tier is first_class.",
+                      "type": "string"
+                    },
+                    "vendor_name": {
+                      "description": "Human-readable upstream vendor or project name.",
                       "type": "string"
                     },
                     "web_port": {
@@ -17250,7 +17819,7 @@
                   "type": "string"
                 },
                 "move": {
-                  "description": "Present only when this one application can be moved now with POST /api/v1/stacks/{kit_deployment_id}/relocations (engine native, workloads [workload_ref]); absent otherwise.",
+                  "description": "Present when the Placement Board has move eligibility facts for this one application: `destinations` are the servers it can be moved to now with POST /api/v1/stacks/{kit_deployment_id}/relocations (engine native, workloads [workload_ref]), `ineligible_destinations` are the other servers with the reason a drop there is blocked, and `warnings` are non-blocking pre-flight notices for the admitted destinations. `destinations` is empty when every other server is blocked. Absent when the application cannot move at all.",
                   "properties": {
                     "destinations": {
                       "items": {
@@ -17272,11 +17841,68 @@
                         ],
                         "type": "object"
                       },
-                      "minItems": 1,
+                      "type": "array"
+                    },
+                    "ineligible_destinations": {
+                      "items": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "unsupported_adapter",
+                              "multi_app_use_case",
+                              "local_hardware_bound",
+                              "insufficient_capacity",
+                              "same_stack_deployment",
+                              "destination_not_relocatable",
+                              "server_not_ready"
+                            ],
+                            "type": "string"
+                          },
+                          "reason": {
+                            "description": "Human-readable explanation of the blocked drop.",
+                            "type": "string"
+                          },
+                          "server_id": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "server_id",
+                          "code",
+                          "reason"
+                        ],
+                        "type": "object"
+                      },
                       "type": "array"
                     },
                     "source_agent_id": {
                       "type": "string"
+                    },
+                    "warnings": {
+                      "items": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "direct_transfer_network_required",
+                              "encrypted_relay_transport"
+                            ],
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "server_id": {
+                            "description": "The admitted destination the notice is about.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "message"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
                     },
                     "workload_ref": {
                       "type": "string"
@@ -19546,9 +20172,38 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "adopt_compose_project": {
+            "default": false,
+            "description": "Stack it plan only: adopt the whole Compose project the container belongs to instead of the single container.",
+            "type": "boolean"
+          },
+          "cpus": {
+            "description": "Stack it plan only: CPU limit of the rebuilt application in cores. Omitted keeps the proposed limit.",
+            "maximum": 4,
+            "minimum": 0.1,
+            "type": "number"
+          },
           "expected_inventory_revision": {
             "format": "int64",
             "minimum": 1,
+            "type": "integer"
+          },
+          "http_port": {
+            "description": "Stack it plan only: the container port the web UI listens on. Omitted keeps the detected port.",
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "http_service": {
+            "description": "Stack it plan only, with adopt_compose_project true: the Compose service that serves the web UI.",
+            "maxLength": 63,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$",
+            "type": "string"
+          },
+          "memory_mib": {
+            "description": "Stack it plan only: memory limit of the rebuilt application in MiB. Omitted keeps the proposed limit.",
+            "maximum": 8192,
+            "minimum": 64,
             "type": "integer"
           },
           "mode": {
@@ -19558,6 +20213,18 @@
               "restore_original",
               "release_original"
             ],
+            "type": "string"
+          },
+          "no_outbound": {
+            "default": false,
+            "description": "Stack it plan only: block outbound network access of the rebuilt application.",
+            "type": "boolean"
+          },
+          "own_application_name": {
+            "description": "Stack it plan only (mode stack_it): the own application name the container becomes. Lowercase letters, digits and single hyphens, starting with a letter, and not starting with kombify or stackkit. Omitted keeps the name derived from the container.",
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
             "type": "string"
           },
           "owner_approved": {
@@ -20142,6 +20809,102 @@
       },
       "outputSchema": {
         "properties": {
+          "detected_existing_apps": {
+            "description": "Applications already observed on the intent's existing server, classified on the 3-tier recognition spectrum for the takeover step. Omitted when none are found or no existing server is selected.",
+            "items": {
+              "description": "One application observed on an existing server and where it sits on the recognition spectrum.",
+              "properties": {
+                "adoption_mode": {
+                  "description": "Recommended adoption path.",
+                  "enum": [
+                    "adopt_in_place",
+                    "stack_it",
+                    "connect_existing"
+                  ],
+                  "type": "string"
+                },
+                "app_id": {
+                  "type": "string"
+                },
+                "compose_project": {
+                  "type": "string"
+                },
+                "container_id": {
+                  "type": "string"
+                },
+                "display_name": {
+                  "type": "string"
+                },
+                "docs_url": {
+                  "type": "string"
+                },
+                "first_class_package": {
+                  "description": "Canonical StackKits package id when spectrum_tier is first_class.",
+                  "type": "string"
+                },
+                "homepage_url": {
+                  "type": "string"
+                },
+                "icon_url": {
+                  "type": "string"
+                },
+                "logo": {
+                  "properties": {
+                    "dark_url": {
+                      "type": "string"
+                    },
+                    "light_url": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "url",
+                    "source"
+                  ],
+                  "type": "object"
+                },
+                "ports": {
+                  "items": {
+                    "type": "integer"
+                  },
+                  "type": "array"
+                },
+                "service_id": {
+                  "type": "string"
+                },
+                "spectrum_tier": {
+                  "enum": [
+                    "first_class",
+                    "known_catalog",
+                    "custom_app"
+                  ],
+                  "type": "string"
+                },
+                "use_case_slug": {
+                  "description": "StackKits first-class use case slug when spectrum_tier is first_class.",
+                  "type": "string"
+                },
+                "vendor_name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "service_id",
+                "app_id",
+                "display_name",
+                "spectrum_tier",
+                "adoption_mode"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
           "effective_intent": {
             "type": "object"
           },
@@ -20430,6 +21193,74 @@
           "assessment": {
             "additionalProperties": true,
             "description": "Exact producer stackkit.application-adoption-plan/v1 assessment; never contains credentials.",
+            "type": "object"
+          },
+          "catalog_proposal": {
+            "description": "Mode stack_it only: the catalog proposal (display name, vendor, links, logo) kombify derived for the source container, so the review step can show it next to the plan.",
+            "properties": {
+              "brand_domain": {
+                "type": "string"
+              },
+              "catalog_id": {
+                "type": "string"
+              },
+              "category": {
+                "type": "string"
+              },
+              "display_name": {
+                "type": "string"
+              },
+              "docs_url": {
+                "type": "string"
+              },
+              "homepage_url": {
+                "type": "string"
+              },
+              "icon_url": {
+                "type": "string"
+              },
+              "logo": {
+                "properties": {
+                  "dark_url": {
+                    "type": "string"
+                  },
+                  "light_url": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "url",
+                  "source"
+                ],
+                "type": "object"
+              },
+              "logo_removed": {
+                "description": "kombify removed the logo on request; clients must not draw it from another source.",
+                "type": "boolean"
+              },
+              "source": {
+                "description": "Where the proposal comes from: `catalog` for a recognized entry, `fallback` for a derived guess, or the name of the connected-mode lookup provider that completed it (for example `tinyfish`, `exa` or `parallel`).",
+                "type": "string"
+              },
+              "source_repo": {
+                "type": "string"
+              },
+              "vendor_name": {
+                "type": "string"
+              },
+              "web_port": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "source"
+            ],
             "type": "object"
           },
           "error": {
@@ -21174,6 +22005,102 @@
           },
           "decision_context_hash": {
             "type": "string"
+          },
+          "detected_existing_apps": {
+            "description": "Applications already observed on the selected existing server, classified on the 3-tier recognition spectrum for the takeover step. Omitted when none are found or no existing server is selected.",
+            "items": {
+              "description": "One application observed on an existing server and where it sits on the recognition spectrum.",
+              "properties": {
+                "adoption_mode": {
+                  "description": "Recommended adoption path.",
+                  "enum": [
+                    "adopt_in_place",
+                    "stack_it",
+                    "connect_existing"
+                  ],
+                  "type": "string"
+                },
+                "app_id": {
+                  "type": "string"
+                },
+                "compose_project": {
+                  "type": "string"
+                },
+                "container_id": {
+                  "type": "string"
+                },
+                "display_name": {
+                  "type": "string"
+                },
+                "docs_url": {
+                  "type": "string"
+                },
+                "first_class_package": {
+                  "description": "Canonical StackKits package id when spectrum_tier is first_class.",
+                  "type": "string"
+                },
+                "homepage_url": {
+                  "type": "string"
+                },
+                "icon_url": {
+                  "type": "string"
+                },
+                "logo": {
+                  "properties": {
+                    "dark_url": {
+                      "type": "string"
+                    },
+                    "light_url": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "url",
+                    "source"
+                  ],
+                  "type": "object"
+                },
+                "ports": {
+                  "items": {
+                    "type": "integer"
+                  },
+                  "type": "array"
+                },
+                "service_id": {
+                  "type": "string"
+                },
+                "spectrum_tier": {
+                  "enum": [
+                    "first_class",
+                    "known_catalog",
+                    "custom_app"
+                  ],
+                  "type": "string"
+                },
+                "use_case_slug": {
+                  "description": "StackKits first-class use case slug when spectrum_tier is first_class.",
+                  "type": "string"
+                },
+                "vendor_name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "service_id",
+                "app_id",
+                "display_name",
+                "spectrum_tier",
+                "adoption_mode"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           },
           "generated_at": {
             "format": "date-time",
@@ -21933,9 +22860,38 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "adopt_compose_project": {
+            "default": false,
+            "description": "Stack it plan only: adopt the whole Compose project the container belongs to instead of the single container.",
+            "type": "boolean"
+          },
+          "cpus": {
+            "description": "Stack it plan only: CPU limit of the rebuilt application in cores. Omitted keeps the proposed limit.",
+            "maximum": 4,
+            "minimum": 0.1,
+            "type": "number"
+          },
           "expected_inventory_revision": {
             "format": "int64",
             "minimum": 1,
+            "type": "integer"
+          },
+          "http_port": {
+            "description": "Stack it plan only: the container port the web UI listens on. Omitted keeps the detected port.",
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "http_service": {
+            "description": "Stack it plan only, with adopt_compose_project true: the Compose service that serves the web UI.",
+            "maxLength": 63,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$",
+            "type": "string"
+          },
+          "memory_mib": {
+            "description": "Stack it plan only: memory limit of the rebuilt application in MiB. Omitted keeps the proposed limit.",
+            "maximum": 8192,
+            "minimum": 64,
             "type": "integer"
           },
           "mode": {
@@ -21945,6 +22901,18 @@
               "restore_original",
               "release_original"
             ],
+            "type": "string"
+          },
+          "no_outbound": {
+            "default": false,
+            "description": "Stack it plan only: block outbound network access of the rebuilt application.",
+            "type": "boolean"
+          },
+          "own_application_name": {
+            "description": "Stack it plan only (mode stack_it): the own application name the container becomes. Lowercase letters, digits and single hyphens, starting with a letter, and not starting with kombify or stackkit. Omitted keeps the name derived from the container.",
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
             "type": "string"
           },
           "owner_approved": {
@@ -23603,9 +24571,38 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "adopt_compose_project": {
+            "default": false,
+            "description": "Stack it plan only: adopt the whole Compose project the container belongs to instead of the single container.",
+            "type": "boolean"
+          },
+          "cpus": {
+            "description": "Stack it plan only: CPU limit of the rebuilt application in cores. Omitted keeps the proposed limit.",
+            "maximum": 4,
+            "minimum": 0.1,
+            "type": "number"
+          },
           "expected_inventory_revision": {
             "format": "int64",
             "minimum": 1,
+            "type": "integer"
+          },
+          "http_port": {
+            "description": "Stack it plan only: the container port the web UI listens on. Omitted keeps the detected port.",
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "http_service": {
+            "description": "Stack it plan only, with adopt_compose_project true: the Compose service that serves the web UI.",
+            "maxLength": 63,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$",
+            "type": "string"
+          },
+          "memory_mib": {
+            "description": "Stack it plan only: memory limit of the rebuilt application in MiB. Omitted keeps the proposed limit.",
+            "maximum": 8192,
+            "minimum": 64,
             "type": "integer"
           },
           "mode": {
@@ -23615,6 +24612,18 @@
               "restore_original",
               "release_original"
             ],
+            "type": "string"
+          },
+          "no_outbound": {
+            "default": false,
+            "description": "Stack it plan only: block outbound network access of the rebuilt application.",
+            "type": "boolean"
+          },
+          "own_application_name": {
+            "description": "Stack it plan only (mode stack_it): the own application name the container becomes. Lowercase letters, digits and single hyphens, starting with a letter, and not starting with kombify or stackkit. Omitted keeps the name derived from the container.",
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
             "type": "string"
           },
           "owner_approved": {

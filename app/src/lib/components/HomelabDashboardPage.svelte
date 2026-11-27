@@ -1,6 +1,6 @@
 <script lang="ts">
   import LoadingNote from "#lib/components/ui/LoadingNote.svelte";
-  import { tr, trn } from "#lib/i18n.svelte.js";
+  import { tr, trn, type MessageKey } from "#lib/i18n.svelte.js";
   import { onMount } from "svelte";
   import { createAppQuickActions } from "#lib/services/app-quick-actions.svelte.js";
   import {
@@ -176,7 +176,7 @@
     return () => clearInterval(interval);
   });
   let sessionRenewalRequired = $state(false);
-  let sessionRenewalBodyKey = $state<string | undefined>(undefined);
+  let sessionRenewalBodyKey = $state<MessageKey | undefined>(undefined);
   type DashboardFailure = NonNullable<
     StackOperationsPayload["latestFailure"]
   > & {

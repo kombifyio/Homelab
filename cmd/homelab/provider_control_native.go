@@ -15,6 +15,7 @@ import (
 	"github.com/kombifyio/homelab/internal/substrateruntime"
 	"github.com/kombifyio/homelab/pkg/agentcontrol"
 	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/db/backgroundlock"
 	"github.com/kombifyio/homelab/pkg/jobs"
 	"github.com/kombifyio/homelab/pkg/logger"
 	"github.com/kombifyio/homelab/pkg/vmleases"
@@ -261,9 +262,13 @@ func composeNativeProviderControlParts(database *sql.DB, edition config.Edition,
 	if err != nil {
 		return nativeProviderControl{}, fmt.Errorf("compose provider-control job manager: %w", err)
 	}
+	// One cluster-wide lock session serves every provider-control loop below.
+	// It holds at most one connection of the small provider-control pool, and
+	// only while one of their passes runs.
+	backgroundLock := backgroundlock.New(database)
 	staleCapacityRecovery, err := providercontroljobs.NewStaleCapacityRecovery(
 		providercontroljobs.StaleCapacityRecoveryConfig{
-			Database: database, Decommissioner: manager,
+			Database: database, Decommissioner: manager, Lock: backgroundLock,
 			OnError: func(recoveryErr error) {
 				if log != nil {
 					log.Warn("provider_control_stale_capacity_recovery_blocked", "error", recoveryErr)
@@ -280,7 +285,7 @@ func composeNativeProviderControlParts(database *sql.DB, edition config.Edition,
 	if !neverEnrolledRecoveryDisabled() {
 		neverEnrolledRecovery, neverEnrolledErr := providercontroljobs.NewNeverEnrolledRecovery(
 			providercontroljobs.NeverEnrolledRecoveryConfig{
-				Database: database, Decommissioner: manager,
+				Database: database, Decommissioner: manager, Lock: backgroundLock,
 				EnrollmentWindow: neverEnrolledRecoveryWindowFromEnv(log),
 				OnReap: func(candidate providercontroljobs.NeverEnrolledRecoveryCandidate) {
 					if log != nil {
@@ -307,7 +312,7 @@ func composeNativeProviderControlParts(database *sql.DB, edition config.Edition,
 			return nativeProviderControl{}, fmt.Errorf("register never-enrolled managed runtime recovery: %w", err)
 		}
 	}
-	if err := registerManagedLeaseRenewal(runtime, database, edition, log); err != nil {
+	if err := registerManagedLeaseRenewal(runtime, database, backgroundLock, edition, log); err != nil {
 		return nativeProviderControl{}, err
 	}
 	return nativeProviderControl{
@@ -351,7 +356,7 @@ func neverEnrolledRecoveryWindowFromEnv(log *logger.Logger) time.Duration {
 // owner's subscription entitles it (platform-2xnsxf). Administration is the
 // authority, so the loop runs only on the hosted edition with a service
 // identity that can read it; elsewhere no managed subscription lease exists.
-func registerManagedLeaseRenewal(runtime *providercontrol.Runtime, database *sql.DB, edition config.Edition, log *logger.Logger) error {
+func registerManagedLeaseRenewal(runtime *providercontrol.Runtime, database *sql.DB, lock *backgroundlock.Locker, edition config.Edition, log *logger.Logger) error {
 	if !edition.IsSaaS() {
 		return nil
 	}
@@ -363,7 +368,7 @@ func registerManagedLeaseRenewal(runtime *providercontrol.Runtime, database *sql
 		return nil
 	}
 	renewal, err := providercontroljobs.NewManagedLeaseRenewal(providercontroljobs.ManagedLeaseRenewalConfig{
-		Database: database, Renewer: vmleases.NewPostgresStore(database), Entitlements: entitlements,
+		Database: database, Renewer: vmleases.NewPostgresStore(database), Entitlements: entitlements, Lock: lock,
 		OnEvent: func(event providercontroljobs.ManagedLeaseRenewalEvent) { logManagedLeaseRenewal(log, event) },
 		OnError: func(renewalErr error) {
 			if log != nil {

@@ -131,6 +131,7 @@ func composeBackupScanner(deps *routeDeps, encryptor *storageauth.SecretEncrypto
 		Store:     schedules,
 		Admission: admission,
 		Enqueuer:  orch,
+		Lock:      boot.backgroundLock,
 		OnError: func(scanErr error) {
 			if log != nil {
 				log.Warn("backup_scan_pass_blocked", "error", scanErr)

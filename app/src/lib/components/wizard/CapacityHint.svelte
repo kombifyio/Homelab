@@ -12,7 +12,7 @@
 <script lang="ts">
   import { MemoryStick } from "@lucide/svelte";
   import { Button } from "@kombiverselabs/ui/primitives";
-  import { formatNumber, tr } from "#lib/i18n.svelte.js";
+  import { formatNumber, tr, type MessageKey } from "#lib/i18n.svelte.js";
   import { useCaseTitle } from "#lib/wizard/creationGoalText.js";
   import type {
     CapacityHint as CapacityHintModel,
@@ -41,7 +41,7 @@
     have: gb(hint.haveGb),
     existing: gb(hint.existingHaveGb ?? 0),
   });
-  const driverKeys: Record<string, string> = {
+  const driverKeys: Record<string, MessageKey> = {
     photos_smart_search: "capacity.driver.photosSmartSearch",
     photos_lite: "capacity.driver.photosLite",
     photos_ente: "capacity.driver.photosEnte",
@@ -59,7 +59,7 @@
   const driverLabels = $derived(
     (hint.drivers ?? [])
       .map((driver) => driverKeys[driver.code])
-      .filter((key): key is string => Boolean(key))
+      .filter((key): key is MessageKey => Boolean(key))
       .map((key) => tr(key)),
   );
 </script>

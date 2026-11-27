@@ -1,6 +1,12 @@
 <script lang="ts">
   import LoadingNote from "#lib/components/ui/LoadingNote.svelte";
-  import { tr, trn, stateLabel, formatDate } from "#lib/i18n.svelte.js";
+  import {
+    tr,
+    trn,
+    stateLabel,
+    formatDate,
+    type MessageKey,
+  } from "#lib/i18n.svelte.js";
   import { onMount } from "svelte";
   import { MediaQuery } from "svelte/reactivity";
   import { goto, pushState, replaceState } from "$app/navigation";
@@ -398,6 +404,14 @@
     kitDeployments: registry.kit_deployments,
   });
 
+  const PLACEMENT_KEYS: Record<ServicePlacement, MessageKey> = {
+    cloud: "ui.services.placement.cloud",
+    local: "ui.services.placement.local",
+    managed: "ui.services.placement.managed",
+    serverless: "ui.services.placement.managed",
+    unknown: "ui.services.placement.unknown",
+  };
+
   function runtimeServicePlacement(
     runtime: CanonicalService,
     service?: RegistryService,
@@ -484,7 +498,7 @@
                   runtime.server_id ||
                   tr("ui.services.thisHomelab"),
               })
-            : `${service?.type || runtime.service_key || tr("ui.services.serviceFallback")} · ${tr(`ui.services.placement.${placement}`)}`,
+            : `${service?.type || runtime.service_key || tr("ui.services.serviceFallback")} · ${tr(PLACEMENT_KEYS[placement])}`,
         placement: cardPlacement,
         status: resolveServiceCardStatus(cardSource),
         statusLabel: label(runtimeState),

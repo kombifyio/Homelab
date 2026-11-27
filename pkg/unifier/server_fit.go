@@ -171,7 +171,6 @@ func evaluateServerFit(request core.WizardRecommendationRequest, inventory Wizar
 		if fit.ProviderID == monthlyruntime.ProviderIONOS && fit.OfferingID == "monthly-runtime-standard" {
 			request.ComputeProfile = ""
 		}
-		sku := ""
 		if fit.ProviderID == monthlyruntime.ProviderIONOS && fit.OfferingID == "monthly-runtime-standard" {
 			if catalogErr != nil {
 				addUnknown("catalog_footprint_unavailable", "", "")
@@ -184,7 +183,6 @@ func evaluateServerFit(request core.WizardRecommendationRequest, inventory Wizar
 			}
 		}
 		pkg, err := resolveManagedPackageForRequest(catalog, catalogErr, request, fit.ProviderID, fit.OfferingID)
-		_ = sku
 		if err != nil {
 			fit.Status = FitStatusDoesNotFit
 			fit.RefusalClass = RefusalClassUnavailableProvider
@@ -195,10 +193,6 @@ func evaluateServerFit(request core.WizardRecommendationRequest, inventory Wizar
 		if !offeringAllowedInRequest(request, fit.OfferingID) {
 			entitlementDenied = true
 			addAdvisory("entitlement_required", "", fit.OfferingID)
-			fit.Deficits = append(fit.Deficits, core.WizardServerFitFact{
-				Code:   "entitlement_required",
-				Module: fit.OfferingID,
-			})
 		}
 		hostMeasured = true
 		fit.Template = pkg.Template
@@ -244,6 +238,15 @@ func evaluateServerFit(request core.WizardRecommendationRequest, inventory Wizar
 		fit.Recovery = &core.WizardServerFitRecovery{Action: "refresh_inventory", ReasonCode: "catalog_footprint_unavailable"}
 		return fit
 	}
+	// The entitlement refusal is a deficit only for an evaluation that can
+	// leave pending, so it is recorded after the no_goals and catalog
+	// early returns and never travels with a pending result.
+	if entitlementDenied {
+		fit.Deficits = append(fit.Deficits, core.WizardServerFitFact{
+			Code:   "entitlement_required",
+			Module: fit.OfferingID,
+		})
+	}
 	if checkUnsupportedPhotoBackend(catalog, request, fit) {
 		return fit
 	}
@@ -253,6 +256,7 @@ func evaluateServerFit(request core.WizardRecommendationRequest, inventory Wizar
 		if errors.Is(err, stackkitrelease.ErrWorkloadOmittedOnProfile) {
 			return failUnsupportedProfileFit(catalog, request, fit)
 		}
+		fit.Deficits = []core.WizardServerFitFact{}
 		fit.Status = FitStatusPending
 		fit.PendingReason = "catalog_footprint_unavailable"
 		addUnknown("catalog_footprint_unavailable", "", "")
@@ -260,6 +264,7 @@ func evaluateServerFit(request core.WizardRecommendationRequest, inventory Wizar
 		return fit
 	}
 	if len(footprints) == 0 {
+		fit.Deficits = []core.WizardServerFitFact{}
 		fit.Status = FitStatusPending
 		fit.PendingReason = "catalog_footprint_unavailable"
 		addUnknown("catalog_footprint_unavailable", "", "")

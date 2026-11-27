@@ -3,6 +3,7 @@
  * key; a frame translates it. Answers arrive as plain facts, so this holds for
  * every frame and needs no app state.
  */
+import type { MessageKey } from "#lib/i18n.js";
 import type { CreationStepKey } from "./steps";
 
 export type CreationIssueField =
@@ -23,7 +24,7 @@ export interface CreationIssue {
   /** A blocker stops the step; a hint is only shown. */
   blocking: boolean;
   /** Message key, or `text` where the message is already written. */
-  messageKey?: string;
+  messageKey?: MessageKey;
   text?: string;
 }
 
@@ -53,9 +54,9 @@ export function creationStepIssues(
   facts: CreationFacts,
 ): CreationIssue[] {
   const issues: CreationIssue[] = [];
-  const blocker = (field: CreationIssueField, messageKey: string) =>
+  const blocker = (field: CreationIssueField, messageKey: MessageKey) =>
     issues.push({ field, blocking: true, messageKey });
-  const hint = (field: CreationIssueField, messageKey: string) =>
+  const hint = (field: CreationIssueField, messageKey: MessageKey) =>
     issues.push({ field, blocking: false, messageKey });
 
   switch (key) {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tr, trParts } from "#lib/i18n.svelte.js";
+  import { tr, trParts, type MessageKey } from "#lib/i18n.svelte.js";
   import ServerProvisioningStep from "./ServerProvisioningStep.svelte";
   import ServiceRegistrySelector from "./ServiceRegistrySelector.svelte";
   import InfoTip from "./InfoTip.svelte";
@@ -39,7 +39,7 @@
   }: Props = $props();
 
   const foundations = getStackKitFoundationChoices();
-  const foundationTips: Record<StackKitFoundation, { text: string; docs: string }> =
+  const foundationTips: Record<StackKitFoundation, { text: MessageKey; docs: string }> =
     {
       "basement-kit": {
         text: "wizard.tip.foundationBasement",
@@ -50,7 +50,7 @@
         docs: NODE_GUIDES.cloudKit,
       },
     };
-  const roleTips: Record<RegistryNodeRole, { text: string; docs: string }> = {
+  const roleTips: Record<RegistryNodeRole, { text: MessageKey; docs: string }> = {
     foundation: {
       text: "wizard.tip.roleFoundation",
       docs: NODE_GUIDES.roleFoundation,

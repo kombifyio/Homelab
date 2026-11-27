@@ -4,13 +4,13 @@
  * shows the Gateway's own guidance, and nothing at all falls back to a generic
  * message. Message IDs live in `messages/*.json`.
  */
-import { tr } from "#lib/i18n.svelte.js";
+import { tr, type MessageKey } from "#lib/i18n.svelte.js";
 import { WalletApiError } from "./wallet-api.js";
 import { SESSION_RENEWAL_PENDING_CODE } from "#lib/auth/session-renewal.svelte.js";
 import { WalletTransportClientError } from "./transport.js";
 import { parseScope } from "./item-types.js";
 
-const REASONS: Record<string, string> = {
+const REASONS: Record<string, MessageKey> = {
   [SESSION_RENEWAL_PENDING_CODE]: "kwallet.denied.auth_required",
   owner_unknown: "kwallet.denied.owner_unknown",
   wallet_owner_required: "kwallet.denied.owner_required",
@@ -39,7 +39,7 @@ const REASONS: Record<string, string> = {
   wallet_step_up_required: "kwallet.denied.step_up_required",
 };
 
-const TRANSPORT: Record<string, string> = {
+const TRANSPORT: Record<string, MessageKey> = {
   capture_key_invalid: "kwallet.denied.capture_key_untrusted",
   capture_key_untrusted: "kwallet.denied.capture_key_untrusted",
   owner_subject_invalid: "kwallet.denied.owner_unknown",
@@ -60,7 +60,7 @@ export function walletErrorMessage(error: unknown): string {
   return tr("kwallet.denied.transport");
 }
 
-const TYPES: Record<string, string> = {
+const TYPES: Record<string, MessageKey> = {
   generic_secret: "kwallet.type.generic_secret",
   login: "kwallet.type.login",
   variable: "kwallet.type.variable",
@@ -75,14 +75,15 @@ export function itemTypeLabel(itemType: string): string {
   return tr(TYPES[itemType] ?? "kwallet.type.other");
 }
 
-const STATES: Record<string, string> = {
+const STATES: Record<string, MessageKey> = {
   active: "kwallet.state.active",
   revoked: "kwallet.state.revoked",
   deleted: "kwallet.state.deleted",
 };
 
 export function itemStateLabel(state: string): string {
-  return STATES[state] ? tr(STATES[state]) : state;
+  const key = STATES[state];
+  return key ? tr(key) : state;
 }
 
 /**
@@ -107,7 +108,7 @@ export function scopeLabel(
   });
 }
 
-const FIELDS: Record<string, string> = {
+const FIELDS: Record<string, MessageKey> = {
   secret: "kwallet.field.secret",
   username: "kwallet.field.username",
   password: "kwallet.field.password",
@@ -122,5 +123,6 @@ const FIELDS: Record<string, string> = {
 };
 
 export function fieldLabel(field: string): string {
-  return FIELDS[field] ? tr(FIELDS[field]) : field;
+  const key = FIELDS[field];
+  return key ? tr(key) : field;
 }

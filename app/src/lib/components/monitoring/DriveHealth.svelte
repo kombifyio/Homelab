@@ -2,7 +2,12 @@
   import { untrack } from "svelte";
   import { HardDrive, RefreshCw } from "@lucide/svelte";
   import Button from "#lib/components/ui/Button.svelte";
-  import { tr, formatDateTime, formatNumber } from "#lib/i18n.svelte.js";
+  import {
+    isMessageKey,
+    tr,
+    formatDateTime,
+    formatNumber,
+  } from "#lib/i18n.svelte.js";
   import {
     getDriveHealth,
     driveCondition,
@@ -84,8 +89,7 @@
 
   function status(value: string): string {
     const key = `storage.drive.state.${value}`;
-    const message = tr(key);
-    return message === key ? tr("storage.drive.state.unknown") : message;
+    return isMessageKey(key) ? tr(key) : tr("storage.drive.state.unknown");
   }
 
   function alerts(
@@ -146,15 +150,33 @@
             ? "collection"
             : item.code;
     const key = `storage.drive.${step ? "step" : "alert"}.${base}`;
-    const message = tr(key);
-    return message === key
-      ? tr(`storage.drive.${step ? "stepUnknown" : "alertUnknown"}`)
-      : message;
+    return isMessageKey(key)
+      ? tr(key)
+      : tr(`storage.drive.${step ? "stepUnknown" : "alertUnknown"}`);
   }
 
-  function readings(value: DriveReading): { key: string; value: string }[] {
-    const rows: { key: string; value: string }[] = [];
-    const number = (key: string, field: number | null, suffix = "") => {
+  type DriveReadingKey =
+    | "smart"
+    | "selfTest"
+    | "temperature"
+    | "temperatureWarning"
+    | "temperatureCritical"
+    | "criticalWarning"
+    | "wear"
+    | "spare"
+    | "spareThreshold"
+    | "mediaErrors"
+    | "errorLog"
+    | "reallocated"
+    | "pending"
+    | "uncorrectable"
+    | "powerOn";
+
+  function readings(
+    value: DriveReading,
+  ): { key: DriveReadingKey; value: string }[] {
+    const rows: { key: DriveReadingKey; value: string }[] = [];
+    const number = (key: DriveReadingKey, field: number | null, suffix = "") => {
       rows.push({
         key,
         value:
@@ -163,7 +185,7 @@
             : tr("storage.drive.notReported"),
       });
     };
-    const counter = (key: string, field: string | null) => {
+    const counter = (key: DriveReadingKey, field: string | null) => {
       rows.push({ key, value: field ?? tr("storage.drive.notReported") });
     };
     rows.push({
@@ -202,11 +224,13 @@
     return rows;
   }
 
+  const NVME_BITS = [0, 1, 2, 3, 4, 5] as const;
+
   function nvmeWarnings(bits: number): string[] {
     if (!Number.isInteger(bits) || bits < 0 || bits > 255) return [];
-    const meanings = [0, 1, 2, 3, 4, 5]
-      .filter((bit) => (bits & (1 << bit)) !== 0)
-      .map((bit) => tr(`storage.drive.nvme.bit.${bit}`));
+    const meanings = NVME_BITS.filter((bit) => (bits & (1 << bit)) !== 0).map(
+      (bit) => tr(`storage.drive.nvme.bit.${bit}`),
+    );
     const unknown = bits & 0xc0;
     if (unknown)
       meanings.push(
@@ -235,7 +259,11 @@
           >
             <p class="font-medium">
               {tr(
-                `storage.drive.severity.${["critical", "warning", "info"].includes(alert.severity) ? alert.severity : "warning"}`,
+                alert.severity === "critical" ||
+                  alert.severity === "warning" ||
+                  alert.severity === "info"
+                  ? `storage.drive.severity.${alert.severity}`
+                  : "storage.drive.severity.warning",
               )} · {alertMessage(alert)}
             </p>
             {#if alert.drive_id}<p class="mt-1 break-all font-mono text-xs">

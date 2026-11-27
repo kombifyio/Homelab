@@ -14,6 +14,7 @@ import type {
   OperatorSelfDisclosure,
   SelfDisclosureExperience,
 } from "#lib/api/operatorProfile.js";
+import type { MessageKey } from "#lib/i18n.js";
 import {
   CANONICAL_USE_CASE_GOALS,
   getEasyGoalQuestions,
@@ -135,10 +136,67 @@ export function creationUseCaseWizardConfig(
 
 /** One reviewed question with the message keys of its handed-over answers. */
 export interface SelfDisclosureReviewRow {
-  question: string;
-  questionKey: string;
-  answerKeys: string[];
+  question: SelfDisclosureQuestion;
+  questionKey: MessageKey;
+  answerKeys: MessageKey[];
 }
+
+type SelfDisclosureQuestion =
+  | "experience"
+  | "goals"
+  | "placement"
+  | "hardware"
+  | "household"
+  | "motivations";
+
+const EXPERIENCE_KEYS: Record<SelfDisclosureExperience, MessageKey> = {
+  "hands-off": "wizard.selfDisclosure.experience.hands-off",
+  guided: "wizard.selfDisclosure.experience.guided",
+  curious: "wizard.selfDisclosure.experience.curious",
+  techie: "wizard.selfDisclosure.experience.techie",
+  expert: "wizard.selfDisclosure.experience.expert",
+};
+
+const PLACEMENT_KEYS: Record<(typeof PLACEMENTS)[number], MessageKey> = {
+  home: "wizard.selfDisclosure.placement.home",
+  rented: "wizard.selfDisclosure.placement.rented",
+  both: "wizard.selfDisclosure.placement.both",
+  unsure: "wizard.selfDisclosure.placement.unsure",
+};
+
+const HARDWARE_KEYS: Record<(typeof HARDWARE)[number], MessageKey> = {
+  "none-yet": "wizard.selfDisclosure.hardware.none-yet",
+  "old-pc": "wizard.selfDisclosure.hardware.old-pc",
+  "mini-pc": "wizard.selfDisclosure.hardware.mini-pc",
+  nas: "wizard.selfDisclosure.hardware.nas",
+  "raspberry-pi": "wizard.selfDisclosure.hardware.raspberry-pi",
+  "rented-server": "wizard.selfDisclosure.hardware.rented-server",
+};
+
+const HOUSEHOLD_KEYS: Record<(typeof HOUSEHOLDS)[number], MessageKey> = {
+  "just-me": "wizard.selfDisclosure.household.just-me",
+  household: "wizard.selfDisclosure.household.household",
+  "friends-family": "wizard.selfDisclosure.household.friends-family",
+  "small-team": "wizard.selfDisclosure.household.small-team",
+};
+
+const MOTIVATION_KEYS: Record<(typeof MOTIVATIONS)[number], MessageKey> = {
+  privacy: "wizard.selfDisclosure.motivation.privacy",
+  "replace-subscriptions":
+    "wizard.selfDisclosure.motivation.replace-subscriptions",
+  learning: "wizard.selfDisclosure.motivation.learning",
+  family: "wizard.selfDisclosure.motivation.family",
+  projects: "wizard.selfDisclosure.motivation.projects",
+};
+
+const QUESTION_KEYS: Record<SelfDisclosureQuestion, MessageKey> = {
+  experience: "wizard.selfDisclosure.question.experience",
+  goals: "wizard.selfDisclosure.question.goals",
+  placement: "wizard.selfDisclosure.question.placement",
+  hardware: "wizard.selfDisclosure.question.hardware",
+  household: "wizard.selfDisclosure.question.household",
+  motivations: "wizard.selfDisclosure.question.motivations",
+};
 
 /**
  * The handed-over answers as message keys, in capture order, so the operator
@@ -147,42 +205,55 @@ export interface SelfDisclosureReviewRow {
 export function selfDisclosureReviewRows(
   disclosure: OperatorSelfDisclosure,
 ): SelfDisclosureReviewRow[] {
-  const goalTitles = new Map<string, string>(
+  const goalTitles = new Map<string, MessageKey>(
     getEasyGoalQuestions().map((question) => [question.key, question.titleKey]),
   );
-  const rows: [string, string[]][] = [
+  const rows: [SelfDisclosureQuestion, MessageKey[]][] = [
     [
       "experience",
-      disclosure.experience
-        ? [`wizard.selfDisclosure.experience.${disclosure.experience}`]
-        : [],
+      disclosure.experience ? [EXPERIENCE_KEYS[disclosure.experience]] : [],
     ],
     [
       "goals",
-      (disclosure.goals ?? []).flatMap((goal) => goalTitles.get(goal) ?? []),
+      (disclosure.goals ?? []).flatMap((goal) => {
+        const key = goalTitles.get(goal);
+        return key ? [key] : [];
+      }),
     ],
     [
       "placement",
-      disclosure.placement
-        ? [`wizard.selfDisclosure.placement.${disclosure.placement}`]
+      disclosure.placement && disclosure.placement in PLACEMENT_KEYS
+        ? [
+            PLACEMENT_KEYS[
+              disclosure.placement as (typeof PLACEMENTS)[number]
+            ],
+          ]
         : [],
     ],
     [
       "hardware",
-      (disclosure.hardware ?? []).map(
-        (item) => `wizard.selfDisclosure.hardware.${item}`,
+      (disclosure.hardware ?? []).flatMap((item) =>
+        item in HARDWARE_KEYS
+          ? [HARDWARE_KEYS[item as (typeof HARDWARE)[number]]]
+          : [],
       ),
     ],
     [
       "household",
-      disclosure.household
-        ? [`wizard.selfDisclosure.household.${disclosure.household}`]
+      disclosure.household && disclosure.household in HOUSEHOLD_KEYS
+        ? [
+            HOUSEHOLD_KEYS[
+              disclosure.household as (typeof HOUSEHOLDS)[number]
+            ],
+          ]
         : [],
     ],
     [
       "motivations",
-      (disclosure.motivations ?? []).map(
-        (item) => `wizard.selfDisclosure.motivation.${item}`,
+      (disclosure.motivations ?? []).flatMap((item) =>
+        item in MOTIVATION_KEYS
+          ? [MOTIVATION_KEYS[item as (typeof MOTIVATIONS)[number]]]
+          : [],
       ),
     ],
   ];
@@ -190,7 +261,7 @@ export function selfDisclosureReviewRows(
     .filter(([, answerKeys]) => answerKeys.length > 0)
     .map(([question, answerKeys]) => ({
       question,
-      questionKey: `wizard.selfDisclosure.question.${question}`,
+      questionKey: QUESTION_KEYS[question],
       answerKeys,
     }));
 }

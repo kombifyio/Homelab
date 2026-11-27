@@ -26,7 +26,7 @@
     type StackConfig,
     type ManagedProviderID,
   } from "#lib/wizard/index.js";
-  import { tr } from "#lib/i18n.svelte.js";
+  import { tr, type MessageKey } from "#lib/i18n.svelte.js";
   import { useCreationContext } from "#lib/creation/context.js";
   import { shouldDowngradeManagedRuntimeSelection } from "#lib/wizard/managed-runtime-selection.js";
   import { managedProviders } from "#lib/wizard/managed-providers.js";
@@ -60,7 +60,7 @@
     serverFit?: ServerFit;
   } = $props();
   const provisioningModes = getServerProvisioningModeChoices();
-  const sourceTips: Record<string, { text: string; docs: string }> = {
+  const sourceTips: Record<string, { text: MessageKey; docs: string }> = {
     "install-command": {
       text: "wizard.tip.installCommand",
       docs: NODE_GUIDES.pairing,
@@ -72,7 +72,12 @@
     "kombify-cloud": { text: "wizard.tip.managed", docs: NODE_GUIDES.managed },
     partner: { text: "wizard.tip.partner", docs: NODE_GUIDES.sources },
   };
-  const partnerChoice = {
+  const partnerChoice: {
+    value: string;
+    titleKey: MessageKey;
+    descriptionKey: MessageKey;
+    testId: string;
+  } = {
     value: "partner",
     titleKey: "wizard.server.partner.title",
     descriptionKey: "wizard.server.partner.description",

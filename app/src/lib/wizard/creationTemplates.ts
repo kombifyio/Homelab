@@ -4,6 +4,7 @@ import {
 } from "./creationGoals.js";
 import { installsService } from "#lib/api/useCaseCatalog.js";
 import type { ProStarterEvaluation } from "#lib/api/unifier.js";
+import type { MessageKey } from "#lib/i18n.js";
 import type { GoalConfigKey } from "./standardBundle.js";
 
 /** Selection templates (profiles) above the use case cards: one click selects
@@ -53,8 +54,8 @@ export const CREATION_TEMPLATES = [
 ] as const satisfies readonly {
   id: string;
   icon: CreationTemplateIcon;
-  titleKey: string;
-  descriptionKey: string;
+  titleKey: MessageKey;
+  descriptionKey: MessageKey;
   /** The profile's own colour: its chip and its share of a card's ring. */
   color: string;
   goals: readonly CreationGoalId[] | "all";

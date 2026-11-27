@@ -7,14 +7,14 @@
  * Homelab save credentials in the Wallet, or let it use one item.
  * `WalletPromptHost` (mounted once in the layout) shows the prompt.
  */
-import { tr } from "#lib/i18n.svelte.js";
+import { tr, type MessageKey } from "#lib/i18n.svelte.js";
 import { WALLET_ITEM_ID } from "./item-types.js";
 
 export const WALLET_CREATE_RIGHT_MISSING = "wallet_create_right_missing";
 export const WALLET_RIGHT_MISSING = "wallet_right_missing";
 
 /** Reason codes with a localized message, by message id. */
-const MESSAGES: Record<string, string> = {
+const MESSAGES: Record<string, MessageKey> = {
   wallet_item_required: "kwallet.api.wallet_item_required",
   wallet_item_invalid: "kwallet.api.wallet_item_invalid",
   wallet_item_unsupported: "kwallet.api.wallet_item_unsupported",
@@ -85,7 +85,8 @@ export function walletDenialOf(refusal: Refusal): WalletDenial | null {
 export function walletDenialMessage(denial: WalletDenial): string {
   if (denial.reason === WALLET_RIGHT_MISSING && denial.requiredRight === "use")
     return tr("kwallet.api.wallet_right_missing_use");
-  return tr(MESSAGES[denial.reason] ?? denial.reason);
+  const key = MESSAGES[denial.reason];
+  return key ? tr(key) : denial.reason;
 }
 
 export type WalletPromptRequest =

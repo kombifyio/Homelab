@@ -10,6 +10,7 @@
  */
 
 import type { Component } from "svelte";
+import type { MessageKey } from "#lib/i18n.js";
 import {
   Activity,
   Wallet,
@@ -25,7 +26,7 @@ import {
 export interface NavItem {
   id: string;
   href: string;
-  labelKey: string; // i18n key
+  labelKey: MessageKey; // i18n key
   labelFallback: string; // Fallback if i18n not available
   icon: Component;
   feature?: string; // Feature flag name (optional): hidden while the flag is off
@@ -40,7 +41,7 @@ export interface NavItem {
 
 export interface NavGroup {
   id: string;
-  titleKey?: string;
+  titleKey?: MessageKey;
   titleFallback?: string;
   items: NavItem[];
 }

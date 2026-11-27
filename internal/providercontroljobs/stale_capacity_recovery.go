@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kombifyio/homelab/pkg/db/backgroundlock"
 	"github.com/kombifyio/homelab/pkg/jobs"
 	"github.com/kombifyio/homelab/pkg/releasechannel"
 )
@@ -25,6 +26,8 @@ type StaleCapacityRecoveryConfig struct {
 	BatchSize      int
 	Interval       time.Duration
 	OnError        func(error)
+	// Lock serializes passes across replicas. Nil runs them unlocked.
+	Lock *backgroundlock.Locker
 }
 
 // StaleCapacityRecovery closes the operational gap left by destroy jobs that
@@ -39,6 +42,7 @@ type StaleCapacityRecovery struct {
 	batchSize      int
 	interval       time.Duration
 	onError        func(error)
+	lock           *backgroundlock.Locker
 	cursorMu       sync.Mutex
 	afterTenant    string
 	afterLease     string
@@ -66,7 +70,7 @@ func NewStaleCapacityRecovery(cfg StaleCapacityRecoveryConfig) (*StaleCapacityRe
 	}
 	return &StaleCapacityRecovery{
 		database: cfg.Database, decommissioner: cfg.Decommissioner,
-		batchSize: cfg.BatchSize, interval: cfg.Interval, onError: cfg.OnError,
+		batchSize: cfg.BatchSize, interval: cfg.Interval, onError: cfg.OnError, lock: cfg.Lock,
 	}, nil
 }
 
@@ -88,9 +92,13 @@ func (r *StaleCapacityRecovery) Run(ctx context.Context) {
 }
 
 func (r *StaleCapacityRecovery) runPass(ctx context.Context) {
-	if err := r.RecoverOnce(ctx); err != nil && !errors.Is(err, context.Canceled) && r.onError != nil {
-		r.onError(err)
-	}
+	runLockedPass(ctx, r.lock, staleCapacityRecoveryLock, r.RecoverOnce, r.resetCursor, r.onError)
+}
+
+func (r *StaleCapacityRecovery) resetCursor() {
+	r.cursorMu.Lock()
+	defer r.cursorMu.Unlock()
+	r.afterTenant, r.afterLease = "", ""
 }
 
 func (r *StaleCapacityRecovery) RecoverOnce(ctx context.Context) error {

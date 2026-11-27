@@ -24,7 +24,7 @@
     type EntityLabels,
   } from "@kombiverselabs/ui/entity";
   import { Sparkles } from "@lucide/svelte";
-  import { tr } from "#lib/i18n.svelte.js";
+  import { isMessageKey, tr, type MessageKey } from "#lib/i18n.svelte.js";
   import ErrorCallout from "#lib/components/ui/ErrorCallout.svelte";
   import LoadingNote from "#lib/components/ui/LoadingNote.svelte";
   import { authStore } from "#lib/stores/auth.svelte.js";
@@ -109,11 +109,21 @@
     places.state === "ready" ? factoryGroups(places.items) : [],
   );
 
+  const AGENT_GROUP_KEYS: Record<string, MessageKey> = {
+    ai: "actors.group.ai",
+    server: "actors.group.server",
+    support: "actors.group.support",
+    other: "actors.group.other",
+  };
+
+  function agentGroupLabel(group: string | undefined): string {
+    return tr((group && AGENT_GROUP_KEYS[group]) || "actors.group.other");
+  }
+
   function tierLabel(tier: string | undefined): string | undefined {
     if (!tier) return undefined;
     const key = `actors.tier.${tier}`;
-    const label = tr(key);
-    return label === key ? tier : label;
+    return isMessageKey(key) ? tr(key) : tier;
   }
 
   function agentStatus(agent: AgentActor): string | undefined {
@@ -337,12 +347,12 @@
     {#each agentGroups as entry (entry.group)}
       <div class="space-y-2">
         <h3 class="text-sm font-medium text-muted-foreground">
-          {tr(`actors.group.${entry.group}`)}
+          {agentGroupLabel(entry.group)}
         </h3>
         <EntityCollection
           items={entry.items as Actor[]}
           key={(actor) => actor.key}
-          label={tr(`actors.group.${entry.group}`)}
+          label={agentGroupLabel(entry.group)}
           {view}
           views={[view]}
           item={actorCard}
@@ -418,10 +428,7 @@
       : [
           selectedActor.agentType &&
             tr(`actors.agentType.${selectedActor.agentType}`),
-          selectedActor.group &&
-            tr(
-              `actors.group.${(AGENT_GROUPS as readonly string[]).includes(selectedActor.group) ? selectedActor.group : "other"}`,
-            ),
+          selectedActor.group && agentGroupLabel(selectedActor.group),
         ].filter((tag): tag is string => Boolean(tag))}
     facts={actorFacts(selectedActor)}
     {labels}
