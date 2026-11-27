@@ -44,6 +44,12 @@ var applicationCapabilityFunctions = []string{
 	"techstack_list_pending_job_tenants(text,integer)", "techstack_compact_pending_job_tenant(text)",
 	"techstack_list_drift_schedule_tenants(text,integer)", "techstack_compact_drift_schedule_tenant(text)",
 	"techstack_list_ril_workflow_tenants(text,integer)", "provider_control_runtime_authority()", "provider_incident_list_tenant_ids()",
+	// The tenant directory of the stacks table itself and digest-only archive
+	// verification (migration 207). The disk-custody import learns which
+	// tenants exist to map a stack directory on the disk to the tenant that
+	// owns it, and verifies archived rows without reading content bytes.
+	"techstack_list_stack_tenant_ids(text,integer)",
+	"techstack_control_plane_disk_archive_digest(text,text)",
 	"techstack_list_due_guard_reach(timestamp with time zone,text,text,integer)", "techstack_find_guard_reach_by_connect(text,text)",
 	"techstack_list_due_backup_schedules(timestamp with time zone,text,text,integer)", "techstack_list_due_backup_wipes(timestamp with time zone,text,text,integer)",
 	// The cross-tenant handoff key lookup (migration 170), called only after a
@@ -82,8 +88,10 @@ func loadApplicationPolicy(ctx context.Context, q PrivilegeQuerier, requireFunct
 	// created after the migration still receives them here. Registry directory
 	// inserts stay on the SECURITY DEFINER triggers.
 	global := map[string]string{
-		"managed_app_slot_reservations": "SELECT,INSERT,UPDATE",
-		"ionos_pool_generations":        "SELECT,INSERT,UPDATE", "ionos_pool_commands": "SELECT,INSERT,UPDATE", "ionos_pool_capacity": "SELECT",
+		"managed_app_slot_reservations":        "SELECT,INSERT,UPDATE",
+		"managed_runtime_support_replacements": "SELECT",
+		"stack_backup_replacement_handoffs":    "SELECT,INSERT,UPDATE",
+		"ionos_pool_generations":               "SELECT,INSERT,UPDATE", "ionos_pool_commands": "SELECT,INSERT,UPDATE", "ionos_pool_capacity": "SELECT",
 		"fly_machine_generations": "SELECT,INSERT,UPDATE", "fly_machine_commands": "SELECT,INSERT,UPDATE",
 		"schema_migrations": "SELECT", "techstack_users": "SELECT,INSERT,UPDATE", "techstack_tenants": "SELECT,INSERT,UPDATE",
 		"identity_providers": "SELECT", "feature_rollouts": "SELECT", "provider_catalog_versions": "SELECT",
@@ -91,8 +99,11 @@ func loadApplicationPolicy(ctx context.Context, q PrivilegeQuerier, requireFunct
 		"techstack_notification_outbox": "SELECT,INSERT,UPDATE", "ril_signal_delivery_tenants": "SELECT,INSERT,UPDATE,DELETE",
 		"server_maintenance_tenants": "SELECT,INSERT,UPDATE,DELETE", "guard_drive_health_tenants": "SELECT,INSERT,UPDATE",
 		"server_registry_sweep_tenants": "SELECT,UPDATE,DELETE", "server_registry_outbox_prune_tenants": "SELECT,UPDATE,DELETE",
-		// Migration 174: the data-disk custody. Pins and archive rows are
-		// added and read, never changed or removed by the runtime.
+		// Migration 174 + 207 (expand): the data-disk custody. Pins and archive
+		// rows are added and read, never changed or removed by the runtime.
+		// Direct SELECT on control_plane_disk_archive stays admitted during
+		// this expand step until the follow-up contract migration revokes it
+		// once all running binaries use techstack_control_plane_disk_archive_digest.
 		"runtime_host_key_pins": "SELECT,INSERT", "control_plane_disk_archive": "SELECT,INSERT",
 		// Migration 176: a pin retires only through the provider-absence
 		// trigger; the runtime reads the record to drop a retired file pin.

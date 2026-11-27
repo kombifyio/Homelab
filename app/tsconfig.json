@@ -2,11 +2,15 @@
   "extends": ["$app/tsconfig", "@kombify/tsconfig/base.json"],
   "compilerOptions": {
     "rewriteRelativeImportExtensions": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "paths": {
+      "#lib/paraglide/*": ["./src/lib/paraglide-ambient.d.ts"]
+    }
   },
   // The SvelteKit 3 codemod narrows this to ["src"]; Homelab type-checked
   // its Playwright specs and Vitest mocks before the migration, so the
   // pre-migration coverage (src + test + tests + the Vite config, which also
   // holds the Vitest configuration) is kept.
-  "include": ["src", "test", "tests", "vite.config.ts"]
+  "include": ["src", "test", "tests", "vite.config.ts"],
+  "exclude": ["src/lib/paraglide"]
 }

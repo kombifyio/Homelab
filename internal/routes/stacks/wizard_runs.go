@@ -50,6 +50,7 @@ import (
 	"github.com/kombifyio/homelab/pkg/httpx"
 	"github.com/kombifyio/homelab/pkg/jobs"
 	"github.com/kombifyio/homelab/pkg/kombifywallet"
+	"github.com/kombifyio/homelab/pkg/monthlyruntime"
 	"github.com/kombifyio/homelab/pkg/orchestrator"
 	"github.com/kombifyio/homelab/pkg/specv2"
 	"github.com/kombifyio/homelab/pkg/unifier"
@@ -207,9 +208,6 @@ func RegisterWizardRunRoutes(r *httpx.Router, cfg WizardRunRouteConfig) {
 // durable remote-enrollment executor uses the same construction so the queue
 // handler and the HTTP routes share one wallet/pairing custody path.
 func newWizardRunHandlers(cfg WizardRunRouteConfig) wizardRunHandlers {
-	if !cfg.DeploymentMode.IsValid() {
-		cfg.DeploymentMode = config.ModeSelfHosted
-	}
 	if cfg.IdentityRuntime == nil && cfg.Orch != nil {
 		cfg.IdentityRuntime = orchestratorWizardIdentityRuntime{orch: cfg.Orch}
 	}
@@ -345,11 +343,82 @@ func (h wizardRunHandlers) createWizardRun(e *httpx.Event) error {
 	if handled := h.prepareWizardRun(e, &run); handled {
 		return nil
 	}
+	storedProviderID := ""
+	storedOfferingID := ""
+	if run.resumeStack != nil && run.request.Intent.KitAssignment.Mode == wizardRunKindFound {
+		storedProviderID = firstNonEmpty(
+			fieldString(run.resumeStack.RuntimeSummary, "provider_id"),
+			fieldString(run.resumeStack.Config, "provider_id"),
+			runtimeStringFromConfig(run.resumeStack.Config, "provider_id"),
+		)
+		storedOfferingID = firstNonEmpty(
+			fieldString(run.resumeStack.RuntimeSummary, "runtime_offering_id"),
+			fieldString(run.resumeStack.Config, "runtime_offering_id"),
+			runtimeStringFromConfig(run.resumeStack.Config, "runtime_offering_id"),
+		)
+		if storedOfferingID == "" && storedProviderID != "" {
+			storedOfferingID = string(monthlyruntime.DefaultOfferingID())
+		}
+	}
 	if managed := run.request.Managed; managed != nil && (strings.TrimSpace(managed.ProviderID) != managed.ProviderID || strings.TrimSpace(managed.RuntimeOfferingID) != managed.RuntimeOfferingID) {
 		return httpx.BadRequest(e, "Managed provider and offering must use canonical identifiers")
 	}
-	if managed := run.request.Managed; managed != nil && managed.ProviderID == "ionos" && strings.TrimSpace(managed.RuntimeOfferingID) == "" {
-		managed.RuntimeOfferingID = "monthly-runtime-standard"
+	if run.resumeStack != nil && run.request.Intent.KitAssignment.Mode == wizardRunKindFound && storedProviderID != "" {
+		if wizardRunTransport(run.request) != specv2.TransportKombifyCloud {
+			return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
+				"Resumed managed deployment cannot change provisioning transport", wizardRunDetails(
+					"wizard_resume_managed_conflict", false,
+					"Deployment transport mismatch",
+					"Retry with the same managed provider and offering as the existing deployment.",
+				))
+		}
+		if managed := run.request.Managed; managed != nil {
+			if managed.ProviderID != "" && managed.ProviderID != storedProviderID {
+				return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
+					"Resumed managed deployment cannot change provider", wizardRunDetails(
+						"wizard_resume_managed_conflict", false,
+						"Deployment provider mismatch",
+						"Retry with the same provider and offering as the existing deployment.",
+					))
+			}
+			if managed.RuntimeOfferingID != "" && storedOfferingID != "" && managed.RuntimeOfferingID != storedOfferingID {
+				return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
+					"Resumed managed deployment cannot change offering", wizardRunDetails(
+						"wizard_resume_managed_conflict", false,
+						"Deployment offering mismatch",
+						"Retry with the same provider and offering as the existing deployment.",
+					))
+			}
+			managed.ProviderID = storedProviderID
+			managed.RuntimeOfferingID = storedOfferingID
+		} else {
+			run.request.Managed = &wizardRunManagedParams{
+				ProviderID:        storedProviderID,
+				RuntimeOfferingID: storedOfferingID,
+				ProviderRegion: firstNonEmpty(
+					fieldString(run.resumeStack.RuntimeSummary, "provider_region"),
+					fieldString(run.resumeStack.Config, "provider_region"),
+					runtimeStringFromConfig(run.resumeStack.Config, "provider_region"),
+				),
+				IONOSDatacenter: firstNonEmpty(
+					fieldString(run.resumeStack.RuntimeSummary, "ionos_datacenter"),
+					fieldString(run.resumeStack.Config, "ionos_datacenter"),
+					runtimeStringFromConfig(run.resumeStack.Config, "ionos_datacenter"),
+				),
+			}
+		}
+	}
+	if wizardRunTransport(run.request) == specv2.TransportKombifyCloud &&
+		(run.request.Managed == nil || strings.TrimSpace(run.request.Managed.ProviderID) == "") {
+		return httpx.Error(e, http.StatusBadRequest, ksapi.ErrCodeValidation,
+			"Managed provider selection is required", wizardRunDetails(
+				"wizard_managed_provider_required", false,
+				"Select a managed provider",
+				"Choose a managed provider before starting this managed deployment.",
+			))
+	}
+	if managed := run.request.Managed; managed != nil && strings.TrimSpace(managed.RuntimeOfferingID) == "" {
+		managed.RuntimeOfferingID = string(monthlyruntime.DefaultOfferingID())
 	}
 	if backend, ok := run.request.Intent.UseCaseSettings["photos"]["backend"].(string); ok && backend != strings.TrimSpace(backend) {
 		return httpx.BadRequest(e, "Photo backend must use a canonical identifier")
@@ -371,26 +440,68 @@ func (h wizardRunHandlers) createWizardRun(e *httpx.Event) error {
 			})
 		}
 	}
+	if managed := run.request.Managed; managed != nil {
+		providerID := strings.TrimSpace(managed.ProviderID)
+		offeringID := strings.TrimSpace(managed.RuntimeOfferingID)
+		if offeringID == "" {
+			offeringID = string(monthlyruntime.DefaultOfferingID())
+		}
+		lane := monthlyruntime.DeploymentLaneFromMode(h.crud.deploymentMode)
+		denyManagedEntitlement := func(decision monthlyruntime.ManagedRuntimeEntitlementDecision) error {
+			details := decision.Details()
+			if refusalClass, _ := details["refusal_class"].(string); refusalClass == "" {
+				details["refusal_class"] = unifier.RefusalClassEntitlement
+			}
+			details["runtime_offering_id"] = offeringID
+			if lane != "" {
+				details["deployment_lane"] = string(lane)
+			}
+			details["choices_retained"] = true
+			details["requested_intent"] = run.request.Intent
+			return httpx.Error(e, http.StatusForbidden, ksapi.ErrCodeForbidden, decision.Message, details)
+		}
+		if decision := monthlyruntime.EvaluateManagedRuntimeEntitlement(e.Request.Context(), h.crud.runtimeFeatures, run.ownerID, providerID); decision.Denied {
+			return denyManagedEntitlement(decision)
+		}
+		if decision := monthlyruntime.EvaluateManagedRuntimeOfferingEntitlement(e.Request.Context(), lane, providerID, offeringID); decision.Denied {
+			return denyManagedEntitlement(decision)
+		}
+	}
 	if h.crud.runtimeFeatures != nil {
 		enabled, flagErr := h.crud.runtimeFeatures.IsEnabled(e.Request.Context(), "ionos_standard_photo_memory", ownerID)
 		run.ionosMemoryEnabled = flagErr == nil && enabled
 	}
 	// Recompute at admission without relying on client-supplied capacity or a preview.
-	if managed := run.request.Managed; managed != nil && run.resumeStack == nil && run.request.Intent.KitAssignment.Mode == wizardRunKindFound && managed.ProviderID != "" && managed.RuntimeOfferingID != "" && h.crud.runtimeFeatures != nil {
+	if managed := run.request.Managed; managed != nil && run.request.Intent.KitAssignment.Mode == wizardRunKindFound && managed.ProviderID != "" && managed.RuntimeOfferingID != "" && h.crud.runtimeFeatures != nil {
 		enabled, flagErr := h.crud.runtimeFeatures.IsEnabled(e.Request.Context(), "server_hardware_fit", ownerID)
 		if (flagErr == nil && enabled) || run.ionosMemoryEnabled {
+			ionosMemoryForFit := run.ionosMemoryEnabled
+			if run.resumeStack != nil {
+				admittedPkg := firstNonEmpty(
+					fieldString(run.resumeStack.RuntimeSummary, "admitted_provider_package"),
+					fieldString(run.resumeStack.Config, "admitted_provider_package"),
+					runtimeStringFromConfig(run.resumeStack.Config, "admitted_provider_package"),
+				)
+				if admittedPkg == "Memory Cube S" {
+					ionosMemoryForFit = true
+				}
+			}
 			intent := run.request.Intent
+			lane := monthlyruntime.DeploymentLaneFromMode(h.crud.deploymentMode)
+			allowedOfferings := monthlyruntime.AllowedOfferingsForRequest(e.Request.Context(), lane, managed.ProviderID)
 			fit := unifier.EvaluateServerFit(core.WizardRecommendationRequest{
-				KitSlug:             intent.KitAssignment.KitSlug,
-				DeploymentLane:      "saas",
-				ProviderID:          managed.ProviderID,
-				RuntimeOfferingID:   managed.RuntimeOfferingID,
-				ServerFit:           &core.WizardServerFitRequest{ProviderID: managed.ProviderID, OfferingID: managed.RuntimeOfferingID, Source: "managed"},
-				IONOSMemoryEnabled:  run.ionosMemoryEnabled,
-				Goals:               intent.Goals,
-				Services:            run.request.Services,
-				UseCaseSettings:     intent.UseCaseSettings,
-				UseCaseCapabilities: intent.UseCaseCapabilities,
+				KitSlug:                    intent.KitAssignment.KitSlug,
+				DeploymentLane:             string(lane),
+				ProviderID:                 managed.ProviderID,
+				RuntimeOfferingID:          managed.RuntimeOfferingID,
+				ServerFit:                  &core.WizardServerFitRequest{ProviderID: managed.ProviderID, OfferingID: managed.RuntimeOfferingID, Source: "managed"},
+				IONOSMemoryEnabled:         ionosMemoryForFit,
+				AllowedOfferings:           allowedOfferings,
+				OfferingEntitlementChecked: true,
+				Goals:                      intent.Goals,
+				Services:                   run.request.Services,
+				UseCaseSettings:            intent.UseCaseSettings,
+				UseCaseCapabilities:        intent.UseCaseCapabilities,
 			}, unifier.WizardRecommendationInventory{})
 			if fit != nil && fit.Status == unifier.FitStatusDoesNotFit {
 				refusalClass := fit.RefusalClass
@@ -633,6 +744,17 @@ func (h wizardRunHandlers) decodeWizardRun(e *httpx.Event) (wizardRunRequest, sp
 	}
 	if !h.validateWizardGuestRequest(e, request) {
 		return request, requestedIntent, intentAdjustments, false
+	}
+	for key := range request.Owner {
+		if !isAllowedWizardOwnerOptionKey(key) {
+			_ = httpx.Error(e, http.StatusBadRequest, ksapi.ErrCodeValidation,
+				fmt.Sprintf("Unknown wizard owner option %q", key), wizardRunDetails(
+					"wizard_owner_option_invalid", false,
+					"Owner option rejected",
+					"The wizard owner payload contains an unsupported field.",
+				))
+			return request, requestedIntent, intentAdjustments, false
+		}
 	}
 	if denial := h.remoteCredentialSourceDenial(request); denial != nil {
 		_ = denial.Write(e)

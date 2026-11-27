@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	defaultEngineURL = "https://kombify-notifications.onrender.com"
+	defaultEngineURL = "https://kombify-notifications-6rm24ekzwa-ey.a.run.app"
 	issuer           = "kombify-homelab"
 	audience         = "kombify-notifications"
 	tokenTTL         = 5 * time.Minute

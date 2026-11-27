@@ -92,5 +92,7 @@ func IconURL(id string) string {
 // recognition. Its category remains unknown, it carries no logo, and its
 // icon is the generic one.
 func GenericEntry(name string) *Entry {
-	return &Entry{ID: "custom", DisplayName: name, Category: "unknown", IconURL: genericIconURL(loadGeneratedTable())}
+	entry := &Entry{ID: "custom", DisplayName: name, Category: "unknown", IconURL: genericIconURL(loadGeneratedTable())}
+	attachSpectrum(entry)
+	return entry
 }

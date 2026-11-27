@@ -19,7 +19,11 @@ const (
 	LeaseExecutionAuthorityLegacySimulate LeaseExecutionAuthority = "legacy_simulate"
 	// LeaseExecutionAuthorityHomelabProviderControl is the only authority
 	// eligible for newly admitted managed-provider operations.
-	LeaseExecutionAuthorityHomelabProviderControl LeaseExecutionAuthority = "techstack_provider_control"
+	// Phase 1 expand admits LeaseExecutionAuthorityHomelabProviderControlForward
+	// on read/validation while keeping writers on techstack_provider_control
+	// until Phase 2 cutover.
+	LeaseExecutionAuthorityHomelabProviderControl        LeaseExecutionAuthority = "techstack_provider_control"
+	LeaseExecutionAuthorityHomelabProviderControlForward LeaseExecutionAuthority = "homelab_provider_control"
 )
 
 var (
@@ -37,11 +41,21 @@ func normalizeLeaseExecutionAuthority(authority LeaseExecutionAuthority) LeaseEx
 	return LeaseExecutionAuthority(strings.ToLower(strings.TrimSpace(string(authority))))
 }
 
-func validateLeaseExecutionAuthority(authority LeaseExecutionAuthority) error {
+// IsHomelabProviderControlExecutionAuthority reports whether authority names
+// Homelab's native provider-control lane (transitional or forward spelling).
+func IsHomelabProviderControlExecutionAuthority(authority LeaseExecutionAuthority) bool {
 	switch normalizeLeaseExecutionAuthority(authority) {
-	case LeaseExecutionAuthorityLegacySimulate, LeaseExecutionAuthorityHomelabProviderControl:
-		return nil
+	case LeaseExecutionAuthorityHomelabProviderControl, LeaseExecutionAuthorityHomelabProviderControlForward:
+		return true
 	default:
-		return ErrLeaseExecutionAuthorityUnbound
+		return false
 	}
+}
+
+func validateLeaseExecutionAuthority(authority LeaseExecutionAuthority) error {
+	if normalizeLeaseExecutionAuthority(authority) == LeaseExecutionAuthorityLegacySimulate ||
+		IsHomelabProviderControlExecutionAuthority(authority) {
+		return nil
+	}
+	return ErrLeaseExecutionAuthorityUnbound
 }

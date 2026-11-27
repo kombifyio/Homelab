@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { AlertTriangle, Info } from "@lucide/svelte";
   import { tr } from "#lib/i18n.svelte.js";
   import Modal from "#lib/components/Modal.svelte";
   import Button from "#lib/components/ui/Button.svelte";
@@ -9,6 +10,7 @@
     readApplicationAdoption,
     executeApplicationAdoption,
     releaseApplicationAdoption,
+    type ApplicationAdoptionNotice,
     type CanonicalService,
     type ApplicationAdoptionPlan,
   } from "#lib/api/services.js";
@@ -76,6 +78,20 @@
       busy = false;
     }
   }
+  const KNOWN_NOTICE_CODES = new Set([
+    "custom_components_preserved",
+    "external_recorder_preserved",
+    "image_version_drift",
+    "usb_serial_devices_preserved",
+    "host_network_preserved",
+  ]);
+
+  function noticeText(notice: ApplicationAdoptionNotice): string {
+    return KNOWN_NOTICE_CODES.has(notice.code)
+      ? tr(`ui.services.adoptionNotice.${notice.code}`)
+      : notice.message;
+  }
+
   onMount(() => {
     if (!release) void prepare();
     else phase = "review";
@@ -105,6 +121,66 @@
         <dt>{tr("ui.services.adoptionData")}</dt>
         <dd class="break-all">{plan.assessment.source.configMount}</dd>
       </dl>
+      {#if plan.assessment.source.networkMode === "host" || (plan.assessment.source.preservedDevices?.length ?? 0) > 0 || plan.assessment.source.versionDrift}
+        <div
+          class="flex flex-wrap gap-1.5"
+          data-testid="service-adoption-badges"
+        >
+          {#if plan.assessment.source.networkMode === "host"}
+            <span
+              class="inline-flex items-center gap-1 rounded-md border border-border/70 bg-muted/40 px-2 py-0.5 text-xs text-foreground"
+              data-adoption-badge="host_network"
+            >
+              <Info class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              {tr("ui.services.adoptionBadgeHostNetwork")}
+            </span>
+          {/if}
+          {#if plan.assessment.source.preservedDevices && plan.assessment.source.preservedDevices.length > 0}
+            <span
+              class="inline-flex items-center gap-1 rounded-md border border-border/70 bg-muted/40 px-2 py-0.5 text-xs text-foreground"
+              data-adoption-badge="preserved_devices"
+            >
+              <Info class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              {tr("ui.services.adoptionBadgePreservedDevices", {
+                devices: plan.assessment.source.preservedDevices.join(", "),
+              })}
+            </span>
+          {/if}
+          {#if plan.assessment.source.versionDrift}
+            <span
+              class="inline-flex items-center gap-1 rounded-md border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs text-warning"
+              data-adoption-badge="version_drift"
+            >
+              <AlertTriangle class="h-3.5 w-3.5 shrink-0" />
+              {tr("ui.services.adoptionBadgeVersionDrift")}
+            </span>
+          {/if}
+        </div>
+      {/if}
+      {#if plan.assessment.notices && plan.assessment.notices.length > 0}
+        <ul
+          class="space-y-2"
+          data-testid="service-adoption-notices"
+        >
+          {#each plan.assessment.notices as notice (notice.code)}
+            <li
+              class="flex items-start gap-2 rounded-lg border p-2.5 text-xs {notice.severity ===
+              'warning'
+                ? 'border-warning/30 bg-warning/10 text-warning'
+                : 'border-border/70 bg-muted/40 text-foreground'}"
+              data-notice-code={notice.code}
+              data-notice-severity={notice.severity}
+            >
+              {#if notice.severity === "warning"}
+                <AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              {:else}
+                <Info class="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              {/if}
+              <span>{noticeText(notice)}</span>
+            </li>
+          {/each}
+        </ul>
+      {/if}
       <p class="text-sm">{tr("ui.services.adoptionPreserves")}</p>
       <p class="text-sm text-muted-foreground">
         {tr("ui.services.adoptionOperations")}

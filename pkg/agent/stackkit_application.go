@@ -1,6 +1,9 @@
 package agent
 
 import (
+	"slices"
+	"strconv"
+
 	"github.com/kombifyio/homelab/internal/stackkitrelease"
 	"github.com/kombifyio/homelab/pkg/api/agentpb"
 	"github.com/kombifyio/homelab/pkg/stackkitcommand"
@@ -71,7 +74,9 @@ func applicationArgValues(c *agentpb.StackKitCommand) map[string]string {
 }
 
 // stackKitApplicationStackArgs renders one "Stack it" phase from the pinned
-// release catalog; the release, not the Guard, owns the argv.
+// release catalog; the release, not the Guard, owns the argv. Optional plan
+// overrides (--http-port, --no-outbound, --memory-mib, --cpus) are rendered
+// only when explicitly set so adopt runs with the exact options of its plan.
 func stackKitApplicationStackArgs(release stackkitrelease.Release, c *agentpb.StackKitCommand) ([]string, error) {
 	if err := stackkitcommand.ValidateCommand(c); err != nil {
 		return nil, err
@@ -80,7 +85,52 @@ func stackKitApplicationStackArgs(release stackkitrelease.Release, c *agentpb.St
 	if err != nil {
 		return nil, err
 	}
-	// No plan option is selected: adopt must run with the options of its plan,
-	// and the literal --no-outbound option must never render by default.
-	return catalog.RenderRequiredArgv(stackkitcommand.ApplicationStackOperationName(c.Operation), map[string]string{"containerId": c.ApplicationContainerId, "ownApplicationName": c.OwnApplicationName, "planDigest": c.ApplicationPlanDigest, "operationId": c.ApplicationOperationId})
+	operation := stackkitcommand.ApplicationStackOperationName(c.Operation)
+	values := map[string]string{
+		"containerId":        c.ApplicationContainerId,
+		"ownApplicationName": c.OwnApplicationName,
+		"planDigest":         c.ApplicationPlanDigest,
+		"operationId":        c.ApplicationOperationId,
+	}
+	var literals []string
+	if c.StackItHttpPort > 0 {
+		values["httpPort"] = strconv.Itoa(int(c.StackItHttpPort))
+	}
+	if c.StackItNoOutbound {
+		literals = append(literals, "--no-outbound")
+	}
+	if c.StackItMemoryMib > 0 {
+		values["memoryMiB"] = strconv.Itoa(int(c.StackItMemoryMib))
+	}
+	if c.StackItCpus != "" {
+		values["cpus"] = c.StackItCpus
+	}
+	if c.StackItAdoptComposeProject {
+		literals = append(literals, "--adopt-compose-project")
+	}
+	if c.StackItHttpService != "" {
+		values["httpService"] = c.StackItHttpService
+	}
+	args, err := catalog.RenderSelectedArgv(operation, values, literals...)
+	if err != nil {
+		return nil, err
+	}
+	if c.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_STACK_PLAN || c.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_STACK {
+		// Older release catalogs (v0.57.10) expose --memory-mib, --cpus,
+		// --adopt-compose-project and --http-service on
+		// `stackkit app own --from-container` without listing them in optionalArgs.
+		if c.StackItMemoryMib > 0 && !slices.Contains(args, "--memory-mib") {
+			args = append(args, "--memory-mib", strconv.Itoa(int(c.StackItMemoryMib)))
+		}
+		if c.StackItCpus != "" && !slices.Contains(args, "--cpus") {
+			args = append(args, "--cpus", c.StackItCpus)
+		}
+		if c.StackItAdoptComposeProject && !slices.Contains(args, "--adopt-compose-project") {
+			args = append(args, "--adopt-compose-project")
+		}
+		if c.StackItHttpService != "" && !slices.Contains(args, "--http-service") {
+			args = append(args, "--http-service", c.StackItHttpService)
+		}
+	}
+	return args, nil
 }

@@ -12,9 +12,6 @@ import (
 )
 
 func RegisterCRUDRuntimeRoutes(r *httpx.Router, runtime auth.RuntimeStore, orch *orchestrator.Orchestrator, mode config.DeploymentMode, featureChecker managedRuntimeFeatureChecker, managedLeases jobs.ManagedLeaseManager, notificationOutbox productnotifications.ProductEventEnqueuer) {
-	if !mode.IsValid() {
-		mode = config.ModeSelfHosted
-	}
 	stores := currentControlPlaneStores()
 	h := crudRouteHandlers{
 		authRuntime:        runtime,

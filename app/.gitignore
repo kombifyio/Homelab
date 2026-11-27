@@ -7,6 +7,10 @@ node_modules
 .wrangler
 /.svelte-kit
 /build
+/build-static
+/project.inlang/cache
+/project.inlang/.lix
+/src/lib/paraglide
 
 # OS
 .DS_Store

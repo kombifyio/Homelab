@@ -3249,8 +3249,17 @@ type StackKitCommand struct {
 	OwnApplicationCheckpoint    string `protobuf:"bytes,99,opt,name=own_application_checkpoint,json=ownApplicationCheckpoint,proto3" json:"own_application_checkpoint,omitempty"`
 	// APPLICATION_HOME_GRAPH_ADOPT only: stackkit.home-graph-adoption-request/v1.
 	HomeGraphAdoptionRequest []byte `protobuf:"bytes,100,opt,name=home_graph_adoption_request,json=homeGraphAdoptionRequest,proto3" json:"home_graph_adoption_request,omitempty"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	// APPLICATION_STACK_PLAN and APPLICATION_STACK only: optional user overrides
+	// matching the reviewed plan (--http-port, --no-outbound, --memory-mib, --cpus,
+	// --adopt-compose-project, --http-service).
+	StackItHttpPort            int32  `protobuf:"varint,101,opt,name=stack_it_http_port,json=stackItHttpPort,proto3" json:"stack_it_http_port,omitempty"`
+	StackItNoOutbound          bool   `protobuf:"varint,102,opt,name=stack_it_no_outbound,json=stackItNoOutbound,proto3" json:"stack_it_no_outbound,omitempty"`
+	StackItMemoryMib           int32  `protobuf:"varint,103,opt,name=stack_it_memory_mib,json=stackItMemoryMib,proto3" json:"stack_it_memory_mib,omitempty"`
+	StackItCpus                string `protobuf:"bytes,104,opt,name=stack_it_cpus,json=stackItCpus,proto3" json:"stack_it_cpus,omitempty"`
+	StackItAdoptComposeProject bool   `protobuf:"varint,105,opt,name=stack_it_adopt_compose_project,json=stackItAdoptComposeProject,proto3" json:"stack_it_adopt_compose_project,omitempty"`
+	StackItHttpService         string `protobuf:"bytes,106,opt,name=stack_it_http_service,json=stackItHttpService,proto3" json:"stack_it_http_service,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *StackKitCommand) Reset() {
@@ -3981,6 +3990,48 @@ func (x *StackKitCommand) GetHomeGraphAdoptionRequest() []byte {
 		return x.HomeGraphAdoptionRequest
 	}
 	return nil
+}
+
+func (x *StackKitCommand) GetStackItHttpPort() int32 {
+	if x != nil {
+		return x.StackItHttpPort
+	}
+	return 0
+}
+
+func (x *StackKitCommand) GetStackItNoOutbound() bool {
+	if x != nil {
+		return x.StackItNoOutbound
+	}
+	return false
+}
+
+func (x *StackKitCommand) GetStackItMemoryMib() int32 {
+	if x != nil {
+		return x.StackItMemoryMib
+	}
+	return 0
+}
+
+func (x *StackKitCommand) GetStackItCpus() string {
+	if x != nil {
+		return x.StackItCpus
+	}
+	return ""
+}
+
+func (x *StackKitCommand) GetStackItAdoptComposeProject() bool {
+	if x != nil {
+		return x.StackItAdoptComposeProject
+	}
+	return false
+}
+
+func (x *StackKitCommand) GetStackItHttpService() string {
+	if x != nil {
+		return x.StackItHttpService
+	}
+	return ""
 }
 
 // Public, bounded Gateway proofs. No key material or authority URLs travel here.
@@ -6184,7 +6235,7 @@ const file_api_proto_agent_proto_rawDesc = "" +
 	"platformOs\x12#\n" +
 	"\rplatform_arch\x18\x03 \x01(\tR\fplatformArch\x12%\n" +
 	"\x0earchive_sha256\x18\x04 \x01(\tR\rarchiveSha256\x120\n" +
-	"\x14release_index_sha256\x18\x05 \x01(\tR\x12releaseIndexSha256\"\xe4%\n" +
+	"\x14release_index_sha256\x18\x05 \x01(\tR\x12releaseIndexSha256\"\x8c(\n" +
 	"\x0fStackKitCommand\x12\x1d\n" +
 	"\n" +
 	"command_id\x18\x01 \x01(\tR\tcommandId\x12A\n" +
@@ -6295,7 +6346,13 @@ const file_api_proto_agent_proto_rawDesc = "" +
 	"\x1eown_application_resolved_image\x18a \x01(\tR\x1bownApplicationResolvedImage\x12=\n" +
 	"\x1bown_application_allow_major\x18b \x01(\bR\x18ownApplicationAllowMajor\x12<\n" +
 	"\x1aown_application_checkpoint\x18c \x01(\tR\x18ownApplicationCheckpoint\x12=\n" +
-	"\x1bhome_graph_adoption_request\x18d \x01(\fR\x18homeGraphAdoptionRequest\"\xb4\x01\n" +
+	"\x1bhome_graph_adoption_request\x18d \x01(\fR\x18homeGraphAdoptionRequest\x12+\n" +
+	"\x12stack_it_http_port\x18e \x01(\x05R\x0fstackItHttpPort\x12/\n" +
+	"\x14stack_it_no_outbound\x18f \x01(\bR\x11stackItNoOutbound\x12-\n" +
+	"\x13stack_it_memory_mib\x18g \x01(\x05R\x10stackItMemoryMib\x12\"\n" +
+	"\rstack_it_cpus\x18h \x01(\tR\vstackItCpus\x12B\n" +
+	"\x1estack_it_adopt_compose_project\x18i \x01(\bR\x1astackItAdoptComposeProject\x121\n" +
+	"\x15stack_it_http_service\x18j \x01(\tR\x12stackItHttpService\"\xb4\x01\n" +
 	"\x11RILExecutionProof\x12\x1b\n" +
 	"\tlease_jws\x18\x01 \x01(\tR\bleaseJws\x12\x1b\n" +
 	"\tclaim_jws\x18\x02 \x01(\tR\bclaimJws\x12!\n" +

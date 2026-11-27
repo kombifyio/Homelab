@@ -8216,6 +8216,30 @@ paths:
                     disk_gb: { type: integer, minimum: 0, maximum: 1048576 }
                 selection_intent: { type: string, enum: [all], description: "all asks which of available_goals the full-homelab template should preselect." }
                 available_goals: { type: array, items: { type: string }, description: Use cases the released catalog offers. }
+                server_fit:
+                  type: object
+                  additionalProperties: false
+                  description: Target server or managed offering for whole-stack fit evaluation.
+                  properties:
+                    provider_id: { type: string }
+                    offering_id: { type: string }
+                    server_id: { type: string }
+                    source: { type: string }
+                    host: { type: string }
+                    observed_capacity:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        cpu_cores: { type: integer, minimum: 0, maximum: 1024 }
+                        memory_mb: { type: integer, minimum: 0, maximum: 1048576 }
+                        disk_gb: { type: integer, minimum: 0, maximum: 1048576 }
+                        free_disk_gb: { type: integer, minimum: 0, maximum: 1048576 }
+                        architecture: { type: string }
+                        amd64_level: { type: integer, minimum: 0 }
+                        source: { type: string }
+                        observed_at: { type: string }
+                        stale: { type: boolean }
+                        usage_observed: { type: boolean }
                 compute_profile: { type: string }
                 use_case_settings:
                   type: object
@@ -8272,6 +8296,61 @@ paths:
                             deep_link: { type: object }
                       selection: { type: object, description: Preselection guidance when selection_intent is set. }
                       smart_home_recommendation: { type: object }
+                      server_fit:
+                        type: object
+                        description: Whole-stack fit evaluation for the selected managed offering or owned host.
+                        properties:
+                          status: { type: string, enum: [fits, tight, does_not_fit, pending, unknown, stale] }
+                          scope: { type: string }
+                          evidence: { type: string, enum: [projected, observed] }
+                          capacity_origin: { type: string, enum: [catalog_sku, observed_inventory, unmeasured] }
+                          inventory_source: { type: string }
+                          inventory_revision: { type: string }
+                          pending_reason: { type: string }
+                          refusal_class: { type: string, enum: [hardware_fit, unsupported_runtime, unavailable_provider, entitlement] }
+                          provider_id: { type: string }
+                          offering_id: { type: string }
+                          server_id: { type: string }
+                          template: { type: string }
+                          sku: { type: string }
+                          location: { type: string }
+                          catalog_source: { type: string }
+                          budget: { type: object }
+                          recovery:
+                            type: object
+                            properties:
+                              action: { type: string, enum: [switch_offering, switch_provider, use_owned_server, switch_profile, omit_use_case, refresh_inventory, review_selection] }
+                              reason_code: { type: string }
+                              provider_id: { type: string }
+                              offering_id: { type: string }
+                              offering_name: { type: string }
+                              offering_sku: { type: string }
+                              offering_memory_mb: { type: integer }
+                              server_id: { type: string }
+                              server_name: { type: string }
+                              profile: { type: string }
+                              goal: { type: string }
+                          specs: { type: object }
+                          memory_peak: { type: object }
+                          deficits: { type: array, items: { type: object } }
+                          unknowns: { type: array, items: { type: object } }
+                          advisories: { type: array, items: { type: object } }
+                      pro_starters:
+                        type: object
+                        description: Explicit Pro starter evaluations keyed by starter preset id.
+                        additionalProperties:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            recommended_full: { type: boolean }
+                            starts_with: { type: array, items: { type: string } }
+                            deferred_goals: { type: array, items: { type: string } }
+                            default_settings: { type: object }
+                            requires_confirmation: { type: boolean }
+                            confirmation_reasons: { type: array, items: { type: string } }
+                            fit: { type: object }
+                            alternatives: { type: array, items: { type: object } }
+                            workload_envelope: { type: object }
                       capacity:
                         type: object
                         description: Soft memory estimate in MiB; required_ram_mb is a lower bound when capacity_peak_unknown is present. No provisioning gate.

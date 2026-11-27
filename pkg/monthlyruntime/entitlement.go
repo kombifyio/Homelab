@@ -3,10 +3,43 @@ package monthlyruntime
 import (
 	"context"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/kombifyio/homelab/internal/providercatalog"
+	"github.com/kombifyio/homelab/internal/runtimeproduct/serverruntime"
+	"github.com/kombifyio/homelab/pkg/config"
+	"github.com/kombifyio/homelab/pkg/middleware"
 )
+
+type DeploymentLane string
+
+const (
+	DeploymentLaneSaaS       DeploymentLane = "saas"
+	DeploymentLaneSelfHosted DeploymentLane = "self-hosted"
+)
+
+const (
+	EntitlementKeyAllYouNeedCredits        = "cloud.runtime.credits.ayn"
+	EntitlementReasonOfferingTierRequired  = "offering_tier_entitlement_required"
+	EntitlementReasonOfferingUnsupported   = "managed_offering_unsupported"
+	EntitlementReasonDeploymentModeUnknown = "deployment_mode_unknown"
+	EntitlementRefusalClassEntitlement     = "entitlement"
+	EntitlementRefusalClassProvider        = "unavailable_provider"
+)
+
+// DeploymentLaneFromMode resolves a DeploymentMode to its typed offering lane.
+// Unset or unrecognized modes return an empty lane so callers fail closed.
+func DeploymentLaneFromMode(mode config.DeploymentMode) DeploymentLane {
+	switch {
+	case mode.IsSaaS():
+		return DeploymentLaneSaaS
+	case mode.IsSelfHosted():
+		return DeploymentLaneSelfHosted
+	default:
+		return ""
+	}
+}
 
 // ManagedRuntimeEntitlementDecision is the single account/provider
 // availability decision shared by every Homelab managed-create surface.
@@ -15,17 +48,24 @@ type ManagedRuntimeEntitlementDecision struct {
 	Message          string
 	ProviderID       string
 	ReasonCode       string
+	RefusalClass     string
 	RequiredFeatures []string
 	MissingFeatures  []string
 }
 
 func (d ManagedRuntimeEntitlementDecision) Details() map[string]any {
-	return ManagedRuntimeEntitlementDenialDetails(
+	details := ManagedRuntimeEntitlementDenialDetails(
 		d.ProviderID,
 		d.ReasonCode,
 		d.RequiredFeatures,
 		d.MissingFeatures,
 	)
+	if d.RefusalClass != "" {
+		details["refusal_class"] = d.RefusalClass
+	} else if d.Denied {
+		details["refusal_class"] = EntitlementRefusalClassEntitlement
+	}
+	return details
 }
 
 // EvaluateManagedRuntimeEntitlement fails closed before persistence, queueing,
@@ -95,6 +135,103 @@ func deniedManagedRuntimeEntitlement(providerID, reasonCode string, requiredFeat
 		ProviderID: providerID, ReasonCode: reasonCode,
 		RequiredFeatures: requiredFeatures, MissingFeatures: missingFeatures,
 	}
+}
+
+// EvaluateManagedRuntimeOfferingEntitlement checks offering-tier entitlement
+// for managed-runtime offerings. Standard relies on base/provider entitlement
+// (EvaluateManagedRuntimeEntitlement); Premium and Large additionally require a
+// verified signed Edge "cloud.runtime.credits.ayn" entitlement on SaaS lanes.
+func EvaluateManagedRuntimeOfferingEntitlement(
+	ctx context.Context,
+	lane DeploymentLane,
+	providerID string,
+	offeringID string,
+) ManagedRuntimeEntitlementDecision {
+	canonicalProviderID, err := providercatalog.CanonicalProviderID(providerID)
+	if err != nil {
+		decision := deniedManagedRuntimeEntitlement(providerID, EntitlementReasonProviderUnsupported, nil, nil)
+		decision.RefusalClass = EntitlementRefusalClassProvider
+		return decision
+	}
+	offering, err := ResolveOffering(offeringID)
+	if err != nil {
+		decision := deniedManagedRuntimeEntitlement(canonicalProviderID, EntitlementReasonOfferingUnsupported, nil, nil)
+		decision.RefusalClass = EntitlementRefusalClassProvider
+		return decision
+	}
+	if _, pkgErr := PackageForProvider(canonicalProviderID, string(offering.ID)); pkgErr != nil {
+		decision := deniedManagedRuntimeEntitlement(canonicalProviderID, EntitlementReasonOfferingUnsupported, nil, nil)
+		decision.RefusalClass = EntitlementRefusalClassProvider
+		return decision
+	}
+	normalizedLane := DeploymentLane(strings.ToLower(strings.TrimSpace(string(lane))))
+	if normalizedLane != DeploymentLaneSaaS && normalizedLane != DeploymentLaneSelfHosted {
+		return ManagedRuntimeEntitlementDecision{
+			Denied:           true,
+			Message:          "Deployment mode is unknown; managed runtime tier entitlement cannot be verified",
+			ProviderID:       canonicalProviderID,
+			ReasonCode:       EntitlementReasonDeploymentModeUnknown,
+			RefusalClass:     EntitlementRefusalClassEntitlement,
+			RequiredFeatures: slices.Clone(RequiredFeatureKeysForProvider(canonicalProviderID)),
+		}
+	}
+	if normalizedLane == DeploymentLaneSelfHosted || LocalManagedRuntimeE2EAllowed() {
+		return ManagedRuntimeEntitlementDecision{ProviderID: canonicalProviderID}
+	}
+	required := slices.Clone(RequiredFeatureKeysForProvider(canonicalProviderID))
+	if offering.ID == serverruntime.RuntimeOfferingStandard {
+		return ManagedRuntimeEntitlementDecision{ProviderID: canonicalProviderID, RequiredFeatures: required}
+	}
+	required = append(required, EntitlementKeyAllYouNeedCredits)
+	grants, ok := middleware.SignedEntitlementsFromContext(ctx)
+	if !ok || !grants.Has(EntitlementKeyAllYouNeedCredits) {
+		return ManagedRuntimeEntitlementDecision{
+			Denied:           true,
+			Message:          "This managed runtime tier requires the All You Need plan",
+			ProviderID:       canonicalProviderID,
+			ReasonCode:       EntitlementReasonOfferingTierRequired,
+			RefusalClass:     EntitlementRefusalClassEntitlement,
+			RequiredFeatures: required,
+			MissingFeatures:  []string{EntitlementKeyAllYouNeedCredits},
+		}
+	}
+	return ManagedRuntimeEntitlementDecision{ProviderID: canonicalProviderID, RequiredFeatures: required}
+}
+
+// AllowedOfferingsForRequest returns the offering IDs eligible for the request
+// lane, provider (if specified), and verified Edge offering-tier grants.
+func AllowedOfferingsForRequest(ctx context.Context, lane DeploymentLane, providerID string) []string {
+	normalizedLane := DeploymentLane(strings.ToLower(strings.TrimSpace(string(lane))))
+	if normalizedLane != DeploymentLaneSaaS && normalizedLane != DeploymentLaneSelfHosted {
+		return []string{}
+	}
+	canonicalProviderID := ""
+	if strings.TrimSpace(providerID) != "" {
+		var err error
+		canonicalProviderID, err = providercatalog.CanonicalProviderID(providerID)
+		if err != nil {
+			return []string{}
+		}
+	}
+	allowed := make([]string, 0, len(Catalog()))
+	for _, offering := range Catalog() {
+		if canonicalProviderID != "" {
+			if decision := EvaluateManagedRuntimeOfferingEntitlement(ctx, normalizedLane, canonicalProviderID, string(offering.ID)); !decision.Denied {
+				allowed = append(allowed, string(offering.ID))
+			}
+			continue
+		}
+		if normalizedLane == DeploymentLaneSelfHosted ||
+			LocalManagedRuntimeE2EAllowed() ||
+			offering.ID == serverruntime.RuntimeOfferingStandard {
+			allowed = append(allowed, string(offering.ID))
+			continue
+		}
+		if grants, ok := middleware.SignedEntitlementsFromContext(ctx); ok && grants.Has(EntitlementKeyAllYouNeedCredits) {
+			allowed = append(allowed, string(offering.ID))
+		}
+	}
+	return allowed
 }
 
 // LocalManagedRuntimeE2EAllowed is the one narrow self-host development

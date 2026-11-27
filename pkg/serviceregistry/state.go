@@ -79,7 +79,10 @@ const (
 	SourceStackKitOutputs = "stackkit_outputs"
 	// SourceHomelabRegistry is a user-declared service target created through
 	// Homelab's registry API before StackKits has reported runtime evidence.
-	SourceHomelabRegistry = "techstack-registry"
+	// Phase 1 expand admits SourceHomelabRegistryForward on read/validation
+	// while keeping writers on techstack-registry until Phase 2 cutover.
+	SourceHomelabRegistry        = "techstack-registry"
+	SourceHomelabRegistryForward = "homelab-registry"
 	// SourceLegacyRegistryBackfill is the bounded read-through projection of
 	// pre-aggregate registry rows.
 	SourceLegacyRegistryBackfill = "legacy-registry-backfill"
@@ -174,7 +177,7 @@ func CanonicalSource(value string) string {
 
 func isServiceSource(value string) bool {
 	switch value {
-	case SourceObserved, SourceStackKitsInventory, SourceStackKitOutputs, SourceHomelabRegistry, SourceLegacyRegistryBackfill:
+	case SourceObserved, SourceStackKitsInventory, SourceStackKitOutputs, SourceHomelabRegistry, SourceHomelabRegistryForward, SourceLegacyRegistryBackfill:
 		return true
 	default:
 		return false

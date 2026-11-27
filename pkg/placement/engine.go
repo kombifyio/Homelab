@@ -495,6 +495,49 @@ type serviceRequirement struct {
 	CPUReservationUnspecified bool
 }
 
+// ServiceResourceMinimums holds the minimum CPU (millicores), RAM (MiB), Disk
+// (GiB), and host-floor requirements for placing a single workload on a node.
+type ServiceResourceMinimums struct {
+	CPUMillicores int
+	RAMMiB        int
+	DiskGiB       int
+	HostMinCPUs   float64
+	HostMinRAMGB  float64
+	HostMinDiskGB float64
+}
+
+// EstimateServiceResourceMinimums returns the estimated resource minimums for
+// a workload/service, using the released StackKits catalog when available and
+// falling back to Homelab's built-in heuristics.
+func EstimateServiceResourceMinimums(name, serviceType string) ServiceResourceMinimums {
+	req := estimateServiceRequirements(core.ServiceSpec{
+		Name: name,
+		Type: serviceType,
+	})
+	if req.Unavailable == "" {
+		return ServiceResourceMinimums{
+			CPUMillicores: req.CPU,
+			RAMMiB:        req.RAM,
+			DiskGiB:       req.Disk,
+			HostMinCPUs:   req.HostFloor.MinCPUCores,
+			HostMinRAMGB:  req.HostFloor.MinRAMGB,
+			HostMinDiskGB: req.HostFloor.MinStorageGB,
+		}
+	}
+	estimate, ok := serviceResourceEstimate(name)
+	if !ok {
+		estimate, ok = serviceResourceEstimate(serviceType)
+	}
+	if !ok {
+		estimate = resourceEstimate{CPU: 200, RAM: 256, Disk: 2}
+	}
+	return ServiceResourceMinimums{
+		CPUMillicores: estimate.CPU,
+		RAMMiB:        estimate.RAM,
+		DiskGiB:       estimate.Disk,
+	}
+}
+
 // estimateServiceRequirements returns resource needs for a service, in
 // millicores for CPU.
 //

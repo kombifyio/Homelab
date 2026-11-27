@@ -629,17 +629,24 @@ type DecisionReason struct {
 // recommendation evaluation. Tenant, owner and decision context are derived
 // from authentication and registry. KitSlug is advisory capacity context only.
 type WizardRecommendationRequest struct {
-	KitSlug             string                  `json:"kit_slug,omitempty"`
-	ServerCapacity      *WizardServerCapacity   `json:"server_capacity,omitempty"`
-	RuntimeOfferingID   string                  `json:"runtime_offering_id,omitempty"`
-	ConcurrentWorkloads int                     `json:"concurrent_workloads,omitempty"`
-	IONOSMemoryEnabled  bool                    `json:"-"`
-	ServerFit           *WizardServerFitRequest `json:"server_fit,omitempty"`
-	Goals               []string                `json:"goals"`
-	Services            []string                `json:"services"`
-	DeploymentLane      string                  `json:"deployment_lane"`
-	ProviderID          string                  `json:"provider_id,omitempty"`
-	Surface             string                  `json:"surface"`
+	KitSlug                    string                  `json:"kit_slug,omitempty"`
+	ServerCapacity             *WizardServerCapacity   `json:"server_capacity,omitempty"`
+	RuntimeOfferingID          string                  `json:"runtime_offering_id,omitempty"`
+	ConcurrentWorkloads        int                     `json:"concurrent_workloads,omitempty"`
+	IONOSMemoryEnabled         bool                    `json:"-"`
+	ExistingServerID           string                  `json:"existing_server_id,omitempty"`
+	LANReachable               bool                    `json:"-"`
+	AllowedOfferings           []string                `json:"-"`
+	OfferingEntitlementChecked bool                    `json:"-"`
+	AdmittedProviders          []string                `json:"-"`
+	ProviderAdmissionChecked   bool                    `json:"-"`
+	AllYouNeedEntitled         bool                    `json:"-"`
+	ServerFit                  *WizardServerFitRequest `json:"server_fit,omitempty"`
+	Goals                      []string                `json:"goals"`
+	Services                   []string                `json:"services"`
+	DeploymentLane             string                  `json:"deployment_lane"`
+	ProviderID                 string                  `json:"provider_id,omitempty"`
+	Surface                    string                  `json:"surface"`
 	// SelectionIntent "all" asks which of AvailableGoals the full-homelab
 	// template should preselect for this operator; empty asks for none.
 	SelectionIntent string `json:"selection_intent,omitempty"`
@@ -721,12 +728,15 @@ type WizardServerFitBudget struct {
 // WizardServerFitRecovery names one concrete actionable recovery for the
 // current selection without erasing user choices.
 type WizardServerFitRecovery struct {
-	Action           string `json:"action"` // switch_offering, switch_profile, omit_use_case, refresh_inventory, review_selection
+	Action           string `json:"action"` // switch_offering, switch_provider, use_owned_server, switch_profile, omit_use_case, refresh_inventory, review_selection
 	ReasonCode       string `json:"reason_code,omitempty"`
+	ProviderID       string `json:"provider_id,omitempty"`
 	OfferingID       string `json:"offering_id,omitempty"`
 	OfferingName     string `json:"offering_name,omitempty"`
 	OfferingSKU      string `json:"offering_sku,omitempty"`
 	OfferingMemoryMB int    `json:"offering_memory_mb,omitempty"`
+	ServerID         string `json:"server_id,omitempty"`
+	ServerName       string `json:"server_name,omitempty"`
 	Profile          string `json:"profile,omitempty"`
 	Goal             string `json:"goal,omitempty"`
 }
@@ -808,21 +818,64 @@ type WizardRecommendation struct {
 	DeepLink     WizardRecommendationDeepLink `json:"deep_link"`
 }
 
+// DocumentsMediaWorkloadEnvelope documents the supported Pro Standard VPS
+// operating envelope for full Documents & Media (Cloudreve + full Immich with
+// smart search + Jellyfin) with zero surcharge.
+type DocumentsMediaWorkloadEnvelope struct {
+	SupportedPlaybackModes []string `json:"supported_playback_modes"`
+	MaxConcurrentWorkloads int      `json:"max_concurrent_workloads"`
+	MinRootDiskGB          int      `json:"min_root_disk_gb"`
+	BackupWorkingSpaceGB   int      `json:"backup_working_space_gb"`
+	RequiresFullImmich     bool     `json:"requires_full_immich"`
+}
+
+// WizardProStarterAlternative describes a concrete, explicit alternative when
+// the full starter preset does not fit the target host.
+type WizardProStarterAlternative struct {
+	Kind                 string         `json:"kind"` // "switch_profile" | "switch_offering" | "switch_provider" | "use_owned_server" | "defer_goal"
+	Goal                 string         `json:"goal,omitempty"`
+	Profile              string         `json:"profile,omitempty"`
+	ProviderID           string         `json:"provider_id,omitempty"`
+	OfferingID           string         `json:"offering_id,omitempty"`
+	OfferingSKU          string         `json:"offering_sku,omitempty"`
+	ServerID             string         `json:"server_id,omitempty"`
+	ServerName           string         `json:"server_name,omitempty"`
+	RequiresConfirmation bool           `json:"requires_confirmation"`
+	LostFunctions        []string       `json:"lost_functions,omitempty"`
+	Settings             map[string]any `json:"settings,omitempty"`
+}
+
+// WizardProStarter describes what starts now, what is deferred for later,
+// whether the full choice already fits, and concrete reversible alternatives.
+type WizardProStarter struct {
+	ID                   string                          `json:"id"`
+	RecommendedFull      bool                            `json:"recommended_full"`
+	StartsWith           []string                        `json:"starts_with"`
+	DeferredGoals        []string                        `json:"deferred_goals,omitempty"`
+	DefaultSettings      map[string]map[string]any       `json:"default_settings,omitempty"`
+	RequiresConfirmation bool                            `json:"requires_confirmation,omitempty"`
+	ConfirmationReasons  []string                        `json:"confirmation_reasons,omitempty"`
+	Fit                  *WizardServerFit                `json:"fit,omitempty"`
+	Alternatives         []WizardProStarterAlternative   `json:"alternatives,omitempty"`
+	WorkloadEnvelope     *DocumentsMediaWorkloadEnvelope `json:"workload_envelope,omitempty"`
+}
+
 // WizardRecommendationResponse is the stable response boundary consumed by
 // both Wizard depths. DecisionContext is always server-constructed and its
 // hash binds the recommendation to the evidence used for evaluation.
 type WizardRecommendationResponse struct {
-	Capacity            *WizardCapacityAssessment  `json:"capacity,omitempty"`
-	ServerFit           *WizardServerFit           `json:"server_fit,omitempty"`
-	Status              WizardRecommendationStatus `json:"status"`
-	GeneratedAt         time.Time                  `json:"generated_at"`
-	DecisionContext     *DecisionContext           `json:"decision_context"`
-	DecisionContextHash string                     `json:"decision_context_hash"`
-	CatalogSource       string                     `json:"catalog_source"`
-	MissingInputs       []string                   `json:"missing_inputs"`
-	StaleInputs         []string                   `json:"stale_inputs"`
-	Recommendations     []WizardRecommendation     `json:"recommendations"`
-	Selection           *WizardSelectionGuidance   `json:"selection,omitempty"`
+	Capacity            *WizardCapacityAssessment   `json:"capacity,omitempty"`
+	ServerFit           *WizardServerFit            `json:"server_fit,omitempty"`
+	ProStarters         map[string]WizardProStarter `json:"pro_starters,omitempty"`
+	Status              WizardRecommendationStatus  `json:"status"`
+	GeneratedAt         time.Time                   `json:"generated_at"`
+	DecisionContext     *DecisionContext            `json:"decision_context"`
+	DecisionContextHash string                      `json:"decision_context_hash"`
+	CatalogSource       string                      `json:"catalog_source"`
+	MissingInputs       []string                    `json:"missing_inputs"`
+	StaleInputs         []string                    `json:"stale_inputs"`
+	Recommendations     []WizardRecommendation      `json:"recommendations"`
+	Selection           *WizardSelectionGuidance    `json:"selection,omitempty"`
 }
 
 // WizardSelectionGuidance is the server-side answer to "which use cases fit

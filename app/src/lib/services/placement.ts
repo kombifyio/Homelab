@@ -1,6 +1,8 @@
 import type { CanonicalService } from "#lib/api/services.js";
 import type {
   RegistryCatalogService,
+  RegistryMoveIneligibleDestination,
+  RegistryMoveWarning,
   RegistryServer,
   RegistryService,
 } from "#lib/api/registry.js";
@@ -97,6 +99,43 @@ export function moveTargetsFor(
   );
 }
 
+/** Map of blocked destination server IDs to their structured ineligibility reason. */
+export function ineligibleDestinationsByServer(
+  service: RegistryService,
+): Record<string, RegistryMoveIneligibleDestination> {
+  const map: Record<string, RegistryMoveIneligibleDestination> = {};
+  for (const entry of service.move?.ineligible_destinations ?? []) {
+    if (entry.server_id) {
+      map[entry.server_id] = entry;
+    }
+  }
+  return map;
+}
+
+/** Pre-flight warnings applicable to a specific destination server (or all destinations). */
+export function moveWarningsFor(
+  service: RegistryService,
+  serverId?: string,
+): RegistryMoveWarning[] {
+  const warnings = service.move?.warnings ?? [];
+  if (!serverId) return warnings;
+  return warnings.filter(
+    (warning) => !warning.server_id || warning.server_id === serverId,
+  );
+}
+
+/** Blocked destination servers paired with their backend ineligibility reasons. */
+export function blockedMoveTargetsFor(
+  servers: RegistryServer[],
+  service: RegistryService,
+): { server: RegistryServer; entry: RegistryMoveIneligibleDestination }[] {
+  const byServer = ineligibleDestinationsByServer(service);
+  return servers.flatMap((server) => {
+    const entry = byServer[server.id];
+    return entry ? [{ server, entry }] : [];
+  });
+}
+
 /** Statuses in which a service has no address a person can open. */
 const CLOSED_STATUSES = [
   "unknown",
@@ -139,6 +178,8 @@ export interface PlacementCard {
   canMove: boolean;
   /** Server ids this card may be dropped on; empty when it cannot move. */
   moveTargetIds: string[];
+  /** Blocked destination servers keyed by server id, with structured reasons. */
+  ineligibleByServerId?: Record<string, RegistryMoveIneligibleDestination>;
   migrating: boolean;
   migrationMessage: string;
   actions: ServiceCardAction[];

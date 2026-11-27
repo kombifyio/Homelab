@@ -21,34 +21,65 @@ type ApplicationAuthority struct {
 	PackageRef            string `json:"packageRef"`
 }
 type ApplicationSource struct {
-	ContainerID         string `json:"containerId"`
-	ImageID             string `json:"imageId"`
-	ImageDigest         string `json:"imageDigest"`
-	Revision            string `json:"revision"`
-	ConfigMount         string `json:"configMount"`
-	ConfigurationDigest string `json:"configurationDigest"`
-	AccountsDigest      string `json:"accountsDigest"`
+	ContainerID         string   `json:"containerId"`
+	ImageID             string   `json:"imageId"`
+	ImageDigest         string   `json:"imageDigest"`
+	Revision            string   `json:"revision"`
+	ConfigMount         string   `json:"configMount"`
+	ConfigurationDigest string   `json:"configurationDigest"`
+	AccountsDigest      string   `json:"accountsDigest"`
+	SourceOrigin        string   `json:"sourceOrigin,omitempty"`
+	NetworkMode         string   `json:"networkMode,omitempty"`
+	PreservedDevices    []string `json:"preservedDevices,omitempty"`
+	HasCustomComponents bool     `json:"hasCustomComponents,omitempty"`
+	HasExternalRecorder bool     `json:"hasExternalRecorder,omitempty"`
+	VersionDrift        bool     `json:"versionDrift,omitempty"`
+	ObservedImageDigest string   `json:"observedImageDigest,omitempty"`
+}
+
+func (s ApplicationSource) Equal(other ApplicationSource) bool {
+	return s.ContainerID == other.ContainerID &&
+		s.ImageID == other.ImageID &&
+		s.ImageDigest == other.ImageDigest &&
+		s.Revision == other.Revision &&
+		s.ConfigMount == other.ConfigMount &&
+		s.ConfigurationDigest == other.ConfigurationDigest &&
+		s.AccountsDigest == other.AccountsDigest &&
+		s.SourceOrigin == other.SourceOrigin &&
+		s.NetworkMode == other.NetworkMode &&
+		slices.Equal(s.PreservedDevices, other.PreservedDevices) &&
+		s.HasCustomComponents == other.HasCustomComponents &&
+		s.HasExternalRecorder == other.HasExternalRecorder &&
+		s.VersionDrift == other.VersionDrift &&
+		s.ObservedImageDigest == other.ObservedImageDigest
+}
+
+type ApplicationAdoptionNotice struct {
+	Code     string `json:"code"`
+	Severity string `json:"severity"`
+	Message  string `json:"message"`
 }
 
 // ApplicationEvidence is the producer's source-bound lifecycle assessment or
 // verified receipt. No credentials or application configuration cross Guard.
 type ApplicationEvidence struct {
-	APIVersion         string               `json:"apiVersion"`
-	Authority          ApplicationAuthority `json:"authority"`
-	WorkloadRef        string               `json:"workloadRef"`
-	ProfileRef         string               `json:"profileRef"`
-	Mode               string               `json:"mode"`
-	Source             ApplicationSource    `json:"source"`
-	PlanDigest         string               `json:"planDigest"`
-	OperationID        string               `json:"operationId,omitempty"`
-	OwnedFields        []string             `json:"ownedFields"`
-	PreservedFields    []string             `json:"preservedFields"`
-	AdmittedOperations []string             `json:"admittedOperations"`
-	VerifiedOwnerRef   string               `json:"verifiedOwnerRef"`
-	Status             string               `json:"status,omitempty"`
-	VerifiedAt         time.Time            `json:"verifiedAt,omitempty"`
-	Action             string               `json:"action,omitempty"`
-	PowerState         string               `json:"powerState,omitempty"`
+	APIVersion         string                      `json:"apiVersion"`
+	Authority          ApplicationAuthority        `json:"authority"`
+	WorkloadRef        string                      `json:"workloadRef"`
+	ProfileRef         string                      `json:"profileRef"`
+	Mode               string                      `json:"mode"`
+	Source             ApplicationSource           `json:"source"`
+	PlanDigest         string                      `json:"planDigest"`
+	OperationID        string                      `json:"operationId,omitempty"`
+	OwnedFields        []string                    `json:"ownedFields"`
+	PreservedFields    []string                    `json:"preservedFields"`
+	AdmittedOperations []string                    `json:"admittedOperations"`
+	Notices            []ApplicationAdoptionNotice `json:"notices,omitempty"`
+	VerifiedOwnerRef   string                      `json:"verifiedOwnerRef"`
+	Status             string                      `json:"status,omitempty"`
+	VerifiedAt         time.Time                   `json:"verifiedAt,omitempty"`
+	Action             string                      `json:"action,omitempty"`
+	PowerState         string                      `json:"powerState,omitempty"`
 }
 
 func IsApplicationOperation(op agentpb.StackKitOperation) bool {
@@ -79,6 +110,9 @@ func applicationCommandName(op agentpb.StackKitOperation) string {
 func validateApplicationFields(c *agentpb.StackKitCommand) error {
 	if !IsApplicationStackOperation(c.Operation) && !IsOwnApplicationOperation(c.Operation) && c.OwnApplicationName != "" {
 		return fmt.Errorf("own application name requires a Stack it operation")
+	}
+	if !IsApplicationStackOperation(c.Operation) && (c.StackItHttpPort != 0 || c.StackItNoOutbound || c.StackItMemoryMib != 0 || c.StackItCpus != "" || c.StackItAdoptComposeProject || c.StackItHttpService != "") {
+		return fmt.Errorf("stack it override fields require a Stack it operation")
 	}
 	if !IsApplicationOperation(c.Operation) && !IsApplicationStackOperation(c.Operation) && !IsApplicationConnectorOperation(c.Operation) && !IsHomeGraphSyncOperation(c.Operation) && !IsHomeGraphLoxoneImportOperation(c.Operation) && !IsHomeGraphAdoptionOperation(c.Operation) && (c.ApplicationContainerId != "" || c.ApplicationPlanDigest != "" || (c.ApplicationOperationId != "" && !IsOwnApplicationOperation(c.Operation)) || c.ApplicationAction != "") {
 		return fmt.Errorf("application fields require an application operation")
@@ -196,7 +230,7 @@ func ParseApplicationEvidence(c *agentpb.StackKitCommand, r *agentpb.StackKitRes
 	if e.WorkloadRef != "smart-home" {
 		return e, fmt.Errorf("application evidence differs from the supported workload")
 	}
-	if currentSource != nil && *currentSource != e.Source {
+	if currentSource != nil && !currentSource.Equal(e.Source) {
 		return e, fmt.Errorf("application current runtime no longer matches its signed binding")
 	}
 	if c.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_RELEASE || c.Operation == agentpb.StackKitOperation_STACKKIT_OPERATION_APPLICATION_CONTROL {
@@ -232,5 +266,5 @@ func ApplicationEvidenceMap(e ApplicationEvidence) map[string]any {
 	return m
 }
 func SameApplicationSource(a, b ApplicationEvidence) bool {
-	return a.Source == b.Source && a.Authority == b.Authority && a.WorkloadRef == b.WorkloadRef && a.PlanDigest == b.PlanDigest && a.VerifiedOwnerRef == b.VerifiedOwnerRef && strings.Join(a.PreservedFields, "\x00") == strings.Join(b.PreservedFields, "\x00")
+	return a.Source.Equal(b.Source) && a.Authority == b.Authority && a.WorkloadRef == b.WorkloadRef && a.PlanDigest == b.PlanDigest && a.VerifiedOwnerRef == b.VerifiedOwnerRef && strings.Join(a.PreservedFields, "\x00") == strings.Join(b.PreservedFields, "\x00")
 }

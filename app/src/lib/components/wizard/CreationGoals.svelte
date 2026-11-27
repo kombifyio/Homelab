@@ -21,7 +21,14 @@
     CapacityHint as CapacityHintModel,
     CapacitySize,
   } from "#lib/wizard/capacity-view.js";
-  import type { SmartHomeRecommendation } from "#lib/api/unifier.js";
+  import type {
+    DetectedExistingApp,
+    ProStarterAlternative,
+    ProStarterEvaluation,
+    ServerFit,
+    SmartHomeRecommendation,
+    WizardSelectionGuidance,
+  } from "#lib/api/unifier.js";
   import CreationGoalsPick from "./CreationGoalsPick.svelte";
   import CreationGoalsConfigure from "./CreationGoalsConfigure.svelte";
   import CreationTemplates from "./CreationTemplates.svelte";
@@ -60,6 +67,14 @@
     onCapacitySize,
     onCapacityOmit,
     smartHomeRecommendation,
+    proStarters,
+    serverFit,
+    selectionGuidance,
+    lanReachable = false,
+    onStarterAlternative,
+    detectedExistingApps = [],
+    onAdoptExistingApp,
+    onOverrideExistingApp,
   }: {
     config: GoalsSlice;
     catalog: Map<string, UseCaseCatalogView>;
@@ -90,6 +105,14 @@
     onCapacitySize?: (size: CapacitySize) => void;
     onCapacityOmit?: (goal: string) => void;
     smartHomeRecommendation?: SmartHomeRecommendation;
+    proStarters?: Record<string, ProStarterEvaluation>;
+    serverFit?: ServerFit;
+    selectionGuidance?: WizardSelectionGuidance;
+    lanReachable?: boolean;
+    onStarterAlternative?: (alt: ProStarterAlternative) => void;
+    detectedExistingApps?: DetectedExistingApp[];
+    onAdoptExistingApp?: (app: DetectedExistingApp) => void;
+    onOverrideExistingApp?: (app: DetectedExistingApp) => void;
   } = $props();
 
   const PRESENTATION_KEY = "kombify.creation.presentation";
@@ -113,13 +136,48 @@
     creation.features.isEnabled("server_hardware_fit"),
   );
 
+  const supportsLocalAI = $derived(
+    (hardware?.ramMb ?? 0) >= 12288 || (serverFit?.specs?.memory_mb ?? 0) >= 12288,
+  );
+  const allStartersFull = $derived(
+    Boolean(
+      proStarters?.["documents-media"]?.recommended_full &&
+        proStarters?.family?.recommended_full &&
+        proStarters?.["self-employed"]?.recommended_full,
+    ),
+  );
+  const fullInfinityFits = $derived(
+    Boolean(
+      (selectionGuidance?.preselect &&
+        available.length > 0 &&
+        available.every((card) =>
+          selectionGuidance.preselect?.includes(card.id),
+        ) &&
+        (lanReachable || !available.some((card) => card.id === "smart-home"))) ||
+        (available.length > 0 &&
+          available.every(isSelected) &&
+          serverFit?.status === "fits" &&
+          (lanReachable || !available.some((card) => card.id === "smart-home"))) ||
+        (allStartersFull &&
+          lanReachable &&
+          supportsLocalAI &&
+          serverFit?.status === "fits" &&
+          (serverFit.specs?.memory_mb ?? 0) >= 32768),
+    ),
+  );
+
   // The standard starting profile and its added goals travel with the draft;
   // only explicitly selected use cases enter the creation run.
   let switchedOn = $state<CreationTemplateId[]>([]);
   const profiles = $derived(
     CREATION_TEMPLATES.map((template) => ({
       template,
-      selection: templateSelection(template, allCards, standardStart),
+      selection: templateSelection(template, allCards, standardStart, {
+        lanReachable,
+        supportsLocalAI,
+        proStarters,
+        fullInfinityFits,
+      }),
     })).filter(({ selection }) => selection.goals.length > 0),
   );
   const selections = $derived(
@@ -175,6 +233,7 @@
             // silently downgrade Photos to Immich Lite. Keep Smart Home in
             // container mode and Mail on existing-mail access by default.
             const settings: Record<string, string> = {
+              ...(goal === "photos" ? { backend: "immich" } : {}),
               ...(goal === "smart-home"
                 ? { "operating-form": "container" }
                 : {}),
@@ -321,6 +380,9 @@
       {onCapacitySize}
       {onCapacityOmit}
       {smartHomeRecommendation}
+      {detectedExistingApps}
+      {onAdoptExistingApp}
+      {onOverrideExistingApp}
     />
   {:else}
     <CreationGoalsPick
@@ -340,8 +402,10 @@
           {live}
           {standardStart}
           expansion={STANDARD_STARTS}
+          {proStarters}
           cards={allCards}
           ontoggle={toggleProfile}
+          onalternative={onStarterAlternative}
         />
       {/snippet}
     </CreationGoalsPick>

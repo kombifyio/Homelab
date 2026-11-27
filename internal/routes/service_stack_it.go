@@ -140,6 +140,46 @@ func (h *serviceRuntimeHandlers) stackItBinding(ctx context.Context, t adoptionT
 	return binding, nil
 }
 
+func applyStackItOverrides(e *httpx.Event, r adoptionRequest, binding *jobs.ApplicationLifecycleBinding) error {
+	if rawName := strings.TrimSpace(r.OwnApplicationName); rawName != "" {
+		if !stackkitcommand.ValidOwnApplicationName(rawName) {
+			return httpx.BadRequest(e, "own_application_name must be lowercase letters, digits and hyphens (1..40 chars, starting with a letter, not kombify* or stackkit*)", map[string]any{"field": "own_application_name"})
+		}
+		binding.OwnApplicationName = rawName
+	}
+	if r.HTTPPort != nil {
+		if *r.HTTPPort < stackkitcommand.StackItHTTPPortMin || *r.HTTPPort > stackkitcommand.StackItHTTPPortMax {
+			return httpx.BadRequest(e, "http_port must be between 1 and 65535", map[string]any{"field": "http_port"})
+		}
+		binding.HTTPPort = *r.HTTPPort
+	}
+	binding.NoOutbound = r.NoOutbound
+	if r.MemoryMiB != nil {
+		if *r.MemoryMiB < stackkitcommand.StackItMemoryMiBMin || *r.MemoryMiB > stackkitcommand.StackItMemoryMiBMax {
+			return httpx.BadRequest(e, "memory_mib must be between 64 and 8192", map[string]any{"field": "memory_mib"})
+		}
+		binding.MemoryMiB = *r.MemoryMiB
+	}
+	if r.CPUs != nil {
+		formatted, err := stackkitcommand.FormatStackItCPUs(*r.CPUs)
+		if err != nil {
+			return httpx.BadRequest(e, err.Error(), map[string]any{"field": "cpus"})
+		}
+		binding.CPUs = formatted
+	}
+	binding.AdoptComposeProject = r.AdoptComposeProject
+	if rawService := strings.TrimSpace(r.HTTPService); rawService != "" {
+		if !r.AdoptComposeProject {
+			return httpx.BadRequest(e, "http_service requires adopt_compose_project", map[string]any{"field": "http_service"})
+		}
+		if err := stackkitcommand.ValidateStackItHTTPService(rawService); err != nil {
+			return httpx.BadRequest(e, err.Error(), map[string]any{"field": "http_service"})
+		}
+		binding.HTTPService = rawService
+	}
+	return nil
+}
+
 func (h *serviceRuntimeHandlers) prepareStackIt(e *httpx.Event, t adoptionTarget, r adoptionRequest, key string) error {
 	if r.OwnerApproved || r.PlanDigest != "" {
 		return httpx.BadRequest(e, "A Stack it plan is read-only", nil)
@@ -157,6 +197,9 @@ func (h *serviceRuntimeHandlers) prepareStackIt(e *httpx.Event, t adoptionTarget
 	if err != nil {
 		return stackItUnavailable(e, err)
 	}
+	if err := applyStackItOverrides(e, r, binding); err != nil {
+		return err
+	}
 	if binding.OwnApplicationName == "" {
 		return httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict, "No valid own application name derives from this container name", map[string]any{"reason_code": "application_stack_name_unavailable"})
 	}
@@ -164,7 +207,7 @@ func (h *serviceRuntimeHandlers) prepareStackIt(e *httpx.Event, t adoptionTarget
 }
 
 func (h *serviceRuntimeHandlers) executeStackIt(e *httpx.Event, t adoptionTarget, r adoptionRequest, key string, plan *controlplane.Job) error {
-	if !r.OwnerApproved || r.PlanDigest == "" {
+	if !r.OwnerApproved || r.PlanDigest == "" || r.hasStackItOverrides() {
 		return httpx.BadRequest(e, "Stack it requires the reviewed plan digest and Owner approval", nil)
 	}
 	if plan.State != "completed" {
@@ -209,7 +252,7 @@ func (h *serviceRuntimeHandlers) originalStackIt(e *httpx.Event) error {
 		return err
 	}
 	op := map[string]string{adoptionModeRestoreOriginal: jobs.StackKitLifecycleApplicationStackRestoreOriginal, adoptionModeReleaseOriginal: jobs.StackKitLifecycleApplicationStackReleaseOriginal}[r.Mode]
-	if op == "" || !r.OwnerApproved || r.PlanDigest != "" {
+	if op == "" || !r.OwnerApproved || r.PlanDigest != "" || r.hasStackItOverrides() {
 		return httpx.BadRequest(e, "Restore or release of the original requires its mode and Owner approval", nil)
 	}
 	binding, err := h.stackItBinding(e.Request.Context(), t, false)

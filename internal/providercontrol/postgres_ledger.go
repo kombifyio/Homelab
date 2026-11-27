@@ -16,11 +16,16 @@ import (
 )
 
 const (
-	tenantContextKey          = "app.tenant_id"
-	claimCapabilityContextKey = "app.provider_execution_claim_token"
-	claimOwnerContextKey      = "app.provider_execution_claim_owner"
-	operationEnvelopeVersion  = "techstack.provider-control-operation/v1"
+	tenantContextKey                = "app.tenant_id"
+	claimCapabilityContextKey       = "app.provider_execution_claim_token"
+	claimOwnerContextKey            = "app.provider_execution_claim_owner"
+	operationEnvelopeVersion        = "techstack.provider-control-operation/v1"
+	operationEnvelopeVersionForward = "homelab.provider-control-operation/v1"
 )
+
+func isSupportedOperationEnvelopeVersion(version string) bool {
+	return version == operationEnvelopeVersion || version == operationEnvelopeVersionForward
+}
 
 type operationEnvelope struct {
 	SchemaVersion           string                   `json:"schema_version"`
@@ -345,8 +350,8 @@ func (l *PostgresLedger) ListRunnableOperations(ctx context.Context, tenantID st
 			SELECT tenant_id, operation_id, updated_at
 			FROM provider_operations
 			WHERE tenant_id = $1
-			  AND command_json->>'schema_version' = $2
-			  AND command_json->>'execution_authority' = $3
+			  AND command_json->>'schema_version' IN ($2, $3)
+			  AND command_json->>'execution_authority' IN ($4, $5)
 			  AND CASE
 			      WHEN jsonb_typeof(command_json->'runtime_server_generation') = 'number'
 			       AND command_json->>'runtime_server_generation' ~ '^[1-9][0-9]{0,18}$'
@@ -472,8 +477,8 @@ func (l *PostgresLedger) ListRunnableOperations(ctx context.Context, tenantID st
 			SELECT tenant_id, operation_id, updated_at
 			FROM provider_operations
 			WHERE tenant_id = $1
-			  AND command_json->>'schema_version' = $2
-			  AND command_json->>'execution_authority' = $3
+			  AND command_json->>'schema_version' IN ($2, $3)
+			  AND command_json->>'execution_authority' IN ($4, $5)
 			  AND operation = 'provision'
 			  AND status = 'failed'
 			  AND NOT EXISTS (
@@ -502,8 +507,8 @@ func (l *PostgresLedger) ListRunnableOperations(ctx context.Context, tenantID st
 			  )
 			) AS runnable
 			ORDER BY updated_at ASC, operation_id ASC
-			LIMIT $4
-		`, tenantID, operationEnvelopeVersion, ExecutionAuthorityHomelabProviderControl, limit)
+			LIMIT $6
+		`, tenantID, operationEnvelopeVersion, operationEnvelopeVersionForward, ExecutionAuthorityHomelabProviderControl, executionAuthorityHomelabForward, limit)
 		if queryErr != nil {
 			return fmt.Errorf("providercontrol: list runnable operations: %w", queryErr)
 		}
@@ -1966,7 +1971,7 @@ func loadOperationProjectionTx(
 	if decodeErr := json.Unmarshal(commandPayload, &envelope); decodeErr != nil {
 		return OperationRecord{}, fmt.Errorf("providercontrol: decode operation envelope: %w", decodeErr)
 	}
-	if envelope.SchemaVersion != operationEnvelopeVersion {
+	if !isSupportedOperationEnvelopeVersion(envelope.SchemaVersion) {
 		return OperationRecord{}, fmt.Errorf("%w: unsupported or legacy operation envelope %q", ErrExecutionAuthority, envelope.SchemaVersion)
 	}
 	record := OperationRecord{

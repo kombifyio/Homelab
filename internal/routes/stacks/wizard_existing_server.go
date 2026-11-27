@@ -4,9 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
 	"net/http"
+	"net/netip"
 	"strings"
+	"time"
 
+	"github.com/kombifyio/homelab/pkg/agent/httpguard"
 	ksapi "github.com/kombifyio/homelab/pkg/api"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/core"
@@ -174,13 +178,12 @@ func (h wizardRunHandlers) admitWizardJoinExistingServer(e *httpx.Event, run *wi
 // unleased, approved, connected through Guard and bare (or already this
 // node, on a same-key retry). It also fixes the pre-join StackSpec the change
 // set is prepared from.
-func (h wizardRunHandlers) resolveWizardJoinExistingServer(e *httpx.Event, run *wizardRunState, stack *controlplane.Stack, base map[string]any, projection *specv2.Projection, persisted bool) bool {
+func (h wizardRunHandlers) resolveWizardJoinExistingServer(e *httpx.Event, run *wizardRunState, stack *controlplane.Stack, base map[string]any, projection *specv2.Projection, persisted bool) (bool, error) {
 	if strings.TrimSpace(projection.NodeID) == "" {
-		_ = httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
+		return true, httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
 			"The join projected no new node", wizardRunDetails(
 				"wizard_join_existing_server_no_node", false, "Not supported yet",
 				"This StackKit release did not add a node for the server; nothing was changed."))
-		return true
 	}
 	if !persisted {
 		run.joinBaseSpec = base
@@ -189,22 +192,26 @@ func (h wizardRunHandlers) resolveWizardJoinExistingServer(e *httpx.Event, run *
 		if raw, ok := run.priorFailed.Result[wizardJoinRequestsKey]; ok {
 			encoded, _ := json.Marshal(raw)
 			if err := json.Unmarshal(encoded, &run.joinRequests); err != nil {
-				_ = wizardExtendUnavailable(e, "The accepted change of this join is unreadable")
-				return true
+				return true, wizardExtendUnavailable(e, "The accepted change of this join is unreadable")
 			}
 		}
 	} else {
-		_ = httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
+		return true, httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
 			"The joined server's earlier setup can no longer be resumed", wizardRunDetails(
 				"wizard_join_existing_server_resume_unavailable", false, "Start again",
 				"The node of this attempt is saved, but its starting point is not. Remove that node and add the server again."))
-		return true
 	}
 	if err := h.cfg.ExistingServers.Resolve(e.Request.Context(), h.wizardJoinServerTarget(run, stack, projection)); err != nil {
-		_ = writeWizardExistingServerError(e, err)
-		return true
+		return true, writeWizardExistingServerError(e, err)
 	}
-	return false
+	joiningServerID := strings.TrimSpace(run.request.Intent.Server.ExistingServerID)
+	if handled, capErr := h.recheckExistingServerAttestedCapacity(e, run, joiningServerID); handled || capErr != nil {
+		return true, capErr
+	}
+	if handled, reachErr := h.validateJoinInterNodeReachability(e, run, stack, joiningServerID); handled || reachErr != nil {
+		return true, reachErr
+	}
+	return false, nil
 }
 
 // finishWizardJoinExistingServer binds the server to the persisted node and
@@ -329,7 +336,10 @@ func (h wizardRunHandlers) recheckExistingServerAttestedCapacity(e *httpx.Event,
 		return false, nil
 	}
 	workerStore, ok := h.crud.serverStore.(controlplane.WorkerStore)
-	if !ok {
+	if !ok || workerStore == nil {
+		workerStore = h.cfg.Trust.Workers
+	}
+	if workerStore == nil {
 		return false, nil
 	}
 	records, err := workerStore.ListWorkersByTenant(e.Request.Context(), run.tenantID)
@@ -337,6 +347,7 @@ func (h wizardRunHandlers) recheckExistingServerAttestedCapacity(e *httpx.Event,
 		return false, nil
 	}
 	server, serverErr := h.crud.serverStore.GetServerRuntime(e.Request.Context(), run.tenantID, serverID)
+	now := time.Now().UTC()
 	var workers []core.Worker
 	for _, record := range records {
 		if strings.TrimSpace(record.OwnerSubjectID) != strings.TrimSpace(run.ownerID) {
@@ -346,19 +357,7 @@ func (h wizardRunHandlers) recheckExistingServerAttestedCapacity(e *httpx.Event,
 		if serverErr == nil && server != nil && strings.TrimSpace(server.WorkerID) == record.ID {
 			mappedServerID = server.ID
 		}
-		workers = append(workers, core.Worker{
-			ID:       record.ID,
-			ServerID: mappedServerID,
-			Name:     record.Hostname,
-			Status:   record.Status,
-			Capabilities: core.WorkerCapabilities{
-				CPU:  record.CPUCores,
-				RAM:  record.RAMMB,
-				Disk: record.DiskGB,
-				Arch: record.Arch,
-				OS:   record.OS,
-			},
-		})
+		workers = append(workers, existingServerWorkerFromRecord(record, mappedServerID, now))
 	}
 	intent := run.request.Intent
 	fit := unifier.EvaluateServerFit(core.WizardRecommendationRequest{
@@ -388,4 +387,192 @@ func (h wizardRunHandlers) recheckExistingServerAttestedCapacity(e *httpx.Event,
 		})
 	}
 	return false, nil
+}
+
+func (h wizardRunHandlers) validateJoinInterNodeReachability(e *httpx.Event, run *wizardRunState, stack *controlplane.Stack, joiningServerID string) (bool, error) {
+	if h.crud.runtimeFeatures == nil || strings.TrimSpace(joiningServerID) == "" {
+		return false, nil
+	}
+	failReachabilityUnavailable := func() (bool, error) {
+		return true, httpx.Error(e, http.StatusServiceUnavailable, ksapi.ErrCodeUnavailable,
+			"Multi-node network reachability could not be verified; retry with the same Idempotency-Key", wizardRunDetails(
+				"wizard_join_reachability_unavailable", true, "Reachability check unavailable",
+				"The server network reachability could not be verified. Retry this installation with the same attempt key."))
+	}
+	enabled, err := h.crud.runtimeFeatures.IsEnabled(e.Request.Context(), "server_hardware_fit", run.ownerID)
+	if err != nil {
+		return failReachabilityUnavailable()
+	}
+	if !enabled {
+		return false, nil
+	}
+	if h.crud.serverStore == nil {
+		return failReachabilityUnavailable()
+	}
+	workerStore, ok := h.crud.serverStore.(controlplane.WorkerStore)
+	if !ok || workerStore == nil {
+		workerStore = h.cfg.Trust.Workers
+	}
+	if workerStore == nil {
+		return failReachabilityUnavailable()
+	}
+	records, err := workerStore.ListWorkersByTenant(e.Request.Context(), run.tenantID)
+	if err != nil {
+		return failReachabilityUnavailable()
+	}
+	workersByID := make(map[string]controlplane.Worker, len(records))
+	for _, record := range records {
+		if strings.TrimSpace(record.OwnerSubjectID) == strings.TrimSpace(run.ownerID) {
+			workersByID[record.ID] = record
+		}
+	}
+	joiningServer, err := h.crud.serverStore.GetServerRuntime(e.Request.Context(), run.tenantID, joiningServerID)
+	if err != nil {
+		if errors.Is(err, controlplane.ErrNotFound) {
+			return true, httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
+				"The selected server lacks a reachable site address for multi-node networking", wizardRunDetails(
+					"node_address_unreachable", false, "Reachable address required",
+					"Reconnect this server with a valid non-loopback IP address before joining the deployment."))
+		}
+		return failReachabilityUnavailable()
+	}
+	if joiningServer == nil {
+		return true, httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
+			"The selected server lacks a reachable site address for multi-node networking", wizardRunDetails(
+				"node_address_unreachable", false, "Reachable address required",
+				"Reconnect this server with a valid non-loopback IP address before joining the deployment."))
+	}
+	if joiningServer.ConnectionState != "connected" && joiningServer.ConnectionState != "degraded" {
+		return true, httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
+			"The selected server is not connected for multi-node networking", wizardRunDetails(
+				"node_address_unreachable", false, "Connected server required",
+				"Reconnect this server through Guard before joining the deployment."))
+	}
+	worker, found := workersByID[strings.TrimSpace(joiningServer.WorkerID)]
+	if !found || !validExistingSiteAddress(worker.IP) {
+		return true, httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
+			"The selected server lacks a reachable site address for multi-node networking", wizardRunDetails(
+				"node_address_unreachable", false, "Reachable address required",
+				"Reconnect this server with a valid non-loopback IP address before joining the deployment."))
+	}
+	servers, listErr := h.crud.serverStore.ListServerRuntimesByTenant(e.Request.Context(), run.tenantID, stack.ID)
+	if listErr != nil {
+		return failReachabilityUnavailable()
+	}
+	for _, srv := range servers {
+		if srv.TenantID != run.tenantID || srv.OwnerSubjectID != run.ownerID ||
+			srv.DesiredState == "decommissioned" || srv.DecommissionedAt != nil {
+			continue
+		}
+		if srv.ConnectionState != "connected" && srv.ConnectionState != "degraded" {
+			return true, httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
+				"An existing deployment node is not connected for multi-node networking", wizardRunDetails(
+					"node_address_unreachable", false, "Connected nodes required",
+					"Ensure every node in the deployment is connected through Guard before joining another server."))
+		}
+		existingWorker, found := workersByID[strings.TrimSpace(srv.WorkerID)]
+		if !found || !validExistingSiteAddress(existingWorker.IP) {
+			return true, httpx.Error(e, http.StatusConflict, ksapi.ErrCodeConflict,
+				"An existing deployment node lacks a reachable site address for multi-node networking", wizardRunDetails(
+					"node_address_unreachable", false, "Reachable address required",
+					"Ensure every connected node in the deployment has a valid non-loopback IP address."))
+		}
+	}
+	return false, nil
+}
+
+func validExistingSiteAddress(raw string) bool {
+	addr, err := netip.ParseAddr(strings.TrimSpace(raw))
+	if err != nil {
+		return false
+	}
+	addr = addr.Unmap().WithZone("")
+	return addr.IsGlobalUnicast() && !addr.IsLoopback()
+}
+
+func existingServerWorkerFromRecord(record controlplane.Worker, serverID string, now time.Time) core.Worker {
+	tags := make(map[string]string, len(record.Tags)+1)
+	for key, value := range record.Tags {
+		if text, ok := value.(string); ok && strings.TrimSpace(key) != "" {
+			tags[strings.TrimSpace(key)] = strings.TrimSpace(text)
+		}
+	}
+	if ip := strings.TrimSpace(record.IP); ip != "" {
+		tags["ip"] = ip
+	}
+	worker := core.Worker{
+		ID:       record.ID,
+		ServerID: serverID,
+		Name:     record.Hostname,
+		Status:   record.Status,
+		StackID:  strings.TrimSpace(record.StackID),
+		Capabilities: core.WorkerCapabilities{
+			CPU:            record.CPUCores,
+			RAM:            record.RAMMB,
+			Disk:           record.DiskGB,
+			Arch:           record.Arch,
+			OS:             record.OS,
+			DockerVersion:  record.DockerVersion,
+			HasNVMe:        record.HasNVME,
+			HasHWTranscode: record.HasHWTranscode,
+		},
+		Tags: tags,
+	}
+	host, _ := record.Resources["host"].(map[string]any)
+	if gpu := strings.TrimSpace(record.GPU); gpu != "" {
+		worker.Capabilities.GPU = &core.GPUInfo{Model: gpu}
+	}
+	if rawHW, ok := host["hardware"]; ok && rawHW != nil {
+		if encoded, err := json.Marshal(rawHW); err == nil {
+			var hw httpguard.HostHardware
+			if json.Unmarshal(encoded, &hw) == nil {
+				if clean := hw.Sanitized(); clean != nil {
+					worker.Capabilities.AMD64MicroarchitectureLevel = clean.AMD64Level
+					if clean.GPU != nil {
+						info := core.GPUInfo{Vendor: clean.GPU.Vendor, DriverMajor: clean.GPU.DriverMajor}
+						if worker.Capabilities.GPU != nil {
+							info.Model = worker.Capabilities.GPU.Model
+						}
+						worker.Capabilities.GPU = &info
+					}
+				}
+			}
+		}
+	}
+	if rawVols, ok := host["volumes"].([]any); ok && len(rawVols) > 0 {
+		if encoded, err := json.Marshal(rawVols); err == nil {
+			var parsed []httpguard.HostVolume
+			if json.Unmarshal(encoded, &parsed) == nil {
+				for _, vol := range httpguard.SanitizeHostVolumes(parsed) {
+					worker.Capabilities.Volumes = append(worker.Capabilities.Volumes, core.StorageVolume{
+						MountPoint: vol.MountPoint,
+						SizeGB:     vol.SizeGB,
+						FreeGB:     vol.FreeGB,
+						Filesystem: vol.Filesystem,
+						Label:      vol.Label,
+						External:   vol.External,
+					})
+				}
+			}
+		}
+	}
+	if record.LastSeenAt != nil && now.Sub(record.LastSeenAt.UTC()) <= 10*time.Minute {
+		if sample, ok := controlplane.HostMetricSample(host); ok {
+			observed := false
+			if sample.CPU != nil && worker.Capabilities.CPU > 0 {
+				worker.Usage.CPU = int(math.Ceil(*sample.CPU / 100 * float64(worker.Capabilities.CPU)))
+				observed = true
+			}
+			if sample.Memory != nil && worker.Capabilities.RAM > 0 {
+				worker.Usage.RAM = int(math.Ceil(*sample.Memory / 100 * float64(worker.Capabilities.RAM)))
+				observed = true
+			}
+			if sample.Disk != nil && worker.Capabilities.Disk > 0 {
+				worker.Usage.Disk = int(math.Ceil(*sample.Disk / 100 * float64(worker.Capabilities.Disk)))
+				observed = true
+			}
+			worker.UsageObserved = observed
+		}
+	}
+	return worker
 }

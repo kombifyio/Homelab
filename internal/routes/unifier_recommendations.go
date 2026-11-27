@@ -58,6 +58,7 @@ func (api *UnifierAPI) handleRecommendations(e *httpx.Event) error {
 		return httpx.BadRequest(e, "invalid recommendation request: "+decodeErr.Error())
 	}
 	request := envelope.WizardRecommendationRequest
+	request.LANReachable = envelope.SmartHomeContext.LANReachable
 	// A recommendation never preselects a use case this person cannot
 	// receive in full (jobs.UnofferedUseCases); the catalog does not offer it.
 	// An unreadable catalog still withholds the Wiki itself.
@@ -70,6 +71,10 @@ func (api *UnifierAPI) handleRecommendations(e *httpx.Event) error {
 		if memoryEnabled, flagErr := api.features.IsEnabled(e.Request.Context(), "ionos_standard_photo_memory", ownerID); flagErr == nil {
 			request.IONOSMemoryEnabled = memoryEnabled
 		}
+	}
+	existingServerID := strings.TrimSpace(request.ExistingServerID)
+	if existingServerID == "" && request.ServerFit != nil {
+		existingServerID = strings.TrimSpace(request.ServerFit.ServerID)
 	}
 	if request.ServerFit != nil {
 		fitEnabled := false
@@ -86,6 +91,44 @@ func (api *UnifierAPI) handleRecommendations(e *httpx.Event) error {
 	}
 	if validationErr := validateWizardRecommendationRequest(request); validationErr != "" {
 		return httpx.BadRequest(e, validationErr)
+	}
+	serverLane := monthlyruntime.DeploymentLaneFromMode(api.deploymentMode)
+	if serverLane != "" {
+		request.DeploymentLane = string(serverLane)
+	} else {
+		request.DeploymentLane = ""
+	}
+	if (request.ServerFit != nil && strings.TrimSpace(request.ServerFit.ProviderID) != "") ||
+		(serverLane == monthlyruntime.DeploymentLaneSaaS && strings.TrimSpace(request.ProviderID) != "") {
+		request.LANReachable = false
+	}
+	entitlementProviderID := ""
+	if request.ServerFit != nil {
+		entitlementProviderID = strings.TrimSpace(request.ServerFit.ProviderID)
+	}
+	if entitlementProviderID == "" {
+		entitlementProviderID = strings.TrimSpace(request.ProviderID)
+	}
+	allowedOfferings := monthlyruntime.AllowedOfferingsForRequest(e.Request.Context(), serverLane, entitlementProviderID)
+	request.AllowedOfferings = allowedOfferings
+	request.OfferingEntitlementChecked = true
+	request.AllYouNeedEntitled = slices.Contains(allowedOfferings, "monthly-runtime-premium")
+	if serverLane == monthlyruntime.DeploymentLaneSaaS {
+		admitted := make([]string, 0, 2)
+		var featureChecker monthlyruntime.FeatureChecker
+		if api.features != nil {
+			featureChecker = api.features
+		}
+		for _, pid := range []string{monthlyruntime.ProviderIONOS, monthlyruntime.ProviderCentron} {
+			if decision := monthlyruntime.EvaluateManagedRuntimeEntitlement(e.Request.Context(), featureChecker, ownerID, pid); !decision.Denied {
+				admitted = append(admitted, pid)
+			}
+		}
+		request.AdmittedProviders = admitted
+		request.ProviderAdmissionChecked = true
+	} else if serverLane == "" {
+		request.AdmittedProviders = []string{}
+		request.ProviderAdmissionChecked = true
 	}
 
 	inventory, inventoryErr := api.fetchRecommendationInventory(e.Request.Context(), tenantID, ownerID)
@@ -112,17 +155,41 @@ func (api *UnifierAPI) handleRecommendations(e *httpx.Event) error {
 		SelfDisclosure:          disclosure,
 		SelfDisclosureUpdatedAt: disclosureUpdatedAt,
 	})
-	if response.ServerFit != nil && response.ServerFit.Template == "Memory Cube S" &&
-		(api.memoryAvailability == nil || api.memoryAvailability.IONOSStandardMemoryAvailable(e.Request.Context()) != nil) {
-		response.ServerFit.Status = unifier.FitStatusPending
-		response.ServerFit.PendingReason = "provider_package_unavailable"
-		response.ServerFit.RefusalClass = unifier.RefusalClassUnavailableProvider
-		response.ServerFit.Template, response.ServerFit.SKU, response.ServerFit.Location = "", "", ""
-		response.ServerFit.Specs = kscore.WizardServerFitSpecs{}
-		response.ServerFit.MemoryPeak = kscore.WizardMemoryPeak{Status: "unknown"}
-		response.ServerFit.Deficits = nil
-		response.ServerFit.Unknowns = append(response.ServerFit.Unknowns, kscore.WizardServerFitFact{Code: "provider_package_unavailable"})
-		response.ServerFit.Recovery = &kscore.WizardServerFitRecovery{Action: "review_selection", ReasonCode: "provider_package_unavailable"}
+	if len(unoffered) > 0 {
+		for id, starter := range response.ProStarters {
+			starter.StartsWith = slices.DeleteFunc(slices.Clone(starter.StartsWith), func(goal string) bool {
+				return slices.Contains(unoffered, strings.ToLower(strings.TrimSpace(goal)))
+			})
+			starter.DeferredGoals = slices.DeleteFunc(slices.Clone(starter.DeferredGoals), func(goal string) bool {
+				return slices.Contains(unoffered, strings.ToLower(strings.TrimSpace(goal)))
+			})
+			response.ProStarters[id] = starter
+		}
+	}
+	needsMemoryCheck := response.ServerFit != nil && response.ServerFit.Template == "Memory Cube S"
+	if !needsMemoryCheck {
+		for _, starter := range response.ProStarters {
+			if starter.Fit != nil && starter.Fit.Template == "Memory Cube S" {
+				needsMemoryCheck = true
+				break
+			}
+		}
+	}
+	if needsMemoryCheck && (api.memoryAvailability == nil || api.memoryAvailability.IONOSStandardMemoryAvailable(e.Request.Context()) != nil) {
+		if response.ServerFit != nil && response.ServerFit.Template == "Memory Cube S" {
+			markMemoryCubeSPending(response.ServerFit)
+		}
+		for id, starter := range response.ProStarters {
+			if starter.Fit != nil && starter.Fit.Template == "Memory Cube S" {
+				markMemoryCubeSPending(starter.Fit)
+				starter.RecommendedFull = false
+				starter.RequiresConfirmation = true
+				if !slices.Contains(starter.ConfirmationReasons, "provider_package_unavailable") {
+					starter.ConfirmationReasons = append(starter.ConfirmationReasons, "provider_package_unavailable")
+				}
+				response.ProStarters[id] = starter
+			}
+		}
 	}
 	if response.ServerFit != nil && response.ServerFit.ProviderID != "" && api.features != nil {
 		decision := monthlyruntime.EvaluateManagedRuntimeEntitlement(e.Request.Context(), api.features, ownerID, response.ServerFit.ProviderID)
@@ -130,21 +197,37 @@ func (api *UnifierAPI) handleRecommendations(e *httpx.Event) error {
 			if response.ServerFit.RefusalClass == "" {
 				response.ServerFit.RefusalClass = unifier.RefusalClassEntitlement
 			}
-			response.ServerFit.Advisories = append(response.ServerFit.Advisories, kscore.WizardServerFitFact{Code: "entitlement_required"})
+			hasAdvisory := false
+			for _, adv := range response.ServerFit.Advisories {
+				if adv.Code == "entitlement_required" {
+					hasAdvisory = true
+					break
+				}
+			}
+			if !hasAdvisory {
+				response.ServerFit.Advisories = append(response.ServerFit.Advisories, kscore.WizardServerFitFact{Code: "entitlement_required"})
+			}
 		}
 	}
+	detectedApps := detectExistingServerApps(e.Request.Context(), api.servers, api.services, tenantID, ownerID, existingServerID)
 	var smartHome *specv2.SmartHomeRecommendation
 	for _, goal := range request.Goals {
 		if goal == "smart-home" {
-			value := specv2.RecommendSmartHome(envelope.SmartHomeContext, envelope.SmartHomeSettings)
+			smartHomeSettings := envelope.SmartHomeSettings
+			if len(smartHomeSettings) == 0 && request.UseCaseSettings != nil {
+				smartHomeSettings = request.UseCaseSettings["smart-home"]
+			}
+			smartHomeCtx := applyDetectedSmartHomeContext(envelope.SmartHomeContext, smartHomeSettings, detectedApps)
+			value := specv2.RecommendSmartHome(smartHomeCtx, smartHomeSettings)
 			smartHome = &value
 			break
 		}
 	}
 	return httpx.Success(e, http.StatusOK, struct {
 		kscore.WizardRecommendationResponse
-		SmartHome *specv2.SmartHomeRecommendation `json:"smart_home_recommendation,omitempty"`
-	}{response, smartHome})
+		SmartHome            *specv2.SmartHomeRecommendation `json:"smart_home_recommendation,omitempty"`
+		DetectedExistingApps []DetectedExistingApp           `json:"detected_existing_apps,omitempty"`
+	}{response, smartHome, detectedApps})
 }
 
 func validateWizardRecommendationRequest(request kscore.WizardRecommendationRequest) string {
@@ -182,4 +265,19 @@ func validateWizardRecommendationRequest(request kscore.WizardRecommendationRequ
 		return "surface must be easy or techie"
 	}
 	return ""
+}
+
+func markMemoryCubeSPending(fit *kscore.WizardServerFit) {
+	if fit == nil {
+		return
+	}
+	fit.Status = unifier.FitStatusPending
+	fit.PendingReason = "provider_package_unavailable"
+	fit.RefusalClass = unifier.RefusalClassUnavailableProvider
+	fit.Template, fit.SKU, fit.Location = "", "", ""
+	fit.Specs = kscore.WizardServerFitSpecs{}
+	fit.MemoryPeak = kscore.WizardMemoryPeak{Status: "unknown"}
+	fit.Deficits = nil
+	fit.Unknowns = append(fit.Unknowns, kscore.WizardServerFitFact{Code: "provider_package_unavailable"})
+	fit.Recovery = &kscore.WizardServerFitRecovery{Action: "review_selection", ReasonCode: "provider_package_unavailable"}
 }

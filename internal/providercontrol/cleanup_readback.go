@@ -72,7 +72,7 @@ func (l *PostgresLedger) ReadManagedRuntimeCleanup(
 			JOIN runtime_lease_execution_authorities AS authority
 			  ON authority.tenant_id = lease.tenant_id
 			 AND authority.lease_id = lease.id
-			 AND authority.execution_authority = $3
+			 AND authority.execution_authority IN ($3, $4)
 			LEFT JOIN servers AS server
 			  ON server.tenant_id = lease.tenant_id
 			 AND server.id = lease.server_id
@@ -89,8 +89,8 @@ func (l *PostgresLedger) ReadManagedRuntimeCleanup(
 				FROM provider_operations AS candidate
 				WHERE candidate.tenant_id = lease.tenant_id
 				  AND candidate.lease_id = lease.id
-				  AND candidate.command_json->>'schema_version' = $4
-				  AND candidate.command_json->>'execution_authority' = $3
+				  AND candidate.command_json->>'schema_version' IN ($5, $6)
+				  AND candidate.command_json->>'execution_authority' IN ($3, $4)
 				  AND candidate.command_json #>> '{command,resource_generation_id}' = lease.resource_generation_id::text
 				  AND (
 					candidate.operation = 'decommission'
@@ -118,7 +118,7 @@ func (l *PostgresLedger) ReadManagedRuntimeCleanup(
 			) AS absence ON TRUE
 			WHERE lease.tenant_id = $1
 			  AND lease.id = $2
-		`, tenantID, string(leaseID), string(ExecutionAuthorityHomelabProviderControl), operationEnvelopeVersion).Scan(
+		`, tenantID, string(leaseID), string(ExecutionAuthorityHomelabProviderControl), string(executionAuthorityHomelabForward), operationEnvelopeVersion, operationEnvelopeVersionForward).Scan(
 			&facts.ServerBound,
 			&facts.ServerTerminal,
 			&facts.ProviderOperationFound,

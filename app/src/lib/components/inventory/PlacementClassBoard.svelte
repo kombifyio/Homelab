@@ -8,7 +8,12 @@
   import { tr } from "#lib/i18n.svelte.js";
   import Button from "#lib/components/ui/Button.svelte";
   import PlacementBoard from "#lib/components/inventory/PlacementBoard.svelte";
+  import {
+    CURATED_MANAGED_APPS,
+    isCuratedManagedAppKey,
+  } from "#lib/services/placement-classes.js";
   import type {
+    PlacementCard,
     PlacementColumn,
     UnmanagedCard,
   } from "#lib/services/placement.js";
@@ -103,6 +108,30 @@
   </article>
 {/snippet}
 
+{#snippet dedicatedCuratedManagedBadge(card: PlacementCard)}
+  {#if isCuratedManagedAppKey(card.service.application_key) || isCuratedManagedAppKey(card.service.name)}
+    <div
+      class="flex items-center gap-1.5"
+      data-testid="placement-card-curated-managed-badge"
+      title={tr("ui.placementClasses.managed.supportedCasesNote")}
+    >
+      <span
+        class="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-foreground"
+      >
+        <span
+          class="h-1.5 w-1.5 rounded-full bg-emerald-500"
+          aria-hidden="true"
+        ></span>
+        <span>{tr("ui.placementClasses.managed.title")}</span>
+        <span class="text-muted-foreground">·</span>
+        <span class="text-muted-foreground">
+          {tr("ui.placementClasses.managed.curatedBadge")}
+        </span>
+      </span>
+    </div>
+  {/if}
+{/snippet}
+
 <div class="flex flex-col gap-8" data-testid="placement-class-board">
   <section
     aria-labelledby="placement-native-heading"
@@ -137,15 +166,56 @@
     aria-labelledby="placement-managed-heading"
     data-testid="placement-class-managed"
   >
-    <h2
-      id="placement-managed-heading"
-      class="text-sm font-semibold text-foreground"
-    >
-      {tr("ui.placementClasses.managed.title")}
-    </h2>
+    <div class="flex flex-wrap items-center gap-2">
+      <h2
+        id="placement-managed-heading"
+        class="text-sm font-semibold text-foreground"
+      >
+        {tr("ui.placementClasses.managed.title")}
+      </h2>
+      <span
+        class="rounded-md border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+        data-testid="placement-managed-curated-badge"
+      >
+        {tr("ui.placementClasses.managed.curatedBadge")}
+      </span>
+    </div>
     <p class="mt-1 max-w-3xl text-sm text-muted-foreground">
       {tr("ui.placementClasses.managed.summary")}
     </p>
+    <p
+      class="mt-1.5 max-w-3xl text-xs text-muted-foreground/90"
+      data-testid="placement-managed-curated-note"
+    >
+      {tr("ui.placementClasses.managed.supportedCasesNote")}
+    </p>
+    <div
+      class="mt-2.5 flex flex-wrap items-center gap-2"
+      data-testid="placement-managed-curated-list"
+    >
+      {#each CURATED_MANAGED_APPS as app (app.appKey)}
+        <span
+          class={app.status === "supported"
+            ? "inline-flex items-center gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-foreground"
+            : "inline-flex items-center gap-1.5 rounded-md border border-dashed border-border bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-muted-foreground"}
+          data-testid={`placement-managed-curated-app-${app.appKey}`}
+          data-curated-status={app.status}
+        >
+          <span
+            class={app.status === "supported"
+              ? "h-1.5 w-1.5 rounded-full bg-emerald-500"
+              : "h-1.5 w-1.5 rounded-full bg-muted-foreground/60"}
+            aria-hidden="true"
+          ></span>
+          <span>{app.displayName}</span>
+          {#if app.status === "upcoming"}
+            <span class="text-[10px] opacity-75">
+              · {tr("wizard.preview.comingSoon")}
+            </span>
+          {/if}
+        </span>
+      {/each}
+    </div>
     {#if managed.length > 0}
       <!-- One area of cards. No server headline, hostname or capacity column. -->
       <div
@@ -197,6 +267,7 @@
         {onretry}
         {onmove}
         {onstack}
+        cardBadge={dedicatedCuratedManagedBadge}
       />
     {/if}
   </section>

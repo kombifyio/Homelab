@@ -2,7 +2,7 @@
  * Localized text for Wallet refusals and item facts, resolved at render time.
  * A refusal maps by its reason code; a reason without a localized message
  * shows the Gateway's own guidance, and nothing at all falls back to a generic
- * message. Message IDs live in `wallet-messages.ts`.
+ * message. Message IDs live in `messages/*.json`.
  */
 import { tr } from "#lib/i18n.svelte.js";
 import { WalletApiError } from "./wallet-api.js";

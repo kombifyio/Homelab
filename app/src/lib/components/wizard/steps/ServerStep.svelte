@@ -11,6 +11,7 @@
   import { ServerRegistryPanel } from "../index";
   import ServerProvisioningStep from "../ServerProvisioningStep.svelte";
   import HomelabServerChoice from "../HomelabServerChoice.svelte";
+  import ExistingAppTakeoverBanner from "../ExistingAppTakeoverBanner.svelte";
   import CapacityHint from "../CapacityHint.svelte";
   import type {
     CapacityHint as CapacityHintModel,
@@ -19,7 +20,10 @@
   import ServerFitNotice, {
     type ServerFitTarget,
   } from "../ServerFitNotice.svelte";
-  import type { ServerFitRecovery } from "#lib/api/unifier.js";
+  import type {
+    DetectedExistingApp,
+    ServerFitRecovery,
+  } from "#lib/api/unifier.js";
   import type { WizardPreviewState } from "#lib/wizard/WizardPreviewController.js";
   import type { HomelabServerSelection } from "#lib/creation/homelab-servers.js";
   import type { ManagedProviderID, StackConfig } from "#lib/wizard/index.js";
@@ -50,6 +54,9 @@
     onCapacityOmit?: (goal: string) => void;
     fitEnabled?: boolean;
     recommendationState?: WizardPreviewState;
+    detectedExistingApps?: DetectedExistingApp[];
+    onAdoptExistingApp?: (app: DetectedExistingApp) => void;
+    onOverrideExistingApp?: (app: DetectedExistingApp) => void;
     onFitRecovery?: (recovery: ServerFitRecovery) => void;
     onFitRecheck?: () => void;
   }
@@ -74,6 +81,9 @@
     onCapacityOmit,
     fitEnabled = false,
     recommendationState,
+    detectedExistingApps = [],
+    onAdoptExistingApp,
+    onOverrideExistingApp,
     onFitRecovery,
     onFitRecheck,
   }: Props = $props();
@@ -155,6 +165,17 @@
 
   {#if homelab && homelabShown}
     <HomelabServerChoice {homelab} />
+  {/if}
+
+  {#if existingChosen && detectedExistingApps.length > 0}
+    <ExistingAppTakeoverBanner
+      apps={detectedExistingApps}
+      smartHomeOrigin={config.useCaseSettings?.["smart-home"]?.[
+        "instance-origin"
+      ]}
+      onAdopt={onAdoptExistingApp}
+      onOverride={onOverrideExistingApp}
+    />
   {/if}
 
   <!-- While the person's servers are read, nothing is offered yet: the

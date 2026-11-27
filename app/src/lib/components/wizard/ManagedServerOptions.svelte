@@ -143,10 +143,17 @@
         {/if}
         {#each availableOfferings as item (item.id)}
           {@const pkg = config.providerId ? item.provider_packages?.[config.providerId] : undefined}
-          <option value={item.id}>{item.name}{pkg?.sku ? ` · ${pkg.sku}` : ""}</option>
+          <option value={item.id}>
+            {item.name}{pkg?.sku ? ` · ${pkg.sku}` : ""}{item.id !== "monthly-runtime-standard" ? ` · ${tr("wizard.server.managed.requiresAllYouNeed")}` : ""}
+          </option>
         {/each}
       </select>
       <span class="block text-muted-foreground">{tr("layout.expansion.entitlement")}</span>
+      {#if serverFit?.refusal_class === "entitlement" || serverFit?.advisories?.some((item) => item.code === "entitlement_required")}
+        <span class="block text-destructive" data-testid="managed-offering-entitlement-required">
+          {tr("wizard.server.managed.entitlementRequiredNote")}
+        </span>
+      {/if}
     </label>
   {/if}
   <section class="server-summary">

@@ -330,6 +330,9 @@ func (d *NativeDecommissioner) prepareCandidates(
 		if err != nil {
 			return nil, err
 		}
+		if err := ensureLeaseNotFencedBySupportReplacementTx(ctx, tx, req.TenantID, candidate.LeaseID); err != nil {
+			return nil, err
+		}
 		candidate, err = d.persistNativeDecommissionIntent(ctx, tx, req.TenantID, candidate)
 		if err != nil {
 			return nil, err
@@ -373,7 +376,7 @@ func lockNativeDecommissionCandidates(
 		JOIN runtime_lease_execution_authorities AS authority
 		  ON authority.tenant_id = lease.tenant_id
 		 AND authority.lease_id = lease.id
-		 AND authority.execution_authority = 'techstack_provider_control'
+		 AND authority.execution_authority IN ('techstack_provider_control', 'homelab_provider_control')
 		JOIN servers AS server
 		  ON server.tenant_id = lease.tenant_id
 		 AND server.id = lease.server_id
@@ -467,6 +470,52 @@ func validateLockedNativeDecommissionCandidate(
 		)
 	}
 	return candidate, nil
+}
+
+func ensureLeaseNotFencedBySupportReplacementTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	tenantID, leaseID string,
+) error {
+	var replacementID, phase, srcLeaseID, dstLeaseID string
+	var writesObserved bool
+	var cutoverAt sql.NullTime
+	err := tx.QueryRowContext(ctx, `
+		SELECT
+			replacement_id,
+			phase,
+			source_lease_id,
+			COALESCE(destination_lease_id, ''),
+			destination_writes_observed,
+			cutover_verified_at
+		FROM managed_runtime_support_replacements
+		WHERE tenant_id = $1
+		  AND (source_lease_id = $2 OR destination_lease_id = $2)
+		  AND phase IN (
+		      'destination_admitted',
+		      'staging',
+		      'cutover_in_progress',
+		      'cutover_verified',
+		      'source_decommissioning',
+		      'rolling_back',
+		      'fenced_conflict'
+		  )
+		LIMIT 1
+	`, tenantID, leaseID).Scan(&replacementID, &phase, &srcLeaseID, &dstLeaseID, &writesObserved, &cutoverAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("providercontroljobs: check support replacement lease fence: %w", err)
+	}
+	if phase == "rolling_back" && dstLeaseID == leaseID && !writesObserved {
+		return nil
+	}
+	if (phase == "cutover_verified" || phase == "source_decommissioning") &&
+		srcLeaseID == leaseID && cutoverAt.Valid && writesObserved {
+		return nil
+	}
+	return fmt.Errorf("%w: lease %s is fenced by support replacement %s in phase %s", errNativeDecommissionCustody, leaseID, replacementID, phase)
 }
 
 // persistNativeDecommissionIntent writes the lease and RuntimeServer intent in
@@ -1177,8 +1226,8 @@ func (d *NativeDecommissioner) loadTerminalProof(
 			  AND operation.phase = 'absent'
 			  AND receipt.status = 'succeeded'
 			  AND receipt.phase = 'absent'
-			  AND operation.command_json->>'schema_version' = 'techstack.provider-control-operation/v1'
-			  AND operation.command_json->>'execution_authority' = 'techstack_provider_control'
+			  AND operation.command_json->>'schema_version' IN ('techstack.provider-control-operation/v1', 'homelab.provider-control-operation/v1')
+			  AND operation.command_json->>'execution_authority' IN ('techstack_provider_control', 'homelab_provider_control')
 			  AND operation.command_json #>> '{execution_profile,credential_mode}' = 'worker_held'
 			  AND operation.command_json #>> '{command,provider_id}' = 'proxmox'
 			  AND operation.command_json #>> '{command,resource_generation_id}' = $3

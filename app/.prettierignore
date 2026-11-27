@@ -3,6 +3,9 @@ node_modules/
 build/
 build-static/
 dist/
+messages/
+project.inlang/
+src/lib/paraglide/
 test-results/
 test-results-*/
 playwright-report/

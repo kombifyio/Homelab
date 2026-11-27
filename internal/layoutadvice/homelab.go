@@ -454,6 +454,18 @@ func (s *Service) homelabInput(scope Scope, hl homelab, selection Selection, cat
 // joinCandidate plans the selection on one deployment's servers together with
 // one connected bare server that would join it as a worker node.
 func (s *Service) joinCandidate(ctx context.Context, scope Scope, hl homelab, d *deployment, server controlplane.ServerRuntime, selection Selection, catalog stackkitrelease.UseCaseCatalog, project projectionFor) (candidate, error) {
+	if len(d.servers) == 0 {
+		return candidate{}, nil
+	}
+	for _, existing := range d.servers {
+		if existing.ConnectionState != "connected" && existing.ConnectionState != "degraded" {
+			return candidate{}, nil
+		}
+		worker, ok := hl.workers[existing.WorkerID]
+		if !ok || siteAddress(worker.Tags["ip"]) == "" {
+			return candidate{}, nil
+		}
+	}
 	projection, err := project(d)
 	if err != nil {
 		return candidate{}, err
@@ -476,9 +488,18 @@ func (s *Service) joinCandidate(ctx context.Context, scope Scope, hl homelab, d 
 }
 
 // joinableBare reports whether a bare server can join a deployment: unleased,
-// in the owner's worker inventory and connected through Guard.
+// active in the owner's worker inventory with a valid site address, and
+// connected through Guard.
 func joinableBare(hl homelab, server controlplane.ServerRuntime) bool {
-	if _, known := hl.workers[server.WorkerID]; !known || strings.TrimSpace(server.LeaseID) != "" {
+	worker, known := hl.workers[server.WorkerID]
+	if !known || strings.TrimSpace(server.LeaseID) != "" {
+		return false
+	}
+	switch strings.ToLower(strings.TrimSpace(worker.Status)) {
+	case "offline", "error", "disabled", "stale", "revoked":
+		return false
+	}
+	if siteAddress(worker.Tags["ip"]) == "" {
 		return false
 	}
 	return server.ConnectionState == "connected" || server.ConnectionState == "degraded"

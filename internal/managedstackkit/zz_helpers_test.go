@@ -18,6 +18,9 @@ import (
 type fakeDeliveryCustody struct {
 	pin     *backupstore.RecipientPin
 	binding *backupstore.NodeBinding
+	staged  map[string]*backupstore.ReplacementRecipientPin
+	stagedB map[string]*backupstore.NodeBinding
+	status  map[string]string
 }
 
 func (*fakeDeliveryCustody) Ensure(context.Context, string, string) (backupstore.CustodyEvidence, error) {
@@ -57,7 +60,92 @@ func (f *fakeDeliveryCustody) RecordNodeBinding(_ context.Context, _, _ string, 
 }
 
 func (f *fakeDeliveryCustody) NodeBinding(context.Context, string, string) (backupstore.NodeBinding, error) {
+	if f.binding == nil {
+		return backupstore.NodeBinding{}, backupstore.ErrNodeBindingMissing
+	}
 	return *f.binding, nil
+}
+
+func (f *fakeDeliveryCustody) StageReplacementRecipient(_ context.Context, pin backupstore.ReplacementRecipientPin) error {
+	if f.staged == nil {
+		f.staged = map[string]*backupstore.ReplacementRecipientPin{}
+	}
+	if f.status == nil {
+		f.status = map[string]string{}
+	}
+	key := pin.TenantID + "/" + pin.StackID + "/" + pin.ReplacementID
+	if existing, ok := f.staged[key]; ok {
+		if f.status[key] != "staged" {
+			return backupstore.ErrInvalidCustody
+		}
+		if existing.Fingerprint != pin.Fingerprint || existing.OwnerKey != pin.OwnerKey || existing.Generation != pin.Generation {
+			return backupstore.ErrRecipientSubstituted
+		}
+		return nil
+	}
+	copyPin := pin
+	f.staged[key] = &copyPin
+	f.status[key] = "staged"
+	return nil
+}
+
+func (f *fakeDeliveryCustody) ReplacementRecipient(_ context.Context, tenantID, stackID, replacementID string) (backupstore.ReplacementRecipientPin, bool, error) {
+	key := tenantID + "/" + stackID + "/" + replacementID
+	if f.staged == nil || f.status[key] != "staged" || f.staged[key] == nil {
+		return backupstore.ReplacementRecipientPin{}, false, nil
+	}
+	return *f.staged[key], true, nil
+}
+
+func (f *fakeDeliveryCustody) RecordReplacementNodeBinding(_ context.Context, tenantID, stackID, replacementID string, binding backupstore.NodeBinding) error {
+	key := tenantID + "/" + stackID + "/" + replacementID
+	if f.status[key] != "staged" {
+		return backupstore.ErrCustodyNotFound
+	}
+	if f.stagedB == nil {
+		f.stagedB = map[string]*backupstore.NodeBinding{}
+	}
+	if existing := f.stagedB[key]; existing != nil && *existing != binding {
+		return backupstore.ErrInvalidCustody
+	}
+	copyBinding := binding
+	f.stagedB[key] = &copyBinding
+	return nil
+}
+
+func (f *fakeDeliveryCustody) ReplacementNodeBinding(_ context.Context, tenantID, stackID, replacementID string) (backupstore.NodeBinding, error) {
+	key := tenantID + "/" + stackID + "/" + replacementID
+	if f.stagedB == nil || f.stagedB[key] == nil {
+		return backupstore.NodeBinding{}, backupstore.ErrNodeBindingMissing
+	}
+	return *f.stagedB[key], nil
+}
+
+func (f *fakeDeliveryCustody) CommitReplacementCustody(_ context.Context, tenantID, stackID, replacementID string) error {
+	key := tenantID + "/" + stackID + "/" + replacementID
+	if f.status[key] == "committed" {
+		return nil
+	}
+	if f.status[key] != "staged" || f.staged[key] == nil || f.stagedB[key] == nil {
+		return backupstore.ErrCustodyNotFound
+	}
+	pin := f.staged[key].RecipientPin
+	binding := *f.stagedB[key]
+	f.pin = &pin
+	f.binding = &binding
+	f.status[key] = "committed"
+	return nil
+}
+
+func (f *fakeDeliveryCustody) DiscardReplacementCustody(_ context.Context, tenantID, stackID, replacementID string) error {
+	key := tenantID + "/" + stackID + "/" + replacementID
+	if f.status[key] == "committed" {
+		return backupstore.ErrInvalidCustody
+	}
+	if f.status[key] == "staged" {
+		f.status[key] = "rolled_back"
+	}
+	return nil
 }
 
 // node is a StackKits node: an owner signing key and a separate recipient key.

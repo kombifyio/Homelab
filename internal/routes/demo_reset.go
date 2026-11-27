@@ -185,7 +185,7 @@ func (h demoResetHandlers) reset(e *httpx.Event) error {
 				demoResetCustodyReviewFor(lease, "lease authority record is missing; provider absence cannot be inferred"))
 			continue
 		}
-		if record.ExecutionAuthority != vmleases.LeaseExecutionAuthorityHomelabProviderControl {
+		if !vmleases.IsHomelabProviderControlExecutionAuthority(record.ExecutionAuthority) {
 			// Legacy and unbound rows have no provider-control custody. They are
 			// intentionally not auto-archived: a missing native row is not proof
 			// that a billable provider resource is absent. The normal operations

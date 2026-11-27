@@ -104,12 +104,32 @@ func stackKitApplicationTransferArgs(workDir string, command *agentpb.StackKitCo
 			return fail(peerErr)
 		}
 		args = []string{"backup", "transfer-serve", "--target", exportDir, "--peer", peer, "--port", strconv.Itoa(stackkitcommand.ApplicationTransferPort), "--open-firewall", "--ttl", "10m"}
-	case stackkitcommand.TransferStepFetch:
-		peer, peerErr := stackkitcommand.ApplicationTransferPeer(request.Peer)
-		if peerErr != nil {
-			return fail(peerErr)
+	case stackkitcommand.TransferStepPush:
+		tokenPath, tokenErr := write("relay-upload-token", []byte(request.RelayToken))
+		if tokenErr != nil {
+			return fail(tokenErr)
 		}
-		args = []string{"backup", "transfer-fetch", "--from", net.JoinHostPort(peer, strconv.Itoa(stackkitcommand.ApplicationTransferPort)), "--archive-sha256", request.ArchiveSHA256, "--wait", "5m"}
+		args = []string{"backup", "transfer-push", "--target", exportDir, "--to", request.RelayURL, "--token-file", tokenPath, "--ttl", "10m"}
+		if request.AllowInsecureLoopback {
+			args = append(args, "--allow-insecure-loopback")
+		}
+	case stackkitcommand.TransferStepFetch:
+		if request.RelayURL != "" {
+			tokenPath, tokenErr := write("relay-download-token", []byte(request.RelayToken))
+			if tokenErr != nil {
+				return fail(tokenErr)
+			}
+			args = []string{"backup", "transfer-fetch", "--from-url", request.RelayURL, "--token-file", tokenPath, "--archive-sha256", request.ArchiveSHA256, "--wait", "5m"}
+			if request.AllowInsecureLoopback {
+				args = append(args, "--allow-insecure-loopback")
+			}
+		} else {
+			peer, peerErr := stackkitcommand.ApplicationTransferPeer(request.Peer)
+			if peerErr != nil {
+				return fail(peerErr)
+			}
+			args = []string{"backup", "transfer-fetch", "--from", net.JoinHostPort(peer, strconv.Itoa(stackkitcommand.ApplicationTransferPort)), "--archive-sha256", request.ArchiveSHA256, "--wait", "5m"}
+		}
 	case stackkitcommand.TransferStepPrepare:
 		args = sourceAdmission([]string{"backup", "transfer-prepare"})
 		args = append(args, "--capability", capability, "--owner-approve")

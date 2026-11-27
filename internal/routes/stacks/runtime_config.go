@@ -51,12 +51,9 @@ func runtimePolicyConfigFromRequest(req normalizedCreateStackRequest) map[string
 }
 
 func validateDeploymentLane(req normalizedCreateStackRequest, mode config.DeploymentMode) string {
-	if !mode.IsValid() {
-		mode = config.ModeSelfHosted
-	}
 	policyConfig := runtimePolicyConfigFromRequest(req)
 	fields := runtimeFieldsFromConfig(policyConfig)
-	if mode.IsSaaS() || monthlyruntime.LocalManagedRuntimeE2EAllowed() {
+	if mode.IsSaaS() || (mode.IsSelfHosted() && monthlyruntime.LocalManagedRuntimeE2EAllowed()) {
 		return ""
 	}
 	if hasManagedRuntimeFields(policyConfig, fields) {
@@ -65,18 +62,27 @@ func validateDeploymentLane(req normalizedCreateStackRequest, mode config.Deploy
 	return ""
 }
 
-func evaluateManagedRuntimeEntitlement(ctx context.Context, req normalizedCreateStackRequest, userID string, checker managedRuntimeFeatureChecker) monthlyruntime.ManagedRuntimeEntitlementDecision {
+func evaluateManagedRuntimeEntitlement(ctx context.Context, req normalizedCreateStackRequest, userID string, checker managedRuntimeFeatureChecker, mode config.DeploymentMode) monthlyruntime.ManagedRuntimeEntitlementDecision {
 	policyConfig := runtimePolicyConfigFromRequest(req)
 	fields := runtimeFieldsFromConfig(policyConfig)
 	if !hasManagedRuntimeFields(policyConfig, fields) {
 		return monthlyruntime.ManagedRuntimeEntitlementDecision{}
 	}
-	return monthlyruntime.EvaluateManagedRuntimeEntitlement(
+	providerID := fieldString(fields, providercatalog.ProviderIDField)
+	if decision := monthlyruntime.EvaluateManagedRuntimeEntitlement(
 		ctx,
 		checker,
 		userID,
-		fieldString(fields, providercatalog.ProviderIDField),
-	)
+		providerID,
+	); decision.Denied {
+		return decision
+	}
+	offeringID := fieldString(fields, "runtime_offering_id")
+	if offeringID == "" {
+		offeringID = string(monthlyruntime.DefaultOfferingID())
+	}
+	lane := monthlyruntime.DeploymentLaneFromMode(mode)
+	return monthlyruntime.EvaluateManagedRuntimeOfferingEntitlement(ctx, lane, providerID, offeringID)
 }
 
 func hasManagedRuntimeFields(policyConfig map[string]interface{}, fields map[string]any) bool {

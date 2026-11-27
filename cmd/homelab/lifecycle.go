@@ -233,6 +233,9 @@ func stopRuntimeLifecycle(
 			}
 		},
 		func() {
+			if handles != nil && handles.transferRelay != nil {
+				handles.transferRelay.Close()
+			}
 			if monitorState.tsdb != nil {
 				_ = monitorState.tsdb.Close()
 			}

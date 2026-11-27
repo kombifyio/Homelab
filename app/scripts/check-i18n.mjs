@@ -1,25 +1,64 @@
-// Deterministic locale gate: every locale dictionary of the web app carries
+// Deterministic locale gate: every Paraglide locale catalog carries
 // exactly the English keys with identical interpolation tokens, every literal
 // key the app source passes to a translation helper exists in the English
 // catalog, and every Windows client .resx culture carries the neutral file's
 // names and {n} tokens.
 import fs from "node:fs";
 import path from "node:path";
-import "./i18n-ts-loader.mjs";
+import { verifyCompiledCatalog } from "./compile-paraglide.mjs";
 
-const { translations, getAvailableLocales } =
-  await import("../src/lib/i18n.ts");
+const appRoot = path.resolve(import.meta.dirname, "..");
+const settingsPath = path.join(appRoot, "project.inlang", "settings.json");
+const settings = JSON.parse(fs.readFileSync(settingsPath, "utf8"));
+const REQUIRED_LOCALES = ["en", "de", "es", "zh-Hans", "hi", "ar", "fr"];
+const locales = Array.isArray(settings.locales) ? settings.locales : [];
 
 const tokens = (value) => (value.match(/\{[^{}]*\}/g) ?? []).sort().join("|");
 const failures = [];
 const report = [];
 
-const en = translations.en;
-for (const { code } of getAvailableLocales()) {
-  const dict = translations[code];
+if (settings.baseLocale !== "en") {
+  failures.push(
+    `project.inlang/settings.json: baseLocale must be "en", got ${JSON.stringify(settings.baseLocale)}`,
+  );
+}
+for (const required of REQUIRED_LOCALES) {
+  if (!locales.includes(required)) {
+    failures.push(
+      `project.inlang/settings.json: missing required locale ${required}`,
+    );
+  }
+}
+
+const readCatalog = (locale) => {
+  const file = path.join(appRoot, "messages", `${locale}.json`);
+  if (!fs.existsSync(file)) {
+    failures.push(`web ${locale}: missing messages/${locale}.json`);
+    return {};
+  }
+  const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    failures.push(
+      `web ${locale}: messages/${locale}.json must be a JSON object`,
+    );
+    return {};
+  }
+  return parsed;
+};
+
+const en = readCatalog("en");
+for (const code of locales) {
+  const dict = code === "en" ? en : readCatalog(code);
   const keys = Object.keys(dict);
   report.push(`web ${code}: ${keys.length} keys`);
-  if (code === "en") continue;
+  if (code === "en") {
+    for (const key of keys) {
+      if (typeof dict[key] !== "string" || dict[key].trim() === "") {
+        failures.push(`web en: empty message ${key}`);
+      }
+    }
+    continue;
+  }
   for (const key of Object.keys(en)) {
     if (typeof dict[key] !== "string" || dict[key].trim() === "") {
       failures.push(`web ${code}: missing ${key}`);
@@ -43,8 +82,13 @@ function* sourceFiles(dir) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const file = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name !== "node_modules" && entry.name !== ".svelte-kit")
+      if (
+        entry.name !== "node_modules" &&
+        entry.name !== ".svelte-kit" &&
+        file !== path.join(sourceRoot, "lib", "paraglide")
+      ) {
         yield* sourceFiles(file);
+      }
     } else if (
       /\.(ts|js|svelte)$/.test(entry.name) &&
       !/\.(test|spec|d)\.(ts|js)$/.test(entry.name)
@@ -150,6 +194,13 @@ for (const file of fs
         failures.push(`resx ${base}.${culture}: extra ${name}`);
     }
   }
+}
+
+try {
+  await verifyCompiledCatalog({ cwd: appRoot });
+  report.push(`compiled paraglide: ${Object.keys(en).length} keys`);
+} catch (error) {
+  failures.push(error instanceof Error ? error.message : String(error));
 }
 
 if (process.argv.includes("--counts")) console.log(report.join("\n"));

@@ -90,12 +90,14 @@ func configureIONOSSharedPool(router *httpx.Router, deps routeDeps) (*ionospoolt
 	if err != nil {
 		return nil, err
 	}
-	routes.RegisterIONOSSharedPoolRoutes(router, func(ctx context.Context, id providercontrol.IONOSPoolIdentity, request providercontrol.IONOSPoolRequest) (providercontrol.IONOSSharedPoolObservation, error) {
+	executor := routes.ManagedPoolExecutor(func(ctx context.Context, id providercontrol.IONOSPoolIdentity, request providercontrol.IONOSPoolRequest) (providercontrol.IONOSSharedPoolObservation, error) {
 		if status := tunnel.Status(); status.Error != nil {
 			return providercontrol.IONOSSharedPoolObservation{}, status.Error
 		}
 		return control.Execute(ctx, id, request)
 	})
+	routes.RegisterIONOSSharedPoolRoutes(router, executor)
+	deps.startup.managedPoolExecutor = executor
 	admitted = true
 	return tunnel, nil
 }

@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"context"
+	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
@@ -273,7 +274,8 @@ type StackKitLifecycleRequest struct {
 	// rollout runs generate with a channel-only Inventory, delivers the sealed
 	// credentials, and generates again without an Inventory so the node's
 	// binding survives. It is neither an operator input nor a wire field.
-	managedBackupDelivery ManagedBackupTargetDelivery
+	managedBackupDelivery    ManagedBackupTargetDelivery
+	replacementBackupCustody *ManagedBackupReplacementScope
 	// originCertificate is set only by a managed kombify.me rollout: the
 	// certificate is requested, issued and installed before apply (ADR-0047).
 	// It is neither an operator input nor a wire field.
@@ -312,7 +314,10 @@ type StackKitLifecycleRequest struct {
 	AddressPrefix       string
 	BoundSpecPath       string
 	// SnapshotAnchorID names the snapshot a staged backup restore reads.
-	SnapshotAnchorID            string
+	SnapshotAnchorID string
+	// BackupSurvivalReceipt optionally carries a Guard G backup survival
+	// receipt or bound survival envelope to join with Guard A recovery proof.
+	BackupSurvivalReceipt       []byte
 	RestoreResultID             string
 	ActivationOperationID       string
 	RestorePlanHash             string
@@ -541,6 +546,11 @@ type StackKitLifecycleConfig struct {
 	ManagedAddressAuthority  ManagedAddressAuthority
 	Sender                   StackKitCommandSender
 	AdvancedIssuer           AdvancedIssuer
+	// BackupSurvivalOwnerKey resolves the trusted Ed25519 Owner public key of
+	// the stack's node when verifying Guard G backup survival receipts. When
+	// nil, ManagedStackKitInventory's BackupDelivery is queried if it
+	// implements ManagedBackupOwnerKeyProvider.
+	BackupSurvivalOwnerKey func(ctx context.Context, tenantID, stackID string) (ed25519.PublicKey, error)
 	// OriginCertificates re-issues the managed kombify.me origin certificate
 	// when a change set changes the route set.
 	OriginCertificates *originca.Service
@@ -558,6 +568,9 @@ type StackKitLifecycleConfig struct {
 	// switch restored resources to; empty keeps the reserved test and lab
 	// suffixes. Production domains wait for real-host acceptance.
 	RelocationTestDomainSuffixes []string
+	// TransferRelay mints single-use HTTPS ciphertext relay slots for native
+	// application relocations when either node lacks a directly routable IP.
+	TransferRelay TransferRelay
 	// StackKitsTargets records the node's StackKits target after an
 	// owner-approved governed upgrade.
 	StackKitsTargets controlplane.WorkerStackKitsTargetRecorder
@@ -776,6 +789,9 @@ func validateStackKitLifecycleOperation(req *StackKitLifecycleRequest) error {
 			return fmt.Errorf("backup_restore requires a sha256 snapshot_anchor_id")
 		}
 	case StackKitLifecycleBackupRestoreActivate, StackKitLifecycleBackupRestoreRecover:
+		if strings.TrimSpace(req.StackKit) != "" && NormalizeStackKitRef(req.StackKit) != DefaultBasementKitRef {
+			return fmt.Errorf("customer restore activation lifecycle is restricted to %s", DefaultBasementKitRef)
+		}
 		if !req.OwnerApproved || !stackKitSnapshotAnchorPattern.MatchString(req.RestoreResultID) || req.DryRun || req.Offline || req.SnapshotAnchorID != "" {
 			return fmt.Errorf("restore activation requires approval and an exact staged result")
 		}
@@ -887,6 +903,9 @@ func StackKitLifecyclePayload(req StackKitLifecycleRequest) map[string]interface
 	}
 	if req.WikiInstallAdmission != "" {
 		payload[ManagedWikiInstallAdmissionKey] = req.WikiInstallAdmission
+	}
+	if len(req.BackupSurvivalReceipt) > 0 {
+		payload["backup_survival_receipt"] = string(req.BackupSurvivalReceipt)
 	}
 	return payload
 }
@@ -1563,6 +1582,7 @@ func stackKitLifecycleRequestFromJob(job *Job) (StackKitLifecycleRequest, error)
 		ServiceActionDigest:         stringFromInterface(job.Payload["service_action_digest"]),
 		WorkloadRef:                 stringFromInterface(job.Payload["workload_ref"]),
 		SnapshotAnchorID:            stringFromInterface(job.Payload["snapshot_anchor_id"]),
+		BackupSurvivalReceipt:       []byte(stringFromInterface(job.Payload["backup_survival_receipt"])),
 		RestoreResultID:             stringFromInterface(job.Payload["restore_result_id"]),
 		ActivationOperationID:       stringFromInterface(job.Payload["activation_operation_id"]),
 		RestorePlanHash:             stringFromInterface(job.Payload["restore_plan_hash"]),

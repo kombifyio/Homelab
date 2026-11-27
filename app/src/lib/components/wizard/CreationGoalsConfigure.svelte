@@ -18,7 +18,10 @@
     CapacityHint as CapacityHintModel,
     CapacitySize,
   } from "#lib/wizard/capacity-view.js";
-  import type { SmartHomeRecommendation } from "#lib/api/unifier.js";
+  import type {
+    DetectedExistingApp,
+    SmartHomeRecommendation,
+  } from "#lib/api/unifier.js";
 
   /**
    * Step 1, second stage: the chosen use cases as a compact list, and beside
@@ -42,6 +45,9 @@
     onCapacitySize,
     onCapacityOmit,
     smartHomeRecommendation,
+    detectedExistingApps = [],
+    onAdoptExistingApp,
+    onOverrideExistingApp,
   }: {
     /** The chosen use cases, in portfolio order. */
     cards: CreationGoal[];
@@ -66,6 +72,9 @@
     onCapacitySize?: (size: CapacitySize) => void;
     onCapacityOmit?: (goal: string) => void;
     smartHomeRecommendation?: SmartHomeRecommendation;
+    detectedExistingApps?: DetectedExistingApp[];
+    onAdoptExistingApp?: (app: DetectedExistingApp) => void;
+    onOverrideExistingApp?: (app: DetectedExistingApp) => void;
   } = $props();
 
   const appearance = useCreationContext().appearance;
@@ -201,6 +210,9 @@
             if (index < shown.length - 1) void show(index + 1);
           }}
           {smartHomeRecommendation}
+          {detectedExistingApps}
+          {onAdoptExistingApp}
+          {onOverrideExistingApp}
         />
       {/key}
     {/if}

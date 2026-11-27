@@ -56,6 +56,28 @@ func (o *Orchestrator) ResumeDueProviderDecommissionJobs(ctx context.Context, te
 	if err != nil {
 		return fmt.Errorf("list due managed provider-decommission recovery candidates: %w", err)
 	}
+	if len(candidates) < durableDecommissionResumeBatch {
+		forwardCandidates, forwardErr := o.jobStore.ListManagedDestroyRecoveryCandidates(
+			ctx,
+			tenantID,
+			managedDecommissionRecoveryMarkerKey,
+			managedDecommissionRecoveryMarkerSchemaForward,
+			durableDecommissionResumeBatch-len(candidates),
+		)
+		if forwardErr != nil {
+			return fmt.Errorf("list due managed provider-decommission recovery candidates: %w", forwardErr)
+		}
+		seenIDs := make(map[string]struct{}, len(candidates))
+		for _, candidate := range candidates {
+			seenIDs[candidate.ID] = struct{}{}
+		}
+		for _, candidate := range forwardCandidates {
+			if _, ok := seenIDs[candidate.ID]; !ok {
+				seenIDs[candidate.ID] = struct{}{}
+				candidates = append(candidates, candidate)
+			}
+		}
+	}
 	pending, reclaimErrors := o.reclaimStaleManagedProviderDecommissionJobs(ctx, tenantID, candidates)
 	var recoveryErrors []error
 	recoveryErrors = append(recoveryErrors, reclaimErrors...)
@@ -98,10 +120,14 @@ func (o *Orchestrator) reclaimStaleManagedProviderDecommissionJobs(
 		if !strings.EqualFold(strings.TrimSpace(candidate.State), persistentStateRunning) {
 			continue
 		}
+		markerSchema := managedProviderDecommissionRecoveryMarkerSchema(candidate.Result)
+		if markerSchema == "" {
+			markerSchema = managedDecommissionRecoveryMarkerSchema
+		}
 		reclaimed, reclaimErr := o.jobStore.ReclaimStaleManagedDestroyRecovery(ctx, controlplane.ReclaimStaleManagedDestroyRecoveryRequest{
 			TenantID: tenantID, JobID: candidate.ID, StackID: candidate.StackID,
 			RecoveryMarkerKey:    managedDecommissionRecoveryMarkerKey,
-			RecoveryMarkerSchema: managedDecommissionRecoveryMarkerSchema,
+			RecoveryMarkerSchema: markerSchema,
 			StaleBefore:          staleBefore, ReclaimedAt: now,
 		})
 		if reclaimErr == nil && reclaimed != nil {

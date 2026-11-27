@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/kombifyio/homelab/pkg/api/agentpb"
 )
@@ -35,6 +37,7 @@ const (
 	TransferStepTarget        = "target"        // destination: persist and generate the candidate, issue the admission (receive admit)
 	TransferStepExport        = "export"        // source: export the selection to the admitted destination and hold it
 	TransferStepServe         = "serve"         // source: serve the exact ciphertext once to the destination address
+	TransferStepPush          = "push"          // source: upload the exact ciphertext to the HTTPS ciphertext relay
 	TransferStepFetch         = "fetch"         // destination: download and keep the ciphertext only when its digest matches
 	TransferStepPrepare       = "prepare"       // destination: adopt the transferred credentials (receive prepare)
 	TransferStepImport        = "import"        // destination: activate the data and sign the readback outcome (receive import)
@@ -69,6 +72,9 @@ type ApplicationTransferRequest struct {
 	ExpectedPlanHash            string          `json:"expectedPlanHash,omitempty"`
 	ExpectedSpecHash            string          `json:"expectedSpecHash,omitempty"`
 	Peer                        string          `json:"peer,omitempty"`
+	RelayURL                    string          `json:"relayUrl,omitempty"`
+	RelayToken                  string          `json:"relayToken,omitempty"`
+	AllowInsecureLoopback       bool            `json:"allowInsecureLoopback,omitempty"`
 	Nonce                       string          `json:"nonce,omitempty"`
 	CandidateSpec               json.RawMessage `json:"candidateSpec,omitempty"`
 	PortableConfiguration       json.RawMessage `json:"portableConfiguration,omitempty"`
@@ -201,8 +207,15 @@ func (r ApplicationTransferRequest) Validate() error {
 		need["destinationAdmission"], need["destinationOwner"], need["destinationFingerprint"], need["operationId"], need["expectedPlanHash"] = true, true, true, true, true
 	case TransferStepServe:
 		need["operationId"], need["peer"] = true, true
+	case TransferStepPush:
+		need["operationId"], need["relayUrl"], need["relayToken"] = true, true, true
 	case TransferStepFetch:
-		need["peer"], need["archiveSha256"] = true, true
+		need["archiveSha256"] = true
+		if r.RelayURL != "" || r.RelayToken != "" {
+			need["relayUrl"], need["relayToken"] = true, true
+		} else {
+			need["peer"] = true
+		}
 	case TransferStepPrepare, TransferStepImport, TransferStepRecover, TransferStepAbort:
 		need["sourceReceipt"], need["sourceOwner"], need["sourceFingerprint"], need["transferId"], need["archiveSha256"], need["expectedPlanHash"] = true, true, true, true, true, true
 	case TransferStepFinish, TransferStepResume:
@@ -216,6 +229,7 @@ func (r ApplicationTransferRequest) Validate() error {
 		"useCase": r.UseCase != "" || len(r.Workloads) != 0, "candidateSpec": len(r.CandidateSpec) != 0, "sourceOwner": r.SourceOwner != "",
 		"sourceFingerprint": r.SourceFingerprint != "", "destinationOwner": r.DestinationOwner != "", "destinationFingerprint": r.DestinationFingerprint != "",
 		"transferId": r.TransferID != "", "archiveSha256": r.ArchiveSHA256 != "", "expectedPlanHash": r.ExpectedPlanHash != "", "peer": r.Peer != "",
+		"relayUrl": r.RelayURL != "", "relayToken": r.RelayToken != "",
 		"nonce": r.Nonce != "", "destinationAdmission": len(r.DestinationAdmission) != 0, "sourceReceipt": len(r.SourceReceipt) != 0,
 		"targetOutcome": len(r.TargetOutcome) != 0, "operationId": r.OperationID != "", "expectedSpecHash": r.ExpectedSpecHash != "",
 		"portableConfiguration": len(r.PortableConfiguration) != 0, "portableConfigurationDigest": r.PortableConfigurationDigest != "",
@@ -259,6 +273,19 @@ func (r ApplicationTransferRequest) Validate() error {
 	}
 	if r.Peer != "" {
 		if _, err := ApplicationTransferPeer(r.Peer); err != nil {
+			return err
+		}
+	}
+	if r.AllowInsecureLoopback && r.RelayURL == "" {
+		return fmt.Errorf("application transfer allowInsecureLoopback requires relayUrl")
+	}
+	if r.RelayURL != "" {
+		if err := ValidateApplicationTransferRelayURL(r.RelayURL, r.AllowInsecureLoopback); err != nil {
+			return err
+		}
+	}
+	if r.RelayToken != "" {
+		if err := ValidateApplicationTransferRelayToken(r.RelayToken); err != nil {
 			return err
 		}
 	}
@@ -309,6 +336,46 @@ func ApplicationTransferPeer(peer string) (string, error) {
 		}
 	}
 	return ip.String(), nil
+}
+
+// ValidateApplicationTransferRelayURL admits only https:// relay URLs, or
+// loopback http:// URLs when allowInsecureLoopback is explicitly set for local
+// testing. Embedded credentials and fragments are always refused.
+func ValidateApplicationTransferRelayURL(raw string, allowInsecureLoopback bool) error {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" || len(trimmed) > 2048 || strings.ContainsAny(trimmed, "\r\n\x00") {
+		return fmt.Errorf("the transfer relay URL is invalid")
+	}
+	parsed, err := url.Parse(trimmed)
+	if err != nil || parsed.Host == "" || parsed.User != nil || parsed.Fragment != "" {
+		return fmt.Errorf("the transfer relay URL must be an absolute URL without credentials")
+	}
+	switch strings.ToLower(parsed.Scheme) {
+	case "https":
+		return nil
+	case "http":
+		if !allowInsecureLoopback {
+			return fmt.Errorf("the transfer relay URL must use https")
+		}
+		host := strings.ToLower(parsed.Hostname())
+		if host == "localhost" {
+			return nil
+		}
+		if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
+			return nil
+		}
+		return fmt.Errorf("the transfer relay URL allows http only on loopback")
+	default:
+		return fmt.Errorf("the transfer relay URL must use https")
+	}
+}
+
+// ValidateApplicationTransferRelayToken bounds one single-use bearer relay token.
+func ValidateApplicationTransferRelayToken(token string) error {
+	if len(token) < 16 || len(token) > 512 || strings.TrimSpace(token) != token || strings.ContainsAny(token, " \t\r\n\x00") {
+		return fmt.Errorf("the transfer relay token is invalid")
+	}
+	return nil
 }
 
 // ValidateApplicationTransferFields admits the typed request only on its

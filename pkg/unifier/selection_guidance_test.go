@@ -50,3 +50,21 @@ func TestGuideWizardSelectionTipOnlyForRealSelections(t *testing.T) {
 		t.Fatalf("an 8 GB device cannot run local AI, got %+v", many)
 	}
 }
+
+func TestGuideWizardSelectionUsesServerFitProviderPriority(t *testing.T) {
+	guidance := GuideWizardSelection(core.WizardRecommendationRequest{
+		SelectionIntent:            "all",
+		AvailableGoals:             []string{"files", "photos", "media", "ai"},
+		DeploymentLane:             wizardRecommendationDeploymentSaaS,
+		OfferingEntitlementChecked: true,
+		AllowedOfferings:           []string{"monthly-runtime-standard"},
+		ServerFit: &core.WizardServerFitRequest{
+			ProviderID: "centron",
+			OfferingID: "monthly-runtime-standard",
+			Source:     "managed",
+		},
+	}, WizardRecommendationEvaluation{})
+	if guidance == nil || len(guidance.Context) == 0 || guidance.Context[0] != SelectionContextInventory {
+		t.Fatalf("expected planned worker inventory context from ServerFit.ProviderID, got %+v", guidance)
+	}
+}

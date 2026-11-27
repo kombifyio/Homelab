@@ -221,6 +221,9 @@ type Config struct {
 	// RemoteEnrollment drives the durable connect-remote enrollment job. It is
 	// late-bound by ConfigureRemoteEnrollment once route custody is wired.
 	RemoteEnrollment jobs.RemoteEnrollmentExecutor
+	// SupportReplacement wires the closed Memory Cube S support-replacement
+	// store and step operators.
+	SupportReplacement *jobs.SupportReplacementConfig
 	// Now is an optional clock used only by durable recovery admission. Queue
 	// execution retains wall-clock timestamps; injecting this clock lets the
 	// stale-heartbeat fence be deterministically verified without sleeping.
@@ -237,6 +240,9 @@ type Config struct {
 	// KombifyWallet it lets ai_provider seal a Wallet item to a node; without
 	// it that operation fails closed.
 	WalletHostAuthority *kombifywallet.HostAuthority
+	// TransferRelay mints single-use HTTPS ciphertext relay slots for native
+	// application relocations when either node sits behind NAT.
+	TransferRelay jobs.TransferRelay
 }
 
 type ManagedRuntimeLeaseLister interface {
@@ -403,6 +409,7 @@ func (o *Orchestrator) provisionConfig(actions jobs.RuntimeActions) *jobs.Provis
 		NoWorkspaceDestroyReconciler: o.reconcileNoWorkspaceDestroy,
 		OfflineServerRetirer:         o.retireOfflineServer,
 		RemoteEnrollment:             o.cfg.RemoteEnrollment,
+		SupportReplacement:           o.cfg.SupportReplacement,
 	}
 }
 
@@ -1944,6 +1951,18 @@ func (o *Orchestrator) DestroyStackWithOptions(stackID string, opts ProvisionSta
 	if err != nil {
 		return "", fmt.Errorf("stack not found: %w", err)
 	}
+	if o.cfg.SupportReplacement != nil {
+		if checker, ok := o.cfg.SupportReplacement.Store.(jobs.SupportReplacementStackFenceChecker); ok && checker != nil {
+			if fenceErr := checker.EnsureNoActiveSupportReplacementForStack(ctx, stack.tenantID, stack.id); fenceErr != nil {
+				return "", fenceErr
+			}
+		}
+		if checker, ok := o.cfg.SupportReplacement.Ops.(jobs.SupportReplacementStackFenceChecker); ok && checker != nil {
+			if fenceErr := checker.EnsureNoActiveSupportReplacementForStack(ctx, stack.tenantID, stack.id); fenceErr != nil {
+				return "", fenceErr
+			}
+		}
+	}
 	managedRuntimeDecommissionRequired, err := o.managedRuntimeDecommissionRequired(ctx, stack)
 	if err != nil {
 		return "", fmt.Errorf("classify managed runtime before destroy: %w", err)
@@ -2115,7 +2134,7 @@ func (o *Orchestrator) managedRuntimeDecommissionRequired(ctx context.Context, s
 			continue
 		}
 		_, managedProvider := serverruntime.MonthlyRuntimeProfileForProvider(strings.ToLower(strings.TrimSpace(lease.Resource.ProviderID)))
-		customerSubstrate := record.ExecutionAuthority == vmleases.LeaseExecutionAuthorityHomelabProviderControl &&
+		customerSubstrate := vmleases.IsHomelabProviderControlExecutionAuthority(record.ExecutionAuthority) &&
 			lease.CustodyClass == vmlease.CustodyCustomerSubstrate
 		if monthlyruntime.IsMonthlyRuntimeMetadata(lease.Metadata) || managedProvider || customerSubstrate {
 			// Cancellation, archived desired state, and a missing local workspace do

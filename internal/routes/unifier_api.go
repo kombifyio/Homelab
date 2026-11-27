@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/homelab/pkg/config"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	kscore "github.com/kombifyio/homelab/pkg/core"
 	"github.com/kombifyio/homelab/pkg/features"
@@ -37,6 +38,7 @@ type UnifierAPI struct {
 	recommendations    *unifier.WizardRecommendationAuthority
 	workers            controlplane.WorkerStore
 	features           *features.Service
+	deploymentMode     config.DeploymentMode
 	memoryAvailability interface{ IONOSStandardMemoryAvailable(context.Context) error }
 	selfDisclosures    controlplane.OperatorSelfDisclosureStore
 	// servers and transitions are the canonical server rows and their
@@ -44,6 +46,7 @@ type UnifierAPI struct {
 	// registry; without them workers carry no server identity or availability
 	// evidence.
 	servers     controlplane.ServerRuntimeStore
+	services    controlplane.ServiceRuntimeStore
 	transitions serverTransitionWindowReader
 	// now is the clock the evidence windows and freshness read; nil is the
 	// wall clock.
@@ -70,6 +73,7 @@ func NewUnifierAPI(workers controlplane.WorkerStore) (*UnifierAPI, error) {
 	// operator self-disclosures; both are tenant-scoped tables of one database.
 	selfDisclosures, _ := workers.(controlplane.OperatorSelfDisclosureStore)
 	servers, _ := workers.(controlplane.ServerRuntimeStore)
+	services, _ := workers.(controlplane.ServiceRuntimeStore)
 	transitions, _ := workers.(serverTransitionWindowReader)
 
 	return &UnifierAPI{
@@ -80,6 +84,7 @@ func NewUnifierAPI(workers controlplane.WorkerStore) (*UnifierAPI, error) {
 		workers:         workers,
 		selfDisclosures: selfDisclosures,
 		servers:         servers,
+		services:        services,
 		transitions:     transitions,
 	}, nil
 }
@@ -168,13 +173,14 @@ func unifierWorkerTags(values map[string]any) map[string]string {
 }
 
 // RegisterUnifierRoutes adds the /api/v1/unifier/* endpoints.
-func RegisterUnifierRoutes(r *httpx.Router, workers controlplane.WorkerStore, featureService *features.Service, memoryAvailability interface{ IONOSStandardMemoryAvailable(context.Context) error }) error {
+func RegisterUnifierRoutes(r *httpx.Router, workers controlplane.WorkerStore, featureService *features.Service, memoryAvailability interface{ IONOSStandardMemoryAvailable(context.Context) error }, deploymentMode config.DeploymentMode) error {
 	api, err := NewUnifierAPI(workers)
 	if err != nil {
 		return err
 	}
 
 	api.features = featureService
+	api.deploymentMode = deploymentMode
 	api.memoryAvailability = memoryAvailability
 	r.POST("/api/v1/unifier/validate", func(e *httpx.Event) error { return api.handleValidate(e) })
 	r.POST("/api/v1/unifier/unify", func(e *httpx.Event) error { return api.handleUnify(e) })

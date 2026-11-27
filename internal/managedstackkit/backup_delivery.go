@@ -45,6 +45,12 @@ type DeliveryCustody interface {
 	Recipient(context.Context, string, string) (backupstore.RecipientPin, bool, error)
 	RecordNodeBinding(context.Context, string, string, backupstore.NodeBinding) error
 	NodeBinding(context.Context, string, string) (backupstore.NodeBinding, error)
+	StageReplacementRecipient(context.Context, backupstore.ReplacementRecipientPin) error
+	ReplacementRecipient(context.Context, string, string, string) (backupstore.ReplacementRecipientPin, bool, error)
+	RecordReplacementNodeBinding(context.Context, string, string, string, backupstore.NodeBinding) error
+	ReplacementNodeBinding(context.Context, string, string, string) (backupstore.NodeBinding, error)
+	CommitReplacementCustody(context.Context, string, string, string) error
+	DiscardReplacementCustody(context.Context, string, string, string) error
 }
 
 // BackupDelivery moves the managed off-site backup credentials Core provisioned
@@ -187,15 +193,70 @@ func (d *BackupDelivery) AdmitRecipient(ctx context.Context, scope DeliveryScope
 // Wallet seals and signs the delivery; otherwise Homelab seals it itself.
 // The result is ciphertext: it is the only form that leaves this process.
 func (d *BackupDelivery) Seal(ctx context.Context, scope DeliveryScope, recipient Recipient, operation string) ([]byte, error) {
+	if err := d.validateSealInputs(recipient, operation); err != nil {
+		return nil, err
+	}
+	pin, pinned, err := d.custody.Recipient(ctx, scope.TenantID, scope.StackID)
+	if err != nil {
+		return nil, err
+	}
+	if !pinned {
+		return nil, errors.New("managed backup delivery requires an enrolled pinned recipient")
+	}
+	if !recipientMatchesPin(recipient, pin) {
+		return nil, backupstore.ErrRecipientSubstituted
+	}
+	return d.sealVerifiedRecipient(ctx, scope, recipient, operation)
+}
+
+// SealReplacement verifies the replacement destination's staged recipient pin
+// in stack_backup_replacement_handoffs and seals the backup credentials to it.
+func (d *BackupDelivery) SealReplacement(ctx context.Context, scope ReplacementScope, recipient Recipient, operation string) ([]byte, error) {
+	if err := d.validateSealInputs(recipient, operation); err != nil {
+		return nil, err
+	}
+	pin, staged, err := d.custody.ReplacementRecipient(ctx, scope.TenantID, scope.StackID, scope.ReplacementID)
+	if err != nil {
+		return nil, err
+	}
+	if !staged {
+		return nil, errors.New("managed backup replacement delivery requires a staged replacement recipient")
+	}
+	if (scope.DestinationLeaseID != "" && pin.DestinationLeaseID != scope.DestinationLeaseID) ||
+		(scope.DestinationServerID != "" && pin.DestinationServerID != scope.DestinationServerID) ||
+		(scope.DestinationResourceGeneration != "" && pin.DestinationResourceGeneration != scope.DestinationResourceGeneration) ||
+		!recipientMatchesPin(recipient, pin.RecipientPin) {
+		return nil, backupstore.ErrRecipientSubstituted
+	}
+	return d.sealVerifiedRecipient(ctx, DeliveryScope{
+		TenantID: scope.TenantID,
+		StackID:  scope.StackID,
+		OwnerID:  scope.OwnerID,
+	}, recipient, operation)
+}
+
+func (d *BackupDelivery) validateSealInputs(recipient Recipient, operation string) error {
 	if d == nil || len(recipient.Public) == 0 {
-		return nil, errors.New("managed backup delivery requires an admitted recipient")
+		return errors.New("managed backup delivery requires an admitted recipient")
 	}
 	if operation != hostdelivery.OperationBackupTargetImport && operation != hostdelivery.OperationBackupTargetRebind {
-		return nil, errors.New("managed backup delivery supports only target import and rebind")
+		return errors.New("managed backup delivery supports only target import and rebind")
 	}
 	if d.walletMode && d.wallet == nil {
-		return nil, ErrBackupWalletUnavailable
+		return ErrBackupWalletUnavailable
 	}
+	return nil
+}
+
+func recipientMatchesPin(recipient Recipient, pin backupstore.RecipientPin) bool {
+	return pin.Fingerprint == recipient.Fingerprint &&
+		pin.Generation == recipient.Generation &&
+		pin.SiteRef == recipient.SiteRef &&
+		pin.NodeRef == recipient.NodeRef &&
+		hostdelivery.Fingerprint(recipient.Public) == pin.Fingerprint
+}
+
+func (d *BackupDelivery) sealVerifiedRecipient(ctx context.Context, scope DeliveryScope, recipient Recipient, operation string) ([]byte, error) {
 	credentials, err := d.custody.Get(ctx, scope.TenantID, scope.StackID)
 	if err != nil {
 		return nil, fmt.Errorf("load managed backup custody: %w", err)
@@ -246,6 +307,114 @@ func (d *BackupDelivery) NodeBinding(ctx context.Context, scope DeliveryScope) (
 	return d.custody.NodeBinding(ctx, scope.TenantID, scope.StackID)
 }
 
+// ReplacementScope identifies a customer-accepted, zero-charge Memory Cube S
+// support replacement destination allowed to stage its own recipient key and
+// node binding before cutover without disturbing the live source node's custody.
+type ReplacementScope struct {
+	TenantID                      string
+	StackID                       string
+	OwnerID                       string
+	ReplacementID                 string
+	DestinationLeaseID            string
+	DestinationServerID           string
+	DestinationResourceGeneration string
+}
+
+// AdmitReplacementRecipient admits and stages a replacement destination node's
+// recipient key in stack_backup_replacement_handoffs without touching the
+// source node's active pin in stack_backup_stores.
+func (d *BackupDelivery) AdmitReplacementRecipient(ctx context.Context, scope ReplacementScope, challenge string, statementJSON []byte) (Recipient, error) {
+	scope.TenantID = strings.TrimSpace(scope.TenantID)
+	scope.StackID = strings.TrimSpace(scope.StackID)
+	scope.ReplacementID = strings.TrimSpace(scope.ReplacementID)
+	scope.DestinationLeaseID = strings.TrimSpace(scope.DestinationLeaseID)
+	scope.DestinationServerID = strings.TrimSpace(scope.DestinationServerID)
+	scope.DestinationResourceGeneration = strings.TrimSpace(scope.DestinationResourceGeneration)
+	if d == nil || scope.TenantID == "" || scope.StackID == "" || scope.ReplacementID == "" ||
+		scope.DestinationLeaseID == "" || scope.DestinationServerID == "" || scope.DestinationResourceGeneration == "" ||
+		challenge == "" {
+		return Recipient{}, errors.New("managed backup replacement delivery requires exact tenant, stack, replacement, destination identity, and challenge")
+	}
+	if _, err := d.custodian.Ensure(ctx, scope.TenantID, scope.StackID); err != nil {
+		return Recipient{}, fmt.Errorf("ensure managed backup custody: %w", err)
+	}
+	var statement hostdelivery.Statement
+	if err := json.Unmarshal(statementJSON, &statement); err != nil {
+		return Recipient{}, errors.New("managed backup recipient statement is invalid")
+	}
+	if statement.SiteRef != cloudOperationsSite || statement.NodeRef != cloudOperationsNode {
+		return Recipient{}, errors.New("managed backup recipient statement names a different Site or node")
+	}
+	stagedPin, staged, err := d.custody.ReplacementRecipient(ctx, scope.TenantID, scope.StackID, scope.ReplacementID)
+	if err != nil {
+		return Recipient{}, err
+	}
+	ownerKey := statement.OwnerPublic
+	if staged {
+		ownerKey = stagedPin.OwnerKey
+	}
+	owner, err := base64.RawStdEncoding.Strict().DecodeString(ownerKey)
+	if err != nil || len(owner) != ed25519.PublicKeySize {
+		return Recipient{}, errors.New("managed backup recipient owner key is invalid")
+	}
+	if err := hostdelivery.VerifyStatement(statement, ed25519.PublicKey(owner), challenge, d.now(), recipientStatementMaxAge); err != nil {
+		return Recipient{}, err
+	}
+	if staged && (stagedPin.Fingerprint != statement.Fingerprint || stagedPin.Generation != statement.Generation || stagedPin.SiteRef != statement.SiteRef || stagedPin.NodeRef != statement.NodeRef) {
+		return Recipient{}, backupstore.ErrRecipientSubstituted
+	}
+	if err := d.custody.StageReplacementRecipient(ctx, backupstore.ReplacementRecipientPin{
+		RecipientPin: backupstore.RecipientPin{
+			TenantID:    scope.TenantID,
+			StackID:     scope.StackID,
+			OwnerKey:    statement.OwnerPublic,
+			OwnerKeyID:  statement.OwnerKeyID,
+			Fingerprint: statement.Fingerprint,
+			Generation:  statement.Generation,
+			SiteRef:     statement.SiteRef,
+			NodeRef:     statement.NodeRef,
+		},
+		ReplacementID:                 scope.ReplacementID,
+		DestinationLeaseID:            scope.DestinationLeaseID,
+		DestinationServerID:           scope.DestinationServerID,
+		DestinationResourceGeneration: scope.DestinationResourceGeneration,
+	}); err != nil {
+		return Recipient{}, err
+	}
+	public, err := base64.RawStdEncoding.Strict().DecodeString(statement.RecipientKey)
+	if err != nil {
+		return Recipient{}, errors.New("managed backup recipient key is invalid")
+	}
+	return Recipient{
+		Public: public, Fingerprint: statement.Fingerprint, Generation: statement.Generation, SiteRef: statement.SiteRef, NodeRef: statement.NodeRef,
+		Statement: append(json.RawMessage(nil), statementJSON...), Challenge: challenge,
+	}, nil
+}
+
+// RecordReplacementNodeBinding records the destination node's binding on the
+// staged replacement handoff row.
+func (d *BackupDelivery) RecordReplacementNodeBinding(ctx context.Context, scope ReplacementScope, binding backupstore.NodeBinding) error {
+	return d.custody.RecordReplacementNodeBinding(ctx, scope.TenantID, scope.StackID, scope.ReplacementID, binding)
+}
+
+// ReplacementNodeBinding returns the node binding recorded on the staged or
+// committed replacement handoff row.
+func (d *BackupDelivery) ReplacementNodeBinding(ctx context.Context, tenantID, stackID, replacementID string) (backupstore.NodeBinding, error) {
+	return d.custody.ReplacementNodeBinding(ctx, tenantID, stackID, replacementID)
+}
+
+// CommitReplacementCustody promotes the staged replacement pin and binding into
+// stack_backup_stores after destination writes are observed at cutover.
+func (d *BackupDelivery) CommitReplacementCustody(ctx context.Context, tenantID, stackID, replacementID string) error {
+	return d.custody.CommitReplacementCustody(ctx, tenantID, stackID, replacementID)
+}
+
+// DiscardReplacementCustody marks any staged replacement handoff as rolled_back
+// on pre-cutover rollback, leaving stack_backup_stores intact for the source node.
+func (d *BackupDelivery) DiscardReplacementCustody(ctx context.Context, tenantID, stackID, replacementID string) error {
+	return d.custody.DiscardReplacementCustody(ctx, tenantID, stackID, replacementID)
+}
+
 // AttestTarget re-verifies the provisioned target with the credentials Core
 // holds and returns the opaque reference of the fresh observation. The custody
 // must not change while it runs.
@@ -273,4 +442,24 @@ func (d *BackupDelivery) AttestTarget(ctx context.Context, tenantID, stackID str
 		return "", errors.New("managed backup custody changed during attestation")
 	}
 	return backupbinding.OpaqueReference("backup-custody-attestation", fresh.AttestationEvidence)
+}
+
+// NodeOwnerPublicKey returns the pinned Ed25519 Owner public key for the
+// enrolled node of (tenantID, stackID), failing closed when absent or invalid.
+func (d *BackupDelivery) NodeOwnerPublicKey(ctx context.Context, tenantID, stackID string) ([]byte, error) {
+	if d == nil || d.custody == nil {
+		return nil, errors.New("managed backup custody is not configured")
+	}
+	pin, pinned, err := d.custody.Recipient(ctx, tenantID, stackID)
+	if err != nil {
+		return nil, err
+	}
+	if !pinned {
+		return nil, errors.New("managed backup node owner key is not enrolled")
+	}
+	owner, err := base64.RawStdEncoding.Strict().DecodeString(pin.OwnerKey)
+	if err != nil || len(owner) != ed25519.PublicKeySize {
+		return nil, errors.New("managed backup node owner key is invalid")
+	}
+	return owner, nil
 }

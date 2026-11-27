@@ -19,7 +19,7 @@ const EnvDatabaseMigrationMode = "HOMELAB_DATABASE_MIGRATION_MODE"
 // 201: provider control lists the managed leases to renew through the
 // directory of migration 201 (platform-2xnsxf); its runtime posture requires
 // the function, so a ledger without it is refused.
-const SchemaFloor = 203
+const SchemaFloor = 205
 
 // PlatformProjectionSchemaFloor is what the private platform projection process
 // of the same binary needs: the role, grants and policies of migration 173. The
@@ -107,7 +107,26 @@ func (db *DB) VerifyMigrationsAtFloor(ctx context.Context, pin ExpectedDatabaseI
 		return err
 	}
 
-	return verifyRequiredControlPlaneTables(ctx, tx)
+	if err := verifyRequiredControlPlaneTables(ctx, tx); err != nil {
+		return err
+	}
+	if floor >= 205 {
+		var exists bool
+		if err := tx.QueryRowContext(ctx, `
+			SELECT EXISTS (
+				SELECT 1
+				FROM information_schema.tables
+				WHERE table_schema = ANY(current_schemas(false))
+				  AND table_name = 'managed_runtime_support_replacements'
+			)
+		`).Scan(&exists); err != nil {
+			return fmt.Errorf("verify control-plane table managed_runtime_support_replacements: %w", err)
+		}
+		if !exists {
+			return fmt.Errorf("control-plane migration missing required table managed_runtime_support_replacements")
+		}
+	}
+	return nil
 }
 
 func verifyMigrationIdentity(ctx context.Context, tx *sql.Tx, pin ExpectedDatabaseIdentity) error {

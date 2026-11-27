@@ -277,6 +277,51 @@ export interface StackItPlan {
   notice: string;
 }
 
+export interface StackItPlanOverrides {
+  own_application_name?: string;
+  http_port?: number;
+  no_outbound?: boolean;
+  memory_mib?: number;
+  cpus?: number;
+  adopt_compose_project?: boolean;
+  http_service?: string;
+}
+
+export interface ServiceEnrichment {
+  catalog_id?: string;
+  display_name?: string;
+  category?: string;
+  brand_domain?: string;
+  vendor_name?: string;
+  homepage_url?: string;
+  docs_url?: string;
+  source_repo?: string;
+  icon_url?: string;
+  logo?: ServiceCatalogLogo;
+  logo_removed?: boolean;
+  web_port?: number;
+  source: string;
+}
+
+export interface ApplicationAdoptionNotice {
+  code: string;
+  severity: "info" | "warning" | string;
+  message: string;
+}
+
+export interface ApplicationAdoptionSource {
+  containerId: string;
+  imageDigest: string;
+  configMount: string;
+  sourceOrigin?: "compose" | "docker" | string;
+  networkMode?: string;
+  preservedDevices?: string[];
+  hasCustomComponents?: boolean;
+  hasExternalRecorder?: boolean;
+  versionDrift?: boolean;
+  observedImageDigest?: string;
+}
+
 export interface ApplicationAdoptionPlan {
   plan_id: string;
   service_id: string;
@@ -284,13 +329,15 @@ export interface ApplicationAdoptionPlan {
   error?: string;
   mode?: "adopt_in_place" | "stack_it";
   stack_plan?: StackItPlan;
+  catalog_proposal?: ServiceEnrichment;
   assessment?: {
     planDigest: string;
     profileRef: string;
     mode: string;
-    source: { containerId: string; imageDigest: string; configMount: string };
+    source: ApplicationAdoptionSource;
     preservedFields: string[];
     admittedOperations: string[];
+    notices?: ApplicationAdoptionNotice[];
   };
 }
 /** A data checkpoint of an own application's tag update. */
@@ -432,17 +479,51 @@ export async function prepareApplicationAdoption(
   service: CanonicalService,
   key: string,
   mode: "adopt_in_place" | "stack_it" = "adopt_in_place",
+  overrides?: StackItPlanOverrides,
 ) {
+  const payload: Record<string, unknown> = {
+    mode,
+    expected_inventory_revision: service.inventory_revision,
+  };
+  if (mode === "stack_it" && overrides) {
+    if (overrides.own_application_name?.trim()) {
+      payload.own_application_name = overrides.own_application_name.trim();
+    }
+    if (overrides.http_port !== undefined) {
+      payload.http_port = overrides.http_port;
+    }
+    if (overrides.no_outbound) {
+      payload.no_outbound = true;
+    }
+    if (overrides.memory_mib !== undefined) {
+      payload.memory_mib = overrides.memory_mib;
+    }
+    if (overrides.cpus !== undefined) {
+      payload.cpus = overrides.cpus;
+    }
+    if (overrides.adopt_compose_project) {
+      payload.adopt_compose_project = true;
+    }
+    if (overrides.http_service?.trim()) {
+      payload.http_service = overrides.http_service.trim();
+    }
+  }
   const response = await fetchApi<ManagedServiceActionResponse>(
     `/api/v1/services/${encodeURIComponent(service.id)}/adoption-plans`,
     {
       method: "POST",
       headers: { "Idempotency-Key": key },
-      body: JSON.stringify({
-        mode,
-        expected_inventory_revision: service.inventory_revision,
-      }),
+      body: JSON.stringify(payload),
     },
+  );
+  return response.data;
+}
+
+export async function getServiceEnrichment(
+  serviceId: string,
+): Promise<ServiceEnrichment> {
+  const response = await fetchApi<ServiceEnrichment>(
+    `/api/v1/services/${encodeURIComponent(serviceId)}/enrichment`,
   );
   return response.data;
 }
@@ -1163,6 +1244,96 @@ export async function getManagedServiceLogs(
   if (cursor) query.set("cursor", cursor);
   const response = await fetchApi<ManagedServiceLogsResponse>(
     `/api/v1/registry/services/${encodeURIComponent(serviceId)}/logs?${query.toString()}`,
+  );
+  return response.data;
+}
+
+export interface CuratedManagedAppEntry {
+  app_key: string;
+  display_name: string;
+  status: string;
+  note: string;
+}
+
+export interface ManagedMigrationEligibility {
+  service_id: string;
+  app_key: string;
+  eligible_app: boolean;
+  pool_enabled: boolean;
+  eligible: boolean;
+  block_code?: string;
+  reason?: string;
+  curated_supported_apps: CuratedManagedAppEntry[];
+  target_kind: string;
+}
+
+export interface ManagedMigrationPlanStep {
+  order: number;
+  key: string;
+  title: string;
+  description: string;
+  status: string;
+}
+
+export interface ManagedMigrationWorkloadReceipt {
+  command_id: string;
+  generation_id: string;
+  node_id?: string;
+  state: string;
+  evidence_ref?: string;
+}
+
+export interface ManagedMigrationPlan {
+  plan_id: string;
+  idempotency_key: string;
+  service_id: string;
+  source_server_id?: string;
+  app_key: string;
+  target_kind: string;
+  status: string;
+  dry_run: boolean;
+  owner_approved: boolean;
+  managed_workload_command_id?: string;
+  managed_workload?: ManagedMigrationWorkloadReceipt;
+  steps: ManagedMigrationPlanStep[];
+  created_at: string;
+}
+
+export interface PlanManagedMigrationOptions {
+  ownerApproved: boolean;
+  idempotencyKey: string;
+  execute?: boolean;
+}
+
+export async function getManagedMigrationEligibility(
+  serviceId: string,
+): Promise<ManagedMigrationEligibility> {
+  const response = await fetchApi<ManagedMigrationEligibility>(
+    `/api/v1/services/${encodeURIComponent(serviceId)}/managed-migration/eligibility`,
+  );
+  return response.data;
+}
+
+export async function planManagedMigration(
+  serviceId: string,
+  options: PlanManagedMigrationOptions,
+): Promise<ManagedMigrationPlan> {
+  const body: Record<string, unknown> = {
+    owner_approved: options.ownerApproved,
+  };
+  if (options.execute) {
+    body.execute = true;
+  }
+  const response = await fetchApi<ManagedMigrationPlan>(
+    `/api/v1/services/${encodeURIComponent(serviceId)}/managed-migration`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": options.idempotencyKey,
+      },
+      body: JSON.stringify(body),
+    },
   );
   return response.data;
 }

@@ -27,6 +27,7 @@ import (
 	"github.com/kombifyio/homelab/internal/ionospooltunnel"
 	"github.com/kombifyio/homelab/internal/notifications"
 	"github.com/kombifyio/homelab/internal/portinventory"
+	"github.com/kombifyio/homelab/internal/providercontrol"
 	"github.com/kombifyio/homelab/internal/routes"
 	"github.com/kombifyio/homelab/internal/routes/sessionreauth"
 	stackroutes "github.com/kombifyio/homelab/internal/routes/stacks"
@@ -71,11 +72,12 @@ import (
 )
 
 type startupContext struct {
-	poolTunnel         *ionospooltunnel.Tunnel
-	cfg                *config.Config
-	identity           instance.Identity
-	enrollmentResolver *enrollment.Resolver
-	enrollment         enrollment.Enrollment
+	poolTunnel          *ionospooltunnel.Tunnel
+	managedPoolExecutor routes.ManagedPoolExecutor
+	cfg                 *config.Config
+	identity            instance.Identity
+	enrollmentResolver  *enrollment.Resolver
+	enrollment          enrollment.Enrollment
 }
 
 type v2Boot struct {
@@ -132,6 +134,7 @@ type routeDeps struct {
 	providerCleanupReadback monthlyruntime.CleanupReadbackSource
 	providerResolution      any
 	providerActions         jobs.RuntimeActions
+	providerAdmission       *providercontrol.NativeAdmission
 	// providerControlDB is the dedicated provider-control runtime pool; nil
 	// when provider control is disabled.
 	providerControlDB *sql.DB
@@ -152,6 +155,7 @@ type routeDeps struct {
 	// governedDecommission hands the monthly-runtime service to the
 	// data-subject participant, which is registered before the service exists.
 	governedDecommission *governedDecommissionBinding
+	transferRelay        *routes.TransferRelayStore
 }
 
 func providerControlSQL(database *db.DB) *sql.DB {
@@ -170,12 +174,14 @@ type runtimeRouteState struct {
 type shutdownHandles struct {
 	background      *backgroundRuntimeLifecycle
 	providerControl *providerControlLifecycle
+	transferRelay   *routes.TransferRelayStore
 }
 
 type providerRuntimeState struct {
 	database        *db.DB
 	runner          providerRuntimeRunner
 	actions         jobs.RuntimeActions
+	admission       *providercontrol.NativeAdmission
 	cleanupReadback monthlyruntime.CleanupReadbackSource
 	resolution      any
 }
@@ -493,6 +499,15 @@ func runHomelab(ctx context.Context) error {
 			startup.poolTunnel.Close()
 		}
 	}()
+	transferRelayBaseURL := strings.TrimSpace(os.Getenv("HOMELAB_TRANSFER_RELAY_BASE_URL"))
+	if transferRelayBaseURL == "" {
+		transferRelayBaseURL = config.PublicOriginFromEnv()
+	}
+	var transferRelay *routes.TransferRelayStore
+	if transferRelayBaseURL != "" {
+		transferRelay = routes.NewTransferRelayStore(routes.TransferRelayConfig{BaseURL: transferRelayBaseURL})
+		defer transferRelay.Close()
+	}
 	deps := routeDeps{
 		startup:                 startup,
 		orch:                    orch,
@@ -508,6 +523,7 @@ func runHomelab(ctx context.Context) error {
 		providerCleanupReadback: providerState.cleanupReadback,
 		providerResolution:      providerState.resolution,
 		providerActions:         providerState.actions,
+		providerAdmission:       providerState.admission,
 		providerControlDB:       providerControlSQL(providerDatabase),
 		typedControl:            typedControl,
 		portInventory:           portInventory,
@@ -517,6 +533,7 @@ func runHomelab(ctx context.Context) error {
 		wallet:                  walletClient,
 		walletSource:            walletSource,
 		secondaryExecution:      secondaryExecution,
+		transferRelay:           transferRelay,
 	}
 
 	// One feature service serves the routes and the backup admission below.
@@ -556,6 +573,7 @@ func runHomelab(ctx context.Context) error {
 	serverMaintenance := bootServerMaintenanceLoop(v2Boot, orch, log)
 	driftScheduler := bootDriftScheduler(v2Boot, startup.cfg, orch, log)
 	handles := startRuntimeLifecycle(ctx, startup.cfg, orch, grpcState, monitorState, workflowEngine, rilSignalWorker, guardReach, providerState.runner, registrySweeper, jobReclaimer, backupScanner, backupRetention, serverMaintenance, driftScheduler, log, secondaryExecution)
+	handles.transferRelay = transferRelay
 	if config.RunsSharedWork() && v2Boot.db != nil && v2Boot.db.DB != nil {
 		handles.background.run(func(ctx context.Context) { actions.RunIssuedLeaseReaper(ctx, v2Boot.db.DB) })
 		handles.background.run(func(ctx context.Context) {
@@ -674,6 +692,8 @@ func handleEarlyCommand(ctx context.Context, args []string) (bool, error) {
 		return true, runGuardTenantRebind(ctx, args[2:])
 	case "managed-runtime-retenant":
 		return true, runManagedRuntimeRetenant(ctx, args[2:])
+	case "support-ionos-memory-replacement":
+		return true, runSupportIONOSMemoryReplacement(ctx, args[2:])
 	case "wallet-migration":
 		return true, runWalletMigration(ctx, args[2:])
 	case "wallet":
@@ -1369,7 +1389,7 @@ func v2SessionIdentityMiddleware(boot *v2Boot) func(*httpx.Event) error {
 // signed identity into a projected control-plane tenant. It hydrates the
 // tenant, applies the owner fallback, projects it, and - when the initial
 // projection fails - attempts the server-side recovery ladder before the
-// request is answered with the session_reprojection_required signal.
+// request is answered with the session_renewal_required (`reason: session_reprojection`) signal.
 func resolveIdentityTenantProjection(
 	e *httpx.Event,
 	boot *v2Boot,

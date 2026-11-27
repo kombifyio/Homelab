@@ -549,11 +549,46 @@ export interface RegistryMoveDestination {
   agent_id: string;
 }
 
+export type RegistryMoveIneligibleCode =
+  | "unsupported_adapter"
+  | "multi_app_use_case"
+  | "local_hardware_bound"
+  | "insufficient_capacity"
+  | "same_stack_deployment"
+  | "destination_not_relocatable"
+  | "server_not_ready"
+  // `string & {}` keeps the known literals visible while admitting codes a
+  // newer backend adds; callers fall back to generic copy for those.
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  | (string & {});
+
+/** One server column blocked from receiving this service, with its reason. */
+export interface RegistryMoveIneligibleDestination {
+  server_id: string;
+  code: RegistryMoveIneligibleCode;
+  /** English backend diagnostic; the UI renders localized copy by `code`. */
+  reason: string;
+}
+
+/** Non-blocking pre-flight notice surfaced before confirming an admitted move. */
+export interface RegistryMoveWarning {
+  code:
+    | "direct_transfer_network_required"
+    | "encrypted_relay_transport"
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    | (string & {});
+  /** English backend diagnostic; the UI renders localized copy by `code`. */
+  message: string;
+  server_id?: string;
+}
+
 /** The native move of one installed application, as the backend admits it. */
 export interface RegistryServiceMove {
   workload_ref: string;
   source_agent_id: string;
   destinations: RegistryMoveDestination[];
+  ineligible_destinations?: RegistryMoveIneligibleDestination[];
+  warnings?: RegistryMoveWarning[];
 }
 
 export interface RegistryService {

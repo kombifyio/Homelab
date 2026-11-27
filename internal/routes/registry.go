@@ -77,6 +77,9 @@ type RegistryRouteStores struct {
 	Services controlplane.ServiceRuntimeStore
 	// Wallet resolves token_wallet_item_id on the Home Assistant import.
 	Wallet WalletSecretReferences
+	// TransferRelayActive indicates whether the HTTPS ciphertext relay is
+	// configured for NAT-traversed native application relocations.
+	TransferRelayActive bool
 }
 
 func RegisterRegistryRoutesWithStores(r *httpx.Router, stores RegistryRouteStores) {
@@ -93,6 +96,7 @@ func RegisterRegistryRoutesWithStores(r *httpx.Router, stores RegistryRouteStore
 			updates: appcatalog.NewUpdateChecker(), stackKitRelease: pinnedStackKitRelease(),
 		},
 		allowLocalHomeAssistant: stores.AllowLocalHomeAssistant,
+		transferRelayActive:     stores.TransferRelayActive,
 		wallet:                  stores.Wallet,
 	}
 	r.GET("/api/v1/registry/services", h.services)
@@ -103,6 +107,7 @@ func RegisterRegistryRoutesWithStores(r *httpx.Router, stores RegistryRouteStore
 
 type registryRouteHandlers struct {
 	allowLocalHomeAssistant bool
+	transferRelayActive     bool
 	wallet                  WalletSecretReferences
 	stackStore              controlplane.StackStore
 	workerStore             controlplane.WorkerStore
@@ -175,13 +180,16 @@ type registryService struct {
 	ManagementState   string                     `json:"management_state"`
 	MigrationStatus   string                     `json:"migration_status,omitempty"`
 	PlacementScope    string                     `json:"placement_scope"`
-	// Move is present only when the native relocation API can move this one
-	// application now; it carries exactly the identities that API takes.
+	// Move is present when the Placement Board has native move eligibility
+	// metadata for this application (admitted destinations, blocked
+	// destinations with reasons, and pre-flight warnings).
 	Move *registryServiceMove `json:"move,omitempty"`
-	// moveRuntimeRef is the StackKits-declared runtime ref of a managed
-	// application control (`<workloadRef>-<nodeRef>`); never serialized.
-	moveRuntimeRef  string
-	KitDeploymentID string `json:"kit_deployment_id"`
+	// moveRuntimeRef, moveRuntimeAdapter, and moveHostDeviceBound are internal
+	// runtime facts used by attachRegistryMoves; never serialized.
+	moveRuntimeRef      string
+	moveRuntimeAdapter  string
+	moveHostDeviceBound bool
+	KitDeploymentID     string `json:"kit_deployment_id"`
 	StackName       string `json:"stack_name"`
 	ServerID        string `json:"server_id"`
 	ServerName      string `json:"server_name"`
@@ -371,7 +379,7 @@ func (h registryRouteHandlers) registryPayloadFromStore(e *httpx.Event, tenantID
 		}
 		payload.Services = append(payload.Services, stackServices...)
 	}
-	attachRegistryMoves(&payload, ownedStacks, workersByID)
+	attachRegistryMoves(&payload, ownedStacks, workersByID, canonicalServers, h.transferRelayActive)
 
 	sort.SliceStable(payload.Servers, func(i, j int) bool {
 		if payload.Servers[i].KitDeploymentID != payload.Servers[j].KitDeploymentID {

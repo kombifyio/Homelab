@@ -134,6 +134,12 @@ type FeatureChecker interface {
 	IsEnabled(ctx context.Context, featureKey string, userID string) (bool, error)
 }
 
+// SupportReplacementFenceChecker blocks decommission and writer-restart actions
+// on either lease held by an active or fenced_conflict support replacement.
+type SupportReplacementFenceChecker interface {
+	CheckSupportReplacementLeaseFence(ctx context.Context, tenantID, leaseID string, action serverruntime.RuntimeAction) error
+}
+
 type Service struct {
 	Leases   LeaseAuthority
 	Runtime  RuntimeClient
@@ -162,6 +168,9 @@ type Service struct {
 	// runtime before its provider teardown is admitted. When nil (self-hosted
 	// without the platform identity) no managed addresses exist to remove.
 	Addresses AddressDeregistrar
+	// SupportReplacementFence blocks deletion, decommission, and writer start
+	// when a lease is fenced by an active or conflicted support replacement.
+	SupportReplacementFence SupportReplacementFenceChecker
 }
 
 func RequiredFeatureKeysForProvider(providerID string) []string {
@@ -368,7 +377,7 @@ func (s *Service) ResolveCustody(ctx context.Context, req CustodyResolutionReque
 	if strings.TrimSpace(lease.Metadata["custody_resolution_status"]) == "resolved" {
 		return custodyResolutionResponse(tenantID, *lease), nil
 	}
-	if record.ExecutionAuthority == vmleases.LeaseExecutionAuthorityHomelabProviderControl {
+	if vmleases.IsHomelabProviderControlExecutionAuthority(record.ExecutionAuthority) {
 		return nil, ErrCustodyResolutionProviderManaged
 	}
 	legacyCustody := record.AuthorityState == vmleases.LeaseAuthorityStateUnbound ||
@@ -568,11 +577,17 @@ func (s *Service) loadAuthorizedActionLease(ctx context.Context, req ActionReque
 	if guardErr := demoGuardForAction(*lease, req); guardErr != nil {
 		return "", nil, "", leaseDecommissionError(lease, guardErr)
 	}
+	if s.SupportReplacementFence != nil &&
+		(req.Action == serverruntime.RuntimeActionDecommission || req.Action == serverruntime.RuntimeActionStart) {
+		if fenceErr := s.SupportReplacementFence.CheckSupportReplacementLeaseFence(ctx, tenantID, string(req.LeaseID), req.Action); fenceErr != nil {
+			return "", nil, "", leaseDecommissionError(lease, fmt.Errorf("%w: %v", ErrDecommissionBlockedProtected, fenceErr))
+		}
+	}
 	return tenantID, lease, offeringID, nil
 }
 
 func nativeInactiveDecommissionContinuation(record vmleases.LeaseInventoryRecord, req ActionRequest) bool {
-	return record.ExecutionAuthority == vmleases.LeaseExecutionAuthorityHomelabProviderControl &&
+	return vmleases.IsHomelabProviderControlExecutionAuthority(record.ExecutionAuthority) &&
 		record.AuthorityState == vmleases.LeaseAuthorityStateNativeInactive &&
 		req.Action == serverruntime.RuntimeActionDecommission &&
 		req.Internal &&
@@ -581,7 +596,7 @@ func nativeInactiveDecommissionContinuation(record vmleases.LeaseInventoryRecord
 }
 
 func ownerProviderControlDecommission(record vmleases.LeaseInventoryRecord, req ActionRequest) bool {
-	return record.ExecutionAuthority == vmleases.LeaseExecutionAuthorityHomelabProviderControl &&
+	return vmleases.IsHomelabProviderControlExecutionAuthority(record.ExecutionAuthority) &&
 		req.Action == serverruntime.RuntimeActionDecommission
 }
 

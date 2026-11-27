@@ -1,3 +1,4 @@
+import { paraglideVitePlugin } from "@inlang/paraglide-js";
 import { sveltekit } from "@sveltejs/kit/vite";
 import adapterStatic from "@sveltejs/adapter-static";
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
@@ -103,6 +104,9 @@ const checkIgnorePatterns = [
   ".svelte-kit/**",
   "dist/**",
   "node_modules/**",
+  "messages/**",
+  "project.inlang/**",
+  "src/lib/paraglide/**",
   "test-results*/**",
   "playwright-report*/**",
   // Outside the TypeScript project (tsconfig.json), so the type-aware lint leaves them alone.
@@ -122,6 +126,9 @@ const appConfig = async ({ command }: { command: string }) =>
   defineConfig({
     ...toolchain,
     plugins: [
+      paraglideVitePlugin({
+        project: "./project.inlang",
+      }),
       tailwindcss(),
       ...(await sentrySvelteKit({
         // adapter-static build (ADR-033 OQ2): no Node SSR runtime to instrument.
@@ -195,12 +202,18 @@ const appConfig = async ({ command }: { command: string }) =>
 // two SvelteKit 3 modules the units import.
 const testConfig = {
   ...toolchain,
-  plugins: [sveltekit()],
+  plugins: [
+    paraglideVitePlugin({
+      project: "./project.inlang",
+    }),
+    sveltekit(),
+  ],
   test: {
     environment: "node",
     include: ["src/**/*.test.ts", "src/**/*.spec.ts"],
     exclude: ["tests/**", "node_modules/**", "dist/**", "build/**"],
     globals: true,
+    testTimeout: 15000,
     maxWorkers: 1,
   },
   define: {

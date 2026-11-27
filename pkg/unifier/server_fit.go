@@ -68,6 +68,10 @@ func wholeStackBase(request core.WizardRecommendationRequest) wholeStackBasePoli
 // managed SKU or observed owned-host inventory (Guard, SSH, or substrate).
 // It never provisions.
 func EvaluateServerFit(request core.WizardRecommendationRequest, inventory WizardRecommendationInventory) *core.WizardServerFit {
+	return evaluateServerFit(request, inventory, true)
+}
+
+func evaluateServerFit(request core.WizardRecommendationRequest, inventory WizardRecommendationInventory, allowRecovery bool) *core.WizardServerFit {
 	choice := request.ServerFit
 	if choice == nil {
 		return nil
@@ -93,10 +97,11 @@ func EvaluateServerFit(request core.WizardRecommendationRequest, inventory Wizar
 	}
 
 	var (
-		worker          core.Worker
-		pendingReason   string
-		hostMeasured    bool
-		isManagedTarget = strings.TrimSpace(choice.ProviderID) != "" || strings.TrimSpace(choice.OfferingID) != ""
+		worker            core.Worker
+		pendingReason     string
+		hostMeasured      bool
+		entitlementDenied bool
+		isManagedTarget   = strings.TrimSpace(choice.ProviderID) != "" || strings.TrimSpace(choice.OfferingID) != ""
 	)
 
 	if !isManagedTarget {
@@ -186,6 +191,14 @@ func EvaluateServerFit(request core.WizardRecommendationRequest, inventory Wizar
 			addUnknown("provider_package_unavailable", "", "")
 			fit.Recovery = &core.WizardServerFitRecovery{Action: "review_selection", ReasonCode: "provider_package_unavailable"}
 			return fit
+		}
+		if !offeringAllowedInRequest(request, fit.OfferingID) {
+			entitlementDenied = true
+			addAdvisory("entitlement_required", "", fit.OfferingID)
+			fit.Deficits = append(fit.Deficits, core.WizardServerFitFact{
+				Code:   "entitlement_required",
+				Module: fit.OfferingID,
+			})
 		}
 		hostMeasured = true
 		fit.Template = pkg.Template
@@ -409,10 +422,21 @@ func EvaluateServerFit(request core.WizardRecommendationRequest, inventory Wizar
 
 	fit.MemoryPeak = estimateWholeStackMemoryPeak(catalog, footprints, worker, baseAndUsedRAM, len(request.Services) == 0)
 
+	if entitlementDenied {
+		fit.Status = FitStatusDoesNotFit
+		fit.RefusalClass = RefusalClassEntitlement
+		if allowRecovery {
+			fit.Recovery = buildFitRecovery(catalog, request, fit, basePolicy, footprints, inventory)
+		}
+		return fit
+	}
+
 	if len(fit.Deficits) > 0 {
 		fit.Status = FitStatusDoesNotFit
 		fit.RefusalClass = classifyFitRefusal(fit.Deficits)
-		fit.Recovery = buildFitRecovery(catalog, request, fit, basePolicy, footprints)
+		if allowRecovery {
+			fit.Recovery = buildFitRecovery(catalog, request, fit, basePolicy, footprints, inventory)
+		}
 		return fit
 	}
 
@@ -433,7 +457,9 @@ func EvaluateServerFit(request core.WizardRecommendationRequest, inventory Wizar
 
 	if fit.MemoryPeak.Warning {
 		fit.Status = FitStatusTight
-		fit.Recovery = buildFitRecovery(catalog, request, fit, basePolicy, footprints)
+		if allowRecovery {
+			fit.Recovery = buildFitRecovery(catalog, request, fit, basePolicy, footprints, inventory)
+		}
 		return fit
 	}
 
@@ -609,6 +635,7 @@ func buildFitRecovery(
 	fit *core.WizardServerFit,
 	basePolicy wholeStackBasePolicy,
 	footprints []stackkitrelease.WorkloadFootprint,
+	inventory WizardRecommendationInventory,
 ) *core.WizardServerFitRecovery {
 	primaryReason := "hardware_fit"
 	deficitGoal := ""
@@ -623,15 +650,24 @@ func buildFitRecovery(
 	if fit.Status == FitStatusTight {
 		primaryReason = "memory_peak"
 	}
+	if fit.RefusalClass == RefusalClassEntitlement {
+		primaryReason = monthlyruntime.EntitlementReasonOfferingTierRequired
+	}
 
-	// 1. For managed catalog SKUs with a hardware fit / tight verdict, suggest
-	// the smallest admitted larger package from the same provider that fits.
-	if fit.CapacityOrigin == CapacityOriginCatalogSKU && fit.ProviderID != "" &&
-		(fit.RefusalClass == "" || fit.RefusalClass == RefusalClassHardwareFit) {
-		if offering, pkg, ok := smallestFittingManagedPackage(fit.ProviderID, fit.OfferingID, request, basePolicy, footprints); ok {
+	canResolveCapacityOrTier := fit.RefusalClass == "" || fit.RefusalClass == RefusalClassHardwareFit || fit.RefusalClass == RefusalClassEntitlement
+
+	// 1. Check an allowed same-tier managed option across admitted providers
+	// first when it retains all chosen functions without a tier upgrade.
+	if fit.CapacityOrigin == CapacityOriginCatalogSKU && fit.ProviderID != "" && canResolveCapacityOrTier {
+		if offering, pkg, ok := sameTierFittingManagedPackage(catalog, fit.ProviderID, fit.OfferingID, request, basePolicy, footprints); ok {
+			action := "switch_offering"
+			if pkg.ProviderID != fit.ProviderID {
+				action = "switch_provider"
+			}
 			return &core.WizardServerFitRecovery{
-				Action:           "switch_offering",
+				Action:           action,
 				ReasonCode:       primaryReason,
+				ProviderID:       pkg.ProviderID,
 				OfferingID:       string(offering.ID),
 				OfferingName:     offering.Name,
 				OfferingSKU:      pkg.DisplaySKU(),
@@ -641,10 +677,53 @@ func buildFitRecovery(
 		}
 	}
 
-	// 2. If full Photos (Immich) exceeds memory and a lighter catalog-admitted
+	// 2. Offer a viable capable owned server in inventory without forcing a
+	// commerce upgrade.
+	if canResolveCapacityOrTier {
+		if worker, ok := bestCapableOwnedWorker(request, fit.ServerID, inventory); ok {
+			return &core.WizardServerFitRecovery{
+				Action:     "use_owned_server",
+				ReasonCode: primaryReason,
+				ServerID:   firstNonEmptyRecommendation(worker.ServerID, worker.ID),
+				ServerName: firstNonEmptyRecommendation(worker.Name, worker.ServerID, worker.ID),
+				Goal:       deficitGoal,
+			}
+		}
+	}
+
+	// 3. For managed catalog SKUs with a hardware fit / tight / entitlement
+	// verdict, suggest the smallest admitted and entitled larger (or standard)
+	// package from the same provider that fits.
+	if fit.CapacityOrigin == CapacityOriginCatalogSKU && fit.ProviderID != "" && canResolveCapacityOrTier {
+		if !request.ProviderAdmissionChecked || slices.Contains(request.AdmittedProviders, fit.ProviderID) {
+			if offering, pkg, ok := smallestFittingManagedPackage(catalog, fit.ProviderID, fit.OfferingID, request, basePolicy, footprints); ok {
+				return &core.WizardServerFitRecovery{
+					Action:           "switch_offering",
+					ReasonCode:       primaryReason,
+					ProviderID:       pkg.ProviderID,
+					OfferingID:       string(offering.ID),
+					OfferingName:     offering.Name,
+					OfferingSKU:      pkg.DisplaySKU(),
+					OfferingMemoryMB: pkg.MemoryMB,
+					Goal:             deficitGoal,
+				}
+			}
+		}
+	}
+
+	// 3b. When refused for offering-tier entitlement, ALWAYS surface an entitled
+	// offering recovery (monthly-runtime-standard) before falling back to
+	// profile or goal edits that would still 403 on the unentitled tier.
+	if fit.RefusalClass == RefusalClassEntitlement && fit.CapacityOrigin == CapacityOriginCatalogSKU && fit.ProviderID != "" {
+		if recovery, ok := entitledStandardOfferingRecovery(catalog, request, fit.ProviderID, fit.OfferingID, primaryReason, deficitGoal); ok {
+			return recovery
+		}
+	}
+
+	// 4. If full Photos (Immich) exceeds memory and a lighter catalog-admitted
 	// Photos alternative (Immich Lite or Ente Photos) is available, offer
 	// switching Photos to that lighter profile.
-	if slices.Contains(request.Goals, "photos") {
+	if fit.RefusalClass != RefusalClassEntitlement && slices.Contains(request.Goals, "photos") {
 		backend, _ := request.UseCaseSettings["photos"]["backend"].(string)
 		if backend != "immich-lite" && backend != "ente-photos" {
 			if photos, ok := catalog.FindUseCase("photos"); ok {
@@ -664,9 +743,9 @@ func buildFitRecovery(
 		}
 	}
 
-	// 3. When multiple use cases are selected and one specific goal drives the
+	// 5. When multiple use cases are selected and one specific goal drives the
 	// deficit, offer leaving out that single use case.
-	if len(request.Goals) > 1 {
+	if fit.RefusalClass != RefusalClassEntitlement && len(request.Goals) > 1 {
 		targetGoal := deficitGoal
 		if targetGoal == "" {
 			targetGoal = heaviestGoal(catalog, footprints, request.Goals)
@@ -680,7 +759,7 @@ func buildFitRecovery(
 		}
 	}
 
-	// 4. Otherwise keep selection intact and guide the operator to review it.
+	// 6. Otherwise keep selection intact and guide the operator to review it.
 	return &core.WizardServerFitRecovery{
 		Action:     "review_selection",
 		Goal:       deficitGoal,
@@ -688,12 +767,166 @@ func buildFitRecovery(
 	}
 }
 
-func smallestFittingManagedPackage(
-	providerID, currentOfferingID string,
+func entitledStandardOfferingRecovery(
+	catalog stackkitrelease.UseCaseCatalog,
+	request core.WizardRecommendationRequest,
+	currentProviderID, currentOfferingID, primaryReason, deficitGoal string,
+) (*core.WizardServerFitRecovery, bool) {
+	standardID := string(monthlyruntime.DefaultOfferingID())
+	if currentOfferingID == standardID || !offeringAllowedInRequest(request, standardID) {
+		return nil, false
+	}
+	offering, ok := monthlyruntime.OfferingByID(monthlyruntime.DefaultOfferingID())
+	if !ok {
+		return nil, false
+	}
+	providers := []string{currentProviderID}
+	if request.ProviderAdmissionChecked {
+		providers = []string{}
+		if slices.Contains(request.AdmittedProviders, currentProviderID) {
+			providers = append(providers, currentProviderID)
+		}
+		for _, pid := range request.AdmittedProviders {
+			if pid != currentProviderID {
+				providers = append(providers, pid)
+			}
+		}
+	}
+	for _, providerID := range providers {
+		if strings.TrimSpace(providerID) == "" {
+			continue
+		}
+		pkg, err := resolveManagedPackageForRequest(catalog, nil, request, providerID, standardID)
+		if err != nil {
+			continue
+		}
+		action := "switch_offering"
+		if pkg.ProviderID != currentProviderID {
+			action = "switch_provider"
+		}
+		return &core.WizardServerFitRecovery{
+			Action:           action,
+			ReasonCode:       primaryReason,
+			ProviderID:       pkg.ProviderID,
+			OfferingID:       string(offering.ID),
+			OfferingName:     offering.Name,
+			OfferingSKU:      pkg.DisplaySKU(),
+			OfferingMemoryMB: pkg.MemoryMB,
+			Goal:             deficitGoal,
+		}, true
+	}
+	return nil, false
+}
+
+func offeringAllowedInRequest(request core.WizardRecommendationRequest, offeringID string) bool {
+	trimmed := strings.TrimSpace(offeringID)
+	if !request.OfferingEntitlementChecked && len(request.AllowedOfferings) == 0 {
+		switch strings.ToLower(strings.TrimSpace(request.DeploymentLane)) {
+		case wizardRecommendationDeploymentSaaS:
+			return trimmed == string(monthlyruntime.DefaultOfferingID())
+		case wizardRecommendationDeploymentSelfHosted:
+			return true
+		default:
+			return false
+		}
+	}
+	return slices.Contains(request.AllowedOfferings, trimmed)
+}
+
+func sameTierFittingManagedPackage(
+	catalog stackkitrelease.UseCaseCatalog,
+	currentProviderID, currentOfferingID string,
 	request core.WizardRecommendationRequest,
 	basePolicy wholeStackBasePolicy,
 	footprints []stackkitrelease.WorkloadFootprint,
 ) (monthlyruntime.Offering, monthlyruntime.ProviderPackage, bool) {
+	standardID := string(monthlyruntime.DefaultOfferingID())
+	if currentOfferingID != "" && currentOfferingID != standardID {
+		return monthlyruntime.Offering{}, monthlyruntime.ProviderPackage{}, false
+	}
+	if !offeringAllowedInRequest(request, standardID) {
+		return monthlyruntime.Offering{}, monthlyruntime.ProviderPackage{}, false
+	}
+	offering, ok := monthlyruntime.OfferingByID(monthlyruntime.DefaultOfferingID())
+	if !ok {
+		return monthlyruntime.Offering{}, monthlyruntime.ProviderPackage{}, false
+	}
+	providers := []string{currentProviderID}
+	if request.ProviderAdmissionChecked {
+		providers = request.AdmittedProviders
+	}
+	for _, providerID := range providers {
+		if providerID == "" {
+			continue
+		}
+		pkg, err := resolveManagedPackageForRequest(catalog, nil, request, providerID, standardID)
+		if err != nil {
+			continue
+		}
+		effectiveCurrentOffering := currentOfferingID
+		if effectiveCurrentOffering == "" {
+			effectiveCurrentOffering = standardID
+		}
+		if pkg.ProviderID == currentProviderID && string(offering.ID) == effectiveCurrentOffering {
+			continue
+		}
+		if packageFitsWholeStack(pkg, basePolicy, footprints) {
+			return offering, pkg, true
+		}
+	}
+	return monthlyruntime.Offering{}, monthlyruntime.ProviderPackage{}, false
+}
+
+func bestCapableOwnedWorker(
+	request core.WizardRecommendationRequest,
+	excludeServerID string,
+	inventory WizardRecommendationInventory,
+) (core.Worker, bool) {
+	if len(inventory.Workers) == 0 || strings.EqualFold(strings.TrimSpace(inventory.State), wizardRecommendationInventoryUnavailable) {
+		return core.Worker{}, false
+	}
+	var (
+		best  core.Worker
+		found bool
+	)
+	for _, worker := range inventory.Workers {
+		candidateID := firstNonEmptyRecommendation(worker.ServerID, worker.ID)
+		if candidateID == "" || (excludeServerID != "" && candidateID == excludeServerID) {
+			continue
+		}
+		if inventory.StaleWorkerIDs[worker.ID] || (worker.ServerID != "" && inventory.StaleWorkerIDs[worker.ServerID]) {
+			continue
+		}
+		if !strings.EqualFold(strings.TrimSpace(worker.Status), "online") || !worker.UsageObserved {
+			continue
+		}
+		if !isOwnedUnboundWorker(worker) {
+			continue
+		}
+		ownedReq := request
+		ownedReq.ProviderID = ""
+		ownedReq.RuntimeOfferingID = ""
+		if ownedReq.KitSlug == "" || ownedReq.KitSlug == "cloud-kit" {
+			ownedReq.KitSlug = "basement-kit"
+		}
+		ownedReq.ServerFit = &core.WizardServerFitRequest{ServerID: candidateID, Source: "guard"}
+		fit := evaluateServerFit(ownedReq, inventory, false)
+		if fit == nil || fit.Status != FitStatusFits {
+			continue
+		}
+		if !found || worker.Capabilities.RAM < best.Capabilities.RAM ||
+			(worker.Capabilities.RAM == best.Capabilities.RAM && candidateID < firstNonEmptyRecommendation(best.ServerID, best.ID)) {
+			best, found = worker, true
+		}
+	}
+	return best, found
+}
+
+func packageFitsWholeStack(
+	pkg monthlyruntime.ProviderPackage,
+	basePolicy wholeStackBasePolicy,
+	footprints []stackkitrelease.WorkloadFootprint,
+) bool {
 	workloadTotals := deduplicatedWorkloadResources(footprints)
 	dataVolumeFloor := selectionStorageNeed(footprints)
 	dataVolumeNeed := math.Max(workloadTotals.StorageGB, dataVolumeFloor)
@@ -704,7 +937,26 @@ func smallestFittingManagedPackage(
 		needCPU = math.Max(needCPU, footprint.HostFloor.MinCPUCores)
 		needRAM = math.Max(needRAM, footprint.HostFloor.MinRAMGB)
 		needStorage = math.Max(needStorage, footprint.HostFloor.MinStorageGB)
+		if footprint.Accelerator != nil {
+			return false
+		}
+		if footprint.HostFloor.MinAMD64MicroarchitectureLevel > 0 && pkg.AMD64Level > 0 && pkg.AMD64Level < footprint.HostFloor.MinAMD64MicroarchitectureLevel {
+			return false
+		}
+		if len(footprint.HostFloor.AllowedArchitectures) > 0 && pkg.Architecture != "" && !slices.Contains(footprint.HostFloor.AllowedArchitectures, pkg.Architecture) {
+			return false
+		}
 	}
+	return float64(pkg.VCPUs) >= needCPU && float64(pkg.MemoryMB)/1024 >= needRAM && float64(pkg.DiskGB) >= needStorage
+}
+
+func smallestFittingManagedPackage(
+	catalog stackkitrelease.UseCaseCatalog,
+	providerID, currentOfferingID string,
+	request core.WizardRecommendationRequest,
+	basePolicy wholeStackBasePolicy,
+	footprints []stackkitrelease.WorkloadFootprint,
+) (monthlyruntime.Offering, monthlyruntime.ProviderPackage, bool) {
 	var (
 		bestOffering monthlyruntime.Offering
 		bestPkg      monthlyruntime.ProviderPackage
@@ -714,18 +966,20 @@ func smallestFittingManagedPackage(
 		if string(offering.ID) == currentOfferingID {
 			continue
 		}
-		pkg, err := monthlyruntime.PackageForProvider(providerID, string(offering.ID))
+		if !offeringAllowedInRequest(request, string(offering.ID)) {
+			continue
+		}
+		pkg, err := resolveManagedPackageForRequest(catalog, nil, request, providerID, string(offering.ID))
 		if err != nil {
 			continue
 		}
-		if float64(pkg.VCPUs) < needCPU || float64(pkg.MemoryMB)/1024 < needRAM || float64(pkg.DiskGB) < needStorage {
+		if !packageFitsWholeStack(pkg, basePolicy, footprints) {
 			continue
 		}
 		if !found || pkg.MemoryMB < bestPkg.MemoryMB || (pkg.MemoryMB == bestPkg.MemoryMB && pkg.VCPUs < bestPkg.VCPUs) {
 			bestOffering, bestPkg, found = offering, pkg, true
 		}
 	}
-	_ = request
 	return bestOffering, bestPkg, found
 }
 

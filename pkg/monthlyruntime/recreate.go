@@ -3,6 +3,7 @@ package monthlyruntime
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -74,7 +75,7 @@ func (s *Service) PrepareRecreate(ctx context.Context, req RecreateRequest) (*Re
 	if !IsMonthlyRuntimeMetadata(lease.Metadata) {
 		return nil, ErrInvalidLease
 	}
-	if record.ExecutionAuthority != vmleases.LeaseExecutionAuthorityHomelabProviderControl {
+	if !vmleases.IsHomelabProviderControlExecutionAuthority(record.ExecutionAuthority) {
 		return nil, ErrExecutionAuthorityInactive
 	}
 	if lease.RecreatePolicy != vmlease.RecreatePolicyManual {
@@ -87,6 +88,11 @@ func (s *Service) PrepareRecreate(ctx context.Context, req RecreateRequest) (*Re
 	}
 	if !recreateCleanupComplete(cleanup) {
 		return nil, ErrRecreateNotReady
+	}
+	if s.SupportReplacementFence != nil {
+		if fenceErr := s.SupportReplacementFence.CheckSupportReplacementLeaseFence(ctx, tenantID, string(req.LeaseID), serverruntime.RuntimeActionDecommission); fenceErr != nil {
+			return nil, fmt.Errorf("%w: %v", ErrRecreateNotReady, fenceErr)
+		}
 	}
 
 	generation, err := strconv.ParseUint(strings.TrimSpace(lease.Metadata["runtime_slot_generation"]), 10, 64)

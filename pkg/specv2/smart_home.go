@@ -69,6 +69,7 @@ func proposeSmartHomeSelection(seed map[string]any, intent WizardIntent, authore
 // Provisioning rechecks all resources, locality and hardware independently.
 type SmartHomeContext struct {
 	Existing                    bool `json:"existing"`
+	AutoDetected                bool `json:"auto_detected,omitempty"`
 	ProxmoxAvailable            bool `json:"proxmox_available"`
 	LANReachable                bool `json:"lan_reachable"`
 	CPU                         int  `json:"cpu"`
@@ -83,6 +84,7 @@ type SmartHomeContext struct {
 type SmartHomeRecommendation struct {
 	OperatingForm   string              `json:"operating_form,omitempty"`
 	ManagementScope string              `json:"management_scope"`
+	AutoDetected    bool                `json:"auto_detected,omitempty"`
 	Reasons         []string            `json:"reasons"`
 	Requirements    []string            `json:"requirements"`
 	Capabilities    map[string][]string `json:"capabilities"`
@@ -95,6 +97,7 @@ func RecommendSmartHome(context SmartHomeContext, settings map[string]any) Smart
 	}}
 	if context.Existing || settings["instance-origin"] == "existing" {
 		r.ManagementScope = "observed"
+		r.AutoDetected = context.AutoDetected
 		r.Reasons = append(r.Reasons, "preserve-existing-installation")
 		r.Requirements = append(r.Requirements, "detect-installed-form-and-api-capabilities", "separate-management-grant")
 		return r

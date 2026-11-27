@@ -227,7 +227,7 @@ func (p *NativePowerController) preparePower(
 			JOIN runtime_lease_execution_authorities AS authority
 			  ON authority.tenant_id = lease.tenant_id
 			 AND authority.lease_id = lease.id
-			 AND authority.execution_authority = 'techstack_provider_control'
+			 AND authority.execution_authority IN ('techstack_provider_control', 'homelab_provider_control')
 			JOIN servers AS server
 			  ON server.tenant_id = lease.tenant_id
 			 AND server.id = lease.server_id

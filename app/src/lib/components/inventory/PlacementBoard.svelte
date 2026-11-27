@@ -7,10 +7,12 @@
   cannot move to another Node before it is stacked.
 -->
 <script lang="ts">
+  import type { Snippet } from "svelte";
   import LoadingNote from "#lib/components/ui/LoadingNote.svelte";
   import {
     AlertTriangle,
     ArrowRight,
+    Ban,
     ChevronDown,
     ChevronRight,
     Cpu,
@@ -23,12 +25,17 @@
   import Button from "#lib/components/ui/Button.svelte";
   import { tr, formatDateTime } from "#lib/i18n.svelte.js";
   import { serviceCardLabels } from "#lib/service-card-adapter.js";
-  import type { RegistryServer, RegistryService } from "#lib/api/registry.js";
+  import type {
+    RegistryMoveIneligibleDestination,
+    RegistryServer,
+    RegistryService,
+  } from "#lib/api/registry.js";
   import type {
     PlacementCard,
     PlacementColumn,
     UnmanagedCard,
   } from "#lib/services/placement.js";
+  import { moveIneligibleLabel } from "#lib/services/move-copy.js";
   import type { CockpitRefreshError } from "#lib/monitoring/cockpit-snapshot.js";
 
   interface Props {
@@ -40,6 +47,7 @@
     onretry: () => void;
     onmove: (service: RegistryService, target: RegistryServer) => void;
     onstack: (card: UnmanagedCard) => void;
+    cardBadge?: Snippet<[PlacementCard]>;
   }
 
   let {
@@ -51,6 +59,7 @@
     onretry,
     onmove,
     onstack,
+    cardBadge,
   }: Props = $props();
 
   // Unmanaged drag: only its own Node accepts it, and only into Stack it.
@@ -78,9 +87,36 @@
 
   let activeDrag = $state<PlacementCard | null>(null);
   let activeDragServerId = $state<string | null>(null);
+  let blockedHoverServerId = $state<string | null>(null);
 
   const accepts = (serverId: string) =>
     activeDrag?.moveTargetIds.includes(serverId) ?? false;
+
+  function ineligibleFor(
+    card: PlacementCard | null,
+    serverId: string,
+  ): RegistryMoveIneligibleDestination | undefined {
+    if (!card || card.service.server_id === serverId) return undefined;
+    return (
+      card.ineligibleByServerId?.[serverId] ??
+      card.service.move?.ineligible_destinations?.find(
+        (entry) => entry.server_id === serverId,
+      )
+    );
+  }
+
+  /** Service-level reason when a card cannot move to any destination at all. */
+  function cardBlockedSummary(card: PlacementCard): string | null {
+    if (card.canMove || card.migrating) return null;
+    const entries = card.service.move?.ineligible_destinations ?? [];
+    if (entries.length === 0) return null;
+    const serviceWide = entries.find(
+      (entry) =>
+        entry.code === "multi_app_use_case" ||
+        entry.code === "unsupported_adapter",
+    );
+    return serviceWide ? moveIneligibleLabel(serviceWide.code) : null;
+  }
 
   function handleDragStart(event: DragEvent, card: PlacementCard) {
     if (!card.canMove) {
@@ -88,6 +124,7 @@
       return;
     }
     activeDrag = card;
+    blockedHoverServerId = null;
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = "move";
       event.dataTransfer.setData("text/plain", card.service.id || "");
@@ -101,18 +138,31 @@
       activeDragServerId = serverId;
       return;
     }
-    if (!accepts(serverId)) return;
-    event.preventDefault();
-    activeDragServerId = serverId;
+    if (!activeDrag) return;
+    if (accepts(serverId)) {
+      event.preventDefault();
+      activeDragServerId = serverId;
+      blockedHoverServerId = null;
+      return;
+    }
+    activeDragServerId = null;
+    if (activeDrag.service.server_id !== serverId) {
+      blockedHoverServerId = serverId;
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = "none";
+      }
+    }
   }
 
   function handleDragLeave() {
     activeDragServerId = null;
+    blockedHoverServerId = null;
   }
 
   function handleDrop(event: DragEvent, target: RegistryServer) {
     event.preventDefault();
     activeDragServerId = null;
+    blockedHoverServerId = null;
     const unmanaged = activeUnmanaged;
     activeUnmanaged = null;
     if (unmanaged) {
@@ -190,20 +240,28 @@
     {#each columns as column (column.server.id)}
       {@const server = column.server}
       {@const cap = column.capacity}
+      {@const blockedReason = ineligibleFor(activeDrag, server.id)}
+      {@const isBlockedColumn =
+        Boolean(activeDrag) &&
+        activeDrag?.service.server_id !== server.id &&
+        !accepts(server.id)}
 
       <!-- Server Column -->
       <div
         class="w-80 shrink-0 flex flex-col bg-card/35 backdrop-blur-sm border rounded-xl p-4 min-h-[550px] transition-all duration-300
                {activeDragServerId === server.id
           ? 'border-primary/60 bg-primary/5 shadow-md shadow-primary/5'
-          : (activeDrag && accepts(server.id)) ||
-              activeUnmanaged?.serverId === server.id
-            ? 'border-dashed border-primary/40'
-            : activeUnmanaged
-              ? 'opacity-60'
-              : 'border-border/80'}"
+          : blockedHoverServerId === server.id
+            ? 'border-destructive/60 bg-destructive/5'
+            : (activeDrag && accepts(server.id)) ||
+                activeUnmanaged?.serverId === server.id
+              ? 'border-dashed border-primary/40'
+              : isBlockedColumn || activeUnmanaged
+                ? 'opacity-65 border-border/60'
+                : 'border-border/80'}"
         data-testid="placement-column"
         data-server-id={server.id}
+        data-drop-blocked={isBlockedColumn || undefined}
         ondragover={(e) => handleDragOver(e, server.id)}
         ondragleave={handleDragLeave}
         ondrop={(e) => handleDrop(e, server)}
@@ -322,10 +380,15 @@
             {@const canMove = card.canMove}
 
             <!-- Application Card -->
+            {@const blockedNote = cardBlockedSummary(card)}
             <div
               draggable={canMove}
               ondragstart={(e) => handleDragStart(e, card)}
-              ondragend={() => (activeDrag = null)}
+              ondragend={() => {
+                activeDrag = null;
+                activeDragServerId = null;
+                blockedHoverServerId = null;
+              }}
               role="listitem"
               data-testid="placement-card"
               data-movable={canMove}
@@ -347,6 +410,18 @@
                 showGrip={canMove}
                 actions={card.actions}
               />
+
+              {@render cardBadge?.(card)}
+
+              {#if blockedNote}
+                <p
+                  class="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+                  data-testid="placement-card-move-blocked"
+                >
+                  <Ban class="w-3 h-3 shrink-0 text-muted-foreground/80" />
+                  <span class="truncate">{blockedNote}</span>
+                </p>
+              {/if}
 
               {#if isMigrating}
                 <div
@@ -400,6 +475,25 @@
                   name: activeDrag.name,
                 })}</span
               >
+            </div>
+          {:else if isBlockedColumn && activeDrag}
+            <div
+              class="border border-dashed rounded-lg p-3 flex flex-col gap-1 text-xs transition-all {blockedHoverServerId ===
+              server.id
+                ? 'border-destructive/60 bg-destructive/10 text-destructive'
+                : 'border-border/60 bg-muted/20 text-muted-foreground'}"
+              role="status"
+              data-testid="placement-drop-blocked"
+              data-blocked-code={blockedReason?.code ?? "ineligible"}
+            >
+              <div class="flex items-center gap-1.5 font-semibold">
+                <Ban class="w-3.5 h-3.5 shrink-0" />
+                <span>
+                  {blockedReason
+                    ? moveIneligibleLabel(blockedReason.code)
+                    : tr("applicationMove.ineligible.generic")}
+                </span>
+              </div>
             </div>
           {/if}
 

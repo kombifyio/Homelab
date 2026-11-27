@@ -218,7 +218,7 @@ func loadNativeRenewalStateTx(
 	`, tenantID, leaseID, generationID).Scan(&authority, &released); err != nil {
 		return nativeRenewalState{}, fmt.Errorf("vmleases: read native renewal custody: %w", err)
 	}
-	if released || normalizeLeaseExecutionAuthority(LeaseExecutionAuthority(authority.String)) != LeaseExecutionAuthorityHomelabProviderControl {
+	if released || !IsHomelabProviderControlExecutionAuthority(LeaseExecutionAuthority(authority.String)) {
 		return nativeRenewalState{}, ErrNativeRenewalRefused
 	}
 	lease, err := decodeCanonicalLease(payload, desiredState, validFrom, validUntil, renewedAt, cancelledAt)

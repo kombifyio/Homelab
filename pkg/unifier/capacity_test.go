@@ -14,7 +14,15 @@ func TestCapacityAdviceSizesTheManagedServer(t *testing.T) {
 	if missingProvider.Status != "unknown" || missingProvider.AvailableRAMMB != 0 {
 		t.Fatalf("offering alone is not a provider package: %+v", missingProvider)
 	}
-	request := core.WizardRecommendationRequest{Goals: []string{"photos", "files", "vault"}, DeploymentLane: "saas", ProviderID: "ionos", RuntimeOfferingID: "monthly-runtime-standard", Surface: "easy"}
+	request := core.WizardRecommendationRequest{
+		Goals:                      []string{"photos", "files", "vault"},
+		DeploymentLane:             "saas",
+		ProviderID:                 "ionos",
+		RuntimeOfferingID:          "monthly-runtime-standard",
+		Surface:                    "easy",
+		AllowedOfferings:           []string{"monthly-runtime-standard", "monthly-runtime-premium", "monthly-runtime-large"},
+		OfferingEntitlementChecked: true,
+	}
 	result := AssessWizardCapacity(request)
 	if result.AvailableRAMMB != 4096 {
 		t.Fatalf("IONOS Standard advice used generic offering: %+v", result)
@@ -74,7 +82,16 @@ func TestCapacityUnknownPeakDoesNotSuggestFittingSize(t *testing.T) {
 }
 
 func TestCapacityRepresentativeEverydayTrioOnIONOSFourGiB(t *testing.T) {
-	request := core.WizardRecommendationRequest{Goals: []string{"photos", "media", "smart-home"}, DeploymentLane: "saas", ProviderID: "ionos", RuntimeOfferingID: "monthly-runtime-standard", ComputeProfile: "standard", Surface: "easy"}
+	request := core.WizardRecommendationRequest{
+		Goals:                      []string{"photos", "media", "smart-home"},
+		DeploymentLane:             "saas",
+		ProviderID:                 "ionos",
+		RuntimeOfferingID:          "monthly-runtime-standard",
+		ComputeProfile:             "standard",
+		Surface:                    "easy",
+		AllowedOfferings:           []string{"monthly-runtime-standard", "monthly-runtime-premium", "monthly-runtime-large"},
+		OfferingEntitlementChecked: true,
+	}
 	advice := AssessWizardCapacity(request)
 	if advice.Status != "warning" || advice.AvailableRAMMB != 4096 || advice.RequiredRAMMB != 6784 || advice.ResidentRAMMB != 5248 || advice.WorkingIncrementRAMMB == nil || *advice.WorkingIncrementRAMMB != 1536 {
 		t.Fatalf("representative everyday standard selection capacity = %+v", advice)
