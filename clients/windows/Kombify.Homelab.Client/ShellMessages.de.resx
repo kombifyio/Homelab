@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="StartingTitle" xml:space="preserve"><value>Homelab Runtime wird gestartet …</value></data>
+  <data name="ConnectingTitle" xml:space="preserve"><value>Verbindung zu deinem Server …</value></data>
+  <data name="StartFailedTitle" xml:space="preserve"><value>Homelab Runtime konnte auf diesem Computer nicht starten</value></data>
+  <data name="ServerFailedTitle" xml:space="preserve"><value>Dein Server ist gerade nicht erreichbar</value></data>
+  <data name="SignInFailedTitle" xml:space="preserve"><value>Die Anmeldung hat nicht geklappt</value></data>
+  <data name="UpdateBlockedTitle" xml:space="preserve"><value>Homelab Runtime konnte das Update nicht abschließen</value></data>
+  <data name="RestartingTitle" xml:space="preserve"><value>Neustart für das Update …</value></data>
+  <data name="TryAgain" xml:space="preserve"><value>Erneut versuchen</value></data>
+  <data name="GetHelp" xml:space="preserve"><value>Hilfe holen</value></data>
+  <data name="WhatHappened" xml:space="preserve"><value>Was passiert ist</value></data>
+  <data name="OpenBrowserAgain" xml:space="preserve"><value>Browser erneut öffnen</value></data>
+  <data name="SigningInTitle" xml:space="preserve"><value>Anmeldung …</value></data>
+  <data name="SignedInTitle" xml:space="preserve"><value>Du bist angemeldet</value></data>
+  <data name="OpenHomelab" xml:space="preserve"><value>Homelab Runtime öffnen</value></data>
+</root>

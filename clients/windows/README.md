@@ -198,6 +198,19 @@ Signed updates (DESKTOP-FOUNDATION-STANDARD.md §5.7):
   Older recovery cursors are migrated only after signed packages for both
   recorded versions are verified; missing historical manifests retain the
   cursor and snapshot and are retried at the next start.
+- A staged update is offered in the app as one small "Restart to update"
+  (shell bridge `kombify.homelab.shell.update.v1`, `ClientWindow.Shell.cs`);
+  restarting starts the client again with `--restart-after <pid>`, so the new
+  start waits for this one and its runtime to end before it applies the
+  update. The start after an applied update shows a short note once. The
+  update also applies by itself at the next ordinary start. Pending recovery
+  that cannot finish shows the shell's failure page with "Try again", which
+  starts the client again; it is never a message box.
+- Start, server and sign-in failures are the shell's own page
+  (`RenderFailure`): one sentence in the Windows display language
+  (`ShellMessages.*.resx`), "Try again", "Get help" (kombify.io/support, no
+  account) and the technical reason with the runtime log behind "What
+  happened". It follows the Windows light or dark app theme.
 - `client.json` sets `updateManifestUrl` (default: the public
   `kombifyio/Homelab` latest release asset
   `kombify-homelab-windows-update.json`), `updateChannel` (`stable`) and

@@ -883,7 +883,7 @@ func registerVMLeaseRoutes(router *httpx.Router, deps routeDeps) (runtimeRouteSt
 	// legacy_simulate bindings are inventory-only quarantine records; no
 	// enrollment or legacy provider client is wired here.
 	// Native mutation stays fail-closed until provider-control admission can
-	// atomically bind techstack_provider_control.
+	// atomically bind homelab_provider_control.
 	deps.log.Info("vm_lease_legacy_simulate_execution_disabled")
 
 	allowedProviders := map[string]bool{}
@@ -1310,7 +1310,7 @@ func registerFeatureRoutes(router *httpx.Router, deps routeDeps, state runtimeRo
 		Wallet: walletControlPlaneStore(deps.v2), Activity: activityStore, KombifyWallet: deps.wallet,
 	})
 	deps.orch.ConfigureRuntimeActions(state.runtimeActions)
-	deps.log.Info("monthly_runtime_routes_registered", "runtime_authority", "techstack_provider_control")
+	deps.log.Info("monthly_runtime_routes_registered", "runtime_authority", "homelab_provider_control")
 
 	// Create-stack ceiling check counts against the same lease authority the
 	// lifecycle routes use (late-bound: CRUD routes register earlier).

@@ -12040,6 +12040,7 @@ components:
                 type: object
                 required: [server_id, code, reason]
                 properties:
+                  kit_deployment_id: {type: string}
                   server_id: {type: string}
                   code:
                     type: string

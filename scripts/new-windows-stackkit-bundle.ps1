@@ -223,10 +223,11 @@ try {
             # Basement keeps its kit default (lab.home), and Cloud and Modern
             # require the kombify-owned placeholder the projection never lets a
             # deployment inherit.
-            $authoringArgs = switch ($kit) {
-                "basement-kit" { @("--api-version", "stackkit/v2alpha2", "--catalog-defaults") }
-                "cloud-kit" { @("--api-version", "stackkit/v2alpha2", "--catalog-defaults", "--domain", "template.smoke.stackkit.cc") }
-                "modern-homelab" { @("--api-version", "stackkit/v2alpha1", "--compute-tier", "standard", "--domain", "template.smoke.stackkit.cc") }
+            $authoringArgs = @("--api-version", "stackkit/v2alpha2", "--catalog-defaults")
+            switch ($kit) {
+                "basement-kit" { }
+                "cloud-kit" { $authoringArgs += @("--domain", "template.smoke.stackkit.cc") }
+                "modern-homelab" { $authoringArgs += @("--domain", "template.smoke.stackkit.cc") }
                 default { throw "Unsupported StackKits template kit: $kit" }
             }
             # A template is not a host install: keep Basement's placement
@@ -238,6 +239,10 @@ try {
             Remove-Item Env:STACKKIT_NETWORK_ENV -ErrorAction SilentlyContinue
             Pop-Location
         }
+        }
+        $template = Get-Content -Raw -LiteralPath (Join-Path $templateWork "stack-spec.yaml") | ConvertFrom-Json
+        if ($template.apiVersion -ne "stackkit/v2alpha2" -or $template.kind -ne "StackSpec" -or $template.kit.slug -ne $kit) {
+            throw "StackKits template for $kit must be a native stackkit/v2alpha2 StackSpec."
         }
         if (-not $ControllerOnly) {
             $templateDir = Join-Path $stackKitRoot ("spec-templates\" + $kit)

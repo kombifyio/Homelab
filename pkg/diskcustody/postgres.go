@@ -38,11 +38,6 @@ const (
 // keeps its previous behavior instead of failing the boot.
 var errStackTenantDirectoryPending = errors.New("stack tenant directory is not rolled out yet")
 
-// errControlPlaneArchiveDigestPending reports that the digest-only archive
-// verification routine (migration 207) does not exist yet on a pre-207
-// database.
-var errControlPlaneArchiveDigestPending = errors.New("control-plane disk archive digest routine is not rolled out yet")
-
 // routinePending maps missing migration-207 tables or routines (42P01 / 42883)
 // to the caller's pending sentinel, scoped to the specific migration-207 calls.
 func routinePending(err error, pending error) error {
@@ -85,7 +80,7 @@ func readControlPlaneArchiveDigest(ctx context.Context, pool *sql.DB, source, di
 		source, digest,
 	).Scan(&out.OtherVersions, &matchedSHA, &byteSize, &archivedAt)
 	if err != nil {
-		return out, routinePending(err, errControlPlaneArchiveDigestPending)
+		return out, err
 	}
 	if matchedSHA.Valid && byteSize.Valid {
 		out.ContentSHA256 = matchedSHA.String

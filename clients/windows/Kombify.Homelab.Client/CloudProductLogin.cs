@@ -100,8 +100,7 @@ internal sealed partial class ClientWindow
                 throw new InvalidOperationException("Homelab Runtime returned an invalid browser login URL.");
 
             if (!silent)
-                NavigateHtml(RenderFallback(CloudLoginText.Get("WaitingTitle"),
-                    CloudLoginText.Get("WaitingDetail")));
+                NavigateHtml(RenderProgress(CloudLoginText.Get("WaitingTitle"), BrowserAgainHtml(loginURL)));
             OpenInBrowser(loginURL);
             var ticket = await AwaitProductCallbackAsync(listener, state, silent, token)
                 ?? throw new InvalidOperationException("The silent login was refused.");

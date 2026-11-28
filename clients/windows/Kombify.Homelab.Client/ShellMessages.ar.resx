@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="StartingTitle" xml:space="preserve"><value>جارٍ تشغيل Homelab Runtime…</value></data>
+  <data name="ConnectingTitle" xml:space="preserve"><value>جارٍ الاتصال بخادمك…</value></data>
+  <data name="StartFailedTitle" xml:space="preserve"><value>تعذّر تشغيل Homelab Runtime على هذا الكمبيوتر</value></data>
+  <data name="ServerFailedTitle" xml:space="preserve"><value>لا يمكن الوصول إلى خادمك الآن</value></data>
+  <data name="SignInFailedTitle" xml:space="preserve"><value>لم ينجح تسجيل الدخول</value></data>
+  <data name="UpdateBlockedTitle" xml:space="preserve"><value>تعذّر على Homelab Runtime إكمال التحديث</value></data>
+  <data name="RestartingTitle" xml:space="preserve"><value>جارٍ إعادة التشغيل للتحديث…</value></data>
+  <data name="TryAgain" xml:space="preserve"><value>إعادة المحاولة</value></data>
+  <data name="GetHelp" xml:space="preserve"><value>الحصول على مساعدة</value></data>
+  <data name="WhatHappened" xml:space="preserve"><value>ما الذي حدث</value></data>
+  <data name="OpenBrowserAgain" xml:space="preserve"><value>فتح المتصفح مرة أخرى</value></data>
+  <data name="SigningInTitle" xml:space="preserve"><value>جارٍ تسجيل الدخول…</value></data>
+  <data name="SignedInTitle" xml:space="preserve"><value>لقد سجّلت الدخول</value></data>
+  <data name="OpenHomelab" xml:space="preserve"><value>فتح Homelab Runtime</value></data>
+</root>

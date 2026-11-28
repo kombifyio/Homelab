@@ -118,7 +118,7 @@ func (l *PostgresLedger) ReadManagedRuntimeCleanup(
 			) AS absence ON TRUE
 			WHERE lease.tenant_id = $1
 			  AND lease.id = $2
-		`, tenantID, string(leaseID), string(ExecutionAuthorityHomelabProviderControl), string(executionAuthorityHomelabForward), operationEnvelopeVersion, operationEnvelopeVersionForward).Scan(
+		`, tenantID, string(leaseID), string(ExecutionAuthorityHomelabProviderControl), string(executionAuthorityHomelabLegacy), operationEnvelopeVersion, operationEnvelopeVersionForward).Scan(
 			&facts.ServerBound,
 			&facts.ServerTerminal,
 			&facts.ProviderOperationFound,

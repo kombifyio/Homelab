@@ -508,7 +508,7 @@ func (l *PostgresLedger) ListRunnableOperations(ctx context.Context, tenantID st
 			) AS runnable
 			ORDER BY updated_at ASC, operation_id ASC
 			LIMIT $6
-		`, tenantID, operationEnvelopeVersion, operationEnvelopeVersionForward, ExecutionAuthorityHomelabProviderControl, executionAuthorityHomelabForward, limit)
+		`, tenantID, operationEnvelopeVersion, operationEnvelopeVersionForward, ExecutionAuthorityHomelabProviderControl, executionAuthorityHomelabLegacy, limit)
 		if queryErr != nil {
 			return fmt.Errorf("providercontrol: list runnable operations: %w", queryErr)
 		}

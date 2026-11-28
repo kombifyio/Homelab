@@ -4,7 +4,7 @@ import "fmt"
 
 func isHomelabProviderControlAuthority(authority ExecutionAuthority) bool {
 	return authority == ExecutionAuthorityHomelabProviderControl ||
-		authority == executionAuthorityHomelabForward
+		authority == executionAuthorityHomelabLegacy
 }
 
 func validateExecutionAuthority(authority ExecutionAuthority) error {

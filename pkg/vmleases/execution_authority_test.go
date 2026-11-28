@@ -10,17 +10,20 @@ import (
 )
 
 func TestLeaseExecutionAuthorityClosedValues(t *testing.T) {
+	if LeaseExecutionAuthorityHomelabProviderControl != "homelab_provider_control" {
+		t.Fatal("new lease bindings must use the Homelab authority")
+	}
 	for _, authority := range []LeaseExecutionAuthority{
 		LeaseExecutionAuthorityLegacySimulate,
 		LeaseExecutionAuthorityHomelabProviderControl,
-		LeaseExecutionAuthorityHomelabProviderControlForward,
+		LeaseExecutionAuthorityHomelabProviderControlLegacy,
 	} {
 		if err := validateLeaseExecutionAuthority(authority); err != nil {
 			t.Fatalf("validate %q: %v", authority, err)
 		}
 	}
 	if !IsHomelabProviderControlExecutionAuthority(LeaseExecutionAuthorityHomelabProviderControl) ||
-		!IsHomelabProviderControlExecutionAuthority(LeaseExecutionAuthorityHomelabProviderControlForward) ||
+		!IsHomelabProviderControlExecutionAuthority(LeaseExecutionAuthorityHomelabProviderControlLegacy) ||
 		IsHomelabProviderControlExecutionAuthority(LeaseExecutionAuthorityLegacySimulate) {
 		t.Fatalf("IsHomelabProviderControlExecutionAuthority mismatch")
 	}

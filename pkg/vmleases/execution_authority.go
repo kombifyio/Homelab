@@ -19,11 +19,9 @@ const (
 	LeaseExecutionAuthorityLegacySimulate LeaseExecutionAuthority = "legacy_simulate"
 	// LeaseExecutionAuthorityHomelabProviderControl is the only authority
 	// eligible for newly admitted managed-provider operations.
-	// Phase 1 expand admits LeaseExecutionAuthorityHomelabProviderControlForward
-	// on read/validation while keeping writers on techstack_provider_control
-	// until Phase 2 cutover.
-	LeaseExecutionAuthorityHomelabProviderControl        LeaseExecutionAuthority = "techstack_provider_control"
-	LeaseExecutionAuthorityHomelabProviderControlForward LeaseExecutionAuthority = "homelab_provider_control"
+	// Persisted legacy bindings retain their immutable authority spelling.
+	LeaseExecutionAuthorityHomelabProviderControl       LeaseExecutionAuthority = "homelab_provider_control"
+	LeaseExecutionAuthorityHomelabProviderControlLegacy LeaseExecutionAuthority = "techstack_provider_control"
 )
 
 var (
@@ -42,10 +40,10 @@ func normalizeLeaseExecutionAuthority(authority LeaseExecutionAuthority) LeaseEx
 }
 
 // IsHomelabProviderControlExecutionAuthority reports whether authority names
-// Homelab's native provider-control lane (transitional or forward spelling).
+// Homelab's native provider-control lane (current or legacy spelling).
 func IsHomelabProviderControlExecutionAuthority(authority LeaseExecutionAuthority) bool {
 	switch normalizeLeaseExecutionAuthority(authority) {
-	case LeaseExecutionAuthorityHomelabProviderControl, LeaseExecutionAuthorityHomelabProviderControlForward:
+	case LeaseExecutionAuthorityHomelabProviderControl, LeaseExecutionAuthorityHomelabProviderControlLegacy:
 		return true
 	default:
 		return false

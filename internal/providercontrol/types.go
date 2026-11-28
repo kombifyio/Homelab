@@ -39,10 +39,9 @@ type ExecutionAuthority string
 const (
 	// ExecutionAuthorityHomelabProviderControl is the only executable
 	// authority admitted by this package.
-	// Phase 1 expand admits executionAuthorityHomelabForward on read/validation
-	// while keeping writers on techstack_provider_control until Phase 2 cutover.
-	ExecutionAuthorityHomelabProviderControl ExecutionAuthority = "techstack_provider_control"
-	executionAuthorityHomelabForward         ExecutionAuthority = "homelab_provider_control"
+	// Persisted legacy operations remain executable without rewriting their authority.
+	ExecutionAuthorityHomelabProviderControl ExecutionAuthority = "homelab_provider_control"
+	executionAuthorityHomelabLegacy          ExecutionAuthority = "techstack_provider_control"
 )
 
 // ExecutionProfile contains opaque, server-side references and immutable

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="StartingTitle" xml:space="preserve"><value>Homelab Runtime शुरू हो रहा है…</value></data>
+  <data name="ConnectingTitle" xml:space="preserve"><value>आपके सर्वर से कनेक्ट हो रहा है…</value></data>
+  <data name="StartFailedTitle" xml:space="preserve"><value>Homelab Runtime इस कंप्यूटर पर शुरू नहीं हो सका</value></data>
+  <data name="ServerFailedTitle" xml:space="preserve"><value>आपका सर्वर अभी उपलब्ध नहीं है</value></data>
+  <data name="SignInFailedTitle" xml:space="preserve"><value>साइन इन नहीं हो सका</value></data>
+  <data name="UpdateBlockedTitle" xml:space="preserve"><value>Homelab Runtime अपना अपडेट पूरा नहीं कर सका</value></data>
+  <data name="RestartingTitle" xml:space="preserve"><value>अपडेट के लिए फिर से शुरू हो रहा है…</value></data>
+  <data name="TryAgain" xml:space="preserve"><value>फिर से कोशिश करें</value></data>
+  <data name="GetHelp" xml:space="preserve"><value>मदद पाएं</value></data>
+  <data name="WhatHappened" xml:space="preserve"><value>क्या हुआ</value></data>
+  <data name="OpenBrowserAgain" xml:space="preserve"><value>ब्राउज़र फिर से खोलें</value></data>
+  <data name="SigningInTitle" xml:space="preserve"><value>साइन इन हो रहा है…</value></data>
+  <data name="SignedInTitle" xml:space="preserve"><value>आप साइन इन हैं</value></data>
+  <data name="OpenHomelab" xml:space="preserve"><value>Homelab Runtime खोलें</value></data>
+</root>

@@ -192,6 +192,10 @@
     {
       "version": "208_never_enrolled_runtime_directory.sql",
       "sha256": "291053858d0feb8173f04afb423c5cf15d0434d946991d1a4f744192472680d9"
+    },
+    {
+      "version": "209_revoke_control_plane_disk_archive_select.sql",
+      "sha256": "d657209cd343d37e1a8d0dc620296b46d47fecf62a3b7015acac8111b237d06e"
     }
   ],
   "database_target": "core",

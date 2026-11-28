@@ -256,6 +256,19 @@ func projectFoundDomainConsumers(spec map[string]any, kitSlug, domainBase string
 			return fmt.Errorf("specv2: Modern seed has no default photos publication")
 		}
 		publication["host"] = "photos." + domainBase
+		if routes, ok := spec["routes"].(map[string]any); ok {
+			for id, raw := range routes {
+				route, ok := raw.(map[string]any)
+				if !ok || route == nil {
+					return fmt.Errorf("specv2: Modern route %s is not an object", id)
+				}
+				service, _ := route["serviceRef"].(string)
+				if strings.TrimSpace(service) == "" {
+					return fmt.Errorf("specv2: Modern route %s has no service reference", id)
+				}
+				route["host"] = service + "." + domainBase
+			}
+		}
 	}
 	return nil
 }

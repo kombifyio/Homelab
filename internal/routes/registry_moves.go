@@ -16,17 +16,17 @@ import (
 
 // Move eligibility reason codes emitted in ineligible_destinations and warnings.
 const (
-	moveCodeUnsupportedAdapter         = "unsupported_adapter"
-	moveCodeMultiAppUseCase            = "multi_app_use_case"
-	moveCodeLocalHardwareBound         = "local_hardware_bound"
-	moveCodeInsufficientCapacity       = "insufficient_capacity"
-	moveCodeSameStackDeployment        = "same_stack_deployment"
-	moveCodeDestinationNotRelocatable  = "destination_not_relocatable"
-	moveCodeServerNotReady             = "server_not_ready"
-	moveWarnDirectTransferNetworkReq   = "direct_transfer_network_required"
-	moveWarnEncryptedRelayTransport    = "encrypted_relay_transport"
-	moveAdapterApplicationCompose      = "application-compose"
-	moveAdapterStandaloneCompose       = "standalone-compose"
+	moveCodeUnsupportedAdapter        = "unsupported_adapter"
+	moveCodeMultiAppUseCase           = "multi_app_use_case"
+	moveCodeLocalHardwareBound        = "local_hardware_bound"
+	moveCodeInsufficientCapacity      = "insufficient_capacity"
+	moveCodeSameStackDeployment       = "same_stack_deployment"
+	moveCodeDestinationNotRelocatable = "destination_not_relocatable"
+	moveCodeServerNotReady            = "server_not_ready"
+	moveWarnDirectTransferNetworkReq  = "direct_transfer_network_required"
+	moveWarnEncryptedRelayTransport   = "encrypted_relay_transport"
+	moveAdapterApplicationCompose     = "application-compose"
+	moveAdapterStandaloneCompose      = "standalone-compose"
 )
 
 // registryServiceMove is the Placement Board's move of one application: the
@@ -52,9 +52,10 @@ type registryMoveDestination struct {
 // registryMoveIneligibleDestination explains why a specific server column on
 // the Placement Board cannot accept a drop of this service.
 type registryMoveIneligibleDestination struct {
-	ServerID string `json:"server_id"`
-	Code     string `json:"code"`
-	Reason   string `json:"reason"`
+	KitDeploymentID string `json:"kit_deployment_id"`
+	ServerID        string `json:"server_id"`
+	Code            string `json:"code"`
+	Reason          string `json:"reason"`
 }
 
 // registryMoveWarning is a non-blocking pre-flight notice shown before an
@@ -72,19 +73,19 @@ type registryMoveAgent struct {
 }
 
 type registryServerMoveFacts struct {
-	server         registryServer
-	cloud          bool
-	relocatable    bool
-	agent          registryMoveAgent
-	hasAgent       bool
-	totalRAMMiB    int
-	availRAMMiB    int
-	hasRAM         bool
-	totalDiskGiB   float64
-	availDiskGiB   float64
-	hasDisk        bool
-	publicIP       string
-	hasRoutableIP  bool
+	server        registryServer
+	cloud         bool
+	relocatable   bool
+	agent         registryMoveAgent
+	hasAgent      bool
+	totalRAMMiB   int
+	availRAMMiB   int
+	hasRAM        bool
+	totalDiskGiB  float64
+	availDiskGiB  float64
+	hasDisk       bool
+	publicIP      string
+	hasRoutableIP bool
 }
 
 // registryApplicationMoveMeta extracts the runtime ref, adapter name, and
@@ -558,62 +559,69 @@ func attachRegistryMoves(
 		sourceLacksPublicIP := !sourceFacts.hasRoutableIP
 
 		for _, dest := range serverFacts {
-			if dest.server.ID == service.ServerID {
+			if dest.server.KitDeploymentID == service.KitDeploymentID && dest.server.ID == service.ServerID {
 				continue
 			}
 			if dest.server.KitDeploymentID == service.KitDeploymentID {
 				move.IneligibleDestinations = append(move.IneligibleDestinations, registryMoveIneligibleDestination{
-					ServerID: dest.server.ID,
-					Code:     moveCodeSameStackDeployment,
-					Reason:   "Already in the same StackKit deployment; native transfer moves applications between separate StackKit deployments.",
+					KitDeploymentID: dest.server.KitDeploymentID,
+					ServerID:        dest.server.ID,
+					Code:            moveCodeSameStackDeployment,
+					Reason:          "Already in the same StackKit deployment; native transfer moves applications between separate StackKit deployments.",
 				})
 				continue
 			}
 			if !dest.relocatable {
 				move.IneligibleDestinations = append(move.IneligibleDestinations, registryMoveIneligibleDestination{
-					ServerID: dest.server.ID,
-					Code:     moveCodeDestinationNotRelocatable,
-					Reason:   "Destination server is not part of an enrolled Advanced StackKit deployment.",
+					KitDeploymentID: dest.server.KitDeploymentID,
+					ServerID:        dest.server.ID,
+					Code:            moveCodeDestinationNotRelocatable,
+					Reason:          "Destination server is not part of an enrolled Advanced StackKit deployment.",
 				})
 				continue
 			}
 			if !dest.hasAgent || dest.agent.agentID == sourceFacts.agent.agentID {
 				move.IneligibleDestinations = append(move.IneligibleDestinations, registryMoveIneligibleDestination{
-					ServerID: dest.server.ID,
-					Code:     moveCodeServerNotReady,
-					Reason:   "Destination server is not rollout-ready or its Guard agent is not connected.",
+					KitDeploymentID: dest.server.KitDeploymentID,
+					ServerID:        dest.server.ID,
+					Code:            moveCodeServerNotReady,
+					Reason:          "Destination server is not rollout-ready or its Guard agent is not connected.",
 				})
 				continue
 			}
 			if adapterBlocked {
 				move.IneligibleDestinations = append(move.IneligibleDestinations, registryMoveIneligibleDestination{
-					ServerID: dest.server.ID,
-					Code:     moveCodeUnsupportedAdapter,
-					Reason:   adapterReason,
+					KitDeploymentID: dest.server.KitDeploymentID,
+					ServerID:        dest.server.ID,
+					Code:            moveCodeUnsupportedAdapter,
+					Reason:          adapterReason,
 				})
 				continue
 			}
 			if isMultiApp {
 				move.IneligibleDestinations = append(move.IneligibleDestinations, registryMoveIneligibleDestination{
-					ServerID: dest.server.ID,
-					Code:     moveCodeMultiAppUseCase,
-					Reason:   fmt.Sprintf("Belongs to the %q multi-application use case; single-application transfer is blocked until the whole use case is moved together.", multiUseCase),
+					KitDeploymentID: dest.server.KitDeploymentID,
+					ServerID:        dest.server.ID,
+					Code:            moveCodeMultiAppUseCase,
+					Reason:          fmt.Sprintf("Belongs to the %q multi-application use case; single-application transfer is blocked until the whole use case is moved together.", multiUseCase),
 				})
 				continue
 			}
 			if hardwareBound && dest.cloud {
 				move.IneligibleDestinations = append(move.IneligibleDestinations, registryMoveIneligibleDestination{
-					ServerID: dest.server.ID,
-					Code:     moveCodeLocalHardwareBound,
-					Reason:   "Requires local host hardware or USB devices and cannot move to a Cloud VPS (use a local node or dedicated Home Assistant migration).",
+					KitDeploymentID: dest.server.KitDeploymentID,
+					ServerID:        dest.server.ID,
+					Code:            moveCodeLocalHardwareBound,
+					Reason:          "Requires local host hardware or USB devices and cannot move to a Cloud VPS (use a local node or dedicated Home Assistant migration).",
 				})
 				continue
 			}
 			if capReason, insufficient := capacityIneligibilityReason(dest, need); insufficient {
 				move.IneligibleDestinations = append(move.IneligibleDestinations, registryMoveIneligibleDestination{
-					ServerID: dest.server.ID,
-					Code:     moveCodeInsufficientCapacity,
-					Reason:   capReason,
+					KitDeploymentID: dest.server.KitDeploymentID,
+					ServerID:        dest.server.ID,
+					Code:            moveCodeInsufficientCapacity,
+					Reason:          capReason,
 				})
 				continue
 			}

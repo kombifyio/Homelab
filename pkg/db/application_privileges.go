@@ -99,12 +99,9 @@ func loadApplicationPolicy(ctx context.Context, q PrivilegeQuerier, requireFunct
 		"techstack_notification_outbox": "SELECT,INSERT,UPDATE", "ril_signal_delivery_tenants": "SELECT,INSERT,UPDATE,DELETE",
 		"server_maintenance_tenants": "SELECT,INSERT,UPDATE,DELETE", "guard_drive_health_tenants": "SELECT,INSERT,UPDATE",
 		"server_registry_sweep_tenants": "SELECT,UPDATE,DELETE", "server_registry_outbox_prune_tenants": "SELECT,UPDATE,DELETE",
-		// Migration 174 + 207 (expand): the data-disk custody. Pins and archive
-		// rows are added and read, never changed or removed by the runtime.
-		// Direct SELECT on control_plane_disk_archive stays admitted during
-		// this expand step until the follow-up contract migration revokes it
-		// once all running binaries use techstack_control_plane_disk_archive_digest.
-		"runtime_host_key_pins": "SELECT,INSERT", "control_plane_disk_archive": "SELECT,INSERT",
+		// Migrations 174, 207 and 209: pins are added and read; archive rows
+		// are INSERT-only, verified through the bounded digest routine.
+		"runtime_host_key_pins": "SELECT,INSERT", "control_plane_disk_archive": "INSERT",
 		// Migration 176: a pin retires only through the provider-absence
 		// trigger; the runtime reads the record to drop a retired file pin.
 		"runtime_host_key_pin_retirements": "SELECT",

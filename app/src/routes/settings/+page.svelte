@@ -2,7 +2,15 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { onMount } from "svelte";
-  import { getLocale, stateLabel, tr, trParts } from "#lib/i18n.svelte.js";
+  import {
+    getAvailableLocales,
+    getLocale,
+    isLocale,
+    setLocale,
+    stateLabel,
+    tr,
+    trParts,
+  } from "#lib/i18n.svelte.js";
   import {
     defaultIdentity,
     StackIdentityDisplay,
@@ -41,6 +49,7 @@
   import {
     DASHBOARD_PRESETS,
     isPresetAvailable,
+    type DashboardPresetId,
   } from "#lib/dashboard/presets.js";
   import {
     FINISHES,
@@ -48,12 +57,15 @@
     type Finish,
   } from "@kombiverselabs/design/contract";
   import {
+    OptionTiles,
     RecipeSwatch,
     SettingsRow,
     SettingsSection,
     SettingsShell,
+    type SettingsCategory,
     type SettingsTab,
   } from "@kombiverselabs/ui/settings";
+  import { SegmentedControl, Select } from "@kombiverselabs/ui/primitives";
   import {
     resolveSettingsTab,
     settingsTabHref,
@@ -70,7 +82,6 @@
     shortcutsStore,
     shortcutsEnabled,
   } from "#lib/stores/shortcuts.js";
-  import LanguageSwitcher from "#lib/components/ui/LanguageSwitcher.svelte";
   import {
     hydrateStackIdentityFromBackend,
     saveStackIdentityToBackend,
@@ -104,22 +115,63 @@
       aiProvidersTab,
     ),
   );
+  // Two headings in the subpanel (KOMBIFY-DESIGN-SYSTEM-STANDARD §10.2.3): what belongs to this
+  // person and device, and what belongs to their homelab.
+  const settingsCategories: readonly SettingsCategory[] = $derived([
+    { id: "general", label: tr("ui.settings.categoryGeneral") },
+    { id: "homelab", label: tr("ui.settings.categoryHomelab") },
+  ]);
   const settingsTabs: readonly SettingsTab[] = $derived([
-    { slug: "account", label: tr("ui.settings.account"), scope: "shared" },
-    { slug: "identity", label: tr("ui.settings.homelabIdentity"), scope: "shared" },
-    { slug: "design", label: tr("ui.settings.appearance"), scope: "shared" },
+    {
+      slug: "account",
+      label: tr("ui.settings.account"),
+      scope: "shared",
+      category: "general",
+    },
+    {
+      slug: "identity",
+      label: tr("ui.settings.homelabIdentity"),
+      scope: "shared",
+      category: "homelab",
+    },
+    {
+      slug: "design",
+      label: tr("ui.settings.lookAndLanguage"),
+      scope: "shared",
+      category: "general",
+    },
     ...(companionTab
       ? ([
-          { slug: "companion", label: tr("ui.settings.companion"), scope: "shared" },
+          {
+            slug: "companion",
+            label: tr("ui.settings.companion"),
+            scope: "shared",
+            category: "general",
+          },
         ] satisfies SettingsTab[])
       : []),
-    { slug: "notifications", label: tr("nav.notifications"), scope: "shared" },
+    {
+      slug: "notifications",
+      label: tr("nav.notifications"),
+      scope: "shared",
+      category: "general",
+    },
     ...(aiProvidersTab
       ? ([
-          { slug: "ai-providers", label: tr("settings.aiProviders.title"), scope: "tool" },
+          {
+            slug: "ai-providers",
+            label: tr("settings.aiProviders.title"),
+            scope: "tool",
+            category: "general",
+          },
         ] satisfies SettingsTab[])
       : []),
-    { slug: "homelab", label: tr("wizard.settings.title"), scope: "tool" },
+    {
+      slug: "homelab",
+      label: tr("wizard.settings.title"),
+      scope: "tool",
+      category: "homelab",
+    },
   ]);
   const hrefForTab = (slug: string) => settingsTabHref(slug as SettingsTabSlug);
 
@@ -299,10 +351,6 @@
     }
   }
 
-  async function handleLogout() {
-    await authStore.logout({ manualLogin: true });
-  }
-
   onMount(() => {
     deviceFinishChosen = theme.hasDeviceFinish();
     void loadStackIdentitySettings();
@@ -334,6 +382,38 @@
 
   const finishValue = theme.finish;
   const navFlyoutValue = theme.navFlyout;
+  // "Follow account" is the first finish tile: chosen while this device holds no finish of its own.
+  const FOLLOW_ACCOUNT = "account";
+  const finishOptions = $derived([
+    { value: FOLLOW_ACCOUNT, label: tr("ui.settings.followAccount") },
+    ...FINISHES.map((finish) => ({ value: finish, label: finish })),
+  ]);
+  const modeItems = $derived([
+    { value: "inherit", label: tr("appearance.inherit") },
+    ...APPEARANCE_MODES.map((mode) => ({
+      value: mode,
+      label: tr(`appearance.${mode}`),
+    })),
+  ]);
+  const dashboardOptions = $derived(
+    DASHBOARD_PRESETS.filter((preset) =>
+      isPresetAvailable(preset.id, { ownerKey: dashboardOwnerKey() }),
+    ).map((preset) => ({ value: preset.id, label: preset.label })),
+  );
+  const languageOptions = $derived(
+    getAvailableLocales().map((locale) => ({
+      value: locale.code,
+      label: locale.name,
+    })),
+  );
+  function pickMode(value: string) {
+    if (value === "inherit") theme.followDefaultTheme();
+    else theme.set(value as Theme);
+  }
+  function pickFinishTile(value: string) {
+    if (value === FOLLOW_ACCOUNT) followAccount();
+    else pickFinish(value as Finish);
+  }
   const navFlyoutLabels: Record<
     (typeof NAV_FLYOUT_PREFERENCES)[number],
     string
@@ -357,6 +437,7 @@
   <SettingsShell
     title={tr("ui.settings.settings")}
     tabs={settingsTabs}
+    categories={settingsCategories}
     current={activeTab}
     hrefFor={hrefForTab}
     tabsLabel={tr("ui.settings.settings")}
@@ -368,39 +449,29 @@
       title={tr("ui.settings.account")}
       lead={authStore.userEmail || tr("ui.settings.signedIn")}
     >
-      <div class="flex flex-wrap gap-2">
-        <Button variant="secondary" onclick={() => (replaySetup = true)}>
-          {tr("setupReplay.restart")}
-        </Button>
+      <SettingsRow label={tr("setupReplay.restart")}>
         <Button
           variant="secondary"
+          testId="settings-repeat-setup"
+          onclick={() => (replaySetup = true)}
+        >
+          {tr("ui.clientOnboarding.start")}
+        </Button>
+      </SettingsRow>
+      <SettingsRow label={tr("introduction.restart")}>
+        <Button
+          variant="secondary"
+          testId="settings-replay-introduction"
           onclick={() => requestIntroductionStart({ tourOnly: true })}
         >
-          {tr("introduction.restart")}
+          {tr("ui.clientOnboarding.start")}
         </Button>
-        <Button variant="secondary" onclick={handleLogout}>
-          {tr("ui.settings.logout")}
-        </Button>
-      </div>
+      </SettingsRow>
     </SettingsSection>
 
-    <SettingsSection
-      id="language"
-      title={tr("settings.language")}
-      lead={tr("settings.language.description")}
-    >
-      <LanguageSwitcher
-        class="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground"
-      />
-    </SettingsSection>
-    <SettingsSection
-      id="keyboard"
-      title={tr("shortcuts.settingsTitle")}
-      lead={tr("shortcuts.settingsLead")}
-    >
+    <SettingsSection id="keyboard" title={tr("shortcuts.settingsTitle")}>
       <SettingsRow
         label={tr("shortcuts.switchLabel")}
-        description={tr("shortcuts.switchHint")}
         for="settings-shortcuts-switch"
       >
         <Switch
@@ -455,157 +526,71 @@
     <SettingsSection
       id="appearance"
       class="scroll-mt-6"
-      title={tr("ui.settings.appearance")}
-      lead={tr("ui.settings.lightOrDarkAndThe")}
+      title={tr("ui.settings.lookAndLanguage")}
     >
-      <div data-testid="settings-appearance-card">
-        <div class="flex flex-col gap-4">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <span class="text-sm font-medium text-foreground">{tr("ui.settings.mode")}</span>
-            <div
-              class="flex flex-wrap gap-1"
-              role="radiogroup"
-              aria-label={tr("ui.settings.appearanceMode")}
-              data-testid="settings-appearance-mode"
-            >
-              <button
-                type="button"
-                role="radio"
-                aria-checked={$themePreference === null}
-                data-kx={$themePreference === null
-                  ? "control selection"
-                  : "control"}
-                class="rounded-lg px-3 py-1.5 text-sm"
-                onclick={() => theme.followDefaultTheme()}
-                >{tr("appearance.inherit")}</button
-              >
-              {#each APPEARANCE_MODES as mode (mode)}
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={$themePreference === mode}
-                  data-kx={$themePreference === mode
-                    ? "control selection"
-                    : "control"}
-                  class="rounded-lg px-3 py-1.5 text-sm capitalize"
-                  onclick={() => theme.set(mode)}
-                >
-                  {tr(`appearance.${mode}`)}
-                </button>
-              {/each}
-            </div>
-          </div>
-          <p class="-mt-2 text-xs text-muted-foreground" data-testid="settings-appearance-session-hint">
-            {tr("appearance.sessionHint")}
-          </p>
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-              <span class="text-sm font-medium text-foreground">{tr("ui.settings.surface")}</span>
-              {#if deviceFinishChosen}
-                <button
-                  type="button"
-                  data-kx="control"
-                  class="rounded-lg px-2 py-1 text-xs text-muted-foreground"
-                  data-testid="settings-finish-follow-account"
-                  onclick={followAccount}
-                >
-                  {tr("ui.settings.followAccount")}
-                </button>
-              {/if}
-            </div>
-            <div
-              class="flex flex-wrap gap-1"
-              role="radiogroup"
-              aria-label={tr("ui.settings.surfaceFinish")}
-              data-testid="settings-finish"
-            >
-              {#each FINISHES as finishOption (finishOption)}
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={$finishValue === finishOption}
-                  data-kx={$finishValue === finishOption
-                    ? "control selection"
-                    : "control"}
-                  class="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm capitalize"
-                  onclick={() => pickFinish(finishOption)}
-                >
-                  <!-- A miniature of the finish itself. The swatch stamps the
-                       finish and the resolved appearance on its own subtree, so
-                       the package's real plate and selection recipes render at a
-                       quarter scale — nothing here draws a second version of a
-                       design (KOMBIFY-DESIGN-SYSTEM-STANDARD §6). -->
-                  <RecipeSwatch
-                    finish={finishOption}
-                    appearance={swatchAppearance}
-                    size="sm"
-                    class="shrink-0"
-                  />
-                  {finishOption}
-                </button>
-              {/each}
-            </div>
-          </div>
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <span class="text-sm font-medium text-foreground">
-              {tr("ui.settings.navigationPreview")}
-            </span>
-            <div
-              class="flex flex-wrap gap-1"
-              role="radiogroup"
-              aria-label={tr("ui.settings.navigationPreviewShape")}
-              data-testid="settings-nav-flyout"
-            >
-              {#each NAV_FLYOUT_PREFERENCES as shape (shape)}
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={$navFlyoutValue === shape}
-                  data-kx={$navFlyoutValue === shape
-                    ? "control selection"
-                    : "control"}
-                  class="rounded-lg px-3 py-1.5 text-sm"
-                  onclick={() => theme.setNavFlyout(shape)}
-                >
-                  {navFlyoutLabels[shape]}
-                </button>
-              {/each}
-            </div>
-          </div>
-          <div class="flex flex-col gap-2">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <span class="text-sm font-medium text-foreground">{tr("ui.settings.dashboard")}</span>
-              <div
-                class="flex flex-wrap gap-1"
-                role="radiogroup"
-                aria-label={tr("ui.settings.dashboardLayout")}
-                data-testid="settings-dashboard-preset"
-              >
-                {#each DASHBOARD_PRESETS.filter( (preset) => isPresetAvailable( preset.id, { ownerKey: dashboardOwnerKey() } ) ) as preset (preset.id)}
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={dashboardPreset.current === preset.id}
-                    data-kx={dashboardPreset.current === preset.id
-                      ? "control selection"
-                      : "control"}
-                    class="rounded-lg px-3 py-1.5 text-sm"
-                    title={preset.description}
-                    onclick={() => dashboardPreset.set(preset.id)}
-                  >
-                    {preset.label}
-                  </button>
-                {/each}
-              </div>
-            </div>
-            <p class="text-xs text-muted-foreground">
-              {DASHBOARD_PRESETS.find(
-                (preset) => preset.id === dashboardPreset.current,
-              )?.description} {tr("ui.settings.savedOnDevice")}
-            </p>
-          </div>
-        </div>
-      </div>
+      <SettingsRow label={tr("ui.settings.mode")}>
+        <SegmentedControl
+          label={tr("ui.settings.appearanceMode")}
+          items={modeItems}
+          value={$themePreference ?? "inherit"}
+          onchange={pickMode}
+        />
+      </SettingsRow>
+      <SettingsRow label={tr("ui.settings.surface")} layout="stack">
+        <OptionTiles
+          label={tr("ui.settings.surfaceFinish")}
+          name="settings-finish"
+          columns={4}
+          value={deviceFinishChosen ? $finishValue : FOLLOW_ACCOUNT}
+          options={finishOptions}
+          onchange={pickFinishTile}
+        >
+          {#snippet tile(option)}
+            <!-- A miniature of the finish itself: the package's real plate and
+                 selection recipes at a quarter scale (KOMBIFY-DESIGN-SYSTEM-STANDARD §6). -->
+            <RecipeSwatch
+              finish={option.value === FOLLOW_ACCOUNT
+                ? $finishValue
+                : (option.value as Finish)}
+              appearance={swatchAppearance}
+              size="sm"
+            />
+          {/snippet}
+        </OptionTiles>
+      </SettingsRow>
+      <SettingsRow label={tr("ui.settings.navigationPreview")}>
+        <Select
+          label={tr("ui.settings.navigationPreviewShape")}
+          options={NAV_FLYOUT_PREFERENCES.map((shape) => ({
+            value: shape,
+            label: navFlyoutLabels[shape],
+          }))}
+          value={$navFlyoutValue}
+          onchange={(shape) =>
+            theme.setNavFlyout(
+              shape as (typeof NAV_FLYOUT_PREFERENCES)[number],
+            )}
+        />
+      </SettingsRow>
+      <SettingsRow label={tr("ui.settings.dashboard")}>
+        <Select
+          label={tr("ui.settings.dashboardLayout")}
+          options={dashboardOptions}
+          value={dashboardPreset.current}
+          onchange={(preset) =>
+            dashboardPreset.set(preset as DashboardPresetId)}
+        />
+      </SettingsRow>
+      <SettingsRow label={tr("settings.language")}>
+        <Select
+          label={tr("settings.language")}
+          options={languageOptions}
+          value={getLocale()}
+          onchange={(code) => {
+            if (isLocale(code)) setLocale(code);
+          }}
+        />
+      </SettingsRow>
     </SettingsSection>
 
       {:else if activeTab === "companion"}
@@ -626,19 +611,11 @@
       {:else if activeTab === "ai-providers"}
     <AiProviderSettingsPanel />
       {:else if activeTab === "homelab"}
-    <SettingsSection
-      id="homelab-settings"
-      title={tr("wizard.settings.title")}
-      lead={tr("wizard.settings.intro")}
-    >
+    <SettingsSection id="homelab-settings" title={tr("wizard.settings.title")}>
       <HomelabSettingsPanel />
     </SettingsSection>
 
-    <SettingsSection
-      id="homelab-transfer"
-      title={tr("ui.common.importExport")}
-      lead={tr("ui.homelab.transferHint")}
-    >
+    <SettingsSection id="homelab-transfer" title={tr("ui.common.importExport")}>
       <div data-testid="stack-transfer-settings">
         {#each deployments as deployment (deployment.id)}
           <SettingsRow label={deployment.name}>
@@ -668,61 +645,41 @@
       title={tr("ui.settings.dangerZone")}
       tone="danger"
     >
-      <div
-        class="rounded-lg border border-destructive/30 bg-destructive/5 p-4"
-        data-testid="settings-delete-deployment-card"
-      >
-        <div class="min-w-0">
-          <h3 class="font-medium text-foreground">{tr("ui.settings.deleteADeployment")}</h3>
-          <p class="mt-1 text-sm text-muted-foreground">
-            {tr("ui.settings.decommissionsTheDeploymentSManaged")}
-          </p>
-        </div>
-
+      <div data-testid="settings-delete-deployment-card">
         {#if deploymentsLoading}
-          <p class="mt-3 text-sm text-muted-foreground">
+          <p class="text-sm text-muted-foreground">
             {tr("ui.settings.loadingDeployments")}
           </p>
         {:else if deploymentsError}
           <ErrorCallout
-            class="mt-3"
             message={deploymentsError}
             onRetry={() => void loadDeployments()}
           />
         {:else if deployments.length === 0}
-          <p class="mt-3 text-sm text-muted-foreground">
+          <p class="text-sm text-muted-foreground">
             {tr("ui.settings.noDeploymentsToDelete")}
           </p>
         {:else}
-          <ul class="mt-3 space-y-2">
-            {#each deployments as deployment (deployment.id)}
-              <li
-                class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-3"
-                data-testid="settings-deployment-row"
+          {#each deployments as deployment (deployment.id)}
+            <SettingsRow
+              label={deployment.name}
+              description={stateLabel(
+                deployment.state || deployment.status || "unknown",
+              )}
+            >
+              <Button
+                variant="destructive"
+                testId="settings-delete-deployment-button"
+                onclick={() => openDeleteConfirm(deployment)}
+                disabled={deployment.demo_anchor || deletingDeployment}
+                ariaLabel={deployment.demo_anchor
+                  ? tr("ui.settings.theDemoDeploymentIsProtected")
+                  : tr("ui.settings.deleteThisDeployment")}
               >
-                <div class="min-w-0">
-                  <p class="truncate font-medium text-foreground">
-                    {deployment.name}
-                  </p>
-                  <p class="text-xs text-muted-foreground">
-                    {stateLabel(deployment.state || deployment.status || "unknown")}
-                  </p>
-                </div>
-                <Button
-                  variant="secondary"
-                  class="shrink-0"
-                  testId="settings-delete-deployment-button"
-                  onclick={() => openDeleteConfirm(deployment)}
-                  disabled={deployment.demo_anchor || deletingDeployment}
-                  ariaLabel={deployment.demo_anchor
-                    ? tr("ui.settings.theDemoDeploymentIsProtected")
-                    : tr("ui.settings.deleteThisDeployment")}
-                >
-                  {tr("settings.remove")}
-                </Button>
-              </li>
-            {/each}
-          </ul>
+                {tr("settings.remove")}
+              </Button>
+            </SettingsRow>
+          {/each}
         {/if}
       </div>
     </SettingsSection>

@@ -10,6 +10,7 @@
   import ErrorCallout from "#lib/components/ui/ErrorCallout.svelte";
   import { tr } from "#lib/i18n.svelte.js";
   import { moveIneligibleLabel, moveWarningLabel } from "#lib/services/move-copy.js";
+  import { placementServerKey } from "#lib/services/placement.js";
   import type {
     RegistryMoveIneligibleCode,
     RegistryMoveWarning,
@@ -26,7 +27,7 @@
     applicationName: string;
     sourceNodeName: string;
     targets: { server: RegistryServer; label: string }[];
-    initialTargetId: string;
+    initialTargetKey: string;
     warnings?: RegistryMoveWarning[];
     blockedTargets?: BlockedMoveTarget[];
     submitting: boolean;
@@ -39,7 +40,7 @@
     applicationName,
     sourceNodeName,
     targets,
-    initialTargetId,
+    initialTargetKey,
     warnings = [],
     blockedTargets = [],
     submitting,
@@ -49,13 +50,14 @@
   }: Props = $props();
 
   // svelte-ignore state_referenced_locally
-  let targetId = $state(initialTargetId);
+  let targetKey = $state(initialTargetKey);
   const target = $derived(
-    targets.find((entry) => entry.server.id === targetId),
+    targets.find((entry) => placementServerKey(entry.server) === targetKey),
   );
   const activeWarnings = $derived(
     warnings.filter(
-      (warning) => !warning.server_id || warning.server_id === targetId,
+      (warning) =>
+        !warning.server_id || warning.server_id === target?.server.id,
     ),
   );
   const infoNotes = $derived(
@@ -87,12 +89,12 @@
         >
         <select
           class="flex h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-          bind:value={targetId}
+          bind:value={targetKey}
           disabled={submitting}
           data-testid="service-move-destination"
         >
-          {#each targets as entry (entry.server.id)}
-            <option value={entry.server.id}>{entry.label}</option>
+          {#each targets as entry (placementServerKey(entry.server))}
+            <option value={placementServerKey(entry.server)}>{entry.label}</option>
           {/each}
         </select>
       </label>
@@ -159,10 +161,11 @@
           <ChevronDown class="h-3.5 w-3.5 shrink-0" />
         </summary>
         <ul class="mt-2.5 space-y-2 border-t border-border/50 pt-2">
-          {#each blockedTargets as blocked (blocked.server.id)}
+          {#each blockedTargets as blocked (placementServerKey(blocked.server))}
             <li
               class="flex flex-col gap-0.5"
               data-blocked-server={blocked.server.id}
+              data-blocked-deployment={blocked.server.kit_deployment_id || undefined}
               data-blocked-code={blocked.code}
             >
               <span class="font-medium text-foreground/90">{blocked.label}</span

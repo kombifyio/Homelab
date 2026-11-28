@@ -14,7 +14,7 @@ import (
 
 // RequiredBackupSurvivalNotClaimed is the closed set of bounds every Guard G
 // `stackkit.guard-backup-survival-receipt/v1` receipt must state, matching
-// StackKits `internal/backupsurvival.RequiredNotClaimed`.
+// StackKits `internal/guardproof/backupsurvival.RequiredNotClaimed`.
 var RequiredBackupSurvivalNotClaimed = []string{
 	"backup-admin-compromise: whoever holds the maintenance or bypass authority can delete retained points; this proof does not protect against that identity",
 	"provider-account-compromise: the cloud account owner and provider staff are outside the proof",
@@ -68,7 +68,7 @@ var requiredSurvivalAttacks = []struct {
 	{"attack:prune", false},
 }
 
-// Self-contained wire structs matching StackKits `internal/backupsurvival/receipt.go`.
+// Self-contained wire structs matching StackKits `internal/guardproof/backupsurvival/receipt.go`.
 
 type survivalCanaryWire struct {
 	Key       string `json:"key"`

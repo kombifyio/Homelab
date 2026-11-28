@@ -242,9 +242,6 @@ func readBoundedArchiveFile(path string, maxBytes int64) ([]byte, error) {
 func archiveVersioned(ctx context.Context, pool *sql.DB, source string, data []byte) (bool, error) {
 	digest := sha256Hex(data)
 	status, err := readControlPlaneArchiveDigest(ctx, pool, source, digest)
-	if errors.Is(err, errControlPlaneArchiveDigestPending) {
-		return archiveVersionedLegacy(ctx, pool, source, digest, data)
-	}
 	if err != nil {
 		return false, err
 	}
@@ -263,27 +260,4 @@ func archiveVersioned(ctx context.Context, pool *sql.DB, source string, data []b
 		return false, err
 	}
 	return status.HasMatch && status.ContentSHA256 == digest && status.ByteSize == int64(len(data)), nil
-}
-
-// archiveVersionedLegacy preserves pre-207 verification when the digest
-// routine is not rolled out yet (42883 / 42P01).
-func archiveVersionedLegacy(ctx context.Context, pool *sql.DB, source, digest string, data []byte) (bool, error) {
-	var others int
-	if err := pool.QueryRowContext(ctx, `SELECT count(*) FROM control_plane_disk_archive WHERE source_path = $1 AND sha256 <> $2`,
-		source, digest).Scan(&others); err != nil {
-		return false, err
-	}
-	if others >= archiveVersionLimit {
-		return false, nil
-	}
-	if _, err := pool.ExecContext(ctx, `INSERT INTO control_plane_disk_archive (source_path, sha256, byte_size, content)
-		VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING`, source, digest, len(data), data); err != nil {
-		return false, err
-	}
-	var held string
-	if err := pool.QueryRowContext(ctx, `SELECT encode(sha256(content), 'hex') FROM control_plane_disk_archive
-		WHERE source_path = $1 AND sha256 = $2`, source, digest).Scan(&held); err != nil {
-		return false, err
-	}
-	return held == digest, nil
 }

@@ -31,6 +31,23 @@ internal static class ClientUpdater
 
     private static string SnapshotDirectory() => Path.Combine(UpdatesDirectory(), "snapshot");
 
+    // The version this start applied, once its health check passed; the window shows a short note for it.
+    internal static string? AppliedVersion { get; private set; }
+
+    // The verified update that waits for the next start ("Restart to update"), or null.
+    internal static string? ReadyUpdateVersion(ClientConfig config)
+    {
+        try
+        {
+            if (!config.AutoUpdate || !IsMachineInstallation() || File.Exists(PendingPath())) return null;
+            return NewestStagedUpdate(CurrentVersion(), config.UpdateChannel)?.Version;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
     internal static string CurrentVersion()
     {
         var informational = Assembly.GetEntryAssembly()?
@@ -132,6 +149,7 @@ internal static class ClientUpdater
                 if (runtimeHealthy)
                 {
                     Log(config, $"client update applied: {pending.From} -> {pending.To}");
+                    AppliedVersion = pending.To;
                     DeleteDirectory(SnapshotDirectory());
                     DeleteDirectory(Path.Combine(UpdatesDirectory(), "rollback"));
                     DeleteAppliedStages(current);
