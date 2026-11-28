@@ -1970,45 +1970,6 @@
           ]
         }
       ],
-      "agentSurface": {
-        "ref": "automation",
-        "equipPolicy": "on-generate",
-        "lifecycleMcp": {
-          "ref": "stackkit",
-          "owner": "stackkit",
-          "endpoint": "/mcp",
-          "transport": "streamable-http",
-          "auth": "stackkit-mcp-token",
-          "generateClientConfig": true
-        },
-        "productMcps": [],
-        "apis": [
-          {
-            "id": "ntfy-live-api",
-            "protocol": "rest",
-            "purpose": "POST /topic and GET /topic/json for connected live delivery through the owner-only private route; no queued replay.",
-            "auth": "owner-private-route"
-          }
-        ],
-        "skills": [
-          {
-            "id": "ntfy-live",
-            "audience": "stack-operator",
-            "source": "stackkits",
-            "path": "use-cases/automation-live/agent/ntfy-live/SKILL.md"
-          }
-        ],
-        "cliHelpers": [
-          {
-            "command": "stackkit agent mcp-config",
-            "purpose": "Print the stackkit lifecycle MCP client connection."
-          }
-        ],
-        "configBaseline": {
-          "status": "omitted",
-          "reason": "The relay keeps no message data; StackKits governs only the server configuration."
-        }
-      },
       "alternatives": [
         {
           "configuration": {
@@ -2246,55 +2207,6 @@
           ]
         }
       ],
-      "agentSurface": {
-        "ref": "dev",
-        "equipPolicy": "on-generate",
-        "lifecycleMcp": {
-          "ref": "stackkit",
-          "owner": "stackkit",
-          "endpoint": "/mcp",
-          "transport": "streamable-http",
-          "auth": "stackkit-mcp-token",
-          "generateClientConfig": true
-        },
-        "productMcps": [],
-        "apis": [
-          {
-            "id": "workbench-host-jobs",
-            "protocol": "rest",
-            "purpose": "Optional host execution through Connect's existing workbench_host_task/workbench_host_result tools; explicit plain-profile assignment is required.",
-            "auth": "Gateway-signed run-bound capability lease"
-          },
-          {
-            "id": "git-hosting",
-            "protocol": "rest",
-            "purpose": "Observe the existing administrator through the selected upstream application's admitted API; application features remain upstream-owned.",
-            "auth": "custodied-owner-login"
-          }
-        ],
-        "skills": [
-          {
-            "id": "owner-setup",
-            "audience": "stack-operator",
-            "source": "stackkits",
-            "path": "use-cases/dev/agent/owner-setup/SKILL.md"
-          }
-        ],
-        "cliHelpers": [
-          {
-            "command": "stackkit setup dev --owner-approve --json",
-            "purpose": "Verify the existing local administrator after apply using the plan-bound setup flow and existing secret custody."
-          },
-          {
-            "command": "stackkit agent mcp-config",
-            "purpose": "Connect to the existing StackKits lifecycle MCP."
-          }
-        ],
-        "configBaseline": {
-          "status": "omitted",
-          "reason": "The selected upstream bundle owns its configuration; setup observes the custodied administrator and creates no separate initializer or credential store."
-        }
-      },
       "alternatives": [
         {
           "configuration": {
@@ -2551,49 +2463,6 @@
       "title": "Developer Platform"
     },
     {
-      "agentSurface": {
-        "ref": "documents",
-        "equipPolicy": "on-generate",
-        "lifecycleMcp": {
-          "ref": "stackkit",
-          "owner": "stackkit",
-          "endpoint": "/mcp",
-          "transport": "streamable-http",
-          "auth": "stackkit-mcp-token",
-          "generateClientConfig": true
-        },
-        "productMcps": [],
-        "apis": [
-          {
-            "id": "paperless",
-            "protocol": "rest",
-            "purpose": "Observe the existing administrator through the selected upstream application's admitted API; application features remain upstream-owned.",
-            "auth": "custodied-owner-login"
-          }
-        ],
-        "skills": [
-          {
-            "id": "owner-setup",
-            "audience": "stack-operator",
-            "source": "stackkits",
-            "path": "use-cases/documents/agent/owner-setup/SKILL.md"
-          }
-        ],
-        "cliHelpers": [
-          {
-            "command": "stackkit setup documents --owner-approve --json",
-            "purpose": "Verify the existing local administrator after apply using the plan-bound setup flow and existing secret custody."
-          },
-          {
-            "command": "stackkit agent mcp-config",
-            "purpose": "Connect to the existing StackKits lifecycle MCP."
-          }
-        ],
-        "configBaseline": {
-          "status": "omitted",
-          "reason": "The selected upstream bundle owns its configuration; setup observes the custodied administrator and creates no separate initializer or credential store."
-        }
-      },
       "alternatives": [
         {
           "configuration": {
@@ -2820,51 +2689,6 @@
           ]
         }
       ],
-      "agentSurface": {
-        "ref": "files",
-        "equipPolicy": "on-generate",
-        "lifecycleMcp": {
-          "ref": "stackkit",
-          "owner": "stackkit",
-          "endpoint": "/mcp",
-          "transport": "streamable-http",
-          "auth": "stackkit-mcp-token",
-          "generateClientConfig": true
-        },
-        "productMcps": [],
-        "apis": [
-          {
-            "id": "cloudreve",
-            "protocol": "rest",
-            "purpose": "Owner bootstrap, health, file metadata, upload/download, and sharing. Cloudreve has no native product MCP.",
-            "auth": "cloudreve-auth"
-          }
-        ],
-        "skills": [
-          {
-            "id": "owner-setup",
-            "audience": "product-user",
-            "source": "stackkits",
-            "path": "use-cases/files/agent/owner-setup/SKILL.md"
-          },
-          {
-            "id": "opencloud",
-            "audience": "stack-operator",
-            "source": "stackkits",
-            "path": "use-cases/files/agent/opencloud/SKILL.md"
-          }
-        ],
-        "cliHelpers": [
-          {
-            "command": "stackkit agent mcp-config",
-            "purpose": "Print the stackkit lifecycle MCP client connection."
-          }
-        ],
-        "configBaseline": {
-          "status": "omitted",
-          "reason": "Files runtime is the digest-pinned selected-PaaS bundle. StackKits does not author a separate Cloudreve configuration file."
-        }
-      },
       "alternatives": [
         {
           "configuration": {
@@ -3300,73 +3124,6 @@
       "title": "File Storage and Documents"
     },
     {
-      "agentSurface": {
-        "ref": "game",
-        "equipPolicy": "on-generate",
-        "lifecycleMcp": {
-          "ref": "stackkit",
-          "owner": "stackkit",
-          "endpoint": "/mcp",
-          "transport": "streamable-http",
-          "auth": "stackkit-mcp-token",
-          "generateClientConfig": true
-        },
-        "productMcps": [],
-        "apis": [
-          {
-            "id": "calagopus-client",
-            "protocol": "rest",
-            "purpose": "Scoped owner operations on selected game servers. Calagopus has no native product MCP; the admin API stays with the setup action.",
-            "auth": "calagopus-client-api-key"
-          },
-          {
-            "id": "pelican-client",
-            "protocol": "rest",
-            "purpose": "Scoped owner operations on selected game servers. Pelican has no native product MCP; the Application API stays with the setup action.",
-            "auth": "pelican-client-api-key"
-          },
-          {
-            "id": "pterodactyl-client",
-            "protocol": "rest",
-            "purpose": "Scoped owner operations on selected game servers. Pterodactyl has no native product MCP; the Application API stays with the setup action.",
-            "auth": "pterodactyl-client-api-key"
-          }
-        ],
-        "skills": [
-          {
-            "id": "game-server",
-            "audience": "product-user",
-            "source": "stackkits",
-            "path": "use-cases/game/agent/game-server/SKILL.md"
-          }
-        ],
-        "cliHelpers": [
-          {
-            "command": "stackkit setup game",
-            "purpose": "Create a curated game server after owner approval and EULA acceptance."
-          },
-          {
-            "command": "stackkit game list",
-            "purpose": "List the owner's game servers with state and port."
-          },
-          {
-            "command": "stackkit game power",
-            "purpose": "Start, stop or restart one game server after owner approval."
-          },
-          {
-            "command": "stackkit game allow",
-            "purpose": "Admit one player on an allow-list server after owner approval."
-          },
-          {
-            "command": "stackkit agent mcp-config",
-            "purpose": "Print the stackkit lifecycle MCP client connection."
-          }
-        ],
-        "configBaseline": {
-          "status": "omitted",
-          "reason": "Game servers are configured through the selected Panel's APIs by the setup action; StackKits does not author a separate game configuration file."
-        }
-      },
       "alternatives": [
         {
           "configuration": {
@@ -3710,42 +3467,6 @@
       "title": "Game Server"
     },
     {
-      "agentSurface": {
-        "ref": "mail",
-        "equipPolicy": "on-generate",
-        "lifecycleMcp": {
-          "ref": "stackkit",
-          "owner": "stackkit",
-          "endpoint": "/mcp",
-          "transport": "streamable-http",
-          "auth": "stackkit-mcp-token",
-          "generateClientConfig": true
-        },
-        "productMcps": [],
-        "apis": [],
-        "skills": [
-          {
-            "id": "mail-client",
-            "audience": "product-user",
-            "source": "stackkits",
-            "path": "use-cases/mail/agent/mail-client/SKILL.md"
-          }
-        ],
-        "cliHelpers": [
-          {
-            "command": "stackkit setup mail",
-            "purpose": "Verify a real mailbox login through Roundcube after owner approval."
-          },
-          {
-            "command": "stackkit agent mcp-config",
-            "purpose": "Print the stackkit lifecycle MCP client connection."
-          }
-        ],
-        "configBaseline": {
-          "status": "omitted",
-          "reason": "Roundcube reads a governed StackKits startup file; the owner's mailbox servers are stored by the setup action on the persistent mailbox volume, so there is no separate owner configuration file."
-        }
-      },
       "alternatives": [
         {
           "configuration": {
@@ -3979,49 +3700,6 @@
       "title": "Private Mail"
     },
     {
-      "agentSurface": {
-        "ref": "mail-server",
-        "equipPolicy": "on-generate",
-        "lifecycleMcp": {
-          "ref": "stackkit",
-          "owner": "stackkit",
-          "endpoint": "/mcp",
-          "transport": "streamable-http",
-          "auth": "stackkit-mcp-token",
-          "generateClientConfig": true
-        },
-        "productMcps": [],
-        "apis": [
-          {
-            "id": "stalwart-jmap",
-            "protocol": "rest",
-            "purpose": "Stalwart's JMAP management API (x: object methods) for domains, accounts, DKIM keys and settings.",
-            "auth": "stalwart-administrator"
-          }
-        ],
-        "skills": [
-          {
-            "id": "mail-server",
-            "audience": "stack-operator",
-            "source": "stackkits",
-            "path": "use-cases/mail-server/agent/mail-server/SKILL.md"
-          }
-        ],
-        "cliHelpers": [
-          {
-            "command": "stackkit setup mail-server",
-            "purpose": "Create the mail domain and first mailbox after owner approval, optionally configure the outbound relay, print DNS records and verify IMAP and submission."
-          },
-          {
-            "command": "stackkit agent mcp-config",
-            "purpose": "Print the stackkit lifecycle MCP client connection."
-          }
-        ],
-        "configBaseline": {
-          "status": "omitted",
-          "reason": "Stalwart keeps its settings in its own store; StackKits governs only the entrypoint and first-start seed, and the owner changes settings in Stalwart's administration."
-        }
-      },
       "alternatives": [
         {
           "configuration": {
@@ -4217,65 +3895,6 @@
       "title": "Own Mail Server"
     },
     {
-      "agentSurface": {
-        "ref": "marketplace",
-        "equipPolicy": "on-generate",
-        "lifecycleMcp": {
-          "ref": "stackkit",
-          "owner": "stackkit",
-          "endpoint": "/mcp",
-          "transport": "streamable-http",
-          "auth": "stackkit-mcp-token",
-          "generateClientConfig": true
-        },
-        "productMcps": [],
-        "apis": [
-          {
-            "id": "coolify",
-            "protocol": "rest",
-            "purpose": "The native Marketplace executor uses the held own-host server binding for admitted app deployments. API and SSH credentials remain in node-private custody.",
-            "auth": "stackkit-marketplace-node-custody"
-          }
-        ],
-        "skills": [
-          {
-            "id": "marketplace-operations",
-            "audience": "stack-operator",
-            "source": "stackkits",
-            "path": "use-cases/marketplace/agent/operations/SKILL.md"
-          }
-        ],
-        "cliHelpers": [
-          {
-            "command": "stackkit agent mcp-config",
-            "purpose": "Configure the existing StackKits lifecycle MCP endpoint. Write actions retain native Owner authorization and sealed execution admission."
-          },
-          {
-            "command": "stackkit status",
-            "purpose": "Read the applied Marketplace runtime and custody through the current resolved Plan."
-          },
-          {
-            "command": "stackkit verify",
-            "purpose": "Verify the admitted Marketplace runtime using the exact compiler and resolved Plan binding."
-          },
-          {
-            "command": "stackkit service",
-            "purpose": "Run native Marketplace start, stop, restart or bounded logs with the current Owner authorization."
-          },
-          {
-            "command": "stackkit backup",
-            "purpose": "Use the native Kopia snapshot, staged restore and activation contracts; keep crash-consistent volume evidence distinct from application-consistent backup."
-          },
-          {
-            "command": "stackkit remove",
-            "purpose": "Remove only the admitted own-host Marketplace resources. Data remains by default; explicit deletion requires the canonical signed removal contract."
-          }
-        ],
-        "configBaseline": {
-          "status": "omitted",
-          "reason": "The native executor renders the digest-pinned Marketplace artifacts and private custody from the resolved Plan. This package declares no competing product configuration file."
-        }
-      },
       "alternatives": [
         {
           "configuration": {
@@ -4650,69 +4269,6 @@
           ]
         }
       ],
-      "agentSurface": {
-        "ref": "media",
-        "equipPolicy": "on-generate",
-        "lifecycleMcp": {
-          "ref": "stackkit",
-          "owner": "stackkit",
-          "endpoint": "/mcp",
-          "transport": "streamable-http",
-          "auth": "stackkit-mcp-token",
-          "generateClientConfig": true
-        },
-        "productMcps": [],
-        "apis": [
-          {
-            "id": "jellyfin",
-            "protocol": "rest",
-            "purpose": "HTTP health and library access. Jellyfin has no native product MCP.",
-            "auth": "jellyfin-auth"
-          },
-          {
-            "id": "navidrome",
-            "protocol": "rest",
-            "purpose": "Native administrator/library setup and Subsonic-compatible music playback. No native product MCP.",
-            "auth": "navidrome-self-auth"
-          },
-          {
-            "id": "audiobookshelf",
-            "protocol": "rest",
-            "purpose": "Native administrator/library setup, audiobook streaming and per-user listening progress. No native product MCP.",
-            "auth": "audiobookshelf-self-auth"
-          }
-        ],
-        "skills": [
-          {
-            "id": "owner-setup",
-            "audience": "product-user",
-            "source": "stackkits",
-            "path": "use-cases/media/agent/owner-setup/SKILL.md"
-          },
-          {
-            "id": "music-library",
-            "audience": "stack-operator",
-            "source": "stackkits",
-            "path": "use-cases/media/agent/music-library/SKILL.md"
-          },
-          {
-            "id": "audiobook-library",
-            "audience": "stack-operator",
-            "source": "stackkits",
-            "path": "use-cases/media/agent/audiobook-library/SKILL.md"
-          }
-        ],
-        "cliHelpers": [
-          {
-            "command": "stackkit agent mcp-config",
-            "purpose": "Print the stackkit lifecycle MCP client connection."
-          }
-        ],
-        "configBaseline": {
-          "status": "omitted",
-          "reason": "Jellyfin runtime is the digest-pinned selected-PaaS bundle. Library volume is owner-custodied. StackKits does not author a separate Jellyfin configuration file."
-        }
-      },
       "alternatives": [
         {
           "configuration": {
@@ -5039,40 +4595,6 @@
       "title": "Media Library"
     },
     {
-      "agentSurface": {
-        "ref": "network",
-        "equipPolicy": "on-generate",
-        "lifecycleMcp": {
-          "ref": "stackkit",
-          "owner": "stackkit",
-          "endpoint": "/mcp",
-          "transport": "streamable-http",
-          "auth": "stackkit-mcp-token",
-          "generateClientConfig": true
-        },
-        "productMcps": [],
-        "apis": [
-          {
-            "id": "adguard-home",
-            "protocol": "rest",
-            "purpose": "Observe the upstream DNS filter using the existing custodied owner.",
-            "auth": "custodied-owner-login"
-          }
-        ],
-        "skills": [
-          {
-            "id": "dns-policy",
-            "audience": "stack-operator",
-            "source": "stackkits",
-            "path": "use-cases/network/agent/dns-policy/SKILL.md"
-          }
-        ],
-        "cliHelpers": [],
-        "configBaseline": {
-          "status": "omitted",
-          "reason": "The canonical module renders explicit client policy and the native owner supplies only the private bcrypt verifier."
-        }
-      },
       "alternatives": [
         {
           "configuration": {
@@ -5512,45 +5034,6 @@
           ]
         }
       ],
-      "agentSurface": {
-        "ref": "photos",
-        "equipPolicy": "on-generate",
-        "lifecycleMcp": {
-          "ref": "stackkit",
-          "owner": "stackkit",
-          "endpoint": "/mcp",
-          "transport": "streamable-http",
-          "auth": "stackkit-mcp-token",
-          "generateClientConfig": true
-        },
-        "productMcps": [],
-        "apis": [
-          {
-            "id": "immich",
-            "protocol": "rest",
-            "purpose": "Owner bootstrap, health, albums, shares, assets, and jobs. Immich has no native product MCP.",
-            "auth": "immich-auth"
-          }
-        ],
-        "skills": [
-          {
-            "id": "family-vault",
-            "audience": "product-user",
-            "source": "stackkits",
-            "path": "use-cases/photos/agent/family-vault/SKILL.md"
-          }
-        ],
-        "cliHelpers": [
-          {
-            "command": "stackkit agent mcp-config",
-            "purpose": "Print the stackkit lifecycle MCP client connection."
-          }
-        ],
-        "configBaseline": {
-          "status": "omitted",
-          "reason": "Immich runtime is the digest-pinned selected-PaaS bundle. StackKits does not author a separate Immich configuration file."
-        }
-      },
       "alternatives": [
         {
           "configuration": {
@@ -6012,45 +5495,6 @@
       "title": "Photos and Memories"
     },
     {
-      "agentSurface": {
-        "ref": "remote",
-        "equipPolicy": "on-generate",
-        "lifecycleMcp": {
-          "ref": "stackkit",
-          "owner": "stackkit",
-          "endpoint": "/mcp",
-          "transport": "streamable-http",
-          "auth": "stackkit-mcp-token",
-          "generateClientConfig": true
-        },
-        "productMcps": [],
-        "apis": [
-          {
-            "id": "guacamole",
-            "protocol": "rest",
-            "purpose": "Observe the exact upstream XML owner and revoke the temporary authentication session.",
-            "auth": "custodied-owner-login"
-          }
-        ],
-        "skills": [
-          {
-            "id": "owner-setup",
-            "audience": "stack-operator",
-            "source": "stackkits",
-            "path": "use-cases/remote/agent/owner-setup/SKILL.md"
-          }
-        ],
-        "cliHelpers": [
-          {
-            "command": "stackkit setup remote --owner-approve --json",
-            "purpose": "Run the admitted owner login observation on the exact applied Remote workload."
-          }
-        ],
-        "configBaseline": {
-          "status": "omitted",
-          "reason": "The selected upstream bundle owns the explicit connection and transient authentication; setup observes the existing custodied owner and retains no target credentials."
-        }
-      },
       "alternatives": [
         {
           "configuration": {
@@ -6534,66 +5978,6 @@
           ]
         }
       ],
-      "agentSurface": {
-        "ref": "smart-home",
-        "equipPolicy": "on-generate",
-        "lifecycleMcp": {
-          "ref": "stackkit",
-          "owner": "stackkit",
-          "endpoint": "/mcp",
-          "transport": "streamable-http",
-          "auth": "stackkit-mcp-token",
-          "generateClientConfig": true
-        },
-        "productMcps": [
-          {
-            "id": "home-assistant",
-            "owner": "product",
-            "endpoint": "/api/mcp",
-            "transport": "streamable-http",
-            "auth": "home-assistant-auth",
-            "generateClientConfig": true
-          }
-        ],
-        "apis": [
-          {
-            "id": "rest",
-            "protocol": "rest",
-            "purpose": "Health, state snapshots, service calls, and setup verification.",
-            "auth": "home-assistant-auth"
-          },
-          {
-            "id": "websocket",
-            "protocol": "websocket",
-            "purpose": "Live events, state changes, and device/entity/area context.",
-            "auth": "home-assistant-auth"
-          }
-        ],
-        "skills": [
-          {
-            "id": "homelab-mcp",
-            "audience": "product-user",
-            "source": "stackkits",
-            "path": "use-cases/smart-home/agent/homelab-mcp/SKILL.md"
-          },
-          {
-            "id": "mqtt-discovery",
-            "audience": "stack-operator",
-            "source": "stackkits",
-            "path": "use-cases/smart-home/agent/mqtt-discovery/SKILL.md"
-          }
-        ],
-        "cliHelpers": [
-          {
-            "command": "stackkit agent mcp-config",
-            "purpose": "Print the stackkit lifecycle MCP client connection. Product MCP remains Home Assistant /api/mcp."
-          }
-        ],
-        "configBaseline": {
-          "status": "declared",
-          "moduleInputRef": "stackkits-home-assistant-runtime"
-        }
-      },
       "alternatives": [
         {
           "configuration": {
@@ -6982,49 +6366,6 @@
       "title": "Smart Home"
     },
     {
-      "agentSurface": {
-        "ref": "vault",
-        "equipPolicy": "on-generate",
-        "lifecycleMcp": {
-          "ref": "stackkit",
-          "owner": "stackkit",
-          "endpoint": "/mcp",
-          "transport": "streamable-http",
-          "auth": "stackkit-mcp-token",
-          "generateClientConfig": true
-        },
-        "productMcps": [],
-        "apis": [
-          {
-            "id": "vaultwarden",
-            "protocol": "rest",
-            "purpose": "Owner invitation preparation and bounded health/readback. The official client completes the encrypted personal account; Vaultwarden has no native product MCP.",
-            "auth": "vaultwarden-owner-auth"
-          }
-        ],
-        "skills": [
-          {
-            "id": "owner-setup",
-            "audience": "product-user",
-            "source": "stackkits",
-            "path": "use-cases/vault/agent/owner-setup/SKILL.md"
-          }
-        ],
-        "cliHelpers": [
-          {
-            "command": "stackkit secrets materialize",
-            "purpose": "Establish or reuse owner-bound custody for declared local secret references; never print or export the Vaultwarden admin token."
-          },
-          {
-            "command": "stackkit agent mcp-config",
-            "purpose": "Print the stackkit lifecycle MCP client connection."
-          }
-        ],
-        "configBaseline": {
-          "status": "omitted",
-          "reason": "Vault runtime is the digest-pinned selected-PaaS bundle. StackKits does not author a separate Vaultwarden configuration file."
-        }
-      },
       "alternatives": [
         {
           "configuration": {

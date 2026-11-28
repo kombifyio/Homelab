@@ -8,8 +8,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/kombifyio/homelab/internal/preenrollment"
 	"github.com/kombifyio/homelab/internal/routes/tenantguard"
 	ksapi "github.com/kombifyio/homelab/pkg/api"
+	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/discovery"
 	"github.com/kombifyio/homelab/pkg/httpx"
 	"github.com/kombifyio/homelab/pkg/kombifywallet"
@@ -57,6 +59,12 @@ func (h wizardRouteHandlers) testRemoteSSH(e *httpx.Event) error {
 	tenantID, tenantErr := tenantguard.TenantScope(requestExplicitTenantID(e), ownerID, "homelab.wizard.remote.test-ssh")
 	if tenantErr != nil {
 		return tenantErr
+	}
+	// An agent tests only a target the person entered in the wizard, before any
+	// credential is read (platform-x21l30).
+	if preenrollment.AgentCall(e.Request.Context()) && !h.personEnteredRemoteTarget(e.Request.Context(), tenantID, ownerID,
+		preenrollment.Target{Host: req.Host, Port: req.Port, User: req.User}) {
+		return preenrollment.Refuse(e)
 	}
 
 	password := strings.TrimSpace(req.Password)
@@ -135,6 +143,33 @@ func (h wizardRouteHandlers) testRemoteSSH(e *httpx.Event) error {
 		routeSuccessField: true,
 		routeMessageField: "SSH connection successful",
 	})
+}
+
+// WizardRemoteTargetStacks lists the stacks whose connect-remote target the
+// person may have entered.
+type WizardRemoteTargetStacks interface {
+	ListStacksByTenant(ctx context.Context, tenantID string) ([]controlplane.Stack, error)
+}
+
+// personEnteredRemoteTarget reports whether target is the connect-remote
+// target the person entered themselves on one of their stacks. A target an
+// agent stored, or a planned inventory row, does not count.
+func (h wizardRouteHandlers) personEnteredRemoteTarget(ctx context.Context, tenantID, ownerID string, target preenrollment.Target) bool {
+	key := target.Key()
+	if h.cfg.Stacks == nil || key == "" {
+		return false
+	}
+	stacks, err := h.cfg.Stacks.ListStacksByTenant(ctx, tenantID)
+	if err != nil {
+		return false
+	}
+	for _, stack := range stacks {
+		if stack.DeletedAt == nil && strings.TrimSpace(stack.OwnerSubjectID) == ownerID && preenrollment.PersonEntered(stack.Config) &&
+			preenrollment.StoredTarget(stack.Config).Key() == key {
+			return true
+		}
+	}
+	return false
 }
 
 // walletNodeAccess resolves the kombify Wallet item a connection test names. A

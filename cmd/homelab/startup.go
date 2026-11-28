@@ -160,6 +160,8 @@ type routeDeps struct {
 	// data-subject participant, which is registered before the service exists.
 	governedDecommission *governedDecommissionBinding
 	transferRelay        *routes.TransferRelayStore
+	// discovery is the one LAN discovery record, set by buildRouter.
+	discovery *routes.DiscoveryHandler
 }
 
 func providerControlSQL(database *db.DB) *sql.DB {
@@ -1231,6 +1233,10 @@ func buildRouter(deps routeDeps) (*httpx.Router, error) {
 	}
 	router := httpx.NewRouter()
 	deps.governedDecommission = &governedDecommissionBinding{}
+	// One discovery record serves the discovery routes and device readiness:
+	// an agent's pre-enrollment SSH reaches only a device the person's own scan
+	// found (platform-x21l30).
+	deps.discovery = routes.NewDiscoveryHandlerForLAN(!deps.startup.cfg.DeploymentMode.IsSaaS()).WithWallet(walletSecretReferences(deps))
 	bindGlobalMiddleware(router, deps)
 	deps.sharedFeatureService()
 	state, err := registerVMLeaseRoutes(router, deps)

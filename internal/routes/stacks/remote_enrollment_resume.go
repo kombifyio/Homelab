@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/kombifyio/homelab/internal/preenrollment"
 	"github.com/kombifyio/homelab/internal/routes/tenantguard"
 	"github.com/kombifyio/homelab/internal/routes/trust"
 	ksapi "github.com/kombifyio/homelab/pkg/api"
@@ -69,6 +70,13 @@ func (h wizardRunHandlers) resumeRemoteEnrollment(e *httpx.Event) error {
 			))
 	}
 
+	// An agent retries only toward the target the person entered themselves.
+	// The stored target alone, or the Node already planned in the inventory,
+	// is no proof of that (platform-x21l30).
+	if preenrollment.AgentCall(e.Request.Context()) && !preenrollment.PersonEntered(stack.Config) {
+		return preenrollment.Refuse(e)
+	}
+
 	var req resumeRemoteEnrollmentRequest
 	if decodeErr := decodeStrictJSONBody(e.Request.Body, &req); decodeErr != nil {
 		return httpx.Error(e, http.StatusBadRequest, ksapi.ErrCodeBadRequest, "Invalid remote enrollment resume request", map[string]any{
@@ -104,6 +112,7 @@ func (h wizardRunHandlers) resumeRemoteEnrollment(e *httpx.Event) error {
 			}
 		}
 		run.request.Remote = remote
+		run.remoteTargetFromStorage = true
 		if err := h.persistWizardRemoteConnectionBinding(e.Request.Context(), run, stackID); err != nil {
 			return httpx.Error(e, http.StatusBadRequest, ksapi.ErrCodeValidation,
 				"Could not refresh the persisted SSH password", wizardRunDetails(
@@ -268,6 +277,7 @@ func (h wizardRunHandlers) rebindRemoteWalletItem(ctx context.Context, run *wiza
 	}
 	run.request.Remote = remote
 	run.request.Intent.Server.Transport = specv2.TransportConnectRemote
+	run.remoteTargetFromStorage = true
 	defer func() { run.request.Remote = nil }()
 	if err := h.persistWizardRemoteConnectionBinding(ctx, run, stack.ID); err != nil {
 		if denial := walletDenialOrNil(err); denial != nil {

@@ -59,8 +59,11 @@ type runtimeUpdatesOS struct {
 // release feed ride along (D-2026-11-12-06): `application_update` is a newer
 // application version independent of a StackKits release (a security fix in
 // every setting, else the newest checked version), `bundled` one that arrives
-// with a StackKits release. The update action of an application version is
-// not executable yet; this read only reports it.
+// with a StackKits release. This read only reports the offer, with every newer
+// in-track release and its exact digest (`newer_versions`): the service's
+// `update` action with one of them applies it as one lifecycle job
+// (application_update_action.go). Installed lists the measured installed
+// version of every service, also when no update is pending.
 type runtimeServiceUpdate struct {
 	ServiceID     string                     `json:"service_id"`
 	Name          string                     `json:"name"`
@@ -70,8 +73,18 @@ type runtimeServiceUpdate struct {
 	UpdateMode    string                     `json:"update_mode"`
 	UpdateSetting string                     `json:"update_setting,omitempty"`
 	Tested        *bool                      `json:"tested,omitempty"`
+	LatestDigest  string                     `json:"latest_digest,omitempty"`
+	NewerVersions []appreleases.Offer        `json:"newer_versions,omitempty"`
 	Advisories    []appreleases.AdvisoryFact `json:"advisories,omitempty"`
 	SecurityFix   *appreleases.SecurityFix   `json:"security_fix,omitempty"`
+}
+
+// runtimeServiceInstalled is the measured installed version of one service.
+type runtimeServiceInstalled struct {
+	ServiceID string `json:"service_id"`
+	Name      string `json:"name"`
+	Current   string `json:"current"`
+	Source    string `json:"source,omitempty"`
 }
 
 // runtimeServiceAdvisories is a service whose installed version a known
@@ -96,6 +109,9 @@ type runtimeServiceUpdates struct {
 	// known vulnerabilities.
 	NotVerified int                        `json:"not_verified"`
 	Vulnerable  []runtimeServiceAdvisories `json:"vulnerable"`
+	// Installed is every service whose installed version was measured,
+	// whether or not an update is pending.
+	Installed []runtimeServiceInstalled `json:"installed"`
 }
 
 type runtimeUpdatesServer struct {
@@ -160,7 +176,7 @@ func (h inventoryHandlers) runtimeUpdatesFor(ctx context.Context, app *inventory
 		response.Servers = append(response.Servers, runtimeUpdatesServer{
 			ServerID: safeLabel(server.ID, 256),
 			OS:       h.runtimeUpdatesOSFrom(server.WorkerID, views, postureReadable),
-			Services: runtimeServiceUpdates{Available: []runtimeServiceUpdate{}, Vulnerable: []runtimeServiceAdvisories{}},
+			Services: runtimeServiceUpdates{Available: []runtimeServiceUpdate{}, Vulnerable: []runtimeServiceAdvisories{}, Installed: []runtimeServiceInstalled{}},
 		})
 	}
 	for _, service := range services {
@@ -179,6 +195,12 @@ func (h inventoryHandlers) runtimeUpdatesFor(ctx context.Context, app *inventory
 				Current: safeLabel(version.Current, 128), Advisories: version.Advisories,
 			})
 		}
+		if version != nil && version.Current != "" {
+			summary.Installed = append(summary.Installed, runtimeServiceInstalled{
+				ServiceID: safeLabel(service.ID, 256), Name: safeLabel(service.Name, 256),
+				Current: safeLabel(version.Current, 128), Source: version.Source,
+			})
+		}
 		if version == nil || version.Latest == "" {
 			summary.NotCompared++
 			continue
@@ -189,7 +211,8 @@ func (h inventoryHandlers) runtimeUpdatesFor(ctx context.Context, app *inventory
 				ServiceID: safeLabel(service.ID, 256), Name: safeLabel(service.Name, 256),
 				Current: safeLabel(version.Current, 128), Latest: safeLabel(version.Latest, 128),
 				Source: version.Source, UpdateMode: version.UpdateMode, UpdateSetting: version.UpdateSetting,
-				Tested: version.Tested, Advisories: version.Advisories, SecurityFix: version.SecurityFix,
+				Tested: version.Tested, LatestDigest: version.LatestDigest, NewerVersions: version.NewerVersions,
+				Advisories: version.Advisories, SecurityFix: version.SecurityFix,
 			})
 		}
 	}

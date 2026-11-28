@@ -1,6 +1,13 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vite-plus/test";
 
 const authState = vi.hoisted(() => ({
   deploymentMode: "saas" as "self-hosted" | "saas",
@@ -39,6 +46,7 @@ function mockParent(parent: Window | object) {
 
 describe("refreshEmbeddedCloudSession", () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     vi.resetModules();
     vi.clearAllMocks();
     authState.deploymentMode = "saas";
@@ -51,6 +59,10 @@ describe("refreshEmbeddedCloudSession", () => {
       authState.cloudUser = { sub: "portal-user" };
     });
     bridgeState.requestAuthToken.mockResolvedValue("portal-token");
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("does nothing outside an iframe", async () => {
@@ -197,7 +209,65 @@ describe("refreshEmbeddedCloudSession", () => {
 
     const { refreshEmbeddedCloudSession } = await import("./embedded-session");
 
-    await expect(refreshEmbeddedCloudSession()).resolves.toBe(false);
+    const refreshed = refreshEmbeddedCloudSession();
+    await vi.runAllTimersAsync();
+    await expect(refreshed).resolves.toBe(false);
+    expect(bridgeState.requestAuthToken).toHaveBeenCalledTimes(3);
     expect(authState.completePortalLogin).not.toHaveBeenCalled();
+  });
+
+  it("recovers from a transient parent failure with a fresh token", async () => {
+    mockParent({ postMessage: vi.fn() });
+    bridgeState.requestAuthToken.mockRejectedValueOnce(
+      Object.assign(new Error("renewing session"), {
+        code: 503,
+        retryable: true,
+      }),
+    );
+    const { refreshEmbeddedCloudSession } = await import("./embedded-session");
+    const refreshed = refreshEmbeddedCloudSession();
+    await vi.runAllTimersAsync();
+    await expect(refreshed).resolves.toBe(true);
+    expect(bridgeState.requestAuthToken).toHaveBeenLastCalledWith({
+      fresh: true,
+    });
+  });
+
+  it.each([
+    new TypeError("network failed"),
+    { status: 500, retryable: false },
+    { status: 504 },
+  ])("retries transient portal exchange failures: %s", async (failure) => {
+    mockParent({ postMessage: vi.fn() });
+    authState.completePortalLogin.mockRejectedValueOnce(failure);
+    const { refreshEmbeddedCloudSession } = await import("./embedded-session");
+    const refreshed = refreshEmbeddedCloudSession();
+    await vi.runAllTimersAsync();
+    await expect(refreshed).resolves.toBe(true);
+    expect(bridgeState.requestAuthToken).toHaveBeenLastCalledWith({
+      fresh: true,
+    });
+  });
+
+  it.each([{ retryable: false }, { status: 401 }, { status: 403 }])(
+    "stops on terminal authentication refusals: %s",
+    async (failure) => {
+      mockParent({ postMessage: vi.fn() });
+      bridgeState.requestAuthToken.mockRejectedValue(failure);
+      const { refreshEmbeddedCloudSession } =
+        await import("./embedded-session");
+      await expect(refreshEmbeddedCloudSession()).resolves.toBe(false);
+      expect(bridgeState.requestAuthToken).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("requests a new token and exchanges it on an explicit retry", async () => {
+    mockParent({ postMessage: vi.fn() });
+    const { refreshEmbeddedCloudSession } = await import("./embedded-session");
+    await expect(refreshEmbeddedCloudSession({ fresh: true })).resolves.toBe(
+      true,
+    );
+    expect(bridgeState.requestAuthToken).toHaveBeenCalledWith({ fresh: true });
+    expect(authState.completePortalLogin).toHaveBeenCalledWith("portal-token");
   });
 });

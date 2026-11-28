@@ -17,6 +17,7 @@ import (
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/kombifyio/homelab/api/surface"
+	"github.com/kombifyio/homelab/internal/preenrollment"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/httpx"
 )
@@ -115,7 +116,10 @@ func newInventoryMCPHandler(h inventoryHandlers, routes inventoryMCPRouteLookup)
 		if captureErr != nil {
 			return writeMCPHTTPError(e, http.StatusUnauthorized, inventoryMCPCodeUnauthenticated, "Unauthorized", "mcp_origin_auth_invalid")
 		}
-		ctx := context.WithValue(request.Context(), inventoryMCPCallerKey{}, inventoryMCPCaller{scope: scope, event: e})
+		// Every tool call inherits the mark: a route that opens SSH to a machine
+		// that is not enrolled yet binds an MCP call to a target the person
+		// authorised (platform-x21l30).
+		ctx := preenrollment.MarkAgentCall(context.WithValue(request.Context(), inventoryMCPCallerKey{}, inventoryMCPCaller{scope: scope, event: e}))
 		if maintenanceCall {
 			verifiedTransport.ServeHTTP(e.Response, request.WithContext(ctx))
 		} else {
@@ -301,11 +305,12 @@ func (h inventoryHandlers) authorizeInventoryMCPTool(applicationBound map[string
 			// guards belong to the maintenance leaf, including stored replay.
 			return nil
 		}
-		if op.OperationID == "getServerMaintenanceImpact" {
+		if op.OperationID == "getServerMaintenanceImpact" || op.OperationID == "getServerMaintenanceJob" {
 			if !entitlementGateOrHosted(h.maintenanceOrigin.Entitlements).SignedGrant(ctx, ServerMaintenanceEntitlement) {
 				return inventoryMCPFailure(&inventoryError{status: http.StatusForbidden, reasonCode: maintenanceReasonEntitlement, message: "Maintenance entitlement required"})
 			}
-			// The read-only leaf scopes the preview to the exact server owner.
+			// The read-only leaves scope the preview to the exact server owner,
+			// and the job to that server and the owner who requested it.
 			return nil
 		}
 		action, ok := inventoryMCPActionForCapability(op.MCP.RequiredCapability)

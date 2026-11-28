@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/kombifyio/homelab/internal/gocommon/identity"
+	"github.com/kombifyio/homelab/internal/preenrollment"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/httpx"
 )
@@ -151,6 +153,45 @@ func TestMintStackPairingTokenConnectRemoteCreatesRemoteEnrollmentJob(t *testing
 	}
 	if job.Type != "remote_enrollment" || job.State != "pending" {
 		t.Fatalf("unexpected connect-remote job: type=%q state=%q", job.Type, job.State)
+	}
+}
+
+// A queued connect-remote enrollment is bound to the target it was admitted
+// for: the person's own request binds the target it names; an agent's request
+// binds nothing unless the stack holds that target as the one the person
+// entered, so the executor dials nowhere (platform-x21l30).
+func TestMintStackPairingTokenBindsTheEnrollmentToTheAdmittedTarget(t *testing.T) {
+	store := controlplane.NewMemoryStore()
+	ctx := context.Background()
+	params := PairingTokenParams{Name: "Remote Node", ServerProvisioningMode: "connect-remote", ServerRemoteHost: "node.example.test", ServerRemoteUser: "root"}
+	for name, tc := range map[string]struct {
+		ctx    context.Context
+		config map[string]any
+		want   string
+	}{
+		"person":                      {ctx, nil, "node.example.test|22|root"},
+		"agent, nothing entered":      {preenrollment.MarkAgentCall(ctx), map[string]any{"server_remote_host": "node.example.test", "server_remote_user": "root"}, ""},
+		"agent, person-entered":       {preenrollment.MarkAgentCall(ctx), map[string]any{"server_remote_host": "node.example.test", "server_remote_user": "root", preenrollment.StackConfigKey: "node.example.test|22|root"}, "node.example.test|22|root"},
+		"agent, another entered host": {preenrollment.MarkAgentCall(ctx), map[string]any{"server_remote_host": "other.example.test", "server_remote_user": "root", preenrollment.StackConfigKey: "other.example.test|22|root"}, ""},
+	} {
+		stack, err := store.CreateStack(ctx, controlplane.CreateStackRequest{
+			ID: "stack-" + strings.ReplaceAll(strings.ReplaceAll(name, " ", "-"), ",", ""), TenantID: "tenant-mint", OwnerSubjectID: "owner-mint", Name: name, Config: tc.config,
+		})
+		if err != nil {
+			t.Fatalf("%s: seed stack: %v", name, err)
+		}
+		params.StackID = stack.ID
+		minted, err := MintStackPairingToken(tc.ctx, RouteStores{Stacks: store, Workers: store, Jobs: store}, "tenant-mint", "owner-mint", stack, params)
+		if err != nil {
+			t.Fatalf("%s: MintStackPairingToken: %v", name, err)
+		}
+		job, err := store.GetJob(ctx, "tenant-mint", minted.JobID)
+		if err != nil {
+			t.Fatalf("%s: GetJob: %v", name, err)
+		}
+		if got, _ := job.Payload[preenrollment.JobPayloadKey].(string); got != tc.want {
+			t.Fatalf("%s: bound target = %q, want %q", name, got, tc.want)
+		}
 	}
 }
 

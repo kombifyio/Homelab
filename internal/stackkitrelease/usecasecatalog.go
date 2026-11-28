@@ -258,7 +258,7 @@ type UseCase struct {
 	DefaultAlternative string               `json:"defaultAlternative,omitempty"`
 	Alternatives       []UseCaseAlternative `json:"alternatives,omitempty"`
 	AddOns             []UseCaseAddOn       `json:"addOns,omitempty"`
-	AgentSurface       json.RawMessage      `json:"agentSurface,omitempty"`
+	AgentSurface       json.RawMessage      `json:"-"`
 }
 
 // AcceptsSettingValue reports whether value is a legal value for setting:

@@ -17,6 +17,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/kombifyio/homelab/internal/gocommon/identity"
+	"github.com/kombifyio/homelab/internal/preenrollment"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/httpx"
 	"github.com/kombifyio/homelab/pkg/jobs"
@@ -108,6 +109,70 @@ func TestWizardRemoteSSHTestInKombifyModeRefusesTypedSecretsAndAForeignHost(t *t
 	}
 	if tester.lastHost != "" || tester.lastPassword != "" || tester.lastKey != "" {
 		t.Fatalf("a refused request still probed a host: %+v", tester)
+	}
+}
+
+type fixedRemoteTargetStacks []controlplane.Stack
+
+func (s fixedRemoteTargetStacks) ListStacksByTenant(context.Context, string) ([]controlplane.Stack, error) {
+	return s, nil
+}
+
+// An agent's connection test reaches only the connect-remote target the person
+// entered themselves (platform-x21l30): a target an agent stored, a planned
+// Node or no stack at all is refused before the Wallet item is read, and a
+// different host, port or login is refused even when the person entered one.
+func TestWizardRemoteSSHTestBindsAnAgentCallToThePersonEnteredTarget(t *testing.T) {
+	fake := walletfake.New(t)
+	itemID := fake.Grant("owner-1", kombifywallet.ItemTypeNodeAccess, "Box", "account",
+		nodeAccessProfile(t, map[string]any{"host": "server.example.test", "user": "ubuntu", "privateKey": "AGENT-BINDING-TEST-KEY"}), "use")
+	stored := map[string]any{"server_remote_host": "server.example.test", "server_remote_user": "ubuntu"}
+	entered := map[string]any{"server_remote_host": "server.example.test", "server_remote_user": "ubuntu",
+		preenrollment.StackConfigKey: "server.example.test|22|ubuntu"}
+	agentStored := controlplane.Stack{ID: "stk-agent", OwnerSubjectID: "owner-1", Config: stored}
+	personEntered := controlplane.Stack{ID: "stk-person", OwnerSubjectID: "owner-1", Config: entered}
+	foreignOwner := controlplane.Stack{ID: "stk-other", OwnerSubjectID: "owner-2", Config: entered}
+	body := func(host string, port int) string {
+		return `{"host":"` + host + `","port":` + strconv.Itoa(port) + `,"user":"ubuntu","auth_method":"ssh-key","ssh_wallet_item_id":"` + itemID + `"}`
+	}
+
+	cases := map[string]struct {
+		stacks fixedRemoteTargetStacks
+		body   string
+		agent  bool
+		status int
+	}{
+		"agent, no stack":               {nil, body("server.example.test", 22), true, http.StatusForbidden},
+		"agent, target an agent stored": {fixedRemoteTargetStacks{agentStored}, body("server.example.test", 22), true, http.StatusForbidden},
+		"agent, another owner's target": {fixedRemoteTargetStacks{foreignOwner}, body("server.example.test", 22), true, http.StatusForbidden},
+		"agent, mismatched host":        {fixedRemoteTargetStacks{personEntered}, body("attacker.example.test", 22), true, http.StatusForbidden},
+		"agent, mismatched port":        {fixedRemoteTargetStacks{personEntered}, body("server.example.test", 2222), true, http.StatusForbidden},
+		"agent, person-entered target":  {fixedRemoteTargetStacks{personEntered}, body("server.example.test", 22), true, http.StatusOK},
+		"person, no stack":              {nil, body("server.example.test", 22), false, http.StatusOK},
+	}
+	for name, tc := range cases {
+		tester := &fakeWizardRemoteSSHTester{}
+		handler := wizardRouteHandlers{cfg: WizardRouteConfig{RemoteSSHTester: tester, KombifyWallet: fake.Client(), Stacks: tc.stacks}}
+		event, recorder := wizardRemoteSSHTestEvent(tc.body)
+		if tc.agent {
+			event.Request = event.Request.WithContext(preenrollment.MarkAgentCall(event.Request.Context()))
+		}
+		if err := handler.testRemoteSSH(event); err != nil {
+			t.Fatal(err)
+		}
+		if recorder.Code != tc.status {
+			t.Fatalf("%s: status=%d body=%s, want %d", name, recorder.Code, recorder.Body.String(), tc.status)
+		}
+		if tc.status == http.StatusForbidden {
+			if errorDetails(t, recorder.Body.Bytes())["reason_code"] != preenrollment.ReasonUnauthorisedTarget {
+				t.Fatalf("%s: body=%s", name, recorder.Body.String())
+			}
+			if tester.lastHost != "" || tester.lastKey != "" {
+				t.Fatalf("%s: a refused agent call still connected: %+v", name, tester)
+			}
+		} else if tester.lastHost != "server.example.test" {
+			t.Fatalf("%s: the admitted call did not connect: %+v", name, tester)
+		}
 	}
 }
 

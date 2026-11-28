@@ -4612,11 +4612,11 @@
             "type": "string"
           },
           "action_card_id": {
-            "description": "Governed RIL action card that runs a start, stop, restart, update or backup; read it back with `get_action_card`. Absent for `logs`, `freeze` and `unfreeze`.",
+            "description": "Governed RIL action card that runs a start, stop, restart, update or backup; read it back with `get_action_card`. Absent for `logs`, a versioned application update, `freeze` and `unfreeze`.",
             "type": "string"
           },
           "job_id": {
-            "description": "The execution id of the governed action card when `action_card_id` is set (every agent-executed mutation), or the durable job of a log request (`action` `logs`). Empty for freeze and unfreeze, which the control plane applies without a job.",
+            "description": "The execution id of the governed action card when `action_card_id` is set, or the durable job of a log request (`action` `logs`) and of a versioned application update (`update` with `version`), read with `get_job`. Empty for freeze and unfreeze, which the control plane applies without a job.",
             "type": "string"
           },
           "service_id": {
@@ -4800,11 +4800,11 @@
             "type": "string"
           },
           "action_card_id": {
-            "description": "Governed RIL action card that runs a start, stop, restart, update or backup; read it back with `get_action_card`. Absent for `logs`, `freeze` and `unfreeze`.",
+            "description": "Governed RIL action card that runs a start, stop, restart, update or backup; read it back with `get_action_card`. Absent for `logs`, a versioned application update, `freeze` and `unfreeze`.",
             "type": "string"
           },
           "job_id": {
-            "description": "The execution id of the governed action card when `action_card_id` is set (every agent-executed mutation), or the durable job of a log request (`action` `logs`). Empty for freeze and unfreeze, which the control plane applies without a job.",
+            "description": "The execution id of the governed action card when `action_card_id` is set, or the durable job of a log request (`action` `logs`) and of a versioned application update (`update` with `version`), read with `get_job`. Empty for freeze and unfreeze, which the control plane applies without a job.",
             "type": "string"
           },
           "service_id": {
@@ -5738,7 +5738,7 @@
     {
       "name": "get_available_updates",
       "title": "Read available updates",
-      "description": "Per visible server: the operating-system update facts the Guard reports and every service with a newer version. A service whose `update_mode` is `stackkit_upgrade` is updated with the service `update` action (`run_managed_service_action`): the governed upgrade of its stack's StackKits release, which keeps a restore point, verifies the target live and automatically returns to the previous release when that verification fails. All managed services of one server share that release, so one `update` of any of them updates them all; get_job reads its `update_outcome`. `adopt_required` services must be adopted first. A service whose version was not compared is counted in `not_compared`, never reported as up to date. A StackKits-managed application also carries the verified application release feed facts: `application_update` (a security fix in every setting, else the newest checked version; the `update` action with `version` and `digest` moves only that application and get_job reads its `application_update_outcome`), `bundled` (arrives with a StackKits release), `advisories`, `security_fix`, and `not_verified` / `vulnerable` per server.",
+      "description": "Per visible server: the operating-system update facts the Guard reports and every service with a newer version. A service whose `update_mode` is `stackkit_upgrade` is updated with the service `update` action (`run_managed_service_action`): the governed upgrade of its stack's StackKits release, which keeps a restore point, verifies the target live and automatically returns to the previous release when that verification fails. All managed services of one server share that release, so one `update` of any of them updates them all; get_job reads its `update_outcome`. `adopt_required` services must be adopted first. A service whose version was not compared is counted in `not_compared`, never reported as up to date. A StackKits-managed application also carries the verified application release feed facts: `application_update` (a security fix in every setting, else the newest checked version; the `update` action with `version` and `digest` moves only that application and get_job reads its `application_update_outcome`), `bundled` (arrives with a StackKits release), `advisories`, `security_fix`, `latest_digest` and `newer_versions` (every newer in-track release, newest first, each with its exact `version`, `digest` and `tested`; the versioned `update` names one of them unchanged), and `not_verified` / `vulnerable` per server. `installed` lists the measured installed version of every service, also when no update is pending; a service without a measured version is absent there, never assumed current.",
       "requiredCapability": "homelab.inventory.read",
       "operationId": "getInventoryUpdates",
       "http": {
@@ -5853,8 +5853,41 @@
                           "latest": {
                             "type": "string"
                           },
+                          "latest_digest": {
+                            "type": "string"
+                          },
                           "name": {
                             "type": "string"
+                          },
+                          "newer_versions": {
+                            "description": "Every newer in-track release of a managed application, newest first, checked or not.",
+                            "items": {
+                              "description": "A newer in-track version of the application entry image. `tested` means the StackKits catalog admitted exactly this tag and digest (\"checked by kombify\").",
+                              "properties": {
+                                "digest": {
+                                  "type": "string"
+                                },
+                                "published_at": {
+                                  "type": "string"
+                                },
+                                "release_notes_url": {
+                                  "format": "uri",
+                                  "type": "string"
+                                },
+                                "tested": {
+                                  "type": "boolean"
+                                },
+                                "version": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "version",
+                                "tested"
+                              ],
+                              "type": "object"
+                            },
+                            "type": "array"
                           },
                           "security_fix": {
                             "allOf": [
@@ -5947,6 +5980,38 @@
                     },
                     "compared": {
                       "type": "integer"
+                    },
+                    "installed": {
+                      "description": "Every service whose installed version was measured, whether or not an update is pending.",
+                      "items": {
+                        "properties": {
+                          "current": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "service_id": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "enum": [
+                              "image_tag",
+                              "image_label",
+                              "stackkit",
+                              "image_digest"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "service_id",
+                          "name",
+                          "current"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
                     },
                     "not_compared": {
                       "type": "integer"
@@ -6782,7 +6847,7 @@
     {
       "name": "get_job",
       "title": "Get job",
-      "description": "This is the canonical polling surface for the UI, API clients, MCP tools, and agents. `waiting_enrollment` exposes a non-terminal wait; access to the target remains unavailable until the job resumes and reaches a terminal success state. Every mutating managed service action (`run_managed_service_action` `start`, `stop`, `restart`, `update`, `backup`) runs as a governed action card, not a job: read its outcome back with `get_action_card` and its `action_card_id`.",
+      "description": "This is the canonical polling surface for the UI, API clients, MCP tools, and agents. `waiting_enrollment` exposes a non-terminal wait; access to the target remains unavailable until the job resumes and reaches a terminal success state. The versioned update of one managed application (`run_managed_service_action` `update` with `version` and `digest`) is a job: its answer carries `job_id` and no `action_card_id`; poll its `state` here until terminal; its outcome is `result.application_update_outcome.result` (`updated`, `rolled_back`, `rollback_failed`, `refused` or `unresolved`). Every other mutating managed service action (`start`, `stop`, `restart`, `update` without `version`, `backup`) runs as a governed action card: read its outcome back with `get_action_card` and its `action_card_id`. A server maintenance job is read with `get_server_maintenance_job`.",
       "requiredCapability": "homelab.inventory.read",
       "operationId": "getJob",
       "http": {
@@ -10478,7 +10543,7 @@
     },
     {
       "name": "get_server_maintenance_impact",
-      "title": "Preview service and stack impact before confirming OS maintenance",
+      "title": "Preview service and stack impact before OS maintenance",
       "description": "Requires the signed maintenance entitlement and ownership of the server. Lists canonical service placement and stack membership, with reasons and inventory freshness and completeness. An empty services array means no affected services only when inventory.status is current. An incomplete, stale or unavailable inventory cannot authorize maintenance. The digest binds the server, operation and material dependency snapshot; ordinary observation timestamps do not invalidate unchanged impact. Responses are private and must not be cached.",
       "requiredCapability": "homelab.server.maintenance",
       "operationId": "getServerMaintenanceImpact",
@@ -10642,8 +10707,8 @@
     {
       "name": "get_server_maintenance_job",
       "title": "Read one maintenance job of an owned server",
-      "description": "Scoped like the POST: the Edge-signed `homelab.servers.maintenance` entitlement, the tenant, ownership of the server, and a job that belongs to this server and was requested by the caller. Anything else is 404. Maintenance jobs have their own ledger and are not served by `/api/v1/jobs/{id}`. There is no log endpoint: the job carries its outcome, and a failure carries its stable code with user guidance.",
-      "requiredCapability": "homelab.inventory.read",
+      "description": "Scoped like the POST: the Edge-signed `homelab.servers.maintenance` entitlement, the tenant, ownership of the server, and a job that belongs to this server and was requested by the caller. Anything else is 404. Maintenance jobs have their own ledger and are not served by `/api/v1/jobs/{id}` (`get_job`): read the `job_id` that `run_server_maintenance_action` answers here. A completed os_update_plan carries `plan_digest` and the plan in `result` (packages, counts, held names); an os_update carries `result.outcome`; a reboot carries `reboot.boot_id_changed`, the only proof that the server rebooted. Poll until `state` is completed, failed or cancelled (`waiting` and `awaiting_node_return` are not terminal). There is no log endpoint: the job carries its outcome, and a failure carries its stable code with user guidance.",
+      "requiredCapability": "homelab.server.maintenance",
       "operationId": "getServerMaintenanceJob",
       "http": {
         "method": "GET",
@@ -12461,8 +12526,8 @@
     },
     {
       "name": "get_server_security_auto_repair",
-      "title": "Read the owner's approval of automatic security repair",
-      "description": "A server without an approval, or with an expired one, is observe-only.",
+      "title": "Read the approval of automatic security repair",
+      "description": "A server without an approval, or with an expired one, is observe-only. `active` is true while the approval is enabled and unexpired; `controls` are the controls it covers, `expires_at` when it ends, `allowed_controls` the safe set an approval may name, and `version` the policy version a Guard's local repair names. `expires_at`, `approved_at` and `approved_by` are empty or null while the server never had an approval. Responses are private and must not be cached.",
       "requiredCapability": "homelab.inventory.read",
       "operationId": "getServerSecurityAutoRepair",
       "http": {
@@ -17068,7 +17133,7 @@
     {
       "name": "list_jobs",
       "title": "List jobs owned by the authenticated user",
-      "description": "Returns the same owner-scoped job state used by the operator UI and automation clients. A job with `state: waiting` remains active and the current orchestrator process schedules its next check; it is not a failed provider action. If that schedule becomes stale after a process restart, use the exact-target `resumeStackEnrollment` operation.",
+      "description": "Returns the same owner-scoped job state used by the operator UI and automation clients, newest first, each item as `get_job` returns it. A job with `state: waiting` remains active and the current orchestrator process schedules its next check; it is not a failed provider action. If that schedule becomes stale after a process restart, use the exact-target `resumeStackEnrollment` operation. When the answer of a versioned application update was lost, repeating the exact call with the same Idempotency-Key returns the same `job_id`. Without the key, pass `service_id` (and `type` `stackkit_lifecycle`): a job of that update carries `result.service_action_receipt` with the `service_id` and `action` `application_update`; one service runs at most one service action at a time, so a non-terminal match is the running one, and a finished job names its release in `result.application_update_outcome.target`. Several finished matches are distinct updates, not one call. `search` matches only the redacted text a job shows. Maintenance jobs of a server are not listed here (`get_server_maintenance_job`).",
       "requiredCapability": "homelab.inventory.read",
       "operationId": "listJobs",
       "http": {
@@ -18498,8 +18563,8 @@
     },
     {
       "name": "list_server_security_findings",
-      "title": "List the open findings and recent findings history of one server",
-      "description": "The findings ledger behind the server's `security`, `recovery` and Guard alerts. One finding is one episode: opened when a fact is first observed wrong, resolved when it is observed right again, with at most one alert (`alerted_at`) and one resolution. History is kept 90 days.",
+      "title": "List the security findings of one server",
+      "description": "The findings ledger behind the server's `security`, `recovery` and Guard alerts. One finding is one episode: opened when a fact is first observed wrong, resolved when it is observed right again, with at most one alert (`alerted_at`) and one resolution. History is kept 90 days. The ledger returns at most 200 findings opened in the last 90 days, newest first, split into `open` (unresolved) and `history` (resolved); an unresolved finding opened earlier, or past that cap, is not listed, so the current drifted controls are read from `security.findings`. One finding is read from the ledger by its `id` or `key`. `key` names what the finding belongs to: `control:<control>` for a host security control (the name `repair_server_security` takes in `controls`), `recovery:*` for backups and restore drills, `guard:*` for the Guard itself. Each finding carries `severity`, the `expected` and `observed` facts, `reason_code`, `remediation_capability` (only `automatic` controls can be repaired through the repair route), `opened_at` and `last_seen_at`, its latest evidence. `security` is the server's current judged posture, from the projection the server read model carries: `state` (`unknown` is never compliant), `reason_code`, `observed_at` and `expires_at` of the evidence, and every control that is not compliant now, unknown ones included; an owner-approved exception shows only its expiry here, never its owner or reason text. It is absent when the posture cannot be read. A ledger without open findings proves nothing on its own: `security.state` and `security.observed_at` say whether the host was observed and when. The kombify Guard observes the host; this read only reports what it observed. Responses are private and must not be cached.",
       "requiredCapability": "homelab.inventory.read",
       "operationId": "listServerSecurityFindings",
       "http": {
@@ -18681,6 +18746,108 @@
             },
             "type": "array"
           },
+          "security": {
+            "description": "The judged host security posture of the server as ServerSecurity projects it, for agent-facing reads: an owner-approved exception shows only `exception_expires_at`, never its owner or reason text.",
+            "properties": {
+              "baseline_version": {
+                "type": "string"
+              },
+              "expires_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "findings": {
+                "items": {
+                  "properties": {
+                    "control": {
+                      "type": "string"
+                    },
+                    "exception_expires_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "expected": {
+                      "type": "string"
+                    },
+                    "observed": {
+                      "type": "string"
+                    },
+                    "reason_code": {
+                      "type": "string"
+                    },
+                    "remediation": {
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "capability": {
+                          "enum": [
+                            "automatic",
+                            "manual",
+                            "none"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "capability"
+                      ],
+                      "type": "object"
+                    },
+                    "severity": {
+                      "enum": [
+                        "critical",
+                        "high",
+                        "medium",
+                        "low",
+                        "info"
+                      ],
+                      "type": "string"
+                    },
+                    "state": {
+                      "enum": [
+                        "drifted",
+                        "unknown",
+                        "exception"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "control",
+                    "state",
+                    "severity",
+                    "expected",
+                    "observed",
+                    "remediation"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "observed_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "reason_code": {
+                "type": "string"
+              },
+              "state": {
+                "enum": [
+                  "compliant",
+                  "drifted",
+                  "unknown",
+                  "exception_only"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "state",
+              "findings"
+            ],
+            "type": "object"
+          },
           "server_id": {
             "type": "string"
           }
@@ -18702,7 +18869,7 @@
     {
       "name": "list_server_security_repairs",
       "title": "List the recent security repairs of one server",
-      "description": "List the recent security repairs of one server",
+      "description": "The 50 most recent repairs of the server, newest first, each as the repair request answered it: an operator repair, an automatic one under the owner's approval or one the Guard ran under a local policy (`mode`). A repair is followed by its `id` here until `status` is terminal: `queued` and `dispatched` are not; `succeeded`, `manual_required`, `blocked` (StackKits refused at least one step that would cut the management path or lock the owner out; other steps may have applied), `failed`, `expired` and `outcome_unknown` (no result arrived) are. `steps` gives the outcome per control and is what to report. Only a later observation proves a repair: read the control again with list_server_security_findings and compare its `security.observed_at` with the repair's `finished_at`. Responses are private and must not be cached.",
       "requiredCapability": "homelab.inventory.read",
       "operationId": "listServerSecurityRepairs",
       "http": {
@@ -18802,7 +18969,7 @@
                   "type": "string"
                 },
                 "status": {
-                  "description": "blocked means StackKits refused a change that would cut the management path or lock the owner out; nothing was changed. outcome_unknown means no result arrived; the next observation says what the host looks like. The next observation is requested after every repair, whatever its outcome.",
+                  "description": "blocked means StackKits refused at least one step that would cut the management path or lock the owner out; other steps may have applied, and `steps` says which. outcome_unknown means no result arrived; the next observation says what the host looks like. A repair that reports a result requests the next observation, whatever its outcome.",
                   "enum": [
                     "queued",
                     "dispatched",
@@ -20271,11 +20438,11 @@
             "type": "string"
           },
           "action_card_id": {
-            "description": "Governed RIL action card that runs a start, stop, restart, update or backup; read it back with `get_action_card`. Absent for `logs`, `freeze` and `unfreeze`.",
+            "description": "Governed RIL action card that runs a start, stop, restart, update or backup; read it back with `get_action_card`. Absent for `logs`, a versioned application update, `freeze` and `unfreeze`.",
             "type": "string"
           },
           "job_id": {
-            "description": "The execution id of the governed action card when `action_card_id` is set (every agent-executed mutation), or the durable job of a log request (`action` `logs`). Empty for freeze and unfreeze, which the control plane applies without a job.",
+            "description": "The execution id of the governed action card when `action_card_id` is set, or the durable job of a log request (`action` `logs`) and of a versioned application update (`update` with `version`), read with `get_job`. Empty for freeze and unfreeze, which the control plane applies without a job.",
             "type": "string"
           },
           "service_id": {
@@ -22959,11 +23126,11 @@
             "type": "string"
           },
           "action_card_id": {
-            "description": "Governed RIL action card that runs a start, stop, restart, update or backup; read it back with `get_action_card`. Absent for `logs`, `freeze` and `unfreeze`.",
+            "description": "Governed RIL action card that runs a start, stop, restart, update or backup; read it back with `get_action_card`. Absent for `logs`, a versioned application update, `freeze` and `unfreeze`.",
             "type": "string"
           },
           "job_id": {
-            "description": "The execution id of the governed action card when `action_card_id` is set (every agent-executed mutation), or the durable job of a log request (`action` `logs`). Empty for freeze and unfreeze, which the control plane applies without a job.",
+            "description": "The execution id of the governed action card when `action_card_id` is set, or the durable job of a log request (`action` `logs`) and of a versioned application update (`update` with `version`), read with `get_job`. Empty for freeze and unfreeze, which the control plane applies without a job.",
             "type": "string"
           },
           "service_id": {
@@ -23817,7 +23984,7 @@
     {
       "name": "repair_server_security",
       "title": "Repair drifted host security controls",
-      "description": "Requests a bounded repair of controls the fresh host security evidence reports as drifted and automatically repairable. Requires the server's owner, the Edge-signed `homelab.servers.maintenance` entitlement and, on the person's own session, a fresh multi-factor sign-in (at most 300 seconds old); an agent acting for the person needs no step-up. The repair travels as a typed, journaled Guard command that runs `stackkit host security repair --apply` for exactly the named controls; StackKits refuses, before changing anything, a change that would cut the management path or lock the owner out. Bounds: one repair per server at a time (409 `repair_in_progress`), a per-control cooldown (429 `repair_cooldown`), a daily attempt budget per control (429 `repair_attempts_exhausted`) and a circuit breaker after consecutive failures (429 `repair_circuit_open`); the 429 answers carry `retry_after`. A control that is compliant (409 `control_not_drifted`), under an approved exception (`control_has_exception`), manual (`control_not_repairable`), blocked on an authorized SSH key (`needs_authorized_key`) or not observed is refused. The body is decoded strictly.",
+      "description": "Requests a bounded repair of controls the fresh host security evidence reports as drifted and automatically repairable. Requires the server's owner, the Edge-signed `homelab.servers.maintenance` entitlement and, on the person's own session, a fresh multi-factor sign-in (at most 300 seconds old); an agent acting for the person needs no step-up. The repair travels as a typed, journaled Guard command that runs `stackkit host security repair --apply` for exactly the named controls; StackKits refuses, before changing anything, a change that would cut the management path or lock the owner out. Bounds: one repair per server at a time (409 `repair_in_progress`), a per-control cooldown (429 `repair_cooldown`), a daily attempt budget per control (429 `repair_attempts_exhausted`) and a circuit breaker after consecutive failures (429 `repair_circuit_open`); the 429 answers carry `retry_after`. A control that is compliant (409 `control_not_drifted`), under an approved exception (`control_has_exception`), manual (`control_not_repairable`), blocked on an authorized SSH key (`needs_authorized_key`) or not observed is refused. The body is decoded strictly. The answer is the repair record: follow its `id` with `list_server_security_repairs` until its `status` is terminal, then read the control's finding again, because only the next observation proves the repair.",
       "requiredCapability": "homelab.inventory.operate",
       "operationId": "requestServerSecurityRepair",
       "http": {
@@ -23940,7 +24107,7 @@
             "type": "string"
           },
           "status": {
-            "description": "blocked means StackKits refused a change that would cut the management path or lock the owner out; nothing was changed. outcome_unknown means no result arrived; the next observation says what the host looks like. The next observation is requested after every repair, whatever its outcome.",
+            "description": "blocked means StackKits refused at least one step that would cut the management path or lock the owner out; other steps may have applied, and `steps` says which. outcome_unknown means no result arrived; the next observation says what the host looks like. A repair that reports a result requests the next observation, whatever its outcome.",
             "enum": [
               "queued",
               "dispatched",
@@ -24125,11 +24292,11 @@
             "type": "string"
           },
           "action_card_id": {
-            "description": "Governed RIL action card that runs a start, stop, restart, update or backup; read it back with `get_action_card`. Absent for `logs`, `freeze` and `unfreeze`.",
+            "description": "Governed RIL action card that runs a start, stop, restart, update or backup; read it back with `get_action_card`. Absent for `logs`, a versioned application update, `freeze` and `unfreeze`.",
             "type": "string"
           },
           "job_id": {
-            "description": "The execution id of the governed action card when `action_card_id` is set (every agent-executed mutation), or the durable job of a log request (`action` `logs`). Empty for freeze and unfreeze, which the control plane applies without a job.",
+            "description": "The execution id of the governed action card when `action_card_id` is set, or the durable job of a log request (`action` `logs`) and of a versioned application update (`update` with `version`), read with `get_job`. Empty for freeze and unfreeze, which the control plane applies without a job.",
             "type": "string"
           },
           "service_id": {
@@ -24670,11 +24837,11 @@
             "type": "string"
           },
           "action_card_id": {
-            "description": "Governed RIL action card that runs a start, stop, restart, update or backup; read it back with `get_action_card`. Absent for `logs`, `freeze` and `unfreeze`.",
+            "description": "Governed RIL action card that runs a start, stop, restart, update or backup; read it back with `get_action_card`. Absent for `logs`, a versioned application update, `freeze` and `unfreeze`.",
             "type": "string"
           },
           "job_id": {
-            "description": "The execution id of the governed action card when `action_card_id` is set (every agent-executed mutation), or the durable job of a log request (`action` `logs`). Empty for freeze and unfreeze, which the control plane applies without a job.",
+            "description": "The execution id of the governed action card when `action_card_id` is set, or the durable job of a log request (`action` `logs`) and of a versioned application update (`update` with `version`), read with `get_job`. Empty for freeze and unfreeze, which the control plane applies without a job.",
             "type": "string"
           },
           "service_id": {
@@ -25295,7 +25462,7 @@
     {
       "name": "run_managed_service_action",
       "title": "Change a managed service",
-      "description": "Derives stack, server, agent, kit and service authority from fresh canonical inventory. Every agent-executed mutation (`start`, `stop`, `restart`, `update`, `backup`, adopted applications included) runs as one governed RIL action card, its only write path: the card is derived from the service, its server and worker (an adopted application by its exact container, `update` with the pinned release, `backup` with the stack's backup contract), its one Gateway Decision is answered by the acting agent's equipment (no per-call approval flag), and the executor-bound primitive (`start-service`, `stop-service`, `restart-service`, `update-service` or `run-backup`) runs through the same lease, one-use claim, node proof, dispatcher and evidence as `/v1/ril/action-cards`. The response names the card in `action_card_id` and its execution in `job_id`; read it back with `get_action_card` for its status and evidence. `freeze` and `unfreeze` set the owner guardrail in the control plane without reaching the node. This operation only changes a service: a log page is requested with `POST /api/v1/registry/services/{serviceId}/logs` and read with `GET` on the same path. Exact replays converge on the same card receipt and a different body under the same key is 409; the raw Idempotency-Key is never persisted. A start or restart is followed by StackKits verify before measured state changes. Agent-executed actions refuse with 409 `maintenance_active` while the server is being rebooted or updated, a kit whose backups are managed refuses `backup` with 403 `managed_backup_custody`, and a locked service, application group or (for `update`) stack refuses on both entries.",
+      "description": "Derives stack, server, agent, kit and service authority from fresh canonical inventory. Every agent-executed mutation (`start`, `stop`, `restart`, `update`, `backup`, adopted applications included) runs as one governed RIL action card, its only write path: the card is derived from the service, its server and worker (an adopted application by its exact container, `update` with the pinned release, `backup` with the stack's backup contract), its one Gateway Decision is answered by the acting agent's equipment (no per-call approval flag), and the executor-bound primitive (`start-service`, `stop-service`, `restart-service`, `update-service` or `run-backup`) runs through the same lease, one-use claim, node proof, dispatcher and evidence as `/v1/ril/action-cards`. The response names the card in `action_card_id` and its execution in `job_id`; read it back with `get_action_card` for its status and evidence. The one exception is the versioned update of one managed application (`update` with `version` and `digest`): it runs as one owner-approved lifecycle job; the response carries `job_id` and no `action_card_id`, read with `get_job` (lost answer: the same call with the same Idempotency-Key, else `list_jobs` with `service_id`). `freeze` and `unfreeze` set the owner guardrail in the control plane without reaching the node. This operation only changes a service: a log page is requested with `POST /api/v1/registry/services/{serviceId}/logs` and read with `GET` on the same path. Exact replays converge on the same card receipt and a different body under the same key is 409; the raw Idempotency-Key is never persisted. A start or restart is followed by StackKits verify before measured state changes. Agent-executed actions refuse with 409 `maintenance_active` while the server is being rebooted or updated, a kit whose backups are managed refuses `backup` with 403 `managed_backup_custody`, and a locked service, application group or (for `update`) stack refuses on both entries.",
       "requiredCapability": "homelab.inventory.operate",
       "operationId": "runManagedServiceAction",
       "http": {
@@ -25399,11 +25566,11 @@
             "type": "string"
           },
           "action_card_id": {
-            "description": "Governed RIL action card that runs a start, stop, restart, update or backup; read it back with `get_action_card`. Absent for `logs`, `freeze` and `unfreeze`.",
+            "description": "Governed RIL action card that runs a start, stop, restart, update or backup; read it back with `get_action_card`. Absent for `logs`, a versioned application update, `freeze` and `unfreeze`.",
             "type": "string"
           },
           "job_id": {
-            "description": "The execution id of the governed action card when `action_card_id` is set (every agent-executed mutation), or the durable job of a log request (`action` `logs`). Empty for freeze and unfreeze, which the control plane applies without a job.",
+            "description": "The execution id of the governed action card when `action_card_id` is set, or the durable job of a log request (`action` `logs`) and of a versioned application update (`update` with `version`), read with `get_job`. Empty for freeze and unfreeze, which the control plane applies without a job.",
             "type": "string"
           },
           "service_id": {
@@ -25580,7 +25747,7 @@
     {
       "name": "run_server_maintenance_action",
       "title": "Queue an owned server OS update plan, OS update or reboot",
-      "description": "Requires the Edge-signed `homelab.servers.maintenance` entitlement, ownership of the server in the tenant, and current server-bound standing authority for delegated native MCP calls. These three ordinary actions require no fresh MFA or separate owner_approved assertion. Reboot and os_update require expected_impact_digest from the preview the user confirmed. Impact is compared atomically at admission and again at execution claim; changed or incomplete evidence sends no command and requires a refreshed preview and renewed confirmation with a new request key. The body is decoded strictly: exact lowercase keys, no duplicates, no unknown fields. A replay with the same Idempotency-Key returns the stored receipt before target validation. One reboot or OS update and, separately, one update plan may be active per server; a job not finished by its deadline fails with `deadline_exceeded` and frees its slot. The action is offered in `allowed_actions` only when the server agent advertises `stackkit.host-maintenance.v1`, and `reboot` only when the server also reports `host_boot_id`. Refusals are client-error-envelope/v1 documents; 409 `reason_code` is one of control_plane_host, substrate_node, protected_demo_server, service_locked, maintenance_active, node_operation_active, plan_stale, agent_capability_missing, boot_id_unknown, agent_not_connected, heartbeat_stale, inventory_revision_stale, idempotency_key_reused, impact_confirmation_required, impact_changed or impact_unavailable; 403 carries entitlement_required or maintenance_origin_authority_denied.",
+      "description": "Requires the Edge-signed `homelab.servers.maintenance` entitlement, ownership of the server in the tenant, and current server-bound standing authority for delegated native MCP calls. These three ordinary actions require no fresh MFA, no separate owner_approved assertion and no person's approval: an agent holding that authority runs them directly. Reboot and os_update require expected_impact_digest, the snapshot_digest of a current `get_server_maintenance_impact` read for the same server and action; os_update also requires expected_plan_digest, the `plan_digest` of a completed os_update_plan job read with `get_server_maintenance_job`. The digests are preconditions that bind the call to the impact and plan it was decided on, not an approval step. Impact is compared atomically at admission and again at execution claim; changed or incomplete evidence sends no command and requires a fresh impact read and a new request key. The answer carries `job_id`; follow it with `get_server_maintenance_job` until the job is terminal. The body is decoded strictly: exact lowercase keys, no duplicates, no unknown fields. A replay with the same Idempotency-Key returns the stored receipt before target validation. One reboot or OS update and, separately, one update plan may be active per server; a job not finished by its deadline fails with `deadline_exceeded` and frees its slot. The action is offered in `allowed_actions` only when the server agent advertises `stackkit.host-maintenance.v1`, and `reboot` only when the server also reports `host_boot_id`. Refusals are client-error-envelope/v1 documents; 409 `reason_code` is one of control_plane_host, substrate_node, protected_demo_server, service_locked, maintenance_active, node_operation_active, plan_stale, agent_capability_missing, boot_id_unknown, agent_not_connected, heartbeat_stale, inventory_revision_stale, idempotency_key_reused, impact_confirmation_required, impact_changed or impact_unavailable; 403 carries entitlement_required or maintenance_origin_authority_denied.",
       "requiredCapability": "homelab.server.maintenance",
       "operationId": "runServerMaintenanceAction",
       "http": {
@@ -25599,7 +25766,7 @@
             "type": "string"
           },
           "expected_impact_digest": {
-            "description": "Required for os_update and reboot, forbidden for os_update_plan. snapshot_digest of the current impact preview confirmed for this exact server and action. Changing it under an existing Idempotency-Key is a conflict; a renewed confirmation uses a new key.",
+            "description": "Required for os_update and reboot, forbidden for os_update_plan. snapshot_digest of a current `get_server_maintenance_impact` read for this exact server and action. Changing it under an existing Idempotency-Key is a conflict; a fresh impact read uses a new key.",
             "pattern": "^sha256:[0-9a-f]{64}$",
             "type": "string"
           },
@@ -27913,11 +28080,11 @@
             "type": "string"
           },
           "action_card_id": {
-            "description": "Governed RIL action card that runs a start, stop, restart, update or backup; read it back with `get_action_card`. Absent for `logs`, `freeze` and `unfreeze`.",
+            "description": "Governed RIL action card that runs a start, stop, restart, update or backup; read it back with `get_action_card`. Absent for `logs`, a versioned application update, `freeze` and `unfreeze`.",
             "type": "string"
           },
           "job_id": {
-            "description": "The execution id of the governed action card when `action_card_id` is set (every agent-executed mutation), or the durable job of a log request (`action` `logs`). Empty for freeze and unfreeze, which the control plane applies without a job.",
+            "description": "The execution id of the governed action card when `action_card_id` is set, or the durable job of a log request (`action` `logs`) and of a versioned application update (`update` with `version`), read with `get_job`. Empty for freeze and unfreeze, which the control plane applies without a job.",
             "type": "string"
           },
           "service_id": {

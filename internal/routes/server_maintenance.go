@@ -496,13 +496,13 @@ type maintenanceGuidance struct {
 var serverMaintenanceGuidance = map[string]maintenanceGuidance{
 	maintenanceReasonImpactRequired: {
 		title: "Review the maintenance impact",
-		body:  "Confirm a current impact preview for this server and operation before starting maintenance.",
-		steps: []string{"Open the impact preview and confirm the affected services and stacks."},
+		body:  "Start maintenance with the digest of a current impact preview for this server and operation.",
+		steps: []string{"Open the impact preview and review the affected services and stacks."},
 	},
 	maintenanceReasonImpactChanged: {
 		title: "The maintenance impact changed",
-		body:  "The server or its deployed services changed after confirmation. No maintenance was started.",
-		steps: []string{"Refresh the impact preview and confirm it again."}, retryable: true,
+		body:  "The server or its deployed services changed after the impact preview. No maintenance was started.",
+		steps: []string{"Refresh the impact preview and start again with its new digest."}, retryable: true,
 	},
 	maintenanceReasonImpactUnavailable: {
 		title: "The maintenance impact cannot be confirmed",

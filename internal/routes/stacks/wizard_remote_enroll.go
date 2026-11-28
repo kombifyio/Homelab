@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/homelab/internal/preenrollment"
 	"github.com/kombifyio/homelab/internal/routes/trust"
 	"github.com/kombifyio/homelab/pkg/config"
 	"github.com/kombifyio/homelab/pkg/httpx"
@@ -52,6 +53,14 @@ func (h wizardRunHandlers) startWizardRemoteEnrollment(
 		"owner_id":                   run.ownerID,
 		"planned_server_id":          plannedServerID,
 		"remote_enrollment_recovery": true,
+	}
+	// Bind the queued dial to the target admitted now (platform-x21l30).
+	if h.crud.stackStore != nil {
+		if stack, err := h.crud.stackStore.GetStack(e.Request.Context(), run.tenantID, stackID); err == nil && stack != nil {
+			if admitted := preenrollment.AdmittedTarget(e.Request.Context(), stack.Config, preenrollment.StoredTarget(stack.Config)); admitted != "" {
+				payload[preenrollment.JobPayloadKey] = admitted
+			}
+		}
 	}
 	result := map[string]any{}
 	if plannedServerID != "" {

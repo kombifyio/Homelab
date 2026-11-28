@@ -10,6 +10,7 @@ import (
 
 	"github.com/kombifyio/homelab/internal/gocommon/identity"
 	"github.com/google/uuid"
+	"github.com/kombifyio/homelab/internal/preenrollment"
 	"github.com/kombifyio/homelab/internal/routes/tenantguard"
 	ksapi "github.com/kombifyio/homelab/pkg/api"
 	"github.com/kombifyio/homelab/pkg/controlplane"
@@ -358,6 +359,12 @@ func createStoreRemoteEnrollmentJob(ctx context.Context, jobs controlplane.JobSt
 		"tenant_id":                  strings.TrimSpace(stack.TenantID),
 		"owner_id":                   stack.OwnerSubjectID,
 		"remote_enrollment_recovery": true,
+	}
+	// The executor dials only the target this request was admitted for: the
+	// person's own request, or the person-entered target of the stack
+	// (platform-x21l30). Without it the queued enrollment connects nowhere.
+	if admitted := preenrollment.AdmittedTarget(ctx, stack.Config, preenrollment.StoredTarget(result)); admitted != "" {
+		payload[preenrollment.JobPayloadKey] = admitted
 	}
 	if nodeID, ok := result["spec_node_id"].(string); ok && strings.TrimSpace(nodeID) != "" {
 		payload["planned_server_id"] = runtimeidentity.StackServerID(stack.ID, nodeID)

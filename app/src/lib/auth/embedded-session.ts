@@ -8,12 +8,16 @@ import {
   isGatewayAuthConfigured,
 } from "#lib/auth/gateway-auth.js";
 
+const SESSION_REFRESH_RETRY_DELAYS_MS = [6_500, 13_000];
+
 let refreshInFlight: Promise<boolean> | null = null;
 let lastExchangedPortalToken: string | null = null;
 let forcePortalVerifyRequested = false;
 let activeRefreshForcesPortalVerify = false;
 
 export interface EmbeddedSessionRefreshOptions {
+  /** Request a newly minted parent token, including for an explicit retry. */
+  fresh?: boolean;
   /**
    * Re-run portal-verify even when the parent returns its still-valid cached
    * SSO token. A session renewal for reason session_reprojection means the browser's
@@ -34,7 +38,9 @@ export async function refreshEmbeddedCloudSession(
   }
   if (refreshInFlight) return refreshInFlight;
 
-  refreshInFlight = refreshEmbeddedCloudSessionUntilSettled().finally(() => {
+  refreshInFlight = refreshEmbeddedCloudSessionUntilSettled(
+    options.fresh === true,
+  ).finally(() => {
     refreshInFlight = null;
     activeRefreshForcesPortalVerify = false;
     forcePortalVerifyRequested = false;
@@ -42,13 +48,18 @@ export async function refreshEmbeddedCloudSession(
   return refreshInFlight;
 }
 
-async function refreshEmbeddedCloudSessionUntilSettled(): Promise<boolean> {
+async function refreshEmbeddedCloudSessionUntilSettled(
+  fresh: boolean,
+): Promise<boolean> {
   let forcePortalVerify = forcePortalVerifyRequested;
   forcePortalVerifyRequested = false;
 
   while (true) {
     activeRefreshForcesPortalVerify = forcePortalVerify;
-    const refreshed = await refreshEmbeddedCloudSessionOnce(forcePortalVerify);
+    const refreshed = await refreshEmbeddedCloudSessionOnce(
+      forcePortalVerify,
+      fresh,
+    );
     if (!refreshed) return false;
 
     // If a reprojection recovery joined an ordinary in-flight refresh, run one
@@ -77,6 +88,7 @@ async function exchangePortalToken(token: string): Promise<string> {
 
 async function refreshEmbeddedCloudSessionOnce(
   forcePortalVerify: boolean,
+  fresh: boolean,
 ): Promise<boolean> {
   if (!isEmbeddedWindow()) return false;
 
@@ -90,20 +102,31 @@ async function refreshEmbeddedCloudSessionOnce(
     return false;
   }
 
-  try {
-    initBridge();
-    const token = await requestAuthToken();
-    if (
-      forcePortalVerify ||
-      token !== lastExchangedPortalToken ||
-      !authStore.cloudUser ||
-      !authStore.v2SessionActive
-    ) {
-      lastExchangedPortalToken = await exchangePortalToken(token);
+  initBridge();
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      const token = await requestAuthToken({ fresh: fresh || attempt > 0 });
+      if (
+        forcePortalVerify ||
+        fresh ||
+        attempt > 0 ||
+        token !== lastExchangedPortalToken ||
+        !authStore.cloudUser ||
+        !authStore.v2SessionActive
+      ) {
+        lastExchangedPortalToken = await exchangePortalToken(token);
+      }
+      break;
+    } catch (err) {
+      const delay = SESSION_REFRESH_RETRY_DELAYS_MS[attempt];
+      if (delay === undefined || !isRetryableSessionFailure(err)) {
+        console.warn("[embedded-session] Parent SSO refresh failed:", err);
+        return false;
+      }
+      // Respect Cloud's token-mint rate limit, then use a new single-use token
+      // even if a previous portal-verify response was lost after consumption.
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
-  } catch (err) {
-    console.warn("[embedded-session] Parent SSO refresh failed:", err);
-    return false;
   }
 
   // Prime the user's Auth0 token used by the data plane through the Cloudflare
@@ -126,4 +149,16 @@ async function refreshEmbeddedCloudSessionOnce(
   // freshly issued HttpOnly cookie. Never treat the compatibility payload as
   // a successful embedded recovery by itself.
   return authStore.v2SessionActive;
+}
+
+function isRetryableSessionFailure(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return true;
+  // API errors mark only some 5xx responses retryable; all server failures
+  // can recover. Client refusals require a new sign-in, not repeated exchange.
+  if ("status" in error && typeof error.status === "number") {
+    if (error.status >= 500 && error.status < 600) return true;
+    if (error.status === 408 || error.status === 429) return true;
+    if (error.status >= 400 && error.status < 500) return false;
+  }
+  return !("retryable" in error) || error.retryable !== false;
 }
