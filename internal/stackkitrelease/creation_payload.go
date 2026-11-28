@@ -25,9 +25,6 @@ func CreationCatalogPayload(
 		if useCase.Components == nil {
 			entry["components"] = []UseCaseComponent{}
 		}
-		if len(useCase.AgentSurface) > 0 {
-			entry["agentSurface"] = useCase.AgentSurface
-		}
 		// StackKits' own per-tier verdict with its own reason. This is what the
 		// large card's advanced drawer shows at the technical depth level; the
 		// compact card never sees it.

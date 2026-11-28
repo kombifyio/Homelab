@@ -49,7 +49,7 @@
     void authenticate();
   });
 
-  async function authenticate(): Promise<void> {
+  async function authenticate(fresh = false): Promise<void> {
     status = "loading";
     errorMessage = null;
     const queryParams = new URLSearchParams(window.location.search);
@@ -66,7 +66,7 @@
       returnUrl = target;
 
       if (isEmbedded) {
-        const refreshed = await refreshEmbeddedCloudSession();
+        const refreshed = await refreshEmbeddedCloudSession({ fresh });
         if (!refreshed) {
           throw new Error(
             tr("ui.authSso.yourKombifyCloudSessionCould"),
@@ -134,7 +134,7 @@
 
   function handleRetry(): void {
     if (isEmbedded) {
-      void authenticate();
+      void authenticate(true);
       return;
     }
     window.location.href = "/login";

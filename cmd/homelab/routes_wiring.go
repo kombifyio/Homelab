@@ -230,7 +230,11 @@ func registerCoreRoutes(router *httpx.Router, deps routeDeps, managedLeases jobs
 		routes.RegisterFailureSignatureRoutes(router, store)
 		routes.RegisterFailureOutcomeRoutes(router, store)
 	}
-	routes.RegisterDiscoveryRoutes(router, routes.NewDiscoveryHandlerForLAN(!cfg.DeploymentMode.IsSaaS()).WithWallet(walletSecretReferences(deps)))
+	discoveryHandler := deps.discovery
+	if discoveryHandler == nil {
+		discoveryHandler = routes.NewDiscoveryHandlerForLAN(!cfg.DeploymentMode.IsSaaS()).WithWallet(walletSecretReferences(deps))
+	}
+	routes.RegisterDiscoveryRoutes(router, discoveryHandler)
 	if deps.v2 != nil && deps.v2.db != nil {
 		routes.RegisterSubstrateRoutes(router, deps.v2.db.DB)
 		registerSubstrateAppliances(router, deps, managedLeases)
@@ -688,6 +692,7 @@ func registerRuntimeInventoryRoutes(router *httpx.Router, deps routeDeps, state 
 		LocalDeployment:  deps.startup.cfg.DeploymentMode != "saas",
 		ControlPlaneHost: publicOriginHost(),
 		Wallet:           walletSecretReferences(deps),
+		Discovered:       deps.discovery,
 		Entitled: func(ctx context.Context, ownerID, capability string) (bool, error) {
 			if deps.featureSvc == nil {
 				return false, fmt.Errorf("no entitlement source")
@@ -1068,6 +1073,7 @@ func registerWizardRoutes(router *httpx.Router, deps routeDeps, featureSvc *feat
 		KombifyWallet:   deps.wallet,
 		Servers:         stores.Servers,
 		Services:        stores.Services,
+		Stacks:          stores.Stacks,
 	}
 	var migrator specv2.SpecMigrator
 	validator, err := specv2.NewCLIValidatorFromEnv()

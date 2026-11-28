@@ -68,7 +68,7 @@ const PORTAL_EMBED_CHROME = {
   companion: "host",
 } as const;
 const GATEWAY_AUDIENCE = "https://api.kombify.io";
-const AUTH_REQUEST_TIMEOUT_MS = 10_000;
+const AUTH_REQUEST_TIMEOUT_MS = 30_000;
 const GATEWAY_TOKEN_REQUEST_TIMEOUT_MS = 10_000;
 const AUTH_TOKEN_CACHE_MS = 4 * 60_000;
 const GATEWAY_TOKEN_CACHE_SKEW_MS = 30_000;
@@ -92,6 +92,17 @@ const DEFAULT_PORTAL_ORIGINS = [
 interface PortalMessage {
   type: string;
   [key: string]: unknown;
+}
+
+export class PortalAuthError extends Error {
+  constructor(
+    message: string,
+    readonly code: string | number | undefined,
+    readonly retryable: boolean | undefined,
+  ) {
+    super(message);
+    this.name = "PortalAuthError";
+  }
 }
 
 export interface AiErrorHandoverRequest {
@@ -135,6 +146,7 @@ const pendingGatewayTokenWaiters: Array<{
   resolve: (token: string) => void;
   reject: (error: Error) => void;
 }> = [];
+let pendingAuthError: PortalAuthError | null = null;
 let authRequestTimeout: ReturnType<typeof setTimeout> | null = null;
 let authRequestRetryTimeout: ReturnType<typeof setTimeout> | null = null;
 let gatewayTokenRequestTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -432,7 +444,12 @@ export function requestAuthToken(
     }, AUTH_REQUEST_RETRY_DELAY_MS);
     authRequestTimeout = setTimeout(() => {
       rejectAuthWaiters(
-        new Error(tr("ui.postMessageBridge.authTokenRequestTimedOut")),
+        pendingAuthError ??
+          new PortalAuthError(
+            tr("ui.postMessageBridge.authTokenRequestTimedOut"),
+            "auth_request_timeout",
+            true,
+          ),
       );
     }, AUTH_REQUEST_TIMEOUT_MS);
   });
@@ -580,16 +597,28 @@ function handleMessage(event: MessageEvent): void {
       }
       break;
 
-    case "auth-error":
+    case "auth-error": {
       cachedAuthToken = null;
-      rejectAuthWaiters(
-        new Error(
-          typeof data.error === "string"
+      const error = new PortalAuthError(
+        typeof data.message === "string"
+          ? data.message
+          : typeof data.error === "string"
             ? data.error
             : tr("ui.postMessageBridge.authenticationFailed"),
-        ),
+        typeof data.code === "string" || typeof data.code === "number"
+          ? data.code
+          : undefined,
+        typeof data.retryable === "boolean" ? data.retryable : undefined,
       );
+      if (error.retryable === false) {
+        rejectAuthWaiters(error);
+      } else if (pendingAuthWaiters.length > 0) {
+        // Cloud may still renew its session and send auth-token. Keep the
+        // original deadline; repeated errors must not extend the wait forever.
+        pendingAuthError = error;
+      }
       break;
+    }
 
     case "gateway-token-error":
       cachedGatewayToken = null;
@@ -809,6 +838,7 @@ function startResizeObserver(): void {
 }
 
 function resolveAuthWaiters(token: string): void {
+  pendingAuthError = null;
   if (authRequestTimeout) {
     clearTimeout(authRequestTimeout);
     authRequestTimeout = null;
@@ -825,6 +855,7 @@ function resolveAuthWaiters(token: string): void {
 }
 
 function rejectAuthWaiters(error: Error): void {
+  pendingAuthError = null;
   if (authRequestTimeout) {
     clearTimeout(authRequestTimeout);
     authRequestTimeout = null;

@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/kombifyio/homelab/internal/preenrollment"
 	"github.com/kombifyio/homelab/internal/routes/auth"
 
 	// #nosec G501 -- md5 derives the deterministic homelab id matching
@@ -306,6 +307,13 @@ func (h wizardRunHandlers) createWizardRun(e *httpx.Event) error {
 	request, requestedIntent, intentAdjustments, ok := h.decodeWizardRun(e)
 	if !ok {
 		return nil
+	}
+	// The connect-remote target of an agent's request is one a model named,
+	// not one the person entered: nothing is stored, queued or connected
+	// (platform-x21l30). The person enters it in the wizard; the other
+	// transports open no SSH and stay as they are.
+	if wizardRunTransport(request) == specv2.TransportConnectRemote && preenrollment.AgentCall(e.Request.Context()) {
+		return preenrollment.Refuse(e)
 	}
 
 	key := createStackIdempotencyKey(e)
@@ -645,13 +653,17 @@ func wizardRunJobSnapshot(job *controlplane.Job) map[string]any {
 
 // wizardRunState threads the per-run facts through the flow helpers.
 type wizardRunState struct {
-	capacityFailures    []map[string]any
-	blockedCapabilities []wizardBlockedCapability
-	ionosMemoryEnabled  bool
-	runID               string
-	tenantID            string
-	ownerID             string
-	request             wizardRunRequest
+	// remoteTargetFromStorage marks a remote connection copied from the stack
+	// by a retry, not entered in this request: it is never recorded as the
+	// target the person entered (platform-x21l30).
+	remoteTargetFromStorage bool
+	capacityFailures        []map[string]any
+	blockedCapabilities     []wizardBlockedCapability
+	ionosMemoryEnabled      bool
+	runID                   string
+	tenantID                string
+	ownerID                 string
+	request                 wizardRunRequest
 	// Only these normalized incoming decisions may be written back. Inherited
 	// values are for admission/projection, never a stale replacement delta.
 	explicitIntent    specv2.WizardIntent

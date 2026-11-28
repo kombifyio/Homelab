@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/homelab/internal/preenrollment"
 	"github.com/kombifyio/homelab/internal/routes/tenantguard"
 	ksapi "github.com/kombifyio/homelab/pkg/api"
 	"github.com/kombifyio/homelab/pkg/devicereadiness"
@@ -40,6 +41,16 @@ type DeviceReadinessRouteConfig struct {
 	// Wallet resolves connection.wallet_item_id, the reference a caller sends
 	// in place of a key or password.
 	Wallet WalletSecretReferences
+	// Discovered answers whether a host is a device the person found with
+	// their own scan. An agent's call reaches only such a device; nil refuses
+	// every agent call.
+	Discovered PersonDiscoveredHosts
+}
+
+// PersonDiscoveredHosts is the discovery record an agent's pre-enrollment SSH
+// is bound to (platform-x21l30).
+type PersonDiscoveredHosts interface {
+	PersonDiscoveredHost(ownerID, host string) bool
 }
 
 // Capabilities gated here. Both are cost-free but neither is harmless: one runs
@@ -260,6 +271,12 @@ func (h deviceReadinessHandlers) connect(e *httpx.Event, ownerID string, conn de
 	if strings.TrimSpace(conn.Host) == "" || strings.TrimSpace(conn.User) == "" {
 		return nil, nil, errors.New("the device address and user are required")
 	}
+	// An agent reaches only a device the person found with their own scan,
+	// before any credential is read (platform-x21l30).
+	if preenrollment.AgentCall(e.Request.Context()) &&
+		(h.cfg.Discovered == nil || !h.cfg.Discovered.PersonDiscoveredHost(ownerID, conn.Host)) {
+		return nil, nil, errDeviceTargetNotAuthorised
+	}
 	if strings.TrimSpace(conn.WalletItemID) != "" {
 		if conn.PrivateKey != "" || conn.Passphrase != "" || conn.Password != "" {
 			return nil, nil, errors.New("name a Wallet item or a credential, not both")
@@ -312,6 +329,10 @@ func (h deviceReadinessHandlers) connect(e *httpx.Event, ownerID string, conn de
 	}, nil
 }
 
+// errDeviceTargetNotAuthorised refuses an agent's call to a device the person
+// did not find with their own scan.
+var errDeviceTargetNotAuthorised = errors.New("device target not authorised by the person")
+
 // deviceWalletDenial is a refused Wallet reference, answered as the Wallet's
 // own denial rather than as an unreachable device.
 type deviceWalletDenial struct{ cause error }
@@ -319,6 +340,9 @@ type deviceWalletDenial struct{ cause error }
 func (d *deviceWalletDenial) Error() string { return d.cause.Error() }
 
 func (h deviceReadinessHandlers) connectionFailure(e *httpx.Event, err error) error {
+	if errors.Is(err, errDeviceTargetNotAuthorised) {
+		return preenrollment.Refuse(e)
+	}
 	var denial *deviceWalletDenial
 	if errors.As(err, &denial) {
 		return writeWalletReferenceDenial(e, denial.cause)

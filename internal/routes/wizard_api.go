@@ -45,6 +45,9 @@ type WizardRouteConfig struct {
 	// applications already running on a selected existing server.
 	Servers  controlplane.ServerRuntimeStore
 	Services controlplane.ServiceRuntimeStore
+	// Stacks holds the connect-remote targets the person entered. An agent's
+	// connection test reaches only one of them; nil refuses every agent test.
+	Stacks WizardRemoteTargetStacks
 }
 
 type wizardRouteHandlers struct {

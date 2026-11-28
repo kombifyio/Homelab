@@ -441,13 +441,15 @@ func jobTargetsService(job controlplane.Job, serviceID string) bool {
 	return stringFromAnyMap(receipt, "service_id") == serviceID
 }
 
+// jobMatchesSearchFromStore matches only the redacted text a caller can read
+// in the job, so a search never tells whether a redacted value was there.
 func jobMatchesSearchFromStore(job controlplane.Job, search string) bool {
 	haystack := strings.ToLower(strings.Join([]string{
 		job.Type,
 		job.State,
-		job.Step,
-		job.Message,
-		job.Error,
+		secrets.Redact(job.Step),
+		secrets.Redact(job.Message),
+		secrets.Redact(job.Error),
 	}, " "))
 	return strings.Contains(haystack, search)
 }

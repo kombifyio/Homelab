@@ -29,6 +29,10 @@ type RemoteEnrollmentRequest struct {
 	OwnerID         string
 	JobID           string
 	PlannedServerID string
+	// AuthorisedTarget is the target the enrollment was admitted for when it
+	// was queued (payload authorised_remote_target, platform-x21l30). The
+	// executor dials nothing else; empty dials nothing.
+	AuthorisedTarget string
 }
 
 // RemoteEnrollmentOutcome reports the enrolled node back to the job result.
@@ -127,11 +131,12 @@ func RemoteEnrollmentHandler(cfg *ProvisionConfig) JobHandler {
 			return fmt.Errorf("remote enrollment job requires tenant and stack identity")
 		}
 		req := RemoteEnrollmentRequest{
-			TenantID:        tenantID,
-			StackID:         stackID,
-			OwnerID:         strings.TrimSpace(stringFromMap(job.Payload, "owner_id")),
-			JobID:           job.ID,
-			PlannedServerID: firstNonEmpty(stringFromMap(job.Result, "planned_server_id"), stringFromMap(job.Payload, "planned_server_id")),
+			TenantID:         tenantID,
+			StackID:          stackID,
+			OwnerID:          strings.TrimSpace(stringFromMap(job.Payload, "owner_id")),
+			JobID:            job.ID,
+			PlannedServerID:  firstNonEmpty(stringFromMap(job.Result, "planned_server_id"), stringFromMap(job.Payload, "planned_server_id")),
+			AuthorisedTarget: strings.TrimSpace(stringFromMap(job.Payload, "authorised_remote_target")),
 		}
 		outcome, err := executor.ExecuteRemoteEnrollment(ctx, req, func(step, message string, percent int) {
 			setRemoteEnrollmentProgress(job, step, message, percent)

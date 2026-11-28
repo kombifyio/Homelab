@@ -40,7 +40,7 @@ func DecodeAgentSurfaces(data []byte) (AgentSurfaceCatalog, error) {
 	if err := json.Unmarshal([]byte(entry.JSON), &catalog); err != nil {
 		return AgentSurfaceCatalog{}, fmt.Errorf("decode published agent surfaces: %w", err)
 	}
-	if catalog.SchemaVersion != "stackkit.agent-surface/v1" || catalog.Surfaces == nil {
+	if catalog.SchemaVersion != "stackkit.agent-surface/v2" || catalog.Surfaces == nil {
 		return AgentSurfaceCatalog{}, fmt.Errorf("unsupported published agent-surface catalog")
 	}
 	for ref, surface := range catalog.Surfaces {

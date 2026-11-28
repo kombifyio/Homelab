@@ -179,8 +179,61 @@ func (h serverRuntimeHandlers) postureFindings(e *httpx.Event) error {
 			history = append(history, item)
 		}
 	}
+	response := map[string]any{"server_id": server.ID, "open": open, "history": history}
+	// The judged posture beside the ledger: a ledger without open findings says
+	// nothing about whether, or when, the host was observed. A read failure
+	// leaves it absent, like the server read model.
+	if views := h.postureViews(e.Request.Context(), identity.TenantID); views != nil {
+		view, ok := views[identity.WorkerID]
+		if !ok {
+			view = h.posture.View(nil)
+		}
+		response["security"] = postureSecuritySummary(view.Security)
+	}
 	e.Response.Header().Set("Cache-Control", "private, no-store")
-	return httpx.Success(e, http.StatusOK, map[string]any{"server_id": server.ID, "open": open, "history": history})
+	return httpx.Success(e, http.StatusOK, response)
+}
+
+type postureSecurityFindingResponse struct {
+	Control            string                   `json:"control"`
+	State              string                   `json:"state"`
+	Severity           string                   `json:"severity"`
+	Expected           string                   `json:"expected"`
+	Observed           string                   `json:"observed"`
+	Remediation        guardposture.Remediation `json:"remediation"`
+	ReasonCode         string                   `json:"reason_code,omitempty"`
+	ExceptionExpiresAt *time.Time               `json:"exception_expires_at,omitempty"`
+}
+
+type postureSecurityResponse struct {
+	State           string                           `json:"state"`
+	ReasonCode      string                           `json:"reason_code,omitempty"`
+	BaselineVersion string                           `json:"baseline_version,omitempty"`
+	ObservedAt      *time.Time                       `json:"observed_at,omitempty"`
+	ExpiresAt       *time.Time                       `json:"expires_at,omitempty"`
+	Findings        []postureSecurityFindingResponse `json:"findings"`
+}
+
+// postureSecuritySummary is the judged posture as an agent-facing read returns
+// it: an owner-approved exception keeps only its expiry, because its owner and
+// reason are free text the evidence only clips.
+func postureSecuritySummary(security guardposture.Security) postureSecurityResponse {
+	out := postureSecurityResponse{
+		State: security.State, ReasonCode: security.ReasonCode, BaselineVersion: security.BaselineVersion,
+		ObservedAt: security.ObservedAt, ExpiresAt: security.ExpiresAt, Findings: []postureSecurityFindingResponse{},
+	}
+	for _, finding := range security.Findings {
+		item := postureSecurityFindingResponse{
+			Control: finding.Control, State: finding.State, Severity: finding.Severity, Expected: finding.Expected,
+			Observed: finding.Observed, Remediation: finding.Remediation, ReasonCode: finding.ReasonCode,
+		}
+		if finding.Exception != nil && !finding.Exception.ExpiresAt.IsZero() {
+			expires := finding.Exception.ExpiresAt.UTC()
+			item.ExceptionExpiresAt = &expires
+		}
+		out.Findings = append(out.Findings, item)
+	}
+	return out
 }
 
 func (h serverRuntimeHandlers) postureRepairs(e *httpx.Event) error {

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/kombifyio/homelab/internal/preenrollment"
 	"github.com/kombifyio/homelab/pkg/auth"
 	"github.com/kombifyio/homelab/pkg/controlplane"
 	"github.com/kombifyio/homelab/pkg/kombifywallet"
@@ -93,10 +94,17 @@ func (h wizardRunHandlers) persistWizardRemoteConnectionBinding(ctx context.Cont
 	}
 	if remote.Port != nil && *remote.Port > 0 {
 		newConfig["server_remote_port"] = *remote.Port
+	} else {
+		// No port means 22, never the previous Node's port.
+		delete(newConfig, "server_remote_port")
 	}
 	if remote.UseSudo {
 		newConfig["server_remote_use_sudo"] = true
 	}
+	// The person's own request records this as the target they entered; an
+	// agent's request keeps that record only while the target stays the same
+	// (platform-x21l30).
+	preenrollment.Record(ctx, newConfig, preenrollment.StoredTarget(newConfig), !run.remoteTargetFromStorage)
 	if authMethod != "password" && walletItemID == "" {
 		newConfig["server_remote_ssh_key_label"] = credRef
 	}

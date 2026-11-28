@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kombifyio/homelab/internal/preenrollment"
 	"github.com/kombifyio/homelab/internal/routes/tenantguard"
 	ksapi "github.com/kombifyio/homelab/pkg/api"
 	"github.com/kombifyio/homelab/pkg/discovery"
@@ -29,11 +30,19 @@ type DiscoveryHandler struct {
 type scanEntry struct {
 	ownerID   string
 	createdAt time.Time
+	// personStarted marks a scan the person started themselves, not an agent.
+	personStarted bool
 }
 
 type deviceEntry struct {
 	ownerID   string
 	createdAt time.Time
+	// personDiscovered marks a device a scan the person started found, at
+	// personIP, the address that scan saw. Only that device at that address is
+	// a target an agent's SSH may reach (platform-x21l30); a later scan that
+	// moves the record to another address does not carry it along.
+	personDiscovered bool
+	personIP         string
 }
 
 const scanMaxAge = 24 * time.Hour
@@ -110,12 +119,18 @@ func requireDiscoveryAdminAccess(e *httpx.Event) (bool, error) {
 	return false, httpx.RejectForbidden(e, "Admin access required")
 }
 
-func (h *DiscoveryHandler) setScanOwner(scanID, ownerID string) {
+func (h *DiscoveryHandler) setScanOwner(scanID, ownerID string, personStarted bool) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	now := time.Now()
 	h.pruneOldEntries(now)
-	h.scanOwn[scanID] = scanEntry{ownerID: ownerID, createdAt: now}
+	h.scanOwn[scanID] = scanEntry{ownerID: ownerID, createdAt: now, personStarted: personStarted}
+}
+
+func (h *DiscoveryHandler) scanPersonStarted(scanID string) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.scanOwn[scanID].personStarted
 }
 
 func (h *DiscoveryHandler) isScanOwner(scanID, ownerID string) bool {
@@ -129,12 +144,45 @@ func (h *DiscoveryHandler) isScanOwner(scanID, ownerID string) bool {
 	return exists && entry.ownerID == ownerID
 }
 
-func (h *DiscoveryHandler) setDeviceOwner(deviceID, ownerID string) {
+func (h *DiscoveryHandler) setDeviceOwner(deviceID, ownerID, ip string, personDiscovered bool) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	if _, exists := h.deviceOwn[deviceID]; !exists {
-		h.deviceOwn[deviceID] = deviceEntry{ownerID: ownerID, createdAt: time.Now()}
+	ip = strings.TrimSpace(ip)
+	entry, exists := h.deviceOwn[deviceID]
+	if !exists {
+		entry = deviceEntry{ownerID: ownerID, createdAt: time.Now()}
+		if personDiscovered && ip != "" {
+			entry.personDiscovered, entry.personIP = true, ip
+		}
+		h.deviceOwn[deviceID] = entry
+		return
 	}
+	// The owner's own later scan that finds the device makes it theirs at the
+	// address that scan saw.
+	if personDiscovered && ip != "" && entry.ownerID == ownerID {
+		entry.personDiscovered, entry.personIP = true, ip
+		h.deviceOwn[deviceID] = entry
+	}
+}
+
+func (h *DiscoveryHandler) isPersonDiscoveredDevice(deviceID, ownerID, ip string) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	entry, exists := h.deviceOwn[deviceID]
+	return exists && time.Since(entry.createdAt) <= deviceMaxAge && entry.ownerID == ownerID && entry.personDiscovered &&
+		entry.personIP != "" && entry.personIP == strings.TrimSpace(ip)
+}
+
+// PersonDiscoveredHost reports whether host is a device that a scan the person
+// started found for this owner: the discovered device record an agent's
+// pre-enrollment SSH is bound to.
+func (h *DiscoveryHandler) PersonDiscoveredHost(ownerID, host string) bool {
+	if h == nil || h.discovery == nil {
+		return false
+	}
+	host = strings.TrimSpace(host)
+	device, ok := h.discovery.GetDeviceByIP(host)
+	return ok && device != nil && strings.TrimSpace(device.IP) == host && h.isPersonDiscoveredDevice(device.DeviceID, ownerID, host)
 }
 
 func (h *DiscoveryHandler) isDeviceOwner(deviceID, ownerID string) bool {
@@ -153,15 +201,15 @@ func (h *DiscoveryHandler) setDevicesOwnerFromScan(scanID, ownerID string) {
 	if !ok {
 		return
 	}
-	h.setDevicesOwnerFromResult(result, ownerID)
+	h.setDevicesOwnerFromResult(result, ownerID, h.scanPersonStarted(scanID))
 }
 
-func (h *DiscoveryHandler) setDevicesOwnerFromResult(result *discovery.ScanResult, ownerID string) {
+func (h *DiscoveryHandler) setDevicesOwnerFromResult(result *discovery.ScanResult, ownerID string, personDiscovered bool) {
 	if result == nil || result.Devices == nil {
 		return
 	}
 	for _, device := range result.Devices {
-		h.setDeviceOwner(device.DeviceID, ownerID)
+		h.setDeviceOwner(device.DeviceID, ownerID, device.IP, personDiscovered)
 	}
 }
 
@@ -232,9 +280,10 @@ func (h *DiscoveryHandler) startScan(e *httpx.Event) error {
 	if err != nil {
 		return httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to start scan", nil)
 	}
-	h.setScanOwner(result.ScanID, ownerID)
+	personStarted := !preenrollment.AgentCall(e.Request.Context())
+	h.setScanOwner(result.ScanID, ownerID, personStarted)
 	if result.Status == discovery.ScanStatusCompleted {
-		h.setDevicesOwnerFromResult(result, ownerID)
+		h.setDevicesOwnerFromResult(result, ownerID, personStarted)
 	}
 
 	return httpx.Success(e, http.StatusOK, result)
@@ -294,7 +343,7 @@ func (h *DiscoveryHandler) enrichScan(e *httpx.Event) error {
 	if err != nil {
 		return httpx.Error(e, http.StatusInternalServerError, ksapi.ErrCodeInternal, "Failed to enrich scan", nil)
 	}
-	h.setDevicesOwnerFromResult(result, ownerID)
+	h.setDevicesOwnerFromResult(result, ownerID, h.scanPersonStarted(scanID))
 
 	return httpx.Success(e, http.StatusOK, result)
 }
@@ -428,6 +477,14 @@ func (h *DiscoveryHandler) stats(e *httpx.Event) error {
 }
 
 func (h *DiscoveryHandler) requireDeviceIPAccess(e *httpx.Event, ownerID string, isInstanceOwner bool, ip string) (bool, error) {
+	// An agent's SSH reaches only a device the person found with their own
+	// scan, the instance owner's agent included (platform-x21l30).
+	if preenrollment.AgentCall(e.Request.Context()) {
+		if !h.PersonDiscoveredHost(ownerID, ip) {
+			return false, preenrollment.Refuse(e)
+		}
+		return true, nil
+	}
 	if isInstanceOwner {
 		return true, nil
 	}

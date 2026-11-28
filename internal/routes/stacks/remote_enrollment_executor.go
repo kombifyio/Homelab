@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kombifyio/homelab/internal/preenrollment"
 	"github.com/kombifyio/homelab/internal/routes/trust"
 	"github.com/kombifyio/homelab/pkg/config"
 	"github.com/kombifyio/homelab/pkg/controlplane"
@@ -79,6 +80,18 @@ func (x *RemoteEnrollmentExecutor) ExecuteRemoteEnrollment(
 		// cannot answer is the one exception: it retries, and it never falls
 		// back to a stored copy.
 		return jobs.RemoteEnrollmentOutcome{}, remoteEnrollmentCredentialFailure(credErr)
+	}
+	// The queued dial reaches only the target it was admitted for. A job queued
+	// before this binding, one whose stack target changed since, or one an
+	// agent queued without a person-entered target connects nowhere; nothing
+	// below runs, no planned Node is reserved and no token is minted
+	// (platform-x21l30).
+	if dial := (preenrollment.Target{Host: creds.Host, Port: creds.Port, User: creds.User}).Key(); dial == "" || dial != req.AuthorisedTarget {
+		return jobs.RemoteEnrollmentOutcome{}, &jobs.RemoteEnrollmentFailure{
+			Reason:  preenrollment.ReasonUnauthorisedTarget,
+			Message: "This server is not the one the person chose to connect. Enter it again in the Homelab wizard.",
+			Cause:   errors.New("remote enrollment target not authorised"),
+		}
 	}
 
 	plannedServerID := strings.TrimSpace(req.PlannedServerID)
