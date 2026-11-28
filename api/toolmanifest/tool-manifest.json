@@ -15073,6 +15073,9 @@
                           ],
                           "type": "string"
                         },
+                        "kit_deployment_id": {
+                          "type": "string"
+                        },
                         "reason": {
                           "description": "Human-readable explanation of the blocked drop.",
                           "type": "string"
@@ -15725,6 +15728,9 @@
                             "destination_not_relocatable",
                             "server_not_ready"
                           ],
+                          "type": "string"
+                        },
+                        "kit_deployment_id": {
                           "type": "string"
                         },
                         "reason": {
@@ -17856,6 +17862,9 @@
                               "destination_not_relocatable",
                               "server_not_ready"
                             ],
+                            "type": "string"
+                          },
+                          "kit_deployment_id": {
                             "type": "string"
                           },
                           "reason": {

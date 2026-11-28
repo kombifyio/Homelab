@@ -5,7 +5,6 @@
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
   <data name="WaitingTitle" xml:space="preserve"><value>Continue in your browser.</value></data>
-  <data name="WaitingDetail" xml:space="preserve"><value>Complete the normal kombify login. This window will continue automatically.</value></data>
   <data name="CallbackSuccess" xml:space="preserve"><value>Login received. Return to the Homelab Runtime window.</value></data>
   <data name="CallbackFailure" xml:space="preserve"><value>Invalid login callback.</value></data>
   <data name="ConnectSignInRequired" xml:space="preserve"><value>Sign in to the Cloud product first, then open kombify Connect from the Homelab Runtime window.</value></data>

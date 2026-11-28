@@ -564,6 +564,7 @@ export type RegistryMoveIneligibleCode =
 
 /** One server column blocked from receiving this service, with its reason. */
 export interface RegistryMoveIneligibleDestination {
+  kit_deployment_id?: string;
   server_id: string;
   code: RegistryMoveIneligibleCode;
   /** English backend diagnostic; the UI renders localized copy by `code`. */

@@ -35,6 +35,7 @@
     PlacementColumn,
     UnmanagedCard,
   } from "#lib/services/placement.js";
+  import { placementServerKey } from "#lib/services/placement.js";
   import { moveIneligibleLabel } from "#lib/services/move-copy.js";
   import type { CockpitRefreshError } from "#lib/monitoring/cockpit-snapshot.js";
 
@@ -63,22 +64,23 @@
   }: Props = $props();
 
   // Unmanaged drag: only its own Node accepts it, and only into Stack it.
-  let activeUnmanaged = $state<{ card: UnmanagedCard; serverId: string } | null>(
-    null,
-  );
+  let activeUnmanaged = $state<{
+    card: UnmanagedCard;
+    serverKey: string;
+  } | null>(null);
   let collapsed = $state<Record<string, boolean>>({});
   const cardLabels = $derived(serviceCardLabels());
 
   function handleUnmanagedDragStart(
     event: DragEvent,
     card: UnmanagedCard,
-    serverId: string,
+    serverKey: string,
   ) {
     if (!card.canStack) {
       event.preventDefault();
       return;
     }
-    activeUnmanaged = { card, serverId };
+    activeUnmanaged = { card, serverKey };
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = "move";
       event.dataTransfer.setData("text/plain", card.runtime.id);
@@ -86,21 +88,35 @@
   }
 
   let activeDrag = $state<PlacementCard | null>(null);
-  let activeDragServerId = $state<string | null>(null);
-  let blockedHoverServerId = $state<string | null>(null);
+  let activeDragServerKey = $state<string | null>(null);
+  let blockedHoverServerKey = $state<string | null>(null);
 
-  const accepts = (serverId: string) =>
-    activeDrag?.moveTargetIds.includes(serverId) ?? false;
+  const accepts = (serverKey: string) =>
+    activeDrag?.moveTargetKeys.includes(serverKey) ?? false;
+
+  function isSource(
+    card: PlacementCard | null,
+    server: RegistryServer,
+  ): boolean {
+    return (
+      card?.service.server_id === server.id &&
+      card.service.kit_deployment_id === server.kit_deployment_id
+    );
+  }
 
   function ineligibleFor(
     card: PlacementCard | null,
-    serverId: string,
+    server: RegistryServer,
   ): RegistryMoveIneligibleDestination | undefined {
-    if (!card || card.service.server_id === serverId) return undefined;
+    if (!card || isSource(card, server)) return undefined;
     return (
-      card.ineligibleByServerId?.[serverId] ??
+      card.ineligibleByServerKey?.[placementServerKey(server)] ??
+      card.ineligibleByServerKey?.[placementServerKey({ id: server.id })] ??
       card.service.move?.ineligible_destinations?.find(
-        (entry) => entry.server_id === serverId,
+        (entry) =>
+          entry.server_id === server.id &&
+          (!entry.kit_deployment_id ||
+            entry.kit_deployment_id === server.kit_deployment_id),
       )
     );
   }
@@ -124,30 +140,31 @@
       return;
     }
     activeDrag = card;
-    blockedHoverServerId = null;
+    blockedHoverServerKey = null;
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = "move";
       event.dataTransfer.setData("text/plain", card.service.id || "");
     }
   }
 
-  function handleDragOver(event: DragEvent, serverId: string) {
+  function handleDragOver(event: DragEvent, server: RegistryServer) {
+    const serverKey = placementServerKey(server);
     if (activeUnmanaged) {
-      if (activeUnmanaged.serverId !== serverId) return;
+      if (activeUnmanaged.serverKey !== serverKey) return;
       event.preventDefault();
-      activeDragServerId = serverId;
+      activeDragServerKey = serverKey;
       return;
     }
     if (!activeDrag) return;
-    if (accepts(serverId)) {
+    if (accepts(serverKey)) {
       event.preventDefault();
-      activeDragServerId = serverId;
-      blockedHoverServerId = null;
+      activeDragServerKey = serverKey;
+      blockedHoverServerKey = null;
       return;
     }
-    activeDragServerId = null;
-    if (activeDrag.service.server_id !== serverId) {
-      blockedHoverServerId = serverId;
+    activeDragServerKey = null;
+    if (!isSource(activeDrag, server)) {
+      blockedHoverServerKey = serverKey;
       if (event.dataTransfer) {
         event.dataTransfer.dropEffect = "none";
       }
@@ -155,23 +172,25 @@
   }
 
   function handleDragLeave() {
-    activeDragServerId = null;
-    blockedHoverServerId = null;
+    activeDragServerKey = null;
+    blockedHoverServerKey = null;
   }
 
   function handleDrop(event: DragEvent, target: RegistryServer) {
     event.preventDefault();
-    activeDragServerId = null;
-    blockedHoverServerId = null;
+    activeDragServerKey = null;
+    blockedHoverServerKey = null;
     const unmanaged = activeUnmanaged;
     activeUnmanaged = null;
     if (unmanaged) {
-      if (unmanaged.serverId === target.id) onstack(unmanaged.card);
+      if (unmanaged.serverKey === placementServerKey(target))
+        onstack(unmanaged.card);
       return;
     }
     const card = activeDrag;
     activeDrag = null;
-    if (!card || !card.moveTargetIds.includes(target.id)) return;
+    if (!card || !card.moveTargetKeys.includes(placementServerKey(target)))
+      return;
     onmove(card.service, target);
   }
 </script>
@@ -237,32 +256,34 @@
   <div
     class="flex gap-6 overflow-x-auto pb-6 scrollbar-thin select-none animate-in fade-in duration-300"
   >
-    {#each columns as column (column.server.id)}
+    {#each columns as column (placementServerKey(column.server))}
       {@const server = column.server}
+      {@const serverKey = placementServerKey(server)}
       {@const cap = column.capacity}
-      {@const blockedReason = ineligibleFor(activeDrag, server.id)}
+      {@const blockedReason = ineligibleFor(activeDrag, server)}
       {@const isBlockedColumn =
         Boolean(activeDrag) &&
-        activeDrag?.service.server_id !== server.id &&
-        !accepts(server.id)}
+        !isSource(activeDrag, server) &&
+        !accepts(serverKey)}
 
       <!-- Server Column -->
       <div
         class="w-80 shrink-0 flex flex-col bg-card/35 backdrop-blur-sm border rounded-xl p-4 min-h-[550px] transition-all duration-300
-               {activeDragServerId === server.id
+               {activeDragServerKey === serverKey
           ? 'border-primary/60 bg-primary/5 shadow-md shadow-primary/5'
-          : blockedHoverServerId === server.id
+          : blockedHoverServerKey === serverKey
             ? 'border-destructive/60 bg-destructive/5'
-            : (activeDrag && accepts(server.id)) ||
-                activeUnmanaged?.serverId === server.id
+            : (activeDrag && accepts(serverKey)) ||
+                activeUnmanaged?.serverKey === serverKey
               ? 'border-dashed border-primary/40'
               : isBlockedColumn || activeUnmanaged
                 ? 'opacity-65 border-border/60'
                 : 'border-border/80'}"
         data-testid="placement-column"
         data-server-id={server.id}
+        data-kit-deployment-id={server.kit_deployment_id}
         data-drop-blocked={isBlockedColumn || undefined}
-        ondragover={(e) => handleDragOver(e, server.id)}
+        ondragover={(e) => handleDragOver(e, server)}
         ondragleave={handleDragLeave}
         ondrop={(e) => handleDrop(e, server)}
         role="list"
@@ -386,8 +407,8 @@
               ondragstart={(e) => handleDragStart(e, card)}
               ondragend={() => {
                 activeDrag = null;
-                activeDragServerId = null;
-                blockedHoverServerId = null;
+                activeDragServerKey = null;
+                blockedHoverServerKey = null;
               }}
               role="listitem"
               data-testid="placement-card"
@@ -444,7 +465,7 @@
             </div>
           {/each}
 
-          {#if activeUnmanaged && activeUnmanaged.serverId !== server.id}
+          {#if activeUnmanaged && activeUnmanaged.serverKey !== serverKey}
             <div
               class="border border-dashed border-border/60 rounded-lg p-3 text-center text-xs text-muted-foreground"
               data-testid="placement-stack-first"
@@ -453,7 +474,7 @@
             </div>
           {/if}
 
-          {#if activeDragServerId === server.id && activeUnmanaged}
+          {#if activeDragServerKey === serverKey && activeUnmanaged}
             <div
               class="border-2 border-dashed border-primary/50 bg-primary/5 rounded-lg p-4 h-24 flex flex-col items-center justify-center text-xs text-muted-foreground gap-1.5"
               data-testid="placement-stack-here"
@@ -465,7 +486,7 @@
                 })}</span
               >
             </div>
-          {:else if activeDragServerId === server.id && activeDrag}
+          {:else if activeDragServerKey === serverKey && activeDrag}
             <div
               class="border-2 border-dashed border-primary/50 bg-primary/5 rounded-lg p-4 h-24 flex flex-col items-center justify-center text-xs text-muted-foreground transition-all gap-1.5"
             >
@@ -478,8 +499,8 @@
             </div>
           {:else if isBlockedColumn && activeDrag}
             <div
-              class="border border-dashed rounded-lg p-3 flex flex-col gap-1 text-xs transition-all {blockedHoverServerId ===
-              server.id
+              class="border border-dashed rounded-lg p-3 flex flex-col gap-1 text-xs transition-all {blockedHoverServerKey ===
+              serverKey
                 ? 'border-destructive/60 bg-destructive/10 text-destructive'
                 : 'border-border/60 bg-muted/20 text-muted-foreground'}"
               role="status"
@@ -510,7 +531,7 @@
         </div>
 
         {#if column.unmanaged.length > 0}
-          {@const open = !collapsed[server.id]}
+          {@const open = !collapsed[serverKey]}
           <div
             class="mt-4 pt-3 border-t border-dashed border-border/60"
             data-testid="placement-unmanaged"
@@ -519,7 +540,7 @@
               type="button"
               class="flex w-full items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground"
               aria-expanded={open}
-              onclick={() => (collapsed[server.id] = open)}
+              onclick={() => (collapsed[serverKey] = open)}
             >
               {#if open}<ChevronDown class="h-3.5 w-3.5" />{:else}<ChevronRight
                   class="h-3.5 w-3.5"
@@ -533,10 +554,10 @@
                   <div
                     draggable={card.canStack}
                     ondragstart={(e) =>
-                      handleUnmanagedDragStart(e, card, server.id)}
+                      handleUnmanagedDragStart(e, card, serverKey)}
                     ondragend={() => {
                       activeUnmanaged = null;
-                      activeDragServerId = null;
+                      activeDragServerKey = null;
                     }}
                     role="listitem"
                     data-testid="placement-unmanaged-card"

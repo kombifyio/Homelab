@@ -112,6 +112,12 @@ func TestProjectFoundDomainIntent(t *testing.T) {
 				if publication["host"] != "photos."+tc.want {
 					t.Fatalf("incorrect publication: %v", publication)
 				}
+				for _, raw := range projection.Spec["routes"].(map[string]any) {
+					route := raw.(map[string]any)
+					if route["host"] != route["serviceRef"].(string)+"."+tc.want {
+						t.Fatalf("incorrect modern route endpoint: %v", route)
+					}
+				}
 			}
 			if seed["network"].(map[string]any)["domain"].(map[string]any)["base"] != seedTemplateDomain {
 				t.Fatal("projection changed the shared seed")
@@ -166,6 +172,9 @@ func seedDomainConsumers(seed map[string]any, kit string) {
 	}
 	if kit == KitSlugModern {
 		seed["bridge"] = map[string]any{"publications": []any{map[string]any{"serviceRef": "photos", "host": "photos." + seedTemplateDomain}}}
+		seed["routes"] = map[string]any{
+			"photos-initial-https": map[string]any{"exposure": "local", "serviceRef": "photos", "host": "photos." + seedTemplateDomain},
+		}
 	}
 }
 

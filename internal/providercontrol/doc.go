@@ -15,7 +15,7 @@
 //
 // Provider calls are allowed only after a durable command and resource intent
 // exist. All operation-specific execution paths remain under the single
-// techstack_provider_control authority; their safety modes are Homelab
+// homelab_provider_control authority; their safety modes are Homelab
 // catalog and ledger state, not providerexecutor receipt-wire fields.
 // Crash-recoverable adapters may replay an exact head only through their
 // admitted recovery mechanism. An at-most-once provision whose current head is
@@ -33,7 +33,7 @@
 // # Persistence and concurrency
 //
 // PostgreSQL is the production ledger. Every operation records the immutable
-// techstack_provider_control authority and binds the exact lease revision,
+// homelab_provider_control authority and binds the exact lease revision,
 // runtime server, resource-generation UUID, provider, profile hashes, receipt
 // head, and execution claim. Receipt heads and claims use compare-and-swap;
 // expired, superseded, or lost claims cannot append completion receipts. A

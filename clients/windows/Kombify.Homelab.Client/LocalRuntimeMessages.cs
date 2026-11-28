@@ -13,7 +13,6 @@ internal static class LocalRuntimeMessages
     internal static string IdentityVerificationFailed =>
         Resources.GetString(nameof(IdentityVerificationFailed)) ?? string.Empty;
 
-    internal static string RecoveryIncomplete => Resources.GetString(nameof(RecoveryIncomplete)) ?? string.Empty;
     internal static string RecoveryDatabaseRunning => Resources.GetString(nameof(RecoveryDatabaseRunning)) ?? string.Empty;
     internal static string RecoverySnapshotMissing => Resources.GetString(nameof(RecoverySnapshotMissing)) ?? string.Empty;
     internal static string RecoveryRestoreFailed => Resources.GetString(nameof(RecoveryRestoreFailed)) ?? string.Empty;

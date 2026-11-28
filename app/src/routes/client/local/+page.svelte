@@ -1,14 +1,17 @@
 <script lang="ts">
   import { tr } from "#lib/i18n.svelte.js";
   import { page } from "$app/state";
+  import { goto } from "$app/navigation";
   import { ArrowLeft, CheckCircle2, KeyRound, Monitor } from "@lucide/svelte";
   import { onMount } from "svelte";
   import { createLocalOwnerAccount } from "#lib/auth/local-owner.js";
   import { parseApiError } from "#lib/api/errors.js";
   import {
     deriveLocalOwnerName,
+    hasWindowsLocalClientContext,
     localSetupReady,
     rememberWindowsLocalClientContext,
+    selfHostedOnboardingUrl,
   } from "#lib/client/windows-onboarding.js";
   import { authStore } from "#lib/stores/auth.svelte.js";
   import HomelabBrandLogo from "#lib/components/HomelabBrandLogo.svelte";
@@ -51,6 +54,17 @@
 
   onMount(async () => {
     if (windowsClient) {
+      // The Windows client's first start on this computer asks the first-start question once.
+      let firstStart = false;
+      try {
+        firstStart = !hasWindowsLocalClientContext(window.localStorage);
+      } catch {
+        // Without storage there is nothing to remember; the client opens as before.
+      }
+      if (firstStart) {
+        await goto(selfHostedOnboardingUrl, { replaceState: true });
+        return;
+      }
       try {
         rememberWindowsLocalClientContext(window.localStorage);
       } catch {
@@ -131,7 +145,7 @@
 </script>
 
 <svelte:head>
-  <title>{tr("ui.clientLocal.localHomelabSetupKombifyHomelab")}</title>
+  <title>Homelab Runtime</title>
 </svelte:head>
 
 <main class="min-h-screen bg-background text-foreground">

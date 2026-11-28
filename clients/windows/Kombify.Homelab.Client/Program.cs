@@ -19,6 +19,7 @@ internal static class Program
 
     // The only switch of the client's URL handler: `"exe" --activate "<url>"`.
     internal const string ActivationSwitch = "--activate";
+    internal const string RestartAfterSwitch = "--restart-after";
 
     [STAThread]
     private static void Main(string[] args)
@@ -27,6 +28,13 @@ internal static class Program
         // Exactly the one argument after --activate is the URL; nothing else on that command line is read
         // (a URL with an unencoded quote or space must not become switches such as --url or --runtime-exe),
         // and the configuration loads as for a start without arguments.
+        // "Restart to update" starts a new client with `--restart-after <pid>` and closes: the new client
+        // waits for that one (and its local runtime) to end, so the staged update below can apply.
+        if (args.Length >= 2 && args[0] == RestartAfterSwitch)
+        {
+            WaitForPreviousClient(args[1]);
+            args = [];
+        }
         var activation = args.Length >= 1 && args[0] == ActivationSwitch;
         var activationRoute = activation && args.Length >= 2
             ? ClientActivation.RouteFromArguments([args[1]], DesktopEdition.ActivationScheme) : null;
@@ -54,12 +62,6 @@ internal static class Program
             return;
         }
         ApplicationConfiguration.Initialize();
-        if (startupBlockReason is not null)
-        {
-            MessageBox.Show(startupBlockReason, LocalRuntimeMessages.RecoveryIncomplete,
-                MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
 #if CLOUD_DESKTOP
         if (args.Contains("--connect-enroll", StringComparer.Ordinal))
         {
@@ -68,9 +70,33 @@ internal static class Program
             return;
         }
 #endif
-        var window = new ClientWindow(config);
+        // A blocked recovery keeps the runtime stopped; the window says so and "Try again" starts the client anew.
+        var window = new ClientWindow(config, startupBlockReason);
         window.SetStartRoute(activationRoute);
         Application.Run(window);
+    }
+
+    private static void WaitForPreviousClient(string processId)
+    {
+        if (!int.TryParse(processId, out var id) || id == Environment.ProcessId) return;
+        try
+        {
+            using var previous = Process.GetProcessById(id);
+            if (previous.ProcessName.Equals(Path.GetFileNameWithoutExtension(Environment.ProcessPath), StringComparison.OrdinalIgnoreCase))
+                previous.WaitForExit(60000);
+        }
+        catch (Exception error) when (error is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception) { }
+    }
+
+    // Starts this client again after the current one closed (update restart, retry after a blocked recovery).
+    internal static void StartAgainAfterExit()
+    {
+        var path = Environment.ProcessPath;
+        if (string.IsNullOrEmpty(path)) return;
+        var start = new ProcessStartInfo(path) { UseShellExecute = false };
+        start.ArgumentList.Add(RestartAfterSwitch);
+        start.ArgumentList.Add(Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        using var _ = Process.Start(start);
     }
 }
 
@@ -373,15 +399,19 @@ internal sealed partial class ClientWindow : Form
 #endif
     private SupervisedProcess? _runtimeProcess;
     private ClientConnectionProfile? _boundServerProfile;
+    private readonly string? _startupBlockReason;
+    private bool _productOpened;
 
-    public ClientWindow(ClientConfig config)
+    public ClientWindow(ClientConfig config, string? startupBlockReason = null)
     {
         _config = config;
-        Text = "Homelab Runtime Desktop Client";
+        _startupBlockReason = startupBlockReason;
+        Text = ShellText.ProductName;
         MinimumSize = new Size(980, 680);
         StartPosition = FormStartPosition.CenterScreen;
         WindowState = FormWindowState.Maximized;
-        BackColor = Color.FromArgb(247, 249, 252);
+        // The window colour behind the page follows the Windows app theme, so a dark start does not flash light.
+        BackColor = ShellText.PrefersDark() ? Color.FromArgb(23, 25, 28) : Color.FromArgb(247, 249, 251);
 
         var icon = LoadIcon();
         if (icon is not null)
@@ -486,61 +516,15 @@ internal sealed partial class ClientWindow : Form
                 };
             }
             RegisterDeviceContextBridge();
+            RegisterShellBridge();
 
-            if (IsLocalMode())
+            if (_startupBlockReason is not null)
             {
-                NavigateHtml(RenderLocalRuntimeStarting(_config.LocalOrigin()));
-                var runtimeReady = await EnsureLocalRuntimeAsync();
-                if (!runtimeReady)
-                {
-                    if (ClientUpdater.CompletePendingUpdate(_config, false, StopStartedLocalRuntime))
-                        Close();
-                    return;
-                }
-                if (!await BootstrapLocalDeviceSessionAsync())
-                {
-                    if (ClientUpdater.CompletePendingUpdate(_config, false, StopStartedLocalRuntime))
-                    {
-                        Close();
-                        return;
-                    }
-                    NavigateHtml(RenderFallback(
-                        "Local Homelab Runtime did not become ready.",
-                        LocalRuntimeMessages.IdentityVerificationFailed,
-                        RuntimeLogExtraHtml(_config.RuntimeLogPath())));
-                    return;
-                }
-                if (ClientUpdater.CompletePendingUpdate(_config, true, StopStartedLocalRuntime))
-                {
-                    Close();
-                    return;
-                }
-            }
-            else if (DesktopEdition.IsLocal && ClientUpdater.CompletePendingUpdate(_config, true, () => { }))
-            {
-                Close();
+                // Recovery after an update is not finished: nothing starts, the person can try again.
+                ShowFailure(ShellText.Get("UpdateBlockedTitle"), _startupBlockReason, "", RestartClient);
                 return;
             }
-
-            if (IsServerMode())
-            {
-                NavigateHtml(RenderServerBindingStarting(_config.ServerUrl));
-                _boundServerProfile = await BindServerProfileAsync();
-                if (_boundServerProfile is null)
-                {
-                    return;
-                }
-            }
-
-            var launchUrl = InitialDocumentUrl();
-#if CLOUD_DESKTOP
-            launchUrl = await StartDeviceSignInAsync(launchUrl);
-#endif
-            _webView.CoreWebView2.Navigate(launchUrl);
-#if CLOUD_DESKTOP
-            if (_deviceSignIn is { } deviceSignIn) _ = deviceSignIn.StartAsync();
-#endif
-            _ = ClientUpdater.CheckAndStageAsync(_config, ResolveRuntimeExecutablePath());
+            await OpenProductAsync();
         }
         catch (Exception ex)
         {
@@ -549,14 +533,75 @@ internal sealed partial class ClientWindow : Form
                 Close();
                 return;
             }
+            // Without WebView2 there is no page to draw on; the window still says it in the person's language.
             Controls.Clear();
             Controls.Add(new Label
             {
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Text = $"Homelab Runtime Desktop Client could not start WebView2.\n\n{ex.Message}",
+                ForeColor = ShellText.PrefersDark() ? Color.FromArgb(240, 241, 243) : Color.FromArgb(28, 30, 33),
+                Text = $"{ShellText.Get("StartFailedTitle")}\n\n{ex.Message}",
             });
         }
+    }
+
+    // Starts (or, after "Try again", starts again) what this installation shows: the local runtime, the
+    // person's own server or the Cloud product. Every failure ends on the shell's failure page.
+    private async Task OpenProductAsync()
+    {
+        if (IsLocalMode())
+        {
+            NavigateHtml(RenderProgress(ShellText.Get("StartingTitle")));
+            var runtimeReady = await EnsureLocalRuntimeAsync();
+            if (!runtimeReady)
+            {
+                if (ClientUpdater.CompletePendingUpdate(_config, false, StopStartedLocalRuntime))
+                    Close();
+                return;
+            }
+            if (!await BootstrapLocalDeviceSessionAsync())
+            {
+                if (ClientUpdater.CompletePendingUpdate(_config, false, StopStartedLocalRuntime))
+                {
+                    Close();
+                    return;
+                }
+                ShowLocalStartFailure(LocalRuntimeMessages.IdentityVerificationFailed, _config.RuntimeLogPath());
+                return;
+            }
+            if (ClientUpdater.CompletePendingUpdate(_config, true, StopStartedLocalRuntime))
+            {
+                Close();
+                return;
+            }
+        }
+        else if (DesktopEdition.IsLocal && ClientUpdater.CompletePendingUpdate(_config, true, () => { }))
+        {
+            Close();
+            return;
+        }
+
+        if (IsServerMode())
+        {
+            NavigateHtml(RenderProgress(ShellText.Get("ConnectingTitle")));
+            _boundServerProfile = await BindServerProfileAsync();
+            if (_boundServerProfile is null)
+            {
+                return;
+            }
+        }
+
+        var launchUrl = InitialDocumentUrl();
+        var firstOpen = !_productOpened;
+        _productOpened = true;
+#if CLOUD_DESKTOP
+        if (firstOpen) launchUrl = await StartDeviceSignInAsync(launchUrl);
+#endif
+        _webView.CoreWebView2.Navigate(launchUrl);
+#if CLOUD_DESKTOP
+        if (firstOpen && _deviceSignIn is { } deviceSignIn) _ = deviceSignIn.StartAsync();
+#endif
+        if (firstOpen) _ = CheckForUpdateAsync();
     }
 
     private bool IsLocalMode()
@@ -581,8 +626,8 @@ internal sealed partial class ClientWindow : Form
             if (!response.IsSuccessStatusCode)
             {
                 ShowServerBindingFailure(
-                    $"The Homelab Runtime instance returned {(int)response.StatusCode} {response.StatusCode} from client discovery.",
-                    "Check the instance's public URL and native OIDC configuration, then retry.");
+                    $"The server returned {(int)response.StatusCode} {response.StatusCode} from client discovery at {discoveryEndpoint}. "
+                    + "Check the server's public URL and native OIDC configuration.");
                 return null;
             }
             if (!string.Equals(response.Content.Headers.ContentType?.MediaType, "application/json", StringComparison.OrdinalIgnoreCase))
@@ -608,18 +653,19 @@ internal sealed partial class ClientWindow : Form
         catch (Exception error) when (error is ClientProfileException or HttpRequestException or TaskCanceledException)
         {
             ShowServerBindingFailure(
-                error.Message,
-                "Verify the HTTPS endpoint or use a fresh Homelab Runtime pairing link from the instance owner.");
+                $"{error.Message} Verify the HTTPS endpoint ({_config.ServerUrl}) or use a fresh pairing link from the server's owner.");
             return null;
         }
     }
 
-    private void ShowServerBindingFailure(string body, string nextStep)
+    private void ShowServerBindingFailure(string detail)
     {
-        NavigateHtml(RenderFallback(
-            "Homelab Runtime connection could not be verified.",
-            body,
-            $"<p class=\"copy small\"><strong>Next step:</strong> {Html(nextStep)}</p>"));
+        ShowFailure(ShellText.Get("ServerFailedTitle"), detail, "", RetryOpenProduct);
+    }
+
+    private void ShowLocalStartFailure(string detail, string logPath)
+    {
+        ShowFailure(ShellText.Get("StartFailedTitle"), detail, RuntimeLogExtraHtml(logPath), RetryOpenProduct);
     }
 
     private async Task<bool> EnsureLocalRuntimeAsync()
@@ -631,19 +677,18 @@ internal sealed partial class ClientWindow : Form
 
         if (!_config.AutoStartRuntime)
         {
-            NavigateHtml(RenderFallback(
-                "Local Homelab Runtime is not running.",
-                $"Start Homelab Runtime locally, then open the client again. Expected local runtime at {_config.LocalOrigin()}."));
+            ShowFailure(ShellText.Get("StartFailedTitle"),
+                $"Automatic runtime start is switched off (autoStartRuntime=false) and no runtime answers at {_config.LocalOrigin()}.",
+                "", RetryOpenProduct);
             return false;
         }
 
         var runtimeExe = ResolveRuntimeExecutablePath();
         if (string.IsNullOrWhiteSpace(runtimeExe))
         {
-            NavigateHtml(RenderFallback(
-                "Local Homelab Runtime was not found.",
-                "The Windows client package must include homelab.exe next to kombify-homelab-client.exe.",
-                RuntimeLogExtraHtml(_config.RuntimeLogPath())));
+            ShowLocalStartFailure(
+                "homelab.exe was not found next to kombify-homelab-client.exe; the installation is incomplete. Repair or reinstall it.",
+                _config.RuntimeLogPath());
             return false;
         }
 
@@ -720,10 +765,7 @@ internal sealed partial class ClientWindow : Form
         }
         catch (Exception ex)
         {
-            NavigateHtml(RenderFallback(
-                "Local Homelab Runtime could not start.",
-                $"The Windows client could not start homelab.exe. {ex.Message}",
-                RuntimeLogExtraHtml(logPath)));
+            ShowLocalStartFailure($"homelab.exe could not be started: {ex.Message}", logPath);
             return false;
         }
 
@@ -736,10 +778,9 @@ internal sealed partial class ClientWindow : Form
 
             if (_runtimeProcess is { HasExited: true })
             {
-                NavigateHtml(RenderFallback(
-                    "Local Homelab Runtime stopped during startup.",
-                    LocalRuntimeFailureDetail(logPath, _runtimeProcess.ExitCode),
-                    RuntimeLogExtraHtml(logPath)));
+                var exitCode = _runtimeProcess.ExitCode;
+                StopStartedLocalRuntime();
+                ShowLocalStartFailure(LocalRuntimeFailureDetail(logPath, exitCode), logPath);
                 return false;
             }
 
@@ -751,10 +792,9 @@ internal sealed partial class ClientWindow : Form
         }
 
         StopStartedLocalRuntime();
-        NavigateHtml(RenderFallback(
-            "Local Homelab Runtime did not become ready.",
-            $"The Windows client waited {timeout.TotalSeconds:N0} seconds for {_config.LocalOrigin()}.",
-            RuntimeLogExtraHtml(logPath)));
+        ShowLocalStartFailure(
+            $"The local runtime did not answer at {_config.LocalOrigin()} within {timeout.TotalSeconds:N0} seconds.",
+            logPath);
         return false;
     }
 
@@ -1048,9 +1088,7 @@ internal sealed partial class ClientWindow : Form
         }
         catch (Exception ex)
         {
-            NavigateHtml(RenderFallback(
-                "Cloud login could not start.",
-                $"The Windows client could not create a kombify Cloud device login. {ex.Message}"));
+            ShowSignInFailure($"The client could not create a kombify device login. {ex.Message}");
         }
     }
 
@@ -1104,21 +1142,20 @@ internal sealed partial class ClientWindow : Form
             if (response.StatusCode == HttpStatusCode.Gone
                 || body.Contains("expired_token", StringComparison.OrdinalIgnoreCase))
             {
-                NavigateHtml(RenderFallback(
-                    "Cloud login expired.",
-                    "Start kombify Cloud login again to create a fresh device code."));
+                ShowSignInFailure("The device code expired before it was approved.");
                 return;
             }
 
-            NavigateHtml(RenderFallback(
-                "Cloud login failed.",
-                CloudError(response.StatusCode, body)));
+            ShowSignInFailure(CloudError(response.StatusCode, body));
             return;
         }
 
-        NavigateHtml(RenderFallback(
-            "Cloud login expired.",
-            "Start kombify Cloud login again to create a fresh device code."));
+        ShowSignInFailure("The device code expired before it was approved.");
+    }
+
+    private void ShowSignInFailure(string detail)
+    {
+        ShowFailure(ShellText.Get("SignInFailedTitle"), detail, "", () => _ = BeginCloudDeviceLoginAsync());
     }
 
     private static StringContent JsonContent<T>(T value)
@@ -1184,13 +1221,14 @@ internal sealed partial class ClientWindow : Form
 
     private void ShowBrowserHandoff(string browserUrl)
     {
-        NavigateHtml(RenderFallback(
-            "Continue in your browser.",
-            "The kombify Cloud login was opened in your default browser so password managers and passkeys can use the normal browser session.",
-            IsHttp(browserUrl)
-                ? $"""<p><a href="{Html(browserUrl)}">Open browser login again</a></p>"""
-                : ""));
+        NavigateHtml(RenderProgress(CloudLoginText.Get("WaitingTitle"), BrowserAgainHtml(browserUrl)));
     }
+
+    // The sign-in page opened in the system browser; the link opens it there once more.
+    private static string BrowserAgainHtml(string browserUrl) =>
+        IsHttp(browserUrl)
+            ? $"""<p class="again"><a href="{Html(browserUrl)}">{Html(ShellText.Get("OpenBrowserAgain"))}</a></p>"""
+            : "";
 
     private void SaveCloudSession(string body)
     {
@@ -1302,72 +1340,77 @@ internal sealed partial class ClientWindow : Form
 
     private static string RenderDeviceLoginStarting()
     {
-        return RenderShell(
-            "Starting kombify Cloud login.",
-            "The Windows client is creating a one-time device code with kombify Cloud.",
-            "");
-    }
-#endif
-
-    private static string RenderLocalRuntimeStarting(string localOrigin)
-    {
-        return RenderShell(
-            "Starting local Homelab Runtime.",
-            $"The Windows client is opening the local control plane at {localOrigin}.",
-            "");
+        return RenderProgress(ShellText.Get("SigningInTitle"));
     }
 
-    private static string RenderServerBindingStarting(string serverUrl)
-    {
-        return RenderShell(
-            "Verifying the Homelab Runtime instance.",
-            $"The Windows client is loading the public connection profile from {serverUrl}.",
-            "");
-    }
-
-#if CLOUD_DESKTOP
     private static string RenderDeviceLoginWaiting(CloudDeviceCodeResponse code, string verificationUrl)
     {
-        return RenderShell(
-            "Continue in your browser.",
-            "Sign in with kombify Cloud Universal Login and approve this Windows client.",
-            $$"""
-<div class="code">{{Html(code.UserCode)}}</div>
-<p class="copy small">This code is valid for about {{Math.Max(1, code.ExpiresIn / 60)}} minutes. The client will continue automatically after approval.</p>
-<p><a href="{{Html(verificationUrl)}}">Open kombify Cloud authorization again</a></p>
-""");
+        return RenderProgress(CloudLoginText.Get("WaitingTitle"),
+            $"""<div class="code">{Html(code.UserCode)}</div>{BrowserAgainHtml(verificationUrl)}""");
     }
 
     private static string RenderDeviceLoginSuccess(string cloudUiUrl)
     {
-        return RenderShell(
-            "kombify Cloud connected.",
-            "The Windows client received a Cloud tool token and stored the local session for this device.",
+        return RenderShell(ShellText.Get("SignedInTitle"), spinner: false,
             IsHttp(cloudUiUrl)
-                ? $"""<p><a href="{Html(cloudUiUrl)}">Open Homelab Runtime Cloud UI</a></p>"""
+                ? $"""<div class="actions"><a class="primary" href="{Html(cloudUiUrl)}">{Html(ShellText.Get("OpenHomelab"))}</a></div>"""
                 : "");
     }
 #endif
 
-    private static string RenderFallback(string title, string detail, string extraHtml = "")
+    // ── The shell's own pages (D-2026-11-17-03, concept "when something does not work") ──────────────────
+    // Before the product page exists, the shell draws three states itself: something is starting (one line
+    // and a spinner), something failed (one sentence, "Try again", "Get help", the technical reason behind
+    // "What happened"), and the browser hand-off of a sign-in. Light and dark follow Windows; the words follow
+    // the Windows display language (ShellMessages.*.resx). Nothing here names a component of the runtime.
+
+    private static string RenderProgress(string title, string extraHtml = "") =>
+        RenderShell(title, spinner: true, extraHtml);
+
+    private static string RenderFailure(string title, string technicalDetail, string technicalHtml)
     {
-        return RenderShell(title, detail, extraHtml);
+        var actions = $"""
+<div class="actions">
+<button type="button" class="primary" onclick="shell('retry')">{Html(ShellText.Get("TryAgain"))}</button>
+<button type="button" onclick="shell('help')">{Html(ShellText.Get("GetHelp"))}</button>
+</div>
+<details><summary>{Html(ShellText.Get("WhatHappened"))}</summary><p>{Html(technicalDetail)}</p>{technicalHtml}</details>
+""";
+        return RenderShell(title, spinner: false, actions, failed: true);
     }
 
-    private static string RenderShell(string title, string detail, string extraHtml)
+    private static string RenderShell(string title, bool spinner, string extraHtml, bool failed = false)
     {
         var logo = LogoDataUri();
+        var lang = Html(System.Globalization.CultureInfo.CurrentUICulture.Name);
+        var dir = System.Globalization.CultureInfo.CurrentUICulture.TextInfo.IsRightToLeft ? "rtl" : "ltr";
+        var mark = logo.Length == 0 ? "" : $"""<div class="mark"><img src="{logo}" alt=""></div>""";
+        var progress = spinner ? """<div class="spinner" role="progressbar" aria-busy="true"></div>""" : "";
         return $$"""
 <!doctype html>
-<html><head><meta charset="utf-8"><title>{{Html(title)}}</title>
+<html lang="{{lang}}" dir="{{dir}}"><head><meta charset="utf-8"><meta name="color-scheme" content="light dark"><title>{{Html(ShellText.ProductName)}}</title>
 <style>
-html,body{height:100%;margin:0;font-family:Segoe UI,system-ui,sans-serif;background:#f7f9fc;color:#06142d}
-body{display:grid;place-items:center}.card{width:min(720px,calc(100vw - 56px));background:white;border:1px solid #d9e0ec;border-radius:10px;padding:44px;box-shadow:0 24px 70px rgba(7,22,47,.12)}
-img{width:72px;height:72px;object-fit:contain;margin-bottom:26px}h1{font-size:40px;line-height:1.08;margin:0}.copy{color:#566274;font-size:17px;line-height:1.6}.copy.small{font-size:14px}
-.tag{font-size:12px;color:#0b3a78;text-transform:uppercase;font-weight:700}.code{display:inline-flex;margin-top:8px;padding:14px 18px;border:1px solid #c7d4e8;border-radius:8px;background:#f3f7fc;color:#07366f;font-family:Consolas,monospace;font-size:30px;font-weight:700;letter-spacing:.12em}
-a{color:#0b3a78;font-weight:700}
-pre{max-height:220px;overflow:auto;background:#06142d;color:#f5f7fb;padding:14px;border-radius:8px;font-size:12px;line-height:1.45;white-space:pre-wrap}.path{font-family:Consolas,monospace;color:#25314a}
-</style></head><body><main class="card"><img src="{{logo}}" alt=""><p class="tag">Homelab Runtime Desktop Client</p><h1>{{Html(title)}}</h1><p class="copy">{{Html(detail)}}</p>{{extraHtml}}</main></body></html>
+:root{--background:oklch(0.9749 0.0025 228.8);--foreground:oklch(0.1572 0.0039 229.1);--card:oklch(1 0 0);--muted-foreground:oklch(0.4572 0.0124 248.1);--border:oklch(0.1572 0.0039 229.1 / 14%);--primary:oklch(0.30 0.09 255);--primary-foreground:oklch(0.985 0 0)}
+@media (prefers-color-scheme:dark){:root{--background:oklch(0.1572 0.0039 229.1);--foreground:oklch(0.9674 0.0013 286.4);--card:oklch(0.2071 0.0076 248.2);--muted-foreground:oklch(0.7118 0.0129 286.1);--border:oklch(0.9674 0.0013 286.4 / 14%);--primary:oklch(0.55 0.14 255)} }
+html,body{height:100%;margin:0}body{display:grid;place-items:center;background:var(--background);color:var(--foreground);font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif}
+main{width:min(520px,calc(100vw - 32px));display:flex;flex-direction:column;align-items:center;text-align:center;gap:20px}
+.mark{width:64px;height:64px;border-radius:16px;background:var(--card);border:1px solid var(--border);display:grid;place-items:center}.mark img{width:40px;height:40px;object-fit:contain}
+h1{margin:0;font-size:22px;line-height:1.3;font-weight:600}
+.actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+button,.actions a{font:inherit;font-size:15px;font-weight:600;padding:10px 20px;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--foreground);cursor:pointer;text-decoration:none}
+button.primary,.actions a.primary{background:var(--primary);border-color:var(--primary);color:var(--primary-foreground)}
+button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+details{width:100%;color:var(--muted-foreground);font-size:13px}summary{cursor:pointer;list-style-position:inside}
+details p{margin:12px 0 0;text-align:start;line-height:1.5}
+pre{max-height:220px;overflow:auto;text-align:start;background:var(--card);border:1px solid var(--border);color:var(--foreground);padding:12px;border-radius:8px;font-size:12px;line-height:1.45;white-space:pre-wrap}
+.path{font-family:Consolas,monospace;word-break:break-all}
+.code{padding:12px 18px;border:1px solid var(--border);border-radius:12px;background:var(--card);font-family:Consolas,monospace;font-size:28px;font-weight:700;letter-spacing:.12em}
+.again a{color:var(--muted-foreground);font-size:14px}
+.spinner{width:28px;height:28px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--primary);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)} }@media (prefers-reduced-motion:reduce){.spinner{animation-duration:3s} }
+</style></head><body><main{{(failed ? " role=\"alert\"" : "")}}>{{mark}}<h1>{{Html(title)}}</h1>{{progress}}{{extraHtml}}</main>
+<script>function shell(action){try{chrome.webview.postMessage({type:"kombify.homelab.shell."+action+".v1"});}catch(e){ } }</script>
+</body></html>
 """;
     }
 
@@ -1402,7 +1445,7 @@ pre{max-height:220px;overflow:auto;background:#06142d;color:#f5f7fb;padding:14px
     {
         var tail = ClientDiagnostics.ReadTail(logPath);
         var pre = string.IsNullOrWhiteSpace(tail) ? "" : $"""<pre>{Html(tail)}</pre>""";
-        return $"""<p class="copy small">Runtime log: <span class="path">{Html(logPath)}</span></p>{pre}""";
+        return $"""<p class="path">{Html(logPath)}</p>{pre}""";
     }
 
     internal static void AppendRuntimeLog(string path, string? line)

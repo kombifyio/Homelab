@@ -27,17 +27,13 @@ echo "${STACKKIT_RELEASE_ARCHIVE_SHA256}  $work_root/release.tar.gz" | sha256sum
 mkdir -p "$release_dir"
 tar --extract --gzip --file "$work_root/release.tar.gz" --directory "$release_dir"
 test -x "$release_dir/stackkit"
-# The release-authored seeds carry the recorded per-kit API-version decision.
-# Reuse that decision; native resource/module defaults remain CLI-owned.
 for kit in basement-kit cloud-kit modern-homelab; do
   api_version="$(jq -er '.apiVersion' "docs/examples/seeds/$kit/stack-spec.yaml")"
-  case "$api_version" in
-    stackkit/v2alpha2) authoring_args=(--api-version "$api_version" --catalog-defaults) ;;
-    stackkit/v2alpha1)
-      compute_tier="$(jq -er '.install.computeTier' "docs/examples/seeds/$kit/stack-spec.yaml")"
-      authoring_args=(--api-version "$api_version" --compute-tier "$compute_tier") ;;
-    *) echo "Unsupported recorded StackKits template API: $api_version" >&2; exit 1 ;;
-  esac
+  if [[ "$api_version" != stackkit/v2alpha2 ]]; then
+    echo "Unsupported recorded StackKits template API for $kit: $api_version" >&2
+    exit 1
+  fi
+  authoring_args=(--api-version "$api_version" --catalog-defaults)
   # init refuses a reserved --domain as the identity origin. Basement keeps its
   # kit default (lab.home); Cloud and Modern require a domain and get the
   # kombify-owned placeholder the projection never lets a deployment inherit.

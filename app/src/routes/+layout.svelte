@@ -59,7 +59,12 @@
     hydrateStackIdentityFromBackend,
     initStackIdentity,
   } from "#lib/stores/stackIdentity.js";
-  import { Menu, Plus, X } from "@lucide/svelte";
+  import { Menu, Plus, RotateCw, X } from "@lucide/svelte";
+  import {
+    restartToUpdate,
+    watchClientUpdate,
+  } from "#lib/client/shell-bridge.js";
+  import { toast } from "#lib/stores/toast.js";
   import HomelabBrandLogo from "#lib/components/HomelabBrandLogo.svelte";
   import Button from "#lib/components/ui/Button.svelte";
   import {
@@ -77,6 +82,8 @@
   // the button's own effects may still run once.
   const bannerAction = $derived(banner?.action ?? null);
   const ActionIcon = $derived(bannerAction?.icon ?? Plus);
+  // The Windows client's update: "Restart to update" while one waits, a short note after it applied.
+  let updateReady = $state(false);
   let productIdentity = $state("");
   let instanceId = $state("");
   // Start with sidebar closed by default to avoid mobile overlay blocking clicks
@@ -180,6 +187,13 @@
     // The Windows client hides the in-app Companion while Kubi runs on the desktop and the
     // person chose one Companion (apps.showCompanion off, AppLink v2 "In-app Companion").
     const stopCompanionPanel = startCompanionPanel();
+    const stopClientUpdate = watchClientUpdate((update) => {
+      updateReady = update.state === "ready";
+      if (update.state === "updated")
+        toast.success(
+          tr("clientUpdate.updated", { version: update.version }),
+        );
+    });
     // Which AI the person has set rides on every panel turn and error report (support context).
     const stopAiSetup = startAiSetup();
 
@@ -217,6 +231,7 @@
     return () => {
       stopViewContext();
       stopCompanionPanel();
+      stopClientUpdate();
       stopAiSetup();
       destroyBridge();
       window.removeEventListener("resize", syncViewport);
@@ -540,6 +555,24 @@
   <!-- Unauthenticated Layout (Login/Register pages) -->
   <div data-kx="app" class="min-h-screen">
     {@render children()}
+  </div>
+{/if}
+
+{#if updateReady}
+  <!-- One small action at the window's top edge, never a notice above the page. -->
+  <div class="fixed end-3 top-3 z-50 max-[48rem]:top-16">
+    <Button
+      variant="primary"
+      size="sm"
+      class="gap-1.5"
+      testId="client-update-restart"
+      onclick={() => {
+        updateReady = !restartToUpdate();
+      }}
+    >
+      <RotateCw class="size-4" aria-hidden="true" />
+      {tr("clientUpdate.restart")}
+    </Button>
   </div>
 {/if}
 

@@ -1,6 +1,9 @@
 import type { StackOperationServer } from "#lib/api/stacks.js";
 
-const providerControlAuthority = "techstack_provider_control";
+const providerControlAuthorities = new Set([
+  "homelab_provider_control",
+  "techstack_provider_control",
+]);
 
 function normalized(value: string | undefined): string {
   return value?.trim().toLowerCase() ?? "";
@@ -17,7 +20,7 @@ export function isLegacyOrUnboundCustody(
   const authority = normalized(server.capabilities?.execution_authority);
   const state = normalized(server.capabilities?.authority_state);
   return (
-    authority !== providerControlAuthority &&
+    !providerControlAuthorities.has(authority) &&
     (state === "legacy_quarantined" || state === "unbound")
   );
 }

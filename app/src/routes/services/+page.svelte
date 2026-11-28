@@ -40,6 +40,7 @@
     blockedMoveTargetsFor as blockedMoveTargetsAmong,
     cockpitServerFor,
     ineligibleDestinationsByServer,
+    placementServerKey,
     migrationProgress,
     moveTargetsFor as moveTargetsAmong,
     serverCapacity,
@@ -1161,7 +1162,11 @@
         ),
         capacity: getServerCapacity(server),
         cards: registry.services
-          .filter((service) => service.server_id === server.id)
+          .filter(
+            (service) =>
+              service.server_id === server.id &&
+              service.kit_deployment_id === server.kit_deployment_id,
+          )
           .map((service) => {
             const canMove = canMoveApplication(service);
             return {
@@ -1173,10 +1178,10 @@
               status: serviceCardStatus(service),
               migration: serviceMigration(service),
               canMove,
-              moveTargetIds: canMove
-                ? moveTargetsFor(service).map((target) => target.id)
+              moveTargetKeys: canMove
+                ? moveTargetsFor(service).map(placementServerKey)
                 : [],
-              ineligibleByServerId: ineligibleDestinationsByServer(service),
+              ineligibleByServerKey: ineligibleDestinationsByServer(service),
               migrating: isServiceMigrating(service.id),
               migrationMessage: getMigrationMessage(service.id),
               actions: [
@@ -1730,7 +1735,7 @@
       server,
       label: moveTargetLabel(server),
     }))}
-    initialTargetId={moveTarget.id}
+    initialTargetKey={placementServerKey(moveTarget)}
     warnings={moveSource.move?.warnings ?? []}
     blockedTargets={blockedMoveTargetsAmong(registry.servers, moveSource).map(
       ({ server, entry }) => ({

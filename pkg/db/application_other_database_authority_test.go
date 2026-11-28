@@ -128,8 +128,8 @@ func TestApplicationPolicyGrantsTheNativeLoginAttempts(t *testing.T) {
 		t.Fatal("a table the policy does not name must stay without privileges")
 	}
 	archive := policy.Tables[43]
-	if !archive["SELECT"] || !archive["INSERT"] || len(archive) != 2 {
-		t.Fatalf("control_plane_disk_archive privileges = %v, want SELECT, INSERT", archive)
+	if archive["SELECT"] || !archive["INSERT"] || len(archive) != 1 {
+		t.Fatalf("control_plane_disk_archive privileges = %v, want INSERT only", archive)
 	}
 	if got := policy.Functions[stackTenantIDsFunctionOID]; got != stackTenantIDsSignature {
 		t.Fatalf("stack tenant directory function = %q, want %q", got, stackTenantIDsSignature)

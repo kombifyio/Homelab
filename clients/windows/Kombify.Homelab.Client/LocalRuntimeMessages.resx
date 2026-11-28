@@ -5,7 +5,6 @@
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
   <data name="IdentityVerificationFailed" xml:space="preserve"><value>The Windows client could not verify the local runtime. Close other applications using its port, then reopen the client.</value></data>
-  <data name="RecoveryIncomplete" xml:space="preserve"><value>Local Homelab Runtime recovery is incomplete.</value></data>
   <data name="RecoveryDatabaseRunning" xml:space="preserve"><value>The local runtime or database is still running. Close other Homelab Runtime windows and reopen the client to finish recovery. Your recovery data has been preserved.</value></data>
   <data name="RecoverySnapshotMissing" xml:space="preserve"><value>The pre-update data backup is missing. Restore the client recovery data before reopening Homelab Runtime. Your current data has been preserved.</value></data>
   <data name="RecoveryRestoreFailed" xml:space="preserve"><value>The client could not restore its pre-update data. Close applications using the local data and reopen the client. Recovery remains pending.</value></data>

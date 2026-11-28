@@ -4,7 +4,7 @@
   "source": {
     "product": "homelab",
     "path": "api/openapi/homelab-v1.yaml",
-    "sha256": "d8d0d5264ca1a5b03b38dc5a4c64c4d600efd098ea3f2de829c9bb4e4c48df69"
+    "sha256": "4e6b4776d0b996dc2e3233fdc7b7a74669df9bbea7f1344b436e0131f7c04d85"
   },
   "tools": [
     {

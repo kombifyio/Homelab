@@ -99,14 +99,27 @@ export function moveTargetsFor(
   );
 }
 
-/** Map of blocked destination server IDs to their structured ineligibility reason. */
+/** Stable identity of a server within its StackKit deployment. */
+export function placementServerKey(server: {
+  id: string;
+  kit_deployment_id?: string;
+}): string {
+  return JSON.stringify([server.kit_deployment_id ?? "", server.id]);
+}
+
+/** Blocked destinations keyed by deployment and server, with their reasons. */
 export function ineligibleDestinationsByServer(
   service: RegistryService,
 ): Record<string, RegistryMoveIneligibleDestination> {
   const map: Record<string, RegistryMoveIneligibleDestination> = {};
   for (const entry of service.move?.ineligible_destinations ?? []) {
     if (entry.server_id) {
-      map[entry.server_id] = entry;
+      map[
+        placementServerKey({
+          id: entry.server_id,
+          kit_deployment_id: entry.kit_deployment_id,
+        })
+      ] = entry;
     }
   }
   return map;
@@ -131,7 +144,15 @@ export function blockedMoveTargetsFor(
 ): { server: RegistryServer; entry: RegistryMoveIneligibleDestination }[] {
   const byServer = ineligibleDestinationsByServer(service);
   return servers.flatMap((server) => {
-    const entry = byServer[server.id];
+    if (
+      server.id === service.server_id &&
+      server.kit_deployment_id === service.kit_deployment_id
+    ) {
+      return [];
+    }
+    const entry =
+      byServer[placementServerKey(server)] ??
+      byServer[placementServerKey({ id: server.id })];
     return entry ? [{ server, entry }] : [];
   });
 }
@@ -176,10 +197,10 @@ export interface PlacementCard {
   status: ServiceStatusKind;
   migration?: ServiceMigration;
   canMove: boolean;
-  /** Server ids this card may be dropped on; empty when it cannot move. */
-  moveTargetIds: string[];
-  /** Blocked destination servers keyed by server id, with structured reasons. */
-  ineligibleByServerId?: Record<string, RegistryMoveIneligibleDestination>;
+  /** Deployment/server keys this card may be dropped on; empty when it cannot move. */
+  moveTargetKeys: string[];
+  /** Blocked destinations keyed by deployment and server, with structured reasons. */
+  ineligibleByServerKey?: Record<string, RegistryMoveIneligibleDestination>;
   migrating: boolean;
   migrationMessage: string;
   actions: ServiceCardAction[];

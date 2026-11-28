@@ -5,7 +5,6 @@
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
   <data name="IdentityVerificationFailed" xml:space="preserve"><value>Le client Windows n’a pas pu vérifier l’environnement d’exécution local. Fermez les autres applications qui utilisent son port, puis rouvrez le client.</value></data>
-  <data name="RecoveryIncomplete" xml:space="preserve"><value>La récupération locale de Homelab Runtime est incomplète.</value></data>
   <data name="RecoveryDatabaseRunning" xml:space="preserve"><value>L’environnement d’exécution local ou la base de données est toujours en cours d’exécution. Fermez les autres fenêtres Homelab Runtime et rouvrez le client pour terminer la récupération. Vos données de récupération ont été conservées.</value></data>
   <data name="RecoverySnapshotMissing" xml:space="preserve"><value>La sauvegarde des données antérieure à la mise à jour est introuvable. Restaurez les données de récupération du client avant de rouvrir Homelab Runtime. Vos données actuelles ont été conservées.</value></data>
   <data name="RecoveryRestoreFailed" xml:space="preserve"><value>Le client n’a pas pu restaurer ses données antérieures à la mise à jour. Fermez les applications qui utilisent les données locales et rouvrez le client. La récupération reste en attente.</value></data>
